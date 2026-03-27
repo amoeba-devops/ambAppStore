@@ -19,6 +19,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
       username: process.env.DB_USERNAME || 'root',
       password: process.env.DB_PASSWORD || '',
       database: process.env.DB_DATABASE || 'db_app_platform',
+      charset: 'utf8mb4',
       autoLoadEntities: true,
       synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV !== 'production',
