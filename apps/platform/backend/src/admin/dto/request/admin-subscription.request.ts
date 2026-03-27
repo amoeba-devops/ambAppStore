@@ -1,6 +1,6 @@
 import { IsOptional, IsString, IsEnum, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { SubscriptionStatus } from '../../platform-subscription/entities/subscription.entity';
+import { SubscriptionStatus } from '../../../platform-subscription/entities/subscription.entity';
 
 export class AdminSubscriptionListQueryDto {
   @IsOptional()

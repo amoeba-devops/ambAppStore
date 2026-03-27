@@ -45,8 +45,8 @@ export class SubscriptionService {
       subRequestedBy: user.userId,
       subRequestedName: user.name,
       subRequestedEmail: user.email,
-      subReason: dto.reason || null,
-    });
+      subReason: dto.reason,
+    } as Partial<SubscriptionEntity>);
 
     const saved = await this.subscriptionRepository.save(subscription);
     saved.app = app;

@@ -35,18 +35,18 @@ export class AdminAppService {
     const app = this.appRepository.create({
       appSlug: dto.app_slug,
       appName: dto.app_name,
-      appNameEn: dto.app_name_en || null,
-      appShortDesc: dto.app_short_desc || null,
-      appDescription: dto.app_description || null,
-      appIconUrl: dto.app_icon_url || null,
-      appScreenshots: dto.app_screenshots || null,
-      appFeatures: dto.app_features || null,
-      appCategory: dto.app_category || null,
-      appStatus: dto.app_status || undefined,
+      appNameEn: dto.app_name_en,
+      appShortDesc: dto.app_short_desc,
+      appDescription: dto.app_description,
+      appIconUrl: dto.app_icon_url,
+      appScreenshots: dto.app_screenshots,
+      appFeatures: dto.app_features,
+      appCategory: dto.app_category,
+      appStatus: dto.app_status,
       appSortOrder: dto.app_sort_order ?? 0,
-      appPortFe: dto.app_port_fe || null,
-      appPortBe: dto.app_port_be || null,
-    });
+      appPortFe: dto.app_port_fe,
+      appPortBe: dto.app_port_be,
+    } as Partial<AppEntity>);
 
     return this.appRepository.save(app);
   }

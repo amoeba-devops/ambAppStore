@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsOptional, IsString, IsEnum, MaxLength, IsInt, Min, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
-import { AppStatus } from '../../platform-app/entities/app.entity';
+import { AppStatus } from '../../../platform-app/entities/app.entity';
 
 export class CreateAppDto {
   @IsString()

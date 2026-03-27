@@ -35,6 +35,6 @@ export class SubscriptionController {
     @CurrentUser() user: AmaJwtPayload,
   ) {
     const subscription = await this.subscriptionService.checkStatus(user.entityId, appSlug);
-    return successResponse(SubscriptionMapper.toStatusResponse(appSlug, subscription));
+    return successResponse(SubscriptionMapper.toStatusResponse(appSlug, subscription ?? undefined));
   }
 }
