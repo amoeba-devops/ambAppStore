@@ -6,6 +6,7 @@ import { HealthController } from './health.controller';
 import { AuthModule } from './auth/auth.module';
 import { PlatformAppModule } from './platform-app/app.module';
 import { PlatformSubscriptionModule } from './platform-subscription/subscription.module';
+import { AdminModule } from './admin/admin.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 @Module({
@@ -25,6 +26,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
     AuthModule,
     PlatformAppModule,
     PlatformSubscriptionModule,
+    AdminModule,
   ],
   controllers: [HealthController],
   providers: [
