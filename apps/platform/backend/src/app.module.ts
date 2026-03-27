@@ -1,7 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { APP_FILTER } from '@nestjs/core';
 import { HealthController } from './health.controller';
+import { AuthModule } from './auth/auth.module';
+import { PlatformAppModule } from './platform-app/app.module';
+import { PlatformSubscriptionModule } from './platform-subscription/subscription.module';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 @Module({
   imports: [
@@ -17,7 +22,13 @@ import { HealthController } from './health.controller';
       synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV !== 'production',
     }),
+    AuthModule,
+    PlatformAppModule,
+    PlatformSubscriptionModule,
   ],
   controllers: [HealthController],
+  providers: [
+    { provide: APP_FILTER, useClass: GlobalExceptionFilter },
+  ],
 })
 export class AppModule {}
