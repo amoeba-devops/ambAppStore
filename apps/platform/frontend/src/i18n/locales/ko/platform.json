@@ -9,6 +9,9 @@
     "loading": "로딩 중...",
     "error": "오류가 발생했습니다"
   },
+  "footer": {
+    "copyright": "Amoeba Company. All rights reserved."
+  },
   "landing": {
     "title": "AMA App Store",
     "subtitle": "AMA 생태계에서 사용할 수 있는 커스텀 앱을 만나보세요",

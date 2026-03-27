@@ -9,6 +9,9 @@
     "loading": "Loading...",
     "error": "An error occurred"
   },
+  "footer": {
+    "copyright": "Amoeba Company. All rights reserved."
+  },
   "landing": {
     "title": "AMA App Store",
     "subtitle": "Discover custom apps available in the AMA ecosystem",

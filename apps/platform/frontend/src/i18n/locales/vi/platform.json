@@ -1,0 +1,49 @@
+{
+  "common": {
+    "login": "Đăng nhập",
+    "logout": "Đăng xuất",
+    "back": "Quay lại",
+    "cancel": "Hủy",
+    "confirm": "Xác nhận",
+    "submit": "Gửi yêu cầu",
+    "loading": "Đang tải...",
+    "error": "Đã xảy ra lỗi"
+  },
+  "footer": {
+    "copyright": "Amoeba Company. Bảo lưu mọi quyền."
+  },
+  "landing": {
+    "title": "AMA App Store",
+    "subtitle": "Khám phá các ứng dụng tùy chỉnh trong hệ sinh thái AMA",
+    "statusAvailable": "Khả dụng",
+    "statusComingSoon": "Sắp ra mắt",
+    "statusInUse": "Đang sử dụng",
+    "statusPending": "Đang xét duyệt"
+  },
+  "detail": {
+    "appIntro": "Giới thiệu",
+    "keyFeatures": "Tính năng chính",
+    "applyButton": "Đăng ký sử dụng",
+    "loginToApply": "Đăng nhập để đăng ký",
+    "inUse": "Đang sử dụng — Truy cập ứng dụng",
+    "underReview": "Đang xét duyệt",
+    "screenshot": "Ảnh chụp màn hình"
+  },
+  "subscription": {
+    "title": "Đăng ký sử dụng ứng dụng",
+    "app": "Ứng dụng",
+    "applicantInfo": "Thông tin người đăng ký (tự động điền)",
+    "name": "Tên",
+    "email": "Email",
+    "entityInfo": "Thông tin Entity (nhập thủ công)",
+    "entityCode": "Mã Entity",
+    "entityCodePlaceholder": "VD: AMB-VN",
+    "entityName": "Tên Entity",
+    "entityNamePlaceholder": "VD: Amoeba Company Vietnam",
+    "reason": "Lý do đăng ký (tùy chọn)",
+    "reasonPlaceholder": "Mô tả ngắn gọn mục đích sử dụng ứng dụng",
+    "successTitle": "Đã gửi yêu cầu",
+    "successMessage": "Yêu cầu đăng ký đã được ghi nhận. Ứng dụng sẽ khả dụng sau khi quản trị viên phê duyệt.",
+    "duplicateError": "Đã tồn tại yêu cầu đang chờ hoặc đang hoạt động cho ứng dụng này"
+  }
+}
