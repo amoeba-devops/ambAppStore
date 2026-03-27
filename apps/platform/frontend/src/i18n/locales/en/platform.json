@@ -1,0 +1,46 @@
+{
+  "common": {
+    "login": "Login",
+    "logout": "Logout",
+    "back": "Back",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "submit": "Submit",
+    "loading": "Loading...",
+    "error": "An error occurred"
+  },
+  "landing": {
+    "title": "AMA App Store",
+    "subtitle": "Discover custom apps available in the AMA ecosystem",
+    "statusAvailable": "Available",
+    "statusComingSoon": "Coming Soon",
+    "statusInUse": "In Use",
+    "statusPending": "Under Review"
+  },
+  "detail": {
+    "appIntro": "About",
+    "keyFeatures": "Key Features",
+    "applyButton": "Apply for this App",
+    "loginToApply": "Login to Apply",
+    "inUse": "In Use — Go to App",
+    "underReview": "Under Review",
+    "screenshot": "Screenshot"
+  },
+  "subscription": {
+    "title": "App Subscription Request",
+    "app": "App",
+    "applicantInfo": "Applicant Info (auto-filled)",
+    "name": "Name",
+    "email": "Email",
+    "entityInfo": "Entity Info (manual input)",
+    "entityCode": "Entity Code",
+    "entityCodePlaceholder": "e.g. AMB-KR",
+    "entityName": "Entity Name",
+    "entityNamePlaceholder": "e.g. Amoeba Company Korea",
+    "reason": "Reason (optional)",
+    "reasonPlaceholder": "Briefly describe why you need this app",
+    "successTitle": "Request Submitted",
+    "successMessage": "Your subscription request has been submitted. It will be available after admin approval.",
+    "duplicateError": "A subscription is already active or pending for this app"
+  }
+}

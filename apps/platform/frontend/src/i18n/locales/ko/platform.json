@@ -1,0 +1,46 @@
+{
+  "common": {
+    "login": "로그인",
+    "logout": "로그아웃",
+    "back": "뒤로",
+    "cancel": "취소",
+    "confirm": "확인",
+    "submit": "신청하기",
+    "loading": "로딩 중...",
+    "error": "오류가 발생했습니다"
+  },
+  "landing": {
+    "title": "AMA App Store",
+    "subtitle": "AMA 생태계에서 사용할 수 있는 커스텀 앱을 만나보세요",
+    "statusAvailable": "사용가능",
+    "statusComingSoon": "출시예정",
+    "statusInUse": "사용중",
+    "statusPending": "심사중"
+  },
+  "detail": {
+    "appIntro": "앱 소개",
+    "keyFeatures": "주요 기능",
+    "applyButton": "앱 사용 신청",
+    "loginToApply": "로그인 후 신청하기",
+    "inUse": "사용중 — 앱 바로가기",
+    "underReview": "심사중",
+    "screenshot": "스크린샷"
+  },
+  "subscription": {
+    "title": "앱 사용 신청",
+    "app": "앱",
+    "applicantInfo": "신청자 정보 (자동 입력)",
+    "name": "이름",
+    "email": "이메일",
+    "entityInfo": "Entity 정보 (직접 입력)",
+    "entityCode": "Entity Code",
+    "entityCodePlaceholder": "예: AMB-KR",
+    "entityName": "Entity Name",
+    "entityNamePlaceholder": "예: Amoeba Company Korea",
+    "reason": "신청 사유 (선택)",
+    "reasonPlaceholder": "앱 사용 목적을 간단히 입력해주세요",
+    "successTitle": "신청 완료",
+    "successMessage": "앱 사용 신청이 접수되었습니다. 관리자 승인 후 사용 가능합니다.",
+    "duplicateError": "이미 신청 중이거나 사용 중인 앱입니다"
+  }
+}
