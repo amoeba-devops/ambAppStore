@@ -12,6 +12,7 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminSubscriptionListPage } from '@/pages/admin/AdminSubscriptionListPage';
 import { AdminAppListPage } from '@/pages/admin/AdminAppListPage';
 import { AdminStatsPage } from '@/pages/admin/AdminStatsPage';
+import { AdminLoginPage } from '@/pages/admin/AdminLoginPage';
 
 function App() {
   return (
@@ -23,7 +24,9 @@ function App() {
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/apps/:slug" element={<AppDetailPage />} />
-              {/* Admin */}
+              {/* Admin Login (outside guard) */}
+              <Route path="/admin/login" element={<AdminLoginPage />} />
+              {/* Admin (protected) */}
               <Route element={<AdminGuard />}>
                 <Route element={<AdminLayout />}>
                   <Route path="/admin" element={<Navigate to="/admin/subscriptions" replace />} />

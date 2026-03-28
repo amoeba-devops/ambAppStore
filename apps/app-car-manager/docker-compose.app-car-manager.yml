@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  bff-car-manager:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: bff-car-manager
+    ports:
+      - "3101:3101"
+    env_file:
+      - ./.env
+    environment:
+      - NODE_ENV=production
+      - PORT=3101
+    depends_on:
+      mysql-apps:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3101/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - amb-network
+
+  web-car-manager:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/app-car-manager/api}
+        VITE_AMA_LOGIN_URL: ${VITE_AMA_LOGIN_URL:-https://ama.amoeba.site/login}
+    container_name: web-car-manager
+    ports:
+      - "5201:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - amb-network
+
+  mysql-apps:
+    image: mysql:8.0
+    container_name: mysql-apps
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./backend/scripts:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - amb-network
+
+volumes:
+  mysql-data:
+
+networks:
+  amb-network:
+    driver: bridge

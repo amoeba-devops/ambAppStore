@@ -1,0 +1,1916 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Manager — apps.amoeba.site/car-manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-base: #f5f6f8;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f0f2f5;
+  --bg-card: #f8f9fb;
+  --bg-hover: #eef0f4;
+  --border: #e2e5eb;
+  --border-light: #d4d8e0;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+  --accent: #ea6c0a;
+  --accent-light: #f97316;
+  --accent-dim: rgba(234,108,10,0.08);
+  --accent-border: rgba(234,108,10,0.25);
+  --green: #059669;
+  --green-dim: rgba(5,150,105,0.08);
+  --blue: #2563eb;
+  --blue-dim: rgba(37,99,235,0.08);
+  --yellow: #d97706;
+  --yellow-dim: rgba(217,119,6,0.08);
+  --red: #dc2626;
+  --red-dim: rgba(220,38,38,0.08);
+  --purple: #7c3aed;
+  --sidebar-w: 240px;
+  --header-h: 60px;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Pretendard', -apple-system, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  height: 100vh;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+/* ─── LAYOUT ─── */
+.app { display:flex; height:100vh; }
+
+/* SIDEBAR */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  z-index: 10;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+}
+.sidebar-logo {
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+}
+.logo-icon {
+  width: 32px; height: 32px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px; color: white;
+  flex-shrink: 0;
+}
+.logo-text { font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.3; }
+.logo-sub { font-size: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+
+.sidebar-section { padding: 8px 0; }
+.sidebar-label {
+  padding: 6px 16px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  cursor: pointer;
+  border-radius: 0;
+  color: var(--text-secondary);
+  transition: all .15s;
+  font-size: 13.5px;
+  position: relative;
+}
+.sidebar-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.sidebar-item.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-right: 2px solid var(--accent);
+}
+.sidebar-item .icon { width: 18px; height: 18px; flex-shrink: 0; opacity: .85; }
+.sidebar-item.active .icon { opacity: 1; }
+.badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 99px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.sidebar-bottom {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+}
+.user-info {
+  display: flex; align-items: center; gap: 10px;
+}
+.avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #c2410c);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; color: white;
+  flex-shrink: 0;
+}
+.user-meta { font-size: 12px; }
+.user-name { color: var(--text-primary); font-weight: 500; }
+.user-role { color: var(--text-muted); }
+
+/* MAIN */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* HEADER */
+.header {
+  height: var(--header-h);
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.header-title { font-size: 16px; font-weight: 600; }
+.header-breadcrumb {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+.header-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all .15s;
+  font-family: 'Pretendard', sans-serif;
+}
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent-light); }
+.btn-secondary { background: var(--bg-elevated); border-color: var(--border-light); color: var(--text-secondary); }
+.btn-secondary:hover { color: var(--text-primary); border-color: var(--accent-border); }
+.btn-ghost { background: transparent; color: var(--text-secondary); }
+.btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+.live-badge {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--green);
+  font-family: 'JetBrains Mono', monospace;
+}
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .3; }
+}
+
+/* CONTENT */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: var(--bg-base);
+}
+.content::-webkit-scrollbar { width: 6px; }
+.content::-webkit-scrollbar-track { background: var(--bg-elevated); }
+.content::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+
+/* PAGES */
+.page { display: none; animation: fadeIn .2s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform: none; } }
+
+/* ─── COMPONENTS ─── */
+
+/* STAT CARDS */
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+.stat-card:hover { border-color: var(--border-light); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+}
+.stat-card.green::before { background: var(--green); }
+.stat-card.blue::before { background: var(--blue); }
+.stat-card.yellow::before { background: var(--yellow); }
+.stat-card.red::before { background: var(--red); }
+
+.stat-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+.stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 36px; font-weight: 600;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.stat-card.green .stat-value { color: var(--green); }
+.stat-card.blue .stat-value { color: var(--blue); }
+.stat-card.yellow .stat-value { color: var(--yellow); }
+.stat-card.red .stat-value { color: var(--red); }
+.stat-sub { font-size: 12px; color: var(--text-muted); }
+.stat-icon { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); opacity: .08; font-size: 52px; }
+
+/* SECTION */
+.section { margin-bottom: 24px; }
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.section-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.section-action { font-size: 12px; color: var(--accent); cursor: pointer; }
+
+/* VEHICLE CARDS */
+.vehicle-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.veh-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  transition: all .15s;
+  position: relative;
+  overflow: hidden;
+}
+.veh-card:hover { border-color: var(--accent-border); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.veh-card.active-running { border-color: rgba(59,130,246,.4); }
+.veh-card.maintenance { border-color: rgba(245,158,11,.3); opacity: .85; }
+
+.veh-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.veh-icon { font-size: 28px; line-height: 1; }
+.veh-status-badge {
+  padding: 3px 8px; border-radius: 99px;
+  font-size: 10px; font-weight: 600;
+  display: flex; align-items: center; gap: 4px;
+}
+.status-available { background: var(--green-dim); color: var(--green); }
+.status-inuse { background: var(--blue-dim); color: var(--blue); }
+.status-maintenance { background: var(--yellow-dim); color: var(--yellow); }
+.status-disposed { background: var(--bg-elevated); color: var(--text-muted); }
+
+.veh-plate {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px; font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+  letter-spacing: .05em;
+}
+.veh-model { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
+.veh-info { display: flex; gap: 12px; }
+.veh-info-item { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 3px; }
+.veh-running-info {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+.veh-route { color: var(--blue); display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+.veh-driver { color: var(--text-secondary); }
+
+/* DISPATCH BOARD (KANBAN) */
+.dispatch-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.kanban-col { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.kanban-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.kanban-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.kanban-count {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 99px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.kanban-col.pending .kanban-title { color: var(--yellow); }
+.kanban-col.approved .kanban-title { color: var(--blue); }
+.kanban-col.completed .kanban-title { color: var(--green); }
+
+.kanban-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 200px; }
+.dispatch-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.dispatch-card:hover { border-color: var(--accent-border); }
+.dc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.dc-id { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); }
+.dc-requester { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+.dc-purpose { font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; }
+.dc-meta { display: flex; flex-direction: column; gap: 3px; }
+.dc-meta-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+.dc-meta-row strong { color: var(--text-secondary); }
+.dc-actions { margin-top: 10px; display: flex; gap: 6px; }
+
+/* FORM */
+.form-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.form-section-title {
+  font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+.form-label .req { color: var(--red); margin-left: 2px; }
+.form-input, .form-select, .form-textarea {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: 'Pretendard', sans-serif;
+  outline: none;
+  transition: border-color .15s;
+  width: 100%;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-select { appearance: none; cursor: pointer; }
+
+/* AVAILABILITY */
+.avail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+.avail-card {
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+  cursor: pointer;
+  transition: all .15s;
+}
+.avail-card.ok { background: var(--green-dim); border-color: rgba(16,185,129,.3); }
+.avail-card.ok:hover { border-color: var(--green); }
+.avail-card.ok.selected { border-color: var(--green); box-shadow: 0 0 0 2px rgba(16,185,129,.3); }
+.avail-card.no { background: var(--bg-elevated); border-color: var(--border); opacity: .6; cursor: not-allowed; }
+.avail-plate { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+.avail-name { font-size: 11px; color: var(--text-secondary); }
+.avail-cap { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+.avail-reason { font-size: 10px; color: var(--yellow); margin-top: 3px; }
+
+/* TABLE */
+.table-wrap {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+table { width: 100%; border-collapse: collapse; }
+thead tr { border-bottom: 1px solid var(--border); }
+th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  background: var(--bg-elevated);
+}
+td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg-hover); }
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* DRIVER POOL */
+.driver-pool { display: flex; flex-direction: column; gap: 8px; }
+.driver-group-title {
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--text-muted);
+  padding: 6px 0 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.driver-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  transition: all .15s;
+  cursor: pointer;
+}
+.driver-row:hover { border-color: var(--accent-border); }
+.driver-row.primary-driver { border-left: 2px solid var(--accent); }
+.driver-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: white;
+  flex-shrink: 0;
+}
+.da-orange { background: linear-gradient(135deg, #f97316, #c2410c); }
+.da-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.da-green { background: linear-gradient(135deg, #10b981, #065f46); }
+.da-purple { background: linear-gradient(135deg, #8b5cf6, #5b21b6); }
+
+.driver-name { font-weight: 600; font-size: 13px; color: var(--text-primary); }
+.driver-dept { font-size: 11px; color: var(--text-muted); }
+.driver-role-badge {
+  padding: 2px 7px; border-radius: 99px;
+  font-size: 10px; font-weight: 600;
+  margin-left: auto;
+}
+.role-primary { background: var(--accent-dim); color: var(--accent); }
+.role-sub { background: var(--blue-dim); color: var(--blue); }
+.role-pool { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-light); }
+
+.license-info { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+.driver-actions { display: flex; gap: 5px; }
+
+/* MONITOR DETAIL CARD */
+.monitor-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.monitor-card-header {
+  padding: 14px 16px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.running-indicator {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--blue); font-weight: 500;
+}
+.run-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--blue); animation: pulse 1.5s infinite;
+}
+.monitor-body { padding: 16px; }
+.route-visual {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.route-origin { color: var(--text-primary); font-weight: 500; }
+.route-arrow { color: var(--accent); font-size: 16px; flex: 1; text-align: center; }
+.route-dest { color: var(--text-primary); font-weight: 500; text-align: right; }
+.monitor-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.monitor-meta-item { text-align: center; }
+.monitor-meta-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+.monitor-meta-val { font-size: 14px; font-weight: 600; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; }
+.passenger-list {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.passenger-chip {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* TABS */
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+  gap: 0;
+}
+.tab-item {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all .15s;
+}
+.tab-item:hover { color: var(--text-secondary); }
+.tab-item.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn .15s ease; }
+
+/* FILTER BAR */
+.filter-bar {
+  display: flex; gap: 8px; align-items: center;
+  margin-bottom: 16px;
+}
+.filter-chip {
+  padding: 5px 12px;
+  border-radius: 99px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  transition: all .15s;
+}
+.filter-chip:hover { border-color: var(--accent-border); color: var(--text-primary); }
+.filter-chip.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+/* TIMELINE (GANTT) */
+.timeline-wrap { overflow-x: auto; padding-bottom: 8px; }
+.timeline {
+  min-width: 700px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.timeline-header {
+  display: grid;
+  grid-template-columns: 160px repeat(12, 1fr);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+.tl-cell {
+  padding: 8px 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  border-right: 1px solid var(--border);
+}
+.tl-cell:first-child { text-align: left; padding-left: 14px; }
+.timeline-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  border-bottom: 1px solid var(--border);
+  min-height: 44px;
+}
+.timeline-row:last-child { border-bottom: none; }
+.tl-veh {
+  padding: 10px 14px;
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; justify-content: center;
+}
+.tl-veh-plate { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.tl-veh-type { font-size: 10px; color: var(--text-muted); }
+.tl-bar-area { position: relative; padding: 8px 6px; }
+.tl-bar {
+  position: absolute;
+  height: 28px;
+  top: 50%; transform: translateY(-50%);
+  border-radius: 4px;
+  display: flex; align-items: center;
+  padding: 0 8px;
+  font-size: 10px; font-weight: 500;
+  overflow: hidden; white-space: nowrap;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.tl-bar:hover { opacity: .85; }
+.tl-bar.running { background: var(--blue); color: white; }
+.tl-bar.completed { background: rgba(16,185,129,.3); color: var(--green); border: 1px solid rgba(16,185,129,.4); }
+.tl-bar.scheduled { background: rgba(249,115,22,.2); color: var(--accent); border: 1px solid var(--accent-border); }
+
+/* TRIP LOG TABLE DETAIL */
+.log-detail {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-top: -1px;
+  display: none;
+}
+.log-detail.show { display: block; }
+.log-detail-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.log-detail-item { }
+.ldl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+.ldv { font-size: 13px; font-weight: 500; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; }
+
+/* TOOLTIP */
+.tooltip-wrap { position: relative; display: inline-flex; }
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 50%; transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 100;
+}
+.tooltip-wrap:hover .tooltip { opacity: 1; }
+
+/* PROGRESS BAR */
+.progress { height: 4px; background: var(--bg-elevated); border-radius: 2px; overflow: hidden; }
+.progress-bar { height: 100%; border-radius: 2px; background: var(--blue); transition: width .5s; }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(17,24,39,0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  display: none;
+}
+.modal-overlay.show { display: flex; animation: fadeIn .15s ease; }
+.modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  width: 500px; max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+}
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title { font-size: 15px; font-weight: 600; }
+.modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; line-height: 1; }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* DRIVER SELECTOR */
+.driver-selector { display: flex; flex-direction: column; gap: 6px; }
+.driver-option {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  cursor: pointer;
+  transition: all .15s;
+}
+.driver-option:hover { border-color: var(--accent-border); }
+.driver-option.selected { border-color: var(--accent); background: var(--accent-dim); }
+.driver-option input[type=radio] { accent-color: var(--accent); }
+.driver-option-label { flex: 1; }
+.driver-option-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.driver-option-meta { font-size: 11px; color: var(--text-muted); }
+.driver-option-status { font-size: 11px; font-weight: 500; }
+.available { color: var(--green); }
+.on-leave { color: var(--yellow); }
+.unavailable { color: var(--red); }
+
+/* TOAST */
+.toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-left: 3px solid var(--green);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-secondary);
+  animation: slideUp .2s ease;
+  max-width: 280px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+@keyframes slideUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform:none; } }
+
+/* ─── UTILS ─── */
+.flex { display: flex; }
+.items-center { align-items: center; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.ml-auto { margin-left: auto; }
+.text-muted { color: var(--text-muted); font-size: 12px; }
+.text-secondary { color: var(--text-secondary); }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+.font-bold { font-weight: 600; }
+.mt-3 { margin-top: 12px; }
+.mt-4 { margin-top: 16px; }
+.mb-3 { margin-bottom: 12px; }
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+.col-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.col-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ─── SIDEBAR ─── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🚗</div>
+      <div>
+        <div class="logo-text">Car Manager</div>
+        <div class="logo-sub">apps.amoeba.site/car-manager</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">관제</div>
+      <div class="sidebar-item active" onclick="nav('monitor')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        운행 관제 모니터링
+        <span class="badge">1</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">차량 관리</div>
+      <div class="sidebar-item" onclick="nav('vehicles')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v5a2 2 0 0 1-2 2h-2"/><circle cx="8.5" cy="18.5" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/></svg>
+        차량 목록
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">배차</div>
+      <div class="sidebar-item" onclick="nav('dispatch-board')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="10" rx="1"/><rect x="14" y="16" width="7" height="5" rx="1"/></svg>
+        배차 현황판
+        <span class="badge" style="background:var(--yellow)">3</span>
+      </div>
+      <div class="sidebar-item" onclick="nav('dispatch-request')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
+        배차 신청
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">기록</div>
+      <div class="sidebar-item" onclick="nav('trip-logs')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 12h6M9 16h6M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l5 5v11a2 2 0 0 1-2 2z"/></svg>
+        운행일지
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">차량 상세</div>
+      <div class="sidebar-item" onclick="nav('vehicle-detail')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+        12가3456 상세
+      </div>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="user-info">
+        <div class="avatar">배</div>
+        <div class="user-meta">
+          <div class="user-name">배차 담당자</div>
+          <div class="user-role">DISPATCHER · 아메바컴퍼니</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ─── MAIN ─── -->
+  <main class="main">
+
+    <!-- ─── 1. 관제 모니터링 ─── -->
+    <div id="page-monitor" class="page active">
+      <div class="header">
+        <div>
+          <div class="header-title">운행 관제 모니터링</div>
+          <div class="header-breadcrumb">apps.amoeba.site/car-manager / monitor</div>
+        </div>
+        <div class="header-actions">
+          <div class="live-badge"><div class="live-dot"></div> LIVE</div>
+          <button class="btn btn-secondary btn-sm">🔔 알림 설정</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- STAT CARDS -->
+        <div class="stat-grid">
+          <div class="stat-card green">
+            <div class="stat-label">보유 차량</div>
+            <div class="stat-value">3</div>
+            <div class="stat-sub">승용 1 · 승합 1 · 화물 1</div>
+            <div class="stat-icon">🚗</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-label">현재 운행중</div>
+            <div class="stat-value">1</div>
+            <div class="stat-sub">12가3456 소나타</div>
+            <div class="stat-icon">🔵</div>
+          </div>
+          <div class="stat-card" style="border-top:2px solid var(--text-muted)">
+            <div class="stat-label">대기 가용</div>
+            <div class="stat-value" style="color:var(--text-secondary)">1</div>
+            <div class="stat-sub">34나7890 스타리아</div>
+            <div class="stat-icon" style="color:var(--text-secondary)">⚪</div>
+          </div>
+          <div class="stat-card yellow">
+            <div class="stat-label">정비중 운행불가</div>
+            <div class="stat-value">1</div>
+            <div class="stat-sub">56다1234 포터2 · 03/27 복귀</div>
+            <div class="stat-icon">🔧</div>
+          </div>
+        </div>
+
+        <!-- 현재 운행 중 -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">🔵 현재 운행 중</div>
+          </div>
+          <div class="monitor-card">
+            <div class="monitor-card-header">
+              <div class="flex items-center gap-2">
+                <div class="running-indicator"><div class="run-dot"></div> 운행중</div>
+                <span class="font-mono" style="font-size:14px;font-weight:600;color:var(--text-primary)">12가3456</span>
+                <span style="font-size:12px;color:var(--text-secondary)">소나타 (승용)</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span style="font-size:12px;color:var(--text-muted)">기사: 김철수</span>
+                <button class="btn btn-ghost btn-sm">상세보기</button>
+              </div>
+            </div>
+            <div class="monitor-body">
+              <div class="route-visual">
+                <div class="route-origin">📍 아메바컴퍼니 본사</div>
+                <div class="route-arrow">→ ─────────── →</div>
+                <div class="route-dest">강남구청 🏢</div>
+              </div>
+              <div class="monitor-meta">
+                <div class="monitor-meta-item">
+                  <div class="monitor-meta-label">출발 시각</div>
+                  <div class="monitor-meta-val">09:30</div>
+                </div>
+                <div class="monitor-meta-item">
+                  <div class="monitor-meta-label">예상 복귀</div>
+                  <div class="monitor-meta-val">11:30</div>
+                </div>
+                <div class="monitor-meta-item">
+                  <div class="monitor-meta-label">탑승 인원</div>
+                  <div class="monitor-meta-val">3명</div>
+                </div>
+              </div>
+              <div class="passenger-list">
+                <span style="font-size:11px;color:var(--text-muted);margin-right:4px;">탑승자:</span>
+                <div class="passenger-chip">👤 홍길동</div>
+                <div class="passenger-chip">👤 이수진</div>
+                <div class="passenger-chip">👥 외부고객 1명</div>
+              </div>
+              <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+                <div class="flex items-center gap-3">
+                  <span style="font-size:11px;color:var(--text-muted)">사용 목적:</span>
+                  <span style="font-size:12px;color:var(--text-secondary)">🏢 고객사 방문 미팅</span>
+                  <span style="font-size:11px;color:var(--text-muted);margin-left:auto;">배차 담당: 배담당</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-2">
+          <!-- 오늘 운행 완료 -->
+          <div class="section">
+            <div class="section-header">
+              <div class="section-title">✅ 오늘 운행 완료</div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>차량</th><th>기사</th><th>구간</th><th>시간</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="mono">34나7890</span></td>
+                    <td>박민준</td>
+                    <td style="font-size:11px;color:var(--text-secondary)">김포공항→본사</td>
+                    <td class="mono" style="color:var(--text-muted)">08:00~09:15</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 오늘 배차 예정 -->
+          <div class="section">
+            <div class="section-header">
+              <div class="section-title">📅 오늘 배차 예정</div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>차량</th><th>신청자</th><th>시간</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="mono">12가3456</span></td>
+                    <td>이영희</td>
+                    <td class="mono" style="color:var(--accent);font-size:12px">14:00~17:00</td>
+                  </tr>
+                  <tr>
+                    <td><span class="mono">34나7890</span></td>
+                    <td>최민수</td>
+                    <td class="mono" style="color:var(--text-muted);font-size:12px">16:30~18:00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 타임라인 -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">📊 오늘 배차 타임라인</div>
+            <div class="text-muted">2026-03-23 (월)</div>
+          </div>
+          <div class="timeline-wrap">
+            <div class="timeline">
+              <div class="timeline-header">
+                <div class="tl-cell">차량</div>
+                <div class="tl-cell">07</div><div class="tl-cell">08</div>
+                <div class="tl-cell">09</div><div class="tl-cell">10</div>
+                <div class="tl-cell">11</div><div class="tl-cell">12</div>
+                <div class="tl-cell">13</div><div class="tl-cell">14</div>
+                <div class="tl-cell">15</div><div class="tl-cell">16</div>
+                <div class="tl-cell">17</div><div class="tl-cell">18</div>
+              </div>
+              <div class="timeline-row">
+                <div class="tl-veh"><div class="tl-veh-plate">12가3456</div><div class="tl-veh-type">소나타 (승용)</div></div>
+                <div class="tl-bar-area" style="position:relative">
+                  <div class="tl-bar running" style="left:calc(2.5/11*100% + 6px);width:calc(2/11*100%)">→ 강남구청</div>
+                  <div class="tl-bar scheduled" style="left:calc(7/11*100% + 6px);width:calc(3/11*100%)">→ 코엑스</div>
+                </div>
+              </div>
+              <div class="timeline-row">
+                <div class="tl-veh"><div class="tl-veh-plate">34나7890</div><div class="tl-veh-type">스타리아 (승합)</div></div>
+                <div class="tl-bar-area">
+                  <div class="tl-bar completed" style="left:calc(1/11*100% + 6px);width:calc(1.25/11*100%)">✓ 김포공항</div>
+                  <div class="tl-bar scheduled" style="left:calc(9.5/11*100% + 6px);width:calc(1.5/11*100%)">→ 인천</div>
+                </div>
+              </div>
+              <div class="timeline-row">
+                <div class="tl-veh"><div class="tl-veh-plate">56다1234</div><div class="tl-veh-type">포터2 (화물)</div></div>
+                <div class="tl-bar-area">
+                  <div class="tl-bar" style="left:6px;width:calc(11/11*100% - 12px);background:rgba(245,158,11,.15);color:var(--yellow);border:1px solid rgba(245,158,11,.3)">🔧 정비중 — 출고 예정 03/27</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ─── 2. 차량 목록 ─── -->
+    <div id="page-vehicles" class="page">
+      <div class="header">
+        <div>
+          <div class="header-title">차량 목록</div>
+          <div class="header-breadcrumb">apps.amoeba.site/car-manager / vehicles</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary btn-sm">🔍 검색</button>
+          <button class="btn btn-primary btn-sm" onclick="showToast('차량 등록 폼이 열립니다')">＋ 차량 등록</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="filter-bar">
+          <span style="font-size:12px;color:var(--text-muted)">차종:</span>
+          <div class="filter-chip active" onclick="toggleFilter(this)">전체</div>
+          <div class="filter-chip" onclick="toggleFilter(this)">🚗 승용</div>
+          <div class="filter-chip" onclick="toggleFilter(this)">🚐 승합</div>
+          <div class="filter-chip" onclick="toggleFilter(this)">🚛 화물</div>
+          <div style="width:1px;height:16px;background:var(--border);margin:0 4px"></div>
+          <span style="font-size:12px;color:var(--text-muted)">상태:</span>
+          <div class="filter-chip active" onclick="toggleFilter(this)">전체</div>
+          <div class="filter-chip" onclick="toggleFilter(this)">● 대기</div>
+          <div class="filter-chip" onclick="toggleFilter(this)">🔵 운행중</div>
+          <div class="filter-chip" onclick="toggleFilter(this)">🔧 정비중</div>
+        </div>
+
+        <div class="vehicle-grid">
+          <!-- 소나타 -->
+          <div class="veh-card active-running" onclick="nav('vehicle-detail')">
+            <div class="veh-header">
+              <div class="veh-icon">🚗</div>
+              <div class="veh-status-badge status-inuse">
+                <div style="width:6px;height:6px;border-radius:50%;background:var(--blue);animation:pulse 1.5s infinite"></div>
+                운행중
+              </div>
+            </div>
+            <div class="veh-plate">12가 3456</div>
+            <div class="veh-model">현대 소나타 2022 · 가솔린</div>
+            <div class="veh-info">
+              <div class="veh-info-item">👤 5인승</div>
+              <div class="veh-info-item">⚙️ 자동</div>
+              <div class="veh-info-item">🔑 소유</div>
+            </div>
+            <div class="veh-running-info">
+              <div class="veh-route">📍 본사  →  강남구청</div>
+              <div class="veh-driver">기사: 김철수 · 09:30 출발</div>
+            </div>
+          </div>
+
+          <!-- 스타리아 -->
+          <div class="veh-card">
+            <div class="veh-header">
+              <div class="veh-icon">🚐</div>
+              <div class="veh-status-badge status-available">
+                <div style="width:6px;height:6px;border-radius:50%;background:var(--green)"></div>
+                대기
+              </div>
+            </div>
+            <div class="veh-plate">34나 7890</div>
+            <div class="veh-model">현대 스타리아 2023 · 디젤</div>
+            <div class="veh-info">
+              <div class="veh-info-item">👤 11인승</div>
+              <div class="veh-info-item">⚙️ 자동</div>
+              <div class="veh-info-item">💳 리스</div>
+            </div>
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;">
+              <div class="flex items-center gap-2">
+                <span style="color:var(--text-muted)">주 기사:</span>
+                <span style="color:var(--text-secondary)">박민준</span>
+                <span style="margin-left:auto;color:var(--text-muted);font-size:11px">16:30 배차 예정</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 포터2 -->
+          <div class="veh-card maintenance">
+            <div class="veh-header">
+              <div class="veh-icon">🚛</div>
+              <div class="veh-status-badge status-maintenance">
+                🔧 정비중
+              </div>
+            </div>
+            <div class="veh-plate">56다 1234</div>
+            <div class="veh-model">현대 포터2 2021 · 디젤</div>
+            <div class="veh-info">
+              <div class="veh-info-item">📦 1.0톤</div>
+              <div class="veh-info-item">🚛 탑차</div>
+              <div class="veh-info-item">🔑 소유</div>
+            </div>
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;">
+              <div class="flex items-center gap-2">
+                <span style="color:var(--yellow)">⚠ 엔진오일 교체</span>
+                <span style="margin-left:auto;color:var(--text-muted);font-size:11px">복귀 03/27</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 알림 섹션 -->
+        <div class="section mt-4">
+          <div class="section-header">
+            <div class="section-title">⚠️ 주의 사항</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--yellow-dim);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius-sm);">
+              <span style="font-size:14px">🔔</span>
+              <span style="font-size:13px;color:var(--text-secondary)"><strong style="color:var(--yellow)">34나7890</strong> 자동차 보험 만료 <strong>D-18</strong> (2026.04.10)</span>
+              <button class="btn btn-ghost btn-sm ml-auto">갱신 등록</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--red-dim);border:1px solid rgba(239,68,68,.3);border-radius:var(--radius-sm);">
+              <span style="font-size:14px">🔔</span>
+              <span style="font-size:13px;color:var(--text-secondary)"><strong style="color:var(--red)">이영희 기사</strong> 운전면허 만료 <strong>D-12</strong> (2026.04.04) — 면허 갱신 필요</span>
+              <button class="btn btn-ghost btn-sm ml-auto">확인</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ─── 3. 배차 현황판 ─── -->
+    <div id="page-dispatch-board" class="page">
+      <div class="header">
+        <div>
+          <div class="header-title">배차 현황판</div>
+          <div class="header-breadcrumb">apps.amoeba.site/car-manager / dispatch-requests</div>
+        </div>
+        <div class="header-actions">
+          <div class="live-badge"><div class="live-dot"></div> LIVE</div>
+          <button class="btn btn-primary btn-sm" onclick="nav('dispatch-request')">＋ 배차 신청</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <div class="dispatch-board">
+          <!-- 대기 -->
+          <div class="kanban-col pending">
+            <div class="kanban-header">
+              <div class="kanban-title">⏳ 신청 대기</div>
+              <div class="kanban-count">3</div>
+            </div>
+            <div class="kanban-body">
+              <div class="dispatch-card" onclick="openDispatchModal()">
+                <div class="dc-top">
+                  <span class="dc-id">#DR-2026-0312</span>
+                  <span style="font-size:10px;color:var(--yellow)">🔥 30분 전</span>
+                </div>
+                <div class="dc-requester">홍길동</div>
+                <div class="dc-purpose">🏢 고객사 방문 미팅</div>
+                <div class="dc-meta">
+                  <div class="dc-meta-row">📅 <strong>03/25(수)</strong> 09:00 ~ 18:00</div>
+                  <div class="dc-meta-row">📍 본사 → 강남구청</div>
+                  <div class="dc-meta-row">👤 탑승 3명 · 승용 희망</div>
+                </div>
+                <div class="dc-actions">
+                  <button class="btn btn-primary btn-sm" style="flex:1" onclick="event.stopPropagation();openDispatchModal()">배차 확정</button>
+                  <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showToast('배차가 반려되었습니다')">반려</button>
+                </div>
+              </div>
+
+              <div class="dispatch-card">
+                <div class="dc-top">
+                  <span class="dc-id">#DR-2026-0313</span>
+                  <span style="font-size:10px;color:var(--text-muted)">2시간 전</span>
+                </div>
+                <div class="dc-requester">이영희</div>
+                <div class="dc-purpose">📦 물품 배송 (본사 → 창고)</div>
+                <div class="dc-meta">
+                  <div class="dc-meta-row">📅 <strong>03/25(수)</strong> 14:00 ~ 17:00</div>
+                  <div class="dc-meta-row">📍 본사 → 인천 물류창고</div>
+                  <div class="dc-meta-row">📦 화물차 필요 · 박스 20개</div>
+                </div>
+                <div class="dc-actions">
+                  <button class="btn btn-primary btn-sm" style="flex:1" onclick="showToast('배차 확정 처리됨')">배차 확정</button>
+                  <button class="btn btn-secondary btn-sm" onclick="showToast('반려 처리됨')">반려</button>
+                </div>
+              </div>
+
+              <div class="dispatch-card">
+                <div class="dc-top">
+                  <span class="dc-id">#DR-2026-0314</span>
+                  <span style="font-size:10px;color:var(--text-muted)">어제</span>
+                </div>
+                <div class="dc-requester" style="display:flex;align-items:center;gap:6px">
+                  최민수
+                  <span style="font-size:10px;padding:2px 6px;background:var(--purple);background:rgba(139,92,246,.2);color:var(--purple);border-radius:99px">대리신청</span>
+                </div>
+                <div class="dc-purpose">🤝 고객 의전 (VIP)</div>
+                <div class="dc-meta">
+                  <div class="dc-meta-row">📅 <strong>03/26(목)</strong> 10:00 ~ 12:00</div>
+                  <div class="dc-meta-row">📍 인천공항 → 여의도</div>
+                  <div class="dc-meta-row">👥 외부고객 2명 · 승합 희망</div>
+                </div>
+                <div class="dc-actions">
+                  <button class="btn btn-primary btn-sm" style="flex:1" onclick="showToast('배차 확정 처리됨')">배차 확정</button>
+                  <button class="btn btn-secondary btn-sm">반려</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 진행중 -->
+          <div class="kanban-col approved">
+            <div class="kanban-header">
+              <div class="kanban-title">🔵 배차 진행중</div>
+              <div class="kanban-count">1</div>
+            </div>
+            <div class="kanban-body">
+              <div class="dispatch-card">
+                <div class="dc-top">
+                  <span class="dc-id">#DR-2026-0310</span>
+                  <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--blue)"><div class="run-dot"></div>운행중</div>
+                </div>
+                <div class="dc-requester">홍길동</div>
+                <div class="dc-purpose">🏢 고객사 미팅</div>
+                <div class="dc-meta">
+                  <div class="dc-meta-row">🚗 <strong>12가3456</strong> 소나타</div>
+                  <div class="dc-meta-row">👨‍✈️ 기사: <strong>김철수</strong> (수락 09:25)</div>
+                  <div class="dc-meta-row">📍 본사 → 강남구청</div>
+                </div>
+                <div style="margin-top:10px;">
+                  <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:4px">
+                    <span>진행률</span><span>출발 완료 → 운행중</span>
+                  </div>
+                  <div class="progress"><div class="progress-bar" style="width:60%"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 완료 -->
+          <div class="kanban-col completed">
+            <div class="kanban-header">
+              <div class="kanban-title">✅ 오늘 완료</div>
+              <div class="kanban-count">2</div>
+            </div>
+            <div class="kanban-body">
+              <div class="dispatch-card" style="opacity:.8">
+                <div class="dc-top">
+                  <span class="dc-id">#DR-2026-0309</span>
+                  <span style="font-size:10px;color:var(--green)">✓ 완료</span>
+                </div>
+                <div class="dc-requester">박지성</div>
+                <div class="dc-purpose">✈️ 공항 픽업</div>
+                <div class="dc-meta">
+                  <div class="dc-meta-row">🚐 <strong>34나7890</strong> 스타리아</div>
+                  <div class="dc-meta-row">📅 08:00 ~ 09:15 · <span class="font-mono">75km</span></div>
+                </div>
+              </div>
+              <div class="dispatch-card" style="opacity:.8">
+                <div class="dc-top">
+                  <span class="dc-id">#DR-2026-0308</span>
+                  <span style="font-size:10px;color:var(--green)">✓ 완료</span>
+                </div>
+                <div class="dc-requester">김미래</div>
+                <div class="dc-purpose">📋 서류 제출</div>
+                <div class="dc-meta">
+                  <div class="dc-meta-row">🚗 <strong>12가3456</strong> 소나타</div>
+                  <div class="dc-meta-row">📅 07:30 ~ 08:30 · <span class="font-mono">22km</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── 4. 배차 신청 ─── -->
+    <div id="page-dispatch-request" class="page">
+      <div class="header">
+        <div>
+          <div class="header-title">배차 신청</div>
+          <div class="header-breadcrumb">apps.amoeba.site/car-manager / dispatch-requests / new</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="nav('dispatch-board')">← 취소</button>
+          <button class="btn btn-primary btn-sm" onclick="submitRequest()">신청하기</button>
+        </div>
+      </div>
+      <div class="content">
+        <div style="max-width:680px;margin:0 auto">
+
+          <div class="form-section">
+            <div class="form-section-title">신청 정보</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">신청자 <span class="req">*</span></label>
+                <input class="form-input" value="홍길동 (본인)" readonly style="opacity:.7">
+              </div>
+              <div class="form-group">
+                <label class="form-label">사용 목적 분류 <span class="req">*</span></label>
+                <select class="form-select">
+                  <option>업무</option>
+                  <option>고객응대</option>
+                  <option>이동지원</option>
+                  <option>기타</option>
+                </select>
+              </div>
+              <div class="form-group full">
+                <label class="form-label">사용 목적 상세 <span class="req">*</span></label>
+                <input class="form-input" placeholder="예: 고객사 미팅 — ABC 기업 방문">
+              </div>
+              <div class="form-group">
+                <label class="form-label">출발 예정 일시 <span class="req">*</span></label>
+                <input class="form-input" type="datetime-local" value="2026-03-25T09:00">
+              </div>
+              <div class="form-group">
+                <label class="form-label">복귀 예정 일시 <span class="req">*</span></label>
+                <input class="form-input" type="datetime-local" value="2026-03-25T18:00">
+              </div>
+              <div class="form-group">
+                <label class="form-label">출발지 <span class="req">*</span></label>
+                <input class="form-input" value="아메바컴퍼니 본사 (서울 강남구)" placeholder="출발지 주소">
+              </div>
+              <div class="form-group">
+                <label class="form-label">목적지 <span class="req">*</span></label>
+                <input class="form-input" placeholder="목적지 주소 입력">
+              </div>
+              <div class="form-group">
+                <label class="form-label">탑승 인원 (본인 포함) <span class="req">*</span></label>
+                <select class="form-select">
+                  <option>1명 (본인만)</option>
+                  <option selected>3명</option>
+                  <option>5명</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">희망 차종</label>
+                <select class="form-select">
+                  <option>상관없음</option>
+                  <option selected>🚗 승용</option>
+                  <option>🚐 승합</option>
+                  <option>🚛 화물</option>
+                </select>
+              </div>
+              <div class="form-group full">
+                <label class="form-label">추가 요청 사항</label>
+                <textarea class="form-textarea" placeholder="특이사항, 요청 내용 등"></textarea>
+              </div>
+            </div>
+
+            <div style="margin-top:12px">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text-secondary)">
+                <input type="checkbox" style="accent-color:var(--accent)"> 대리 신청 (실제 사용자가 본인이 아닌 경우)
+              </label>
+            </div>
+          </div>
+
+          <!-- 가용 차량 -->
+          <div class="form-section">
+            <div class="form-section-title">가용 차량 확인 — 03/25 09:00 ~ 18:00</div>
+            <div class="avail-grid">
+              <div class="avail-card ok selected" onclick="selectCar(this)">
+                <div class="avail-plate">12가3456</div>
+                <div class="avail-name">소나타 · 승용</div>
+                <div class="avail-cap">👤 최대 5인 · 가솔린 · 소유</div>
+              </div>
+              <div class="avail-card ok" onclick="selectCar(this)">
+                <div class="avail-plate">34나7890</div>
+                <div class="avail-name">스타리아 · 승합</div>
+                <div class="avail-cap">👤 최대 11인 · 디젤 · 리스</div>
+              </div>
+              <div class="avail-card no">
+                <div class="avail-plate" style="color:var(--text-muted)">56다1234</div>
+                <div class="avail-name" style="color:var(--text-muted)">포터2 · 화물</div>
+                <div class="avail-reason">⚠ 정비중 (03/27 복귀)</div>
+              </div>
+            </div>
+            <div style="margin-top:12px;padding:10px 12px;background:var(--green-dim);border:1px solid rgba(16,185,129,.3);border-radius:var(--radius-sm);font-size:12px;color:var(--green)">
+              ✅ 12가3456 소나타 선택됨 · 배차 담당자가 최종 확정합니다
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── 5. 운행일지 ─── -->
+    <div id="page-trip-logs" class="page">
+      <div class="header">
+        <div>
+          <div class="header-title">운행일지</div>
+          <div class="header-breadcrumb">apps.amoeba.site/car-manager / trip-logs</div>
+        </div>
+        <div class="header-actions">
+          <select class="form-select" style="width:auto;font-size:12px;padding:5px 10px">
+            <option>2026년 03월</option>
+            <option>2026년 02월</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="showToast('운행기록부 Excel 다운로드 시작')">📥 Excel 출력</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- 월간 요약 -->
+        <div class="col-3 mb-3">
+          <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center">
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">3월 총 운행거리</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:600;color:var(--blue)">1,248<span style="font-size:14px;font-weight:400;color:var(--text-muted)"> km</span></div>
+          </div>
+          <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center">
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">3월 총 운행횟수</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:600;color:var(--accent)">24<span style="font-size:14px;font-weight:400;color:var(--text-muted)"> 회</span></div>
+          </div>
+          <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center">
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">업무 사용 비율</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:600;color:var(--green)">87<span style="font-size:14px;font-weight:400;color:var(--text-muted)"> %</span></div>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <span style="font-size:12px;color:var(--text-muted)">차량:</span>
+          <div class="filter-chip active" onclick="toggleFilter(this)">전체</div>
+          <div class="filter-chip" onclick="toggleFilter(this)">12가3456</div>
+          <div class="filter-chip" onclick="toggleFilter(this)">34나7890</div>
+          <div class="filter-chip" onclick="toggleFilter(this)">56다1234</div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>일지 번호</th>
+                <th>일자</th>
+                <th>차량</th>
+                <th>기사</th>
+                <th>구간</th>
+                <th>ODO (시작→종료)</th>
+                <th>운행거리</th>
+                <th>목적</th>
+                <th>상태</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr onclick="toggleLogDetail('log1')" style="cursor:pointer">
+                <td><span class="mono" style="font-size:12px;color:var(--text-muted)">#TL-0023</span></td>
+                <td>03/23</td>
+                <td><span class="mono">12가3456</span></td>
+                <td>김철수</td>
+                <td style="font-size:12px;color:var(--text-secondary)">본사 → 강남구청</td>
+                <td class="mono" style="font-size:12px;color:var(--text-muted)">48,320 → 48,353</td>
+                <td class="mono" style="color:var(--accent)">33 km</td>
+                <td><span style="font-size:11px;padding:2px 6px;background:var(--blue-dim);color:var(--blue);border-radius:99px">업무</span></td>
+                <td><span style="font-size:11px;padding:2px 6px;background:var(--green-dim);color:var(--green);border-radius:99px">확인완료</span></td>
+                <td style="font-size:12px;color:var(--text-muted)">▼</td>
+              </tr>
+              <tr id="log1-detail">
+                <td colspan="10" style="padding:0;background:var(--bg-elevated)">
+                  <div id="log1" class="log-detail">
+                    <div class="log-detail-grid">
+                      <div class="log-detail-item"><div class="ldl">출발 시각</div><div class="ldv">09:30</div></div>
+                      <div class="log-detail-item"><div class="ldl">도착 시각</div><div class="ldv">10:15</div></div>
+                      <div class="log-detail-item"><div class="ldl">운행 시간</div><div class="ldv">45분</div></div>
+                      <div class="log-detail-item"><div class="ldl">연료 사용</div><div class="ldv">2.8 L</div></div>
+                      <div class="log-detail-item"><div class="ldl">주유 여부</div><div class="ldv">없음</div></div>
+                      <div class="log-detail-item"><div class="ldl">통행료</div><div class="ldv">—</div></div>
+                      <div class="log-detail-item"><div class="ldl">사고 여부</div><div class="ldv">없음</div></div>
+                      <div class="log-detail-item"><div class="ldl">탑승 인원</div><div class="ldv">3명</div></div>
+                    </div>
+                    <div style="margin-top:10px;font-size:12px;color:var(--text-muted)">특이사항: 없음</div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="mono" style="font-size:12px;color:var(--text-muted)">#TL-0022</span></td>
+                <td>03/23</td>
+                <td><span class="mono">34나7890</span></td>
+                <td>박민준</td>
+                <td style="font-size:12px;color:var(--text-secondary)">김포공항 → 본사</td>
+                <td class="mono" style="font-size:12px;color:var(--text-muted)">32,100 → 32,175</td>
+                <td class="mono" style="color:var(--accent)">75 km</td>
+                <td><span style="font-size:11px;padding:2px 6px;background:var(--blue-dim);color:var(--blue);border-radius:99px">업무</span></td>
+                <td><span style="font-size:11px;padding:2px 6px;background:var(--green-dim);color:var(--green);border-radius:99px">확인완료</span></td>
+                <td style="font-size:12px;color:var(--text-muted)">▼</td>
+              </tr>
+              <tr>
+                <td><span class="mono" style="font-size:12px;color:var(--text-muted)">#TL-0021</span></td>
+                <td>03/22</td>
+                <td><span class="mono">12가3456</span></td>
+                <td>이영희</td>
+                <td style="font-size:12px;color:var(--text-secondary)">본사 → 코엑스</td>
+                <td class="mono" style="font-size:12px;color:var(--text-muted)">48,298 → 48,320</td>
+                <td class="mono" style="color:var(--accent)">22 km</td>
+                <td><span style="font-size:11px;padding:2px 6px;background:var(--accent-dim);color:var(--accent);border-radius:99px">고객응대</span></td>
+                <td><span style="font-size:11px;padding:2px 6px;background:var(--yellow-dim);color:var(--yellow);border-radius:99px">검토중</span></td>
+                <td style="font-size:12px;color:var(--text-muted)">▼</td>
+              </tr>
+              <tr>
+                <td><span class="mono" style="font-size:12px;color:var(--text-muted)">#TL-0020</span></td>
+                <td>03/21</td>
+                <td><span class="mono">34나7890</span></td>
+                <td>정대리</td>
+                <td style="font-size:12px;color:var(--text-secondary)">본사 → 판교</td>
+                <td class="mono" style="font-size:12px;color:var(--text-muted)">31,968 → 32,100</td>
+                <td class="mono" style="color:var(--accent)">132 km</td>
+                <td><span style="font-size:11px;padding:2px 6px;background:var(--blue-dim);color:var(--blue);border-radius:99px">업무</span></td>
+                <td><span style="font-size:11px;padding:2px 6px;background:var(--green-dim);color:var(--green);border-radius:99px">확인완료</span></td>
+                <td style="font-size:12px;color:var(--text-muted)">▼</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── 6. 차량 상세 ─── -->
+    <div id="page-vehicle-detail" class="page">
+      <div class="header">
+        <div>
+          <div class="flex items-center gap-2">
+            <div class="header-title font-mono">12가 3456</div>
+            <div class="veh-status-badge status-inuse" style="font-size:11px">🔵 운행중</div>
+          </div>
+          <div class="header-breadcrumb">apps.amoeba.site/car-manager / vehicles / 12가3456</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary btn-sm">수정</button>
+          <button class="btn btn-primary btn-sm" onclick="nav('dispatch-request')">+ 배차 신청</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <div class="tab-bar">
+          <div class="tab-item active" onclick="switchTab(this,'tab-info')">기본 정보</div>
+          <div class="tab-item" onclick="switchTab(this,'tab-drivers')">기사 관리</div>
+          <div class="tab-item" onclick="switchTab(this,'tab-dispatch-history')">배차 이력</div>
+          <div class="tab-item" onclick="switchTab(this,'tab-maintenance')">유지관리</div>
+        </div>
+
+        <!-- 기본 정보 탭 -->
+        <div id="tab-info" class="tab-content active">
+          <div class="col-2">
+            <div>
+              <div class="form-section">
+                <div class="form-section-title">차량 정보</div>
+                <div class="form-grid">
+                  <div class="form-group"><div class="form-label">차량번호</div><div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;color:var(--text-primary);margin-top:4px">12가 3456</div></div>
+                  <div class="form-group"><div class="form-label">차종</div><div style="font-size:13px;margin-top:4px;color:var(--text-secondary)">승용 (PASSENGER)</div></div>
+                  <div class="form-group"><div class="form-label">제조사 / 모델</div><div style="font-size:13px;margin-top:4px;color:var(--text-secondary)">현대 소나타 2022</div></div>
+                  <div class="form-group"><div class="form-label">색상</div><div style="font-size:13px;margin-top:4px;color:var(--text-secondary)">흰색 (White)</div></div>
+                  <div class="form-group"><div class="form-label">배기량 / 연료</div><div style="font-size:13px;margin-top:4px;color:var(--text-secondary)">2,000cc · 가솔린</div></div>
+                  <div class="form-group"><div class="form-label">최대 탑승인원</div><div style="font-size:13px;margin-top:4px;color:var(--text-secondary)">5명</div></div>
+                  <div class="form-group"><div class="form-label">취득 방법</div><div style="font-size:13px;margin-top:4px;color:var(--text-secondary)">현금 구매 (OWNED)</div></div>
+                  <div class="form-group"><div class="form-label">차대번호 (VIN)</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;margin-top:4px;color:var(--text-muted)">KMHG441DBNU123456</div></div>
+                </div>
+              </div>
+              <div class="form-section">
+                <div class="form-section-title">한국 법인차량</div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px">
+                    <span style="color:var(--text-secondary)">법인차량 비용인증</span>
+                    <span style="padding:2px 8px;background:var(--green-dim);color:var(--green);border-radius:99px;font-size:11px;font-weight:600">적용</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px">
+                    <span style="color:var(--text-secondary)">3월 업무 사용 비율</span>
+                    <span class="mono" style="color:var(--green)">89%</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px">
+                    <span style="color:var(--text-secondary)">전용보험 가입</span>
+                    <span style="padding:2px 8px;background:var(--green-dim);color:var(--green);border-radius:99px;font-size:11px;font-weight:600">가입</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="form-section">
+                <div class="form-section-title">검사 / 보험</div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <div style="padding:10px 12px;background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius-sm)">
+                    <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">자동차 보험 만료</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:var(--green)">2026.12.31</div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:2px">삼성화재 · D-283</div>
+                  </div>
+                  <div style="padding:10px 12px;background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius-sm)">
+                    <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">정기검사 예정</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:var(--text-secondary)">2026.08.15</div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:2px">D-145</div>
+                  </div>
+                  <div style="padding:10px 12px;background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius-sm)">
+                    <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">현재 주행거리</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;color:var(--text-primary)">48,353 <span style="font-size:12px;color:var(--text-muted)">km</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 기사 관리 탭 -->
+        <div id="tab-drivers" class="tab-content">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:14px;gap:8px">
+            <button class="btn btn-secondary btn-sm">🌐 POOL 기사 관리</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('기사 추가 모달이 열립니다')">＋ 기사 추가</button>
+          </div>
+          <div class="driver-pool">
+
+            <div class="driver-group-title">★ 주 기사 (PRIMARY_DRIVER)</div>
+            <div class="driver-row primary-driver">
+              <div class="driver-avatar da-orange">김</div>
+              <div style="flex:1">
+                <div class="driver-name">김철수</div>
+                <div class="driver-dept">총무팀 · 차량 전담</div>
+              </div>
+              <div class="driver-role-badge role-primary">PRIMARY</div>
+              <div class="veh-status-badge status-available" style="font-size:10px">● ACTIVE</div>
+              <div class="license-info">면허 ~2028.06</div>
+              <div class="driver-actions">
+                <button class="btn btn-ghost btn-sm">수정</button>
+              </div>
+            </div>
+
+            <div class="driver-group-title" style="margin-top:8px">보조 기사 (SUB_DRIVER)</div>
+            <div class="driver-row">
+              <div class="driver-avatar da-blue">이</div>
+              <div style="flex:1">
+                <div class="driver-name">이영희</div>
+                <div class="driver-dept">총무팀</div>
+              </div>
+              <div class="driver-role-badge role-sub">SUB</div>
+              <div class="veh-status-badge status-maintenance" style="font-size:10px">🌴 ON_LEAVE</div>
+              <div class="license-info" style="color:var(--red)">면허 D-12 ⚠</div>
+              <div style="font-size:11px;color:var(--yellow)">~03/30 복귀</div>
+              <div class="driver-actions">
+                <button class="btn btn-ghost btn-sm">수정</button>
+              </div>
+            </div>
+
+            <div class="driver-row">
+              <div class="driver-avatar da-green">박</div>
+              <div style="flex:1">
+                <div class="driver-name">박민준</div>
+                <div class="driver-dept">IT팀</div>
+              </div>
+              <div class="driver-role-badge role-sub">SUB</div>
+              <div class="veh-status-badge status-available" style="font-size:10px">● ACTIVE</div>
+              <div class="license-info">면허 ~2027.12</div>
+              <div class="driver-actions">
+                <button class="btn btn-ghost btn-sm">수정</button>
+              </div>
+            </div>
+
+            <div class="driver-group-title" style="margin-top:8px">법인 공용 기사 (POOL_DRIVER) — 모든 차량 운행 가능</div>
+            <div class="driver-row">
+              <div class="driver-avatar da-purple">정</div>
+              <div style="flex:1">
+                <div class="driver-name">정대리</div>
+                <div class="driver-dept">총무팀 · 공용 기사</div>
+              </div>
+              <div class="driver-role-badge role-pool">POOL</div>
+              <div class="veh-status-badge status-available" style="font-size:10px">● ACTIVE</div>
+              <div class="license-info">면허 ~2029.03</div>
+              <div class="driver-actions">
+                <button class="btn btn-ghost btn-sm">수정</button>
+              </div>
+            </div>
+
+          </div>
+
+          <div style="margin-top:16px;padding:12px 14px;background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:var(--radius-sm);font-size:12px;color:var(--text-secondary)">
+            ℹ️ POOL 기사는 특정 차량에 고정되지 않으며 법인 내 모든 차량에 배차 가능합니다. 배차 확정 시 가용 POOL 기사가 선택 목록에 자동 포함됩니다.
+          </div>
+        </div>
+
+        <!-- 배차 이력 탭 -->
+        <div id="tab-dispatch-history" class="tab-content">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>배차 번호</th><th>날짜</th><th>신청자</th><th>구간</th><th>기사</th><th>운행거리</th><th>상태</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="mono" style="font-size:12px">#DR-2026-0310</td><td>03/23</td><td>홍길동</td><td style="font-size:12px">본사→강남구청</td><td>김철수</td><td class="mono">33km</td><td><span style="font-size:11px;color:var(--blue)">🔵 운행중</span></td></tr>
+                <tr><td class="mono" style="font-size:12px">#DR-2026-0305</td><td>03/22</td><td>이영희</td><td style="font-size:12px">본사→코엑스</td><td>이영희</td><td class="mono">22km</td><td><span style="font-size:11px;color:var(--green)">✅ 완료</span></td></tr>
+                <tr><td class="mono" style="font-size:12px">#DR-2026-0298</td><td>03/20</td><td>김미래</td><td style="font-size:12px">본사→판교</td><td>김철수</td><td class="mono">48km</td><td><span style="font-size:11px;color:var(--green)">✅ 완료</span></td></tr>
+                <tr><td class="mono" style="font-size:12px">#DR-2026-0291</td><td>03/18</td><td>박지원</td><td style="font-size:12px">서울→수원</td><td>박민준</td><td class="mono">62km</td><td><span style="font-size:11px;color:var(--green)">✅ 완료</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 유지관리 탭 -->
+        <div id="tab-maintenance" class="tab-content">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+            <button class="btn btn-primary btn-sm" onclick="showToast('정비 이력 등록 모달이 열립니다')">＋ 정비 이력 등록</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>정비 유형</th><th>날짜</th><th>정비소</th><th>ODO</th><th>비용</th><th>다음 예정</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span style="font-size:12px;padding:2px 7px;background:var(--accent-dim);color:var(--accent);border-radius:99px">엔진오일</span></td>
+                  <td>2026.01.15</td><td>블루핸즈 강남</td>
+                  <td class="mono" style="font-size:12px">45,200</td>
+                  <td class="mono" style="color:var(--accent)">85,000원</td>
+                  <td style="font-size:12px;color:var(--text-muted)">55,200km 또는 6개월</td>
+                </tr>
+                <tr>
+                  <td><span style="font-size:12px;padding:2px 7px;background:var(--blue-dim);color:var(--blue);border-radius:99px">정기점검</span></td>
+                  <td>2025.10.20</td><td>블루핸즈 강남</td>
+                  <td class="mono" style="font-size:12px">40,100</td>
+                  <td class="mono" style="color:var(--accent)">230,000원</td>
+                  <td style="font-size:12px;color:var(--text-muted)">2026.04.20</td>
+                </tr>
+                <tr>
+                  <td><span style="font-size:12px;padding:2px 7px;background:var(--green-dim);color:var(--green);border-radius:99px">타이어</span></td>
+                  <td>2025.06.10</td><td>타이어뱅크 서초</td>
+                  <td class="mono" style="font-size:12px">35,800</td>
+                  <td class="mono" style="color:var(--accent)">480,000원</td>
+                  <td style="font-size:12px;color:var(--text-muted)">65,800km 또는 2년</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ─── MODAL: 배차 확정 ─── -->
+<div class="modal-overlay" id="modal-dispatch">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">배차 확정 — #DR-2026-0312</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;font-size:13px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div><span style="color:var(--text-muted)">신청자:</span> <strong>홍길동</strong></div>
+          <div><span style="color:var(--text-muted)">일시:</span> <span class="mono">03/25 09:00~18:00</span></div>
+          <div><span style="color:var(--text-muted)">탑승:</span> 3명</div>
+          <div><span style="color:var(--text-muted)">구간:</span> 본사 → 강남구청</div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px">
+        <div class="form-label">차량 선택</div>
+        <select class="form-select" style="margin-top:4px">
+          <option>12가3456 · 소나타 (승용, 대기)</option>
+          <option>34나7890 · 스타리아 (승합, 대기)</option>
+        </select>
+      </div>
+
+      <div class="form-label" style="margin-bottom:8px">배정 기사 선택</div>
+      <div class="driver-selector">
+        <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">★ 주 기사</div>
+        <div class="driver-option selected" onclick="selectDriver(this)">
+          <input type="radio" name="driver" checked>
+          <div class="driver-option-label">
+            <div class="driver-option-name">김철수</div>
+            <div class="driver-option-meta">총무팀 · PRIMARY · 면허 ~2028.06</div>
+          </div>
+          <span class="driver-option-status available">● 가용</span>
+        </div>
+
+        <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin:6px 0 4px">보조 기사</div>
+        <div class="driver-option" onclick="selectDriver(this)">
+          <input type="radio" name="driver">
+          <div class="driver-option-label">
+            <div class="driver-option-name">이영희</div>
+            <div class="driver-option-meta">총무팀 · SUB · 면허 ⚠ D-12</div>
+          </div>
+          <span class="driver-option-status on-leave">🌴 휴가중</span>
+        </div>
+        <div class="driver-option" onclick="selectDriver(this)">
+          <input type="radio" name="driver">
+          <div class="driver-option-label">
+            <div class="driver-option-name">박민준</div>
+            <div class="driver-option-meta">IT팀 · SUB · 면허 ~2027.12</div>
+          </div>
+          <span class="driver-option-status available">● 가용</span>
+        </div>
+
+        <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin:6px 0 4px">풀 기사 (공용)</div>
+        <div class="driver-option" onclick="selectDriver(this)">
+          <input type="radio" name="driver">
+          <div class="driver-option-label">
+            <div class="driver-option-name">정대리</div>
+            <div class="driver-option-meta">총무팀 · POOL · 면허 ~2029.03</div>
+          </div>
+          <span class="driver-option-status available">● 가용</span>
+        </div>
+      </div>
+
+      <div class="form-group mt-3">
+        <div class="form-label">배차 메모 (선택)</div>
+        <textarea class="form-textarea" style="margin-top:4px;min-height:60px" placeholder="배차 확정 관련 메모"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="confirmDispatch()">배차 확정</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ─── NAVIGATION ───
+function nav(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+
+  const map = {
+    'monitor':'운행 관제 모니터링',
+    'vehicles':'차량 목록',
+    'dispatch-board':'배차 현황판',
+    'dispatch-request':'배차 신청',
+    'trip-logs':'운행일지',
+    'vehicle-detail':'12가3456 상세'
+  };
+
+  // highlight sidebar
+  document.querySelectorAll('.sidebar-item').forEach(item => {
+    const txt = item.textContent.trim();
+    if (map[page] && txt.startsWith(map[page].slice(0,4))) {
+      item.classList.add('active');
+    }
+  });
+}
+
+// ─── TABS ───
+function switchTab(el, tabId) {
+  const parent = el.closest('.content');
+  parent.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  parent.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+
+// ─── FILTER CHIP ───
+function toggleFilter(el) {
+  const group = el.parentElement;
+  group.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ─── CAR SELECT ───
+function selectCar(el) {
+  if (el.classList.contains('no')) return;
+  el.closest('.avail-grid').querySelectorAll('.avail-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ─── LOG DETAIL ───
+function toggleLogDetail(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('show');
+}
+
+// ─── MODAL ───
+function openDispatchModal() {
+  document.getElementById('modal-dispatch').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal-dispatch').classList.remove('show');
+}
+function confirmDispatch() {
+  closeModal();
+  showToast('✅ 배차가 확정되었습니다. 김철수 기사에게 운행 지시가 전송되었습니다.');
+  setTimeout(() => nav('dispatch-board'), 300);
+}
+
+// ─── DRIVER OPTION ───
+function selectDriver(el) {
+  el.closest('.driver-selector').querySelectorAll('.driver-option').forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected');
+  el.querySelector('input[type=radio]').checked = true;
+}
+
+// ─── SUBMIT REQUEST ───
+function submitRequest() {
+  showToast('🚗 배차 신청이 접수되었습니다. 담당자 확인 후 배차가 확정됩니다.');
+  setTimeout(() => nav('dispatch-board'), 400);
+}
+
+// ─── TOAST ───
+function showToast(msg) {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ─── MODAL CLOSE ON OVERLAY ───
+document.getElementById('modal-dispatch').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ─── INIT ───
+document.querySelectorAll('.sidebar-item')[0].classList.add('active');
+</script>
+</body>
+</html>

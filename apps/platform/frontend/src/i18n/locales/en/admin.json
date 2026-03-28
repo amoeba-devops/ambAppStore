@@ -77,5 +77,18 @@
     "pendingApprovals": "Pending Approvals",
     "activeSubscriptions": "Active Subscriptions",
     "byApp": "By App"
+  },
+  "login": {
+    "title": "Admin Login",
+    "subtitle": "Login required to access the AMA App Store admin console",
+    "loginWithAma": "Login with AMA Account",
+    "devTokenLabel": "JWT Token Input (Dev Only)",
+    "devTokenHint": "Paste a test JWT token for development environment",
+    "devLogin": "Login with Token",
+    "invalidToken": "Invalid token format",
+    "tokenExpired": "Token has expired. Please obtain a new token",
+    "notAdmin": "This account does not have admin privileges. ADMIN role is required",
+    "enterToken": "Please enter a token",
+    "adminOnly": "This page is restricted to administrators only"
   }
 }

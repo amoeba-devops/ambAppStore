@@ -5,9 +5,12 @@ description: >
   커스텀 앱(app-car-manager, app-hscode, app-sales-report, app-stock-forecast) 개발 시 사용.
   Use when: 앱 CRUD 기능 구현, API 설계, DB 스키마 설계, 프론트엔드 페이지/컴포넌트 작성,
   NestJS 모듈/서비스/컨트롤러 생성, Docker 설정, Nginx 라우팅, TypeORM 엔티티 작성,
-  React Query 훅 작성, Zustand 스토어, i18n 번역 파일, Vite 설정, 배포 스크립트.
+  React Query 훅 작성, Zustand 스토어, i18n 번역 파일, Vite 설정, 배포 스크립트,
+  요구사항분석서, 작업계획서, 테스트케이스, 작업완료보고서, 개발 프로세스 문서 작성.
   Triggers: "앱 개발", "API 구현", "화면 구현", "DB 설계", "엔티티 작성", "새 앱 추가",
-  "app-car-manager", "hscode", "sales-report", "stock-forecast", "BFF", "배포", "deploy".
+  "app-car-manager", "hscode", "sales-report", "stock-forecast", "BFF", "배포", "deploy",
+  "요구사항분석", "작업계획", "테스트케이스", "완료보고서", "ANALYSIS", "TASK-PLAN",
+  "TEST-CASE", "REPORT".
 ---
 
 # ambAppStore Development Skill
@@ -782,14 +785,346 @@ export default defineConfig({
 
 ---
 
+## 13. Development Process (개발 작업 프로세스)
+
+### 13.1 산출물 흐름 (Document Flow)
+
+앱 단위 기능 개발은 아래 순서의 문서 산출물을 따른다. 각 산출물은 이전 단계의 **입력물**을 기반으로 작성한다.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ① 요구사항정의서 (REQ)                                          │
+│     PM/기획자가 비즈니스 요구사항을 정의                          │
+│     ↓  입력물                                                    │
+│  ② 요구사항분석서 (ANALYSIS)                                     │
+│     기능 분해, 비즈니스 규칙 도출, 리스크 식별, 추적 매트릭스     │
+│     ↓  입력물                                                    │
+│  ③ 작업계획서 (TASK-PLAN)                                        │
+│     구현 태스크 분해, 의존성 정의, 일정 산정, 담당자 배정         │
+│     ↓  입력물                                                    │
+│  ④ 구현 (Implementation)                                        │
+│     코드 작성 — §2~§12 규칙 준수                                  │
+│     ↓  입력물                                                    │
+│  ⑤ 테스트케이스 (TEST-CASE)                                      │
+│     기능/API/비즈니스규칙 단위 테스트 시나리오 정의               │
+│     ↓  실행                                                      │
+│  ⑥ 작업완료보고서 (REPORT)                                       │
+│     구현 결과 요약, 테스트 결과, 잔여 이슈, 배포 정보            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 13.2 문서 공통 규칙
+
+#### 13.2.1 문서 ID 체계
+
+```
+{APP_PREFIX}-{DOC_TYPE}-{MAJOR}.{MINOR}.{PATCH}
+```
+
+| 요소 | 규칙 | 예시 |
+|------|------|------|
+| APP_PREFIX | 앱별 고유 코드 | `AMA-VEH` (car-manager), `AMA-HSC` (hscode), `AMA-SAL` (sales-report), `AMA-STK` (stock-forecast) |
+| DOC_TYPE | 문서 유형 코드 | `REQ`, `ANALYSIS`, `TASK-PLAN`, `TEST-CASE`, `REPORT` |
+| 버전 | SemVer | `1.0.0`, `1.1.0` |
+
+**ID 예시**:
+- `AMA-VEH-REQ-1.1.0` — 법인차량 요구사항정의서
+- `AMA-VEH-ANALYSIS-1.1.0` — 법인차량 요구사항분석서
+- `AMA-VEH-TASK-PLAN-1.0.0` — 법인차량 작업계획서
+- `AMA-VEH-TEST-CASE-1.0.0` — 법인차량 테스트케이스
+- `AMA-VEH-REPORT-1.0.0` — 법인차량 작업완료보고서
+
+#### 13.2.2 Frontmatter (YAML 헤더) — 모든 문서 필수
+
+```yaml
+---
+document_id: AMA-VEH-{DOC_TYPE}-{VERSION}
+version: {VERSION}
+status: Draft | Review | Approved | Final
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+author: {작성자}
+based_on: {입력물 document_id}      # ② 이후 문서는 필수
+app: {app-slug}                     # 대상 앱
+phase: {Phase 번호}                  # 해당 Phase (선택)
+---
+```
+
+#### 13.2.3 파일 저장 위치
+
+**SDLC 문서** (`docs/` — 작업 프로세스 산출물):
+```
+docs/
+├── analysis/                     # 요구사항분석서
+│   └── REQ-{YYYYMMDD}-{제목}.md
+├── plan/                         # 작업계획서
+│   └── PLAN-{YYYYMMDD}-{제목}.md
+├── test/                         # 테스트케이스
+│   └── TC-{YYYYMMDD}-{제목}.md
+└── implementation/               # 작업완료보고서
+    └── RPT-{YYYYMMDD}-{제목}.md
+```
+
+**참조 문서** (`reference/` — 앱별 상세 스펙):
+```
+reference/
+├── req/                          # 앱별 상세 요구사항 문서
+│   ├── AMA-VEH-REQ-1.1.0.md
+│   └── AMA-VEH-ANALYSIS-1.1.0.md
+├── plan/                         # 작업계획서
+│   └── AMA-VEH-TASK-PLAN-1.0.0.md
+├── test/                         # 테스트케이스
+│   └── AMA-VEH-TEST-CASE-1.0.0.md
+├── report/                       # 작업완료보고서
+│   └── AMA-VEH-REPORT-1.0.0.md
+├── requirements.md               # 플랫폼 전체 요구사항정의서
+├── func-definition.md            # 플랫폼 전체 기능명세서
+├── ui-spec.md                    # 플랫폼 전체 화면정의서
+└── project-plan.md               # 플랫폼 전체 프로젝트수행계획서
+```
+
+#### 13.2.4 문서 상태 전이
+
+```
+Draft → Review → Approved → Final
+                    ↓
+               (수정 필요 시)
+                 Draft (버전 bump)
+```
+
+### 13.3 ① 요구사항정의서 (REQ)
+
+**작성 시점**: 새 앱 또는 주요 기능 기획 완료 시
+**작성자**: PM / 기획자
+**입력물**: 비즈니스 요구사항, 이해관계자 인터뷰
+
+**필수 섹션**:
+
+| # | 섹션 | 내용 |
+|---|------|------|
+| 1 | 개요 및 범위 | 배경, 목표, 이해관계자, 제약사항 |
+| 2 | 아키텍처 설계 | 시스템 위치, AMA 연동 범위, 데이터 소유 원칙 |
+| 3 | 도메인 모델 | 핵심 도메인 개념, 관계 모델, 상태 전이 |
+| 4 | 기능 요구사항 | 도메인별 FR 테이블 (ID, 기능, 우선순위) |
+| 5 | 데이터 모델 | ERD, 테이블 정의 (DDL), ENUM 목록 |
+| 6 | API 설계 | 엔드포인트 목록 (Method, Path, 설명) |
+| 7 | UI 구성 | 화면 구조, 주요 화면 와이어프레임 (ASCII) |
+| 8 | 비기능 요구사항 | 성능, 보안, 권한 체계 |
+| 9 | 구현 단계 | Phase별 작업 범위, 예상 공수 |
+| 10 | Open Questions | 미결정 사항 (BLOCKER / P0 / P1 / P2) |
+
+**FR ID 규칙**: `FR-{도메인코드}-{3자리 순번}` (예: `FR-VEH-001`, `FR-DSP-015`)
+
+### 13.4 ② 요구사항분석서 (ANALYSIS)
+
+**작성 시점**: REQ 문서 작성/갱신 후
+**작성자**: PM / 개발 리드
+**입력물**: 요구사항정의서 (REQ)
+**저장 경로**: `docs/analysis/REQ-{YYYYMMDD}-{제목}.md`
+
+> **특징**: 관련 기존 코드·DB 스키마·API를 반드시 탐색한 후 **정확한 현황 기반**으로 작성
+
+**필수 섹션** (순서 엄수):
+
+| # | 섹션 | 내용 |
+|---|------|------|
+| 1 | 요구사항 요약 | 핵심 요구사항 목록 테이블 (#, 요구사항, 유형) |
+| 2 | AS-IS 현황 분석 | 현재 프론트/백엔드/DB/i18n 상태, **파일경로·필드명 명시**, 문제점 분석 |
+| 3 | TO-BE 요구사항 | AS-IS→TO-BE 매핑표, 신규 필드/엔티티/페이지, 비즈니스 로직, UI 설계 |
+| 4 | 갭 분석 | 변경 범위 요약표 (영역×현재×변경×영향도), 파일 변경 목록, DB 마이그레이션 전략 |
+| 5 | 사용자 플로우 | Step-by-Step 시나리오, 조건별 분기 (ASCII 흐름도) |
+| 6 | 기술 제약사항 | 호환성, 성능, 보안 (GDPR 등) |
+
+**분석 핵심 산출물**:
+- 비즈니스 규칙 목록 (`BR-001` ~ `BR-NNN`)
+- 상태 전이도 (ASCII 다이어그램)
+- 외부 인터페이스 실패 영향도 매트릭스
+- 리스크 레지스터
+
+### 13.5 ③ 작업계획서 (TASK-PLAN)
+
+**작성 시점**: ANALYSIS 완료 후, 구현 착수 전
+**작성자**: 개발 리드 / 담당 개발자
+**입력물**: 요구사항분석서 (ANALYSIS)
+**저장 경로**: `docs/plan/PLAN-{YYYYMMDD}-{제목}.md`
+
+**필수 섹션** (순서 엄수):
+
+| # | 섹션 | 내용 |
+|---|------|------|
+| 1 | 시스템 개발 현황 분석 | 디렉토리 구조, 기술 스택, 기존 코드 상황, 제약사항 |
+| 2 | 단계별 구현 계획 | Phase/Step 구조, 각 Step에 `└─ 사이드 임팩트: {설명}` 명시 |
+| 3 | 변경 파일 목록 | 테이블 (구분: Backend/Frontend/DB/i18n × 파일 × 변경유형: 신규/수정) |
+| 4 | 사이드 임팩트 분석 | 영향 범위 테이블 (범위×위험도×설명) |
+| 5 | DB 마이그레이션 | 필요 시 수동 SQL 명시 (스테이징/프로덕션은 synchronize 비활성) |
+
+**태스크 ID 규칙**: `T-{Phase번호}{2자리 순번}` (예: `T-101`, `T-102`, `T-201`)
+
+**태스크 분해 테이블 형식**:
+```markdown
+| Task ID | 태스크 | 관련 FR | 예상 공수 | 의존성 | 담당자 | 상태 |
+|---------|--------|---------|----------|--------|--------|------|
+| T-101 | DB 스키마 생성 (6 테이블) | — | 0.5d | — | dev-A | TODO |
+| T-102 | AMA 인증 미들웨어 | — | 1d | T-101 | dev-A | TODO |
+```
+
+**태스크 상태**: `TODO` → `IN_PROGRESS` → `DONE` → `VERIFIED`
+
+### 13.6 ④ 테스트케이스 (TEST-CASE)
+
+**작성 시점**: 구현 착수와 병행 또는 구현 완료 후
+**작성자**: 개발자 / QA
+**입력물**: 요구사항분석서 (ANALYSIS), 작업계획서 (TASK-PLAN)
+
+**필수 섹션**:
+
+| # | 섹션 | 내용 |
+|---|------|------|
+| 1 | 문서 개요 | 문서 정보, 테스트 범위, 테스트 환경 |
+| 2 | 테스트 전략 | 테스트 유형 (단위/통합/E2E), 도구, 커버리지 목표 |
+| 3 | API 테스트케이스 | 엔드포인트별 정상/이상 케이스 |
+| 4 | 비즈니스 규칙 테스트 | BR-{ID}별 검증 시나리오 |
+| 5 | UI 시나리오 테스트 | 화면별 사용자 시나리오 |
+| 6 | 비기능 테스트 | 성능, 보안, 멀티테넌시 격리 검증 |
+
+**테스트케이스 ID 규칙**: `TC-{도메인코드}-{3자리 순번}` (예: `TC-VEH-001`, `TC-DSP-015`)
+
+**API 테스트케이스 테이블 형식**:
+```markdown
+| TC ID | 구분 | 관련 FR/BR | 시나리오 | Method | Endpoint | 입력 | 기대 결과 | 상태 |
+|-------|------|-----------|---------|--------|----------|------|----------|------|
+| TC-VEH-001 | 정상 | FR-VEH-001 | 차량 등록 성공 | POST | /api/vehicles | 유효한 차량 정보 | 201, 차량 생성 | TODO |
+| TC-VEH-002 | 이상 | FR-VEH-001 | 중복 번호판 등록 | POST | /api/vehicles | 기존 번호판 | 409, 중복 에러 | TODO |
+```
+
+**비즈니스 규칙 테스트 테이블 형식**:
+```markdown
+| TC ID | 관련 BR | 시나리오 | 사전 조건 | 실행 | 기대 결과 | 상태 |
+|-------|---------|---------|---------|------|----------|------|
+| TC-BR-001 | BR-001 | 기사 본인 배차 신청 차단 | DRIVER 역할 사용자 | 배차 신청 API 호출 | 403 Forbidden | TODO |
+```
+
+**테스트 상태**: `TODO` → `PASS` / `FAIL` / `BLOCKED` / `SKIP`
+
+### 13.7 ⑤ 작업완료보고서 (REPORT)
+
+**작성 시점**: Phase 또는 Sprint 구현 완료 후
+**작성자**: 개발 리드 / 담당 개발자
+**입력물**: 작업계획서 (TASK-PLAN), 테스트케이스 (TEST-CASE), Git 커밋 이력
+
+**필수 섹션**:
+
+| # | 섹션 | 내용 |
+|---|------|------|
+| 1 | 문서 개요 | 문서 정보, 대상 Phase/Sprint, 기간 |
+| 2 | 구현 요약 | 완료 FR 목록, 생성 파일/모듈 요약, 주요 기술 결정 |
+| 3 | 태스크 완료 현황 | TASK-PLAN의 태스크별 완료 상태, 실제 공수 |
+| 4 | 테스트 결과 | TEST-CASE 실행 결과 요약 (PASS/FAIL/SKIP 집계) |
+| 5 | 배포 정보 | 배포 환경, 커밋 해시, Docker 이미지 태그, 배포 일시 |
+| 6 | 잔여 이슈 및 기술 부채 | 미완료 항목, 알려진 이슈, 리팩토링 필요 사항 |
+| 7 | 다음 단계 | 다음 Phase 계획, Open Questions 해소 현황 |
+
+**태스크 완료 현황 테이블 형식**:
+```markdown
+| Task ID | 태스크 | 상태 | 계획 공수 | 실제 공수 | 비고 |
+|---------|--------|------|----------|----------|------|
+| T-101 | DB 스키마 생성 | DONE | 0.5d | 0.5d | |
+| T-102 | AMA 인증 미들웨어 | DONE | 1d | 1.5d | OQ-0 미확정으로 Mock 구현 |
+```
+
+**테스트 결과 요약 형식**:
+```markdown
+| 도메인 | 전체 | PASS | FAIL | SKIP | BLOCKED | 통과율 |
+|--------|:----:|:----:|:----:|:----:|:-------:|:------:|
+| 차량 관리 | 15 | 14 | 0 | 1 | 0 | 93.3% |
+| 배차 관리 | 25 | 23 | 1 | 1 | 0 | 92.0% |
+| 합계 | 40 | 37 | 1 | 2 | 0 | 92.5% |
+```
+
+### 13.8 프로세스 적용 규칙
+
+| 규칙 | 설명 |
+|------|------|
+| **순서 준수** | REQ → ANALYSIS → TASK-PLAN → 구현 → TEST-CASE → REPORT 순서 엄수 |
+| **입력물 참조** | 각 문서의 `based_on` 필드에 입력물 document_id 기록 |
+| **버전 동기화** | REQ 변경 시 ANALYSIS 이후 문서도 버전 bump 필요 |
+| **Phase 단위** | 작업계획서/테스트케이스/완료보고서는 Phase 단위로 작성 |
+| **간소화 허용** | 소규모 버그 수정/핫픽스는 REPORT만 작성 (REQ~TASK-PLAN 생략 가능) |
+| **Git 커밋 연결** | 완료보고서에 관련 커밋 해시 또는 PR 번호 기록 |
+
+**문서 작성 트리거**:
+
+| 트리거 | 필수 문서 |
+|--------|---------|
+| 새 앱 개발 시작 | REQ → ANALYSIS → TASK-PLAN |
+| Phase 구현 착수 | TASK-PLAN (해당 Phase) |
+| Phase 구현 완료 | TEST-CASE → REPORT |
+| 기존 앱 기능 추가 (대규모) | REQ 갱신 → ANALYSIS 갱신 → TASK-PLAN |
+| 기존 앱 기능 추가 (소규모) | TASK-PLAN (간소) → TEST-CASE → REPORT |
+| 핫픽스/버그 수정 | REPORT (간소) |
+
+---
+
+## 14. Mandatory Standards (필수 준수 표준) — MUST
+
+코드 구현 및 문서 작성 시 아래 2개 표준 문서를 **반드시** 참조·준수해야 한다.
+위반 시 코드 리뷰/문서 리뷰에서 반려된다.
+
+### 14.1 Amoeba Code Convention v2 (코드 컨벤션)
+
+**파일**: `reference/amoeba_code_convention_v2.md`
+
+모든 코드 작성(백엔드, 프론트엔드, DB, API) 시 이 문서의 규칙을 따른다.
+주요 적용 항목:
+- Architecture: Clean Architecture + DDD 레이어 규칙
+- DB Naming: 테이블 prefix, 컬럼 prefix, ENUM 규칙, 인덱스 네이밍
+- Backend: NestJS Module/Controller/Service/Entity 패턴, DTO snake_case/camelCase 분리, Mapper, Guard/Decorator
+- Frontend: 컴포넌트 구조, State Management (Zustand/React Query), Import Order, Hook 패턴
+- API: 표준 응답 형식, 에러 코드 체계, 유효성 검증
+- Multi-Tenancy: `ent_id` 기반 격리, OwnEntityGuard
+- i18n: 번역 파일 관리, namespace 규칙
+- Git: 커밋 메시지 포맷, 브랜치 전략
+
+### 14.2 Amoeba Web Style Guide v2 (웹 스타일 가이드)
+
+**파일**: `reference/amoeba_web_style_guide_v2.md`
+
+모든 프론트엔드 UI 구현 시 이 문서의 디자인 표준을 따른다.
+주요 적용 항목:
+- Layout System: Basic-A-1 / A-2-R / A-2-L 레이아웃 타입
+- Color System: Primary/Secondary/Semantic/Gray 팔레트
+- Typography: 폰트 사이즈, 줄 간격, 제목 체계
+- Component Styles: Button, Input, Table, Card, Badge, Modal 등
+- Spacing System: 간격 단위 (4px 기반)
+- Responsive Breakpoints: sm/md/lg/xl/2xl 구간
+- Web Accessibility: WCAG 2.1 Level AA 준수
+- Icon System: lucide-react 아이콘 규칙
+- Notification/Toast: 알림 UI 패턴
+
+### 14.3 적용 체크리스트
+
+코드 리뷰 시 아래 항목을 추가 확인한다:
+
+- [ ] DB 스키마가 Code Convention §4 DB Naming Rules 준수?
+- [ ] Entity/DTO/Mapper가 Code Convention §5 Backend Rules 준수?
+- [ ] 프론트엔드 컴포넌트가 Code Convention §6~§7 Frontend Rules 준수?
+- [ ] API 응답이 Code Convention §8 API Design 준수?
+- [ ] UI 레이아웃이 Web Style Guide §1~§3 Layout System 준수?
+- [ ] 컬러/타이포가 Web Style Guide §5~§6 준수?
+- [ ] 컴포넌트 스타일이 Web Style Guide §7 Component Styles 준수?
+- [ ] 반응형 대응이 Web Style Guide §10 Responsive Breakpoints 준수?
+
+---
+
 ## References
 
 추가 상세 규격은 [reference 디렉토리](../../../reference/) 참조:
 
-- [코드 컨벤션](../../../reference/amoeba_code_convention_v2.md)
+- **[코드 컨벤션](../../../reference/amoeba_code_convention_v2.md)** ⭐ MUST
+- **[웹 스타일 가이드](../../../reference/amoeba_web_style_guide_v2.md)** ⭐ MUST
+- [SDLC 문서 생성 스킬](../../../reference/amoeba-spec-generator-SKILL-v3.1.md)
 - [개발 스킬 가이드](../../../reference/amoeba_basic_skill_v2.md)
 - [프로젝트 구조 가이드](../../../reference/amoeba_basic_Structure_v2.md)
-- [웹 스타일 가이드](../../../reference/amoeba_web_style_guide_v2.md)
 - [SPEC 템플릿](../../../reference/amoeba_basic_SPEC_v2.md)
 - [기능명세서](../../../reference/func-definition.md)
 - [요구사항정의서](../../../reference/requirements.md)
