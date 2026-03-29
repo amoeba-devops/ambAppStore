@@ -51,7 +51,7 @@ services:
     image: mysql:8.0
     container_name: mysql-apps
     ports:
-      - "3306:3306"
+      - "3308:3306"
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme}
     volumes:
