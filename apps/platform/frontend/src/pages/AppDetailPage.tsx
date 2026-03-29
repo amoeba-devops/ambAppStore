@@ -103,16 +103,12 @@ export function AppDetailPage() {
           <button disabled className="w-full cursor-not-allowed rounded-xl bg-gray-200 py-3 font-semibold text-gray-400">
             {t('landing.statusComingSoon')}
           </button>
-        ) : isAuthenticated ? (
+        ) : (
           <button
             onClick={() => setShowModal(true)}
             className="w-full rounded-xl bg-indigo-600 py-3 font-semibold text-white hover:bg-indigo-700"
           >
             {t('detail.applyButton')}
-          </button>
-        ) : (
-          <button disabled className="w-full cursor-not-allowed rounded-xl bg-gray-200 py-3 font-semibold text-gray-500">
-            {t('detail.loginToApply')}
           </button>
         )}
       </div>

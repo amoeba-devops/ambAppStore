@@ -58,6 +58,28 @@ export function useCreateSubscription() {
   });
 }
 
+export function useCreatePublicSubscription() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      app_slug: string;
+      ent_id: string;
+      ent_code: string;
+      ent_name: string;
+      requester_name?: string;
+      requester_email?: string;
+      reason?: string;
+    }) => {
+      const res = await apiClient.post('/v1/platform/subscriptions/public', data);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform', 'subscriptions'] });
+    },
+  });
+}
+
 export function useCancelSubscription() {
   const queryClient = useQueryClient();
 

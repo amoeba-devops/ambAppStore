@@ -4,12 +4,15 @@ import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
-import { useCreateSubscription } from '@/hooks/useSubscription';
+import { useCreateSubscription, useCreatePublicSubscription } from '@/hooks/useSubscription';
 import { useState } from 'react';
 
 const schema = z.object({
+  ent_id: z.string().min(1),
   ent_code: z.string().min(1).regex(/^[A-Za-z0-9-]+$/),
   ent_name: z.string().min(1).max(100),
+  requester_name: z.string().optional(),
+  requester_email: z.string().email().optional().or(z.literal('')),
   reason: z.string().max(500).optional(),
 });
 
@@ -23,8 +26,9 @@ interface Props {
 
 export function SubscriptionRequestModal({ appSlug, appName, onClose }: Props) {
   const { t } = useTranslation('platform');
-  const { user } = useAuthStore();
-  const mutation = useCreateSubscription();
+  const { user, isAuthenticated } = useAuthStore();
+  const authMutation = useCreateSubscription();
+  const publicMutation = useCreatePublicSubscription();
   const [success, setSuccess] = useState(false);
 
   const {
@@ -35,25 +39,44 @@ export function SubscriptionRequestModal({ appSlug, appName, onClose }: Props) {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
+      ent_id: user?.entityId ?? '',
       ent_code: user?.entityCode ?? '',
       ent_name: '',
+      requester_name: user?.name ?? '',
+      requester_email: user?.email ?? '',
       reason: '',
     },
   });
 
+  const isPending = authMutation.isPending || publicMutation.isPending;
+
   const onSubmit = (data: FormData) => {
-    mutation.mutate(
-      { app_slug: appSlug, ...data },
-      {
-        onSuccess: () => setSuccess(true),
-        onError: (err: any) => {
-          const code = err?.response?.data?.errorCode;
-          if (code === 'E3001') {
-            setError('ent_code', { message: t('subscription.duplicateError') });
-          }
+    const onError = (err: any) => {
+      const code = err?.response?.data?.error?.code || err?.response?.data?.errorCode;
+      if (code === 'PLT-E3001' || code === 'E3001') {
+        setError('ent_code', { message: t('subscription.duplicateError') });
+      }
+    };
+
+    if (isAuthenticated) {
+      authMutation.mutate(
+        { app_slug: appSlug, ent_code: data.ent_code, ent_name: data.ent_name, reason: data.reason },
+        { onSuccess: () => setSuccess(true), onError },
+      );
+    } else {
+      publicMutation.mutate(
+        {
+          app_slug: appSlug,
+          ent_id: data.ent_id,
+          ent_code: data.ent_code,
+          ent_name: data.ent_name,
+          requester_name: data.requester_name,
+          requester_email: data.requester_email,
+          reason: data.reason,
         },
-      },
-    );
+        { onSuccess: () => setSuccess(true), onError },
+      );
+    }
   };
 
   return (
@@ -81,24 +104,56 @@ export function SubscriptionRequestModal({ appSlug, appName, onClose }: Props) {
               <p className="text-sm text-gray-900">{appName}</p>
             </div>
 
-            {/* Applicant info (read-only) */}
-            <fieldset className="rounded-lg border p-3">
-              <legend className="px-1 text-xs font-medium text-gray-500">{t('subscription.applicantInfo')}</legend>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+            {/* Applicant info */}
+            {isAuthenticated ? (
+              <fieldset className="rounded-lg border p-3">
+                <legend className="px-1 text-xs font-medium text-gray-500">{t('subscription.applicantInfo')}</legend>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-gray-500">{t('subscription.name')}</span>
+                    <p className="font-medium">{user?.name ?? '-'}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">{t('subscription.email')}</span>
+                    <p className="font-medium">{user?.email ?? '-'}</p>
+                  </div>
+                </div>
+              </fieldset>
+            ) : (
+              <fieldset className="space-y-3 rounded-lg border p-3">
+                <legend className="px-1 text-xs font-medium text-gray-500">{t('subscription.applicantInfo')}</legend>
                 <div>
-                  <span className="text-gray-500">{t('subscription.name')}</span>
-                  <p className="font-medium">{user?.name ?? '-'}</p>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">{t('subscription.name')}</label>
+                  <input
+                    {...register('requester_name')}
+                    placeholder={t('subscription.namePlaceholder')}
+                    className="w-full rounded-lg border px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
                 </div>
                 <div>
-                  <span className="text-gray-500">{t('subscription.email')}</span>
-                  <p className="font-medium">{user?.email ?? '-'}</p>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">{t('subscription.email')}</label>
+                  <input
+                    {...register('requester_email')}
+                    type="email"
+                    placeholder={t('subscription.emailPlaceholder')}
+                    className="w-full rounded-lg border px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
                 </div>
-              </div>
-            </fieldset>
+              </fieldset>
+            )}
 
             {/* Entity Info */}
             <fieldset className="space-y-3 rounded-lg border p-3">
               <legend className="px-1 text-xs font-medium text-gray-500">{t('subscription.entityInfo')}</legend>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">{t('subscription.entityId')}</label>
+                <input
+                  {...register('ent_id')}
+                  placeholder={t('subscription.entityIdPlaceholder')}
+                  className="w-full rounded-lg border px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+                {errors.ent_id && <p className="mt-1 text-xs text-red-500">{errors.ent_id.message}</p>}
+              </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">{t('subscription.entityCode')}</label>
                 <input
@@ -137,10 +192,10 @@ export function SubscriptionRequestModal({ appSlug, appName, onClose }: Props) {
               </button>
               <button
                 type="submit"
-                disabled={mutation.isPending}
+                disabled={isPending}
                 className="flex-1 rounded-lg bg-indigo-600 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
               >
-                {mutation.isPending ? t('common.loading') : t('common.submit')}
+                {isPending ? t('common.loading') : t('common.submit')}
               </button>
             </div>
           </form>

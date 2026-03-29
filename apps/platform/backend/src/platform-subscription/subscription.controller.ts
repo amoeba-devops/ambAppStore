@@ -2,6 +2,7 @@ import { Controller, Post, Get, Patch, Param, Body } from '@nestjs/common';
 import { SubscriptionService } from './subscription.service';
 import { SubscriptionMapper } from './subscription.mapper';
 import { CreateSubscriptionDto } from './dto/request/create-subscription.dto';
+import { CreatePublicSubscriptionDto } from './dto/request/create-public-subscription.dto';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AmaJwtPayload } from '../auth/interfaces/ama-jwt-payload.interface';
@@ -11,6 +12,7 @@ import { successResponse } from '../common/dto/base-response.dto';
 export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
+  /** 인증 사용자: JWT에서 entityId 추출 */
   @Post()
   @Auth()
   async create(
@@ -18,6 +20,13 @@ export class SubscriptionController {
     @CurrentUser() user: AmaJwtPayload,
   ) {
     const subscription = await this.subscriptionService.create(dto, user);
+    return successResponse(SubscriptionMapper.toResponse(subscription, subscription.app));
+  }
+
+  /** 비인증 공개 신청: AMA entity-settings에서 직접 신청 */
+  @Post('public')
+  async createPublic(@Body() dto: CreatePublicSubscriptionDto) {
+    const subscription = await this.subscriptionService.createPublic(dto);
     return successResponse(SubscriptionMapper.toResponse(subscription, subscription.app));
   }
 

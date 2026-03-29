@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { SubscriptionEntity, SubscriptionStatus } from './entities/subscription.entity';
 import { CreateSubscriptionDto } from './dto/request/create-subscription.dto';
+import { CreatePublicSubscriptionDto } from './dto/request/create-public-subscription.dto';
 import { AppService } from '../platform-app/app.service';
 import { AmaJwtPayload } from '../auth/interfaces/ama-jwt-payload.interface';
 import { BusinessException } from '../common/exceptions/business.exception';
@@ -45,6 +46,43 @@ export class SubscriptionService {
       subRequestedBy: user.userId,
       subRequestedName: user.name,
       subRequestedEmail: user.email,
+      subReason: dto.reason,
+    } as Partial<SubscriptionEntity>);
+
+    const saved = await this.subscriptionRepository.save(subscription);
+    saved.app = app;
+    return saved;
+  }
+
+  async createPublic(dto: CreatePublicSubscriptionDto): Promise<SubscriptionEntity> {
+    const app = await this.appService.findBySlug(dto.app_slug);
+    if (!app) {
+      throw new BusinessException('PLT-E4001', 'App not found', HttpStatus.NOT_FOUND);
+    }
+
+    const existing = await this.subscriptionRepository.findOne({
+      where: {
+        entId: dto.ent_id,
+        appId: app.appId,
+        subStatus: In([SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING]),
+      },
+    });
+    if (existing) {
+      const msg = existing.subStatus === SubscriptionStatus.ACTIVE
+        ? 'Already subscribed to this app'
+        : 'Subscription request already pending';
+      throw new BusinessException('PLT-E3001', msg, HttpStatus.CONFLICT);
+    }
+
+    const subscription = this.subscriptionRepository.create({
+      entId: dto.ent_id,
+      entCode: dto.ent_code,
+      entName: dto.ent_name,
+      appId: app.appId,
+      subStatus: SubscriptionStatus.PENDING,
+      subRequestedBy: dto.ent_id,
+      subRequestedName: dto.requester_name || dto.ent_name,
+      subRequestedEmail: dto.requester_email || '',
       subReason: dto.reason,
     } as Partial<SubscriptionEntity>);
 

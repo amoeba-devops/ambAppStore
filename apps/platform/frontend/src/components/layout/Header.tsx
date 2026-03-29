@@ -10,9 +10,19 @@ const LANGUAGES = [
   { code: 'vi', label: 'Tiếng Việt' },
 ] as const;
 
+/** AMA entity-settings/custom-apps 에서 iframe으로 열린 경우 감지 */
+function isEmbedded(): boolean {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true; // cross-origin iframe이면 접근 차단 → iframe 확정
+  }
+}
+
 export function Header() {
   const { t, i18n } = useTranslation('platform');
   const { isAuthenticated, isAdmin, user, clearAuth } = useAuthStore();
+  const embedded = isEmbedded();
 
   const currentLang = LANGUAGES.find((l) => l.code === i18n.language) || LANGUAGES[0];
 
@@ -73,7 +83,7 @@ export function Header() {
                 {t('common.logout')}
               </button>
             </>
-          ) : (
+          ) : !embedded ? (
             <Link
               to="/apps/login"
               className="flex items-center gap-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -81,7 +91,7 @@ export function Header() {
               <LogIn className="h-4 w-4" />
               {t('common.login')}
             </Link>
-          )}
+          ) : null}
         </div>
       </div>
     </header>
