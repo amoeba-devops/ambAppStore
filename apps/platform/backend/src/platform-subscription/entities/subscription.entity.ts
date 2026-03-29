@@ -61,7 +61,7 @@ export class SubscriptionEntity {
   subApprovedAt: Date;
 
   @Column({ name: 'sub_expires_at', type: 'datetime', nullable: true })
-  subExpiresAt: Date;
+  subExpiresAt: Date | null;
 
   @CreateDateColumn({ name: 'sub_created_at' })
   subCreatedAt: Date;
