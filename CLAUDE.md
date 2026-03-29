@@ -158,7 +158,7 @@ type: feat | fix | docs | style | refactor | test | chore | hotfix
 ### 서버 정보
 | 환경 | 도메인 | IP | SSH | 프로젝트 경로 |
 |------|--------|-----|-----|------------|
-| **스테이징** | `stg-apps.amoeba.site` | `14.161.40.143` | `ssh amb-staging` | `/home/ambAppStore` |
+| **스테이징** | `stg-apps.amoeba.site` | `14.161.40.143` | `ssh ambAppStore@stg-apps.amoeba.site` | `~/ambAppStore` |
 | **프로덕션** | `apps.amoeba.site` | `18.138.206.18` (AWS) | `ssh amoeba-shop` | `/var/www/apps_amoeba` |
 
 ### 환경별 접속 정보
@@ -181,16 +181,16 @@ type: feat | fix | docs | style | refactor | test | chore | hotfix
 ### 배포
 ```bash
 # 스테이징 배포 (SSH → 서버에서 실행)
-ssh amb-staging "cd /home/ambAppStore && git pull origin main && bash platform/scripts/deploy-staging.sh"
+ssh ambAppStore@stg-apps.amoeba.site "cd ~/ambAppStore && git pull origin main && bash platform/scripts/deploy-staging.sh"
 
 # build만
-ssh amb-staging "cd /home/ambAppStore && bash platform/scripts/deploy-staging.sh build"
+ssh ambAppStore@stg-apps.amoeba.site "cd ~/ambAppStore && bash platform/scripts/deploy-staging.sh build"
 
 # restart만 (빌드 없이)
-ssh amb-staging "cd /home/ambAppStore && bash platform/scripts/deploy-staging.sh restart"
+ssh ambAppStore@stg-apps.amoeba.site "cd ~/ambAppStore && bash platform/scripts/deploy-staging.sh restart"
 
 # 배포 후 검증
-ssh amb-staging "cd /home/ambAppStore && bash platform/scripts/deploy-staging.sh verify"
+ssh ambAppStore@stg-apps.amoeba.site "cd ~/ambAppStore && bash platform/scripts/deploy-staging.sh verify"
 ```
 - **금지**: `docker compose build` 직접 실행 금지 → 반드시 `deploy-staging.sh` 스크립트를 통해 빌드 (`.env` 누락 방지)
 - **금지**: 프로덕션 서버에 직접 배포 금지 → 반드시 스테이징 먼저
