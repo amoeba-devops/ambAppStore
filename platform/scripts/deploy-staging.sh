@@ -67,6 +67,12 @@ else
 fi
 
 # ---- Pre-checks ----
+# Ensure external Docker network exists
+if ! docker network inspect amb-apps-network >/dev/null 2>&1; then
+  log "Creating external Docker network: amb-apps-network"
+  docker network create amb-apps-network
+fi
+
 for app in "${APPS[@]}"; do
   dir="${APP_DIRS[$app]}"
   compose="${APP_COMPOSE[$app]}"
@@ -78,6 +84,11 @@ for app in "${APPS[@]}"; do
     warn ".env not found for $app at $dir/.env — skipping env-file check"
   fi
 done
+
+# Ensure platform (with MySQL) is deployed first when deploying all apps
+if [ "$TARGET_APP" = "all" ]; then
+  APPS=(platform car-manager stock)
+fi
 
 build_app() {
   local app=$1
