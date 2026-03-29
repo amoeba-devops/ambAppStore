@@ -374,7 +374,7 @@ CREATE INDEX idx_plt_subscriptions_ent_code ON plt_subscriptions(ent_code);
 │  │              │  │              │  │              │              │
 │  │ 법인차량관리  │  │ HS Code Tool │  │ 매출리포트    │              │
 │  │              │  │              │  │              │              │
-│  │ 법인 차량의   │  │ HS Code 검색 │  │ SocialBean   │              │
+│  │ 법인 차량의   │  │ HS Code 검색 │  │    │              │
 │  │ 배차, 운행,  │  │ 및 AI 품목   │  │ 매출 현황     │              │
 │  │ 유지보수 관리 │  │ 분류 도구    │  │ 대시보드      │              │
 │  │              │  │              │  │              │              │
@@ -386,7 +386,7 @@ CREATE INDEX idx_plt_subscriptions_ent_code ON plt_subscriptions(ent_code);
 │  │              │                                                  │
 │  │ 재고관리예측  │                                                  │
 │  │              │                                                  │
-│  │ SocialBean   │                                                  │
+│  │    │                                                  │
 │  │ 재고 관리 및 │                                                  │
 │  │ AI 수요 예측 │                                                  │
 │  │              │                                                  │
