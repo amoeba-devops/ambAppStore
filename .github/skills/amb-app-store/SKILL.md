@@ -641,11 +641,21 @@ src/i18n/
 
 | Branch | Environment | Deploy |
 |--------|-------------|--------|
-| `main` | **Staging** (`apps.amoeba.site`) | Push/Merge → 자동 배포 |
-| `production` | Production | *향후 구성* — main에서 merge |
+| `main` | **Staging** (`stg-apps.amoeba.site`, 베트남) | Push/Merge → 스테이징 배포 |
+| `production` | **Production** (`apps.amoeba.site`, AWS 싱가포르) | main→production PR → 프로덕션 배포 |
 
-> 현재 Phase: **Staging Only** — `main` 브랜치만 운영.
-> Production 서버 구성 시 `production` 브랜치 추가.
+### 8.1.1 서버 정보
+
+| 환경 | 도메인 | IP | SSH | 프로젝트 경로 |
+|------|--------|-----|-----|----------|
+| **스테이징** | `stg-apps.amoeba.site` | `14.161.40.143` | `ssh amb-staging` | `/home/ambAppStore` |
+| **프로덕션** | `apps.amoeba.site` | `18.138.206.18` (AWS) | `ssh amoeba-shop` | `/var/www/apps_amoeba` |
+
+### 8.1.2 배포 원칙 (반드시 준수)
+
+- **스테이징 먼저**: 모든 배포는 반드시 스테이징(stg-apps.amoeba.site)에 먼저 배포
+- **프로덕션 직접 배포 금지**: 스테이징에서 테스트 완료된 사항만 프로덕션(apps.amoeba.site)에 배포
+- **플로우**: `git push main` → 스테이징 배포 → 테스트 → `main→production PR` → 프로덕션 배포
 
 ### 8.2 Branch Naming
 
@@ -665,12 +675,12 @@ src/i18n/
 
 ```
 일반 개발:
-  main 분기 → feature/{app-slug}/{desc} → PR → Code Review → main 머지 → Staging 자동 배포
+  main 분기 → feature/{app-slug}/{desc} → PR → Code Review → main 머지 → Staging 배포
 
 긴급 수정:
-  main 분기 → hotfix/{app-slug}/{desc} → PR (간소화 리뷰) → main 머지 → Staging 자동 배포
+  main 분기 → hotfix/{app-slug}/{desc} → PR (간소화 리뷰) → main 머지 → Staging 배포
 
-향후 Production:
+Production 배포:
   main (Staging 검증 완료) → PR → production 머지 → Production 배포
 ```
 
@@ -700,6 +710,26 @@ type: feat | fix | docs | style | refactor | test | chore | hotfix
 
 각 앱은 독립 `docker-compose.{slug}.yml` 파일로 관리.
 BFF 컨테이너 이름: `bff-{slug}` (예: `bff-app-car-manager`)
+
+### 9.1.1 배포 명령
+
+```bash
+# 스테이징 배포 (SSH → 서버에서 실행)
+ssh amb-staging "cd /home/ambAppStore && git pull origin main && bash platform/scripts/deploy-staging.sh"
+
+# build만
+ssh amb-staging "cd /home/ambAppStore && bash platform/scripts/deploy-staging.sh build"
+
+# restart만 (빌드 없이)
+ssh amb-staging "cd /home/ambAppStore && bash platform/scripts/deploy-staging.sh restart"
+
+# 배포 후 검증
+ssh amb-staging "cd /home/ambAppStore && bash platform/scripts/deploy-staging.sh verify"
+```
+
+> **금지**: `docker compose build` 직접 실행 금지 → 반드시 `deploy-staging.sh` 스크립트를 통해 빌드 (`.env` 누락 방지)
+> **금지**: 프로덕션 서버에 직접 배포 금지 → 반드시 스테이징 먼저
+> **VITE 변수**: `VITE_*` 환경변수는 빌드 시점 인라인이므로 변경 시 이미지 재빌드 필수
 
 ### 9.2 Nginx Routing
 

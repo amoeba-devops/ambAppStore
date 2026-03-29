@@ -129,8 +129,8 @@ cd apps/platform && docker compose -f docker-compose.platform.yml up -d   # MySQ
 ### 브랜치 구조
 | 브랜치 | 용도 | 배포 환경 | 보호 |
 |--------|------|-----------|------|
-| `production` | 프로덕션 릴리즈 | 프로덕션 서버 | PR 필수, 1명 승인 |
-| `main` | 개발 통합 (기본 브랜치) | 스테이징 서버 | PR 필수, 1명 승인 |
+| `production` | 프로덕션 릴리즈 | 프로덕션 서버 (AWS 싱가포르) | PR 필수, 1명 승인 |
+| `main` | 개발 통합 (기본 브랜치) | 스테이징 서버 (베트남) | PR 필수, 1명 승인 |
 | `feature/*` | 기능 개발 | 로컬 | - |
 | `hotfix/*` | 긴급 버그 수정 | - | - |
 
@@ -139,6 +139,11 @@ cd apps/platform && docker compose -f docker-compose.platform.yml up -d   # MySQ
 2. 작업 완료 후 `main`으로 PR → Squash Merge
 3. 스테이징 테스트 후 `main` → `production` PR → Merge Commit
 4. Hotfix: `production`에서 분기 → `production` + `main` 둘 다 머지
+
+### 배포 원칙 (반드시 준수)
+- **스테이징 먼저**: 모든 배포는 반드시 스테이징(stg-apps.amoeba.site)에 먼저 배포
+- **프로덕션 직접 배포 금지**: 스테이징에서 테스트 완료된 사항만 프로덕션(apps.amoeba.site)에 배포
+- **플로우**: `git push main` → 스테이징 배포 → 테스트 → `main→production PR` → 프로덕션 배포
 
 ### 커밋 메시지 규칙
 ```
@@ -150,11 +155,18 @@ type: feat | fix | docs | style | refactor | test | chore | hotfix
 
 ## 인프라 및 배포
 
+### 서버 정보
+| 환경 | 도메인 | IP | SSH | 프로젝트 경로 |
+|------|--------|-----|-----|------------|
+| **스테이징** | `stg-apps.amoeba.site` | `14.161.40.143` | `ssh amb-staging` | `/home/ambAppStore` |
+| **프로덕션** | `apps.amoeba.site` | `18.138.206.18` (AWS) | `ssh amoeba-shop` | `/var/www/apps_amoeba` |
+
 ### 환경별 접속 정보
 | 환경 | Web | API | DB |
 |------|-----|-----|----|
 | **개발** | http://localhost:5200 | http://localhost:3100 | localhost:3306 (MySQL) |
-| **스테이징** | https://apps.amoeba.site | https://apps.amoeba.site/api/v1 | Docker 내부 |
+| **스테이징** | https://stg-apps.amoeba.site | https://stg-apps.amoeba.site/api/v1 | Docker 내부 |
+| **프로덕션** | https://apps.amoeba.site | https://apps.amoeba.site/api/v1 | Docker 내부 |
 
 ### Nginx 라우팅 (`apps.amoeba.site`)
 | 경로 | 대상 | 용도 |
@@ -168,19 +180,20 @@ type: feat | fix | docs | style | refactor | test | chore | hotfix
 
 ### 배포
 ```bash
-# 스테이징 (full: git pull + build + restart)
-bash platform/scripts/deploy-staging.sh
+# 스테이징 배포 (SSH → 서버에서 실행)
+ssh amb-staging "cd /home/ambAppStore && git pull origin main && bash platform/scripts/deploy-staging.sh"
 
 # build만
-bash platform/scripts/deploy-staging.sh build
+ssh amb-staging "cd /home/ambAppStore && bash platform/scripts/deploy-staging.sh build"
 
 # restart만 (빌드 없이)
-bash platform/scripts/deploy-staging.sh restart
+ssh amb-staging "cd /home/ambAppStore && bash platform/scripts/deploy-staging.sh restart"
 
 # 배포 후 검증
-bash platform/scripts/deploy-staging.sh verify
+ssh amb-staging "cd /home/ambAppStore && bash platform/scripts/deploy-staging.sh verify"
 ```
 - **금지**: `docker compose build` 직접 실행 금지 → 반드시 `deploy-staging.sh` 스크립트를 통해 빌드 (`.env` 누락 방지)
+- **금지**: 프로덕션 서버에 직접 배포 금지 → 반드시 스테이징 먼저
 - **VITE 변수**: `VITE_*` 환경변수는 빌드 시점 인라인이므로 변경 시 이미지 재빌드 필수
 
 ## 요구사항 작업 워크플로우
