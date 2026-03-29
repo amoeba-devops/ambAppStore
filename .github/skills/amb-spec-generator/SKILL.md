@@ -77,7 +77,7 @@ ambAppStore technology stack — reflect this context in all generated documents
 | 법인차량관리 | `/app-car-manager` | `db_app_car` | :3101 | :5201 | `car_` |
 | HS Code Tool | `/app-hscode` | `db_app_hscode` | :3102 | :5202 | `hsc_` |
 | 매출리포트 | `/app-sales-report` | `db_app_sales` | :3103 | :5203 | `sal_` |
-| 재고예측 | `/app-stock-forecast` | `db_app_stock` | :3104 | :5204 | `stk_` |
+| 재고예측 | `/app-stock-management` | `db_app_stock` | :3104 | :5204 | `stk_` |
 
 ### Architecture Overview
 

@@ -16,8 +16,8 @@ ambAppStore는 아메바컴퍼니가 운영하는 **파트너 앱 플랫폼**입
 apps.amoeba.site/
 ├── /car-manager        → 법인차량관리 (Corporate Vehicle Manager)
 ├── /app-hscode         → HS Code 검색·분류 도구
-├── /app-sales-report   → 매출리포트 for SocialBean
-└── /app-stock-forecast → 재고관리예측시스템 for SocialBean
+├── /app-sales-report   → 매출리포트
+└── /app-stock-management → 재고관리시스템
 ```
 
 ---
@@ -28,8 +28,8 @@ apps.amoeba.site/
 |---|----------|------|--------|----|--------|
 | 1 | 법인차량관리 Corporate Vehicle Manager | `/car-manager` | Amoeba 내부 | `db_app_car` | 🔨 In Dev |
 | 2 | HS Code Tool | `/app-hscode` | 수출입 업무 담당자 | `db_app_hscode` | 🔨 In Dev |
-| 3 | 매출리포트 for SocialBean | `/app-sales-report` | SocialBean 경영진 | `db_app_sales` | 📋 Planned |
-| 4 | 재고관리예측시스템 for SocialBean | `/app-stock-forecast` | SocialBean 운영팀 | `db_app_stock` | 📋 Planned |
+| 3 | 매출리포트 | `/app-sales-report` | 경영진 | `db_app_sales` | 📋 Planned |
+| 4 | 재고관리시스템 | `/app-stock-management` | 운영팀 | `db_app_stock` | 📋 Planned |
 
 ---
 
@@ -70,10 +70,10 @@ ambAppStore/                          # 저장소 루트 (GitHub: ambAppStore)
 │   │   ├── frontend/
 │   │   ├── backend/
 │   │   └── docker-compose.app-sales-report.yml
-│   └── app-stock-forecast/
+│   └── app-stock-management/
 │       ├── frontend/
 │       ├── backend/
-│       └── docker-compose.app-stock-forecast.yml
+│       └── docker-compose.app-stock-management.yml
 ├── packages/
 │   ├── eslint-config/                # 공유 ESLint 설정 (Amoeba 표준)
 │   ├── tsconfig/                     # 공유 TypeScript 설정
@@ -137,8 +137,8 @@ Nginx (apps.amoeba.site)
 ├── /app-sales-report/* → React SPA (dist/app-sales-report/)
 │   └── /app-sales-report/api/* → NestJS BFF (Docker :3103)
 │
-└── /app-stock-forecast/* → React SPA (dist/app-stock-forecast/)
-    └── /app-stock-forecast/api/* → NestJS BFF (Docker :3104)
+└── /app-stock-management/* → React SPA (dist/app-stock-management/)
+    └── /app-stock-management/api/* → NestJS BFF (Docker :3104)
 ```
 
 ---
@@ -150,7 +150,7 @@ Nginx (apps.amoeba.site)
 | car-manager | `db_app_car` | `car_` | `car_id`, `car_plate_no` |
 | app-hscode | `db_app_hscode` | `hsc_` | `hsc_id`, `hsc_code` |
 | app-sales-report | `db_app_sales` | `sal_` | `sal_id`, `sal_amount` |
-| app-stock-forecast | `db_app_stock` | `stk_` | `stk_id`, `stk_sku` |
+| app-stock-management | `db_app_stock` | `stk_` | `stk_id`, `stk_sku` |
 
 - PK: `{prefix}_id` (UUID v4)
 - Soft Delete: `{prefix}_deleted_at`
@@ -165,7 +165,7 @@ Nginx (apps.amoeba.site)
 | car-manager | :5201 | :3101 | bff-car-manager |
 | app-hscode | :5202 | :3102 | bff-app-hscode |
 | app-sales-report | :5203 | :3103 | bff-app-sales-report |
-| app-stock-forecast | :5204 | :3104 | bff-app-stock-forecast |
+| app-stock-management | :5204 | :3104 | bff-app-stock-management |
 
 ---
 

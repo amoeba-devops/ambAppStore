@@ -42,8 +42,8 @@ author: Kim Igyong
 |---|-----|-------------|
 | 1 | **car-manager** | 법인차량 등록, 배차, 운행일지, 유지보수, 비용 관리 |
 | 2 | **app-hscode** | HS Code 검색, 세율 조회, 품목 분류 지원 도구 |
-| 3 | **app-sales-report** | SocialBean 매출 현황 대시보드, 채널별 리포트 |
-| 4 | **app-stock-forecast** | SocialBean 재고 현황 관리 및 AI 기반 수요 예측 |
+| 3 | **app-sales-report** | 매출 현황 대시보드, 채널별 리포트 |
+| 4 | **app-stock-management** | 재고 현황 관리 및 AI 기반 수요 예측 |
 
 **공통 플랫폼 작업**:
 - 모노레포(Turborepo) 구성 및 공유 패키지 세팅
@@ -56,7 +56,7 @@ author: Kim Igyong
 - AMA 메인 시스템(ama.amoeba.site) 코드 수정
 - 외부 파트너 온보딩 UI (별도 Phase)
 - 모바일 앱(iOS/Android) 빌드
-- SocialBean 내부 ERP/WMS 직접 연동 (API 연동만 허용)
+- 내부 ERP/WMS 직접 연동 (API 연동만 허용)
 
 ---
 
@@ -67,7 +67,7 @@ author: Kim Igyong
 | PM / Platform Owner | Kim Igyong | 전체 계획, PR 리뷰, 배포 승인, 아키텍처 결정 |
 | Full-Stack Dev (KR) | TBD | car-manager, 플랫폼 인프라 |
 | Full-Stack Dev (VN) | TBD | app-hscode, app-sales-report |
-| Full-Stack Dev (VN) | TBD | app-stock-forecast |
+| Full-Stack Dev (VN) | TBD | app-stock-management |
 | DevOps | Kim Igyong (겸) | Docker, Nginx, CI/CD, 서버 관리 |
 
 ---
@@ -122,7 +122,7 @@ author: Kim Igyong
 
 | Task ID | Task | Owner | Est. | Depends |
 |---------|------|-------|------|---------|
-| T-301 | SocialBean 데이터 연동 방식 협의 (API / DB dump / 파일 업로드) | PM | 1d | — |
+| T-301 | 데이터 연동 방식 협의 (API / DB dump / 파일 업로드) | PM | 1d | — |
 | T-302 | DB 스키마 설계 (`db_app_sales`) | VN Dev 1 | 1d | T-301 |
 | T-303 | 데이터 수집/집계 파이프라인 API 구현 | VN Dev 1 | 3d | T-302 |
 | T-304 | 채널별 매출 API 구현 | VN Dev 1 | 2d | T-303 |
@@ -131,7 +131,7 @@ author: Kim Igyong
 | T-307 | Excel 리포트 다운로드 기능 | VN Dev 1 | 1d | T-305 |
 | T-308 | 스테이징 배포 + 테스트 | VN Dev 1 | 1d | T-307 |
 
-### Phase 4 — app-stock-forecast 개발 (4주, 2026-05-12 ~ 06-06)
+### Phase 4 — app-stock-management 개발 (4주, 2026-05-12 ~ 06-06)
 
 | Task ID | Task | Owner | Est. | Depends |
 |---------|------|-------|------|---------|
@@ -155,8 +155,8 @@ author: Kim Igyong
 | **M-0** Phase 0 완료 — 플랫폼 기반 | 2026-04-11 | CI/CD, Docker, Nginx, DB 환경 완비 |
 | **M-1** car-manager 스테이징 배포 | 2026-05-09 | 핵심 기능(차량/배차/운행) 동작 확인 |
 | **M-2** app-hscode 스테이징 배포 | 2026-05-02 | HS Code 검색 + AI 분류 동작 확인 |
-| **M-3** app-sales-report 스테이징 배포 | 2026-05-30 | SocialBean 데이터 연동 + 대시보드 동작 |
-| **M-4** app-stock-forecast 스테이징 배포 | 2026-06-06 | 재고 관리 + AI 예측 동작 확인 |
+| **M-3** app-sales-report 스테이징 배포 | 2026-05-30 | 데이터 연동 + 대시보드 동작 |
+| **M-4** app-stock-management 스테이징 배포 | 2026-06-06 | 재고 관리 + AI 예측 동작 확인 |
 | **M-5** 전체 프로덕션 전환 | 2026-06-20 | 4개 앱 통합 검증 + 운영 이관 |
 
 ---
@@ -187,7 +187,7 @@ author: Kim Igyong
 
 | # | Risk | Probability | Impact | Mitigation |
 |---|------|-------------|--------|------------|
-| R-001 | SocialBean 데이터 연동 방식 미확정 → T-301 지연 | 중 | 높음 | Phase 3 착수 전 2주 내 협의 완료 |
+| R-001 | 데이터 연동 방식 미확정 → T-301 지연 | 중 | 높음 | Phase 3 착수 전 2주 내 협의 완료 |
 | R-002 | AI 예측 모델 정확도 기대치 미달 | 중 | 중간 | Phase 1에서 간단한 통계 모델로 시작, AI는 단계적 적용 |
 | R-003 | 서버 리소스 부족 (4개 Docker BFF 동시 운영) | 낮음 | 중간 | 메모리 모니터링, 필요 시 경량 앱은 BFF 제거 |
 | R-004 | 파트너 개발자 Amoeba 컨벤션 미준수 | 중 | 중간 | ESLint 자동 차단 + PR 리뷰 체크리스트 의무화 |

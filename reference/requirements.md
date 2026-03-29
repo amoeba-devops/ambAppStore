@@ -164,11 +164,11 @@ AI를 활용해 품목 분류를 지원받을 수 있는 도구이다.
 
 ---
 
-## 5. App 3 — app-sales-report (매출리포트 for SocialBean)
+## 5. App 3 — app-sales-report (매출리포트)
 
 ### 5.1 Background (배경)
 
-SocialBean의 경영진이 다양한 판매 채널(자사몰, 쿠팡, 네이버, 인스타그램 등)의
+경영진이 다양한 판매 채널(자사몰, 쿠팡, 네이버, 인스타그램 등)의
 매출 데이터를 한 곳에서 조회하고 분석할 수 있는 리포트 플랫폼이다.
 
 ### 5.2 User Types (사용자 유형)
@@ -212,11 +212,11 @@ SocialBean의 경영진이 다양한 판매 채널(자사몰, 쿠팡, 네이버,
 
 ---
 
-## 6. App 4 — app-stock-forecast (재고관리예측시스템 for SocialBean)
+## 6. App 4 — app-stock-management (재고관리시스템)
 
 ### 6.1 Background (배경)
 
-SocialBean 운영팀이 다중 채널 판매에 따른 재고를 통합 관리하고,
+운영팀이 다중 채널 판매에 따른 재고를 통합 관리하고,
 AI 기반 수요 예측으로 발주 시점과 발주량을 최적화하여
 품절과 과재고를 동시에 방지하는 시스템이다.
 

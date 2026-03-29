@@ -45,7 +45,7 @@ E9xxx — 외부 연동 오류
   car-manager:        CAR-E{4자리}
   app-hscode:         HSC-E{4자리}
   app-sales-report:   SAL-E{4자리}
-  app-stock-forecast: STK-E{4자리}
+  app-stock-management: STK-E{4자리}
 ```
 
 ### 1.2 공통 DB 컬럼 패턴
@@ -423,7 +423,7 @@ GET    /api/v1/export/excel             리포트 Excel 다운로드 (from, to, 
 
 ---
 
-## 5. App 4 — app-stock-forecast 기능명세
+## 5. App 4 — app-stock-management 기능명세
 
 ### 5.1 DB Schema (`db_app_stock`)
 

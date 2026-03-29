@@ -9,3 +9,6 @@ dist/
 .DS_Store
 coverage/
 .nyc_output/
+.pem
+.claude/
+*.tsbuildinfo
