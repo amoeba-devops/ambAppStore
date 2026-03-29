@@ -42,29 +42,34 @@ export class AuthController {
         );
       }
 
-      // AMA 응답에서 토큰 추출
-      const amaToken = amaData.data?.token || amaData.data?.accessToken || amaData.data?.access_token;
+      // AMA 응답에서 토큰 추출 (data.tokens.accessToken 또는 data.token)
+      const amaToken =
+        amaData.data?.tokens?.accessToken ||
+        amaData.data?.token ||
+        amaData.data?.accessToken ||
+        amaData.data?.access_token;
       if (!amaToken) {
-        this.logger.error('AMA login response missing token');
+        this.logger.error(`AMA login response missing token. Keys: ${JSON.stringify(Object.keys(amaData.data || {}))}`);
         return errorResponse('PLT-E1003', 'Authentication failed: no token received');
       }
 
       // AMA 토큰 디코드하여 사용자 정보 추출
       const amaPayload = this.decodeJwt(amaToken);
+      const amaUser = amaData.data?.tokens?.user || amaData.data?.user || {};
       if (!amaPayload) {
         return errorResponse('PLT-E1004', 'Failed to decode AMA token');
       }
 
-      // 플랫폼 로컬 JWT 발행
+      // 플랫폼 로컬 JWT 발행 (AMA JWT payload + user 객체 병합)
       const payload = {
-        sub: amaPayload.sub || amaPayload.userId || amaPayload.user_id,
-        ent_id: amaPayload.ent_id || amaPayload.entityId || amaPayload.entity_id || '',
-        ent_code: amaPayload.ent_code || amaPayload.entityCode || amaPayload.entity_code || '',
-        email: amaPayload.email || email,
-        name: amaPayload.name || amaPayload.usr_name || email.split('@')[0],
-        level: amaPayload.level || (amaPayload.role === 'ADMIN' ? 'ADMIN_LEVEL' : 'USER_LEVEL'),
-        role: amaPayload.role || 'USER',
-        roles: amaPayload.roles || [amaPayload.role || 'USER'],
+        sub: amaPayload.sub || amaUser.userId || amaPayload.userId,
+        ent_id: amaPayload.companyId || amaUser.companyId || amaPayload.ent_id || '',
+        ent_code: amaPayload.ent_code || amaUser.entityCode || '',
+        email: amaPayload.email || amaUser.email || email,
+        name: amaUser.name || amaPayload.name || email.split('@')[0],
+        level: amaPayload.level || amaUser.level || 'USER_LEVEL',
+        role: amaPayload.role || amaUser.role || 'USER',
+        roles: amaPayload.roles || [amaPayload.role || amaUser.role || 'USER'],
       };
 
       const token = this.jwtService.sign(payload);
