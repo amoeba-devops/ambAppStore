@@ -29,7 +29,6 @@ export function AdminLoginPage() {
   const [showToken, setShowToken] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [entId, setEntId] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -114,7 +113,6 @@ export function AdminLoginPage() {
     setIsLoading(true);
     try {
       const res = await apiClient.post('/v1/auth/login', {
-        ent_id: entId.trim() || 'default',
         email: email.trim(),
         password: password.trim(),
       });
