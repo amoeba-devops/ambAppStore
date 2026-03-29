@@ -4,8 +4,8 @@ ARG VITE_API_BASE_URL=/app-car-manager/api
 ARG VITE_AMA_LOGIN_URL=https://ama.amoeba.site/login
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_AMA_LOGIN_URL=$VITE_AMA_LOGIN_URL
-COPY package.json package-lock.json* ./
-RUN npm ci --ignore-scripts
+COPY package.json ./
+RUN npm install --ignore-scripts
 COPY . .
 RUN npm run build
 
