@@ -88,6 +88,8 @@
     "title": "Admin Login",
     "subtitle": "Login required to access the AMA App Store admin console",
     "loginWithAma": "Login with AMA Account",
+    "loginWithAmaStaging": "Login with AMA Account (Staging)",
+    "loginWithAmaProd": "Login with AMA Account (Production)",
     "devTokenLabel": "JWT Token Input (Dev Only)",
     "devTokenHint": "Paste a test JWT token for development environment",
     "devLogin": "Login with Token",

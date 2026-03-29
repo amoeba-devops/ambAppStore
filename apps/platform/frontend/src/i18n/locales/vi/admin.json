@@ -88,6 +88,8 @@
     "title": "Đăng nhập quản trị",
     "subtitle": "Cần đăng nhập để truy cập bảng điều khiển quản trị AMA App Store",
     "loginWithAma": "Đăng nhập bằng tài khoản AMA",
+    "loginWithAmaStaging": "Đăng nhập bằng tài khoản AMA (Staging)",
+    "loginWithAmaProd": "Đăng nhập bằng tài khoản AMA (Production)",
     "devTokenLabel": "Nhập JWT Token (Dành cho nhà phát triển)",
     "devTokenHint": "Dán JWT token thử nghiệm cho môi trường phát triển",
     "devLogin": "Đăng nhập bằng token",

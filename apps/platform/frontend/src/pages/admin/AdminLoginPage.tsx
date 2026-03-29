@@ -28,6 +28,8 @@ export function AdminLoginPage() {
   const [showToken, setShowToken] = useState(false);
 
   const amaLoginUrl = import.meta.env.VITE_AMA_LOGIN_URL;
+  const amaStagingLoginUrl = import.meta.env.VITE_AMA_STAGING_LOGIN_URL || 'https://stg-ama.amoeba.site';
+  const amaProdLoginUrl = import.meta.env.VITE_AMA_PROD_LOGIN_URL || 'https://ama.amoeba.site';
   const showDevLogin = import.meta.env.DEV || import.meta.env.VITE_SHOW_DEV_LOGIN === 'true';
 
   // 이미 인증된 어드민이면 바로 리다이렉트
@@ -116,24 +118,29 @@ export function AdminLoginPage() {
             </div>
           )}
 
-          {/* AMA SSO 로그인 */}
-          {amaLoginUrl && (
-            <>
-              <a
-                href={`${amaLoginUrl}?redirect_uri=${encodeURIComponent(window.location.origin + '/admin/login')}`}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
-              >
-                <LogIn className="h-4 w-4" />
-                {t('login.loginWithAma')}
-              </a>
-              {showDevLogin && (
-                <div className="my-5 flex items-center gap-3">
-                  <div className="h-px flex-1 bg-gray-200" />
-                  <span className="text-xs text-gray-400">OR</span>
-                  <div className="h-px flex-1 bg-gray-200" />
-                </div>
-              )}
-            </>
+          {/* AMA SSO 로그인 - 스테이징 & 프로덕션 */}
+          <div className="space-y-3">
+            <a
+              href={`${amaStagingLoginUrl}/login?redirect_uri=${encodeURIComponent(window.location.origin + '/admin/login')}`}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
+            >
+              <LogIn className="h-4 w-4" />
+              {t('login.loginWithAmaStaging')}
+            </a>
+            <a
+              href={`${amaProdLoginUrl}/login?redirect_uri=${encodeURIComponent(window.location.origin + '/admin/login')}`}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            >
+              <LogIn className="h-4 w-4" />
+              {t('login.loginWithAmaProd')}
+            </a>
+          </div>
+          {showDevLogin && (
+            <div className="my-5 flex items-center gap-3">
+              <div className="h-px flex-1 bg-gray-200" />
+              <span className="text-xs text-gray-400">OR</span>
+              <div className="h-px flex-1 bg-gray-200" />
+            </div>
           )}
 
           {/* Dev/Staging: JWT 토큰 직접 입력 */}
