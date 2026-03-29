@@ -60,7 +60,7 @@ services:
       - ./backend/scripts/seed-apps.sql:/docker-entrypoint-initdb.d/02-platform-seed.sql:ro
       - ../app-car-manager/backend/scripts/init-db.sql:/docker-entrypoint-initdb.d/03-car.sql:ro
       - ../app-stock-management/backend/scripts/init-db.sql:/docker-entrypoint-initdb.d/04-stock.sql:ro
-    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --init-connect='SET NAMES utf8mb4'
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
       interval: 15s

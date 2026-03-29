@@ -2,6 +2,7 @@
 -- ambAppStore — Seed: 4 App Masters
 -- ============================================================
 
+SET NAMES utf8mb4;
 USE db_app_platform;
 
 INSERT INTO plt_apps (app_id, app_slug, app_name, app_name_en, app_short_desc, app_status, app_port_fe, app_port_be, app_sort_order, app_features)
