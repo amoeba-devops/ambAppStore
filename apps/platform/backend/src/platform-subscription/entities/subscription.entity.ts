@@ -16,6 +16,7 @@ export enum SubscriptionStatus {
   SUSPENDED = 'SUSPENDED',
   REJECTED = 'REJECTED',
   CANCELLED = 'CANCELLED',
+  EXPIRED = 'EXPIRED',
 }
 
 @Entity('plt_subscriptions')

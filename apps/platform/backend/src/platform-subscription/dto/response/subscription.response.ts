@@ -8,6 +8,8 @@ export class SubscriptionResponse {
   requestedBy: string;
   requestedEmail: string;
   reason: string;
+  rejectReason: string | null;
+  expiresAt: string | null;
   createdAt: string;
 }
 

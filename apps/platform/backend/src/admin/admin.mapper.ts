@@ -21,6 +21,7 @@ export class AdminMapper {
       rejectReason: entity.subRejectReason,
       approvedBy: entity.subApprovedBy,
       approvedAt: entity.subApprovedAt?.toISOString() || null,
+      expiresAt: entity.subExpiresAt?.toISOString() || null,
       createdAt: entity.subCreatedAt.toISOString(),
       updatedAt: entity.subUpdatedAt.toISOString(),
     };

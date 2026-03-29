@@ -7,6 +7,7 @@ import { AmaJwtPayload } from '../auth/interfaces/ama-jwt-payload.interface';
 import { BusinessException } from '../common/exceptions/business.exception';
 import { AdminSubscriptionListQueryDto } from './dto/request/admin-subscription.request';
 import { AdminSubscriptionStatsResponse } from './dto/response/admin-subscription.response';
+import { NotificationTriggerService } from '../platform-notification/notification-trigger.service';
 
 /** 허용되는 상태 전이 맵 */
 const ALLOWED_TRANSITIONS: Record<SubscriptionStatus, SubscriptionStatus[]> = {
@@ -15,6 +16,7 @@ const ALLOWED_TRANSITIONS: Record<SubscriptionStatus, SubscriptionStatus[]> = {
   [SubscriptionStatus.SUSPENDED]: [SubscriptionStatus.ACTIVE, SubscriptionStatus.CANCELLED],
   [SubscriptionStatus.REJECTED]: [],
   [SubscriptionStatus.CANCELLED]: [],
+  [SubscriptionStatus.EXPIRED]: [SubscriptionStatus.ACTIVE],
 };
 
 @Injectable()
@@ -23,6 +25,7 @@ export class AdminSubscriptionService {
     @InjectRepository(SubscriptionEntity)
     private readonly subscriptionRepository: Repository<SubscriptionEntity>,
     private readonly appService: AppService,
+    private readonly notificationTriggerService: NotificationTriggerService,
   ) {}
 
   async findAll(query: AdminSubscriptionListQueryDto) {
@@ -76,15 +79,18 @@ export class AdminSubscriptionService {
     return sub;
   }
 
-  async approve(subId: string, admin: AmaJwtPayload): Promise<SubscriptionEntity> {
+  async approve(subId: string, admin: AmaJwtPayload, expiresAt?: string): Promise<SubscriptionEntity> {
     const sub = await this.findById(subId);
     this.validateTransition(sub.subStatus, SubscriptionStatus.ACTIVE);
 
     sub.subStatus = SubscriptionStatus.ACTIVE;
     sub.subApprovedBy = admin.userId;
     sub.subApprovedAt = new Date();
+    sub.subExpiresAt = expiresAt ? new Date(expiresAt) : null;
 
-    return this.subscriptionRepository.save(sub);
+    const saved = await this.subscriptionRepository.save(sub);
+    await this.notificationTriggerService.onSubscriptionApproved(saved);
+    return saved;
   }
 
   async reject(subId: string, rejectReason: string, admin: AmaJwtPayload): Promise<SubscriptionEntity> {
@@ -95,7 +101,9 @@ export class AdminSubscriptionService {
     sub.subRejectReason = rejectReason;
     sub.subApprovedBy = admin.userId;
 
-    return this.subscriptionRepository.save(sub);
+    const saved = await this.subscriptionRepository.save(sub);
+    await this.notificationTriggerService.onSubscriptionRejected(saved);
+    return saved;
   }
 
   async suspend(subId: string, admin: AmaJwtPayload): Promise<SubscriptionEntity> {
@@ -104,7 +112,9 @@ export class AdminSubscriptionService {
 
     sub.subStatus = SubscriptionStatus.SUSPENDED;
 
-    return this.subscriptionRepository.save(sub);
+    const saved = await this.subscriptionRepository.save(sub);
+    await this.notificationTriggerService.onSubscriptionSuspended(saved);
+    return saved;
   }
 
   async cancel(subId: string, admin: AmaJwtPayload): Promise<SubscriptionEntity> {
@@ -116,15 +126,18 @@ export class AdminSubscriptionService {
     return this.subscriptionRepository.save(sub);
   }
 
-  async reactivate(subId: string, admin: AmaJwtPayload): Promise<SubscriptionEntity> {
+  async reactivate(subId: string, admin: AmaJwtPayload, expiresAt?: string): Promise<SubscriptionEntity> {
     const sub = await this.findById(subId);
     this.validateTransition(sub.subStatus, SubscriptionStatus.ACTIVE);
 
     sub.subStatus = SubscriptionStatus.ACTIVE;
     sub.subApprovedBy = admin.userId;
     sub.subApprovedAt = new Date();
+    sub.subExpiresAt = expiresAt ? new Date(expiresAt) : null;
 
-    return this.subscriptionRepository.save(sub);
+    const saved = await this.subscriptionRepository.save(sub);
+    await this.notificationTriggerService.onSubscriptionApproved(saved);
+    return saved;
   }
 
   async getStats(): Promise<AdminSubscriptionStatsResponse> {
@@ -137,13 +150,14 @@ export class AdminSubscriptionService {
       suspended: 0,
       rejected: 0,
       cancelled: 0,
+      expired: 0,
       byApp: [],
     };
 
     const appMap = new Map<string, { appSlug: string; appName: string; active: number; pending: number; total: number }>();
 
     for (const sub of allSubs) {
-      const s = sub.subStatus.toLowerCase() as keyof Pick<AdminSubscriptionStatsResponse, 'pending' | 'active' | 'suspended' | 'rejected' | 'cancelled'>;
+      const s = sub.subStatus.toLowerCase() as keyof Pick<AdminSubscriptionStatsResponse, 'pending' | 'active' | 'suspended' | 'rejected' | 'cancelled' | 'expired'>;
       if (s in stats) {
         (stats[s] as number)++;
       }

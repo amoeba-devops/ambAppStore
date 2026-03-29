@@ -18,7 +18,8 @@
     "statusAvailable": "사용가능",
     "statusComingSoon": "출시예정",
     "statusInUse": "사용중",
-    "statusPending": "심사중"
+    "statusPending": "심사중",
+    "statusExpired": "만료됨"
   },
   "detail": {
     "appIntro": "앱 소개",
@@ -27,6 +28,8 @@
     "loginToApply": "로그인 후 신청하기",
     "inUse": "사용중 — 앱 바로가기",
     "underReview": "심사중",
+    "expired": "만료됨 — 재신청 필요",
+    "reapply": "재신청",
     "screenshot": "스크린샷"
   },
   "subscription": {
@@ -58,5 +61,42 @@
     "submit": "로그인",
     "allFieldsRequired": "모든 항목을 입력해주세요",
     "invalidCredentials": "인증 정보가 올바르지 않습니다"
+  },
+  "mySubscriptions": {
+    "title": "내 구독 관리",
+    "empty": "신청한 앱이 없습니다",
+    "emptyDesc": "앱스토어에서 원하는 앱을 신청해보세요",
+    "browseApps": "앱 둘러보기",
+    "filterAll": "전체",
+    "filterPending": "심사중",
+    "filterActive": "사용중",
+    "filterExpired": "만료",
+    "filterOther": "거절·취소",
+    "goToApp": "앱 바로가기",
+    "cancelSubscription": "구독 취소",
+    "reapply": "재신청",
+    "cancelConfirmTitle": "구독 취소",
+    "cancelConfirmMessage": "정말 이 앱 구독을 취소하시겠습니까?",
+    "cancelSuccess": "구독이 취소되었습니다",
+    "appliedAt": "신청일",
+    "expiresAt": "만료일",
+    "rejectReason": "거절 사유",
+    "statusPending": "심사중",
+    "statusActive": "사용중",
+    "statusSuspended": "정지됨",
+    "statusRejected": "거절됨",
+    "statusCancelled": "취소됨",
+    "statusExpired": "만료됨",
+    "noExpiry": "무기한"
+  },
+  "notification": {
+    "title": "알림",
+    "empty": "새로운 알림이 없습니다",
+    "markAllRead": "전체 읽음",
+    "viewAll": "전체 보기",
+    "justNow": "방금 전",
+    "minutesAgo": "{{count}}분 전",
+    "hoursAgo": "{{count}}시간 전",
+    "daysAgo": "{{count}}일 전"
   }
 }

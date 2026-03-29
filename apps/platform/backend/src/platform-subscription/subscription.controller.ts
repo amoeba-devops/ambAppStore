@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Body } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Param, Body } from '@nestjs/common';
 import { SubscriptionService } from './subscription.service';
 import { SubscriptionMapper } from './subscription.mapper';
 import { CreateSubscriptionDto } from './dto/request/create-subscription.dto';
@@ -36,5 +36,15 @@ export class SubscriptionController {
   ) {
     const subscription = await this.subscriptionService.checkStatus(user.entityId, appSlug);
     return successResponse(SubscriptionMapper.toStatusResponse(appSlug, subscription ?? undefined));
+  }
+
+  @Patch(':subId/cancel')
+  @Auth()
+  async cancelByUser(
+    @Param('subId') subId: string,
+    @CurrentUser() user: AmaJwtPayload,
+  ) {
+    const subscription = await this.subscriptionService.cancelByUser(subId, user);
+    return successResponse(SubscriptionMapper.toResponse(subscription, subscription.app));
   }
 }

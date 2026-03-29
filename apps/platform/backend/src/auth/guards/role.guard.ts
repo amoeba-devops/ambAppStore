@@ -16,7 +16,9 @@ export class RoleGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const user = request.user as AmaJwtPayload;
-    if (!user || !user.roles?.includes('ADMIN')) {
+    const isAdminLevel = user?.level === 'ADMIN_LEVEL';
+    const hasAdminRole = user?.roles?.includes('ADMIN');
+    if (!user || (!isAdminLevel && !hasAdminRole)) {
       throw new ForbiddenException({ success: false, data: null, error: { code: 'PLT-E1002', message: 'Admin access required' }, timestamp: new Date().toISOString() });
     }
     return true;

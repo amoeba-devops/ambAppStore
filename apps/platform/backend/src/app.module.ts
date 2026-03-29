@@ -1,17 +1,20 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { APP_FILTER } from '@nestjs/core';
 import { HealthController } from './health.controller';
 import { AuthModule } from './auth/auth.module';
 import { PlatformAppModule } from './platform-app/app.module';
 import { PlatformSubscriptionModule } from './platform-subscription/subscription.module';
 import { AdminModule } from './admin/admin.module';
+import { NotificationModule } from './platform-notification/notification.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: process.env.DB_HOST || 'localhost',
@@ -27,6 +30,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
     AuthModule,
     PlatformAppModule,
     PlatformSubscriptionModule,
+    NotificationModule,
     AdminModule,
   ],
   controllers: [HealthController],

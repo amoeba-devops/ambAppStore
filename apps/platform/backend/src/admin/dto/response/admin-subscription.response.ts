@@ -14,6 +14,7 @@ export class AdminSubscriptionResponse {
   rejectReason: string | null;
   approvedBy: string | null;
   approvedAt: string | null;
+  expiresAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -35,6 +36,7 @@ export class AdminSubscriptionStatsResponse {
   suspended: number;
   rejected: number;
   cancelled: number;
+  expired: number;
   byApp: Array<{
     appSlug: string;
     appName: string;

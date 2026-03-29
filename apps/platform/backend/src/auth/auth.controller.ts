@@ -36,6 +36,8 @@ export class AuthController {
       ent_code: ent_id.toUpperCase(),
       email,
       name,
+      level: isAdmin ? 'ADMIN_LEVEL' : 'USER_LEVEL',
+      role: isAdmin ? 'ADMIN' : 'USER',
       roles: isAdmin ? ['ADMIN', 'USER'] : ['USER'],
     };
 
@@ -49,6 +51,7 @@ export class AuthController {
         entityCode: payload.ent_code,
         email: payload.email,
         name: payload.name,
+        level: payload.level,
         roles: payload.roles,
       },
     });

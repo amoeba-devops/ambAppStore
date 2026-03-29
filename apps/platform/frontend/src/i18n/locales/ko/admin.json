@@ -42,7 +42,13 @@
     "statusActive": "활성",
     "statusSuspended": "정지",
     "statusRejected": "반려",
-    "statusCancelled": "해제"
+    "statusCancelled": "해제",
+    "statusExpired": "만료",
+    "colExpires": "만료일",
+    "approveTitle": "구독 승인",
+    "expiresAtLabel": "만료일 설정 (선택사항)",
+    "expiresAtHint": "비워두면 무기한 구독이 됩니다",
+    "cancelBtn": "취소"
   },
   "app": {
     "title": "앱 관리",
@@ -87,7 +93,7 @@
     "devLogin": "토큰으로 로그인",
     "invalidToken": "유효하지 않은 토큰 형식입니다",
     "tokenExpired": "만료된 토큰입니다. 새 토큰을 발급받아 주세요",
-    "notAdmin": "관리자 권한이 없는 계정입니다. ADMIN 역할이 필요합니다",
+    "notAdmin": "관리자 권한이 없는 계정입니다. ADMIN_LEVEL 권한이 필요합니다",
     "enterToken": "토큰을 입력해 주세요",
     "adminOnly": "이 페이지는 관리자 전용입니다"
   }

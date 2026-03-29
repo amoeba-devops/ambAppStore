@@ -14,6 +14,7 @@ import { AdminAppListPage } from '@/pages/admin/AdminAppListPage';
 import { AdminStatsPage } from '@/pages/admin/AdminStatsPage';
 import { AdminLoginPage } from '@/pages/admin/AdminLoginPage';
 import { AppsLoginPage } from '@/pages/AppsLoginPage';
+import { MySubscriptionsPage } from '@/pages/MySubscriptionsPage';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/apps/login" element={<AppsLoginPage />} />
               <Route path="/apps/:slug" element={<AppDetailPage />} />
+              <Route path="/my-subscriptions" element={<MySubscriptionsPage />} />
               {/* Admin Login (outside guard) */}
               <Route path="/admin/login" element={<AdminLoginPage />} />
               {/* Admin (protected) */}

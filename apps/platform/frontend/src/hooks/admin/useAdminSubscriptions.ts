@@ -17,6 +17,7 @@ export interface AdminSubscription {
   rejectReason: string | null;
   approvedBy: string | null;
   approvedAt: string | null;
+  expiresAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -33,6 +34,7 @@ export interface SubscriptionStats {
   suspended: number;
   rejected: number;
   cancelled: number;
+  expired: number;
   byApp: Array<{ appSlug: string; appName: string; active: number; pending: number; total: number }>;
 }
 

@@ -92,6 +92,13 @@ export function AppDetailPage() {
           <button disabled className="w-full cursor-not-allowed rounded-xl bg-purple-100 py-3 font-semibold text-purple-700">
             {t('detail.underReview')}
           </button>
+        ) : currentStatus === 'EXPIRED' ? (
+          <button
+            onClick={() => setShowModal(true)}
+            className="w-full rounded-xl bg-orange-600 py-3 font-semibold text-white hover:bg-orange-700"
+          >
+            {t('detail.reapply')}
+          </button>
         ) : app.status === 'COMING_SOON' ? (
           <button disabled className="w-full cursor-not-allowed rounded-xl bg-gray-200 py-3 font-semibold text-gray-400">
             {t('landing.statusComingSoon')}

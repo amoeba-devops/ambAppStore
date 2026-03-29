@@ -21,6 +21,7 @@ const STATUS_COLORS: Record<string, string> = {
   SUSPENDED: 'bg-red-100 text-red-700',
   REJECTED: 'bg-gray-200 text-gray-600',
   CANCELLED: 'bg-gray-200 text-gray-600',
+  EXPIRED: 'bg-orange-100 text-orange-700',
 };
 
 const STATUS_KEYS: Record<string, string> = {
@@ -29,6 +30,7 @@ const STATUS_KEYS: Record<string, string> = {
   SUSPENDED: 'subscription.statusSuspended',
   REJECTED: 'subscription.statusRejected',
   CANCELLED: 'subscription.statusCancelled',
+  EXPIRED: 'subscription.statusExpired',
 };
 
 export function AdminSubscriptionListPage() {
@@ -37,6 +39,8 @@ export function AdminSubscriptionListPage() {
   const [selectedSub, setSelectedSub] = useState<AdminSubscription | null>(null);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [detailTarget, setDetailTarget] = useState<AdminSubscription | null>(null);
+  const [approveTarget, setApproveTarget] = useState<string | null>(null);
+  const [approveExpiresAt, setApproveExpiresAt] = useState('');
 
   const { data, isLoading } = useAdminSubscriptions(filters);
   const { data: apps } = useAdminApps();
@@ -47,9 +51,15 @@ export function AdminSubscriptionListPage() {
   const reactivateMutation = useReactivateSubscription();
 
   const handleApprove = (subId: string) => {
-    if (confirm(t('subscription.confirmApprove'))) {
-      approveMutation.mutate({ subId });
-    }
+    setApproveTarget(subId);
+    setApproveExpiresAt('');
+  };
+
+  const handleApproveConfirm = () => {
+    if (!approveTarget) return;
+    const body = approveExpiresAt ? { expires_at: approveExpiresAt } : undefined;
+    approveMutation.mutate({ subId: approveTarget, body });
+    setApproveTarget(null);
   };
 
   const handleSuspend = (subId: string) => {
@@ -87,7 +97,7 @@ export function AdminSubscriptionListPage() {
           onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value || undefined, page: 1 }))}
         >
           <option value="">{t('subscription.filterByStatus')}</option>
-          {['PENDING', 'ACTIVE', 'SUSPENDED', 'REJECTED', 'CANCELLED'].map((s) => (
+          {['PENDING', 'ACTIVE', 'SUSPENDED', 'REJECTED', 'CANCELLED', 'EXPIRED'].map((s) => (
             <option key={s} value={s}>{t(STATUS_KEYS[s])}</option>
           ))}
         </select>
@@ -111,15 +121,16 @@ export function AdminSubscriptionListPage() {
               <th className="px-4 py-3">{t('subscription.colApp')}</th>
               <th className="px-4 py-3">{t('subscription.colRequester')}</th>
               <th className="px-4 py-3">{t('subscription.colStatus')}</th>
+              <th className="px-4 py-3">{t('subscription.colExpires')}</th>
               <th className="px-4 py-3">{t('subscription.colDate')}</th>
               <th className="px-4 py-3">{t('subscription.colActions')}</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">{t('subscription.noData')}</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">{t('subscription.noData')}</td></tr>
             ) : data?.items.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">{t('subscription.noData')}</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">{t('subscription.noData')}</td></tr>
             ) : (
               data?.items.map((sub) => (
                 <tr key={sub.subId} className="border-b hover:bg-gray-50">
@@ -138,6 +149,9 @@ export function AdminSubscriptionListPage() {
                     <span className={clsx('rounded-full px-2 py-0.5 text-xs font-medium', STATUS_COLORS[sub.status])}>
                       {t(STATUS_KEYS[sub.status])}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500">
+                    {sub.expiresAt ? new Date(sub.expiresAt).toLocaleDateString() : '-'}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">{new Date(sub.createdAt).toLocaleDateString()}</td>
                   <td className="px-4 py-3">
@@ -159,6 +173,9 @@ export function AdminSubscriptionListPage() {
                           <button onClick={() => handleReactivate(sub.subId)} className="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700">{t('subscription.reactivate')}</button>
                           <button onClick={() => handleCancel(sub.subId)} className="rounded bg-red-500 px-2 py-1 text-xs text-white hover:bg-red-600">{t('subscription.cancel')}</button>
                         </>
+                      )}
+                      {sub.status === 'EXPIRED' && (
+                        <button onClick={() => handleReactivate(sub.subId)} className="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700">{t('subscription.reactivate')}</button>
                       )}
                     </div>
                   </td>
@@ -184,6 +201,40 @@ export function AdminSubscriptionListPage() {
               {i + 1}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Approve Modal with Expiration Date */}
+      {approveTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="mb-4 text-lg font-semibold">{t('subscription.approveTitle')}</h3>
+            <label className="mb-2 block text-sm text-gray-600">
+              {t('subscription.expiresAtLabel')}
+            </label>
+            <input
+              type="date"
+              value={approveExpiresAt}
+              onChange={(e) => setApproveExpiresAt(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="mb-1 w-full rounded-lg border px-3 py-2 text-sm"
+            />
+            <p className="mb-4 text-xs text-gray-400">{t('subscription.expiresAtHint')}</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setApproveTarget(null)}
+                className="rounded-lg border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+              >
+                {t('subscription.cancelBtn')}
+              </button>
+              <button
+                onClick={handleApproveConfirm}
+                className="rounded-lg bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700"
+              >
+                {t('subscription.approve')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

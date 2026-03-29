@@ -42,7 +42,13 @@
     "statusActive": "Active",
     "statusSuspended": "Suspended",
     "statusRejected": "Rejected",
-    "statusCancelled": "Cancelled"
+    "statusCancelled": "Cancelled",
+    "statusExpired": "Expired",
+    "colExpires": "Expires",
+    "approveTitle": "Approve Subscription",
+    "expiresAtLabel": "Expiration Date (Optional)",
+    "expiresAtHint": "Leave empty for unlimited subscription",
+    "cancelBtn": "Cancel"
   },
   "app": {
     "title": "App Management",
@@ -87,7 +93,7 @@
     "devLogin": "Login with Token",
     "invalidToken": "Invalid token format",
     "tokenExpired": "Token has expired. Please obtain a new token",
-    "notAdmin": "This account does not have admin privileges. ADMIN role is required",
+    "notAdmin": "This account does not have admin privileges. ADMIN_LEVEL access is required",
     "enterToken": "Please enter a token",
     "adminOnly": "This page is restricted to administrators only"
   }

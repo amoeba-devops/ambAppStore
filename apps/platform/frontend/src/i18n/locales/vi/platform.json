@@ -18,7 +18,8 @@
     "statusAvailable": "Khả dụng",
     "statusComingSoon": "Sắp ra mắt",
     "statusInUse": "Đang sử dụng",
-    "statusPending": "Đang xét duyệt"
+    "statusPending": "Đang xét duyệt",
+    "statusExpired": "Đã hết hạn"
   },
   "detail": {
     "appIntro": "Giới thiệu",
@@ -27,6 +28,8 @@
     "loginToApply": "Đăng nhập để đăng ký",
     "inUse": "Đang sử dụng — Truy cập ứng dụng",
     "underReview": "Đang xét duyệt",
+    "expired": "Đã hết hạn — Cần đăng ký lại",
+    "reapply": "Đăng ký lại",
     "screenshot": "Ảnh chụp màn hình"
   },
   "subscription": {
@@ -58,5 +61,42 @@
     "submit": "Đăng nhập",
     "allFieldsRequired": "Vui lòng điền tất cả các trường",
     "invalidCredentials": "Thông tin xác thực không hợp lệ"
+  },
+  "mySubscriptions": {
+    "title": "Quản lý đăng ký",
+    "empty": "Chưa có đăng ký nào",
+    "emptyDesc": "Khám phá App Store và đăng ký ứng dụng bạn cần",
+    "browseApps": "Duyệt ứng dụng",
+    "filterAll": "Tất cả",
+    "filterPending": "Đang chờ",
+    "filterActive": "Đang dùng",
+    "filterExpired": "Hết hạn",
+    "filterOther": "Từ chối/Hủy",
+    "goToApp": "Truy cập ứng dụng",
+    "cancelSubscription": "Hủy đăng ký",
+    "reapply": "Đăng ký lại",
+    "cancelConfirmTitle": "Hủy đăng ký",
+    "cancelConfirmMessage": "Bạn có chắc muốn hủy đăng ký này?",
+    "cancelSuccess": "Đã hủy đăng ký",
+    "appliedAt": "Ngày đăng ký",
+    "expiresAt": "Ngày hết hạn",
+    "rejectReason": "Lý do từ chối",
+    "statusPending": "Đang xét duyệt",
+    "statusActive": "Đang dùng",
+    "statusSuspended": "Tạm ngưng",
+    "statusRejected": "Bị từ chối",
+    "statusCancelled": "Đã hủy",
+    "statusExpired": "Đã hết hạn",
+    "noExpiry": "Không giới hạn"
+  },
+  "notification": {
+    "title": "Thông báo",
+    "empty": "Không có thông báo mới",
+    "markAllRead": "Đánh dấu tất cả đã đọc",
+    "viewAll": "Xem tất cả",
+    "justNow": "Vừa xong",
+    "minutesAgo": "{{count}} phút trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "daysAgo": "{{count}} ngày trước"
   }
 }

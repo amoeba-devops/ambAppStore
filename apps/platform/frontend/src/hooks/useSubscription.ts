@@ -17,6 +17,8 @@ export interface SubscriptionItem {
   requestedBy: string;
   requestedEmail: string;
   reason: string;
+  rejectReason: string | null;
+  expiresAt: string | null;
   createdAt: string;
 }
 
@@ -48,6 +50,20 @@ export function useCreateSubscription() {
   return useMutation({
     mutationFn: async (data: { app_slug: string; ent_code: string; ent_name: string; reason?: string }) => {
       const res = await apiClient.post('/v1/platform/subscriptions', data);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform', 'subscriptions'] });
+    },
+  });
+}
+
+export function useCancelSubscription() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (subId: string) => {
+      const res = await apiClient.patch(`/v1/platform/subscriptions/${subId}/cancel`);
       return res.data.data;
     },
     onSuccess: () => {

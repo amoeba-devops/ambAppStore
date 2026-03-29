@@ -28,7 +28,7 @@ export function AdminLoginPage() {
   const [showToken, setShowToken] = useState(false);
 
   const amaLoginUrl = import.meta.env.VITE_AMA_LOGIN_URL;
-  const isDev = import.meta.env.DEV;
+  const showDevLogin = import.meta.env.DEV || import.meta.env.VITE_SHOW_DEV_LOGIN === 'true';
 
   // 이미 인증된 어드민이면 바로 리다이렉트
   useEffect(() => {
@@ -42,6 +42,8 @@ export function AdminLoginPage() {
     const token = searchParams.get('token');
     if (token) {
       handleTokenLogin(token);
+      // URL에서 토큰 제거 (보안)
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }, [searchParams]);
 
@@ -60,9 +62,10 @@ export function AdminLoginPage() {
       return;
     }
 
-    // ADMIN 역할 확인
+    // ADMIN 권한 확인 (level 우선, roles 폴백)
+    const level = payload.level || '';
     const roles = payload.roles || [];
-    if (!roles.includes('ADMIN')) {
+    if (level !== 'ADMIN_LEVEL' && !roles.includes('ADMIN')) {
       setError(t('login.notAdmin'));
       return;
     }
@@ -73,6 +76,7 @@ export function AdminLoginPage() {
       entityCode: payload.ent_code || payload.entityCode,
       email: payload.email || '',
       name: payload.name || '',
+      level,
       roles,
     };
 
@@ -116,13 +120,13 @@ export function AdminLoginPage() {
           {amaLoginUrl && (
             <>
               <a
-                href={amaLoginUrl}
+                href={`${amaLoginUrl}?redirect_uri=${encodeURIComponent(window.location.origin + '/admin/login')}`}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
               >
                 <LogIn className="h-4 w-4" />
                 {t('login.loginWithAma')}
               </a>
-              {isDev && (
+              {showDevLogin && (
                 <div className="my-5 flex items-center gap-3">
                   <div className="h-px flex-1 bg-gray-200" />
                   <span className="text-xs text-gray-400">OR</span>
@@ -132,8 +136,8 @@ export function AdminLoginPage() {
             </>
           )}
 
-          {/* Dev 모드: JWT 토큰 직접 입력 */}
-          {isDev && (
+          {/* Dev/Staging: JWT 토큰 직접 입력 */}
+          {showDevLogin && (
             <form onSubmit={handleDevLogin}>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">
                 <KeyRound className="mr-1 inline h-3.5 w-3.5" />

@@ -6,6 +6,7 @@ interface User {
   entityCode: string;
   email: string;
   name: string;
+  level: string;
   roles: string[];
 }
 
@@ -30,6 +31,7 @@ function restoreUserFromToken(token: string | null): { user: User | null; isAdmi
       return { user: null, isAdmin: false };
     }
     const roles = payload.roles || [];
+    const level = payload.level || '';
     return {
       user: {
         userId: payload.sub || payload.userId || '',
@@ -37,9 +39,10 @@ function restoreUserFromToken(token: string | null): { user: User | null; isAdmi
         entityCode: payload.ent_code || payload.entityCode || '',
         email: payload.email || '',
         name: payload.name || '',
+        level,
         roles,
       },
-      isAdmin: roles.includes('ADMIN'),
+      isAdmin: level === 'ADMIN_LEVEL' || roles.includes('ADMIN'),
     };
   } catch {
     return { user: null, isAdmin: false };
@@ -60,7 +63,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       token,
       user,
       isAuthenticated: true,
-      isAdmin: user.roles?.includes('ADMIN') || false,
+      isAdmin: user.level === 'ADMIN_LEVEL' || user.roles?.includes('ADMIN') || false,
     });
   },
   clearAuth: () => {

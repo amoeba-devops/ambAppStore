@@ -74,4 +74,31 @@ export class SubscriptionService {
       order: { subCreatedAt: 'DESC' },
     });
   }
+
+  async cancelByUser(subId: string, user: AmaJwtPayload): Promise<SubscriptionEntity> {
+    const sub = await this.subscriptionRepository.findOne({
+      where: { subId },
+      relations: ['app'],
+    });
+    if (!sub) {
+      throw new BusinessException('PLT-E4002', 'Subscription not found', HttpStatus.NOT_FOUND);
+    }
+
+    // 본인 확인: ent_id + sub_requested_by 매칭
+    if (sub.entId !== user.entityId || sub.subRequestedBy !== user.userId) {
+      throw new BusinessException('PLT-E1003', 'Not authorized to cancel this subscription', HttpStatus.FORBIDDEN);
+    }
+
+    // PENDING 또는 ACTIVE만 사용자 취소 허용
+    if (sub.subStatus !== SubscriptionStatus.PENDING && sub.subStatus !== SubscriptionStatus.ACTIVE) {
+      throw new BusinessException(
+        'PLT-E3003',
+        `Cannot cancel subscription in ${sub.subStatus} status`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    sub.subStatus = SubscriptionStatus.CANCELLED;
+    return this.subscriptionRepository.save(sub);
+  }
 }

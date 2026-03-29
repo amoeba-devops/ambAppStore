@@ -42,7 +42,13 @@
     "statusActive": "Hoạt động",
     "statusSuspended": "Tạm ngưng",
     "statusRejected": "Đã từ chối",
-    "statusCancelled": "Đã hủy"
+    "statusCancelled": "Đã hủy",
+    "statusExpired": "Đã hết hạn",
+    "colExpires": "Ngày hết hạn",
+    "approveTitle": "Phê duyệt đăng ký",
+    "expiresAtLabel": "Ngày hết hạn (Tùy chọn)",
+    "expiresAtHint": "Để trống cho đăng ký không giới hạn",
+    "cancelBtn": "Hủy"
   },
   "app": {
     "title": "Quản lý ứng dụng",
@@ -87,7 +93,7 @@
     "devLogin": "Đăng nhập bằng token",
     "invalidToken": "Định dạng token không hợp lệ",
     "tokenExpired": "Token đã hết hạn. Vui lòng lấy token mới",
-    "notAdmin": "Tài khoản này không có quyền quản trị. Cần vai trò ADMIN",
+    "notAdmin": "Tài khoản này không có quyền quản trị. Cần quyền ADMIN_LEVEL",
     "enterToken": "Vui lòng nhập token",
     "adminOnly": "Trang này chỉ dành cho quản trị viên"
   }

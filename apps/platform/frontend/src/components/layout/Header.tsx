@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
-import { Store, LogIn, LogOut, Settings, Globe } from 'lucide-react';
+import { Store, LogIn, LogOut, Settings, Globe, ClipboardList } from 'lucide-react';
+import { NotificationBell } from '@/components/NotificationBell';
 
 const LANGUAGES = [
   { code: 'ko', label: '한국어' },
@@ -46,6 +47,14 @@ export function Header() {
 
           {isAuthenticated ? (
             <>
+              <Link
+                to="/my-subscriptions"
+                className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100"
+              >
+                <ClipboardList className="h-4 w-4" />
+                {t('mySubscriptions.title')}
+              </Link>
+              <NotificationBell />
               {isAdmin && (
                 <Link
                   to="/admin"

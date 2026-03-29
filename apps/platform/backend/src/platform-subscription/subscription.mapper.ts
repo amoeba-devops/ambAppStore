@@ -14,6 +14,8 @@ export class SubscriptionMapper {
       requestedBy: entity.subRequestedName,
       requestedEmail: entity.subRequestedEmail,
       reason: entity.subReason,
+      rejectReason: entity.subRejectReason,
+      expiresAt: entity.subExpiresAt?.toISOString() || null,
       createdAt: entity.subCreatedAt.toISOString(),
     };
   }

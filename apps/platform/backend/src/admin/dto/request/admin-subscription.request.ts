@@ -32,3 +32,9 @@ export class AdminRejectDto {
   @IsString()
   reject_reason: string;
 }
+
+export class AdminApproveDto {
+  @IsOptional()
+  @IsString()
+  expires_at?: string;
+}

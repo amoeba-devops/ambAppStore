@@ -18,7 +18,8 @@
     "statusAvailable": "Available",
     "statusComingSoon": "Coming Soon",
     "statusInUse": "In Use",
-    "statusPending": "Under Review"
+    "statusPending": "Under Review",
+    "statusExpired": "Expired"
   },
   "detail": {
     "appIntro": "About",
@@ -27,6 +28,8 @@
     "loginToApply": "Login to Apply",
     "inUse": "In Use — Go to App",
     "underReview": "Under Review",
+    "expired": "Expired — Re-apply needed",
+    "reapply": "Re-apply",
     "screenshot": "Screenshot"
   },
   "subscription": {
@@ -58,5 +61,42 @@
     "submit": "Sign In",
     "allFieldsRequired": "All fields are required",
     "invalidCredentials": "Invalid credentials"
+  },
+  "mySubscriptions": {
+    "title": "My Subscriptions",
+    "empty": "No subscriptions yet",
+    "emptyDesc": "Browse the App Store and apply for apps you need",
+    "browseApps": "Browse Apps",
+    "filterAll": "All",
+    "filterPending": "Pending",
+    "filterActive": "Active",
+    "filterExpired": "Expired",
+    "filterOther": "Rejected/Cancelled",
+    "goToApp": "Go to App",
+    "cancelSubscription": "Cancel",
+    "reapply": "Re-apply",
+    "cancelConfirmTitle": "Cancel Subscription",
+    "cancelConfirmMessage": "Are you sure you want to cancel this subscription?",
+    "cancelSuccess": "Subscription cancelled",
+    "appliedAt": "Applied",
+    "expiresAt": "Expires",
+    "rejectReason": "Rejection Reason",
+    "statusPending": "Under Review",
+    "statusActive": "Active",
+    "statusSuspended": "Suspended",
+    "statusRejected": "Rejected",
+    "statusCancelled": "Cancelled",
+    "statusExpired": "Expired",
+    "noExpiry": "No expiry"
+  },
+  "notification": {
+    "title": "Notifications",
+    "empty": "No new notifications",
+    "markAllRead": "Mark all read",
+    "viewAll": "View all",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago"
   }
 }
