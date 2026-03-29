@@ -70,7 +70,7 @@ export class NotificationSchedulerService {
 
       if (!existingNotification) {
         const daysLeft = Math.ceil(
-          (sub.subExpiresAt.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
+          ((sub.subExpiresAt?.getTime() ?? 0) - now.getTime()) / (24 * 60 * 60 * 1000),
         );
         await this.notificationTriggerService.onSubscriptionExpiringSoon(sub, daysLeft);
         this.logger.log(`Expiring soon notification sent: ${sub.subId} (${daysLeft} days left)`);

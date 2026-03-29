@@ -9,7 +9,7 @@ export class NotificationTriggerService {
 
   async onSubscriptionApproved(subscription: SubscriptionEntity): Promise<void> {
     const expiresInfo = subscription.subExpiresAt
-      ? ` (Expires: ${subscription.subExpiresAt.toISOString().split('T')[0]})`
+      ? ` (Expires: ${subscription.subExpiresAt?.toISOString().split('T')[0]})`
       : '';
 
     await this.notificationService.create({
