@@ -33,7 +33,7 @@ export function ToastContainer() {
               styleMap[toast.type],
             )}
           >
-            <Icon className="h-5 w-5 flex-shrink-0" />
+            <Icon className="h-5 w-5 flex-shrink-0 text-gray-500" />
             <p className="text-sm font-medium">{toast.message}</p>
             <button
               type="button"

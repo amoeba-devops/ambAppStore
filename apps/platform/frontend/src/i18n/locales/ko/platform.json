@@ -45,5 +45,18 @@
     "successTitle": "신청 완료",
     "successMessage": "앱 사용 신청이 접수되었습니다. 관리자 승인 후 사용 가능합니다.",
     "duplicateError": "이미 신청 중이거나 사용 중인 앱입니다"
+  },
+  "login": {
+    "title": "앱스토어 로그인",
+    "subtitle": "Entity 계정으로 로그인하세요",
+    "entityId": "Entity ID",
+    "entityIdPlaceholder": "예: VN01",
+    "email": "이메일",
+    "emailPlaceholder": "예: user@company.com",
+    "password": "비밀번호",
+    "passwordPlaceholder": "비밀번호를 입력하세요",
+    "submit": "로그인",
+    "allFieldsRequired": "모든 항목을 입력해주세요",
+    "invalidCredentials": "인증 정보가 올바르지 않습니다"
   }
 }

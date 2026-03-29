@@ -13,6 +13,7 @@ import { AdminSubscriptionListPage } from '@/pages/admin/AdminSubscriptionListPa
 import { AdminAppListPage } from '@/pages/admin/AdminAppListPage';
 import { AdminStatsPage } from '@/pages/admin/AdminStatsPage';
 import { AdminLoginPage } from '@/pages/admin/AdminLoginPage';
+import { AppsLoginPage } from '@/pages/AppsLoginPage';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <main className="flex-1">
             <Routes>
               <Route path="/" element={<LandingPage />} />
+              <Route path="/apps/login" element={<AppsLoginPage />} />
               <Route path="/apps/:slug" element={<AppDetailPage />} />
               {/* Admin Login (outside guard) */}
               <Route path="/admin/login" element={<AdminLoginPage />} />

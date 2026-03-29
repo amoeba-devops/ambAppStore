@@ -73,8 +73,8 @@ export function VehicleCard({ vehicle, onClick }: VehicleCardProps) {
       {/* Running info (only for IN_USE) */}
       {isRunning && Boolean(vehicle.currentDispatch) && (
         <div className="mt-3 border-t border-[#e2e5eb] pt-3 text-[12px]">
-          <div className="flex items-center gap-1 text-blue-600">
-            <MapPin className="h-3 w-3" />
+          <div className="flex items-center gap-1 text-gray-600">
+            <MapPin className="h-3 w-3 text-gray-500" />
             {(vehicle.currentDispatch as Record<string, unknown>).origin as string} → {(vehicle.currentDispatch as Record<string, unknown>).destination as string}
           </div>
           <div className="text-gray-600">

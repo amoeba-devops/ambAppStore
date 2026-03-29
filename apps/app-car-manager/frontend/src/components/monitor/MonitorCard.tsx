@@ -40,8 +40,8 @@ export function MonitorCard({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[#e2e5eb] bg-[#f0f2f5] px-4 py-3.5">
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 text-[12px] font-medium text-blue-600">
-            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-blue-600" />
+          <div className="flex items-center gap-1.5 text-[12px] font-medium text-gray-600">
+            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-gray-500" />
             {t('monitor.running')}
           </div>
           <span className="font-mono text-[14px] font-semibold text-gray-900">{plateNumber}</span>

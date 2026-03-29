@@ -69,8 +69,8 @@ export function DispatchCard({ dispatch, onApprove, onReject, onClick }: Dispatc
           </span>
         )}
         {isRunning && (
-          <span className="flex items-center gap-1 text-[10px] text-blue-600">
-            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-blue-600" />
+          <span className="flex items-center gap-1 text-[10px] text-gray-600">
+            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-gray-500" />
             {t('monitor.running')}
           </span>
         )}

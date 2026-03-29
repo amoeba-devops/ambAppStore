@@ -18,11 +18,11 @@ const colorMap = {
 };
 
 const iconColorMap = {
-  blue: 'bg-blue-100 text-blue-600',
-  green: 'bg-green-100 text-green-600',
-  yellow: 'bg-yellow-100 text-yellow-600',
-  red: 'bg-red-100 text-red-600',
-  gray: 'bg-gray-100 text-gray-600',
+  blue: 'bg-gray-100 text-gray-500',
+  green: 'bg-gray-100 text-gray-500',
+  yellow: 'bg-gray-100 text-gray-500',
+  red: 'bg-gray-100 text-gray-500',
+  gray: 'bg-gray-100 text-gray-500',
 };
 
 export function StatCard({ label, value, sub, color = 'blue', icon: Icon }: StatCardProps) {

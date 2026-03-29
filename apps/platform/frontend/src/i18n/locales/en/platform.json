@@ -45,5 +45,18 @@
     "successTitle": "Request Submitted",
     "successMessage": "Your subscription request has been submitted. It will be available after admin approval.",
     "duplicateError": "A subscription is already active or pending for this app"
+  },
+  "login": {
+    "title": "App Store Login",
+    "subtitle": "Sign in with your Entity account",
+    "entityId": "Entity ID",
+    "entityIdPlaceholder": "e.g. VN01",
+    "email": "Email",
+    "emailPlaceholder": "e.g. user@company.com",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "submit": "Sign In",
+    "allFieldsRequired": "All fields are required",
+    "invalidCredentials": "Invalid credentials"
   }
 }

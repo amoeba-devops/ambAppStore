@@ -45,5 +45,18 @@
     "successTitle": "Đã gửi yêu cầu",
     "successMessage": "Yêu cầu đăng ký đã được ghi nhận. Ứng dụng sẽ khả dụng sau khi quản trị viên phê duyệt.",
     "duplicateError": "Đã tồn tại yêu cầu đang chờ hoặc đang hoạt động cho ứng dụng này"
+  },
+  "login": {
+    "title": "Đăng nhập App Store",
+    "subtitle": "Đăng nhập bằng tài khoản Entity",
+    "entityId": "Entity ID",
+    "entityIdPlaceholder": "VD: VN01",
+    "email": "Email",
+    "emailPlaceholder": "VD: user@company.com",
+    "password": "Mật khẩu",
+    "passwordPlaceholder": "Nhập mật khẩu",
+    "submit": "Đăng nhập",
+    "allFieldsRequired": "Vui lòng điền tất cả các trường",
+    "invalidCredentials": "Thông tin xác thực không hợp lệ"
   }
 }

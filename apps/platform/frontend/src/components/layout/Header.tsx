@@ -65,13 +65,13 @@ export function Header() {
               </button>
             </>
           ) : (
-            <a
-              href={import.meta.env.VITE_AMA_LOGIN_URL || '#'}
+            <Link
+              to="/apps/login"
               className="flex items-center gap-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
               <LogIn className="h-4 w-4" />
               {t('common.login')}
-            </a>
+            </Link>
           )}
         </div>
       </div>

@@ -26,16 +26,16 @@ VALUES
      JSON_OBJECT('icon', 'globe', 'label', '국가별 관세율 조회'),
      JSON_OBJECT('icon', 'bookmark', 'label', '즐겨찾기 HS Code 관리')
    )),
-  (UUID(), 'app-sales-report', '매출리포트', 'Sales Report for SocialBean',
-   'SocialBean 매출 현황 대시보드 및 분석 리포트를 제공합니다.',
+  (UUID(), 'app-sales-report', '매출리포트', 'Sales Report',
+   '매출 현황 대시보드 및 분석 리포트를 제공합니다.',
    'COMING_SOON', 5203, 3103, 3,
    JSON_ARRAY(
      JSON_OBJECT('icon', 'trending-up', 'label', '실시간 매출 대시보드'),
      JSON_OBJECT('icon', 'pie-chart', 'label', '카테고리별 매출 분석'),
      JSON_OBJECT('icon', 'download', 'label', '리포트 다운로드 (Excel/PDF)')
    )),
-  (UUID(), 'app-stock-forecast', '재고관리예측', 'Stock Forecast for SocialBean',
-   'SocialBean 재고 관리 및 AI 수요 예측 시스템입니다.',
+  (UUID(), 'app-stock-management', '재고관리', 'Stock Forecast',
+   '재고 관리 및 AI 수요 예측 시스템입니다.',
    'COMING_SOON', 5204, 3104, 4,
    JSON_ARRAY(
      JSON_OBJECT('icon', 'package', 'label', '실시간 재고 현황'),

@@ -22,7 +22,7 @@ const APP_ICONS: Record<string, string> = {
   'app-car-manager': '🚗',
   'app-hscode': '📦',
   'app-sales-report': '📊',
-  'app-stock-forecast': '📈',
+  'app-stock-management': '📈',
 };
 
 export function AppCard({ app, subscriptionStatus }: AppCardProps) {
