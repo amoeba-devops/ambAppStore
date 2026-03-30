@@ -31,8 +31,9 @@ export function AppFormModal({ app, onClose }: Props) {
 
   const onSubmit = (data: Record<string, unknown>) => {
     if (isEdit) {
+      const { app_slug, ...updateData } = data;
       updateMutation.mutate(
-        { appId: app.appId, data },
+        { appId: app.appId, data: updateData },
         { onSuccess: onClose },
       );
     } else {
