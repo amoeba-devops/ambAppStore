@@ -1,7 +1,8 @@
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
-import { Store, LogIn, LogOut, Settings, Globe, ClipboardList } from 'lucide-react';
+import { Store, LogIn, LogOut, Settings, Globe, ClipboardList, Building2 } from 'lucide-react';
 import { NotificationBell } from '@/components/NotificationBell';
 
 const LANGUAGES = [
@@ -19,10 +20,29 @@ function isEmbedded(): boolean {
   }
 }
 
+/** referrer 도메인 추출 (ama.amoeba.site 등) */
+function getReferrerDomain(): string | null {
+  try {
+    const ref = document.referrer;
+    if (!ref) return null;
+    const url = new URL(ref);
+    return url.hostname;
+  } catch {
+    return null;
+  }
+}
+
 export function Header() {
   const { t, i18n } = useTranslation('platform');
   const { isAuthenticated, isAdmin, user, clearAuth } = useAuthStore();
   const embedded = isEmbedded();
+  const [referrerDomain, setReferrerDomain] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (embedded) {
+      setReferrerDomain(getReferrerDomain());
+    }
+  }, [embedded]);
 
   const currentLang = LANGUAGES.find((l) => l.code === i18n.language) || LANGUAGES[0];
 
@@ -34,6 +54,22 @@ export function Header() {
           AMA App Store
         </Link>
         <div className="flex items-center gap-3">
+          {/* Entity info badge (embedded iframe) */}
+          {embedded && isAuthenticated && user?.entityCode && (
+            <span className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">
+              <Building2 className="h-3.5 w-3.5 text-gray-500" />
+              <span className="font-medium">{user.entityCode}</span>
+              <span className="text-gray-400">·</span>
+              <span>{user.name}</span>
+              {referrerDomain && (
+                <>
+                  <span className="text-gray-300">|</span>
+                  <span className="text-xs text-gray-400">{referrerDomain}</span>
+                </>
+              )}
+            </span>
+          )}
+
           {/* Language Switcher */}
           <div className="relative group">
             <button className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-gray-500 hover:bg-gray-100">

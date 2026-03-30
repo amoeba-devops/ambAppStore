@@ -7,7 +7,8 @@
     "confirm": "Confirm",
     "submit": "Submit",
     "loading": "Loading...",
-    "error": "An error occurred"
+    "error": "An error occurred",
+    "optional": "optional"
   },
   "footer": {
     "copyright": "Amoeba Company. All rights reserved."

@@ -7,7 +7,8 @@
     "confirm": "Xác nhận",
     "submit": "Gửi yêu cầu",
     "loading": "Đang tải...",
-    "error": "Đã xảy ra lỗi"
+    "error": "Đã xảy ra lỗi",
+    "optional": "tùy chọn"
   },
   "footer": {
     "copyright": "Amoeba Company. Bảo lưu mọi quyền."

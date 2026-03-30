@@ -81,7 +81,7 @@ export function SubscriptionRequestModal({ appSlug, appName, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600">
           <X size={20} />
         </button>
@@ -104,45 +104,7 @@ export function SubscriptionRequestModal({ appSlug, appName, onClose }: Props) {
               <p className="text-sm text-gray-900">{appName}</p>
             </div>
 
-            {/* Applicant info */}
-            {isAuthenticated ? (
-              <fieldset className="rounded-lg border p-3">
-                <legend className="px-1 text-xs font-medium text-gray-500">{t('subscription.applicantInfo')}</legend>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-gray-500">{t('subscription.name')}</span>
-                    <p className="font-medium">{user?.name ?? '-'}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">{t('subscription.email')}</span>
-                    <p className="font-medium">{user?.email ?? '-'}</p>
-                  </div>
-                </div>
-              </fieldset>
-            ) : (
-              <fieldset className="space-y-3 rounded-lg border p-3">
-                <legend className="px-1 text-xs font-medium text-gray-500">{t('subscription.applicantInfo')}</legend>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">{t('subscription.name')}</label>
-                  <input
-                    {...register('requester_name')}
-                    placeholder={t('subscription.namePlaceholder')}
-                    className="w-full rounded-lg border px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">{t('subscription.email')}</label>
-                  <input
-                    {...register('requester_email')}
-                    type="email"
-                    placeholder={t('subscription.emailPlaceholder')}
-                    className="w-full rounded-lg border px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
-              </fieldset>
-            )}
-
-            {/* Entity Info */}
+            {/* Entity Info (primary) */}
             <fieldset className="space-y-3 rounded-lg border p-3">
               <legend className="px-1 text-xs font-medium text-gray-500">{t('subscription.entityInfo')}</legend>
               <div>
@@ -173,6 +135,50 @@ export function SubscriptionRequestModal({ appSlug, appName, onClose }: Props) {
                 {errors.ent_name && <p className="mt-1 text-xs text-red-500">{errors.ent_name.message}</p>}
               </div>
             </fieldset>
+
+            {/* Applicant info (optional) */}
+            {isAuthenticated ? (
+              <fieldset className="rounded-lg border p-3">
+                <legend className="px-1 text-xs font-medium text-gray-500">
+                  {t('subscription.applicantInfo')}
+                  <span className="ml-1 text-gray-400">({t('common.optional')})</span>
+                </legend>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-gray-500">{t('subscription.name')}</span>
+                    <p className="font-medium">{user?.name ?? '-'}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">{t('subscription.email')}</span>
+                    <p className="font-medium">{user?.email ?? '-'}</p>
+                  </div>
+                </div>
+              </fieldset>
+            ) : (
+              <fieldset className="space-y-3 rounded-lg border p-3">
+                <legend className="px-1 text-xs font-medium text-gray-500">
+                  {t('subscription.applicantInfo')}
+                  <span className="ml-1 text-gray-400">({t('common.optional')})</span>
+                </legend>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">{t('subscription.name')}</label>
+                  <input
+                    {...register('requester_name')}
+                    placeholder={t('subscription.namePlaceholder')}
+                    className="w-full rounded-lg border px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">{t('subscription.email')}</label>
+                  <input
+                    {...register('requester_email')}
+                    type="email"
+                    placeholder={t('subscription.emailPlaceholder')}
+                    className="w-full rounded-lg border px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+              </fieldset>
+            )}
 
             {/* Reason */}
             <div>
