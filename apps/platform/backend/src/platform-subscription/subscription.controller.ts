@@ -23,6 +23,13 @@ export class SubscriptionController {
     return successResponse(SubscriptionMapper.toResponse(subscription, subscription.app));
   }
 
+  /** Entity별 구독 현황 조회 (Public — AMA custom-apps 연동) */
+  @Get('entity/:entId')
+  async findByEntity(@Param('entId') entId: string) {
+    const data = await this.subscriptionService.findByEntity(entId);
+    return successResponse(data);
+  }
+
   /** 비인증 공개 신청: AMA entity-settings에서 직접 신청 */
   @Post('public')
   async createPublic(@Body() dto: CreatePublicSubscriptionDto) {

@@ -4,9 +4,11 @@ import { Repository, In } from 'typeorm';
 import { SubscriptionEntity, SubscriptionStatus } from './entities/subscription.entity';
 import { CreateSubscriptionDto } from './dto/request/create-subscription.dto';
 import { CreatePublicSubscriptionDto } from './dto/request/create-public-subscription.dto';
+import { AppEntity } from '../platform-app/entities/app.entity';
 import { AppService } from '../platform-app/app.service';
 import { AmaJwtPayload } from '../auth/interfaces/ama-jwt-payload.interface';
 import { BusinessException } from '../common/exceptions/business.exception';
+import { EntitySubscriptionResponse, EntityAppSubscription } from './dto/response/entity-subscription.response';
 
 @Injectable()
 export class SubscriptionService {
@@ -138,5 +140,54 @@ export class SubscriptionService {
 
     sub.subStatus = SubscriptionStatus.CANCELLED;
     return this.subscriptionRepository.save(sub);
+  }
+
+  async findByEntity(entId: string): Promise<EntitySubscriptionResponse> {
+    // 1. ACTIVE 앱 목록 조회
+    const apps = await this.appService.findAllVisible();
+
+    // 2. 해당 entity의 유효 구독 조회
+    const subscriptions = await this.subscriptionRepository.find({
+      where: {
+        entId,
+        subStatus: In([
+          SubscriptionStatus.ACTIVE,
+          SubscriptionStatus.PENDING,
+          SubscriptionStatus.SUSPENDED,
+        ]),
+      },
+      order: { subCreatedAt: 'DESC' },
+    });
+
+    // 3. app_id → subscription 매핑 (앱당 최신 1건)
+    const subMap = new Map<string, SubscriptionEntity>();
+    for (const sub of subscriptions) {
+      if (!subMap.has(sub.appId)) {
+        subMap.set(sub.appId, sub);
+      }
+    }
+
+    // 4. 응답 조립
+    const result: EntityAppSubscription[] = apps.map((app: AppEntity) => {
+      const sub = subMap.get(app.appId);
+      return {
+        appSlug: app.appSlug,
+        appName: app.appName,
+        appNameEn: app.appNameEn || null,
+        appStatus: app.appStatus,
+        appIconUrl: app.appIconUrl || null,
+        subscription: sub
+          ? {
+              subId: sub.subId,
+              status: sub.subStatus,
+              requestedAt: sub.subCreatedAt.toISOString(),
+              approvedAt: sub.subApprovedAt?.toISOString() || null,
+              expiresAt: sub.subExpiresAt?.toISOString() || null,
+            }
+          : null,
+      };
+    });
+
+    return { entId, apps: result };
   }
 }
