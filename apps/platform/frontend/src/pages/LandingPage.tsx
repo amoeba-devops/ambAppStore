@@ -1,18 +1,24 @@
 import { useTranslation } from 'react-i18next';
 import { useApps } from '@/hooks/useApps';
-import { useMySubscriptions } from '@/hooks/useSubscription';
+import { useMySubscriptions, useEntitySubscriptions } from '@/hooks/useSubscription';
 import { useAuthStore } from '@/stores/auth.store';
+import { useEntityContextStore } from '@/stores/entity-context.store';
 import { AppCard } from '@/components/AppCard';
 
 export function LandingPage() {
   const { t } = useTranslation('platform');
   const { isAuthenticated } = useAuthStore();
+  const entity = useEntityContextStore((s) => s.entity);
+  const entId = entity?.entId || null;
+
   const { data: apps, isLoading } = useApps();
   const { data: subscriptions } = useMySubscriptions(isAuthenticated);
+  const { data: entityApps } = useEntitySubscriptions(!isAuthenticated ? entId : null);
 
-  const subStatusMap = new Map(
-    subscriptions?.map((s) => [s.appSlug, s.status]) ?? [],
-  );
+  // 통합 구독 상태 맵: 인증 사용자는 기존 API, Entity 비인증 사용자는 Public API
+  const subStatusMap = isAuthenticated
+    ? new Map(subscriptions?.map((s) => [s.appSlug, s.status]) ?? [])
+    : new Map(entityApps?.map((a) => [a.appSlug, a.subscription?.status ?? null]) ?? []);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-12">

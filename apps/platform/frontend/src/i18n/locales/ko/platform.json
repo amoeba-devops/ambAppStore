@@ -31,6 +31,7 @@
     "underReview": "심사중",
     "expired": "만료됨 — 재신청 필요",
     "reapply": "재신청",
+    "useService": "서비스 사용",
     "screenshot": "스크린샷"
   },
   "subscription": {

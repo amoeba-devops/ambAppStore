@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import { useAppDetail } from '@/hooks/useApps';
-import { useSubscriptionCheck } from '@/hooks/useSubscription';
+import { useSubscriptionCheck, useEntitySubscriptions } from '@/hooks/useSubscription';
 import { useAuthStore } from '@/stores/auth.store';
+import { useEntityContextStore } from '@/stores/entity-context.store';
 import { SubscriptionRequestModal } from '@/components/SubscriptionRequestModal';
 
 const APP_ICONS: Record<string, string> = {
@@ -19,15 +20,22 @@ export function AppDetailPage() {
   const navigate = useNavigate();
   const { t } = useTranslation('platform');
   const { isAuthenticated } = useAuthStore();
+  const entity = useEntityContextStore((s) => s.entity);
+  const entId = entity?.entId || null;
 
   const { data: app, isLoading } = useAppDetail(slug);
   const { data: subStatus } = useSubscriptionCheck(slug, isAuthenticated);
+  const { data: entityApps } = useEntitySubscriptions(!isAuthenticated ? entId : null);
   const [showModal, setShowModal] = useState(false);
 
   if (isLoading) return <p className="py-20 text-center text-gray-400">{t('common.loading')}</p>;
   if (!app) return <p className="py-20 text-center text-gray-400">{t('common.error')}</p>;
 
-  const currentStatus = subStatus?.status;
+  // 통합 구독 상태: 인증 사용자는 기존 API, Entity 비인증 사용자는 Public API
+  const currentStatus = isAuthenticated
+    ? subStatus?.status
+    : entityApps?.find((a) => a.appSlug === slug)?.subscription?.status ?? null;
+  const isEntityUser = !isAuthenticated && !!entId;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -81,7 +89,14 @@ export function AppDetailPage() {
 
       {/* Action Button */}
       <div className="sticky bottom-4">
-        {currentStatus === 'ACTIVE' ? (
+        {currentStatus === 'ACTIVE' && isEntityUser ? (
+          <a
+            href={`/${app.slug}`}
+            className="block w-full rounded-xl bg-green-600 py-3 text-center font-semibold text-white hover:bg-green-700"
+          >
+            {t('detail.useService')}
+          </a>
+        ) : currentStatus === 'ACTIVE' ? (
           <a
             href={`/${app.slug}`}
             className="block w-full rounded-xl bg-blue-600 py-3 text-center font-semibold text-white hover:bg-blue-700"

@@ -93,3 +93,29 @@ export function useCancelSubscription() {
     },
   });
 }
+
+export interface EntityAppSubscription {
+  appSlug: string;
+  appName: string;
+  appNameEn: string | null;
+  appStatus: string;
+  appIconUrl: string | null;
+  subscription: {
+    subId: string;
+    status: string;
+    requestedAt: string;
+    approvedAt: string | null;
+    expiresAt: string | null;
+  } | null;
+}
+
+export function useEntitySubscriptions(entId: string | null) {
+  return useQuery<EntityAppSubscription[]>({
+    queryKey: ['platform', 'subscriptions', 'entity', entId],
+    queryFn: async () => {
+      const res = await apiClient.get(`/v1/platform/subscriptions/entity/${entId}`);
+      return res.data.data.apps;
+    },
+    enabled: !!entId,
+  });
+}
