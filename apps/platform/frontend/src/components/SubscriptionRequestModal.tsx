@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
+import { useEntityContextStore } from '@/stores/entity-context.store';
 import { useCreateSubscription, useCreatePublicSubscription } from '@/hooks/useSubscription';
 import { useState } from 'react';
 
@@ -27,6 +28,7 @@ interface Props {
 export function SubscriptionRequestModal({ appSlug, appName, onClose }: Props) {
   const { t } = useTranslation('platform');
   const { user, isAuthenticated } = useAuthStore();
+  const entityCtx = useEntityContextStore((s) => s.entity);
   const authMutation = useCreateSubscription();
   const publicMutation = useCreatePublicSubscription();
   const [success, setSuccess] = useState(false);
@@ -39,11 +41,11 @@ export function SubscriptionRequestModal({ appSlug, appName, onClose }: Props) {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      ent_id: user?.entityId ?? '',
-      ent_code: user?.entityCode ?? '',
-      ent_name: '',
-      requester_name: user?.name ?? '',
-      requester_email: user?.email ?? '',
+      ent_id: entityCtx?.entId ?? user?.entityId ?? '',
+      ent_code: entityCtx?.entCode ?? user?.entityCode ?? '',
+      ent_name: entityCtx?.entName ?? '',
+      requester_name: entityCtx?.email ? '' : (user?.name ?? ''),
+      requester_email: entityCtx?.email ?? user?.email ?? '',
       reason: '',
     },
   });

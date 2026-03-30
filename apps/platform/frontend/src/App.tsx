@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query-client';
 import '@/i18n/i18n';
@@ -15,11 +15,42 @@ import { AdminStatsPage } from '@/pages/admin/AdminStatsPage';
 import { AdminLoginPage } from '@/pages/admin/AdminLoginPage';
 import { AppsLoginPage } from '@/pages/AppsLoginPage';
 import { MySubscriptionsPage } from '@/pages/MySubscriptionsPage';
+import { useEntityContextStore } from '@/stores/entity-context.store';
+import { useEffect } from 'react';
+
+/**
+ * AMA iframe 호출 시 쿼리 파라미터(ent_id, ent_code, ent_name, email)를
+ * Zustand 스토어에 저장하고 URL에서 제거.
+ */
+function EntityContextInitializer() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const setEntity = useEntityContextStore((s) => s.setEntity);
+
+  useEffect(() => {
+    const entId = searchParams.get('ent_id');
+    const entCode = searchParams.get('ent_code');
+    const entName = searchParams.get('ent_name');
+    const email = searchParams.get('email');
+
+    if (entId && entCode && entName) {
+      setEntity({ entId, entCode, entName, email: email ?? '' });
+      // 쿼리 파라미터를 URL에서 제거 (clean URL)
+      searchParams.delete('ent_id');
+      searchParams.delete('ent_code');
+      searchParams.delete('ent_name');
+      searchParams.delete('email');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null;
+}
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <EntityContextInitializer />
         <div className="flex min-h-screen flex-col bg-gray-50">
           <Header />
           <main className="flex-1">

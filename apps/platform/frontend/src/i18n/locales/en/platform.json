@@ -103,5 +103,12 @@
     "minutesAgo": "{{count}}m ago",
     "hoursAgo": "{{count}}h ago",
     "daysAgo": "{{count}}d ago"
+  },
+  "entityModal": {
+    "title": "Entity Info",
+    "entityId": "Entity ID",
+    "entityCode": "Entity Code",
+    "entityName": "Entity Name",
+    "email": "Email"
   }
 }

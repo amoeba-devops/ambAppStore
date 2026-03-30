@@ -103,5 +103,12 @@
     "minutesAgo": "{{count}} phút trước",
     "hoursAgo": "{{count}} giờ trước",
     "daysAgo": "{{count}} ngày trước"
+  },
+  "entityModal": {
+    "title": "Thông tin Entity",
+    "entityId": "Entity ID",
+    "entityCode": "Entity Code",
+    "entityName": "Tên Entity",
+    "email": "Email"
   }
 }

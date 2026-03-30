@@ -103,5 +103,12 @@
     "minutesAgo": "{{count}}분 전",
     "hoursAgo": "{{count}}시간 전",
     "daysAgo": "{{count}}일 전"
+  },
+  "entityModal": {
+    "title": "Entity 정보",
+    "entityId": "Entity ID",
+    "entityCode": "Entity Code",
+    "entityName": "Entity Name",
+    "email": "이메일"
   }
 }

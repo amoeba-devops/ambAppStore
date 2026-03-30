@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
+import { useEntityContextStore } from '@/stores/entity-context.store';
 import { Store, LogIn, LogOut, Settings, Globe, ClipboardList, Building2 } from 'lucide-react';
 import { NotificationBell } from '@/components/NotificationBell';
+import { EntityInfoModal } from '@/components/EntityInfoModal';
 
 const LANGUAGES = [
   { code: 'ko', label: '한국어' },
@@ -11,38 +13,11 @@ const LANGUAGES = [
   { code: 'vi', label: 'Tiếng Việt' },
 ] as const;
 
-/** AMA entity-settings/custom-apps 에서 iframe으로 열린 경우 감지 */
-function isEmbedded(): boolean {
-  try {
-    return window.self !== window.top;
-  } catch {
-    return true; // cross-origin iframe이면 접근 차단 → iframe 확정
-  }
-}
-
-/** referrer 도메인 추출 (ama.amoeba.site 등) */
-function getReferrerDomain(): string | null {
-  try {
-    const ref = document.referrer;
-    if (!ref) return null;
-    const url = new URL(ref);
-    return url.hostname;
-  } catch {
-    return null;
-  }
-}
-
 export function Header() {
   const { t, i18n } = useTranslation('platform');
   const { isAuthenticated, isAdmin, user, clearAuth } = useAuthStore();
-  const embedded = isEmbedded();
-  const [referrerDomain, setReferrerDomain] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (embedded) {
-      setReferrerDomain(getReferrerDomain());
-    }
-  }, [embedded]);
+  const entityCtx = useEntityContextStore((s) => s.entity);
+  const [showEntityModal, setShowEntityModal] = useState(false);
 
   const currentLang = LANGUAGES.find((l) => l.code === i18n.language) || LANGUAGES[0];
 
@@ -54,20 +29,15 @@ export function Header() {
           AMA App Store
         </Link>
         <div className="flex items-center gap-3">
-          {/* Entity info badge (embedded iframe) */}
-          {embedded && isAuthenticated && user?.entityCode && (
-            <span className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">
-              <Building2 className="h-3.5 w-3.5 text-gray-500" />
-              <span className="font-medium">{user.entityCode}</span>
-              <span className="text-gray-400">·</span>
-              <span>{user.name}</span>
-              {referrerDomain && (
-                <>
-                  <span className="text-gray-300">|</span>
-                  <span className="text-xs text-gray-400">{referrerDomain}</span>
-                </>
-              )}
-            </span>
+          {/* Entity context badge (from AMA query params) */}
+          {entityCtx && (
+            <button
+              onClick={() => setShowEntityModal(true)}
+              className="flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-700 hover:bg-blue-100 transition-colors"
+            >
+              <Building2 className="h-3.5 w-3.5 text-blue-500" />
+              <span className="font-medium">{entityCtx.entName}</span>
+            </button>
           )}
 
           {/* Language Switcher */}
@@ -119,7 +89,7 @@ export function Header() {
                 {t('common.logout')}
               </button>
             </>
-          ) : !embedded ? (
+          ) : !entityCtx ? (
             <Link
               to="/apps/login"
               className="flex items-center gap-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -130,6 +100,11 @@ export function Header() {
           ) : null}
         </div>
       </div>
+
+      {/* Entity Info Modal */}
+      {showEntityModal && entityCtx && (
+        <EntityInfoModal entity={entityCtx} onClose={() => setShowEntityModal(false)} />
+      )}
     </header>
   );
 }
