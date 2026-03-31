@@ -15,6 +15,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3101
+      - ALLOW_ENTITY_HEADER_AUTH=${ALLOW_ENTITY_HEADER_AUTH:-false}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3101/api/v1/health || exit 1"]
       interval: 30s

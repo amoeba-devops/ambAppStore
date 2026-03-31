@@ -26,9 +26,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   handleRequest(err: any, user: any, info: any, context: ExecutionContext) {
     if (user) return user;
 
-    // 스테이징 환경에서만 Entity 헤더 fallback 허용
-    const nodeEnv = process.env.NODE_ENV || 'development';
-    if (nodeEnv === 'production') {
+    // ALLOW_ENTITY_HEADER_AUTH=true 일 때만 Entity 헤더 fallback 허용
+    const allowEntityAuth = process.env.ALLOW_ENTITY_HEADER_AUTH === 'true';
+    if (!allowEntityAuth) {
       return super.handleRequest(err, user, info, context);
     }
 
