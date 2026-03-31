@@ -160,5 +160,16 @@
     "smaWeeks": "SMA 주수",
     "seasonTitle": "계절 지수",
     "channelTitle": "채널 관리"
+  },
+  "debug": {
+    "title": "Debug Context Panel",
+    "referer": "HTTP Referer",
+    "initialParams": "Initial Query Parameters",
+    "currentParams": "Current Query Parameters",
+    "jwtToken": "JWT Token (Raw)",
+    "jwtPayload": "JWT Payload (Decoded)",
+    "entityContext": "Entity Context",
+    "copy": "복사",
+    "copied": "복사됨"
   }
 }

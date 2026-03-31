@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { apiClient } from '@/lib/api-client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ToastContainer } from '@/components/common/ToastContainer';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import '@/i18n/i18n';
 
 import { EntityInfoPage } from '@/pages/auth/EntityInfoPage';
@@ -27,6 +27,11 @@ import { SafetyStockListPage } from '@/pages/SafetyStockListPage';
 import { ParameterSettingsPage } from '@/pages/ParameterSettingsPage';
 import { SeasonalityPage } from '@/pages/SeasonalityPage';
 import { ChannelListPage } from '@/pages/ChannelListPage';
+import { DebugContextPanel } from '@/components/common/DebugContextPanel';
+
+// Capture initial values BEFORE React hydration cleans URL
+const _initialReferrer = document.referrer;
+const _initialQueryParams = window.location.search;
 
 /**
  * AMA iframe 쿼리파라미터(ent_id, ent_code, ent_name, email) 감지 후
@@ -90,6 +95,8 @@ function ProtectedRoute() {
 }
 
 export default function App() {
+  const initialRef = useRef({ referrer: _initialReferrer, params: _initialQueryParams });
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename="/app-stock-management">
@@ -125,6 +132,10 @@ export default function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <DebugContextPanel
+          initialReferrer={initialRef.current.referrer}
+          initialQueryParams={initialRef.current.params}
+        />
         <ToastContainer />
       </BrowserRouter>
     </QueryClientProvider>
