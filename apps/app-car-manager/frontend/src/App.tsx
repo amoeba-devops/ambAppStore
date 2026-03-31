@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query-client';
 import '@/i18n/i18n';
@@ -13,11 +14,47 @@ import { DispatchListPage } from '@/pages/DispatchListPage';
 import { DispatchDetailPage } from '@/pages/DispatchDetailPage';
 import { DispatchFormPage } from '@/pages/DispatchFormPage';
 import { TripLogListPage } from '@/pages/TripLogListPage';
+import { useAuthStore } from '@/stores/auth.store';
+
+/**
+ * AMA → AppStore → 앱 진입 시 쿼리 파라미터로 Entity 정보를 전달받아
+ * auth.store에 설정하고 URL에서 제거.
+ */
+function EntityContextInitializer() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const setEntityAuth = useAuthStore((s) => s.setEntityAuth);
+
+  useEffect(() => {
+    const entId = searchParams.get('ent_id');
+    const entCode = searchParams.get('ent_code');
+    const entName = searchParams.get('ent_name');
+    const email = searchParams.get('email');
+
+    if (entId && entCode) {
+      setEntityAuth({
+        userId: entId,
+        entityId: entId,
+        entityCode: entCode,
+        email: email ?? '',
+        name: entName ?? '',
+        roles: [],
+      });
+      searchParams.delete('ent_id');
+      searchParams.delete('ent_code');
+      searchParams.delete('ent_name');
+      searchParams.delete('email');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null;
+}
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename="/app-car-manager">
+        <EntityContextInitializer />
         <AppLayout>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
