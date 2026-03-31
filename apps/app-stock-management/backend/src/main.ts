@@ -9,7 +9,9 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'https://ama.amoeba.site',
+      'https://stg-ama.amoeba.site',
       'https://apps.amoeba.site',
+      'https://stg-apps.amoeba.site',
       'http://localhost:5204',
     ],
     credentials: true,

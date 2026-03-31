@@ -98,6 +98,62 @@ export class AuthService {
     return this.issueTokens(user, corp, 'AMA_SSO');
   }
 
+  /**
+   * AMA iframe 쿼리파라미터 기반 자동 인증.
+   * Corporation/User가 없으면 자동 생성하여 즉시 대시보드 접근 가능하게 한다.
+   */
+  async amaEntryLogin(entId: string, entCode: string, entName: string, email: string) {
+    // Step 1: Find or create corporation
+    let corp = await this.corpRepo.findOne({
+      where: { crpAmaEntityId: entId, crpDeletedAt: IsNull() },
+    });
+    if (!corp) {
+      corp = await this.corpRepo.findOne({
+        where: { crpCode: entCode, crpDeletedAt: IsNull() },
+      });
+    }
+    if (!corp) {
+      corp = this.corpRepo.create({
+        crpCode: entCode,
+        crpName: entName,
+        crpAmaEntityId: entId,
+        crpStatus: CorporationStatus.ACTIVE,
+      });
+      corp = await this.corpRepo.save(corp);
+    } else {
+      // Update AMA entity mapping if missing
+      if (!corp.crpAmaEntityId) {
+        corp.crpAmaEntityId = entId;
+        await this.corpRepo.save(corp);
+      }
+    }
+
+    // Step 2: Find or create user
+    let user = await this.userRepo.findOne({
+      where: { usrEmail: email, crpId: corp.crpId, usrDeletedAt: IsNull() },
+    });
+    if (!user) {
+      const tempHash = await bcrypt.hash('ama-sso-no-password', 12);
+      user = this.userRepo.create({
+        crpId: corp.crpId,
+        usrCode: `AMA-${entCode}`,
+        usrEmail: email,
+        usrName: email.split('@')[0],
+        usrPasswordHash: tempHash,
+        usrRole: UserRole.ADMIN,
+        usrStatus: UserStatus.ACTIVE,
+        usrTempPassword: false,
+      });
+      user = await this.userRepo.save(user);
+    }
+
+    if (user.usrStatus !== UserStatus.ACTIVE) {
+      throw new BusinessException('ASM-E1005', 'Account is inactive', HttpStatus.FORBIDDEN);
+    }
+
+    return this.issueTokens(user, corp, 'AMA_SSO');
+  }
+
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
     const user = await this.userRepo.findOne({ where: { usrId: userId } });
     if (!user) {

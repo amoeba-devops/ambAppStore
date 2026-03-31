@@ -28,6 +28,21 @@ export class AuthController {
     return successResponse(result);
   }
 
+  @Public()
+  @Post('ama-entry')
+  @HttpCode(HttpStatus.OK)
+  async amaEntry(
+    @Body() body: { ent_id: string; ent_code: string; ent_name: string; email: string },
+  ) {
+    const result = await this.authService.amaEntryLogin(
+      body.ent_id,
+      body.ent_code,
+      body.ent_name,
+      body.email,
+    );
+    return successResponse(result);
+  }
+
   @Auth()
   @Post('change-password')
   @HttpCode(HttpStatus.OK)

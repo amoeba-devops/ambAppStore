@@ -1,9 +1,12 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams, useNavigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query-client';
 import { useAuthStore } from '@/stores/auth.store';
+import { apiClient } from '@/lib/api-client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ToastContainer } from '@/components/common/ToastContainer';
+import { useEffect, useState } from 'react';
+import '@/i18n/i18n';
 
 import { EntityInfoPage } from '@/pages/auth/EntityInfoPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
@@ -25,6 +28,57 @@ import { ParameterSettingsPage } from '@/pages/ParameterSettingsPage';
 import { SeasonalityPage } from '@/pages/SeasonalityPage';
 import { ChannelListPage } from '@/pages/ChannelListPage';
 
+/**
+ * AMA iframe 쿼리파라미터(ent_id, ent_code, ent_name, email) 감지 후
+ * 자동 인증하여 대시보드에 진입시키는 컴포넌트.
+ */
+function AmaEntryHandler() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { setAuth, setCrpCode } = useAuthStore();
+  const navigate = useNavigate();
+  const [processing, setProcessing] = useState(false);
+
+  useEffect(() => {
+    const entId = searchParams.get('ent_id');
+    const entCode = searchParams.get('ent_code');
+    const entName = searchParams.get('ent_name');
+    const email = searchParams.get('email');
+
+    if (!entId || !entCode || !entName || !email) return;
+    if (processing) return;
+
+    setProcessing(true);
+
+    // 쿼리 파라미터 제거 (clean URL)
+    searchParams.delete('ent_id');
+    searchParams.delete('ent_code');
+    searchParams.delete('ent_name');
+    searchParams.delete('email');
+    setSearchParams(searchParams, { replace: true });
+
+    // AMA 자동 인증 API 호출
+    apiClient
+      .post('/v1/auth/ama-entry', {
+        ent_id: entId,
+        ent_code: entCode,
+        ent_name: entName,
+        email,
+      })
+      .then((res) => {
+        const { accessToken, refreshToken, user } = res.data.data;
+        setAuth(accessToken, refreshToken, user);
+        setCrpCode(user.crpCode);
+        navigate('/', { replace: true });
+      })
+      .catch((err) => {
+        console.error('AMA entry login failed:', err);
+        navigate('/entity-info', { replace: true });
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null;
+}
+
 function ProtectedRoute() {
   const { token } = useAuthStore();
   if (!token) return <Navigate to="/entity-info" replace />;
@@ -39,6 +93,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename="/app-stock-management">
+        <AmaEntryHandler />
         <Routes>
           {/* Public routes */}
           <Route path="/entity-info" element={<EntityInfoPage />} />
