@@ -20,9 +20,17 @@ interface DebugContextPanelProps {
   initialQueryParams: string;
 }
 
+function detectIframe(): boolean {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true; // cross-origin iframe throws SecurityError
+  }
+}
+
 export function DebugContextPanel({ initialReferrer, initialQueryParams }: DebugContextPanelProps) {
   const { t } = useTranslation('car');
-  const isInIframe = window.self !== window.top;
+  const isInIframe = detectIframe();
   const [enabled, setEnabled] = useState(isInIframe);
   const [expanded, setExpanded] = useState(isInIframe);
   const [copied, setCopied] = useState(false);
@@ -84,7 +92,7 @@ export function DebugContextPanel({ initialReferrer, initialQueryParams }: Debug
   };
 
   return (
-    <div className="border-t-2 border-dashed border-yellow-400 bg-yellow-50">
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t-2 border-dashed border-yellow-400 bg-yellow-50">
       <button
         onClick={() => setExpanded(!expanded)}
         className="flex w-full items-center justify-between px-4 py-2 text-left text-sm font-medium text-yellow-800 hover:bg-yellow-100 transition-colors"
