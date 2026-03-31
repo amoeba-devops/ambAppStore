@@ -9,10 +9,11 @@ export const dispatchKeys = {
   detail: (id: string) => [...dispatchKeys.details(), id] as const,
 };
 
-export function useDispatches(filters?: { status?: string; vehicle_id?: string; driver_id?: string }) {
+export function useDispatches(filters?: { status?: string; vehicle_id?: string; driver_id?: string }, enabled = true) {
   return useQuery({
     queryKey: dispatchKeys.list(filters as Record<string, string>),
     queryFn: () => dispatchApi.getAll(filters),
+    enabled,
   });
 }
 

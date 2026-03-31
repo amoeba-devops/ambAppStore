@@ -30,13 +30,21 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+const isInIframe = window.self !== window.top;
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Entity 헤더 인증 사용 중이면 리다이렉트하지 않음
       const hasEntityContext = !!sessionStorage.getItem('entity_context');
-      if (!hasEntityContext) {
+      if (hasEntityContext) {
+        // Entity 헤더 인증 사용 중이면 리다이렉트하지 않음
+      } else if (isInIframe) {
+        // iframe 내부에서는 리다이렉트 차단 — 부모 창에 알림
+        try {
+          window.parent.postMessage({ type: 'AUTH_REQUIRED', source: 'app-car-manager' }, '*');
+        } catch { /* cross-origin 차단 시 무시 */ }
+      } else {
         localStorage.removeItem('ama_token');
         const loginUrl = import.meta.env.VITE_AMA_LOGIN_URL;
         if (loginUrl) {

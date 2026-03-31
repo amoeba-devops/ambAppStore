@@ -29,8 +29,9 @@ interface NavSection {
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { t, i18n } = useTranslation('car');
   const user = useAuthStore((s) => s.user);
-  const { data: dashData } = useDashboard();
-  const { data: pendingData } = useDispatches({ status: 'PENDING' });
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { data: dashData } = useDashboard(isAuthenticated);
+  const { data: pendingData } = useDispatches({ status: 'PENDING' }, isAuthenticated);
 
   const activeCount = dashData?.data?.dispatches?.inProgress || 0;
   const pendingCount = (pendingData?.data || []).length;

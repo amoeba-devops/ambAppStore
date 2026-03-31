@@ -6,18 +6,20 @@ export const monitorKeys = {
   activeDispatches: ['monitor', 'active-dispatches'] as const,
 };
 
-export function useDashboard() {
+export function useDashboard(enabled = true) {
   return useQuery({
     queryKey: monitorKeys.dashboard,
     queryFn: () => monitorApi.getDashboard(),
     refetchInterval: 30 * 1000,
+    enabled,
   });
 }
 
-export function useActiveDispatches() {
+export function useActiveDispatches(enabled = true) {
   return useQuery({
     queryKey: monitorKeys.activeDispatches,
     queryFn: () => monitorApi.getActiveDispatches(),
     refetchInterval: 30 * 1000,
+    enabled,
   });
 }
