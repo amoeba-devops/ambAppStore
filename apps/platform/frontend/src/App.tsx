@@ -16,7 +16,12 @@ import { AdminLoginPage } from '@/pages/admin/AdminLoginPage';
 import { AppsLoginPage } from '@/pages/AppsLoginPage';
 import { MySubscriptionsPage } from '@/pages/MySubscriptionsPage';
 import { useEntityContextStore } from '@/stores/entity-context.store';
-import { useEffect } from 'react';
+import { DebugContextPanel } from '@/components/common/DebugContextPanel';
+import { useEffect, useRef } from 'react';
+
+// Capture initial values BEFORE React hydration cleans URL
+const _initialReferrer = document.referrer;
+const _initialQueryParams = window.location.search;
 
 /**
  * AMA iframe 호출 시 쿼리 파라미터(ent_id, ent_code, ent_name, email)를
@@ -47,6 +52,8 @@ function EntityContextInitializer() {
 }
 
 function App() {
+  const initialRef = useRef({ referrer: _initialReferrer, params: _initialQueryParams });
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -72,6 +79,10 @@ function App() {
               </Route>
             </Routes>
           </main>
+          <DebugContextPanel
+            initialReferrer={initialRef.current.referrer}
+            initialQueryParams={initialRef.current.params}
+          />
           <Footer />
         </div>
       </BrowserRouter>

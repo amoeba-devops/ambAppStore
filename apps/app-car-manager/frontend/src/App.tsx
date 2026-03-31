@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query-client';
@@ -6,6 +6,7 @@ import '@/i18n/i18n';
 
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ToastContainer } from '@/components/common/ToastContainer';
+import { DebugContextPanel } from '@/components/common/DebugContextPanel';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { VehicleListPage } from '@/pages/VehicleListPage';
 import { VehicleDetailPage } from '@/pages/VehicleDetailPage';
@@ -15,6 +16,10 @@ import { DispatchDetailPage } from '@/pages/DispatchDetailPage';
 import { DispatchFormPage } from '@/pages/DispatchFormPage';
 import { TripLogListPage } from '@/pages/TripLogListPage';
 import { useAuthStore } from '@/stores/auth.store';
+
+// Capture initial values BEFORE React hydration cleans URL
+const _initialReferrer = document.referrer;
+const _initialQueryParams = window.location.search;
 
 /**
  * AMA → AppStore → 앱 진입 시 쿼리 파라미터로 Entity 정보를 전달받아
@@ -51,6 +56,8 @@ function EntityContextInitializer() {
 }
 
 function App() {
+  const initialRef = useRef({ referrer: _initialReferrer, params: _initialQueryParams });
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename="/app-car-manager">
@@ -66,6 +73,10 @@ function App() {
             <Route path="/dispatches/:id" element={<DispatchDetailPage />} />
             <Route path="/trip-logs" element={<TripLogListPage />} />
           </Routes>
+          <DebugContextPanel
+            initialReferrer={initialRef.current.referrer}
+            initialQueryParams={initialRef.current.params}
+          />
         </AppLayout>
         <ToastContainer />
       </BrowserRouter>

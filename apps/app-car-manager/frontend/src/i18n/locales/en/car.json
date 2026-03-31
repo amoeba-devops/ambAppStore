@@ -211,5 +211,16 @@
     "inUse": "In Use",
     "pending": "Pending",
     "completedToday": "Completed Today"
+  },
+  "debug": {
+    "title": "Debug Context Panel",
+    "referer": "HTTP Referer",
+    "initialParams": "Initial Query Parameters",
+    "currentParams": "Current Query Parameters",
+    "jwtToken": "JWT Token (Raw)",
+    "jwtPayload": "JWT Payload (Decoded)",
+    "entityContext": "Entity Context",
+    "copy": "Copy",
+    "copied": "Copied"
   }
 }

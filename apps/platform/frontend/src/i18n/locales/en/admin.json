@@ -106,5 +106,8 @@
     "notAdmin": "This account does not have admin privileges. ADMIN_LEVEL access is required",
     "enterToken": "Please enter a token",
     "adminOnly": "This page is restricted to administrators only"
+  },
+  "debug": {
+    "toggleLabel": "Debug Panel"
   }
 }

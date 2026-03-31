@@ -111,5 +111,16 @@
     "entityCode": "Entity Code",
     "entityName": "Tên Entity",
     "email": "Email"
+  },
+  "debug": {
+    "title": "Debug Context Panel",
+    "referer": "HTTP Referer",
+    "initialParams": "Initial Query Parameters",
+    "currentParams": "Current Query Parameters",
+    "jwtToken": "JWT Token (Raw)",
+    "jwtPayload": "JWT Payload (Decoded)",
+    "entityContext": "Entity Context",
+    "copy": "Sao chép",
+    "copied": "Đã sao chép"
   }
 }

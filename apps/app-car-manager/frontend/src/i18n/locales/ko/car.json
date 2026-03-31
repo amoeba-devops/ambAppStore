@@ -211,5 +211,16 @@
     "inUse": "사용중",
     "pending": "대기",
     "completedToday": "오늘 완료"
+  },
+  "debug": {
+    "title": "Debug Context Panel",
+    "referer": "HTTP Referer",
+    "initialParams": "Initial Query Parameters",
+    "currentParams": "Current Query Parameters",
+    "jwtToken": "JWT Token (Raw)",
+    "jwtPayload": "JWT Payload (Decoded)",
+    "entityContext": "Entity Context",
+    "copy": "복사",
+    "copied": "복사됨"
   }
 }

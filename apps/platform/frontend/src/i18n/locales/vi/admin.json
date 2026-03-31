@@ -106,5 +106,8 @@
     "notAdmin": "Tài khoản này không có quyền quản trị. Cần quyền ADMIN_LEVEL",
     "enterToken": "Vui lòng nhập token",
     "adminOnly": "Trang này chỉ dành cho quản trị viên"
+  },
+  "debug": {
+    "toggleLabel": "Debug Panel"
   }
 }
