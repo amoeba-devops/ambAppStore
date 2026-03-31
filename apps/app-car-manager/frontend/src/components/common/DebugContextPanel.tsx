@@ -22,13 +22,15 @@ interface DebugContextPanelProps {
 
 export function DebugContextPanel({ initialReferrer, initialQueryParams }: DebugContextPanelProps) {
   const { t } = useTranslation('car');
-  const [enabled, setEnabled] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const isInIframe = window.self !== window.top;
+  const [enabled, setEnabled] = useState(isInIframe);
+  const [expanded, setExpanded] = useState(isInIframe);
   const [copied, setCopied] = useState(false);
 
+  // iframe always enabled
   const checkEnabled = useCallback(() => {
-    setEnabled(localStorage.getItem(LS_KEY) === 'true');
-  }, []);
+    setEnabled(isInIframe || localStorage.getItem(LS_KEY) === 'true');
+  }, [isInIframe]);
 
   useEffect(() => {
     checkEnabled();
