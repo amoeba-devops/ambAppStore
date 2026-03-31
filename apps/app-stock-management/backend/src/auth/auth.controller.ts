@@ -15,8 +15,9 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() body: { entity_code: string; email: string; password: string }) {
-    const result = await this.authService.login(body.entity_code, body.email, body.password);
+  async login(@Body() body: { crp_code?: string; entity_code?: string; email: string; password: string }) {
+    const entityCode = body.crp_code || body.entity_code;
+    const result = await this.authService.login(entityCode, body.email, body.password);
     return successResponse(result);
   }
 
