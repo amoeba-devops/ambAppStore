@@ -16,8 +16,8 @@ USE db_app_platform;
 CREATE TABLE IF NOT EXISTS plt_apps (
   app_id          CHAR(36)      NOT NULL PRIMARY KEY,
   app_slug        VARCHAR(50)   NOT NULL,
-  app_name        VARCHAR(100)  NOT NULL,
-  app_name_en     VARCHAR(100)  NULL,
+  app_name        VARCHAR(100)  NULL,
+  app_name_en     VARCHAR(100)  NOT NULL,
   app_short_desc  VARCHAR(200)  NULL,
   app_description TEXT          NULL,
   app_icon_url    VARCHAR(500)  NULL,

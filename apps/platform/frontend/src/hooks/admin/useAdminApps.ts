@@ -4,8 +4,8 @@ import { apiClient } from '@/lib/api-client';
 export interface AdminApp {
   appId: string;
   slug: string;
-  name: string;
-  nameEn: string | null;
+  name: string | null;
+  nameEn: string;
   shortDesc: string | null;
   description: string | null;
   iconUrl: string | null;

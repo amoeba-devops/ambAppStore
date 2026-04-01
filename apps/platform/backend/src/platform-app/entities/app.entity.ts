@@ -21,10 +21,10 @@ export class AppEntity {
   @Column({ name: 'app_slug', length: 50, unique: true })
   appSlug: string;
 
-  @Column({ name: 'app_name', length: 100 })
-  appName: string;
+  @Column({ name: 'app_name', type: 'varchar', length: 100, nullable: true })
+  appName: string | null;
 
-  @Column({ name: 'app_name_en', length: 100, nullable: true })
+  @Column({ name: 'app_name_en', length: 100 })
   appNameEn: string;
 
   @Column({ name: 'app_short_desc', length: 200, nullable: true })

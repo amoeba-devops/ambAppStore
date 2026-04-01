@@ -4,7 +4,7 @@ import { apiClient } from '@/lib/api-client';
 export interface AppCard {
   appId: string;
   slug: string;
-  name: string;
+  name: string | null;
   nameEn: string;
   shortDesc: string;
   iconUrl: string;
@@ -15,7 +15,7 @@ export interface AppCard {
 export interface AppDetail {
   appId: string;
   slug: string;
-  name: string;
+  name: string | null;
   nameEn: string;
   shortDesc: string;
   description: string;

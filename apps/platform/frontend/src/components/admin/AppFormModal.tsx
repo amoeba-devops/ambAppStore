@@ -1,4 +1,5 @@
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { useCreateApp, useUpdateApp, type AdminApp } from '@/hooks/admin/useAdminApps';
@@ -8,13 +9,27 @@ interface Props {
   onClose: () => void;
 }
 
+const ENGLISH_ONLY_REGEX = /^[a-zA-Z0-9\s\-.,;:!?()&/'+]*$/;
+
+function generateSlug(nameEn: string): string {
+  return (
+    'app-' +
+    nameEn
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+  );
+}
+
 export function AppFormModal({ app, onClose }: Props) {
   const { t } = useTranslation('admin');
   const createMutation = useCreateApp();
   const updateMutation = useUpdateApp();
   const isEdit = !!app;
 
-  const { register, handleSubmit } = useForm({
+  const { register, handleSubmit, control, setValue, formState: { errors } } = useForm({
     defaultValues: {
       app_slug: app?.slug ?? '',
       app_name: app?.name ?? '',
@@ -27,6 +42,19 @@ export function AppFormModal({ app, onClose }: Props) {
       app_port_fe: app?.portFe ?? '',
       app_port_be: app?.portBe ?? '',
     },
+  });
+
+  const watchedNameEn = useWatch({ control, name: 'app_name_en' });
+
+  useEffect(() => {
+    if (!isEdit && watchedNameEn) {
+      setValue('app_slug', generateSlug(String(watchedNameEn)));
+    }
+  }, [watchedNameEn, isEdit, setValue]);
+
+  const englishOnly = () => ({
+    validate: (v: unknown) =>
+      !v || ENGLISH_ONLY_REGEX.test(String(v)) || t('app.englishOnly'),
   });
 
   const onSubmit = (data: Record<string, unknown>) => {
@@ -55,34 +83,79 @@ export function AppFormModal({ app, onClose }: Props) {
         </h2>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {!isEdit && (
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">{t('app.slug')}</label>
-              <input {...register('app_slug')} placeholder={t('app.slugPlaceholder')} className="w-full rounded-lg border px-3 py-2 text-sm" />
-            </div>
-          )}
+          {/* App Name (English) — Required + App Name (Korean) — Optional */}
           <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">{t('app.nameEn')} *</label>
+              <input
+                {...register('app_name_en', {
+                  required: t('app.nameEnRequired'),
+                  ...englishOnly(),
+                })}
+                className="w-full rounded-lg border px-3 py-2 text-sm"
+              />
+              {errors.app_name_en && (
+                <p className="mt-1 text-xs text-red-500">{errors.app_name_en.message}</p>
+              )}
+            </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">{t('app.name')}</label>
               <input {...register('app_name')} className="w-full rounded-lg border px-3 py-2 text-sm" />
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">{t('app.nameEn')}</label>
-              <input {...register('app_name_en')} className="w-full rounded-lg border px-3 py-2 text-sm" />
-            </div>
           </div>
+
+          {/* Slug — auto-generated (create only) */}
+          {!isEdit && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">{t('app.slug')}</label>
+              <input
+                {...register('app_slug')}
+                readOnly
+                className="w-full rounded-lg border bg-gray-50 px-3 py-2 text-sm text-gray-500"
+              />
+              <p className="mt-1 text-xs text-gray-400">{t('app.slugAutoHint')}</p>
+            </div>
+          )}
+
+          {/* Short Description — English only */}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">{t('app.shortDesc')}</label>
-            <input {...register('app_short_desc')} className="w-full rounded-lg border px-3 py-2 text-sm" />
+            <input
+              {...register('app_short_desc', englishOnly())}
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+            />
+            <p className="mt-1 text-xs text-gray-400">{t('app.englishOnly')}</p>
+            {errors.app_short_desc && (
+              <p className="mt-1 text-xs text-red-500">{errors.app_short_desc.message}</p>
+            )}
           </div>
+
+          {/* Description — English only */}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">{t('app.description')}</label>
-            <textarea {...register('app_description')} rows={3} className="w-full rounded-lg border px-3 py-2 text-sm" />
+            <textarea
+              {...register('app_description', englishOnly())}
+              rows={3}
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+            />
+            <p className="mt-1 text-xs text-gray-400">{t('app.englishOnly')}</p>
+            {errors.app_description && (
+              <p className="mt-1 text-xs text-red-500">{errors.app_description.message}</p>
+            )}
           </div>
+
+          {/* Category + Status */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">{t('app.category')}</label>
-              <input {...register('app_category')} className="w-full rounded-lg border px-3 py-2 text-sm" />
+              <input
+                {...register('app_category', englishOnly())}
+                className="w-full rounded-lg border px-3 py-2 text-sm"
+              />
+              <p className="mt-1 text-xs text-gray-400">{t('app.englishOnly')}</p>
+              {errors.app_category && (
+                <p className="mt-1 text-xs text-red-500">{errors.app_category.message}</p>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">{t('app.status')}</label>
@@ -93,6 +166,8 @@ export function AppFormModal({ app, onClose }: Props) {
               </select>
             </div>
           </div>
+
+          {/* Sort Order + Ports */}
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">{t('app.sortOrder')}</label>

@@ -173,7 +173,7 @@ export class SubscriptionService {
       return {
         appSlug: app.appSlug,
         appName: app.appName,
-        appNameEn: app.appNameEn || null,
+        appNameEn: app.appNameEn,
         appStatus: app.appStatus,
         appIconUrl: app.appIconUrl || null,
         subscription: sub

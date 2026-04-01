@@ -173,7 +173,7 @@ export function AppDetailPage() {
       {showModal && (
         <SubscriptionRequestModal
           appSlug={app.slug}
-          appName={app.name}
+          appName={app.nameEn || app.name || app.slug}
           onClose={() => setShowModal(false)}
         />
       )}

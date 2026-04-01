@@ -1,7 +1,7 @@
 export class AppDetailResponse {
   appId: string;
   slug: string;
-  name: string;
+  name: string | null;
   nameEn: string;
   shortDesc: string;
   description: string;

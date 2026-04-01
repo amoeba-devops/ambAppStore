@@ -1,7 +1,7 @@
 export class EntityAppSubscription {
   appSlug: string;
-  appName: string;
-  appNameEn: string | null;
+  appName: string | null;
+  appNameEn: string;
   appStatus: string;
   appIconUrl: string | null;
   subscription: {

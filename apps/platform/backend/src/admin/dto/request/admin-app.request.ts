@@ -8,15 +8,15 @@ export class CreateAppDto {
   @MaxLength(50)
   app_slug: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  app_name: string;
-
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  app_name_en?: string;
+  app_name?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  app_name_en: string;
 
   @IsOptional()
   @IsString()
@@ -74,6 +74,7 @@ export class UpdateAppDto {
 
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(100)
   app_name_en?: string;
 

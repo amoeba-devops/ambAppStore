@@ -38,7 +38,10 @@ export function AppCard({ app, subscriptionStatus }: AppCardProps) {
       className="cursor-pointer rounded-xl border bg-white p-6 shadow-md transition-shadow hover:shadow-lg"
     >
       <div className="mb-3 text-4xl">{APP_ICONS[app.slug] || '📱'}</div>
-      <h3 className="mb-1 text-lg font-bold text-gray-900">{app.name}</h3>
+      <h3 className="mb-1 text-lg font-bold text-gray-900">{app.nameEn || app.name}</h3>
+      {app.name && app.nameEn && (
+        <p className="mb-1 text-sm text-gray-500">({app.name})</p>
+      )}
       <p className="mb-4 line-clamp-2 text-sm text-gray-600">{app.shortDesc}</p>
       <div className="flex gap-2">
         {subBadge && (
