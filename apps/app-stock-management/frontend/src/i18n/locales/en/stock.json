@@ -161,6 +161,12 @@
     "seasonTitle": "Seasonality Index",
     "channelTitle": "Channel Management"
   },
+  "auth": {
+    "invalidAccess": "Invalid access",
+    "tokenExpired": "Authentication expired. Please access again from AMA.",
+    "subscriptionRequired": "A subscription is required to use this app.",
+    "redirecting": "Redirecting to app subscription page..."
+  },
   "debug": {
     "title": "Debug Context Panel",
     "referer": "HTTP Referer",

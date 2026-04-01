@@ -32,7 +32,11 @@
     "expired": "Đã hết hạn — Cần đăng ký lại",
     "reapply": "Đăng ký lại",
     "useService": "Sử dụng dịch vụ",
-    "screenshot": "Ảnh chụp màn hình"
+    "screenshot": "Ảnh chụp màn hình",
+    "subscriptionRequired": "Cần đăng ký để sử dụng ứng dụng này.",
+    "masterOnly": "Chỉ quản trị viên MASTER của Entity mới có thể đăng ký ứng dụng.",
+    "pendingReview": "Yêu cầu đăng ký đang được xem xét. Vui lòng chờ phê duyệt.",
+    "suspended": "Đăng ký đã bị tạm ngưng. Vui lòng liên hệ quản trị viên."
   },
   "subscription": {
     "title": "Đăng ký sử dụng ứng dụng",

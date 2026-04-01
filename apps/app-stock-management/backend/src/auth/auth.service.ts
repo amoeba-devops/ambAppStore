@@ -68,31 +68,64 @@ export class AuthService {
   }
 
   async amaSsoExchange(amaToken: string) {
-    // In production, verify AMA token with AMA public key
-    // For now, decode and trust (stub)
+    // Decode AMA token (signature verification would require AMA public key)
     let amaPayload: any;
     try {
       amaPayload = this.jwtService.decode(amaToken);
     } catch {
       throw new BusinessException('ASM-E1011', 'Invalid AMA token', HttpStatus.UNAUTHORIZED);
     }
-    if (!amaPayload || !amaPayload.ent_id) {
-      throw new BusinessException('ASM-E1011', 'Invalid AMA token', HttpStatus.UNAUTHORIZED);
+    if (!amaPayload?.entityId || !amaPayload?.email) {
+      throw new BusinessException('ASM-E1011', 'Invalid AMA token payload', HttpStatus.UNAUTHORIZED);
     }
 
-    // Find user by AMA entity mapping
-    const user = await this.userRepo.findOne({
-      where: { usrAmaUserId: amaPayload.sub, usrDeletedAt: IsNull() },
+    const { sub, entityId, email, role, appCode } = amaPayload;
+
+    // Validate appCode
+    if (appCode !== 'app-stock-management') {
+      throw new BusinessException('ASM-E1012', 'Invalid app code', HttpStatus.FORBIDDEN);
+    }
+
+    // Find or create corporation by AMA entityId
+    let corp = await this.corpRepo.findOne({
+      where: { crpAmaEntityId: entityId, crpDeletedAt: IsNull() },
+    });
+    if (!corp) {
+      corp = this.corpRepo.create({
+        crpCode: `AMA-${entityId.substring(0, 8)}`,
+        crpName: 'AMA Entity',
+        crpAmaEntityId: entityId,
+        crpStatus: CorporationStatus.ACTIVE,
+      });
+      corp = await this.corpRepo.save(corp);
+    }
+
+    // Find or create user
+    let user = await this.userRepo.findOne({
+      where: { usrEmail: email, crpId: corp.crpId, usrDeletedAt: IsNull() },
     });
     if (!user) {
-      throw new BusinessException('ASM-E1011', 'App usage not approved', HttpStatus.FORBIDDEN);
+      const tempHash = await bcrypt.hash('ama-sso-no-password', 12);
+      user = this.userRepo.create({
+        crpId: corp.crpId,
+        usrCode: `AMA-${entityId.substring(0, 8)}`,
+        usrEmail: email,
+        usrName: email.split('@')[0],
+        usrPasswordHash: tempHash,
+        usrRole: role === 'MASTER' ? UserRole.ADMIN : UserRole.OPERATOR,
+        usrStatus: UserStatus.ACTIVE,
+        usrAmaUserId: sub,
+        usrTempPassword: false,
+      });
+      user = await this.userRepo.save(user);
+    } else if (!user.usrAmaUserId) {
+      // Link existing user to AMA userId
+      user.usrAmaUserId = sub;
+      await this.userRepo.save(user);
     }
 
-    const corp = await this.corpRepo.findOne({
-      where: { crpId: user.crpId, crpDeletedAt: IsNull() },
-    });
-    if (!corp || corp.crpStatus !== CorporationStatus.ACTIVE) {
-      throw new BusinessException('ASM-E1002', 'Corporation is suspended', HttpStatus.FORBIDDEN);
+    if (user.usrStatus !== UserStatus.ACTIVE) {
+      throw new BusinessException('ASM-E1005', 'Account is inactive', HttpStatus.FORBIDDEN);
     }
 
     return this.issueTokens(user, corp, 'AMA_SSO');

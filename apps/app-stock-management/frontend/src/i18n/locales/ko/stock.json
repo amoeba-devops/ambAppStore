@@ -161,6 +161,12 @@
     "seasonTitle": "계절 지수",
     "channelTitle": "채널 관리"
   },
+  "auth": {
+    "invalidAccess": "잘못된 접근입니다",
+    "tokenExpired": "인증이 만료되었습니다. AMA에서 다시 접근해주세요.",
+    "subscriptionRequired": "이 앱을 사용하려면 구독 신청이 필요합니다.",
+    "redirecting": "앱 신청 페이지로 이동합니다..."
+  },
   "debug": {
     "title": "Debug Context Panel",
     "referer": "HTTP Referer",

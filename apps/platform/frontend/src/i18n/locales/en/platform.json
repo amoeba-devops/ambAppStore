@@ -32,7 +32,11 @@
     "expired": "Expired — Re-apply needed",
     "reapply": "Re-apply",
     "useService": "Use Service",
-    "screenshot": "Screenshot"
+    "screenshot": "Screenshot",
+    "subscriptionRequired": "A subscription is required to use this app.",
+    "masterOnly": "Only MASTER administrators of the Entity can apply for app subscriptions.",
+    "pendingReview": "Your subscription request is under review. Please wait for admin approval.",
+    "suspended": "Your subscription has been suspended. Please contact your administrator."
   },
   "subscription": {
     "title": "App Subscription Request",

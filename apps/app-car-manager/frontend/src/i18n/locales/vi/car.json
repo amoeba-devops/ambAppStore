@@ -212,6 +212,12 @@
     "pending": "Đang chờ",
     "completedToday": "Hoàn thành hôm nay"
   },
+  "auth": {
+    "invalidAccess": "Truy cập không hợp lệ",
+    "tokenExpired": "Xác thực đã hết hạn. Vui lòng truy cập lại từ AMA.",
+    "subscriptionRequired": "Cần đăng ký để sử dụng ứng dụng này.",
+    "redirecting": "Đang chuyển đến trang đăng ký ứng dụng..."
+  },
   "debug": {
     "title": "Debug Context Panel",
     "referer": "HTTP Referer",

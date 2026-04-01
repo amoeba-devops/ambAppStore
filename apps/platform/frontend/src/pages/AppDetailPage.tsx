@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import { useAppDetail } from '@/hooks/useApps';
@@ -21,11 +21,32 @@ export function AppDetailPage() {
   const { t } = useTranslation('platform');
   const { isAuthenticated } = useAuthStore();
   const entity = useEntityContextStore((s) => s.entity);
+  const setEntity = useEntityContextStore((s) => s.setEntity);
   const entId = entity?.entId || null;
+
+  // Detect iframe redirect params: from=iframe&ent_id=...&role=...
+  const [searchParams, setSearchParams] = useSearchParams();
+  const fromIframe = searchParams.get('from') === 'iframe';
+  const iframeRole = searchParams.get('role');
+  const iframeEntId = searchParams.get('ent_id');
+
+  // Set entity context from iframe params if needed
+  useEffect(() => {
+    if (fromIframe && iframeEntId && !entId) {
+      setEntity({ entId: iframeEntId, entCode: '', entName: '', email: '' });
+      // Clean iframe params from URL
+      searchParams.delete('from');
+      searchParams.delete('role');
+      searchParams.delete('ent_id');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [fromIframe, iframeEntId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const effectiveEntId = entId || iframeEntId;
 
   const { data: app, isLoading } = useAppDetail(slug);
   const { data: subStatus } = useSubscriptionCheck(slug, isAuthenticated);
-  const { data: entityApps } = useEntitySubscriptions(!isAuthenticated ? entId : null);
+  const { data: entityApps } = useEntitySubscriptions(!isAuthenticated ? effectiveEntId : null);
   const [showModal, setShowModal] = useState(false);
 
   if (isLoading) return <p className="py-20 text-center text-gray-400">{t('common.loading')}</p>;
@@ -35,7 +56,8 @@ export function AppDetailPage() {
   const currentStatus = isAuthenticated
     ? subStatus?.status
     : entityApps?.find((a) => a.appSlug === slug)?.subscription?.status ?? null;
-  const isEntityUser = !isAuthenticated && !!entId;
+  const isEntityUser = !isAuthenticated && !!effectiveEntId;
+  const isMaster = iframeRole === 'MASTER';
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -44,6 +66,21 @@ export function AppDetailPage() {
         <ArrowLeft size={16} />
         {t('common.back')}
       </button>
+
+      {/* iframe redirect info banner */}
+      {fromIframe && (
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          {currentStatus === 'PENDING' ? (
+            <p className="text-sm text-amber-700">{t('detail.pendingReview')}</p>
+          ) : currentStatus === 'SUSPENDED' ? (
+            <p className="text-sm text-amber-700">{t('detail.suspended')}</p>
+          ) : !isMaster ? (
+            <p className="text-sm text-amber-700">{t('detail.masterOnly')}</p>
+          ) : (
+            <p className="text-sm text-amber-700">{t('detail.subscriptionRequired')}</p>
+          )}
+        </div>
+      )}
 
       {/* Header */}
       <div className="mb-8 flex items-start gap-5">
@@ -117,6 +154,10 @@ export function AppDetailPage() {
         ) : app.status === 'COMING_SOON' ? (
           <button disabled className="w-full cursor-not-allowed rounded-xl bg-gray-200 py-3 font-semibold text-gray-400">
             {t('landing.statusComingSoon')}
+          </button>
+        ) : fromIframe && !isMaster ? (
+          <button disabled className="w-full cursor-not-allowed rounded-xl bg-gray-200 py-3 font-semibold text-gray-500">
+            {t('detail.masterOnly')}
           </button>
         ) : (
           <button
