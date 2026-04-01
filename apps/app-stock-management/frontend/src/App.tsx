@@ -1,7 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams, useNavigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query-client';
 import { useAuthStore } from '@/stores/auth.store';
+import { apiClient } from '@/lib/api-client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ToastContainer } from '@/components/common/ToastContainer';
 import { useEffect, useRef, useState } from 'react';
@@ -55,6 +56,7 @@ const _initialQueryParams = window.location.search;
 function AmaTokenHandler({ children }: { children: React.ReactNode }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { setAuth, setCrpCode, clearAuth } = useAuthStore();
+  const navigate = useNavigate();
   const { t } = useTranslation('stock');
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -109,26 +111,28 @@ function AmaTokenHandler({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Check subscription
+    // Check subscription then exchange for app-specific JWT
     checkSubscription(payload.entityId).then((status) => {
       if (status === 'ACTIVE') {
-        // Build user from AMA token payload (same as car-manager)
-        const user = {
-          userId: payload.sub,
-          entId: payload.entityId,
-          crpCode: null,
-          role: payload.role,
-          name: payload.email.split('@')[0],
-          tempPassword: false,
-        };
-        setAuth(token, '', user);
-        if (payload.entityId) setCrpCode(payload.entityId);
+        // Exchange AMA token for app-specific JWT via backend
+        apiClient
+          .post('/v1/auth/ama-sso', { ama_token: token })
+          .then((res) => {
+            const { accessToken, refreshToken, user } = res.data.data;
+            setAuth(accessToken, refreshToken, user);
+            if (user.crpCode) setCrpCode(user.crpCode);
 
-        // Clean URL
-        searchParams.delete('ama_token');
-        searchParams.delete('locale');
-        setSearchParams(searchParams, { replace: true });
-        setReady(true);
+            // Clean URL
+            searchParams.delete('ama_token');
+            searchParams.delete('locale');
+            setSearchParams(searchParams, { replace: true });
+            navigate('/', { replace: true });
+            setReady(true);
+          })
+          .catch((err) => {
+            console.error('AMA SSO exchange failed:', err);
+            setError(t('auth.invalidAccess'));
+          });
       } else {
         // Redirect to platform app detail page for subscription
         const platformBase = window.location.origin;

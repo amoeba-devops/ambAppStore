@@ -2,13 +2,15 @@ import { useState, useRef, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { useNotifications, useUnreadCount } from '@/hooks/useNotifications';
 import { NotificationDropdown } from './NotificationDropdown';
+import { useAuthStore } from '@/stores/auth.store';
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  const { data: unread } = useUnreadCount();
-  const { data: notifications } = useNotifications(1, 10, open);
+  const { data: unread } = useUnreadCount(isAuthenticated);
+  const { data: notifications } = useNotifications(1, 10, open && isAuthenticated);
 
   // Close on outside click
   useEffect(() => {

@@ -4,7 +4,7 @@
  */
 
 const APP_SLUG = 'app-stock-management';
-const APP_CODE_VARIANTS = ['app-stock-management', 'stock-management'];
+const APP_CODE_VARIANTS = ['app-stock-management', 'stock-management', 'apps-stock'];
 
 const ALLOWED_REFERRERS = ['stg-ama.amoeba.site', 'ama.amoeba.site'];
 

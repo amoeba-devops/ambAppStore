@@ -82,7 +82,8 @@ export class AuthService {
     const { sub, entityId, email, role, appCode } = amaPayload;
 
     // Validate appCode
-    if (appCode !== 'app-stock-management') {
+    const validAppCodes = ['app-stock-management', 'stock-management', 'apps-stock'];
+    if (!validAppCodes.includes(appCode)) {
       throw new BusinessException('ASM-E1012', 'Invalid app code', HttpStatus.FORBIDDEN);
     }
 
