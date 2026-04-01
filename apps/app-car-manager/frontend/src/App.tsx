@@ -171,12 +171,12 @@ function App() {
               <Route path="/dispatches/:id" element={<DispatchDetailPage />} />
               <Route path="/trip-logs" element={<TripLogListPage />} />
             </Routes>
-            <DebugContextPanel
-              initialReferrer={initialRef.current.referrer}
-              initialQueryParams={initialRef.current.params}
-            />
           </AppLayout>
         </AmaTokenHandler>
+        <DebugContextPanel
+          initialReferrer={initialRef.current.referrer}
+          initialQueryParams={initialRef.current.params}
+        />
         <ToastContainer />
       </BrowserRouter>
     </QueryClientProvider>

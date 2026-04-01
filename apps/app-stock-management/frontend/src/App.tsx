@@ -1,8 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query-client';
 import { useAuthStore } from '@/stores/auth.store';
-import { apiClient } from '@/lib/api-client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ToastContainer } from '@/components/common/ToastContainer';
 import { useEffect, useRef, useState } from 'react';
@@ -50,13 +49,12 @@ const _initialQueryParams = window.location.search;
  * 2. referrer 검증 (soft mode)
  * 3. JWT 디코드 + appCode 검증
  * 4. Platform API로 구독 확인
- * 5. ACTIVE → POST /v1/auth/ama-sso → 자체 JWT 발급 → setAuth → 앱 렌더링
+ * 5. ACTIVE → AMA 토큰 직접 저장 → setAuth → 앱 렌더링
  * 6. 미구독 → Platform 앱 상세 페이지로 리다이렉트
  */
 function AmaTokenHandler({ children }: { children: React.ReactNode }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { setAuth, setCrpCode, clearAuth } = useAuthStore();
-  const navigate = useNavigate();
   const { t } = useTranslation('stock');
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -111,28 +109,26 @@ function AmaTokenHandler({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Check subscription then exchange for app-specific JWT
+    // Check subscription
     checkSubscription(payload.entityId).then((status) => {
       if (status === 'ACTIVE') {
-        // Exchange AMA token for app-specific JWT
-        apiClient
-          .post('/v1/auth/ama-sso', { ama_token: token })
-          .then((res) => {
-            const { accessToken, refreshToken, user } = res.data.data;
-            setAuth(accessToken, refreshToken, user);
-            if (user.crpCode) setCrpCode(user.crpCode);
+        // Build user from AMA token payload (same as car-manager)
+        const user = {
+          userId: payload.sub,
+          entId: payload.entityId,
+          crpCode: null,
+          role: payload.role,
+          name: payload.email.split('@')[0],
+          tempPassword: false,
+        };
+        setAuth(token, '', user);
+        if (payload.entityId) setCrpCode(payload.entityId);
 
-            // Clean URL
-            searchParams.delete('ama_token');
-            searchParams.delete('locale');
-            setSearchParams(searchParams, { replace: true });
-            navigate('/', { replace: true });
-            setReady(true);
-          })
-          .catch((err) => {
-            console.error('AMA SSO exchange failed:', err);
-            setError(t('auth.invalidAccess'));
-          });
+        // Clean URL
+        searchParams.delete('ama_token');
+        searchParams.delete('locale');
+        setSearchParams(searchParams, { replace: true });
+        setReady(true);
       } else {
         // Redirect to platform app detail page for subscription
         const platformBase = window.location.origin;
@@ -215,11 +211,11 @@ export default function App() {
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-          <DebugContextPanel
-            initialReferrer={initialRef.current.referrer}
-            initialQueryParams={initialRef.current.params}
-          />
         </AmaTokenHandler>
+        <DebugContextPanel
+          initialReferrer={initialRef.current.referrer}
+          initialQueryParams={initialRef.current.params}
+        />
         <ToastContainer />
       </BrowserRouter>
     </QueryClientProvider>
