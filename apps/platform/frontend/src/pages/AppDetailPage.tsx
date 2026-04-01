@@ -86,7 +86,10 @@ export function AppDetailPage() {
       <div className="mb-8 flex items-start gap-5">
         <span className="text-5xl">{APP_ICONS[app.slug] || '📱'}</span>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{app.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{app.nameEn || app.name}</h1>
+          {app.name && app.nameEn && (
+            <p className="mt-0.5 text-sm text-gray-400">({app.name})</p>
+          )}
           <p className="mt-1 text-gray-500">{app.shortDesc}</p>
         </div>
       </div>
