@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Query,
   UploadedFile,
   UseInterceptors,
   Body,
@@ -76,6 +77,30 @@ export class RawOrderController {
     return {
       success: true,
       data: history,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  @Get('daily-summary')
+  @Auth()
+  async getDailySummary(
+    @CurrentUser() user: DrdJwtPayload,
+    @Query('start_date') startDate?: string,
+    @Query('end_date') endDate?: string,
+    @Query('channel') channel?: string,
+  ) {
+    if (!user.ent_id) {
+      throw new BusinessException('DRD-E1009', 'Entity information required', HttpStatus.FORBIDDEN);
+    }
+    const data = await this.rawOrderService.getDailySummary(
+      user.ent_id,
+      startDate,
+      endDate,
+      channel,
+    );
+    return {
+      success: true,
+      data,
       timestamp: new Date().toISOString(),
     };
   }

@@ -118,5 +118,27 @@
     "invalidFileType": "Chỉ chấp nhận tệp .xlsx",
     "shopeeHint": "Tệp Excel đơn hàng tải từ Shopee Seller Center (68 cột)",
     "tiktokHint": "Tệp Excel đơn hàng tải từ TikTok Shop Seller Center (54 cột)"
+  },
+  "daily": {
+    "title": "Doanh số hàng ngày",
+    "description": "Xem tổng hợp đơn hàng và doanh số theo ngày theo kênh.",
+    "refresh": "Làm mới",
+    "filter": "Bộ lọc",
+    "startDate": "Ngày bắt đầu",
+    "endDate": "Ngày kết thúc",
+    "channel": "Kênh",
+    "allChannels": "Tất cả",
+    "totalOrders": "Tổng đơn hàng",
+    "completed": "Hoàn tất",
+    "cancelled": "Đã hủy",
+    "totalGmv": "Tổng GMV",
+    "totalQuantity": "Tổng số lượng",
+    "date": "Ngày",
+    "orders": "Đơn hàng",
+    "qty": "SL",
+    "gmv": "GMV (₫)",
+    "buyerPayment": "Thanh toán",
+    "commission": "Hoa hồng",
+    "skuCount": "Số SKU"
   }
 }

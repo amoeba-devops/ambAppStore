@@ -118,5 +118,27 @@
     "invalidFileType": ".xlsx 파일만 업로드 가능합니다",
     "shopeeHint": "Shopee 판매자센터에서 다운로드한 주문 엑셀 파일 (68 컬럼)",
     "tiktokHint": "TikTok Shop 판매자센터에서 다운로드한 주문 엑셀 파일 (54 컬럼)"
+  },
+  "daily": {
+    "title": "일일 판매현황",
+    "description": "일자별 채널별 주문 및 매출 현황을 조회합니다.",
+    "refresh": "새로고침",
+    "filter": "조건",
+    "startDate": "시작일",
+    "endDate": "종료일",
+    "channel": "채널",
+    "allChannels": "전체",
+    "totalOrders": "총 주문",
+    "completed": "완료",
+    "cancelled": "취소",
+    "totalGmv": "총 GMV",
+    "totalQuantity": "총 수량",
+    "date": "날짜",
+    "orders": "주문수",
+    "qty": "수량",
+    "gmv": "GMV (₫)",
+    "buyerPayment": "구매자결제",
+    "commission": "수수료",
+    "skuCount": "SKU수"
   }
 }

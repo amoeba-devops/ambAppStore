@@ -217,4 +217,106 @@ export class RawOrderService {
 
     return result;
   }
+
+  async getDailySummary(
+    entId: string,
+    startDate?: string,
+    endDate?: string,
+    channel?: string,
+  ) {
+    // Default: last 30 days
+    const end = endDate || new Date().toISOString().slice(0, 10);
+    const start =
+      startDate ||
+      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    const qb = this.orderRepo
+      .createQueryBuilder('o')
+      .select([
+        'DATE(o.ord_order_date) AS date',
+        'o.chn_code AS channel',
+        'COUNT(DISTINCT o.ord_id) AS orderCount',
+        `SUM(CASE WHEN o.ord_status IN ('COMPLETED','SHIPPED','DELIVERED') THEN 1 ELSE 0 END) AS completedCount`,
+        `SUM(CASE WHEN o.ord_status = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelledCount`,
+        'COALESCE(SUM(CAST(o.ord_total_vnd AS DECIMAL(15,2))), 0) AS totalGmv',
+        'COALESCE(SUM(CAST(o.ord_total_buyer_payment AS DECIMAL(15,2))), 0) AS totalBuyerPayment',
+        'COALESCE(SUM(CAST(o.ord_commission_fee AS DECIMAL(15,2))), 0) AS totalCommission',
+        'COALESCE(SUM(CAST(o.ord_service_fee AS DECIMAL(15,2))), 0) AS totalServiceFee',
+        'COALESCE(SUM(CAST(o.ord_shipping_fee_est AS DECIMAL(15,2))), 0) AS totalShippingFee',
+      ])
+      .where('o.ent_id = :entId', { entId })
+      .andWhere('DATE(o.ord_order_date) >= :start', { start })
+      .andWhere('DATE(o.ord_order_date) <= :end', { end });
+
+    if (channel) {
+      qb.andWhere('o.chn_code = :channel', { channel: channel.toUpperCase() });
+    }
+
+    const daily = await qb
+      .groupBy('DATE(o.ord_order_date), o.chn_code')
+      .orderBy('DATE(o.ord_order_date)', 'DESC')
+      .addOrderBy('o.chn_code', 'ASC')
+      .getRawMany();
+
+    // Also get item-level aggregation
+    const itemQb = this.itemRepo
+      .createQueryBuilder('i')
+      .innerJoin(RawOrderEntity, 'o', 'o.ord_id = i.ord_id')
+      .select([
+        'DATE(o.ord_order_date) AS date',
+        'o.chn_code AS channel',
+        'SUM(i.oli_quantity) AS totalQuantity',
+        'COUNT(DISTINCT i.oli_variant_sku) AS uniqueSkuCount',
+      ])
+      .where('o.ent_id = :entId', { entId })
+      .andWhere('DATE(o.ord_order_date) >= :start', { start })
+      .andWhere('DATE(o.ord_order_date) <= :end', { end });
+
+    if (channel) {
+      itemQb.andWhere('o.chn_code = :channel', { channel: channel.toUpperCase() });
+    }
+
+    const itemAgg = await itemQb
+      .groupBy('DATE(o.ord_order_date), o.chn_code')
+      .getRawMany();
+
+    // Merge item data into daily
+    const itemMap = new Map<string, { totalQuantity: number; uniqueSkuCount: number }>();
+    for (const row of itemAgg) {
+      itemMap.set(`${row.date}|${row.channel}`, {
+        totalQuantity: Number(row.totalQuantity) || 0,
+        uniqueSkuCount: Number(row.uniqueSkuCount) || 0,
+      });
+    }
+
+    const rows = daily.map((row) => {
+      const key = `${row.date}|${row.channel}`;
+      const items = itemMap.get(key);
+      return {
+        date: row.date,
+        channel: row.channel,
+        orderCount: Number(row.orderCount) || 0,
+        completedCount: Number(row.completedCount) || 0,
+        cancelledCount: Number(row.cancelledCount) || 0,
+        totalGmv: Number(row.totalGmv) || 0,
+        totalBuyerPayment: Number(row.totalBuyerPayment) || 0,
+        totalCommission: Number(row.totalCommission) || 0,
+        totalServiceFee: Number(row.totalServiceFee) || 0,
+        totalShippingFee: Number(row.totalShippingFee) || 0,
+        totalQuantity: items?.totalQuantity || 0,
+        uniqueSkuCount: items?.uniqueSkuCount || 0,
+      };
+    });
+
+    // Summary totals
+    const summary = {
+      totalOrders: rows.reduce((s, r) => s + r.orderCount, 0),
+      totalCompleted: rows.reduce((s, r) => s + r.completedCount, 0),
+      totalCancelled: rows.reduce((s, r) => s + r.cancelledCount, 0),
+      totalGmv: rows.reduce((s, r) => s + r.totalGmv, 0),
+      totalQuantity: rows.reduce((s, r) => s + r.totalQuantity, 0),
+    };
+
+    return { rows, summary, dateRange: { start, end } };
+  }
 }

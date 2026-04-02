@@ -118,5 +118,27 @@
     "invalidFileType": "Only .xlsx files are allowed",
     "shopeeHint": "Order Excel file downloaded from Shopee Seller Center (68 columns)",
     "tiktokHint": "Order Excel file downloaded from TikTok Shop Seller Center (54 columns)"
+  },
+  "daily": {
+    "title": "Daily Sales",
+    "description": "View daily order and sales summary by channel.",
+    "refresh": "Refresh",
+    "filter": "Filter",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "channel": "Channel",
+    "allChannels": "All",
+    "totalOrders": "Total Orders",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "totalGmv": "Total GMV",
+    "totalQuantity": "Total Quantity",
+    "date": "Date",
+    "orders": "Orders",
+    "qty": "Qty",
+    "gmv": "GMV (₫)",
+    "buyerPayment": "Buyer Payment",
+    "commission": "Commission",
+    "skuCount": "SKU Count"
   }
 }
