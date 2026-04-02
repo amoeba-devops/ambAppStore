@@ -19,7 +19,7 @@ export class SpuMasterEntity {
   @Column({ name: 'ent_id', type: 'char', length: 36 })
   entId: string;
 
-  @Column({ name: 'spu_code', type: 'varchar', length: 7 })
+  @Column({ name: 'spu_code', type: 'varchar', length: 20 })
   spuCode: string;
 
   @Column({ name: 'spu_brand_code', type: 'varchar', length: 10 })

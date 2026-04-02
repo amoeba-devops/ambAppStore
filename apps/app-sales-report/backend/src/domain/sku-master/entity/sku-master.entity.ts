@@ -25,10 +25,10 @@ export class SkuMasterEntity {
   @Column({ name: 'spu_id', type: 'char', length: 36 })
   spuId: string;
 
-  @Column({ name: 'sku_wms_code', type: 'varchar', length: 12 })
+  @Column({ name: 'sku_wms_code', type: 'varchar', length: 30 })
   skuWmsCode: string;
 
-  @Column({ name: 'sku_spu_code', type: 'varchar', length: 7 })
+  @Column({ name: 'sku_spu_code', type: 'varchar', length: 20 })
   skuSpuCode: string;
 
   @Column({ name: 'sku_name_kr', type: 'varchar', length: 200 })
@@ -73,7 +73,7 @@ export class SkuMasterEntity {
   @Column({ name: 'sku_weight_gram', type: 'int', nullable: true })
   skuWeightGram: number | null;
 
-  @Column({ name: 'sku_unit', type: 'varchar', length: 10, nullable: true, default: 'EA' })
+  @Column({ name: 'sku_unit', type: 'varchar', length: 50, nullable: true, default: 'EA' })
   skuUnit: string | null;
 
   @Column({ name: 'sku_is_active', type: 'boolean', default: true })
