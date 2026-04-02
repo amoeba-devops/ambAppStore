@@ -16,7 +16,7 @@ import { BusinessException } from '../../../common/exceptions/business.exception
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-@Controller('v1/raw-orders')
+@Controller('raw-orders')
 export class RawOrderController {
   constructor(private readonly rawOrderService: RawOrderService) {}
 
