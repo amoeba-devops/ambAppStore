@@ -55,6 +55,12 @@ export class SkuMasterEntity {
   @Column({ name: 'sku_hs_code', type: 'varchar', length: 20, nullable: true })
   skuHsCode: string | null;
 
+  @Column({ name: 'sku_description', type: 'text', nullable: true })
+  skuDescription: string | null;
+
+  @Column({ name: 'sku_color', type: 'varchar', length: 50, nullable: true })
+  skuColor: string | null;
+
   @Column({ name: 'sku_prime_cost', type: 'decimal', precision: 15, scale: 2 })
   skuPrimeCost: number;
 

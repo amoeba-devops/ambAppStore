@@ -94,6 +94,8 @@ export class SkuMasterService {
       skuSyncCode: request.sync_code || null,
       skuGtinCode: request.gtin_code || null,
       skuHsCode: request.hs_code || null,
+      skuDescription: request.description || null,
+      skuColor: request.color || null,
       skuPrimeCost: request.prime_cost,
       skuSupplyPrice: request.supply_price ?? null,
       skuListingPrice: request.listing_price ?? null,
@@ -123,6 +125,8 @@ export class SkuMasterService {
     if (request.sync_code !== undefined) sku.skuSyncCode = request.sync_code || null;
     if (request.gtin_code !== undefined) sku.skuGtinCode = request.gtin_code || null;
     if (request.hs_code !== undefined) sku.skuHsCode = request.hs_code || null;
+    if (request.description !== undefined) sku.skuDescription = request.description || null;
+    if (request.color !== undefined) sku.skuColor = request.color || null;
     if (request.prime_cost !== undefined) sku.skuPrimeCost = request.prime_cost;
     if (request.supply_price !== undefined) sku.skuSupplyPrice = request.supply_price ?? null;
     if (request.listing_price !== undefined) sku.skuListingPrice = request.listing_price ?? null;

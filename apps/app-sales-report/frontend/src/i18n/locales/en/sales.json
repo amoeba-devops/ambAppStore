@@ -88,7 +88,21 @@
     "editTitle": "Edit SKU",
     "deleteConfirm": "Are you sure you want to delete this SKU?",
     "costHistory": "Cost History",
-    "costChangeMemo": "Change Memo"
+    "costChangeMemo": "Change Memo",
+    "nameColumns": "Name Columns",
+    "backToList": "Back to list",
+    "detailTitle": "SKU Detail",
+    "sectionName": "Product Name",
+    "sectionCode": "Code Info",
+    "sectionPrice": "Price Info",
+    "sectionAttribute": "Attributes",
+    "variantType": "Variant Type",
+    "variantValue": "Variant Value",
+    "color": "Color",
+    "description": "Description",
+    "costUpdatedAt": "Cost Updated",
+    "createdAt": "Created",
+    "updatedAt": "Updated"
   },
   "channel": {
     "title": "Channel Mapping",

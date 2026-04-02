@@ -11,6 +11,8 @@ export class SkuMasterResponse {
   syncCode: string | null;
   gtinCode: string | null;
   hsCode: string | null;
+  description: string | null;
+  color: string | null;
   primeCost: number;
   supplyPrice: number | null;
   listingPrice: number | null;

@@ -16,6 +16,8 @@ export class SkuMasterMapper {
       syncCode: entity.skuSyncCode,
       gtinCode: entity.skuGtinCode,
       hsCode: entity.skuHsCode,
+      description: entity.skuDescription,
+      color: entity.skuColor,
       primeCost: Number(entity.skuPrimeCost),
       supplyPrice: entity.skuSupplyPrice ? Number(entity.skuSupplyPrice) : null,
       listingPrice: entity.skuListingPrice ? Number(entity.skuListingPrice) : null,

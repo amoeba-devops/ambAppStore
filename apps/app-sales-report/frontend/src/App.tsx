@@ -15,6 +15,7 @@ import { ChangePasswordPage } from '@/pages/auth/ChangePasswordPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { SpuMasterListPage } from '@/pages/SpuMasterListPage';
 import { SkuMasterListPage } from '@/pages/SkuMasterListPage';
+import { SkuDetailPage } from '@/pages/SkuDetailPage';
 import { ChannelMappingListPage } from '@/pages/ChannelMappingListPage';
 import { OrderUploadPage } from '@/pages/OrderUploadPage';
 import { DailyReportPage } from '@/pages/DailyReportPage';
@@ -147,6 +148,7 @@ export default function App() {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/spu" element={<SpuMasterListPage />} />
               <Route path="/sku" element={<SkuMasterListPage />} />
+              <Route path="/sku/:skuId" element={<SkuDetailPage />} />
               <Route path="/channel-mapping" element={<ChannelMappingListPage />} />
               <Route path="/daily-report" element={<DailyReportPage />} />
               <Route path="/weekly-cm" element={<WeeklyCmPage />} />

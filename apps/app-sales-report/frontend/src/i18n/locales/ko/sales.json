@@ -88,7 +88,21 @@
     "editTitle": "SKU 수정",
     "deleteConfirm": "이 SKU를 삭제하시겠습니까?",
     "costHistory": "원가 변경 이력",
-    "costChangeMemo": "변경 사유"
+    "costChangeMemo": "변경 사유",
+    "nameColumns": "상품명 표시 언어",
+    "backToList": "목록으로",
+    "detailTitle": "SKU 상세",
+    "sectionName": "상품명",
+    "sectionCode": "코드 정보",
+    "sectionPrice": "가격 정보",
+    "sectionAttribute": "상품 속성",
+    "variantType": "바리에이션 유형",
+    "variantValue": "바리에이션 값",
+    "color": "색상",
+    "description": "상품 설명",
+    "costUpdatedAt": "원가 갱신일",
+    "createdAt": "등록일",
+    "updatedAt": "수정일"
   },
   "channel": {
     "title": "채널 매핑",

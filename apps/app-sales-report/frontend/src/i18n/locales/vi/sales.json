@@ -88,7 +88,21 @@
     "editTitle": "Sửa SKU",
     "deleteConfirm": "Bạn có chắc muốn xóa SKU này?",
     "costHistory": "Lịch sử giá",
-    "costChangeMemo": "Ghi chú thay đổi"
+    "costChangeMemo": "Ghi chú thay đổi",
+    "nameColumns": "Cột tên sản phẩm",
+    "backToList": "Quay lại danh sách",
+    "detailTitle": "Chi tiết SKU",
+    "sectionName": "Tên sản phẩm",
+    "sectionCode": "Thông tin mã",
+    "sectionPrice": "Thông tin giá",
+    "sectionAttribute": "Thuộc tính",
+    "variantType": "Loại biến thể",
+    "variantValue": "Giá trị biến thể",
+    "color": "Màu sắc",
+    "description": "Mô tả sản phẩm",
+    "costUpdatedAt": "Ngày cập nhật giá",
+    "createdAt": "Ngày tạo",
+    "updatedAt": "Ngày cập nhật"
   },
   "channel": {
     "title": "Ánh xạ kênh",

@@ -1,19 +1,34 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Barcode, Plus, Pencil, Trash2, Search, History, Download, Upload, FileSpreadsheet } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Barcode, Plus, Pencil, Trash2, Search, History, Download, Upload, FileSpreadsheet, Eye } from 'lucide-react';
 import { useSkuList, useCreateSku, useUpdateSku, useDeleteSku, useSkuCostHistory } from '@/hooks/useSales';
 import { useDownloadTemplate, useExportProductMaster, useImportProductMaster } from '@/hooks/useProductMasterExcel';
 import { useToastStore } from '@/stores/toast.store';
 import type { SkuMaster, SkuCostHistory } from '@/services/sales.service';
 
+const LANG_STORAGE_KEY = 'sku-name-columns';
+type LangKey = 'kr' | 'en' | 'vi';
+
+function getInitialLangs(): Record<LangKey, boolean> {
+  try {
+    const saved = localStorage.getItem(LANG_STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch { /* ignore */ }
+  return { kr: true, en: false, vi: false };
+}
+
 export function SkuMasterListPage() {
   const { t } = useTranslation('sales');
   const { showToast } = useToastStore();
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<SkuMaster | null>(null);
   const [historySkuId, setHistorySkuId] = useState<string | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [langVisible, setLangVisible] = useState<Record<LangKey, boolean>>(getInitialLangs);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
 
   const { data: skus = [], isLoading } = useSkuList(search ? { search } : undefined);
   const createMutation = useCreateSku();
@@ -22,6 +37,18 @@ export function SkuMasterListPage() {
   const templateMutation = useDownloadTemplate();
   const exportMutation = useExportProductMaster();
   const importMutation = useImportProductMaster();
+
+  const toggleLang = (key: LangKey) => {
+    setLangVisible((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      // 최소 1개는 표시
+      if (!next.kr && !next.en && !next.vi) return prev;
+      localStorage.setItem(LANG_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const visibleLangCount = Object.values(langVisible).filter(Boolean).length;
 
   const handleDelete = async (sku: SkuMaster) => {
     if (!confirm(t('sku.deleteConfirm'))) return;
@@ -48,8 +75,8 @@ export function SkuMasterListPage() {
     }
   };
 
-  const formatPrice = (n: number) =>
-    new Intl.NumberFormat('en-US', { minimumFractionDigits: 0 }).format(n);
+  const formatPrice = (n: number | null | undefined) =>
+    n != null ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 0 }).format(n) : '-';
 
   return (
     <div>
@@ -80,31 +107,58 @@ export function SkuMasterListPage() {
         </div>
       </div>
 
-      {/* Excel Toolbar */}
-      <div className="mb-4 flex items-center gap-2">
-        <button
-          onClick={() => templateMutation.mutate()}
-          disabled={templateMutation.isPending}
-          className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-        >
-          <FileSpreadsheet className="h-4 w-4" />
-          {t('productMaster.template')}
-        </button>
-        <button
-          onClick={() => exportMutation.mutate()}
-          disabled={exportMutation.isPending}
-          className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-        >
-          <Download className="h-4 w-4" />
-          {t('productMaster.export')}
-        </button>
-        <button
-          onClick={() => setImportModalOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-700 hover:bg-blue-100"
-        >
-          <Upload className="h-4 w-4" />
-          {t('productMaster.import')}
-        </button>
+      {/* Excel Toolbar + Language Toggle */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => templateMutation.mutate()}
+            disabled={templateMutation.isPending}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            {t('productMaster.template')}
+          </button>
+          <button
+            onClick={() => exportMutation.mutate()}
+            disabled={exportMutation.isPending}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
+            {t('productMaster.export')}
+          </button>
+          <button
+            onClick={() => setImportModalOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-700 hover:bg-blue-100"
+          >
+            <Upload className="h-4 w-4" />
+            {t('productMaster.import')}
+          </button>
+        </div>
+        <div className="relative">
+          <button
+            onClick={() => setLangMenuOpen(!langMenuOpen)}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+          >
+            <Eye className="h-4 w-4" />
+            {t('sku.nameColumns')}
+          </button>
+          {langMenuOpen && (
+            <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+              {([['kr', t('sku.nameKr')], ['en', t('sku.nameEn')], ['vi', t('sku.nameVi')]] as [LangKey, string][]).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => toggleLang(key)}
+                  className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-gray-50"
+                >
+                  <span className="text-gray-700">{label}</span>
+                  <span className={`h-4 w-4 rounded border text-center text-xs leading-4 ${langVisible[key] ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-300'}`}>
+                    {langVisible[key] ? '✓' : ''}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
@@ -114,7 +168,9 @@ export function SkuMasterListPage() {
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">{t('sku.wmsCode')}</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">{t('sku.spuCode')}</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">{t('sku.nameKr')}</th>
+                {langVisible.kr && <th className="px-4 py-3 text-left font-medium text-gray-600">{t('sku.nameKr')}</th>}
+                {langVisible.en && <th className="px-4 py-3 text-left font-medium text-gray-600">{t('sku.nameEn')}</th>}
+                {langVisible.vi && <th className="px-4 py-3 text-left font-medium text-gray-600">{t('sku.nameVi')}</th>}
                 <th className="px-4 py-3 text-right font-medium text-gray-600">{t('sku.primeCost')}</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-600">{t('sku.sellingPrice')}</th>
                 <th className="px-4 py-3 text-center font-medium text-gray-600">{t('common.actions')}</th>
@@ -122,15 +178,24 @@ export function SkuMasterListPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">{t('common.loading')}</td></tr>
+                <tr><td colSpan={5 + visibleLangCount} className="px-4 py-8 text-center text-gray-400">{t('common.loading')}</td></tr>
               ) : skus.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">{t('common.noData')}</td></tr>
+                <tr><td colSpan={5 + visibleLangCount} className="px-4 py-8 text-center text-gray-400">{t('common.noData')}</td></tr>
               ) : (
                 skus.map((sku: SkuMaster) => (
                   <tr key={sku.skuId} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-mono text-xs">{sku.wmsCode}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => navigate(`/sku/${sku.skuId}`)}
+                        className="font-mono text-xs text-blue-600 hover:underline"
+                      >
+                        {sku.wmsCode}
+                      </button>
+                    </td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-500">{sku.spuCode}</td>
-                    <td className="px-4 py-3 font-medium">{sku.nameKr}</td>
+                    {langVisible.kr && <td className="max-w-[200px] truncate px-4 py-3 font-medium">{sku.nameKr}</td>}
+                    {langVisible.en && <td className="max-w-[200px] truncate px-4 py-3 text-gray-600">{sku.nameEn || '-'}</td>}
+                    {langVisible.vi && <td className="max-w-[200px] truncate px-4 py-3 text-gray-600">{sku.nameVi || '-'}</td>}
                     <td className="px-4 py-3 text-right font-mono">{formatPrice(sku.primeCost)}</td>
                     <td className="px-4 py-3 text-right font-mono">{formatPrice(sku.sellingPrice)}</td>
                     <td className="px-4 py-3 text-center">
@@ -191,10 +256,13 @@ function SkuFormModal({
   const { t } = useTranslation('sales');
   const [form, setForm] = useState({
     wms_code: sku?.wmsCode || '',
-    sku_name_kr: sku?.nameKr || '',
-    sku_name_en: sku?.nameEn || '',
-    sku_name_vi: sku?.nameVi || '',
-    sku_variant: sku?.variant || '',
+    name_kr: sku?.nameKr || '',
+    name_en: sku?.nameEn || '',
+    name_vi: sku?.nameVi || '',
+    variant_type: sku?.variantType || '',
+    variant_value: sku?.variantValue || '',
+    color: sku?.color || '',
+    description: sku?.description || '',
     sync_code: sku?.syncCode || '',
     gtin_code: sku?.gtinCode || '',
     hs_code: sku?.hsCode || '',
@@ -203,7 +271,7 @@ function SkuFormModal({
     listing_price: String(sku?.listingPrice || ''),
     selling_price: String(sku?.sellingPrice || ''),
     fulfillment_fee_override: sku?.fulfillmentFeeOverride ? String(sku.fulfillmentFeeOverride) : '',
-    weight: sku?.weight ? String(sku.weight) : '',
+    weight_gram: sku?.weightGram ? String(sku.weightGram) : '',
     unit: sku?.unit || 'EA',
     cost_change_memo: '',
   });
@@ -213,9 +281,13 @@ function SkuFormModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const payload: any = { ...form };
-    ['prime_cost', 'supply_price', 'listing_price', 'selling_price', 'fulfillment_fee_override', 'weight'].forEach((k) => {
+    ['prime_cost', 'supply_price', 'listing_price', 'selling_price', 'fulfillment_fee_override', 'weight_gram'].forEach((k) => {
       if (payload[k]) payload[k] = Number(payload[k]);
       else delete payload[k];
+    });
+    // Clean empty optional strings
+    ['variant_type', 'variant_value', 'color', 'description', 'sync_code', 'gtin_code', 'hs_code'].forEach((k) => {
+      if (!payload[k]) delete payload[k];
     });
     onSave(payload);
   };
@@ -235,17 +307,17 @@ function SkuFormModal({
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600">{t('sku.nameKr')}</label>
-              <input value={form.sku_name_kr} onChange={(e) => set('sku_name_kr', e.target.value)}
+              <input value={form.name_kr} onChange={(e) => set('name_kr', e.target.value)}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" required />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600">{t('sku.nameEn')}</label>
-              <input value={form.sku_name_en} onChange={(e) => set('sku_name_en', e.target.value)}
+              <input value={form.name_en} onChange={(e) => set('name_en', e.target.value)}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600">{t('sku.nameVi')}</label>
-              <input value={form.sku_name_vi} onChange={(e) => set('sku_name_vi', e.target.value)}
+              <input value={form.name_vi} onChange={(e) => set('name_vi', e.target.value)}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
             </div>
           </div>
@@ -271,22 +343,32 @@ function SkuFormModal({
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" required />
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600">{t('sku.variant')}</label>
-              <input value={form.sku_variant} onChange={(e) => set('sku_variant', e.target.value)}
+              <label className="block text-xs font-medium text-gray-600">{t('sku.variantType')}</label>
+              <input value={form.variant_type} onChange={(e) => set('variant_type', e.target.value)}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="e.g. SIZE, COLOR" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600">{t('sku.variantValue')}</label>
+              <input value={form.variant_value} onChange={(e) => set('variant_value', e.target.value)}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="e.g. L, 500ml" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600">{t('sku.color')}</label>
+              <input value={form.color} onChange={(e) => set('color', e.target.value)}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600">{t('sku.weight')}</label>
-              <input type="number" value={form.weight} onChange={(e) => set('weight', e.target.value)}
+              <input type="number" value={form.weight_gram} onChange={(e) => set('weight_gram', e.target.value)}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600">{t('sku.unit')}</label>
-              <input value={form.unit} onChange={(e) => set('unit', e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600">{t('sku.description')}</label>
+            <textarea value={form.description} onChange={(e) => set('description', e.target.value)}
+              rows={2} className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
           </div>
           {sku && (
             <div>

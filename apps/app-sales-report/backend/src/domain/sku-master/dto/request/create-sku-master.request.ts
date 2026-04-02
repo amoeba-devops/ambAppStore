@@ -29,6 +29,12 @@ export class CreateSkuMasterRequest {
   @IsOptional() @IsString() @MaxLength(20)
   hs_code?: string;
 
+  @IsOptional() @IsString()
+  description?: string;
+
+  @IsOptional() @IsString() @MaxLength(50)
+  color?: string;
+
   @Type(() => Number) @IsNumber() @Min(0)
   prime_cost: number;
 
