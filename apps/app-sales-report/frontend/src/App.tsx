@@ -29,6 +29,7 @@ import { CreatorPage } from '@/pages/CreatorPage';
 import { ManualInputPage } from '@/pages/ManualInputPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { NotificationsPage } from '@/pages/NotificationsPage';
+import { ReportUploadPage } from '@/pages/ReportUploadPage';
 import {
   getAmaTokenFromUrl,
   decodeAmaToken,
@@ -154,6 +155,7 @@ export default function App() {
               <Route path="/weekly-cm" element={<WeeklyCmPage />} />
               <Route path="/monthly-cm" element={<MonthlyCmPage />} />
               <Route path="/upload" element={<OrderUploadPage />} />
+              <Route path="/report-upload" element={<ReportUploadPage />} />
               <Route path="/upload-history" element={<UploadHistoryPage />} />
               <Route path="/orders" element={<RawOrderListPage />} />
               <Route path="/orders/:ordId" element={<RawOrderDetailPage />} />

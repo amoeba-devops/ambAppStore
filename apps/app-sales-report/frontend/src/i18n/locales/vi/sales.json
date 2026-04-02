@@ -32,6 +32,7 @@
     "sectionInput": "Nhập dữ liệu",
     "manualInput": "Nhập thủ công",
     "orderUpload": "Tải lên dữ liệu đơn hàng",
+    "reportUpload": "Tải lên báo cáo",
     "sectionSettings": "Cài đặt",
     "settings": "Cài đặt",
     "notifications": "Thông báo"
@@ -231,5 +232,34 @@
     "originalPrice": "Giá gốc",
     "dealPrice": "Giá bán",
     "buyerPaid": "Người mua trả"
+  },
+  "reportUpload": {
+    "title": "Tải lên báo cáo",
+    "description": "Tải lên báo cáo lưu lượng, quảng cáo và liên kết từ Shopee và TikTok.",
+    "categoryTraffic": "Lưu lượng",
+    "categoryAds": "Quảng cáo",
+    "categoryAffiliate": "Liên kết",
+    "selectType": "Chọn loại báo cáo",
+    "selectFile": "Chọn tệp",
+    "shopeeTraffic": "Shopee Lưu lượng",
+    "tiktokTraffic": "TikTok Lưu lượng",
+    "shopeeAd": "Shopee Quảng cáo",
+    "tiktokAdProduct": "TikTok QC (Sản phẩm)",
+    "tiktokAdLive": "TikTok QC (Live)",
+    "shopeeAffiliate": "Shopee Liên kết",
+    "shopeeTrafficHint": "Shopee Seller Center > Báo cáo hiệu quả sản phẩm (.xlsx, tiếng Việt)",
+    "tiktokTrafficHint": "TikTok Shop > Báo cáo phân tích sản phẩm (.xlsx)",
+    "shopeeAdHint": "Shopee Seller Center > Báo cáo quảng cáo (.csv, bỏ 7 hàng đầu)",
+    "tiktokAdProductHint": "TikTok Ads Manager > Báo cáo sản phẩm/sáng tạo (.xlsx)",
+    "tiktokAdLiveHint": "TikTok Ads Manager > Báo cáo phiên live (.xlsx)",
+    "shopeeAffiliateHint": "Shopee Seller Center > Báo cáo liên kết (.csv)",
+    "period": "Kỳ báo cáo",
+    "periodOptional": "không bắt buộc",
+    "periodStart": "Ngày bắt đầu",
+    "periodEnd": "Ngày kết thúc",
+    "fileLimit": "Chỉ tệp {{types}} (tối đa 10MB)",
+    "invalidFileType": "Chỉ chấp nhận tệp {{types}}",
+    "rowsInserted": "Hàng đã nhập",
+    "uploadId": "Mã tải lên"
   }
 }

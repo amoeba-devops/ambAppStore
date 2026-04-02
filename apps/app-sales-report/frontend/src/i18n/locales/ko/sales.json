@@ -32,6 +32,7 @@
     "sectionInput": "데이터 입력",
     "manualInput": "수동 입력",
     "orderUpload": "판매 데이터 업로드",
+    "reportUpload": "리포트 업로드",
     "sectionSettings": "설정",
     "settings": "설정",
     "notifications": "알림"
@@ -231,5 +232,34 @@
     "originalPrice": "원가",
     "dealPrice": "판매가",
     "buyerPaid": "구매자 결제"
+  },
+  "reportUpload": {
+    "title": "리포트 업로드",
+    "description": "Shopee, TikTok의 트래픽·광고·제휴 리포트를 업로드합니다.",
+    "categoryTraffic": "트래픽",
+    "categoryAds": "광고",
+    "categoryAffiliate": "제휴",
+    "selectType": "리포트 유형 선택",
+    "selectFile": "파일 선택",
+    "shopeeTraffic": "Shopee 트래픽",
+    "tiktokTraffic": "TikTok 트래픽",
+    "shopeeAd": "Shopee 광고",
+    "tiktokAdProduct": "TikTok 광고 (상품)",
+    "tiktokAdLive": "TikTok 광고 (라이브)",
+    "shopeeAffiliate": "Shopee 제휴",
+    "shopeeTrafficHint": "Shopee 판매자센터 > 상품 성과 리포트 (.xlsx, 베트남어)",
+    "tiktokTrafficHint": "TikTok Shop > 상품 분석 리포트 (.xlsx)",
+    "shopeeAdHint": "Shopee 판매자센터 > 광고 리포트 (.csv, 상단 7줄 메타)",
+    "tiktokAdProductHint": "TikTok 광고 관리자 > 상품/크리에이티브 리포트 (.xlsx)",
+    "tiktokAdLiveHint": "TikTok 광고 관리자 > 라이브 세션 리포트 (.xlsx)",
+    "shopeeAffiliateHint": "Shopee 판매자센터 > 제휴 리포트 (.csv)",
+    "period": "리포트 기간",
+    "periodOptional": "선택사항",
+    "periodStart": "시작일",
+    "periodEnd": "종료일",
+    "fileLimit": "{{types}} 파일만 가능 (최대 10MB)",
+    "invalidFileType": "{{types}} 파일만 업로드 가능합니다",
+    "rowsInserted": "등록된 행",
+    "uploadId": "업로드 ID"
   }
 }

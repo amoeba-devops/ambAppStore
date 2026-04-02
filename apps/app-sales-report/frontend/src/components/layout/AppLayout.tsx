@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Barcode, Link2, FileBarChart,
   CalendarDays, CalendarRange, Video, Users, PenLine, Upload,
-  Settings, Bell, Globe, LogOut, ShoppingCart, History,
+  Settings, Bell, Globe, LogOut, ShoppingCart, History, BarChart3,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuthStore } from '@/stores/auth.store';
@@ -55,6 +55,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       label: t('nav.sectionInput'),
       items: [
         { to: '/upload', icon: Upload, label: t('nav.orderUpload') },
+        { to: '/report-upload', icon: BarChart3, label: t('nav.reportUpload') },
         { to: '/upload-history', icon: History, label: t('nav.uploadHistory') },
         { to: '/manual-input', icon: PenLine, label: t('nav.manualInput') },
       ],

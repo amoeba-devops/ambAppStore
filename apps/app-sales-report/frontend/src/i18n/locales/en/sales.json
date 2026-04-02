@@ -32,6 +32,7 @@
     "sectionInput": "Data Input",
     "manualInput": "Manual Input",
     "orderUpload": "Order Data Upload",
+    "reportUpload": "Report Upload",
     "sectionSettings": "Settings",
     "settings": "Settings",
     "notifications": "Notifications"
@@ -231,5 +232,34 @@
     "originalPrice": "Original Price",
     "dealPrice": "Deal Price",
     "buyerPaid": "Buyer Paid"
+  },
+  "reportUpload": {
+    "title": "Report Upload",
+    "description": "Upload traffic, ad, and affiliate reports from Shopee and TikTok.",
+    "categoryTraffic": "Traffic",
+    "categoryAds": "Ads",
+    "categoryAffiliate": "Affiliate",
+    "selectType": "Select Report Type",
+    "selectFile": "Select File",
+    "shopeeTraffic": "Shopee Traffic",
+    "tiktokTraffic": "TikTok Traffic",
+    "shopeeAd": "Shopee Ads",
+    "tiktokAdProduct": "TikTok Ads (Product)",
+    "tiktokAdLive": "TikTok Ads (Live)",
+    "shopeeAffiliate": "Shopee Affiliate",
+    "shopeeTrafficHint": "Shopee Seller Center > Product Performance report (.xlsx, Vietnamese)",
+    "tiktokTrafficHint": "TikTok Shop > Product Analytics report (.xlsx)",
+    "shopeeAdHint": "Shopee Seller Center > Ad Report (.csv, skip 7 header rows)",
+    "tiktokAdProductHint": "TikTok Ads Manager > Product/Creative report (.xlsx)",
+    "tiktokAdLiveHint": "TikTok Ads Manager > Live session report (.xlsx)",
+    "shopeeAffiliateHint": "Shopee Seller Center > Affiliate report (.csv)",
+    "period": "Report Period",
+    "periodOptional": "optional",
+    "periodStart": "Start date",
+    "periodEnd": "End date",
+    "fileLimit": "{{types}} files only (max 10MB)",
+    "invalidFileType": "Only {{types}} files are allowed",
+    "rowsInserted": "Rows Inserted",
+    "uploadId": "Upload ID"
   }
 }

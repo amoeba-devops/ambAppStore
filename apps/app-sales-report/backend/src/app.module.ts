@@ -11,6 +11,7 @@ import { SkuCostHistoryModule } from './domain/sku-cost-history/sku-cost-history
 import { RawOrderModule } from './domain/raw-order/raw-order.module';
 import { UploadHistoryModule } from './domain/upload-history/upload-history.module';
 import { ProductMasterExcelModule } from './domain/product-master-excel/product-master-excel.module';
+import { ReportUploadModule } from './domain/report-upload/report-upload.module';
 import { HealthController } from './health.controller';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
@@ -42,6 +43,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
     RawOrderModule,
     UploadHistoryModule,
     ProductMasterExcelModule,
+    ReportUploadModule,
   ],
   controllers: [HealthController],
   providers: [
