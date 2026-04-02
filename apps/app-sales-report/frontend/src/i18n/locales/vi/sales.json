@@ -140,5 +140,37 @@
     "buyerPayment": "Thanh toán",
     "commission": "Hoa hồng",
     "skuCount": "Số SKU"
+  },
+  "weekly": {
+    "title": "Báo cáo CM tuần",
+    "description": "Xem tổng hợp biên lợi nhuận (CM) theo tuần ISO.",
+    "year": "Năm",
+    "totalWeeks": "Số tuần",
+    "totalOrders": "Tổng đơn hàng",
+    "totalGmv": "Tổng GMV",
+    "totalCm": "Tổng CM",
+    "avgCmPct": "TB CM%",
+    "orders": "Đơn hàng",
+    "costBreakdown": "Cơ cấu chi phí",
+    "productDetail": "CM theo sản phẩm",
+    "product": "Sản phẩm",
+    "qty": "SL",
+    "status": "Trạng thái",
+    "moreProducts": "sản phẩm khác",
+    "cmWarning": "Một số sản phẩm chưa có giá gốc hoặc chưa ánh xạ SKU, có thể ảnh hưởng đến độ chính xác của CM. Vui lòng cập nhật trong Quản lý SKU."
+  },
+  "monthly": {
+    "title": "Báo cáo CM tháng",
+    "description": "Xem biên lợi nhuận (CM) theo tháng với so sánh tháng trước (MoM).",
+    "ytdMonths": "Số tháng",
+    "ytdOrders": "Tổng đơn hàng",
+    "ytdGmv": "YTD GMV",
+    "ytdCm": "YTD CM",
+    "ytdCmPct": "TB CM%",
+    "orders": "Đơn hàng",
+    "momComparison": "So sánh tháng trước (MoM)",
+    "prevGmv": "GMV tháng trước",
+    "currentGmv": "GMV tháng này",
+    "gmvChange": "Thay đổi GMV"
   }
 }

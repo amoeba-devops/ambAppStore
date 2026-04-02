@@ -140,5 +140,37 @@
     "buyerPayment": "Buyer Payment",
     "commission": "Commission",
     "skuCount": "SKU Count"
+  },
+  "weekly": {
+    "title": "Weekly CM Report",
+    "description": "View contribution margin (CM) summary by ISO week.",
+    "year": "Year",
+    "totalWeeks": "Weeks",
+    "totalOrders": "Total Orders",
+    "totalGmv": "Total GMV",
+    "totalCm": "Total CM",
+    "avgCmPct": "Avg. CM%",
+    "orders": "Orders",
+    "costBreakdown": "Cost Breakdown",
+    "productDetail": "Product CM Detail",
+    "product": "Product",
+    "qty": "Qty",
+    "status": "Status",
+    "moreProducts": "more products",
+    "cmWarning": "Some products have missing prime cost or unmapped SKUs, which may affect CM accuracy. Please update cost data in SKU Master."
+  },
+  "monthly": {
+    "title": "Monthly CM Report",
+    "description": "View monthly contribution margin (CM) with month-over-month (MoM) comparison.",
+    "ytdMonths": "Months",
+    "ytdOrders": "Total Orders",
+    "ytdGmv": "YTD GMV",
+    "ytdCm": "YTD CM",
+    "ytdCmPct": "Avg. CM%",
+    "orders": "Orders",
+    "momComparison": "Month-over-Month (MoM)",
+    "prevGmv": "Previous GMV",
+    "currentGmv": "Current GMV",
+    "gmvChange": "GMV Change"
   }
 }

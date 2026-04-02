@@ -18,6 +18,8 @@ import { SkuMasterListPage } from '@/pages/SkuMasterListPage';
 import { ChannelMappingListPage } from '@/pages/ChannelMappingListPage';
 import { OrderUploadPage } from '@/pages/OrderUploadPage';
 import { DailyReportPage } from '@/pages/DailyReportPage';
+import { WeeklyCmPage } from '@/pages/WeeklyCmPage';
+import { MonthlyCmPage } from '@/pages/MonthlyCmPage';
 import {
   getAmaTokenFromUrl,
   decodeAmaToken,
@@ -139,6 +141,8 @@ export default function App() {
               <Route path="/sku" element={<SkuMasterListPage />} />
               <Route path="/channel-mapping" element={<ChannelMappingListPage />} />
               <Route path="/daily-report" element={<DailyReportPage />} />
+              <Route path="/weekly-cm" element={<WeeklyCmPage />} />
+              <Route path="/monthly-cm" element={<MonthlyCmPage />} />
               <Route path="/upload" element={<OrderUploadPage />} />
             </Route>
 

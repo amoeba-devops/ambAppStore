@@ -140,5 +140,37 @@
     "buyerPayment": "구매자결제",
     "commission": "수수료",
     "skuCount": "SKU수"
+  },
+  "weekly": {
+    "title": "주간 CM 리포트",
+    "description": "ISO 주차별 공헌이익(CM) 현황을 조회합니다.",
+    "year": "연도",
+    "totalWeeks": "조회 주차",
+    "totalOrders": "총 주문",
+    "totalGmv": "총 GMV",
+    "totalCm": "총 CM",
+    "avgCmPct": "평균 CM%",
+    "orders": "주문수",
+    "costBreakdown": "비용 구성",
+    "productDetail": "상품별 CM",
+    "product": "상품명",
+    "qty": "수량",
+    "status": "상태",
+    "moreProducts": "개 상품 더보기",
+    "cmWarning": "일부 상품에 원가 미등록 또는 SKU 미매핑이 있어 CM이 정확하지 않을 수 있습니다. SKU 관리에서 원가 정보를 업데이트하세요."
+  },
+  "monthly": {
+    "title": "월간 CM 리포트",
+    "description": "월별 공헌이익(CM) 현황 및 전월 대비(MoM) 변화를 조회합니다.",
+    "ytdMonths": "조회 월수",
+    "ytdOrders": "총 주문",
+    "ytdGmv": "YTD GMV",
+    "ytdCm": "YTD CM",
+    "ytdCmPct": "평균 CM%",
+    "orders": "주문수",
+    "momComparison": "전월 대비 (MoM)",
+    "prevGmv": "전월 GMV",
+    "currentGmv": "당월 GMV",
+    "gmvChange": "GMV 변동"
   }
 }
