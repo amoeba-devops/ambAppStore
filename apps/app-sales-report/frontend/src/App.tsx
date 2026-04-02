@@ -16,6 +16,7 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { SpuMasterListPage } from '@/pages/SpuMasterListPage';
 import { SkuMasterListPage } from '@/pages/SkuMasterListPage';
 import { ChannelMappingListPage } from '@/pages/ChannelMappingListPage';
+import { OrderUploadPage } from '@/pages/OrderUploadPage';
 import {
   getAmaTokenFromUrl,
   decodeAmaToken,
@@ -136,6 +137,7 @@ export default function App() {
               <Route path="/spu" element={<SpuMasterListPage />} />
               <Route path="/sku" element={<SkuMasterListPage />} />
               <Route path="/channel-mapping" element={<ChannelMappingListPage />} />
+              <Route path="/upload" element={<OrderUploadPage />} />
             </Route>
 
             {/* Fallback */}

@@ -8,6 +8,7 @@ import { SkuMasterModule } from './domain/sku-master/sku-master.module';
 import { ChannelMasterModule } from './domain/channel-master/channel-master.module';
 import { ChannelProductMappingModule } from './domain/channel-product-mapping/channel-product-mapping.module';
 import { SkuCostHistoryModule } from './domain/sku-cost-history/sku-cost-history.module';
+import { RawOrderModule } from './domain/raw-order/raw-order.module';
 import { HealthController } from './health.controller';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
@@ -36,6 +37,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
     ChannelMasterModule,
     ChannelProductMappingModule,
     SkuCostHistoryModule,
+    RawOrderModule,
   ],
   controllers: [HealthController],
   providers: [

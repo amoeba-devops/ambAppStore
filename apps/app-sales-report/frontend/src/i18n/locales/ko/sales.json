@@ -29,6 +29,7 @@
     "creator": "크리에이터",
     "sectionInput": "데이터 입력",
     "manualInput": "수동 입력",
+    "orderUpload": "판매 데이터 업로드",
     "sectionSettings": "설정",
     "settings": "설정",
     "notifications": "알림"
@@ -98,5 +99,24 @@
     "createTitle": "채널 매핑 등록",
     "editTitle": "채널 매핑 수정",
     "deleteConfirm": "이 채널 매핑을 삭제하시겠습니까?"
+  },
+  "upload": {
+    "title": "판매 데이터 업로드",
+    "description": "채널별 판매 데이터 엑셀 파일을 업로드하여 주문 데이터를 등록합니다.",
+    "selectChannel": "채널 선택",
+    "selectFile": "파일 선택",
+    "dropzone": "파일을 드래그하거나 클릭하여 선택하세요",
+    "fileLimit": ".xlsx 파일만 가능 (최대 10MB)",
+    "uploadButton": "업로드",
+    "uploading": "업로드 중...",
+    "uploadSuccess": "업로드 완료",
+    "uploadFailed": "업로드 실패",
+    "ordersCreated": "주문 등록",
+    "itemsCreated": "아이템 등록",
+    "ordersSkipped": "중복 스킵",
+    "skuMatchRate": "SKU 매칭률",
+    "invalidFileType": ".xlsx 파일만 업로드 가능합니다",
+    "shopeeHint": "Shopee 판매자센터에서 다운로드한 주문 엑셀 파일 (68 컬럼)",
+    "tiktokHint": "TikTok Shop 판매자센터에서 다운로드한 주문 엑셀 파일 (54 컬럼)"
   }
 }

@@ -29,6 +29,7 @@
     "creator": "Creator",
     "sectionInput": "Nhập dữ liệu",
     "manualInput": "Nhập thủ công",
+    "orderUpload": "Tải lên dữ liệu đơn hàng",
     "sectionSettings": "Cài đặt",
     "settings": "Cài đặt",
     "notifications": "Thông báo"
@@ -98,5 +99,24 @@
     "createTitle": "Tạo ánh xạ kênh",
     "editTitle": "Sửa ánh xạ kênh",
     "deleteConfirm": "Bạn có chắc muốn xóa ánh xạ này?"
+  },
+  "upload": {
+    "title": "Tải lên dữ liệu đơn hàng",
+    "description": "Tải lên tệp Excel dữ liệu bán hàng theo kênh để đăng ký dữ liệu đơn hàng.",
+    "selectChannel": "Chọn kênh",
+    "selectFile": "Chọn tệp",
+    "dropzone": "Kéo thả tệp hoặc nhấp để chọn",
+    "fileLimit": "Chỉ tệp .xlsx (tối đa 10MB)",
+    "uploadButton": "Tải lên",
+    "uploading": "Đang tải lên...",
+    "uploadSuccess": "Tải lên hoàn tất",
+    "uploadFailed": "Tải lên thất bại",
+    "ordersCreated": "Đơn hàng tạo",
+    "itemsCreated": "Mặt hàng tạo",
+    "ordersSkipped": "Trùng lặp bỏ qua",
+    "skuMatchRate": "Tỷ lệ khớp SKU",
+    "invalidFileType": "Chỉ chấp nhận tệp .xlsx",
+    "shopeeHint": "Tệp Excel đơn hàng tải từ Shopee Seller Center (68 cột)",
+    "tiktokHint": "Tệp Excel đơn hàng tải từ TikTok Shop Seller Center (54 cột)"
   }
 }

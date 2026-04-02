@@ -29,6 +29,7 @@
     "creator": "Creator",
     "sectionInput": "Data Input",
     "manualInput": "Manual Input",
+    "orderUpload": "Order Data Upload",
     "sectionSettings": "Settings",
     "settings": "Settings",
     "notifications": "Notifications"
@@ -98,5 +99,24 @@
     "createTitle": "Create Channel Mapping",
     "editTitle": "Edit Channel Mapping",
     "deleteConfirm": "Are you sure you want to delete this mapping?"
+  },
+  "upload": {
+    "title": "Order Data Upload",
+    "description": "Upload channel-specific sales data Excel files to register order data.",
+    "selectChannel": "Select Channel",
+    "selectFile": "Select File",
+    "dropzone": "Drag and drop a file or click to select",
+    "fileLimit": ".xlsx files only (max 10MB)",
+    "uploadButton": "Upload",
+    "uploading": "Uploading...",
+    "uploadSuccess": "Upload Complete",
+    "uploadFailed": "Upload Failed",
+    "ordersCreated": "Orders Created",
+    "itemsCreated": "Items Created",
+    "ordersSkipped": "Duplicates Skipped",
+    "skuMatchRate": "SKU Match Rate",
+    "invalidFileType": "Only .xlsx files are allowed",
+    "shopeeHint": "Order Excel file downloaded from Shopee Seller Center (68 columns)",
+    "tiktokHint": "Order Excel file downloaded from TikTok Shop Seller Center (54 columns)"
   }
 }

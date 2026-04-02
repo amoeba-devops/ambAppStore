@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Barcode, Link2, FileBarChart,
-  CalendarDays, CalendarRange, Video, Users, PenLine,
+  CalendarDays, CalendarRange, Video, Users, PenLine, Upload,
   Settings, Bell, Globe, LogOut,
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -53,6 +53,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     {
       label: t('nav.sectionInput'),
       items: [
+        { to: '/upload', icon: Upload, label: t('nav.orderUpload') },
         { to: '/manual-input', icon: PenLine, label: t('nav.manualInput') },
       ],
     },
