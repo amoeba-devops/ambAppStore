@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Barcode, Plus, Pencil, Trash2, Search, History } from 'lucide-react';
+import { Barcode, Plus, Pencil, Trash2, Search, History, Download, Upload, FileSpreadsheet } from 'lucide-react';
 import { useSkuList, useCreateSku, useUpdateSku, useDeleteSku, useSkuCostHistory } from '@/hooks/useSales';
+import { useDownloadTemplate, useExportProductMaster, useImportProductMaster } from '@/hooks/useProductMasterExcel';
 import { useToastStore } from '@/stores/toast.store';
 import type { SkuMaster, SkuCostHistory } from '@/services/sales.service';
 
@@ -12,11 +13,15 @@ export function SkuMasterListPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<SkuMaster | null>(null);
   const [historySkuId, setHistorySkuId] = useState<string | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   const { data: skus = [], isLoading } = useSkuList(search ? { search } : undefined);
   const createMutation = useCreateSku();
   const updateMutation = useUpdateSku();
   const deleteMutation = useDeleteSku();
+  const templateMutation = useDownloadTemplate();
+  const exportMutation = useExportProductMaster();
+  const importMutation = useImportProductMaster();
 
   const handleDelete = async (sku: SkuMaster) => {
     if (!confirm(t('sku.deleteConfirm'))) return;
@@ -73,6 +78,33 @@ export function SkuMasterListPage() {
             className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
+      </div>
+
+      {/* Excel Toolbar */}
+      <div className="mb-4 flex items-center gap-2">
+        <button
+          onClick={() => templateMutation.mutate()}
+          disabled={templateMutation.isPending}
+          className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          {t('productMaster.template')}
+        </button>
+        <button
+          onClick={() => exportMutation.mutate()}
+          disabled={exportMutation.isPending}
+          className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          <Download className="h-4 w-4" />
+          {t('productMaster.export')}
+        </button>
+        <button
+          onClick={() => setImportModalOpen(true)}
+          className="flex items-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-700 hover:bg-blue-100"
+        >
+          <Upload className="h-4 w-4" />
+          {t('productMaster.import')}
+        </button>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
@@ -133,6 +165,13 @@ export function SkuMasterListPage() {
 
       {historySkuId && (
         <CostHistoryDrawer skuId={historySkuId} onClose={() => setHistorySkuId(null)} />
+      )}
+
+      {importModalOpen && (
+        <ExcelImportModal
+          onClose={() => setImportModalOpen(false)}
+          onImport={importMutation}
+        />
       )}
     </div>
   );
@@ -309,6 +348,122 @@ function CostHistoryDrawer({ skuId, onClose }: { skuId: string; onClose: () => v
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ExcelImportModal({
+  onClose,
+  onImport,
+}: {
+  onClose: () => void;
+  onImport: { mutateAsync: (file: File) => Promise<any>; isPending: boolean };
+}) {
+  const { t } = useTranslation('sales');
+  const { showToast } = useToastStore();
+  const [file, setFile] = useState<File | null>(null);
+  const [result, setResult] = useState<{
+    total: number;
+    inserted: number;
+    updated: number;
+    errors: { row: number; field: string; message: string }[];
+  } | null>(null);
+
+  const handleUpload = async () => {
+    if (!file) return;
+    try {
+      const res = await onImport.mutateAsync(file);
+      setResult(res);
+      showToast(t('common.success'));
+    } catch (err: any) {
+      showToast(err.response?.data?.error?.message || t('common.error'), 'error');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h2 className="mb-4 text-lg font-bold text-gray-900">{t('productMaster.import')}</h2>
+
+        {!result ? (
+          <>
+            <div
+              className="mb-4 rounded-lg border-2 border-dashed border-gray-300 p-8 text-center"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const f = e.dataTransfer.files[0];
+                if (f?.name.endsWith('.xlsx')) setFile(f);
+              }}
+            >
+              {file ? (
+                <div className="text-sm">
+                  <p className="font-medium text-gray-900">{file.name}</p>
+                  <p className="text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+                </div>
+              ) : (
+                <div>
+                  <Upload className="mx-auto mb-2 h-8 w-8 text-gray-400" />
+                  <p className="text-sm text-gray-500">{t('upload.dropzone')}</p>
+                </div>
+              )}
+              <input
+                type="file"
+                accept=".xlsx"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) setFile(f);
+                }}
+                className="mt-2 text-sm"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={onClose} className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleUpload}
+                disabled={!file || onImport.isPending}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {onImport.isPending ? t('common.loading') : t('productMaster.import')}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mb-4 grid grid-cols-3 gap-3">
+              <div className="rounded-lg bg-gray-50 p-3 text-center">
+                <p className="text-2xl font-bold text-gray-900">{result.total}</p>
+                <p className="text-xs text-gray-500">{t('productMaster.totalRows')}</p>
+              </div>
+              <div className="rounded-lg bg-green-50 p-3 text-center">
+                <p className="text-2xl font-bold text-green-600">{result.inserted}</p>
+                <p className="text-xs text-gray-500">{t('productMaster.inserted')}</p>
+              </div>
+              <div className="rounded-lg bg-blue-50 p-3 text-center">
+                <p className="text-2xl font-bold text-blue-600">{result.updated}</p>
+                <p className="text-xs text-gray-500">{t('productMaster.updated')}</p>
+              </div>
+            </div>
+            {result.errors.length > 0 && (
+              <div className="mb-4 max-h-40 overflow-y-auto rounded-lg bg-red-50 p-3">
+                <p className="mb-1 text-sm font-medium text-red-700">{t('productMaster.errors')} ({result.errors.length})</p>
+                {result.errors.map((e, i) => (
+                  <p key={i} className="text-xs text-red-600">
+                    Row {e.row}: [{e.field}] {e.message}
+                  </p>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-end">
+              <button onClick={onClose} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                {t('common.confirm')}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

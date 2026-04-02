@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UploadHistoryModule } from '../upload-history/upload-history.module';
 import { RawOrderEntity } from './entity/raw-order.entity';
 import { RawOrderItemEntity } from './entity/raw-order-item.entity';
 import { SkuMasterEntity } from '../sku-master/entity/sku-master.entity';
@@ -14,6 +15,7 @@ import { TikTokExcelParser } from './parser/tiktok-excel.parser';
 @Module({
   imports: [
     TypeOrmModule.forFeature([RawOrderEntity, RawOrderItemEntity, SkuMasterEntity, ChannelMasterEntity]),
+    UploadHistoryModule,
   ],
   controllers: [RawOrderController, CmReportController],
   providers: [RawOrderService, CmReportService, ShopeeExcelParser, TikTokExcelParser],

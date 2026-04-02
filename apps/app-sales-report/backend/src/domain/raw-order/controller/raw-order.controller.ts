@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Query,
+  Param,
   UploadedFile,
   UseInterceptors,
   Body,
@@ -14,6 +15,7 @@ import { CurrentUser } from '../../../auth/decorators/current-user.decorator';
 import { DrdJwtPayload } from '../../../auth/interfaces/jwt-payload.interface';
 import { RawOrderService } from '../service/raw-order.service';
 import { BusinessException } from '../../../common/exceptions/business.exception';
+import { successResponse, successListResponse } from '../../../common/dto/base-response.dto';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -58,7 +60,11 @@ export class RawOrderController {
       throw new BusinessException('DRD-E1009', 'Entity information required', HttpStatus.FORBIDDEN);
     }
 
-    const result = await this.rawOrderService.uploadExcel(user.ent_id, ch, file.buffer);
+    const result = await this.rawOrderService.uploadExcel(user.ent_id, ch, file.buffer, {
+      fileName: file.originalname,
+      fileSize: file.size,
+      userId: user.sub,
+    });
 
     return {
       success: true,
@@ -79,6 +85,16 @@ export class RawOrderController {
       data: history,
       timestamp: new Date().toISOString(),
     };
+  }
+
+  @Get('dashboard-summary')
+  @Auth()
+  async getDashboardSummary(@CurrentUser() user: DrdJwtPayload) {
+    if (!user.ent_id) {
+      throw new BusinessException('DRD-E1009', 'Entity information required', HttpStatus.FORBIDDEN);
+    }
+    const data = await this.rawOrderService.getDashboardSummary(user.ent_id);
+    return successResponse(data);
   }
 
   @Get('daily-summary')
@@ -103,5 +119,45 @@ export class RawOrderController {
       data,
       timestamp: new Date().toISOString(),
     };
+  }
+
+  @Get('list')
+  @Auth()
+  async findAll(
+    @CurrentUser() user: DrdJwtPayload,
+    @Query('start_date') startDate?: string,
+    @Query('end_date') endDate?: string,
+    @Query('channel') channel?: string,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('size') size?: string,
+  ) {
+    if (!user.ent_id) {
+      throw new BusinessException('DRD-E1009', 'Entity information required', HttpStatus.FORBIDDEN);
+    }
+    const result = await this.rawOrderService.findAll(user.ent_id, {
+      startDate,
+      endDate,
+      channel,
+      status,
+      search,
+      page: page ? parseInt(page, 10) : 1,
+      size: size ? parseInt(size, 10) : 20,
+    });
+    return successListResponse(result.data, result.pagination);
+  }
+
+  @Get(':ord_id')
+  @Auth()
+  async findOne(
+    @CurrentUser() user: DrdJwtPayload,
+    @Param('ord_id') ordId: string,
+  ) {
+    if (!user.ent_id) {
+      throw new BusinessException('DRD-E1009', 'Entity information required', HttpStatus.FORBIDDEN);
+    }
+    const result = await this.rawOrderService.findOne(user.ent_id, ordId);
+    return successResponse(result);
   }
 }

@@ -20,6 +20,14 @@ import { OrderUploadPage } from '@/pages/OrderUploadPage';
 import { DailyReportPage } from '@/pages/DailyReportPage';
 import { WeeklyCmPage } from '@/pages/WeeklyCmPage';
 import { MonthlyCmPage } from '@/pages/MonthlyCmPage';
+import { RawOrderListPage } from '@/pages/RawOrderListPage';
+import { RawOrderDetailPage } from '@/pages/RawOrderDetailPage';
+import { UploadHistoryPage } from '@/pages/UploadHistoryPage';
+import { LivestreamPage } from '@/pages/LivestreamPage';
+import { CreatorPage } from '@/pages/CreatorPage';
+import { ManualInputPage } from '@/pages/ManualInputPage';
+import { SettingsPage } from '@/pages/SettingsPage';
+import { NotificationsPage } from '@/pages/NotificationsPage';
 import {
   getAmaTokenFromUrl,
   decodeAmaToken,
@@ -144,6 +152,14 @@ export default function App() {
               <Route path="/weekly-cm" element={<WeeklyCmPage />} />
               <Route path="/monthly-cm" element={<MonthlyCmPage />} />
               <Route path="/upload" element={<OrderUploadPage />} />
+              <Route path="/upload-history" element={<UploadHistoryPage />} />
+              <Route path="/orders" element={<RawOrderListPage />} />
+              <Route path="/orders/:ordId" element={<RawOrderDetailPage />} />
+              <Route path="/livestream" element={<LivestreamPage />} />
+              <Route path="/creator" element={<CreatorPage />} />
+              <Route path="/manual-input" element={<ManualInputPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
             </Route>
 
             {/* Fallback */}
