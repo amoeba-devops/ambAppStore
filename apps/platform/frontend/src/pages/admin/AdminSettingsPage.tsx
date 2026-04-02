@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Settings, Plus, Pencil, Trash2, Eye, EyeOff, Link2, Bot, Mail, HardDrive, ShoppingCart, Server, Globe, X, KeyRound } from 'lucide-react';
 import {
-  useIntegrationList,
+  useAdminIntegrations,
   useServiceCatalog,
-  useCreateIntegration,
-  useUpdateIntegration,
-  useDeleteIntegration,
-} from '@/hooks/useIntegrations';
-import type { ExternalIntegration, ServiceCatalogItem, CreateIntegrationPayload, UpdateIntegrationPayload } from '@/services/integration.service';
+  useCreateAdminIntegration,
+  useUpdateAdminIntegration,
+  useDeleteAdminIntegration,
+} from '@/hooks/admin/useAdminIntegrations';
+import type { AdminIntegration, ServiceCatalogItem } from '@/hooks/admin/useAdminIntegrations';
 
 const CATEGORY_ORDER = ['AI', 'MARKETPLACE', 'EMAIL', 'STORAGE', 'ERP', 'PLATFORM'];
 
@@ -22,12 +22,12 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  AI: 'bg-purple-50 text-purple-700 border-purple-200',
-  EMAIL: 'bg-red-50 text-red-700 border-red-200',
-  STORAGE: 'bg-blue-50 text-blue-700 border-blue-200',
-  MARKETPLACE: 'bg-green-50 text-green-700 border-green-200',
-  ERP: 'bg-orange-50 text-orange-700 border-orange-200',
-  PLATFORM: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+  AI: 'bg-purple-50 text-purple-700',
+  EMAIL: 'bg-red-50 text-red-700',
+  STORAGE: 'bg-blue-50 text-blue-700',
+  MARKETPLACE: 'bg-green-50 text-green-700',
+  ERP: 'bg-orange-50 text-orange-700',
+  PLATFORM: 'bg-cyan-50 text-cyan-700',
 };
 
 interface FormState {
@@ -52,13 +52,13 @@ const emptyForm: FormState = {
   is_active: true,
 };
 
-export function SettingsPage() {
-  const { t } = useTranslation('sales');
-  const { data: integrations = [], isLoading } = useIntegrationList();
+export function AdminSettingsPage() {
+  const { t } = useTranslation('admin');
+  const { data: integrations = [], isLoading } = useAdminIntegrations();
   const { data: catalog = [] } = useServiceCatalog();
-  const createMut = useCreateIntegration();
-  const updateMut = useUpdateIntegration();
-  const deleteMut = useDeleteIntegration();
+  const createMut = useCreateAdminIntegration();
+  const updateMut = useUpdateAdminIntegration();
+  const deleteMut = useDeleteAdminIntegration();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -66,7 +66,7 @@ export function SettingsPage() {
   const [showKey, setShowKey] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  const grouped = CATEGORY_ORDER.reduce<Record<string, ExternalIntegration[]>>((acc, cat) => {
+  const grouped = CATEGORY_ORDER.reduce<Record<string, AdminIntegration[]>>((acc, cat) => {
     const items = integrations.filter((i) => i.category === cat);
     if (items.length > 0) acc[cat] = items;
     return acc;
@@ -81,8 +81,8 @@ export function SettingsPage() {
     setModalOpen(true);
   };
 
-  const openEdit = (item: ExternalIntegration) => {
-    setEditingId(item.eitId);
+  const openEdit = (item: AdminIntegration) => {
+    setEditingId(item.peiId);
     setForm({
       category: item.category,
       service_code: item.serviceCode,
@@ -116,7 +116,7 @@ export function SettingsPage() {
       : undefined;
 
     if (editingId) {
-      const data: UpdateIntegrationPayload = {
+      const data: Record<string, unknown> = {
         category: form.category,
         service_code: form.service_code,
         service_name: form.service_name,
@@ -126,9 +126,9 @@ export function SettingsPage() {
         extra_config: extraConfig,
       };
       if (form.key_value) data.key_value = form.key_value;
-      await updateMut.mutateAsync({ eitId: editingId, data });
+      await updateMut.mutateAsync({ peiId: editingId, data });
     } else {
-      const data: CreateIntegrationPayload = {
+      await createMut.mutateAsync({
         category: form.category,
         service_code: form.service_code,
         service_name: form.service_name,
@@ -137,20 +137,19 @@ export function SettingsPage() {
         key_value: form.key_value || undefined,
         is_active: form.is_active,
         extra_config: extraConfig,
-      };
-      await createMut.mutateAsync(data);
+      });
     }
     setModalOpen(false);
   };
 
-  const handleDelete = async (eitId: string) => {
-    await deleteMut.mutateAsync(eitId);
+  const handleDelete = async (peiId: string) => {
+    await deleteMut.mutateAsync(peiId);
     setDeleteConfirmId(null);
   };
 
-  const handleToggleActive = async (item: ExternalIntegration) => {
+  const handleToggleActive = async (item: AdminIntegration) => {
     await updateMut.mutateAsync({
-      eitId: item.eitId,
+      peiId: item.peiId,
       data: { is_active: !item.isActive },
     });
   };
@@ -158,7 +157,7 @@ export function SettingsPage() {
   return (
     <div>
       <div className="mb-6 flex items-center gap-2">
-        <Settings className="h-5 w-5 text-blue-600" />
+        <Settings className="h-5 w-5 text-indigo-600" />
         <h1 className="text-xl font-bold text-gray-900">{t('settings.title')}</h1>
       </div>
 
@@ -174,7 +173,7 @@ export function SettingsPage() {
           </div>
           <button
             onClick={openCreate}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
           >
             <Plus className="h-3.5 w-3.5" />
             {t('settings.addIntegration')}
@@ -184,7 +183,7 @@ export function SettingsPage() {
         <div className="p-5">
           {isLoading ? (
             <div className="flex justify-center py-10">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-blue-600" />
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-indigo-600" />
             </div>
           ) : Object.keys(grouped).length === 0 ? (
             <div className="py-10 text-center">
@@ -204,7 +203,7 @@ export function SettingsPage() {
                   <div className="space-y-1.5">
                     {items.map((item) => (
                       <div
-                        key={item.eitId}
+                        key={item.peiId}
                         className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50/50 px-4 py-2.5"
                       >
                         <div className="flex items-center gap-4">
@@ -220,7 +219,7 @@ export function SettingsPage() {
                           <button
                             onClick={() => handleToggleActive(item)}
                             className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors ${
-                              item.isActive ? 'bg-blue-600' : 'bg-gray-200'
+                              item.isActive ? 'bg-indigo-600' : 'bg-gray-200'
                             }`}
                           >
                             <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
@@ -230,17 +229,17 @@ export function SettingsPage() {
                           <button onClick={() => openEdit(item)} className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
-                          {deleteConfirmId === item.eitId ? (
+                          {deleteConfirmId === item.peiId ? (
                             <div className="flex items-center gap-1">
-                              <button onClick={() => handleDelete(item.eitId)} className="rounded bg-red-600 px-2 py-0.5 text-xs text-white hover:bg-red-700">
-                                {t('common.confirm')}
+                              <button onClick={() => handleDelete(item.peiId)} className="rounded bg-red-600 px-2 py-0.5 text-xs text-white hover:bg-red-700">
+                                {t('settings.confirm')}
                               </button>
                               <button onClick={() => setDeleteConfirmId(null)} className="rounded px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-100">
-                                {t('common.cancel')}
+                                {t('settings.cancel')}
                               </button>
                             </div>
                           ) : (
-                            <button onClick={() => setDeleteConfirmId(item.eitId)} className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500">
+                            <button onClick={() => setDeleteConfirmId(item.peiId)} className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500">
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           )}
@@ -289,7 +288,7 @@ export function SettingsPage() {
                   onChange={(e) => handleServiceSelect(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
                 >
-                  <option value="">— {t('common.search')} —</option>
+                  <option value="">— {t('settings.selectService')} —</option>
                   {filteredCatalog.map((c: ServiceCatalogItem) => (
                     <option key={c.serviceCode} value={c.serviceCode}>{c.serviceName}</option>
                   ))}
@@ -378,14 +377,14 @@ export function SettingsPage() {
             </div>
             <div className="flex justify-end gap-2 border-t px-5 py-3">
               <button onClick={() => setModalOpen(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
-                {t('common.cancel')}
+                {t('settings.cancel')}
               </button>
               <button
                 onClick={handleSave}
                 disabled={!form.service_code || !form.service_name || createMut.isPending || updateMut.isPending}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
               >
-                {t('common.save')}
+                {t('settings.save')}
               </button>
             </div>
           </div>

@@ -12,6 +12,7 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminSubscriptionListPage } from '@/pages/admin/AdminSubscriptionListPage';
 import { AdminAppListPage } from '@/pages/admin/AdminAppListPage';
 import { AdminStatsPage } from '@/pages/admin/AdminStatsPage';
+import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
 import { AdminLoginPage } from '@/pages/admin/AdminLoginPage';
 import { AppsLoginPage } from '@/pages/AppsLoginPage';
 import { MySubscriptionsPage } from '@/pages/MySubscriptionsPage';
@@ -75,6 +76,7 @@ function App() {
                   <Route path="/admin/subscriptions" element={<AdminSubscriptionListPage />} />
                   <Route path="/admin/apps" element={<AdminAppListPage />} />
                   <Route path="/admin/stats" element={<AdminStatsPage />} />
+                  <Route path="/admin/settings" element={<AdminSettingsPage />} />
                 </Route>
               </Route>
             </Routes>

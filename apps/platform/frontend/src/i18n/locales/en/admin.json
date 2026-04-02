@@ -3,6 +3,7 @@
     "subscriptions": "Subscriptions",
     "apps": "App Management",
     "stats": "Statistics",
+    "settings": "Settings",
     "backToStore": "Back to Store"
   },
   "subscription": {
@@ -112,5 +113,32 @@
   },
   "debug": {
     "toggleLabel": "Debug Panel"
+  },
+  "settings": {
+    "title": "Settings",
+    "integrations": "External Integrations",
+    "integrationsDesc": "Manage API keys and credentials for common external services shared across all partner apps.",
+    "addIntegration": "Add Integration",
+    "editIntegration": "Edit Integration",
+    "category": "Category",
+    "serviceCode": "Service",
+    "selectService": "Select Service",
+    "serviceName": "Service Name",
+    "endpoint": "Endpoint URL",
+    "keyName": "Key Name",
+    "keyValue": "Key Value",
+    "keyValuePlaceholder": "Leave blank to keep current",
+    "extraConfig": "Extra Config (JSON)",
+    "isActive": "Active",
+    "categoryAi": "AI",
+    "categoryMarketplace": "Marketplace",
+    "categoryEmail": "Email",
+    "categoryStorage": "Storage",
+    "categoryErp": "ERP",
+    "categoryPlatform": "Platform",
+    "noIntegrations": "No integrations configured yet.",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
   }
 }

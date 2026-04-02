@@ -261,5 +261,30 @@
     "invalidFileType": "Only {{types}} files are allowed",
     "rowsInserted": "Rows Inserted",
     "uploadId": "Upload ID"
+  },
+  "settings": {
+    "title": "Settings",
+    "integrations": "External Integrations",
+    "integrationsDesc": "Manage API keys and credentials for external service connections.",
+    "addIntegration": "Add Integration",
+    "editIntegration": "Edit Integration",
+    "category": "Category",
+    "serviceCode": "Service",
+    "serviceName": "Service Name",
+    "endpoint": "Endpoint URL",
+    "keyName": "Key Name",
+    "keyValue": "Key Value",
+    "keyValuePlaceholder": "Leave blank to keep current",
+    "extraConfig": "Extra Config (JSON)",
+    "isActive": "Active",
+    "lastVerified": "Last Verified",
+    "categoryAi": "AI",
+    "categoryMarketplace": "Marketplace",
+    "categoryEmail": "Email",
+    "categoryStorage": "Storage",
+    "categoryErp": "ERP",
+    "categoryPlatform": "Platform",
+    "deleteConfirm": "Are you sure you want to delete this integration?",
+    "noIntegrations": "No integrations configured yet."
   }
 }

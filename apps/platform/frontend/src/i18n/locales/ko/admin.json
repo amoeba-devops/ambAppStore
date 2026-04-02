@@ -3,6 +3,7 @@
     "subscriptions": "구독 관리",
     "apps": "앱 관리",
     "stats": "통계",
+    "settings": "설정",
     "backToStore": "스토어로 돌아가기"
   },
   "subscription": {
@@ -112,5 +113,32 @@
   },
   "debug": {
     "toggleLabel": "Debug Panel"
+  },
+  "settings": {
+    "title": "설정",
+    "integrations": "외부 연동 관리",
+    "integrationsDesc": "공인앱에서 공통으로 사용할 외부 서비스 API 키와 인증 정보를 관리합니다.",
+    "addIntegration": "연동 추가",
+    "editIntegration": "연동 수정",
+    "category": "카테고리",
+    "serviceCode": "서비스",
+    "selectService": "서비스 선택",
+    "serviceName": "서비스명",
+    "endpoint": "엔드포인트 URL",
+    "keyName": "키 이름",
+    "keyValue": "키 값",
+    "keyValuePlaceholder": "변경하지 않으려면 비워두세요",
+    "extraConfig": "추가 설정 (JSON)",
+    "isActive": "활성",
+    "categoryAi": "AI",
+    "categoryMarketplace": "마켓플레이스",
+    "categoryEmail": "이메일",
+    "categoryStorage": "스토리지",
+    "categoryErp": "ERP",
+    "categoryPlatform": "플랫폼",
+    "noIntegrations": "등록된 연동 정보가 없습니다.",
+    "save": "저장",
+    "cancel": "취소",
+    "confirm": "확인"
   }
 }

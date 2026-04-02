@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, AppWindow, BarChart3, ArrowLeft, Bug } from 'lucide-react';
+import { LayoutDashboard, AppWindow, BarChart3, Settings, ArrowLeft, Bug } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const DEBUG_LS_KEY = 'debug_panel_enabled';
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/admin/subscriptions', icon: LayoutDashboard, labelKey: 'nav.subscriptions' },
   { to: '/admin/apps', icon: AppWindow, labelKey: 'nav.apps' },
   { to: '/admin/stats', icon: BarChart3, labelKey: 'nav.stats' },
+  { to: '/admin/settings', icon: Settings, labelKey: 'nav.settings' },
 ] as const;
 
 export function AdminLayout() {

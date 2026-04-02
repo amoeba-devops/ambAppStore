@@ -12,6 +12,7 @@ import { RawOrderModule } from './domain/raw-order/raw-order.module';
 import { UploadHistoryModule } from './domain/upload-history/upload-history.module';
 import { ProductMasterExcelModule } from './domain/product-master-excel/product-master-excel.module';
 import { ReportUploadModule } from './domain/report-upload/report-upload.module';
+import { ExternalIntegrationModule } from './domain/external-integration/external-integration.module';
 import { HealthController } from './health.controller';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
@@ -44,6 +45,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
     UploadHistoryModule,
     ProductMasterExcelModule,
     ReportUploadModule,
+    ExternalIntegrationModule,
   ],
   controllers: [HealthController],
   providers: [

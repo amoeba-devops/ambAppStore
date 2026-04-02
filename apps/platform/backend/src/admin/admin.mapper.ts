@@ -1,9 +1,29 @@
 import { SubscriptionEntity } from '../platform-subscription/entities/subscription.entity';
 import { AppEntity } from '../platform-app/entities/app.entity';
+import { AdminIntegrationEntity } from './entity/admin-integration.entity';
 import { AdminSubscriptionResponse } from './dto/response/admin-subscription.response';
 import { AdminAppResponse } from './dto/response/admin-app.response';
+import { AdminIntegrationResponse } from './dto/response/admin-integration.response';
 
 export class AdminMapper {
+  static toIntegrationResponse(entity: AdminIntegrationEntity): AdminIntegrationResponse {
+    return {
+      peiId: entity.peiId,
+      entId: entity.entId,
+      category: entity.peiCategory,
+      serviceCode: entity.peiServiceCode,
+      serviceName: entity.peiServiceName,
+      endpoint: entity.peiEndpoint,
+      keyName: entity.peiKeyName,
+      hasKeyValue: !!entity.peiKeyValue,
+      extraConfig: entity.peiExtraConfig,
+      isActive: entity.peiIsActive,
+      lastVerifiedAt: entity.peiLastVerifiedAt?.toISOString() || null,
+      createdAt: entity.peiCreatedAt.toISOString(),
+      updatedAt: entity.peiUpdatedAt.toISOString(),
+    };
+  }
+
   static toSubscriptionResponse(entity: SubscriptionEntity): AdminSubscriptionResponse {
     return {
       subId: entity.subId,

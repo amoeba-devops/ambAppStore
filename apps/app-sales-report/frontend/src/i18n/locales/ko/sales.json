@@ -261,5 +261,30 @@
     "invalidFileType": "{{types}} 파일만 업로드 가능합니다",
     "rowsInserted": "등록된 행",
     "uploadId": "업로드 ID"
+  },
+  "settings": {
+    "title": "설정",
+    "integrations": "외부 연동 관리",
+    "integrationsDesc": "외부 서비스 연결을 위한 API 키와 인증 정보를 관리합니다.",
+    "addIntegration": "연동 추가",
+    "editIntegration": "연동 수정",
+    "category": "카테고리",
+    "serviceCode": "서비스",
+    "serviceName": "서비스명",
+    "endpoint": "엔드포인트 URL",
+    "keyName": "키 이름",
+    "keyValue": "키 값",
+    "keyValuePlaceholder": "변경하지 않으려면 비워두세요",
+    "extraConfig": "추가 설정 (JSON)",
+    "isActive": "활성",
+    "lastVerified": "마지막 검증",
+    "categoryAi": "AI",
+    "categoryMarketplace": "마켓플레이스",
+    "categoryEmail": "이메일",
+    "categoryStorage": "스토리지",
+    "categoryErp": "ERP",
+    "categoryPlatform": "플랫폼",
+    "deleteConfirm": "이 연동 정보를 삭제하시겠습니까?",
+    "noIntegrations": "등록된 연동 정보가 없습니다."
   }
 }

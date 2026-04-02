@@ -261,5 +261,30 @@
     "invalidFileType": "Chỉ chấp nhận tệp {{types}}",
     "rowsInserted": "Hàng đã nhập",
     "uploadId": "Mã tải lên"
+  },
+  "settings": {
+    "title": "Cài đặt",
+    "integrations": "Tích hợp bên ngoài",
+    "integrationsDesc": "Quản lý khóa API và thông tin xác thực cho kết nối dịch vụ bên ngoài.",
+    "addIntegration": "Thêm tích hợp",
+    "editIntegration": "Sửa tích hợp",
+    "category": "Danh mục",
+    "serviceCode": "Dịch vụ",
+    "serviceName": "Tên dịch vụ",
+    "endpoint": "URL Endpoint",
+    "keyName": "Tên khóa",
+    "keyValue": "Giá trị khóa",
+    "keyValuePlaceholder": "Để trống nếu không thay đổi",
+    "extraConfig": "Cấu hình thêm (JSON)",
+    "isActive": "Kích hoạt",
+    "lastVerified": "Xác minh lần cuối",
+    "categoryAi": "AI",
+    "categoryMarketplace": "Sàn TMĐT",
+    "categoryEmail": "Email",
+    "categoryStorage": "Lưu trữ",
+    "categoryErp": "ERP",
+    "categoryPlatform": "Nền tảng",
+    "deleteConfirm": "Bạn có chắc muốn xóa tích hợp này?",
+    "noIntegrations": "Chưa có tích hợp nào được cấu hình."
   }
 }
