@@ -12,3 +12,7 @@ coverage/
 *.pem
 .claude/
 *.tsbuildinfo
+
+# Binary / temp files
+*.xlsx
+~\

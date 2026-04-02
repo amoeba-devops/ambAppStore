@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  bff-sales-report:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: bff-sales-report
+    ports:
+      - "3103:3103"
+    env_file:
+      - ./.env
+    environment:
+      - NODE_ENV=production
+      - PORT=3103
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3103/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - amb-apps-network
+
+  web-sales-report:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/app-sales-report/api}
+        VITE_AMA_LOGIN_URL: ${VITE_AMA_LOGIN_URL:-https://ama.amoeba.site/login}
+    container_name: web-sales-report
+    ports:
+      - "5203:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - amb-apps-network
+
+networks:
+  amb-apps-network:
+    external: true

@@ -10,6 +10,7 @@
 #   bash platform/scripts/deploy-staging.sh build platform     # build platform only
 #   bash platform/scripts/deploy-staging.sh build car-manager  # build car-manager only
 #   bash platform/scripts/deploy-staging.sh build stock        # build stock-management only
+#   bash platform/scripts/deploy-staging.sh build sales        # build sales-report only
 # ============================================================
 set -euo pipefail
 
@@ -50,7 +51,14 @@ APP_WEB_PORT[stock]=5204
 APP_BFF_NAME[stock]="bff-stock-management"
 APP_WEB_NAME[stock]="web-stock-management"
 
-ALL_APPS=(platform car-manager stock)
+APP_DIRS[sales]="$PROJECT_ROOT/apps/app-sales-report"
+APP_COMPOSE[sales]="docker-compose.app-sales-report.yml"
+APP_BFF_PORT[sales]=3103
+APP_WEB_PORT[sales]=5203
+APP_BFF_NAME[sales]="bff-sales-report"
+APP_WEB_NAME[sales]="web-sales-report"
+
+ALL_APPS=(platform car-manager stock sales)
 
 MODE="${1:-full}"
 TARGET_APP="${2:-all}"
@@ -87,7 +95,7 @@ done
 
 # Ensure platform (with MySQL) is deployed first when deploying all apps
 if [ "$TARGET_APP" = "all" ]; then
-  APPS=(platform car-manager stock)
+  APPS=(platform car-manager stock sales)
 fi
 
 build_app() {
@@ -191,7 +199,7 @@ case "$MODE" in
     ;;
 
   *)
-    echo "Usage: $0 {full|build|restart|verify} [platform|car-manager|stock|all]"
+    echo "Usage: $0 {full|build|restart|verify} [platform|car-manager|stock|sales|all]"
     exit 1
     ;;
 esac
