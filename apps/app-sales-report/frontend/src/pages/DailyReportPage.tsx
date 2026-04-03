@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '@/lib/api-client';
 import {
@@ -64,6 +65,7 @@ function getDefaultDates() {
 
 export function DailyReportPage() {
   const { t } = useTranslation('sales');
+  const navigate = useNavigate();
   const defaults = getDefaultDates();
   const [startDate, setStartDate] = useState(defaults.start);
   const [endDate, setEndDate] = useState(defaults.end);
@@ -239,8 +241,8 @@ export function DailyReportPage() {
                 </tr>
               ) : channel === 'ALL' ? (
                 aggregatedByDate.map((row) => (
-                  <tr key={row.date} className="hover:bg-gray-50">
-                    <td className="whitespace-nowrap px-4 py-2.5 text-sm font-medium text-gray-900">{formatDate(row.date)}</td>
+                  <tr key={row.date} className="cursor-pointer hover:bg-blue-50/50" onClick={() => navigate(`/daily-report/detail?date=${row.date}`)}>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-sm font-medium text-blue-600 underline decoration-blue-300 underline-offset-2">{formatDate(row.date)}</td>
                     <td className="px-4 py-2.5">
                       <div className="flex gap-1">
                         {row.channels.map((ch) => (
@@ -260,8 +262,8 @@ export function DailyReportPage() {
                 ))
               ) : (
                 data.rows.map((row) => (
-                  <tr key={`${row.date}-${row.channel}`} className="hover:bg-gray-50">
-                    <td className="whitespace-nowrap px-4 py-2.5 text-sm font-medium text-gray-900">{formatDate(row.date)}</td>
+                  <tr key={`${row.date}-${row.channel}`} className="cursor-pointer hover:bg-blue-50/50" onClick={() => navigate(`/daily-report/detail?date=${row.date}&channel=${row.channel}`)}>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-sm font-medium text-blue-600 underline decoration-blue-300 underline-offset-2">{formatDate(row.date)}</td>
                     <td className="px-4 py-2.5"><ChannelBadge channel={row.channel} /></td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right text-sm text-gray-700">{row.orderCount}</td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right text-sm text-green-700">{row.completedCount}</td>

@@ -233,6 +233,26 @@
     "dealPrice": "판매가",
     "buyerPaid": "구매자 결제"
   },
+  "dailyDetail": {
+    "backToDaily": "일일 리포트로 돌아가기",
+    "description": "일별 판매 상세 및 상품별 CM 분석",
+    "noDateSelected": "날짜가 선택되지 않았습니다",
+    "orders": "주문 수",
+    "itemsSold": "판매 수량",
+    "ordersUnit": "건",
+    "channelBreakdown": "채널별 현황",
+    "costBreakdown": "비용 구성",
+    "productDetail": "상품별 CM 상세",
+    "product": "상품명",
+    "sku": "SKU",
+    "primeCost": "원가",
+    "fulfillment": "풀필먼트",
+    "platformFee": "플랫폼 수수료",
+    "sellerDiscount": "판매자 할인",
+    "commission": "수수료",
+    "serviceFee": "서비스 수수료",
+    "shippingFee": "배송비"
+  },
   "reportUpload": {
     "title": "리포트 업로드",
     "description": "Shopee, TikTok의 트래픽·광고·제휴 리포트를 업로드합니다.",

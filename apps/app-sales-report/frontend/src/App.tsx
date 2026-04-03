@@ -19,6 +19,7 @@ import { SkuDetailPage } from '@/pages/SkuDetailPage';
 import { ChannelMappingListPage } from '@/pages/ChannelMappingListPage';
 import { OrderUploadPage } from '@/pages/OrderUploadPage';
 import { DailyReportPage } from '@/pages/DailyReportPage';
+import { DailyDetailPage } from '@/pages/DailyDetailPage';
 import { WeeklyCmPage } from '@/pages/WeeklyCmPage';
 import { MonthlyCmPage } from '@/pages/MonthlyCmPage';
 import { RawOrderListPage } from '@/pages/RawOrderListPage';
@@ -152,6 +153,7 @@ export default function App() {
               <Route path="/sku/:skuId" element={<SkuDetailPage />} />
               <Route path="/channel-mapping" element={<ChannelMappingListPage />} />
               <Route path="/daily-report" element={<DailyReportPage />} />
+              <Route path="/daily-report/detail" element={<DailyDetailPage />} />
               <Route path="/weekly-cm" element={<WeeklyCmPage />} />
               <Route path="/monthly-cm" element={<MonthlyCmPage />} />
               <Route path="/upload" element={<OrderUploadPage />} />

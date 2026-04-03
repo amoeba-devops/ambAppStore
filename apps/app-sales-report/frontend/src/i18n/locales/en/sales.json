@@ -233,6 +233,26 @@
     "dealPrice": "Deal Price",
     "buyerPaid": "Buyer Paid"
   },
+  "dailyDetail": {
+    "backToDaily": "Back to Daily Report",
+    "description": "Daily sales detail with per-product CM breakdown",
+    "noDateSelected": "No date selected",
+    "orders": "Orders",
+    "itemsSold": "Items Sold",
+    "ordersUnit": "orders",
+    "channelBreakdown": "Channel Breakdown",
+    "costBreakdown": "Cost Breakdown",
+    "productDetail": "Product CM Detail",
+    "product": "Product",
+    "sku": "SKU",
+    "primeCost": "Prime Cost",
+    "fulfillment": "Fulfillment",
+    "platformFee": "Platform Fee",
+    "sellerDiscount": "Seller Discount",
+    "commission": "Commission",
+    "serviceFee": "Service Fee",
+    "shippingFee": "Shipping Fee"
+  },
   "reportUpload": {
     "title": "Report Upload",
     "description": "Upload traffic, ad, and affiliate reports from Shopee and TikTok.",

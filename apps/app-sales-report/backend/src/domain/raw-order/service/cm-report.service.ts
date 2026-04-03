@@ -28,6 +28,34 @@ export interface ProductCmRow {
   cmStatus: string;
 }
 
+export interface DailyDetailSummary {
+  date: string;
+  orders: number;
+  itemsSold: number;
+  gmv: number;
+  sellerDiscount: number;
+  nmv: number;
+  primeCostTotal: number;
+  fulfillmentFee: number;
+  platformFee: number;
+  commissionFee: number;
+  serviceFee: number;
+  shippingFee: number;
+  cm: number;
+  cmPct: number;
+  channels: ChannelBreakdown[];
+  products: ProductCmRow[];
+}
+
+export interface ChannelBreakdown {
+  channel: string;
+  orders: number;
+  gmv: number;
+  commissionFee: number;
+  serviceFee: number;
+  shippingFee: number;
+}
+
 export interface WeeklySummary {
   year: number;
   weekNo: number;
@@ -539,5 +567,191 @@ export class CmReportService {
     });
 
     return { months };
+  }
+
+  /**
+   * Get daily detail CM report for a specific date.
+   * Returns channel breakdown + per-product CM.
+   */
+  async getDailyDetail(
+    entId: string,
+    date: string,
+    channel?: string,
+  ): Promise<DailyDetailSummary> {
+    const params: Record<string, unknown> = { entId, targetDate: date };
+    let channelFilter = '';
+    if (channel) {
+      channelFilter = ' AND o.chn_code = :channel';
+      params.channel = channel.toUpperCase();
+    }
+
+    // Channel fee rates
+    const channelMasters = await this.channelRepo.find();
+    const channelFeeMap = new Map<string, { platformFeeRate: number; fulfillmentFee: number }>();
+    for (const ch of channelMasters) {
+      channelFeeMap.set(ch.chnCode, {
+        platformFeeRate: Number(ch.chnDefaultPlatformFeeRate) || 0,
+        fulfillmentFee: Number(ch.chnDefaultFulfillmentFee) || DEFAULT_FULFILLMENT_FEE,
+      });
+    }
+
+    // SKU costs
+    const skuEntities = await this.skuRepo.find({
+      where: { entId },
+      select: ['skuId', 'skuWmsCode', 'skuPrimeCost', 'skuFulfillmentFeeOverride'],
+    });
+    const skuCostMap = new Map<string, { primeCost: number; fulfillmentOverride: number | null }>();
+    for (const sku of skuEntities) {
+      skuCostMap.set(sku.skuId, {
+        primeCost: Number(sku.skuPrimeCost) || 0,
+        fulfillmentOverride: sku.skuFulfillmentFeeOverride != null ? Number(sku.skuFulfillmentFeeOverride) : null,
+      });
+    }
+
+    // Order-level aggregation per channel
+    const orderRows = await this.orderRepo
+      .createQueryBuilder('o')
+      .select([
+        'o.chn_code AS channel',
+        'COUNT(DISTINCT o.ord_id) AS orderCount',
+        'COALESCE(SUM(CAST(o.ord_total_vnd AS DECIMAL(18,2))), 0) AS gmv',
+        'COALESCE(SUM(CAST(o.ord_commission_fee AS DECIMAL(18,2))), 0) AS commissionFee',
+        'COALESCE(SUM(CAST(o.ord_service_fee AS DECIMAL(18,2))), 0) AS serviceFee',
+        'COALESCE(SUM(CAST(o.ord_shipping_fee_est AS DECIMAL(18,2))), 0) AS shippingFee',
+      ])
+      .where(`o.ent_id = :entId AND DATE(o.ord_order_date) = :targetDate AND o.ord_status IN ('COMPLETED','SHIPPED','DELIVERED') ${channelFilter}`)
+      .setParameters(params)
+      .groupBy('o.chn_code')
+      .getRawMany();
+
+    // Item-level aggregation per product
+    const itemRows = await this.itemRepo
+      .createQueryBuilder('i')
+      .innerJoin(RawOrderEntity, 'o', 'o.ord_id = i.ord_id')
+      .select([
+        'o.chn_code AS channel',
+        'COALESCE(i.oli_product_name, "Unknown") AS productName',
+        'i.oli_variant_sku AS variantSku',
+        'i.sku_id AS skuId',
+        'SUM(i.oli_quantity) AS itemsSold',
+        'COALESCE(SUM(CAST(i.oli_deal_price AS DECIMAL(18,2)) * i.oli_quantity), 0) AS itemGmv',
+        'COALESCE(SUM(CAST(i.oli_seller_discount AS DECIMAL(18,2))), 0) AS sellerDiscount',
+        'COALESCE(SUM(CAST(i.oli_buyer_paid AS DECIMAL(18,2))), 0) AS buyerPaid',
+      ])
+      .where(`o.ent_id = :entId AND DATE(o.ord_order_date) = :targetDate AND o.ord_status IN ('COMPLETED','SHIPPED','DELIVERED') ${channelFilter}`)
+      .setParameters(params)
+      .groupBy('o.chn_code, i.oli_product_name, i.oli_variant_sku, i.sku_id')
+      .orderBy('SUM(CAST(i.oli_buyer_paid AS DECIMAL(18,2)))', 'DESC')
+      .getRawMany();
+
+    // Build channel breakdown
+    const channels: ChannelBreakdown[] = orderRows.map((row) => ({
+      channel: row.channel,
+      orders: Number(row.orderCount),
+      gmv: Number(row.gmv),
+      commissionFee: Number(row.commissionFee),
+      serviceFee: Number(row.serviceFee),
+      shippingFee: Number(row.shippingFee),
+    }));
+
+    // Build product CM rows
+    let totalItemsSold = 0;
+    let totalGmv = 0;
+    let totalSellerDiscount = 0;
+    let totalNmv = 0;
+    let totalPrimeCost = 0;
+    let totalFulfillment = 0;
+    let totalPlatformFee = 0;
+    let totalCommission = 0;
+    let totalServiceFee = 0;
+    let totalShippingFee = 0;
+
+    for (const ch of channels) {
+      totalGmv += ch.gmv;
+      totalCommission += ch.commissionFee;
+      totalServiceFee += ch.serviceFee;
+      totalShippingFee += ch.shippingFee;
+    }
+
+    const products: ProductCmRow[] = [];
+    for (const item of itemRows) {
+      const itemsSold = Number(item.itemsSold) || 0;
+      const itemGmv = Number(item.itemGmv) || 0;
+      const sellerDiscount = Number(item.sellerDiscount) || 0;
+      const buyerPaid = Number(item.buyerPaid) || 0;
+      const nmv = buyerPaid || (itemGmv - sellerDiscount);
+
+      const skuData = item.skuId ? skuCostMap.get(item.skuId) : null;
+      const primeCostUnit = skuData?.primeCost || 0;
+      const primeCostTotal = primeCostUnit * itemsSold;
+
+      const chFee = channelFeeMap.get(item.channel);
+      const fulfillmentUnit = skuData?.fulfillmentOverride ?? chFee?.fulfillmentFee ?? DEFAULT_FULFILLMENT_FEE;
+      const fulfillmentTotal = fulfillmentUnit * itemsSold;
+
+      const platformFeeRate = chFee?.platformFeeRate || 0;
+      const platformFee = nmv * platformFeeRate;
+
+      const cm = itemGmv - primeCostTotal - fulfillmentTotal - platformFee - sellerDiscount;
+      const cmPct = itemGmv > 0 ? (cm / itemGmv) * 100 : 0;
+
+      let cmStatus = 'NORMAL';
+      if (!skuData) cmStatus = item.skuId ? 'PRIME_COST_MISSING' : 'SKU_UNMAPPED';
+      else if (primeCostUnit === 0) cmStatus = 'PRIME_COST_MISSING';
+      else if (cm < 0) cmStatus = 'NEGATIVE';
+
+      products.push({
+        productName: item.productName,
+        productNameEn: '',
+        variantSku: item.variantSku || '',
+        skuWmsCode: item.variantSku || null,
+        channel: item.channel,
+        itemsSold,
+        gmv: itemGmv,
+        sellerDiscount,
+        nmv,
+        primeCost: primeCostUnit,
+        primeCostTotal,
+        fulfillmentFee: fulfillmentTotal,
+        platformFee,
+        adSpend: 0,
+        commissionFee: 0,
+        serviceFee: 0,
+        cm,
+        cmPct,
+        cmStatus,
+      });
+
+      totalItemsSold += itemsSold;
+      totalSellerDiscount += sellerDiscount;
+      totalNmv += nmv;
+      totalPrimeCost += primeCostTotal;
+      totalFulfillment += fulfillmentTotal;
+      totalPlatformFee += platformFee;
+    }
+
+    const totalOrders = channels.reduce((s, c) => s + c.orders, 0);
+    const totalCm = totalGmv - totalPrimeCost - totalFulfillment - totalPlatformFee
+      - totalSellerDiscount - totalCommission - totalServiceFee;
+    const totalCmPct = totalGmv > 0 ? (totalCm / totalGmv) * 100 : 0;
+
+    return {
+      date,
+      orders: totalOrders,
+      itemsSold: totalItemsSold,
+      gmv: totalGmv,
+      sellerDiscount: totalSellerDiscount,
+      nmv: totalNmv,
+      primeCostTotal: totalPrimeCost,
+      fulfillmentFee: totalFulfillment,
+      platformFee: totalPlatformFee,
+      commissionFee: totalCommission,
+      serviceFee: totalServiceFee,
+      shippingFee: totalShippingFee,
+      cm: totalCm,
+      cmPct: totalCmPct,
+      channels,
+      products,
+    };
   }
 }

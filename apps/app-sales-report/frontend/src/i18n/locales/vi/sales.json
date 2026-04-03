@@ -233,6 +233,26 @@
     "dealPrice": "Giá bán",
     "buyerPaid": "Người mua trả"
   },
+  "dailyDetail": {
+    "backToDaily": "Quay lại báo cáo ngày",
+    "description": "Chi tiết doanh số ngày và phân tích CM theo sản phẩm",
+    "noDateSelected": "Chưa chọn ngày",
+    "orders": "Đơn hàng",
+    "itemsSold": "Sản phẩm bán",
+    "ordersUnit": "đơn",
+    "channelBreakdown": "Theo kênh",
+    "costBreakdown": "Cơ cấu chi phí",
+    "productDetail": "CM theo sản phẩm",
+    "product": "Sản phẩm",
+    "sku": "SKU",
+    "primeCost": "Giá gốc",
+    "fulfillment": "Fulfillment",
+    "platformFee": "Phí nền tảng",
+    "sellerDiscount": "Giảm giá NB",
+    "commission": "Hoa hồng",
+    "serviceFee": "Phí dịch vụ",
+    "shippingFee": "Phí vận chuyển"
+  },
   "reportUpload": {
     "title": "Tải lên báo cáo",
     "description": "Tải lên báo cáo lưu lượng, quảng cáo và liên kết từ Shopee và TikTok.",
