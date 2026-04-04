@@ -20,25 +20,16 @@ interface DebugContextPanelProps {
   initialQueryParams: string;
 }
 
-function detectIframe(): boolean {
-  try {
-    return window.self !== window.top;
-  } catch {
-    return true; // cross-origin iframe throws SecurityError
-  }
-}
-
 export function DebugContextPanel({ initialReferrer, initialQueryParams }: DebugContextPanelProps) {
   const { t } = useTranslation('car');
-  const isInIframe = detectIframe();
-  const [enabled, setEnabled] = useState(isInIframe);
-  const [expanded, setExpanded] = useState(isInIframe);
+  const [enabled, setEnabled] = useState(() => localStorage.getItem(LS_KEY) === 'true');
+  const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // iframe always enabled
+  // Listen for storage changes (from admin toggle)
   const checkEnabled = useCallback(() => {
-    setEnabled(isInIframe || localStorage.getItem(LS_KEY) === 'true');
-  }, [isInIframe]);
+    setEnabled(localStorage.getItem(LS_KEY) === 'true');
+  }, []);
 
   useEffect(() => {
     checkEnabled();
