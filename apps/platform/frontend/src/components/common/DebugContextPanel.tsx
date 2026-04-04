@@ -1,8 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronUp, Copy, Check, Bug } from 'lucide-react';
-
-const LS_KEY = 'debug_panel_enabled';
 
 function decodeJwtPayload(token: string): string {
   try {
@@ -22,27 +20,8 @@ interface DebugContextPanelProps {
 
 export function DebugContextPanel({ initialReferrer, initialQueryParams }: DebugContextPanelProps) {
   const { t } = useTranslation('platform');
-  const [enabled, setEnabled] = useState(() => localStorage.getItem(LS_KEY) === 'true');
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  // Listen for storage changes (from admin toggle)
-  const checkEnabled = useCallback(() => {
-    setEnabled(localStorage.getItem(LS_KEY) === 'true');
-  }, []);
-
-  useEffect(() => {
-    checkEnabled();
-    const handler = () => checkEnabled();
-    window.addEventListener('storage', handler);
-    window.addEventListener('debug-panel-toggle', handler);
-    return () => {
-      window.removeEventListener('storage', handler);
-      window.removeEventListener('debug-panel-toggle', handler);
-    };
-  }, [checkEnabled]);
-
-  if (!enabled) return null;
 
   const token = localStorage.getItem('ama_token') || '';
   const entityRaw = sessionStorage.getItem('entity_context') || '';
