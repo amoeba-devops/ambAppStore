@@ -78,8 +78,8 @@ export function DriverListPage() {
                   <tr key={d.driverId as string} className="border-b border-[#e2e5eb] hover:bg-[#eef0f4]">
                     <td className="px-3.5 py-3 text-[13px] font-medium text-gray-900">
                       <div>{(d.driverName as string) || (d.amaUserId as string)}</div>
-                      {d.driverEmail && (
-                        <div className="text-[11px] text-gray-400">{d.driverEmail as string}</div>
+                      {Boolean(d.driverEmail) && (
+                        <div className="text-[11px] text-gray-400">{String(d.driverEmail)}</div>
                       )}
                     </td>
                     <td className="px-3.5 py-3 text-[13px] text-gray-600">{d.role as string}</td>
