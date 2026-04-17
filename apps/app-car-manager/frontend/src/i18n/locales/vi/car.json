@@ -30,7 +30,9 @@
     "sectionDispatch": "Điều xe",
     "dispatchBoard": "Bảng điều xe",
     "dispatchRequest": "Yêu cầu điều xe",
-    "sectionRecord": "Hồ sơ"
+    "sectionRecord": "Hồ sơ",
+    "sectionDriver": "Tài xế",
+    "driverList": "Danh sách tài xế"
   },
   "monitor": {
     "title": "Giám sát thời gian thực",
@@ -110,6 +112,22 @@
     "statusActive": "Hoạt động",
     "statusOnLeave": "Nghỉ phép",
     "statusInactive": "Không hoạt động"
+  },
+  "driverForm": {
+    "title": "Thêm tài xế",
+    "amaUserId": "ID người dùng AMA",
+    "amaUserIdPlaceholder": "Nhập UUID",
+    "role": "Vai trò",
+    "rolePrimary": "Tài xế chính (PRIMARY)",
+    "roleSub": "Tài xế phụ (SUB)",
+    "rolePool": "Tài xế chung (POOL)",
+    "note": "Ghi chú",
+    "notePlaceholder": "Thông tin bổ sung (tùy chọn)",
+    "submit": "Đăng ký",
+    "errorDuplicate": "Tài xế này đã được đăng ký",
+    "errorInvalidUuid": "Định dạng UUID không hợp lệ",
+    "errorRequired": "Trường này là bắt buộc",
+    "successMessage": "Đăng ký tài xế thành công"
   },
   "dispatch": {
     "title": "Danh sách điều xe",

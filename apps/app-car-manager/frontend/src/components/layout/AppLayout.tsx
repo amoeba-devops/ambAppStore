@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   Car,
+  UserCheck,
   Kanban,
   PlusCircle,
   FileText,
@@ -58,6 +59,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     {
       label: t('nav.sectionVehicle'),
       items: [{ to: '/vehicles', icon: Car, label: t('nav.vehicleList') }],
+    },
+    {
+      label: t('nav.sectionDriver'),
+      items: [{ to: '/drivers', icon: UserCheck, label: t('nav.driverList') }],
     },
     {
       label: t('nav.sectionDispatch'),

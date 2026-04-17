@@ -30,7 +30,9 @@
     "sectionDispatch": "Dispatch",
     "dispatchBoard": "Dispatch Board",
     "dispatchRequest": "Request Dispatch",
-    "sectionRecord": "Records"
+    "sectionRecord": "Records",
+    "sectionDriver": "Driver",
+    "driverList": "Driver List"
   },
   "monitor": {
     "title": "Real-time Monitor",
@@ -110,6 +112,22 @@
     "statusActive": "Active",
     "statusOnLeave": "On Leave",
     "statusInactive": "Inactive"
+  },
+  "driverForm": {
+    "title": "Add Driver",
+    "amaUserId": "AMA User ID",
+    "amaUserIdPlaceholder": "Enter UUID",
+    "role": "Role",
+    "rolePrimary": "Primary Driver (PRIMARY)",
+    "roleSub": "Sub Driver (SUB)",
+    "rolePool": "Pool Driver (POOL)",
+    "note": "Note",
+    "notePlaceholder": "Additional information (optional)",
+    "submit": "Register",
+    "errorDuplicate": "This driver is already registered",
+    "errorInvalidUuid": "Invalid UUID format",
+    "errorRequired": "This field is required",
+    "successMessage": "Driver registered successfully"
   },
   "dispatch": {
     "title": "Dispatch List",

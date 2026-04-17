@@ -10,12 +10,14 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { TabBar } from '@/components/common/TabBar';
 import { StatusBadge, getStatusVariant } from '@/components/common/StatusBadge';
 import { DriverCard } from '@/components/driver/DriverCard';
+import { DriverFormModal } from '@/components/driver/DriverFormModal';
 
 export function VehicleDetailPage() {
   const { t } = useTranslation('car');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('info');
+  const [showDriverForm, setShowDriverForm] = useState(false);
 
   const { data, isLoading } = useVehicle(id!);
   const { data: driversData } = useDrivers({ vehicle_id: id });
@@ -125,7 +127,10 @@ export function VehicleDetailPage() {
               <button className="rounded-md border border-[#d4d8e0] bg-[#f0f2f5] px-3 py-1.5 text-[12px] font-medium text-gray-600 transition-colors hover:text-gray-900">
                 🌐 {t('detail.poolDriverManage')}
               </button>
-              <button className="flex items-center gap-1.5 rounded-md bg-orange-500 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-orange-400">
+              <button
+                onClick={() => setShowDriverForm(true)}
+                className="flex items-center gap-1.5 rounded-md bg-orange-500 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-orange-400"
+              >
                 <Plus className="h-3.5 w-3.5" />
                 {t('detail.addDriver')}
               </button>
@@ -250,6 +255,12 @@ export function VehicleDetailPage() {
           </div>
         )}
       </div>
+
+      <DriverFormModal
+        open={showDriverForm}
+        onClose={() => setShowDriverForm(false)}
+        vehicleId={id}
+      />
     </div>
   );
 }

@@ -30,7 +30,9 @@
     "sectionDispatch": "배차",
     "dispatchBoard": "배차 현황판",
     "dispatchRequest": "배차 신청",
-    "sectionRecord": "기록"
+    "sectionRecord": "기록",
+    "sectionDriver": "운전자",
+    "driverList": "운전자 목록"
   },
   "monitor": {
     "title": "실시간 관제",
@@ -110,6 +112,22 @@
     "statusActive": "활성",
     "statusOnLeave": "휴가",
     "statusInactive": "비활성"
+  },
+  "driverForm": {
+    "title": "운전자 추가",
+    "amaUserId": "AMA 사용자 ID",
+    "amaUserIdPlaceholder": "UUID 입력",
+    "role": "역할",
+    "rolePrimary": "주운전자 (PRIMARY)",
+    "roleSub": "부운전자 (SUB)",
+    "rolePool": "풀 운전자 (POOL)",
+    "note": "메모",
+    "notePlaceholder": "추가 정보 입력 (선택)",
+    "submit": "등록",
+    "errorDuplicate": "이미 등록된 운전자입니다",
+    "errorInvalidUuid": "올바른 UUID 형식이 아닙니다",
+    "errorRequired": "필수 항목입니다",
+    "successMessage": "운전자가 등록되었습니다"
   },
   "dispatch": {
     "title": "배차 목록",

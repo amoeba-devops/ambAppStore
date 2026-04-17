@@ -63,37 +63,158 @@ ambAppStore/
 - 인증: AMA JWT SSO Passthrough (앱별 자체 회원가입 없음)
 - 모든 주요 데이터 테이블에 `ent_id` 컬럼 필수 포함
 
-## 코드 컨벤션
+## Amoeba 표준 레퍼런스 (반드시 준수)
+아래 3개 문서를 **반드시 참조**하고 코드 작성 시 준수한다:
+- `reference/amoeba_code_convention_v2.md` — **코드 컨벤션 (최우선 준수)**
+- `reference/amoeba_basic_skill_v2.md` — 개발 스킬 가이드
+- `reference/amoeba-spec-generator-SKILL-v3.1.md` — SDLC 문서 생성 스킬
 
-### DB 네이밍 (MySQL 8.0)
-- DB: `db_app_{slug}` (예: `db_app_car`, `db_app_platform`)
-- 테이블: `{prefix}_{name_plural}` (예: `car_vehicles`, `plt_apps`)
-- 컬럼: `{colPrefix}_{name}` snake_case (예: `car_plate_no`, `sub_status`)
-- PK: `{colPrefix}_id` (UUID, CHAR(36))
-- Entity ID: `ent_id` CHAR(36) NOT NULL — 모든 주요 테이블 필수
-- Soft Delete: `{colPrefix}_deleted_at` DATETIME NULL
-- ENUM: 대문자 snake_case (`AVAILABLE`, `IN_USE`)
+## 아키텍처 원칙
 
-### API 규칙
-- Base Path: `/api/v1`
-- Request DTO: `snake_case`
-- Response DTO: `camelCase`
-- 표준 응답: `{ success, data, error?, timestamp }`
-- Auth: `@Auth()` 데코레이터 (JWT 인증 + 구독 확인 + ent_id 추출)
+### Clean Architecture (4-Layer) (MUST)
+```
+Presentation Layer   (Controller, Request/Response DTO)
+       ↓
+Application Layer    (Service, Mapper, Event Handler)
+       ↓
+Domain Layer         (Entity, Value Object, Repository Interface)
+       ↓
+Infrastructure Layer (Repository Impl, External API, Cache, DB)
+```
 
-### 파일 네이밍
-- 컴포넌트: PascalCase (`AppCard.tsx`)
-- 서비스: kebab-case (`.service.ts`)
-- 스토어: kebab-case (`.store.ts`)
-- 훅: `use` + PascalCase (`useApps.ts`)
-- DTO: kebab-case (`.dto.ts`)
-- 엔티티: kebab-case (`.entity.ts`)
-- 컨트롤러: kebab-case (`.controller.ts`)
-- 모듈: kebab-case (`.module.ts`)
+### 레이어 규칙 (MUST NOT 위반)
+| 레이어 | 허용 | 금지 |
+|--------|------|------|
+| Controller | → Service 호출 | → Repository 직접 호출 |
+| Service | → Repository, Entity | → Controller import |
+| Entity | 순수 도메인 로직 | → Service, Controller import |
+| Repository | → Entity | → Controller import |
+
+### DDD (도메인 주도 설계)
+- 모든 코드는 도메인 모듈 단위로 구성
+- 도메인 간 직접 참조 금지 (순환 참조 시 `forwardRef` 사용)
+- 공통 코드는 `common/` 디렉토리에 도메인 중립적으로 배치
+
+## 코드 컨벤션 (amoeba_code_convention_v2 기준)
+
+### DB 네이밍 (MySQL 8.0) (MUST)
+| 유형 | 규칙 | 예시 |
+|------|------|------|
+| DB 이름 | `db_app_{slug}` | `db_app_car`, `db_app_platform` |
+| 테이블 | `{prefix}_{name_plural}` snake_case | `car_vehicles`, `plt_apps` |
+| PK | `{colPrefix}_id` (UUID, CHAR(36)) | `cvh_id`, `plt_id` |
+| FK | 참조 테이블 PK 그대로 | `ent_id`, `cvh_id` |
+| 일반 컬럼 | `{colPrefix}_{name}` snake_case | `cvh_plate_number`, `sub_status` |
+| Boolean | `{colPrefix}_is_{name}` | `cvh_is_dedicated` |
+| 생성일시 | `{colPrefix}_created_at` | `cvh_created_at` |
+| 수정일시 | `{colPrefix}_updated_at` | `cvh_updated_at` |
+| Soft Delete | `{colPrefix}_deleted_at` DATETIME NULL | `cvh_deleted_at` |
+| Entity ID | `ent_id` CHAR(36) NOT NULL | 모든 주요 테이블 필수 (멀티테넌시) |
+| ENUM | 대문자 SCREAMING_SNAKE_CASE | `AVAILABLE`, `IN_USE` |
+| Index | `idx_{table}_{column(s)}` | `idx_car_vehicles_ent_status` |
+
+### Backend 규칙 (NestJS) (MUST)
+
+**도메인 모듈 구조:**
+```
+domain/{name}/
+├── controller/          # HTTP 엔드포인트 (Swagger 필수)
+├── service/             # 비즈니스 로직
+├── entity/              # TypeORM 엔티티
+├── dto/
+│   ├── request/         # Request DTO (snake_case)
+│   └── response/        # Response DTO (camelCase)
+├── mapper/              # Entity ↔ DTO 변환 (static 메서드)
+└── {name}.module.ts     # NestJS 모듈
+```
+
+**Controller 규칙:**
+- 비즈니스 로직 포함 금지 → DTO 변환만 담당 (Mapper 경유)
+- `@Auth()` 데코레이터 기본 적용 (JWT 인증 + ent_id 격리)
+- Swagger 데코레이터 필수
+
+**DTO 규칙:**
+- Request DTO: `snake_case` + class-validator 데코레이터
+- Response DTO: `camelCase` (순수 클래스, 데코레이터 불필요)
+
+**Entity 규칙:**
+- MUST: nullable 컬럼 (`string | null`)에 반드시 `type: 'varchar'` 등 명시적 타입 지정
+  (미지정 시 TypeORM `DataTypeNotSupportedError` 발생)
+- `ent_id` FK 필수 포함 (멀티테넌시)
+- Soft Delete: `@DeleteDateColumn()`
+
+**Mapper 규칙:**
+- static 메서드 패턴: `toResponse()`, `toListResponse()`
+- Entity 프로퍼티명 → Response camelCase 필드 변환
+
+### API 규칙 (MUST)
+| 구분 | 케이스 | 예시 |
+|------|--------|------|
+| Base Path | `/api/v1` | `/api/v1/vehicles` |
+| Request Body | snake_case | `plate_number`, `entity_id` |
+| Response Body | camelCase | `plateNumber`, `entityId` |
+| Query Parameter | snake_case | `?status=ACTIVE&entity_id=xxx` |
+| Path Parameter | camelCase | `/vehicles/:id` |
+| Resource Segment | kebab-case | `/trip-logs/:id` |
+| 표준 응답 | `{ success, data, error?, timestamp }` | |
+
+### Frontend 규칙 (React) (MUST)
+1. **도메인 기반 모듈화** — 페이지/컴포넌트/훅/서비스를 도메인별 정리
+2. **UI, 로직, 데이터 패칭 분리** — 컴포넌트 내부 axios/fetch 직접 호출 금지 → Service 경유
+3. **모든 UI 텍스트 i18n 처리** — 컴포넌트 하드코딩 금지
+4. **Import 순서**: React core → 라이브러리 → 전역(@/) → 도메인(../) → 타입
+
+**상태 관리 전략:**
+| 상태 유형 | 도구 | 설정 |
+|-----------|------|------|
+| 서버 상태 | React Query 5 | staleTime: 30s, refetchOnWindowFocus: true |
+| 전역 상태 | Zustand | auth, org 등 |
+| 로컬 상태 | useState | 컴포넌트 전용 |
+| 폼 상태 | React Hook Form + Zod | 폼 검증 |
+
+### 파일 네이밍 (MUST)
+| 유형 | 규칙 | 예시 |
+|------|------|------|
+| 페이지 | PascalCase + `Page` | `VehicleListPage.tsx` |
+| 컴포넌트 | PascalCase | `VehicleCard.tsx` |
+| 모달 | PascalCase + `Modal` | `DriverFormModal.tsx` |
+| 훅 | `use` + PascalCase | `useVehicles.ts` |
+| 서비스 | kebab-case + `.service` | `vehicle.service.ts` |
+| 스토어 | kebab-case + `.store` | `auth.store.ts` |
+| 타입 | kebab-case + `.types` | `vehicle.types.ts` |
+| DTO (BE) | `{action}-{domain}.request.ts` | `create-vehicle.request.ts` |
+| Response (BE) | `{domain}.response.ts` | `vehicle.response.ts` |
+| Entity (BE) | `{domain}.entity.ts` | `vehicle.entity.ts` |
+| Mapper (BE) | `{domain}.mapper.ts` | `vehicle.mapper.ts` |
+| Controller (BE) | `{domain}.controller.ts` | `vehicle.controller.ts` |
+| Module (BE) | `{domain}.module.ts` | `vehicle.module.ts` |
 
 ### 에러 코드 체계
 - 앱별 prefix: `CAR-E{4자리}`, `HSC-E{4자리}`, `SAL-E{4자리}`, `STK-E{4자리}`
 - 플랫폼: `PLT-E{4자리}`
+
+### 구현 체크리스트 (매 작업 시 확인)
+
+**Backend:**
+- [ ] `@Auth()` 데코레이터 적용
+- [ ] Service에서 `ent_id` 기반 데이터 격리
+- [ ] Entity nullable 컬럼에 명시적 type 지정
+- [ ] Request DTO: snake_case + class-validator
+- [ ] Response DTO: camelCase
+- [ ] Mapper static 메서드 작성
+- [ ] 스테이징/프로덕션 수동 SQL 마이그레이션 준비
+
+**Frontend:**
+- [ ] 모든 UI 텍스트 i18n 처리 (하드코딩 없음)
+- [ ] 새 네임스페이스 i18n.ts 등록
+- [ ] API 호출은 service에서만 수행
+- [ ] 번역 파일 3개 언어 (ko/en/vi) 작성
+
+**Database:**
+- [ ] 테이블명 `{prefix}_{plural}` snake_case
+- [ ] 컬럼 `{colPrefix}_{name}` 3자 prefix
+- [ ] `ent_id` FK 포함 (멀티테넌시)
+- [ ] Soft Delete `{prefix}_deleted_at`
 
 ## 주요 명령어
 ```bash
@@ -205,14 +326,17 @@ ssh ambAppStore@stg-apps.amoeba.site "cd ~/ambAppStore && bash platform/scripts/
 | 요구사항분석서 | `REQ-{YYYYMMDD}-{제목}.md` | `docs/analysis/` |
 | 작업계획서 | `PLAN-{YYYYMMDD}-{제목}.md` | `docs/plan/` |
 | 테스트케이스 | `TC-{YYYYMMDD}-{제목}.md` | `docs/test/` |
+| 테스트완료보고서 | `TR-{YYYYMMDD}-{제목}.md` | `docs/test/` |
 | 작업완료보고서 | `RPT-{YYYYMMDD}-{제목}.md` | `docs/implementation/` |
 
-### 워크플로우 순서
+### 워크플로우 순서 (반드시 순서 엄수, 단계 건너뛰기 금지)
 1. **요구사항분석서** → `docs/analysis/REQ-{YYYYMMDD}-{제목}.md`
 2. **작업계획서** → `docs/plan/PLAN-{YYYYMMDD}-{제목}.md`
-3. **구현** → 작업 계획서에 따른 코드 구현
-4. **테스트케이스** → `docs/test/TC-{YYYYMMDD}-{제목}.md`
-5. **작업완료보고서** → `docs/implementation/RPT-{YYYYMMDD}-{제목}.md`
+3. **테스트케이스** → `docs/test/TC-{YYYYMMDD}-{제목}.md`
+4. **구현** → 작업계획서에 따른 코드 구현
+5. **테스트 수행** → 테스트케이스 기반 검증
+6. **테스트완료보고서** → `docs/test/TR-{YYYYMMDD}-{제목}.md`
+7. **작업완료보고서** → `docs/implementation/RPT-{YYYYMMDD}-{제목}.md`
 
 ### 요구사항분석서 필수 섹션 (순서 엄수)
 > **특징**: 관련 기존 코드·DB 스키마·API를 반드시 탐색한 후 **정확한 현황 기반**으로 작성
