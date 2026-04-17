@@ -10,34 +10,56 @@ export function OAuthCallbackPage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
 
+  const isPopup = !!window.opener;
+
   useEffect(() => {
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const error = searchParams.get('error');
 
     if (error) {
-      setStatus('error');
-      setErrorMsg(error);
+      handleResult(false, error);
       return;
     }
 
     if (!code) {
-      setStatus('error');
-      setErrorMsg('No authorization code');
+      handleResult(false, 'No authorization code');
       return;
     }
 
     amaApi
       .exchangeOAuthCode(code, state || '')
-      .then(() => {
-        setStatus('success');
-        setTimeout(() => navigate(-1), 1500);
-      })
+      .then(() => handleResult(true))
       .catch((err) => {
-        setStatus('error');
-        setErrorMsg(err?.response?.data?.error?.message || err.message || 'Unknown error');
+        handleResult(false, err?.response?.data?.error?.message || err.message || 'Unknown error');
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleResult(success: boolean, error?: string) {
+    if (success) {
+      setStatus('success');
+    } else {
+      setStatus('error');
+      setErrorMsg(error || '');
+    }
+
+    // 팝업 모드: 부모 창에 결과 전달 후 닫기
+    if (isPopup && window.opener) {
+      try {
+        window.opener.postMessage(
+          { type: 'AMA_OAUTH_CALLBACK', success, error },
+          window.location.origin,
+        );
+      } catch { /* cross-origin 무시 */ }
+      setTimeout(() => window.close(), success ? 500 : 2000);
+      return;
+    }
+
+    // 일반 모드: 이전 페이지로 리다이렉트
+    if (success) {
+      setTimeout(() => navigate(-1), 1500);
+    }
+  }
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
@@ -54,6 +76,7 @@ export function OAuthCallbackPage() {
               ✓
             </div>
             <p className="text-sm font-medium text-green-700">{t('driverForm.oauthSuccess')}</p>
+            {isPopup && <p className="mt-2 text-xs text-gray-400">창이 자동으로 닫힙니다...</p>}
           </>
         )}
         {status === 'error' && (
@@ -63,12 +86,14 @@ export function OAuthCallbackPage() {
             </div>
             <p className="mb-2 text-sm font-medium text-red-600">{t('driverForm.oauthError')}</p>
             <p className="mb-4 text-xs text-gray-400">{errorMsg}</p>
-            <button
-              onClick={() => navigate(-1)}
-              className="rounded-lg border border-[#d4d8e0] px-4 py-2 text-sm text-gray-600 hover:text-gray-900"
-            >
-              {t('common.back')}
-            </button>
+            {!isPopup && (
+              <button
+                onClick={() => navigate(-1)}
+                className="rounded-lg border border-[#d4d8e0] px-4 py-2 text-sm text-gray-600 hover:text-gray-900"
+              >
+                {t('common.back')}
+              </button>
+            )}
           </>
         )}
       </div>

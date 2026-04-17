@@ -113,7 +113,37 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
     try {
       const res = await amaApi.getOAuthUrl();
       const url = res?.data?.url;
-      if (url) window.location.href = url;
+      if (!url) throw new Error('No URL');
+
+      // 팝업 윈도우로 OAuth 인가 (AMA 세션 쿠키 접근 가능)
+      const w = 500, h = 600;
+      const left = window.screenX + (window.outerWidth - w) / 2;
+      const top = window.screenY + (window.outerHeight - h) / 2;
+      const popup = window.open(url, 'ama-oauth', `width=${w},height=${h},left=${left},top=${top}`);
+
+      // 팝업에서 postMessage로 결과 수신
+      const handler = (e: MessageEvent) => {
+        if (e.data?.type === 'AMA_OAUTH_CALLBACK') {
+          window.removeEventListener('message', handler);
+          setOauthLoading(false);
+          if (e.data.success) {
+            refetchOAuth();
+          } else {
+            setApiError(e.data.error || t('driverForm.oauthError'));
+          }
+        }
+      };
+      window.addEventListener('message', handler);
+
+      // 팝업 닫힘 감지
+      const checkClosed = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(checkClosed);
+          window.removeEventListener('message', handler);
+          setOauthLoading(false);
+          refetchOAuth();
+        }
+      }, 500);
     } catch {
       setApiError(t('driverForm.oauthError'));
       setOauthLoading(false);
