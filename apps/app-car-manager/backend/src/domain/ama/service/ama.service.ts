@@ -36,9 +36,10 @@ export class AmaService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           grant_type: 'ama_session',
+          ama_token: amaJwt,
           client_id: this.clientId,
           client_secret: this.clientSecret,
-          ama_token: amaJwt,
+          scope: 'users:read',
         }),
       });
 
