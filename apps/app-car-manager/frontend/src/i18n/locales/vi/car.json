@@ -131,7 +131,8 @@
     "searchPlaceholder": "Tìm theo tên hoặc email...",
     "searchNoResult": "Không tìm thấy kết quả",
     "searchMinChars": "Nhập ít nhất 2 ký tự",
-    "selectedMember": "Thành viên đã chọn"
+    "selectedMember": "Thành viên đã chọn",
+    "manualInput": "Nhập UUID thủ công"
   },
   "dispatch": {
     "title": "Danh sách điều xe",

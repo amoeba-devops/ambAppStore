@@ -131,7 +131,8 @@
     "searchPlaceholder": "이름 또는 이메일 검색...",
     "searchNoResult": "검색 결과가 없습니다",
     "searchMinChars": "2글자 이상 입력하세요",
-    "selectedMember": "선택된 사용자"
+    "selectedMember": "선택된 사용자",
+    "manualInput": "UUID 직접 입력"
   },
   "dispatch": {
     "title": "배차 목록",

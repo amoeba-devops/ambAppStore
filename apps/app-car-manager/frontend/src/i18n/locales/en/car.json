@@ -131,7 +131,8 @@
     "searchPlaceholder": "Search by name or email...",
     "searchNoResult": "No results found",
     "searchMinChars": "Enter at least 2 characters",
-    "selectedMember": "Selected member"
+    "selectedMember": "Selected member",
+    "manualInput": "Enter UUID manually"
   },
   "dispatch": {
     "title": "Dispatch List",

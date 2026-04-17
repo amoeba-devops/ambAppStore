@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, X, Loader2 } from 'lucide-react';
+import { Search, X, Loader2, KeyRound } from 'lucide-react';
 
 import { Modal } from '@/components/common/Modal';
 import { useCreateDriver } from '@/hooks/useDrivers';
 import { useAmaMembers } from '@/hooks/useAmaMembers';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface SelectedMember {
   userId: string;
@@ -22,6 +24,8 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
   const { t } = useTranslation('car');
   const createMut = useCreateDriver();
 
+  const [manualMode, setManualMode] = useState(false);
+  const [manualUuid, setManualUuid] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedMember, setSelectedMember] = useState<SelectedMember | null>(null);
@@ -60,6 +64,8 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
   }, []);
 
   const resetForm = () => {
+    setManualMode(false);
+    setManualUuid('');
     setSearchQuery('');
     setDebouncedSearch('');
     setSelectedMember(null);
@@ -89,8 +95,16 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!selectedMember) {
-      newErrors.member = t('driverForm.errorRequired');
+    if (manualMode) {
+      if (!manualUuid.trim()) {
+        newErrors.member = t('driverForm.errorRequired');
+      } else if (!UUID_REGEX.test(manualUuid.trim())) {
+        newErrors.member = t('driverForm.errorInvalidUuid');
+      }
+    } else {
+      if (!selectedMember) {
+        newErrors.member = t('driverForm.errorRequired');
+      }
     }
     if (!role) {
       newErrors.role = t('driverForm.errorRequired');
@@ -103,9 +117,11 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
     if (!validate()) return;
     setApiError('');
 
+    const amaUserId = manualMode ? manualUuid.trim() : selectedMember!.userId;
+
     try {
       await createMut.mutateAsync({
-        ama_user_id: selectedMember!.userId,
+        ama_user_id: amaUserId,
         role,
         ...(vehicleId && { vehicle_id: vehicleId }),
         ...(note.trim() && { note: note.trim() }),
@@ -161,7 +177,23 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
             {t('driverForm.amaUserId')} <span className="text-red-500">*</span>
           </label>
 
-          {selectedMember ? (
+          {manualMode ? (
+            /* Manual UUID input */
+            <input
+              type="text"
+              value={manualUuid}
+              onChange={(e) => {
+                setManualUuid(e.target.value);
+                if (errors.member) setErrors((prev) => ({ ...prev, member: '' }));
+              }}
+              placeholder={t('driverForm.amaUserIdPlaceholder')}
+              className={`w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 ${
+                errors.member
+                  ? 'border-red-300 focus:ring-red-500'
+                  : 'border-[#d4d8e0] focus:ring-orange-500'
+              }`}
+            />
+          ) : selectedMember ? (
             /* Selected member chip */
             <div className="flex items-center gap-2 rounded-lg border border-orange-300 bg-orange-50 px-3 py-2">
               <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-semibold text-white">
@@ -241,6 +273,22 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
               )}
             </div>
           )}
+
+          {/* Manual mode toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              setManualMode(!manualMode);
+              setSelectedMember(null);
+              setManualUuid('');
+              setSearchQuery('');
+              setErrors((prev) => ({ ...prev, member: '' }));
+            }}
+            className="mt-1.5 flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+          >
+            <KeyRound className="h-3 w-3" />
+            {manualMode ? t('driverForm.amaUserId') : t('driverForm.manualInput')}
+          </button>
 
           {errors.member && (
             <p className="mt-1 text-xs text-red-500">{errors.member}</p>
