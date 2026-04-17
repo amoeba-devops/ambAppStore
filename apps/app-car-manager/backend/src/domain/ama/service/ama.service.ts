@@ -1,6 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { BusinessException } from '../../../common/exceptions/business.exception';
-import { HttpStatus } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
 export interface AmaMember {
   userId: string;
@@ -11,144 +9,92 @@ export interface AmaMember {
 
 interface OAuthToken {
   accessToken: string;
-  refreshToken: string;
   expiresAt: number;
 }
 
 @Injectable()
-export class AmaService {
+export class AmaService implements OnModuleInit {
   private readonly logger = new Logger(AmaService.name);
 
   private readonly amaBaseUrl = process.env.AMA_API_BASE_URL || 'https://stg-ama.amoeba.site';
   private readonly clientId = process.env.AMA_OAUTH_CLIENT_ID || '';
   private readonly clientSecret = process.env.AMA_OAUTH_CLIENT_SECRET || '';
-  private readonly redirectUri = process.env.AMA_OAUTH_REDIRECT_URI || '';
   private readonly tokenEndpoint = `${this.amaBaseUrl}/api/v1/oauth/token`;
-  private readonly authorizeEndpoint = `${this.amaBaseUrl}/api/v1/oauth/authorize`;
   private readonly openApiBase = `${this.amaBaseUrl}/api/v1/open`;
 
-  // Entity별 OAuth 토큰 캐시
-  private readonly tokenCache = new Map<string, OAuthToken>();
+  private token: OAuthToken | null = null;
 
-  /**
-   * OAuth 인가 URL 생성
-   */
-  getAuthorizationUrl(state: string): string {
-    const params = new URLSearchParams({
-      client_id: this.clientId,
-      response_type: 'code',
-      redirect_uri: this.redirectUri,
-      scope: 'users:read',
-      state,
-    });
-    return `${this.authorizeEndpoint}?${params.toString()}`;
+  async onModuleInit() {
+    if (this.clientId && this.clientSecret) {
+      await this.acquireToken();
+    } else {
+      this.logger.warn('AMA OAuth credentials not configured — member search disabled');
+    }
   }
 
   /**
-   * Authorization Code → Access Token 교환
+   * client_credentials로 Access Token 발급 (서버 간 인증)
    */
-  async exchangeCodeForToken(code: string, entityId: string): Promise<void> {
+  private async acquireToken(): Promise<boolean> {
     try {
       const res = await fetch(this.tokenEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          grant_type: 'authorization_code',
-          code,
+          grant_type: 'client_credentials',
           client_id: this.clientId,
           client_secret: this.clientSecret,
-          redirect_uri: this.redirectUri,
+          scope: 'users:read',
         }),
       });
 
       if (!res.ok) {
         const body = await res.text().catch(() => '');
-        this.logger.warn(`OAuth token exchange failed (${res.status}): ${body}`);
-        throw new BusinessException('CAR-E9003', 'OAuth token exchange failed', HttpStatus.BAD_GATEWAY);
-      }
-
-      const data = await res.json();
-      const tokenData = data?.data || data;
-
-      this.tokenCache.set(entityId, {
-        accessToken: tokenData.access_token || tokenData.accessToken,
-        refreshToken: tokenData.refresh_token || tokenData.refreshToken,
-        expiresAt: Date.now() + ((tokenData.expires_in || 3600) * 1000),
-      });
-
-      this.logger.log(`OAuth token cached for entity ${entityId}`);
-    } catch (err) {
-      if (err instanceof BusinessException) throw err;
-      this.logger.error(`OAuth token exchange error: ${(err as Error).message}`);
-      throw new BusinessException('CAR-E9003', 'Failed to connect to AMA OAuth server', HttpStatus.BAD_GATEWAY);
-    }
-  }
-
-  /**
-   * Refresh Token으로 Access Token 갱신
-   */
-  private async refreshAccessToken(entityId: string): Promise<boolean> {
-    const cached = this.tokenCache.get(entityId);
-    if (!cached?.refreshToken) return false;
-
-    try {
-      const res = await fetch(this.tokenEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          grant_type: 'refresh_token',
-          refresh_token: cached.refreshToken,
-          client_id: this.clientId,
-          client_secret: this.clientSecret,
-        }),
-      });
-
-      if (!res.ok) {
-        this.logger.warn(`OAuth refresh failed (${res.status}) for entity ${entityId}`);
-        this.tokenCache.delete(entityId);
+        this.logger.warn(`AMA OAuth token request failed (${res.status}): ${body}`);
         return false;
       }
 
       const data = await res.json();
       const tokenData = data?.data || data;
 
-      this.tokenCache.set(entityId, {
+      this.token = {
         accessToken: tokenData.access_token || tokenData.accessToken,
-        refreshToken: tokenData.refresh_token || tokenData.refreshToken || cached.refreshToken,
-        expiresAt: Date.now() + ((tokenData.expires_in || 3600) * 1000),
-      });
+        expiresAt: Date.now() + ((tokenData.expires_in || 3600) * 1000) - 60000, // 1분 여유
+      };
 
-      this.logger.log(`OAuth token refreshed for entity ${entityId}`);
+      this.logger.log('AMA OAuth token acquired via client_credentials');
       return true;
     } catch (err) {
-      this.logger.error(`OAuth refresh error: ${(err as Error).message}`);
-      this.tokenCache.delete(entityId);
+      this.logger.error(`AMA OAuth token error: ${(err as Error).message}`);
       return false;
     }
   }
 
   /**
-   * OAuth 연동 상태 확인
+   * 토큰 유효성 확인 + 자동 갱신
    */
-  isConnected(entityId: string): boolean {
-    return this.tokenCache.has(entityId);
+  private async ensureToken(): Promise<string | null> {
+    if (this.token && this.token.expiresAt > Date.now()) {
+      return this.token.accessToken;
+    }
+    const ok = await this.acquireToken();
+    return ok ? this.token!.accessToken : null;
+  }
+
+  /**
+   * OAuth 연동 상태
+   */
+  isConnected(): boolean {
+    return !!(this.clientId && this.clientSecret);
   }
 
   /**
    * Open API로 멤버 목록 조회
    */
-  async getMembers(entityId: string, search?: string): Promise<AmaMember[]> {
-    let token = this.tokenCache.get(entityId);
-    if (!token) return [];
+  async getMembers(search?: string): Promise<AmaMember[]> {
+    const accessToken = await this.ensureToken();
+    if (!accessToken) return [];
 
-    // 토큰 만료 시 갱신 시도
-    if (token.expiresAt < Date.now()) {
-      const refreshed = await this.refreshAccessToken(entityId);
-      if (!refreshed) return [];
-      token = this.tokenCache.get(entityId)!;
-    }
-
-    // Open API 호출
     const url = new URL(`${this.openApiBase}/users`);
     if (search) url.searchParams.set('search', search);
 
@@ -156,25 +102,23 @@ export class AmaService {
       const res = await fetch(url.toString(), {
         method: 'GET',
         headers: {
-          Authorization: `Bearer ${token.accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
       });
 
-      // 401 → 토큰 갱신 후 재시도
+      // 401 → 토큰 재발급 후 재시도
       if (res.status === 401) {
-        const refreshed = await this.refreshAccessToken(entityId);
-        if (!refreshed) return [];
-        const newToken = this.tokenCache.get(entityId)!;
+        const newToken = await this.acquireToken();
+        if (!newToken || !this.token) return [];
 
         const retryRes = await fetch(url.toString(), {
           method: 'GET',
           headers: {
-            Authorization: `Bearer ${newToken.accessToken}`,
+            Authorization: `Bearer ${this.token.accessToken}`,
             'Content-Type': 'application/json',
           },
         });
-
         if (!retryRes.ok) return [];
         return this.parseMembers(await retryRes.json());
       }
