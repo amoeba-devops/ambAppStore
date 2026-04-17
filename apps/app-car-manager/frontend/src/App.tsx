@@ -17,6 +17,7 @@ import { DispatchDetailPage } from '@/pages/DispatchDetailPage';
 import { DispatchFormPage } from '@/pages/DispatchFormPage';
 import { TripLogListPage } from '@/pages/TripLogListPage';
 import { DriverListPage } from '@/pages/DriverListPage';
+import { OAuthCallbackPage } from '@/pages/OAuthCallbackPage';
 import { useAuthStore } from '@/stores/auth.store';
 import type { User } from '@/stores/auth.store';
 import {
@@ -172,6 +173,7 @@ function App() {
               <Route path="/dispatches/:id" element={<DispatchDetailPage />} />
               <Route path="/trip-logs" element={<TripLogListPage />} />
               <Route path="/drivers" element={<DriverListPage />} />
+              <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
             </Routes>
           </AppLayout>
         </AmaTokenHandler>

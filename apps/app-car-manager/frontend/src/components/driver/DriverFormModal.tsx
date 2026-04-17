@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, X, Loader2, KeyRound } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Search, X, Loader2, KeyRound, Link2 } from 'lucide-react';
 
 import { Modal } from '@/components/common/Modal';
 import { useCreateDriver } from '@/hooks/useDrivers';
 import { useAmaMembers } from '@/hooks/useAmaMembers';
+import { amaApi } from '@/services/api';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -24,6 +26,15 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
   const { t } = useTranslation('car');
   const createMut = useCreateDriver();
 
+  // OAuth status
+  const { data: oauthData, refetch: refetchOAuth } = useQuery({
+    queryKey: ['ama', 'oauth', 'status'],
+    queryFn: () => amaApi.getOAuthStatus(),
+    enabled: open,
+    staleTime: 30 * 1000,
+  });
+  const oauthConnected = oauthData?.data?.connected === true;
+
   const [manualMode, setManualMode] = useState(false);
   const [manualUuid, setManualUuid] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,6 +45,7 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
   const [note, setNote] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState('');
+  const [oauthLoading, setOauthLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { data: membersData, isLoading: membersLoading } = useAmaMembers(debouncedSearch);
@@ -47,9 +59,7 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
 
   // Show dropdown when results arrive
   useEffect(() => {
-    if (debouncedSearch.length >= 2) {
-      setShowDropdown(true);
-    }
+    if (debouncedSearch.length >= 2) setShowDropdown(true);
   }, [debouncedSearch, members]);
 
   // Close dropdown on outside click
@@ -62,6 +72,11 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  // Refetch OAuth status when modal opens
+  useEffect(() => {
+    if (open) refetchOAuth();
+  }, [open, refetchOAuth]);
 
   const resetForm = () => {
     setManualMode(false);
@@ -91,6 +106,18 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
   const handleClearSelection = () => {
     setSelectedMember(null);
     setSearchQuery('');
+  };
+
+  const handleOAuthConnect = async () => {
+    setOauthLoading(true);
+    try {
+      const res = await amaApi.getOAuthUrl();
+      const url = res?.data?.url;
+      if (url) window.location.href = url;
+    } catch {
+      setApiError(t('driverForm.oauthError'));
+      setOauthLoading(false);
+    }
   };
 
   const validate = (): boolean => {
@@ -137,6 +164,9 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
     }
   };
 
+  // Determine which input mode to show
+  const showSearch = oauthConnected && !manualMode;
+
   return (
     <Modal
       open={open}
@@ -145,39 +175,41 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
       size="sm"
       footer={
         <>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="rounded-lg border border-[#d4d8e0] bg-[#f0f2f5] px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
-          >
+          <button type="button" onClick={handleClose} className="rounded-lg border border-[#d4d8e0] bg-[#f0f2f5] px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900">
             {t('common.cancel')}
           </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={createMut.isPending}
-            className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-400 disabled:opacity-50"
-          >
+          <button type="button" onClick={handleSubmit} disabled={createMut.isPending} className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-400 disabled:opacity-50">
             {createMut.isPending ? t('common.loading') : t('driverForm.submit')}
           </button>
         </>
       }
     >
       <div className="space-y-4">
-        {/* API Error */}
         {apiError && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-            {apiError}
-          </div>
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{apiError}</div>
         )}
 
-        {/* AMA Member Search */}
+        {/* AMA Member Selection */}
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">
             {t('driverForm.amaUserId')} <span className="text-red-500">*</span>
           </label>
 
-          {manualMode ? (
+          {/* OAuth not connected & not manual → show connect prompt */}
+          {!oauthConnected && !manualMode ? (
+            <div className="rounded-lg border border-dashed border-orange-300 bg-orange-50/50 p-4 text-center">
+              <p className="mb-3 text-xs text-gray-500">{t('driverForm.oauthRequired')}</p>
+              <button
+                type="button"
+                onClick={handleOAuthConnect}
+                disabled={oauthLoading}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-400 disabled:opacity-50"
+              >
+                <Link2 className="h-4 w-4" />
+                {oauthLoading ? t('driverForm.oauthConnecting') : t('driverForm.oauthConnect')}
+              </button>
+            </div>
+          ) : manualMode ? (
             /* Manual UUID input */
             <input
               type="text"
@@ -188,9 +220,7 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
               }}
               placeholder={t('driverForm.amaUserIdPlaceholder')}
               className={`w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 ${
-                errors.member
-                  ? 'border-red-300 focus:ring-red-500'
-                  : 'border-[#d4d8e0] focus:ring-orange-500'
+                errors.member ? 'border-red-300 focus:ring-red-500' : 'border-[#d4d8e0] focus:ring-orange-500'
               }`}
             />
           ) : selectedMember ? (
@@ -203,11 +233,7 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
                 <div className="truncate text-sm font-medium text-gray-900">{selectedMember.name}</div>
                 <div className="truncate text-xs text-gray-500">{selectedMember.email}</div>
               </div>
-              <button
-                type="button"
-                onClick={handleClearSelection}
-                className="flex-shrink-0 rounded p-0.5 text-gray-400 hover:bg-orange-100 hover:text-gray-600"
-              >
+              <button type="button" onClick={handleClearSelection} className="flex-shrink-0 rounded p-0.5 text-gray-400 hover:bg-orange-100 hover:text-gray-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -225,9 +251,7 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
                   }}
                   placeholder={t('driverForm.searchPlaceholder')}
                   className={`w-full rounded-lg border py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 ${
-                    errors.member
-                      ? 'border-red-300 focus:ring-red-500'
-                      : 'border-[#d4d8e0] focus:ring-orange-500'
+                    errors.member ? 'border-red-300 focus:ring-red-500' : 'border-[#d4d8e0] focus:ring-orange-500'
                   }`}
                 />
                 {membersLoading && (
@@ -235,25 +259,15 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
                 )}
               </div>
 
-              {/* Dropdown */}
               {showDropdown && debouncedSearch.length >= 2 && (
                 <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-[#d4d8e0] bg-white shadow-lg">
                   {membersLoading ? (
-                    <div className="px-3 py-4 text-center text-xs text-gray-400">
-                      {t('common.loading')}
-                    </div>
+                    <div className="px-3 py-4 text-center text-xs text-gray-400">{t('common.loading')}</div>
                   ) : members.length === 0 ? (
-                    <div className="px-3 py-4 text-center text-xs text-gray-400">
-                      {t('driverForm.searchNoResult')}
-                    </div>
+                    <div className="px-3 py-4 text-center text-xs text-gray-400">{t('driverForm.searchNoResult')}</div>
                   ) : (
                     members.map((m) => (
-                      <button
-                        key={m.userId}
-                        type="button"
-                        onClick={() => handleSelect(m)}
-                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-orange-50"
-                      >
+                      <button key={m.userId} type="button" onClick={() => handleSelect(m)} className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-orange-50">
                         <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-600">
                           {m.name.charAt(0) || '?'}
                         </div>
@@ -267,14 +281,13 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
                 </div>
               )}
 
-              {/* Hint: min chars */}
               {searchQuery.length > 0 && searchQuery.length < 2 && (
                 <p className="mt-1 text-xs text-gray-400">{t('driverForm.searchMinChars')}</p>
               )}
             </div>
           )}
 
-          {/* Manual mode toggle */}
+          {/* Mode toggle */}
           <button
             type="button"
             onClick={() => {
@@ -284,15 +297,13 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
               setSearchQuery('');
               setErrors((prev) => ({ ...prev, member: '' }));
             }}
-            className="mt-1.5 flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+            className="mt-1.5 flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-orange-500"
           >
             <KeyRound className="h-3 w-3" />
-            {manualMode ? t('driverForm.amaUserId') : t('driverForm.manualInput')}
+            {manualMode ? t('driverForm.searchPlaceholder') : t('driverForm.manualInput')}
           </button>
 
-          {errors.member && (
-            <p className="mt-1 text-xs text-red-500">{errors.member}</p>
-          )}
+          {errors.member && <p className="mt-1 text-xs text-red-500">{errors.member}</p>}
         </div>
 
         {/* Role */}
@@ -300,32 +311,17 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
           <label className="mb-1 block text-sm font-medium text-gray-700">
             {t('driverForm.role')} <span className="text-red-500">*</span>
           </label>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="w-full rounded-lg border border-[#d4d8e0] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-          >
+          <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full rounded-lg border border-[#d4d8e0] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
             <option value="PRIMARY_DRIVER">{t('driverForm.rolePrimary')}</option>
             <option value="SUB_DRIVER">{t('driverForm.roleSub')}</option>
             <option value="POOL_DRIVER">{t('driverForm.rolePool')}</option>
           </select>
-          {errors.role && (
-            <p className="mt-1 text-xs text-red-500">{errors.role}</p>
-          )}
         </div>
 
         {/* Note */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
-            {t('driverForm.note')}
-          </label>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={2}
-            placeholder={t('driverForm.notePlaceholder')}
-            className="w-full rounded-lg border border-[#d4d8e0] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-          />
+          <label className="mb-1 block text-sm font-medium text-gray-700">{t('driverForm.note')}</label>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder={t('driverForm.notePlaceholder')} className="w-full rounded-lg border border-[#d4d8e0] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
         </div>
       </div>
     </Modal>

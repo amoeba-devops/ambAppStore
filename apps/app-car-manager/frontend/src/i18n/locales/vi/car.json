@@ -132,7 +132,12 @@
     "searchNoResult": "Không tìm thấy kết quả",
     "searchMinChars": "Nhập ít nhất 2 ký tự",
     "selectedMember": "Thành viên đã chọn",
-    "manualInput": "Nhập UUID thủ công"
+    "manualInput": "Nhập UUID thủ công",
+    "oauthRequired": "Cần kết nối AMA để tìm kiếm người dùng",
+    "oauthConnect": "Kết nối AMA",
+    "oauthConnecting": "Đang kết nối...",
+    "oauthSuccess": "Kết nối AMA thành công",
+    "oauthError": "Kết nối AMA thất bại"
   },
   "dispatch": {
     "title": "Danh sách điều xe",

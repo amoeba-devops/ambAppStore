@@ -132,7 +132,12 @@
     "searchNoResult": "검색 결과가 없습니다",
     "searchMinChars": "2글자 이상 입력하세요",
     "selectedMember": "선택된 사용자",
-    "manualInput": "UUID 직접 입력"
+    "manualInput": "UUID 직접 입력",
+    "oauthRequired": "AMA 사용자 검색을 위해 연동이 필요합니다",
+    "oauthConnect": "AMA 연동하기",
+    "oauthConnecting": "연동 중...",
+    "oauthSuccess": "AMA 연동 완료",
+    "oauthError": "AMA 연동 실패"
   },
   "dispatch": {
     "title": "배차 목록",

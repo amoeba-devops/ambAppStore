@@ -132,7 +132,12 @@
     "searchNoResult": "No results found",
     "searchMinChars": "Enter at least 2 characters",
     "selectedMember": "Selected member",
-    "manualInput": "Enter UUID manually"
+    "manualInput": "Enter UUID manually",
+    "oauthRequired": "AMA integration is required to search users",
+    "oauthConnect": "Connect AMA",
+    "oauthConnecting": "Connecting...",
+    "oauthSuccess": "AMA connected",
+    "oauthError": "AMA connection failed"
   },
   "dispatch": {
     "title": "Dispatch List",

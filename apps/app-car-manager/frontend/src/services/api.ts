@@ -92,6 +92,12 @@ export const maintenanceApi = {
 export const amaApi = {
   getMembers: (params?: { search?: string }) =>
     apiClient.get('/v1/ama/members', { params }).then((r) => r.data),
+  getOAuthStatus: () =>
+    apiClient.get('/v1/ama/oauth/status').then((r) => r.data),
+  getOAuthUrl: () =>
+    apiClient.get('/v1/ama/oauth/authorize').then((r) => r.data),
+  exchangeOAuthCode: (code: string, state: string) =>
+    apiClient.get('/v1/ama/oauth/callback', { params: { code, state } }).then((r) => r.data),
 };
 
 // --- Monitor ---
