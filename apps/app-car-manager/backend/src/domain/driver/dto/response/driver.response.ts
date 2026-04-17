@@ -2,6 +2,8 @@ export class DriverResponse {
   driverId: string;
   vehicleId: string | null;
   amaUserId: string;
+  driverName: string | null;
+  driverEmail: string | null;
   role: string;
   status: string;
   leaveStart: string | null;

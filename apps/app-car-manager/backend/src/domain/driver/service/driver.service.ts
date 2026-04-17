@@ -66,6 +66,8 @@ export class DriverService {
       entId: entityId,
       cvhId: req.vehicle_id || null,
       cvdAmaUserId: req.ama_user_id,
+      cvdDriverName: req.driver_name || null,
+      cvdDriverEmail: req.driver_email || null,
       cvdRole: req.role,
       cvdNote: req.note || null,
     });

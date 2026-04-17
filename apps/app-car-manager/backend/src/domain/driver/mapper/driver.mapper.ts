@@ -7,6 +7,8 @@ export class DriverMapper {
       driverId: entity.cvdId,
       vehicleId: entity.cvhId,
       amaUserId: entity.cvdAmaUserId,
+      driverName: entity.cvdDriverName,
+      driverEmail: entity.cvdDriverEmail,
       role: entity.cvdRole,
       status: entity.cvdStatus,
       leaveStart: entity.cvdLeaveStart?.toISOString().slice(0, 10) ?? null,

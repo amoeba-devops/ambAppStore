@@ -127,6 +127,10 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
     try {
       await createMut.mutateAsync({
         ama_user_id: amaUserId,
+        ...(!manualMode && selectedMember && {
+          driver_name: selectedMember.name,
+          driver_email: selectedMember.email,
+        }),
         role,
         ...(vehicleId && { vehicle_id: vehicleId }),
         ...(note.trim() && { note: note.trim() }),

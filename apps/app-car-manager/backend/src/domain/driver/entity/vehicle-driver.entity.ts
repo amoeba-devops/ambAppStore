@@ -28,6 +28,12 @@ export class VehicleDriverEntity {
   @Column({ name: 'cvd_ama_user_id', type: 'char', length: 36 })
   cvdAmaUserId: string;
 
+  @Column({ name: 'cvd_driver_name', type: 'varchar', length: 100, nullable: true })
+  cvdDriverName: string | null;
+
+  @Column({ name: 'cvd_driver_email', type: 'varchar', length: 200, nullable: true })
+  cvdDriverEmail: string | null;
+
   @Column({ name: 'cvd_role', type: 'enum', enum: DriverRole })
   cvdRole: DriverRole;
 

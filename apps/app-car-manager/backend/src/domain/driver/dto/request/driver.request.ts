@@ -10,6 +10,14 @@ export class CreateDriverRequest {
   @IsNotEmpty()
   ama_user_id: string;
 
+  @IsString()
+  @IsOptional()
+  driver_name?: string;
+
+  @IsString()
+  @IsOptional()
+  driver_email?: string;
+
   @IsEnum(DriverRole)
   @IsNotEmpty()
   role: DriverRole;
