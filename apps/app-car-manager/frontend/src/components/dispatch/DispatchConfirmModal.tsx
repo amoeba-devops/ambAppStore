@@ -75,10 +75,10 @@ export function DispatchConfirmModal({ dispatch, onClose }: DispatchConfirmModal
           <div className="max-h-48 space-y-1.5 overflow-y-auto">
             {vehicles.map((v) => (
               <AvailableVehicleCard
-                key={v.vehicleId as string}
+                key={v.cvhId as string}
                 vehicle={v}
-                selected={selectedVehicle === (v.vehicleId as string)}
-                onSelect={() => setSelectedVehicle(v.vehicleId as string)}
+                selected={selectedVehicle === (v.cvhId as string)}
+                onSelect={() => setSelectedVehicle(v.cvhId as string)}
               />
             ))}
             {vehicles.length === 0 && (

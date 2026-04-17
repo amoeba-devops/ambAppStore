@@ -28,10 +28,6 @@ import {
 } from '@/lib/ama-token';
 import i18n from '@/i18n/i18n';
 
-// Capture initial values BEFORE React hydration cleans URL
-const _initialReferrer = document.referrer;
-const _initialQueryParams = window.location.search;
-
 /**
  * AMA → iframe 진입 시 ama_token JWT 처리 (게이팅 컴포넌트):
  * ama_token이 URL에 있으면 처리 완료 전까지 자식 컴포넌트를 렌더링하지 않음.
@@ -152,6 +148,10 @@ function AmaTokenHandler({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>;
 }
+
+// Capture initial values BEFORE React hydration cleans URL
+const _initialReferrer = document.referrer;
+const _initialQueryParams = window.location.search;
 
 function App() {
   const initialRef = useRef({ referrer: _initialReferrer, params: _initialQueryParams });

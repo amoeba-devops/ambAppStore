@@ -47,7 +47,7 @@ export function VehicleListPage() {
         );
         if (daysLeft > 0 && daysLeft <= 30) {
           items.push({
-            id: `ins-${v.vehicleId}`,
+            id: `ins-${v.cvhId}`,
             type: daysLeft <= 7 ? 'danger' : 'warning',
             message: `<strong>${v.plateNumber}</strong> ${t('vehicle.insuranceExpiry')} <strong>D-${daysLeft}</strong>`,
             actionLabel: t('vehicle.renewInsurance'),
@@ -111,9 +111,9 @@ export function VehicleListPage() {
           <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
             {vehicles.map((v) => (
               <VehicleCard
-                key={v.vehicleId as string}
+                key={v.cvhId as string}
                 vehicle={v}
-                onClick={() => navigate(`/vehicles/${v.vehicleId}`)}
+                onClick={() => navigate(`/vehicles/${v.cvhId}`)}
               />
             ))}
           </div>

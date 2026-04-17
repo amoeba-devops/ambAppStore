@@ -113,10 +113,10 @@ export function DispatchFormPage() {
               const tooSmall = passengerCount > maxP;
               return (
                 <AvailableVehicleCard
-                  key={v.vehicleId as string}
+                  key={v.cvhId as string}
                   vehicle={v}
-                  selected={selectedVehicle === (v.vehicleId as string)}
-                  onSelect={() => setSelectedVehicle(v.vehicleId as string)}
+                  selected={selectedVehicle === (v.cvhId as string)}
+                  onSelect={() => setSelectedVehicle(v.cvhId as string)}
                   disabled={tooSmall}
                 />
               );

@@ -14,6 +14,11 @@ apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('ama_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  } else if (import.meta.env.DEV) {
+    config.headers['X-Entity-Id'] = 'dev-entity-001';
+    config.headers['X-Entity-Code'] = 'DEV';
+    config.headers['X-Entity-Name'] = 'Dev Entity';
+    config.headers['X-Entity-Email'] = 'dev@localhost';
   }
   return config;
 });
