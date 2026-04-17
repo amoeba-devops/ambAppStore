@@ -11,6 +11,7 @@ import { DispatchModule } from './domain/dispatch/dispatch.module';
 import { TripLogModule } from './domain/trip-log/trip-log.module';
 import { MonitorModule } from './domain/monitor/monitor.module';
 import { MaintenanceModule } from './domain/maintenance/maintenance.module';
+import { AmaModule } from './domain/ama/ama.module';
 import * as path from 'path';
 
 @Module({
@@ -45,6 +46,7 @@ import * as path from 'path';
     TripLogModule,
     MaintenanceModule,
     MonitorModule,
+    AmaModule,
   ],
   controllers: [HealthController],
   providers: [

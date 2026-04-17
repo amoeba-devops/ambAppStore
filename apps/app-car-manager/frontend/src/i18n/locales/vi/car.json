@@ -127,7 +127,11 @@
     "errorDuplicate": "Tài xế này đã được đăng ký",
     "errorInvalidUuid": "Định dạng UUID không hợp lệ",
     "errorRequired": "Trường này là bắt buộc",
-    "successMessage": "Đăng ký tài xế thành công"
+    "successMessage": "Đăng ký tài xế thành công",
+    "searchPlaceholder": "Tìm theo tên hoặc email...",
+    "searchNoResult": "Không tìm thấy kết quả",
+    "searchMinChars": "Nhập ít nhất 2 ký tự",
+    "selectedMember": "Thành viên đã chọn"
   },
   "dispatch": {
     "title": "Danh sách điều xe",

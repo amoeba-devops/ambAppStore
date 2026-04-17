@@ -88,6 +88,12 @@ export const maintenanceApi = {
     apiClient.delete(`/v1/maintenance/${id}`).then((r) => r.data),
 };
 
+// --- AMA ---
+export const amaApi = {
+  getMembers: (params?: { search?: string }) =>
+    apiClient.get('/v1/ama/members', { params }).then((r) => r.data),
+};
+
 // --- Monitor ---
 export const monitorApi = {
   getDashboard: () =>

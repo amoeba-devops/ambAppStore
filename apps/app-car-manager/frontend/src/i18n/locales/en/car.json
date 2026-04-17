@@ -127,7 +127,11 @@
     "errorDuplicate": "This driver is already registered",
     "errorInvalidUuid": "Invalid UUID format",
     "errorRequired": "This field is required",
-    "successMessage": "Driver registered successfully"
+    "successMessage": "Driver registered successfully",
+    "searchPlaceholder": "Search by name or email...",
+    "searchNoResult": "No results found",
+    "searchMinChars": "Enter at least 2 characters",
+    "selectedMember": "Selected member"
   },
   "dispatch": {
     "title": "Dispatch List",
