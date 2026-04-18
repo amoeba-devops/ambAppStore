@@ -114,9 +114,9 @@ export function PoolDriverModal({ open, onClose, vehicleId }: PoolDriverModalPro
                         {driverEmail(d) && (
                           <div className="text-xs text-gray-400">{driverEmail(d)}</div>
                         )}
-                        {d.vehicleId && (
+                        {Boolean(d.vehicleId) && (
                           <div className="text-[10px] text-gray-400">
-                            {t('poolDriver.currentVehicle')}: {(d.vehiclePlateNumber as string) || '-'}
+                            {t('poolDriver.currentVehicle')}: {String(d.vehiclePlateNumber || '-')}
                           </div>
                         )}
                       </div>
