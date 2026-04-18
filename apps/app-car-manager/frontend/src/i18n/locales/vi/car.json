@@ -198,7 +198,8 @@
     "purposeClient": "Khách hàng",
     "purposeTransfer": "Di chuyển",
     "purposeOther": "Khác",
-    "note": "Ghi chú"
+    "note": "Ghi chú",
+    "errorReturnBeforeDepart": "Thời gian trở về không thể sớm hơn thời gian khởi hành"
   },
   "tripLog": {
     "title": "Danh sách nhật ký chuyến",

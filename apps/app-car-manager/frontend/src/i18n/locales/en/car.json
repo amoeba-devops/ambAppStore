@@ -198,7 +198,8 @@
     "purposeClient": "Client",
     "purposeTransfer": "Transfer",
     "purposeOther": "Other",
-    "note": "Note"
+    "note": "Note",
+    "errorReturnBeforeDepart": "Return time cannot be earlier than departure time"
   },
   "tripLog": {
     "title": "Trip Log List",

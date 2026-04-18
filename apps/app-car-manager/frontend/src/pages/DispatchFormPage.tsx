@@ -13,18 +13,28 @@ export function DispatchFormPage() {
   const navigate = useNavigate();
   const createMut = useCreateDispatch();
   const { data: vehiclesData } = useVehicles({ status: 'AVAILABLE' });
-  const { register, handleSubmit, watch } = useForm();
+  const { register, handleSubmit, watch, setError, formState: { errors } } = useForm();
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
 
   const vehicles: Record<string, unknown>[] = vehiclesData?.data || [];
   const passengerCount = Number(watch('passenger_count') || 1);
+  const departDate = watch('depart_date');
+  const departTime = watch('depart_time');
 
   const onSubmit = async (data: Record<string, unknown>) => {
+    const departAt = `${data.depart_date}T${data.depart_time || '09:00'}`;
+    const returnAt = `${data.return_date}T${data.return_time || '18:00'}`;
+
+    if (new Date(returnAt) <= new Date(departAt)) {
+      setError('return_date', { message: t('dispatch.errorReturnBeforeDepart') });
+      return;
+    }
+
     await createMut.mutateAsync({
       purpose_type: data.purpose_type,
       purpose: data.purpose,
-      depart_at: `${data.depart_date}T${data.depart_time || '09:00'}`,
-      return_at: `${data.return_date}T${data.return_time || '18:00'}`,
+      depart_at: departAt,
+      return_at: returnAt,
       origin: data.origin,
       destination: data.destination,
       passenger_count: Number(data.passenger_count) || 1,
@@ -80,9 +90,12 @@ export function DispatchFormPage() {
             </Field>
             <Field label={t('dispatch.returnAt')} required>
               <div className="flex gap-2">
-                <input {...register('return_date', { required: true })} type="date" className="input flex-1" />
+                <input {...register('return_date', { required: true })} type="date" min={departDate || undefined} className="input flex-1" />
                 <input {...register('return_time', { required: true })} type="time" defaultValue="18:00" className="input w-32" />
               </div>
+              {errors.return_date?.message && (
+                <p className="mt-1 text-xs text-red-500">{String(errors.return_date.message)}</p>
+              )}
             </Field>
             <Field label={t('dispatch.origin')} required>
               <input {...register('origin', { required: true })} className="input" placeholder={t('dispatch.originPlaceholder')} />
