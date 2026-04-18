@@ -52,6 +52,23 @@ export function useUpdateDriver() {
   });
 }
 
+export function useAssignDriver() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, vehicleId }: { id: string; vehicleId: string }) =>
+      driverApi.assign(id, { vehicle_id: vehicleId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: driverKeys.all }),
+  });
+}
+
+export function useUnassignDriver() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => driverApi.unassign(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: driverKeys.all }),
+  });
+}
+
 export function useDeleteDriver() {
   const qc = useQueryClient();
   return useMutation({

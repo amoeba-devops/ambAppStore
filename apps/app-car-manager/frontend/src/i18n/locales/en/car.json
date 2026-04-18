@@ -139,6 +139,16 @@
     "oauthSuccess": "AMA connected",
     "oauthError": "AMA connection failed"
   },
+  "poolDriver": {
+    "assignedToVehicle": "Pool drivers assigned to this vehicle",
+    "available": "Available pool drivers",
+    "assign": "Assign",
+    "unassign": "Remove",
+    "noPoolDrivers": "No pool drivers registered",
+    "noneAssigned": "No pool drivers assigned",
+    "allAssigned": "All pool drivers are already assigned",
+    "currentVehicle": "Current vehicle"
+  },
   "dispatch": {
     "title": "Dispatch List",
     "createDispatch": "Create Dispatch",

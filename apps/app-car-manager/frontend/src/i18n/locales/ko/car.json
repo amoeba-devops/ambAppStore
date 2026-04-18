@@ -139,6 +139,16 @@
     "oauthSuccess": "AMA 연동 완료",
     "oauthError": "AMA 연동 실패"
   },
+  "poolDriver": {
+    "assignedToVehicle": "이 차량에 배정된 풀 운전자",
+    "available": "배정 가능한 풀 운전자",
+    "assign": "배정",
+    "unassign": "해제",
+    "noPoolDrivers": "등록된 풀 운전자가 없습니다",
+    "noneAssigned": "배정된 풀 운전자가 없습니다",
+    "allAssigned": "모든 풀 운전자가 이미 배정되었습니다",
+    "currentVehicle": "현재 배정"
+  },
   "dispatch": {
     "title": "배차 목록",
     "createDispatch": "배차 신청",

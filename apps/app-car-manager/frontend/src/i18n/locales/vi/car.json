@@ -139,6 +139,16 @@
     "oauthSuccess": "Kết nối AMA thành công",
     "oauthError": "Kết nối AMA thất bại"
   },
+  "poolDriver": {
+    "assignedToVehicle": "Tài xế chung được phân cho xe này",
+    "available": "Tài xế chung có sẵn",
+    "assign": "Phân công",
+    "unassign": "Gỡ bỏ",
+    "noPoolDrivers": "Không có tài xế chung nào",
+    "noneAssigned": "Chưa có tài xế chung nào được phân",
+    "allAssigned": "Tất cả tài xế chung đã được phân công",
+    "currentVehicle": "Xe hiện tại"
+  },
   "dispatch": {
     "title": "Danh sách điều xe",
     "createDispatch": "Tạo yêu cầu điều xe",
