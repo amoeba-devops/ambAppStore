@@ -1,4 +1,4 @@
-import { Injectable, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpStatus, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { VehicleDriverEntity } from '../entity/vehicle-driver.entity';
@@ -10,12 +10,16 @@ import {
 } from '../dto/request/driver.request';
 import { DriverStatus } from '../../../common/constants/enums';
 import { BusinessException } from '../../../common/exceptions/business.exception';
+import { AmaService } from '../../ama/service/ama.service';
 
 @Injectable()
 export class DriverService {
+  private readonly logger = new Logger(DriverService.name);
+
   constructor(
     @InjectRepository(VehicleDriverEntity)
     private readonly driverRepo: Repository<VehicleDriverEntity>,
+    private readonly amaService: AmaService,
   ) {}
 
   async findAll(entityId: string, filters?: { vehicleId?: string; status?: string }): Promise<VehicleDriverEntity[]> {
@@ -32,7 +36,35 @@ export class DriverService {
     }
 
     qb.orderBy('d.cvdCreatedAt', 'DESC');
-    return qb.getMany();
+    const drivers = await qb.getMany();
+
+    return drivers;
+  }
+
+  /**
+   * Controller에서 호출: AMA 멤버로 이름 보정
+   */
+  async enrichDriverNames(amaJwt: string, entityId: string, drivers: VehicleDriverEntity[]): Promise<void> {
+    const unnamed = drivers.filter((d) => !d.cvdDriverName);
+    if (unnamed.length === 0) return;
+
+    try {
+      const members = await this.amaService.getMembers(amaJwt, entityId);
+      if (members.length === 0) return;
+
+      const memberMap = new Map(members.map((m) => [m.userId, m]));
+
+      for (const driver of unnamed) {
+        const member = memberMap.get(driver.cvdAmaUserId);
+        if (member) {
+          driver.cvdDriverName = member.name;
+          driver.cvdDriverEmail = member.email;
+          await this.driverRepo.save(driver);
+        }
+      }
+    } catch {
+      // AMA 조회 실패 시 무시 — 다음에 재시도
+    }
   }
 
   async findById(entityId: string, id: string): Promise<VehicleDriverEntity> {

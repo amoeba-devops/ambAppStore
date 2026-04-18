@@ -7,10 +7,12 @@ import {
   Param,
   Body,
   Query,
+  Req,
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { DriverService } from '../service/driver.service';
 import { DriverMapper } from '../mapper/driver.mapper';
 import {
@@ -37,8 +39,14 @@ export class DriverController {
     @CurrentUser() user: AmaJwtPayload,
     @Query('vehicle_id') vehicleId?: string,
     @Query('status') status?: string,
+    @Req() req?: Request,
   ) {
     const drivers = await this.driverService.findAll(user.ent_id, { vehicleId, status });
+
+    // 이름 없는 운전자를 AMA에서 자동 보정 (동기 — 첫 요청에서도 이름 표시)
+    const amaJwt = req?.headers?.authorization?.replace('Bearer ', '') || '';
+    await this.driverService.enrichDriverNames(amaJwt, user.ent_id, drivers);
+
     return successListResponse(DriverMapper.toListResponse(drivers));
   }
 
