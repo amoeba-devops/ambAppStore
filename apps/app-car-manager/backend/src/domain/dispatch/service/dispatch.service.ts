@@ -1,4 +1,4 @@
-import { Injectable, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpStatus, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { DispatchRequestEntity } from '../entity/dispatch-request.entity';
@@ -13,14 +13,18 @@ import {
 import { DispatchStatus, VehicleStatus } from '../../../common/constants/enums';
 import { BusinessException } from '../../../common/exceptions/business.exception';
 import { assertTransition } from '../engine/dispatch-state-machine';
+import { TripLogService } from '../../trip-log/service/trip-log.service';
 
 @Injectable()
 export class DispatchService {
+  private readonly logger = new Logger(DispatchService.name);
+
   constructor(
     @InjectRepository(DispatchRequestEntity)
     private readonly dispatchRepo: Repository<DispatchRequestEntity>,
     @InjectRepository(VehicleEntity)
     private readonly vehicleRepo: Repository<VehicleEntity>,
+    private readonly tripLogService: TripLogService,
   ) {}
 
   async findAll(
@@ -66,6 +70,7 @@ export class DispatchService {
   ): Promise<DispatchRequestEntity> {
     const dispatch = this.dispatchRepo.create({
       entId: entityId,
+      cvhId: req.preferred_vehicle_id || null,
       cdrRequesterId: userId,
       cdrRequesterName: userName,
       cdrPurposeType: req.purpose_type,
@@ -186,7 +191,24 @@ export class DispatchService {
       await this.vehicleRepo.update(dispatch.cvhId, { cvhStatus: VehicleStatus.AVAILABLE });
     }
 
-    return this.dispatchRepo.save(dispatch);
+    const saved = await this.dispatchRepo.save(dispatch);
+
+    // 운행일지 자동 생성
+    try {
+      await this.tripLogService.createFromDispatch(
+        entityId,
+        dispatch.cdrId,
+        dispatch.cvhId || '',
+        dispatch.cvdId || '',
+        dispatch.cdrOrigin,
+        dispatch.cdrDestination,
+      );
+      this.logger.log(`Trip log auto-created for dispatch ${dispatch.cdrId}`);
+    } catch (err) {
+      this.logger.warn(`Trip log creation failed for dispatch ${dispatch.cdrId}: ${(err as Error).message}`);
+    }
+
+    return saved;
   }
 
   async cancel(entityId: string, id: string, req: CancelDispatchRequest): Promise<DispatchRequestEntity> {

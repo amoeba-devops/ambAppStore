@@ -20,6 +20,7 @@ export class DispatchMapper {
       createdAt: entity.cdrCreatedAt?.toISOString(),
       vehiclePlateNumber: entity.vehicle?.cvhPlateNumber,
       vehicleModel: entity.vehicle ? `${entity.vehicle.cvhMake} ${entity.vehicle.cvhModel}` : undefined,
+      driverName: entity.driver?.cvdDriverName || undefined,
     };
   }
 
