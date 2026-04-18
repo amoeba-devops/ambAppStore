@@ -48,6 +48,10 @@ export class CreateDispatchRequest {
   @IsOptional()
   passenger_list?: string[];
 
+  @IsUUID()
+  @IsOptional()
+  preferred_vehicle_id?: string;
+
   @IsString()
   @IsOptional()
   preferred_vehicle_type?: string;
