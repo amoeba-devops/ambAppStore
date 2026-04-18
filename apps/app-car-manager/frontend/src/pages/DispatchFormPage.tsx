@@ -8,22 +8,40 @@ import { useVehicles } from '@/hooks/useVehicles';
 import { PageHeader } from '@/components/common/PageHeader';
 import { AvailableVehicleCard } from '@/components/dispatch/AvailableVehicleCard';
 
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const MINUTES = ['00', '15', '30', '45'];
+
 export function DispatchFormPage() {
   const { t } = useTranslation('car');
   const navigate = useNavigate();
   const createMut = useCreateDispatch();
   const { data: vehiclesData } = useVehicles({ status: 'AVAILABLE' });
-  const { register, handleSubmit, watch, setError, formState: { errors } } = useForm();
+  const { register, handleSubmit, watch, setError, clearErrors, formState: { errors } } = useForm({
+    defaultValues: {
+      purpose_type: 'BUSINESS',
+      passenger_count: '1',
+      depart_date: '',
+      depart_hour: '09',
+      depart_min: '00',
+      return_date: '',
+      return_hour: '18',
+      return_min: '00',
+      origin: '',
+      destination: '',
+      purpose: '',
+      note: '',
+      is_proxy: false,
+    },
+  });
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
 
   const vehicles: Record<string, unknown>[] = vehiclesData?.data || [];
   const passengerCount = Number(watch('passenger_count') || 1);
   const departDate = watch('depart_date');
-  const departTime = watch('depart_time');
 
   const onSubmit = async (data: Record<string, unknown>) => {
-    const departAt = `${data.depart_date}T${data.depart_time || '09:00'}`;
-    const returnAt = `${data.return_date}T${data.return_time || '18:00'}`;
+    const departAt = `${data.depart_date}T${data.depart_hour}:${data.depart_min}:00`;
+    const returnAt = `${data.return_date}T${data.return_hour}:${data.return_min}:00`;
 
     if (new Date(returnAt) <= new Date(departAt)) {
       setError('return_date', { message: t('dispatch.errorReturnBeforeDepart') });
@@ -82,21 +100,47 @@ export function DispatchFormPage() {
             <Field label={t('dispatch.passengers')}>
               <input {...register('passenger_count')} type="number" defaultValue={1} min={1} className="input" />
             </Field>
+
+            {/* Depart: date + hour:min selects */}
             <Field label={t('dispatch.departAt')} required>
               <div className="flex gap-2">
                 <input {...register('depart_date', { required: true })} type="date" className="input flex-1" />
-                <input {...register('depart_time', { required: true })} type="time" defaultValue="09:00" className="input w-32" />
+                <select {...register('depart_hour')} className="input w-[70px]">
+                  {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
+                </select>
+                <span className="flex items-center text-gray-400">:</span>
+                <select {...register('depart_min')} className="input w-[70px]">
+                  {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
               </div>
             </Field>
+
+            {/* Return: date + hour:min selects */}
             <Field label={t('dispatch.returnAt')} required>
               <div className="flex gap-2">
-                <input {...register('return_date', { required: true })} type="date" min={departDate || undefined} className="input flex-1" />
-                <input {...register('return_time', { required: true })} type="time" defaultValue="18:00" className="input w-32" />
+                <input
+                  {...register('return_date', { required: true })}
+                  type="date"
+                  min={departDate || undefined}
+                  className="input flex-1"
+                  onChange={(e) => {
+                    register('return_date').onChange(e);
+                    clearErrors('return_date');
+                  }}
+                />
+                <select {...register('return_hour')} className="input w-[70px]">
+                  {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
+                </select>
+                <span className="flex items-center text-gray-400">:</span>
+                <select {...register('return_min')} className="input w-[70px]">
+                  {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
               </div>
               {errors.return_date?.message && (
                 <p className="mt-1 text-xs text-red-500">{String(errors.return_date.message)}</p>
               )}
             </Field>
+
             <Field label={t('dispatch.origin')} required>
               <input {...register('origin', { required: true })} className="input" placeholder={t('dispatch.originPlaceholder')} />
             </Field>
