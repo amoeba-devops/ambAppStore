@@ -201,6 +201,18 @@
     "note": "Note",
     "errorReturnBeforeDepart": "Return time cannot be earlier than departure time"
   },
+  "dispatchDetail": {
+    "requestInfo": "Request Info",
+    "assignmentStatus": "Assignment & Status",
+    "approvedAt": "Approved At",
+    "departedAt": "Departed At",
+    "arrivedAt": "Arrived At",
+    "completedAt": "Completed At",
+    "rejectReason": "Reject Reason",
+    "cancelReason": "Cancel Reason",
+    "rejectReasonPrompt": "Enter reject reason",
+    "cancelReasonPrompt": "Enter cancel reason"
+  },
   "tripLog": {
     "title": "Trip Log List",
     "origin": "Origin",

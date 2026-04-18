@@ -19,7 +19,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ent_id: payload.ent_id || payload.entityId,
       ent_code: payload.ent_code || payload.entityCode,
       email: payload.email,
-      name: payload.name,
+      name: payload.name || payload.usr_name || payload.fullName || (payload.email ? payload.email.split('@')[0] : ''),
       roles: payload.roles || [],
       iat: payload.iat,
       exp: payload.exp,

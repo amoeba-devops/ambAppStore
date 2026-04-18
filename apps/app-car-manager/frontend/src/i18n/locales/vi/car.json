@@ -201,6 +201,18 @@
     "note": "Ghi chú",
     "errorReturnBeforeDepart": "Thời gian trở về không thể sớm hơn thời gian khởi hành"
   },
+  "dispatchDetail": {
+    "requestInfo": "Thông tin yêu cầu",
+    "assignmentStatus": "Phân công & Trạng thái",
+    "approvedAt": "Ngày duyệt",
+    "departedAt": "Ngày khởi hành",
+    "arrivedAt": "Ngày đến",
+    "completedAt": "Ngày hoàn thành",
+    "rejectReason": "Lý do từ chối",
+    "cancelReason": "Lý do hủy",
+    "rejectReasonPrompt": "Nhập lý do từ chối",
+    "cancelReasonPrompt": "Nhập lý do hủy"
+  },
   "tripLog": {
     "title": "Danh sách nhật ký chuyến",
     "origin": "Điểm đi",
