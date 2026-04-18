@@ -30,7 +30,7 @@ export function DriverCard({ driver, isPrimary, onEdit }: DriverCardProps) {
 
   const role = (driver.role as string) || 'SUB_DRIVER';
   const status = (driver.status as string) || 'ACTIVE';
-  const name = (driver.name as string) || (driver.amaUserId as string) || '';
+  const name = (driver.driverName as string) || (driver.name as string) || (driver.amaUserId as string) || '';
   const initial = name.charAt(0);
   const department = driver.department as string;
   const licenseExpiry = driver.licenseExpiry as string;
