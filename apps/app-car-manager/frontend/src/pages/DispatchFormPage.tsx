@@ -23,8 +23,8 @@ export function DispatchFormPage() {
     await createMut.mutateAsync({
       purpose_type: data.purpose_type,
       purpose: data.purpose,
-      depart_at: data.depart_at,
-      return_at: data.return_at,
+      depart_at: `${data.depart_date}T${data.depart_time || '09:00'}`,
+      return_at: `${data.return_date}T${data.return_time || '18:00'}`,
       origin: data.origin,
       destination: data.destination,
       passenger_count: Number(data.passenger_count) || 1,
@@ -73,10 +73,16 @@ export function DispatchFormPage() {
               <input {...register('passenger_count')} type="number" defaultValue={1} min={1} className="input" />
             </Field>
             <Field label={t('dispatch.departAt')} required>
-              <input {...register('depart_at', { required: true })} type="datetime-local" className="input" />
+              <div className="flex gap-2">
+                <input {...register('depart_date', { required: true })} type="date" className="input flex-1" />
+                <input {...register('depart_time', { required: true })} type="time" defaultValue="09:00" className="input w-32" />
+              </div>
             </Field>
             <Field label={t('dispatch.returnAt')} required>
-              <input {...register('return_at', { required: true })} type="datetime-local" className="input" />
+              <div className="flex gap-2">
+                <input {...register('return_date', { required: true })} type="date" className="input flex-1" />
+                <input {...register('return_time', { required: true })} type="time" defaultValue="18:00" className="input w-32" />
+              </div>
             </Field>
             <Field label={t('dispatch.origin')} required>
               <input {...register('origin', { required: true })} className="input" placeholder={t('dispatch.originPlaceholder')} />
