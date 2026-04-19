@@ -32,7 +32,8 @@
     "dispatchRequest": "Request Dispatch",
     "sectionRecord": "Records",
     "sectionDriver": "Driver",
-    "driverList": "Driver List"
+    "driverList": "Driver List",
+    "tripLogEntry": "Trip Log Entry"
   },
   "monitor": {
     "title": "Real-time Monitor",
@@ -240,6 +241,22 @@
     "startMileage": "Start Mileage",
     "endMileage": "End Mileage",
     "tollFee": "Toll Fee"
+  },
+  "tripLogImport": {
+    "title": "Trip Log Excel Import",
+    "selectVehicle": "Select vehicle",
+    "selectDriver": "Select driver",
+    "file": "Excel file",
+    "dropzone": "Select .xls/.xlsx file",
+    "preview": "Preview",
+    "upload": "Excel Upload",
+    "confirmUpload": "Confirm Upload",
+    "totalRows": "Total rows",
+    "successCount": "Success",
+    "warningCount": "Warnings",
+    "failCount": "Failed",
+    "row": "Row",
+    "message": "Message"
   },
   "maintenance": {
     "title": "Maintenance Records",

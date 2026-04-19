@@ -16,6 +16,7 @@ import { DispatchListPage } from '@/pages/DispatchListPage';
 import { DispatchDetailPage } from '@/pages/DispatchDetailPage';
 import { DispatchFormPage } from '@/pages/DispatchFormPage';
 import { TripLogListPage } from '@/pages/TripLogListPage';
+import { TripLogFormPage } from '@/pages/TripLogFormPage';
 import { DriverListPage } from '@/pages/DriverListPage';
 import { useAuthStore } from '@/stores/auth.store';
 import type { User } from '@/stores/auth.store';
@@ -171,6 +172,7 @@ function App() {
               <Route path="/dispatches/new" element={<DispatchFormPage />} />
               <Route path="/dispatches/:id" element={<DispatchDetailPage />} />
               <Route path="/trip-logs" element={<TripLogListPage />} />
+              <Route path="/trip-logs/new" element={<TripLogFormPage />} />
               <Route path="/drivers" element={<DriverListPage />} />
             </Routes>
           </AppLayout>

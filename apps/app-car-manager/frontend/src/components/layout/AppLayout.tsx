@@ -6,6 +6,7 @@ import {
   UserCheck,
   Kanban,
   PlusCircle,
+  FilePenLine,
   FileText,
   Globe,
 } from 'lucide-react';
@@ -20,11 +21,6 @@ interface NavItem {
   label: string;
   badge?: number;
   badgeColor?: string;
-}
-
-interface NavSection {
-  label: string;
-  items: NavItem[];
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -43,44 +39,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     i18n.changeLanguage(langs[(idx + 1) % langs.length]);
   };
 
-  const sections: NavSection[] = [
+  const navItems: NavItem[] = [
     {
-      label: t('nav.sectionMonitor'),
-      items: [
-        {
-          to: '/',
-          icon: LayoutDashboard,
-          label: t('nav.monitor'),
-          badge: activeCount || undefined,
-          badgeColor: 'bg-orange-500',
-        },
-      ],
+      to: '/',
+      icon: LayoutDashboard,
+      label: t('nav.monitor'),
+      badge: activeCount || undefined,
+      badgeColor: 'bg-orange-500',
     },
     {
-      label: t('nav.sectionVehicle'),
-      items: [{ to: '/vehicles', icon: Car, label: t('nav.vehicleList') }],
+      to: '/dispatches',
+      icon: Kanban,
+      label: t('nav.dispatchBoard'),
+      badge: pendingCount || undefined,
+      badgeColor: 'bg-yellow-500',
     },
-    {
-      label: t('nav.sectionDriver'),
-      items: [{ to: '/drivers', icon: UserCheck, label: t('nav.driverList') }],
-    },
-    {
-      label: t('nav.sectionDispatch'),
-      items: [
-        {
-          to: '/dispatches',
-          icon: Kanban,
-          label: t('nav.dispatchBoard'),
-          badge: pendingCount || undefined,
-          badgeColor: 'bg-yellow-500',
-        },
-        { to: '/dispatches/new', icon: PlusCircle, label: t('nav.dispatchRequest') },
-      ],
-    },
-    {
-      label: t('nav.sectionRecord'),
-      items: [{ to: '/trip-logs', icon: FileText, label: t('nav.tripLogs') }],
-    },
+    { to: '/dispatches/new', icon: PlusCircle, label: t('nav.dispatchRequest') },
+    { to: '/trip-logs', icon: FileText, label: t('nav.tripLogs') },
+    { to: '/trip-logs/new', icon: FilePenLine, label: t('nav.tripLogEntry') },
+    { to: '/vehicles', icon: Car, label: t('nav.vehicleList') },
+    { to: '/drivers', icon: UserCheck, label: t('nav.driverList') },
   ];
 
   const userName = user?.name || 'User';
@@ -103,40 +81,33 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-2">
-          {sections.map((section) => (
-            <div key={section.label} className="py-1">
-              <div className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                {section.label}
-              </div>
-              {section.items.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === '/' || item.to === '/dispatches'}
-                  className={({ isActive }) =>
-                    clsx(
-                      'relative flex items-center gap-2.5 px-4 py-2 text-[13.5px] transition-colors',
-                      isActive
-                        ? 'border-r-2 border-orange-500 bg-orange-500/[0.08] text-orange-600'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
-                    )
-                  }
-                >
-                  <item.icon className="h-[18px] w-[18px] flex-shrink-0 opacity-85" />
-                  <span>{item.label}</span>
-                  {item.badge != null && (
-                    <span
-                      className={clsx(
-                        'ml-auto rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold text-white',
-                        item.badgeColor || 'bg-orange-500',
-                      )}
-                    >
-                      {item.badge}
-                    </span>
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === '/' || item.to === '/dispatches' || item.to === '/trip-logs'}
+              className={({ isActive }) =>
+                clsx(
+                  'relative flex items-center gap-2.5 px-4 py-2 text-[13.5px] transition-colors',
+                  isActive
+                    ? 'border-r-2 border-orange-500 bg-orange-500/[0.08] text-orange-600'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+                )
+              }
+            >
+              <item.icon className="h-[18px] w-[18px] flex-shrink-0 opacity-85" />
+              <span>{item.label}</span>
+              {item.badge != null && (
+                <span
+                  className={clsx(
+                    'ml-auto rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold text-white',
+                    item.badgeColor || 'bg-orange-500',
                   )}
-                </NavLink>
-              ))}
-            </div>
+                >
+                  {item.badge}
+                </span>
+              )}
+            </NavLink>
           ))}
         </nav>
 

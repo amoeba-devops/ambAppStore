@@ -39,6 +39,15 @@ export class TripLogEntity {
   @Column({ name: 'ctl_destination', length: 200 })
   ctlDestination: string;
 
+  @Column({ name: 'ctl_customer_name', type: 'varchar', length: 100, nullable: true })
+  ctlCustomerName: string | null;
+
+  @Column({ name: 'ctl_bill_no', type: 'varchar', length: 100, nullable: true })
+  ctlBillNo: string | null;
+
+  @Column({ name: 'ctl_cdf_no', type: 'varchar', length: 200, nullable: true })
+  ctlCdfNo: string | null;
+
   @Column({ name: 'ctl_depart_actual', type: 'datetime', nullable: true })
   ctlDepartActual: Date | null;
 

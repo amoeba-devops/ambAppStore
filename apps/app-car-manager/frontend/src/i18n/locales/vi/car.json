@@ -32,7 +32,8 @@
     "dispatchRequest": "Yêu cầu điều xe",
     "sectionRecord": "Hồ sơ",
     "sectionDriver": "Tài xế",
-    "driverList": "Danh sách tài xế"
+    "driverList": "Danh sách tài xế",
+    "tripLogEntry": "Nhập nhật ký chuyến"
   },
   "monitor": {
     "title": "Giám sát thời gian thực",
@@ -240,6 +241,22 @@
     "startMileage": "Km bắt đầu",
     "endMileage": "Km kết thúc",
     "tollFee": "Phí cầu đường"
+  },
+  "tripLogImport": {
+    "title": "Nhập nhật ký chuyến từ Excel",
+    "selectVehicle": "Chọn xe",
+    "selectDriver": "Chọn tài xế",
+    "file": "Tệp Excel",
+    "dropzone": "Chọn tệp .xls/.xlsx",
+    "preview": "Xem trước",
+    "upload": "Tải lên Excel",
+    "confirmUpload": "Xác nhận tải lên",
+    "totalRows": "Tổng hàng",
+    "successCount": "Thành công",
+    "warningCount": "Cảnh báo",
+    "failCount": "Thất bại",
+    "row": "Hàng",
+    "message": "Thông báo"
   },
   "maintenance": {
     "title": "Hồ sơ bảo trì",

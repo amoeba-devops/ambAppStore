@@ -5,6 +5,9 @@ export class TripLogResponse {
   dispatchId: string;
   origin: string;
   destination: string;
+  customerName: string | null;
+  billNo: string | null;
+  cdfNo: string | null;
   departActual: string | null;
   arriveActual: string | null;
   odoStart: number | null;

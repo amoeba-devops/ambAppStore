@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Upload } from 'lucide-react';
+import { TripLogImportModal } from '@/components/trip-log/TripLogImportModal';
 
 import { useTripLogs } from '@/hooks/useTripLogs';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -18,6 +19,7 @@ export function TripLogListPage() {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
 
+  const [showImport, setShowImport] = useState(false);
   const { data, isLoading } = useTripLogs();
   const tripLogs: Record<string, unknown>[] = data?.data || [];
 
@@ -59,10 +61,19 @@ export function TripLogListPage() {
       <PageHeader
         title={t('tripLog.title')}
         actions={
-          <button className="flex items-center gap-1.5 rounded-lg border border-[#d4d8e0] bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-            <Download className="h-4 w-4" />
-            Excel
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowImport(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white hover:bg-orange-400"
+            >
+              <Upload className="h-4 w-4" />
+              {t('tripLogImport.upload')}
+            </button>
+            <button className="flex items-center gap-1.5 rounded-lg border border-[#d4d8e0] bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              <Download className="h-4 w-4" />
+              Excel
+            </button>
+          </div>
         }
       />
 
@@ -132,6 +143,7 @@ export function TripLogListPage() {
           </table>
         </div>
       )}
+      <TripLogImportModal open={showImport} onClose={() => setShowImport(false)} />
     </div>
   );
 }
