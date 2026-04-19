@@ -45,17 +45,12 @@ export class ExcelParserService {
         let val = cell.value;
 
         // ExcelJS rich text 처리
-        if (val && typeof val === 'object' && 'richText' in (val as Record<string, unknown>)) {
-          val = ((val as Record<string, unknown>).richText as Array<{ text: string }>)
+        if (val && typeof val === 'object' && 'richText' in (val as unknown as Record<string, unknown>)) {
+          val = ((val as unknown as { richText: Array<{ text: string }> }).richText)
             .map((t) => t.text)
             .join('');
         }
-        // ExcelJS date 객체
-        if (val instanceof Date) {
-          cells[key] = val;
-        } else {
-          cells[key] = val;
-        }
+        cells[key] = val;
         if (val != null && val !== '') hasData = true;
       });
 
