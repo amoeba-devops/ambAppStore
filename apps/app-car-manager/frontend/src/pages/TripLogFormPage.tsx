@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
 
 import { PageHeader } from '@/components/common/PageHeader';
 import { useVehicles } from '@/hooks/useVehicles';
@@ -41,15 +42,25 @@ export function TripLogFormPage() {
   const { data: vehiclesRes } = useVehicles();
   const { data: driversRes } = useDrivers();
 
-  const vehicles = vehiclesRes?.data ?? [];
-  const drivers = driversRes?.data ?? [];
+  const vehicles: Record<string, unknown>[] = vehiclesRes?.data ?? [];
+  const drivers: Record<string, unknown>[] = driversRes?.data ?? [];
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<TripLogFormData>({
+  const [fuelUnitPrice, setFuelUnitPrice] = useState<number>(0);
+
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<TripLogFormData>({
     resolver: zodResolver(tripLogSchema),
     defaultValues: { refueled: false, has_accident: false },
   });
 
   const refueled = watch('refueled');
+  const fuelAmount = watch('fuel_amount');
+
+  // 주유비 자동계산
+  const handleFuelCalc = (amount: number, unitPrice: number) => {
+    if (amount > 0 && unitPrice > 0) {
+      setValue('fuel_cost', Math.round(amount * unitPrice));
+    }
+  };
 
   const onSubmit = async (data: TripLogFormData) => {
     const payload: Record<string, unknown> = {
@@ -102,9 +113,9 @@ export function TripLogFormPage() {
               <Field label={t('tripLog.selectVehicle')} required error={errors.vehicle_id?.message}>
                 <select {...register('vehicle_id')} className="input">
                   <option value="">{t('tripLog.selectVehiclePlaceholder')}</option>
-                  {vehicles.map((v: { vehicleId: string; plateNumber: string; make: string; model: string }) => (
-                    <option key={v.vehicleId} value={v.vehicleId}>
-                      {v.plateNumber} ({v.make} {v.model})
+                  {vehicles.map((v) => (
+                    <option key={v.cvhId as string} value={v.cvhId as string}>
+                      {v.plateNumber as string} ({v.make as string} {v.model as string})
                     </option>
                   ))}
                 </select>
@@ -112,9 +123,9 @@ export function TripLogFormPage() {
               <Field label={t('tripLog.selectDriver')} required error={errors.driver_id?.message}>
                 <select {...register('driver_id')} className="input">
                   <option value="">{t('tripLog.selectDriverPlaceholder')}</option>
-                  {drivers.map((d: { driverId: string; driverName: string; role: string }) => (
-                    <option key={d.driverId} value={d.driverId}>
-                      {d.driverName} ({d.role})
+                  {drivers.filter((d) => d.status === 'ACTIVE').map((d) => (
+                    <option key={d.driverId as string} value={d.driverId as string}>
+                      {(d.driverName as string) || (d.amaUserId as string)} ({d.role as string})
                     </option>
                   ))}
                 </select>
@@ -155,13 +166,36 @@ export function TripLogFormPage() {
               <label htmlFor="refueled" className="text-sm font-medium text-gray-700">{t('tripLog.refueled')}</label>
             </div>
             {refueled && (
-              <div className="grid grid-cols-2 gap-4">
-                <Field label={t('tripLog.fuelAmount')}>
-                  <input {...register('fuel_amount')} type="number" min="0" step="0.01" className="input" placeholder="L" />
-                </Field>
-                <Field label={t('tripLog.fuelCost')}>
-                  <input {...register('fuel_cost')} type="number" min="0" className="input" placeholder="₫" />
-                </Field>
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-4">
+                  <Field label={t('tripLog.fuelAmount')}>
+                    <input
+                      {...register('fuel_amount')}
+                      type="number" min="0" step="0.01" className="input" placeholder="L"
+                      onChange={(e) => {
+                        register('fuel_amount').onChange(e);
+                        const amount = parseFloat(e.target.value) || 0;
+                        handleFuelCalc(amount, fuelUnitPrice);
+                      }}
+                    />
+                  </Field>
+                  <Field label={t('tripLog.fuelUnitPrice')}>
+                    <input
+                      type="number" min="0" className="input" placeholder="₫/L"
+                      value={fuelUnitPrice || ''}
+                      onChange={(e) => {
+                        const price = parseInt(e.target.value) || 0;
+                        setFuelUnitPrice(price);
+                        const amount = typeof fuelAmount === 'number' ? fuelAmount : 0;
+                        handleFuelCalc(amount, price);
+                      }}
+                    />
+                  </Field>
+                  <Field label={t('tripLog.fuelCost')}>
+                    <input {...register('fuel_cost')} type="number" min="0" className="input" placeholder="₫" />
+                  </Field>
+                </div>
+                <p className="text-[11px] text-gray-400">{t('tripLog.fuelCalcHint')}</p>
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">

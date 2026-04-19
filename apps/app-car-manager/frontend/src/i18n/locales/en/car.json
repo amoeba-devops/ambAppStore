@@ -277,7 +277,9 @@
     "sectionCost": "Cost Details",
     "sectionCustomer": "Customer / Documents",
     "sectionOther": "Other",
-    "note": "Note"
+    "note": "Note",
+    "fuelUnitPrice": "Unit Price per Liter",
+    "fuelCalcHint": "Fuel Amount × Unit Price = Fuel Cost (auto-calculated)"
   },
   "tripLogImport": {
     "title": "Trip Log Excel Import",

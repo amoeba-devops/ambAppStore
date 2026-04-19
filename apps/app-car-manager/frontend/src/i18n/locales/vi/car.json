@@ -277,7 +277,9 @@
     "sectionCost": "Chi phí",
     "sectionCustomer": "Khách hàng / Tài liệu",
     "sectionOther": "Khác",
-    "note": "Ghi chú"
+    "note": "Ghi chú",
+    "fuelUnitPrice": "Đơn giá mỗi lít",
+    "fuelCalcHint": "Lượng nhiên liệu × Đơn giá = Chi phí nhiên liệu (tự động)"
   },
   "tripLogImport": {
     "title": "Nhập nhật ký chuyến từ Excel",
