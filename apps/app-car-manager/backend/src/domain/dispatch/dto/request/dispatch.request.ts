@@ -74,6 +74,10 @@ export class CreateDispatchRequest {
 }
 
 export class UpdateDispatchRequest {
+  @IsUUID()
+  @IsOptional()
+  driver_id?: string | null;
+
   @IsString()
   @IsOptional()
   purpose_type?: string;

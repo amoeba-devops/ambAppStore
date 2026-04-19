@@ -95,6 +95,7 @@ export class DispatchService {
   async update(entityId: string, id: string, req: UpdateDispatchRequest): Promise<DispatchRequestEntity> {
     const dispatch = await this.findById(entityId, id);
 
+    if (req.driver_id !== undefined) dispatch.cvdId = req.driver_id || null;
     if (req.purpose_type !== undefined) dispatch.cdrPurposeType = req.purpose_type as any;
     if (req.purpose !== undefined) dispatch.cdrPurpose = req.purpose;
     if (req.depart_at !== undefined) dispatch.cdrDepartAt = new Date(req.depart_at);

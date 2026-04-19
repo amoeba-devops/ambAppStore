@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDispatch, useDispatchAction, useUpdateDispatch } from '@/hooks/useDispatches';
+import { useDrivers } from '@/hooks/useDrivers';
 import { Pencil, Save, X } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -14,9 +15,12 @@ export function DispatchDetailPage() {
   const { data, isLoading, refetch } = useDispatch(id!);
   const actionMut = useDispatchAction();
   const updateMut = useUpdateDispatch();
+  const { data: driversData } = useDrivers();
+  const allDrivers: Record<string, unknown>[] = driversData?.data || [];
   const [showConfirm, setShowConfirm] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<Record<string, string>>({});
+  const [editDriverId, setEditDriverId] = useState<string>('');
 
   const dispatch = data?.data;
 
@@ -35,11 +39,16 @@ export function DispatchDetailPage() {
       destination: dispatch.destination || '',
       note: dispatch.note || '',
     });
+    setEditDriverId(dispatch.driverId || '');
     setEditing(true);
   };
 
   const saveEdit = async () => {
-    await updateMut.mutateAsync({ id: id!, data: editData });
+    const payload: Record<string, unknown> = { ...editData };
+    if (editDriverId !== (dispatch.driverId || '')) {
+      payload.driver_id = editDriverId || null;
+    }
+    await updateMut.mutateAsync({ id: id!, data: payload });
     setEditing(false);
     refetch();
   };
@@ -129,7 +138,27 @@ export function DispatchDetailPage() {
             </div>
             <dl className="space-y-2.5 text-sm">
               <Row label={t('dispatch.vehicle')} value={dispatch.vehiclePlateNumber || '-'} />
-              <Row label={t('dispatch.driver')} value={dispatch.driverName || '-'} />
+              {editing ? (
+                <div className="flex items-center justify-between border-b border-[#eef0f4] py-1">
+                  <dt className="text-[13px] text-gray-500">{t('dispatch.driver')}</dt>
+                  <dd>
+                    <select
+                      value={editDriverId}
+                      onChange={(e) => setEditDriverId(e.target.value)}
+                      className="w-48 rounded border border-orange-300 px-2 py-1 text-[13px] focus:outline-none focus:ring-1 focus:ring-orange-500"
+                    >
+                      <option value="">— {t('dispatch.selectDriver')} —</option>
+                      {allDrivers.map((d) => (
+                        <option key={d.driverId as string} value={d.driverId as string}>
+                          {(d.driverName as string) || (d.amaUserId as string)} ({d.role as string})
+                        </option>
+                      ))}
+                    </select>
+                  </dd>
+                </div>
+              ) : (
+                <Row label={t('dispatch.driver')} value={dispatch.driverName || '-'} />
+              )}
               <Row label={t('dispatchDetail.approvedAt')} value={dispatch.approvedAt ? new Date(dispatch.approvedAt).toLocaleString() : '-'} />
               <Row label={t('dispatchDetail.departedAt')} value={dispatch.departedAt ? new Date(dispatch.departedAt).toLocaleString() : '-'} />
               <Row label={t('dispatchDetail.arrivedAt')} value={dispatch.arrivedAt ? new Date(dispatch.arrivedAt).toLocaleString() : '-'} />
