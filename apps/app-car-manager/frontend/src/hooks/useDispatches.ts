@@ -33,6 +33,18 @@ export function useCreateDispatch() {
   });
 }
 
+export function useUpdateDispatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      dispatchApi.update(id, data),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: dispatchKeys.detail(id) });
+      qc.invalidateQueries({ queryKey: dispatchKeys.lists() });
+    },
+  });
+}
+
 export function useApproveDispatch() {
   const qc = useQueryClient();
   return useMutation({

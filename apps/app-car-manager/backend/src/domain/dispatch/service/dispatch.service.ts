@@ -5,6 +5,7 @@ import { DispatchRequestEntity } from '../entity/dispatch-request.entity';
 import { VehicleEntity } from '../../vehicle/entity/vehicle.entity';
 import {
   CreateDispatchRequest,
+  UpdateDispatchRequest,
   ApproveDispatchRequest,
   RejectDispatchRequest,
   DriverRespondRequest,
@@ -87,6 +88,22 @@ export class DispatchService {
       cdrActualUserName: req.actual_user_name || null,
       cdrNote: req.note || null,
     });
+
+    return this.dispatchRepo.save(dispatch);
+  }
+
+  async update(entityId: string, id: string, req: UpdateDispatchRequest): Promise<DispatchRequestEntity> {
+    const dispatch = await this.findById(entityId, id);
+
+    if (req.purpose_type !== undefined) dispatch.cdrPurposeType = req.purpose_type as any;
+    if (req.purpose !== undefined) dispatch.cdrPurpose = req.purpose;
+    if (req.depart_at !== undefined) dispatch.cdrDepartAt = new Date(req.depart_at);
+    if (req.return_at !== undefined) dispatch.cdrReturnAt = new Date(req.return_at);
+    if (req.origin !== undefined) dispatch.cdrOrigin = req.origin;
+    if (req.destination !== undefined) dispatch.cdrDestination = req.destination;
+    if (req.passenger_count !== undefined) dispatch.cdrPassengerCount = req.passenger_count;
+    if (req.note !== undefined) dispatch.cdrNote = req.note || null;
+    if (req.requester_name !== undefined) dispatch.cdrRequesterName = req.requester_name;
 
     return this.dispatchRepo.save(dispatch);
   }

@@ -73,6 +73,44 @@ export class CreateDispatchRequest {
   note?: string;
 }
 
+export class UpdateDispatchRequest {
+  @IsString()
+  @IsOptional()
+  purpose_type?: string;
+
+  @IsString()
+  @IsOptional()
+  purpose?: string;
+
+  @IsDateString()
+  @IsOptional()
+  depart_at?: string;
+
+  @IsDateString()
+  @IsOptional()
+  return_at?: string;
+
+  @IsString()
+  @IsOptional()
+  origin?: string;
+
+  @IsString()
+  @IsOptional()
+  destination?: string;
+
+  @IsInt()
+  @IsOptional()
+  passenger_count?: number;
+
+  @IsString()
+  @IsOptional()
+  note?: string;
+
+  @IsString()
+  @IsOptional()
+  requester_name?: string;
+}
+
 export class ApproveDispatchRequest {
   @IsUUID()
   @IsNotEmpty()

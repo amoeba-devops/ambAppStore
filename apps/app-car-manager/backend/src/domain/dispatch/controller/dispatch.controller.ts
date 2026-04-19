@@ -12,6 +12,7 @@ import { DispatchService } from '../service/dispatch.service';
 import { DispatchMapper } from '../mapper/dispatch.mapper';
 import {
   CreateDispatchRequest,
+  UpdateDispatchRequest,
   ApproveDispatchRequest,
   RejectDispatchRequest,
   DriverRespondRequest,
@@ -48,6 +49,17 @@ export class DispatchController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     const dispatch = await this.dispatchService.findById(user.ent_id, id);
+    return successResponse(DispatchMapper.toDetailResponse(dispatch));
+  }
+
+  @Auth()
+  @Patch(':id')
+  async update(
+    @CurrentUser() user: AmaJwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() req: UpdateDispatchRequest,
+  ) {
+    const dispatch = await this.dispatchService.update(user.ent_id, id, req);
     return successResponse(DispatchMapper.toDetailResponse(dispatch));
   }
 

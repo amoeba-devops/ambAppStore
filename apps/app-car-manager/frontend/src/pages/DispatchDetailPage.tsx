@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useDispatch, useDispatchAction } from '@/hooks/useDispatches';
-import { ArrowLeft } from 'lucide-react';
+import { useDispatch, useDispatchAction, useUpdateDispatch } from '@/hooks/useDispatches';
+import { Pencil, Save, X } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { StatusBadge, getStatusVariant } from '@/components/common/StatusBadge';
@@ -11,9 +11,12 @@ export function DispatchDetailPage() {
   const { t } = useTranslation('car');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data, isLoading } = useDispatch(id!);
+  const { data, isLoading, refetch } = useDispatch(id!);
   const actionMut = useDispatchAction();
+  const updateMut = useUpdateDispatch();
   const [showConfirm, setShowConfirm] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editData, setEditData] = useState<Record<string, string>>({});
 
   const dispatch = data?.data;
 
@@ -24,13 +27,62 @@ export function DispatchDetailPage() {
     await actionMut.mutateAsync({ id: id!, action, data });
   };
 
+  const startEdit = () => {
+    setEditData({
+      requester_name: dispatch.requesterName || '',
+      purpose: dispatch.purpose || '',
+      origin: dispatch.origin || '',
+      destination: dispatch.destination || '',
+      note: dispatch.note || '',
+    });
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    await updateMut.mutateAsync({ id: id!, data: editData });
+    setEditing(false);
+    refetch();
+  };
+
+  const canEdit = ['PENDING', 'APPROVED'].includes(dispatch.status);
+
   return (
     <div>
       <PageHeader
         title={`${t('dispatch.title')} #${(dispatch.dispatchId as string).slice(0, 8)}`}
         breadcrumb={['app-car-manager', t('nav.dispatchBoard'), t('dispatch.title')]}
         actions={
-          <StatusBadge variant={getStatusVariant(dispatch.status)} label={dispatch.status} />
+          <div className="flex items-center gap-2">
+            <StatusBadge variant={getStatusVariant(dispatch.status)} label={dispatch.status} />
+            {canEdit && !editing && (
+              <button
+                onClick={startEdit}
+                className="flex items-center gap-1 rounded-md border border-[#d4d8e0] bg-white px-3 py-1.5 text-[12px] font-medium text-gray-600 hover:text-gray-900"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                {t('common.edit')}
+              </button>
+            )}
+            {editing && (
+              <>
+                <button
+                  onClick={saveEdit}
+                  disabled={updateMut.isPending}
+                  className="flex items-center gap-1 rounded-md bg-orange-500 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-orange-400 disabled:opacity-50"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  {t('common.save')}
+                </button>
+                <button
+                  onClick={() => setEditing(false)}
+                  className="flex items-center gap-1 rounded-md border border-[#d4d8e0] px-3 py-1.5 text-[12px] font-medium text-gray-600 hover:text-gray-900"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  {t('common.cancel')}
+                </button>
+              </>
+            )}
+          </div>
         }
       />
 
@@ -42,15 +94,31 @@ export function DispatchDetailPage() {
               {t('dispatchDetail.requestInfo')}
             </div>
             <dl className="space-y-2.5 text-sm">
-              <Row label={t('dispatch.requester')} value={dispatch.requesterName} />
-              <Row label={t('dispatch.purposeType')} value={dispatch.purposeType} />
-              <Row label={t('dispatch.purpose')} value={dispatch.purpose} />
-              <Row label={t('dispatch.origin')} value={dispatch.origin} />
-              <Row label={t('dispatch.destination')} value={dispatch.destination} />
-              <Row label={t('dispatch.departAt')} value={dispatch.departAt ? new Date(dispatch.departAt).toLocaleString() : '-'} />
-              <Row label={t('dispatch.returnAt')} value={dispatch.returnAt ? new Date(dispatch.returnAt).toLocaleString() : '-'} />
-              <Row label={t('dispatch.passengers')} value={dispatch.passengerCount} />
-              {dispatch.note && <Row label={t('dispatch.note')} value={dispatch.note} />}
+              {editing ? (
+                <>
+                  <EditRow label={t('dispatch.requester')} field="requester_name" value={editData.requester_name} onChange={(v) => setEditData((p) => ({ ...p, requester_name: v }))} />
+                  <Row label={t('dispatch.purposeType')} value={dispatch.purposeType} />
+                  <EditRow label={t('dispatch.purpose')} field="purpose" value={editData.purpose} onChange={(v) => setEditData((p) => ({ ...p, purpose: v }))} />
+                  <EditRow label={t('dispatch.origin')} field="origin" value={editData.origin} onChange={(v) => setEditData((p) => ({ ...p, origin: v }))} />
+                  <EditRow label={t('dispatch.destination')} field="destination" value={editData.destination} onChange={(v) => setEditData((p) => ({ ...p, destination: v }))} />
+                  <Row label={t('dispatch.departAt')} value={dispatch.departAt ? new Date(dispatch.departAt).toLocaleString() : '-'} />
+                  <Row label={t('dispatch.returnAt')} value={dispatch.returnAt ? new Date(dispatch.returnAt).toLocaleString() : '-'} />
+                  <Row label={t('dispatch.passengers')} value={dispatch.passengerCount} />
+                  <EditRow label={t('dispatch.note')} field="note" value={editData.note} onChange={(v) => setEditData((p) => ({ ...p, note: v }))} />
+                </>
+              ) : (
+                <>
+                  <Row label={t('dispatch.requester')} value={dispatch.requesterName} />
+                  <Row label={t('dispatch.purposeType')} value={dispatch.purposeType} />
+                  <Row label={t('dispatch.purpose')} value={dispatch.purpose} />
+                  <Row label={t('dispatch.origin')} value={dispatch.origin} />
+                  <Row label={t('dispatch.destination')} value={dispatch.destination} />
+                  <Row label={t('dispatch.departAt')} value={dispatch.departAt ? new Date(dispatch.departAt).toLocaleString() : '-'} />
+                  <Row label={t('dispatch.returnAt')} value={dispatch.returnAt ? new Date(dispatch.returnAt).toLocaleString() : '-'} />
+                  <Row label={t('dispatch.passengers')} value={dispatch.passengerCount} />
+                  {dispatch.note && <Row label={t('dispatch.note')} value={dispatch.note} />}
+                </>
+              )}
             </dl>
           </div>
 
@@ -77,61 +145,47 @@ export function DispatchDetailPage() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-2">
-          {dispatch.status === 'PENDING' && (
-            <>
+        {!editing && (
+          <div className="flex flex-wrap gap-2">
+            {dispatch.status === 'PENDING' && (
+              <>
+                <button onClick={() => setShowConfirm(true)} className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-400">
+                  {t('dispatch.confirmDispatch')}
+                </button>
+                <button
+                  onClick={() => { const r = prompt(t('dispatchDetail.rejectReasonPrompt')); if (r) handleAction('reject', { reason: r }); }}
+                  className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                >
+                  {t('dispatch.reject')}
+                </button>
+              </>
+            )}
+            {dispatch.status === 'DRIVER_ACCEPTED' && (
+              <button onClick={() => handleAction('depart')} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500">{t('dispatch.depart')}</button>
+            )}
+            {(dispatch.status === 'APPROVED' && dispatch.driverOverride) && (
+              <button onClick={() => handleAction('depart')} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500">{t('dispatch.depart')}</button>
+            )}
+            {dispatch.status === 'DEPARTED' && (
+              <button onClick={() => handleAction('arrive')} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500">{t('dispatch.arrive')}</button>
+            )}
+            {dispatch.status === 'ARRIVED' && (
+              <button onClick={() => handleAction('complete')} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-500">{t('dispatch.complete')}</button>
+            )}
+            {!['COMPLETED', 'CANCELLED', 'REJECTED'].includes(dispatch.status) && (
               <button
-                onClick={() => setShowConfirm(true)}
-                className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-400"
+                onClick={() => { const r = prompt(t('dispatchDetail.cancelReasonPrompt')); if (r) handleAction('cancel', { reason: r }); }}
+                className="rounded-lg border border-[#d4d8e0] px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
               >
-                {t('dispatch.confirmDispatch')}
+                {t('dispatch.cancelDispatch')}
               </button>
-              <button
-                onClick={() => {
-                  const reason = prompt(t('dispatchDetail.rejectReasonPrompt'));
-                  if (reason) handleAction('reject', { reason });
-                }}
-                className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-              >
-                {t('dispatch.reject')}
-              </button>
-            </>
-          )}
-          {dispatch.status === 'DRIVER_ACCEPTED' && (
-            <button onClick={() => handleAction('depart')} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500">
-              {t('dispatch.depart')}
-            </button>
-          )}
-          {dispatch.status === 'DEPARTED' && (
-            <button onClick={() => handleAction('arrive')} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500">
-              {t('dispatch.arrive')}
-            </button>
-          )}
-          {dispatch.status === 'ARRIVED' && (
-            <button onClick={() => handleAction('complete')} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-500">
-              {t('dispatch.complete')}
-            </button>
-          )}
-          {!['COMPLETED', 'CANCELLED', 'REJECTED'].includes(dispatch.status) && (
-            <button
-              onClick={() => {
-                const reason = prompt(t('dispatchDetail.cancelReasonPrompt'));
-                if (reason) handleAction('cancel', { reason });
-              }}
-              className="rounded-lg border border-[#d4d8e0] px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
-            >
-              {t('dispatch.cancelDispatch')}
-            </button>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Dispatch Confirm Modal */}
       {showConfirm && (
-        <DispatchConfirmModal
-          dispatch={dispatch}
-          onClose={() => setShowConfirm(false)}
-        />
+        <DispatchConfirmModal dispatch={dispatch} onClose={() => setShowConfirm(false)} />
       )}
     </div>
   );
@@ -142,6 +196,22 @@ function Row({ label, value }: { label: string; value: unknown }) {
     <div className="flex justify-between border-b border-[#eef0f4] py-1.5">
       <dt className="text-[13px] text-gray-500">{label}</dt>
       <dd className="text-[13px] font-medium text-gray-900">{value != null ? String(value) : '-'}</dd>
+    </div>
+  );
+}
+
+function EditRow({ label, field, value, onChange }: { label: string; field: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex items-center justify-between border-b border-[#eef0f4] py-1">
+      <dt className="text-[13px] text-gray-500">{label}</dt>
+      <dd>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-48 rounded border border-orange-300 px-2 py-1 text-[13px] focus:outline-none focus:ring-1 focus:ring-orange-500"
+        />
+      </dd>
     </div>
   );
 }
