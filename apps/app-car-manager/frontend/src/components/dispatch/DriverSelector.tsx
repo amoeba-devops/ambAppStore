@@ -16,16 +16,16 @@ interface DriverSelectorProps {
   onSelect: (driverId: string) => void;
 }
 
-const ROLE_ORDER = ['PRIMARY', 'SUB', 'POOL'];
+const ROLE_ORDER = ['PRIMARY_DRIVER', 'SUB_DRIVER', 'POOL_DRIVER'];
 const ROLE_I18N_KEY: Record<string, string> = {
-  PRIMARY: 'driver.rolePrimary',
-  SUB: 'driver.roleSub',
-  POOL: 'driver.rolePool',
+  PRIMARY_DRIVER: 'driverForm.rolePrimary',
+  SUB_DRIVER: 'driverForm.roleSub',
+  POOL_DRIVER: 'driverForm.rolePool',
 };
 const ROLE_COLOR: Record<string, string> = {
-  PRIMARY: 'bg-blue-100 text-blue-700',
-  SUB: 'bg-green-100 text-green-700',
-  POOL: 'bg-gray-100 text-gray-700',
+  PRIMARY_DRIVER: 'bg-blue-100 text-blue-700',
+  SUB_DRIVER: 'bg-green-100 text-green-700',
+  POOL_DRIVER: 'bg-gray-100 text-gray-700',
 };
 
 export function DriverSelector({ drivers, selected, onSelect }: DriverSelectorProps) {
@@ -56,7 +56,7 @@ export function DriverSelector({ drivers, selected, onSelect }: DriverSelectorPr
           <div className="space-y-1.5">
             {list.map((driver) => {
               const isSelected = selected === driver.driverId;
-              const isAvailable = driver.status === 'AVAILABLE';
+              const isAvailable = driver.status === 'ACTIVE' || driver.status === 'AVAILABLE';
 
               return (
                 <button

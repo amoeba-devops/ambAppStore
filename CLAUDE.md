@@ -216,6 +216,13 @@ domain/{name}/
 - [ ] `ent_id` FK 포함 (멀티테넌시)
 - [ ] Soft Delete `{prefix}_deleted_at`
 
+## 버그 리포트 규칙
+- "버그" 또는 "bug" 키워드가 포함된 요청 시:
+  1. 버그 원인 확인
+  2. 수정 방안 작성
+  3. `docs/bug-fix/BUG-{YYMMDD}-{버그제목}.md` 파일로 저장
+  4. 수정 후 커밋/배포
+
 ## 주요 명령어
 ```bash
 npm run dev          # Turborepo — 전체 앱 동시 실행

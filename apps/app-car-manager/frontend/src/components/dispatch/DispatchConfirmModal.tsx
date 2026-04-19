@@ -5,7 +5,7 @@ import { Modal } from '@/components/common/Modal';
 import { DriverSelector } from '@/components/dispatch/DriverSelector';
 import { AvailableVehicleCard } from '@/components/dispatch/AvailableVehicleCard';
 import { useVehicles } from '@/hooks/useVehicles';
-import { useAvailableDrivers } from '@/hooks/useDrivers';
+import { useDrivers } from '@/hooks/useDrivers';
 import { useApproveDispatch } from '@/hooks/useDispatches';
 
 interface DispatchConfirmModalProps {
@@ -16,7 +16,7 @@ interface DispatchConfirmModalProps {
 export function DispatchConfirmModal({ dispatch, onClose }: DispatchConfirmModalProps) {
   const { t } = useTranslation('car');
   const { data: vehiclesData } = useVehicles({ status: 'AVAILABLE' });
-  const { data: driversData } = useAvailableDrivers();
+  const { data: driversData } = useDrivers();
   const approveMut = useApproveDispatch();
 
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
@@ -95,14 +95,16 @@ export function DispatchConfirmModal({ dispatch, onClose }: DispatchConfirmModal
           </div>
           <div className="max-h-48 overflow-y-auto">
             <DriverSelector
-              drivers={drivers.map((d) => ({
-                driverId: d.driverId as string,
-                driverName: d.driverName as string,
-                phone: d.phone as string | undefined,
-                licenseType: d.licenseType as string | undefined,
-                role: d.role as string | undefined,
-                status: d.status as string | undefined,
-              }))}
+              drivers={drivers
+                .filter((d) => d.status === 'ACTIVE')
+                .map((d) => ({
+                  driverId: d.driverId as string,
+                  driverName: (d.driverName as string) || (d.amaUserId as string) || '-',
+                  phone: d.phone as string | undefined,
+                  licenseType: d.licenseType as string | undefined,
+                  role: d.role as string | undefined,
+                  status: d.status as string | undefined,
+                }))}
               selected={selectedDriver}
               onSelect={setSelectedDriver}
             />
