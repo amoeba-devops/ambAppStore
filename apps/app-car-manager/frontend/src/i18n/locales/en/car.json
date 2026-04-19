@@ -14,7 +14,8 @@
     "all": "All",
     "status": "Status",
     "actions": "Actions",
-    "optional": "Optional"
+    "optional": "Optional",
+    "select": "Select"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -256,7 +257,27 @@
     "startMileage": "Start Mileage",
     "endMileage": "End Mileage",
     "tollFee": "Toll Fee",
-    "excelDownload": "Excel Download"
+    "excelDownload": "Excel Download",
+    "formTitle": "New Trip Log",
+    "selectVehicle": "Vehicle",
+    "selectVehiclePlaceholder": "Select vehicle",
+    "selectDriver": "Driver",
+    "selectDriverPlaceholder": "Select driver",
+    "customerName": "Customer Name",
+    "billNo": "Bill No",
+    "cdfNo": "CDF No",
+    "refueled": "Refueled",
+    "krPurposeCode": "Purpose Code",
+    "krBusinessRatio": "Business Ratio (%)",
+    "purposeBusiness": "Business",
+    "purposeCommute": "Commute",
+    "purposeOther": "Other",
+    "sectionBasic": "Basic Information",
+    "sectionTrip": "Trip Details",
+    "sectionCost": "Cost Details",
+    "sectionCustomer": "Customer / Documents",
+    "sectionOther": "Other",
+    "note": "Note"
   },
   "tripLogImport": {
     "title": "Trip Log Excel Import",

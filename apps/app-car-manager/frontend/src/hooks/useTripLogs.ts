@@ -24,6 +24,14 @@ export function useTripLog(id: string) {
   });
 }
 
+export function useCreateTripLog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => tripLogApi.create(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: tripLogKeys.lists() }),
+  });
+}
+
 export function useUpdateTripLog() {
   const qc = useQueryClient();
   return useMutation({

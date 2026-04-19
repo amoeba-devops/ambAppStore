@@ -14,6 +14,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { TripLogService } from '../service/trip-log.service';
 import { ImportOrchestratorService } from '../service/import-orchestrator.service';
 import { TripLogMapper } from '../mapper/trip-log.mapper';
+import { CreateTripLogRequest } from '../dto/request/create-trip-log.request';
 import { UpdateTripLogRequest, SubmitTripLogRequest } from '../dto/request/trip-log.request';
 import { Auth } from '../../../auth/decorators/auth.decorator';
 import { CurrentUser } from '../../../auth/decorators/current-user.decorator';
@@ -41,6 +42,22 @@ export class TripLogController {
   ) {
     const tripLogs = await this.tripLogService.findAll(user.ent_id, { vehicleId, status });
     return successListResponse(TripLogMapper.toListResponse(tripLogs));
+  }
+
+  @Auth()
+  @Post()
+  @ApiOperation({ summary: '운행일지 수동 등록' })
+  async create(
+    @CurrentUser() user: AmaJwtPayload,
+    @Body() req: CreateTripLogRequest,
+  ) {
+    const tripLog = await this.tripLogService.create(
+      user.ent_id,
+      user.sub,
+      user.name || user.email || 'User',
+      req,
+    );
+    return successResponse(TripLogMapper.toResponse(tripLog));
   }
 
   @Auth()

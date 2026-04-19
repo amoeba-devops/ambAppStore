@@ -14,7 +14,8 @@
     "all": "Tất cả",
     "status": "Trạng thái",
     "actions": "Thao tác",
-    "optional": "Tùy chọn"
+    "optional": "Tùy chọn",
+    "select": "Chọn"
   },
   "nav": {
     "dashboard": "Bảng điều khiển",
@@ -256,7 +257,27 @@
     "startMileage": "Km bắt đầu",
     "endMileage": "Km kết thúc",
     "tollFee": "Phí cầu đường",
-    "excelDownload": "Tải Excel"
+    "excelDownload": "Tải Excel",
+    "formTitle": "Thêm nhật ký chuyến",
+    "selectVehicle": "Xe",
+    "selectVehiclePlaceholder": "Chọn xe",
+    "selectDriver": "Tài xế",
+    "selectDriverPlaceholder": "Chọn tài xế",
+    "customerName": "Tên khách hàng",
+    "billNo": "Số hóa đơn",
+    "cdfNo": "Số CDF",
+    "refueled": "Đã đổ xăng",
+    "krPurposeCode": "Mã mục đích",
+    "krBusinessRatio": "Tỷ lệ công việc (%)",
+    "purposeBusiness": "Công việc",
+    "purposeCommute": "Đi làm",
+    "purposeOther": "Khác",
+    "sectionBasic": "Thông tin cơ bản",
+    "sectionTrip": "Chi tiết chuyến",
+    "sectionCost": "Chi phí",
+    "sectionCustomer": "Khách hàng / Tài liệu",
+    "sectionOther": "Khác",
+    "note": "Ghi chú"
   },
   "tripLogImport": {
     "title": "Nhập nhật ký chuyến từ Excel",

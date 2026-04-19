@@ -2,8 +2,10 @@ import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { TripLogEntity } from '../entity/trip-log.entity';
+import { DispatchRequestEntity } from '../../dispatch/entity/dispatch-request.entity';
+import { CreateTripLogRequest } from '../dto/request/create-trip-log.request';
 import { UpdateTripLogRequest, SubmitTripLogRequest } from '../dto/request/trip-log.request';
-import { TripLogStatus } from '../../../common/constants/enums';
+import { TripLogStatus, DispatchStatus, DispatchPurposeType } from '../../../common/constants/enums';
 import { BusinessException } from '../../../common/exceptions/business.exception';
 
 @Injectable()
@@ -11,6 +13,8 @@ export class TripLogService {
   constructor(
     @InjectRepository(TripLogEntity)
     private readonly tripLogRepo: Repository<TripLogEntity>,
+    @InjectRepository(DispatchRequestEntity)
+    private readonly dispatchRepo: Repository<DispatchRequestEntity>,
   ) {}
 
   async findAll(entityId: string, filters?: { vehicleId?: string; status?: string }): Promise<TripLogEntity[]> {
@@ -40,6 +44,69 @@ export class TripLogService {
       throw new BusinessException('CAR-E6001', 'Trip log not found', HttpStatus.NOT_FOUND);
     }
     return tripLog;
+  }
+
+  async create(
+    entityId: string,
+    userId: string,
+    userName: string,
+    req: CreateTripLogRequest,
+  ): Promise<TripLogEntity> {
+    // Proxy dispatch 생성 (수동 등록용)
+    const dispatch = this.dispatchRepo.create({
+      entId: entityId,
+      cvhId: req.vehicle_id,
+      cvdId: req.driver_id,
+      cdrRequesterId: userId,
+      cdrRequesterName: userName,
+      cdrPurposeType: DispatchPurposeType.BUSINESS,
+      cdrPurpose: 'Manual trip log entry',
+      cdrDepartAt: req.depart_actual ? new Date(req.depart_actual) : new Date(),
+      cdrReturnAt: req.arrive_actual ? new Date(req.arrive_actual) : new Date(),
+      cdrOrigin: req.origin,
+      cdrDestination: req.destination,
+      cdrPassengerCount: 1,
+      cdrStatus: DispatchStatus.COMPLETED,
+      cdrIsProxy: true,
+      cdrNote: 'MANUAL_ENTRY',
+      cdrApprovedAt: new Date(),
+      cdrCompletedAt: req.arrive_actual ? new Date(req.arrive_actual) : null,
+      cdrDriverOverride: true,
+    });
+    const savedDispatch = await this.dispatchRepo.save(dispatch);
+
+    // 거리 자동 계산
+    let distanceKm: number | null = null;
+    if (req.odo_start != null && req.odo_end != null) {
+      distanceKm = req.odo_end - req.odo_start;
+    }
+
+    const tripLog = this.tripLogRepo.create({
+      entId: entityId,
+      cvhId: req.vehicle_id,
+      cvdId: req.driver_id,
+      cdrId: savedDispatch.cdrId,
+      ctlOrigin: req.origin,
+      ctlDestination: req.destination,
+      ctlCustomerName: req.customer_name || null,
+      ctlBillNo: req.bill_no || null,
+      ctlCdfNo: req.cdf_no || null,
+      ctlDepartActual: req.depart_actual ? new Date(req.depart_actual) : null,
+      ctlArriveActual: req.arrive_actual ? new Date(req.arrive_actual) : null,
+      ctlOdoStart: req.odo_start ?? null,
+      ctlOdoEnd: req.odo_end ?? null,
+      ctlDistanceKm: distanceKm,
+      ctlRefueled: req.refueled ?? false,
+      ctlFuelAmount: req.fuel_amount ?? null,
+      ctlFuelCost: req.fuel_cost ?? null,
+      ctlTollCost: req.toll_cost ?? null,
+      ctlHasAccident: req.has_accident ?? false,
+      ctlNote: req.note || null,
+      ctlKrPurposeCode: req.kr_purpose_code ?? null,
+      ctlKrBusinessRatio: req.kr_business_ratio ?? null,
+    });
+
+    return this.tripLogRepo.save(tripLog);
   }
 
   async createFromDispatch(
