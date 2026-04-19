@@ -21,7 +21,7 @@ export class ExcelParserService {
     dataStartRow = 12,
   ): Promise<{ headers: string[]; rows: ExcelRow[] }> {
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer);
+    await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
 
     const sheet = workbook.worksheets[0];
     if (!sheet) throw new Error('No worksheet found');
