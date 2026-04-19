@@ -22,7 +22,7 @@ import { Auth } from '../../../auth/decorators/auth.decorator';
 import { CurrentUser } from '../../../auth/decorators/current-user.decorator';
 import { AmaJwtPayload } from '../../../auth/interfaces/ama-jwt-payload.interface';
 import { successResponse, successListResponse } from '../../../common/dto/base-response.dto';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('dispatches')
 @ApiBearerAuth('access-token')
@@ -32,6 +32,7 @@ export class DispatchController {
 
   @Auth()
   @Get()
+  @ApiOperation({ summary: '배차 목록 조회' })
   async findAll(
     @CurrentUser() user: AmaJwtPayload,
     @Query('status') status?: string,
@@ -44,6 +45,7 @@ export class DispatchController {
 
   @Auth()
   @Get(':id')
+  @ApiOperation({ summary: '배차 상세 조회' })
   async findById(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -54,6 +56,7 @@ export class DispatchController {
 
   @Auth()
   @Patch(':id')
+  @ApiOperation({ summary: '배차 정보 수정' })
   async update(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -65,6 +68,7 @@ export class DispatchController {
 
   @Auth()
   @Post()
+  @ApiOperation({ summary: '배차 신청' })
   async create(
     @CurrentUser() user: AmaJwtPayload,
     @Body() req: CreateDispatchRequest,
@@ -80,6 +84,7 @@ export class DispatchController {
 
   @Auth()
   @Patch(':id/approve')
+  @ApiOperation({ summary: '배차 승인' })
   async approve(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -91,6 +96,7 @@ export class DispatchController {
 
   @Auth()
   @Patch(':id/reject')
+  @ApiOperation({ summary: '배차 반려' })
   async reject(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -102,6 +108,7 @@ export class DispatchController {
 
   @Auth()
   @Patch(':id/driver-respond')
+  @ApiOperation({ summary: '운전자 응답' })
   async driverRespond(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -113,6 +120,7 @@ export class DispatchController {
 
   @Auth()
   @Patch(':id/depart')
+  @ApiOperation({ summary: '배차 출발' })
   async depart(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -123,6 +131,7 @@ export class DispatchController {
 
   @Auth()
   @Patch(':id/arrive')
+  @ApiOperation({ summary: '배차 도착' })
   async arrive(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -133,6 +142,7 @@ export class DispatchController {
 
   @Auth()
   @Patch(':id/complete')
+  @ApiOperation({ summary: '배차 완료' })
   async complete(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -143,6 +153,7 @@ export class DispatchController {
 
   @Auth()
   @Patch(':id/cancel')
+  @ApiOperation({ summary: '배차 취소' })
   async cancel(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,

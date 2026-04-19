@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 
 import { useCreateDispatch } from '@/hooks/useDispatches';
 import { useVehicles } from '@/hooks/useVehicles';
+import { useDrivers } from '@/hooks/useDrivers';
 import { PageHeader } from '@/components/common/PageHeader';
 import { AvailableVehicleCard } from '@/components/dispatch/AvailableVehicleCard';
 
@@ -16,6 +17,8 @@ export function DispatchFormPage() {
   const navigate = useNavigate();
   const createMut = useCreateDispatch();
   const { data: vehiclesData } = useVehicles({ status: 'AVAILABLE' });
+  const { data: driversData } = useDrivers();
+  const allDrivers: Record<string, unknown>[] = driversData?.data || [];
   const { register, handleSubmit, watch, setError, clearErrors, formState: { errors } } = useForm({
     defaultValues: {
       purpose_type: 'BUSINESS',
@@ -34,6 +37,7 @@ export function DispatchFormPage() {
     },
   });
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
+  const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
 
   const vehicles: Record<string, unknown>[] = vehiclesData?.data || [];
   const passengerCount = Number(watch('passenger_count') || 1);
@@ -59,6 +63,7 @@ export function DispatchFormPage() {
       note: data.note || undefined,
       is_proxy: data.is_proxy || false,
       preferred_vehicle_id: selectedVehicle || undefined,
+      preferred_driver_id: selectedDriver || undefined,
     });
     navigate('/dispatches');
   };
@@ -190,6 +195,29 @@ export function DispatchFormPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Driver Selection */}
+        <div className="rounded-[10px] border border-[#e2e5eb] bg-white p-5">
+          <div className="mb-1 text-sm font-semibold text-gray-900">
+            {t('dispatch.driver')}
+            <span className="ml-1 text-[11px] font-normal text-gray-400">({t('common.optional')})</span>
+          </div>
+          <div className="mb-3 text-[11px] text-gray-400">{t('dispatch.selectDriver')}</div>
+          <select
+            value={selectedDriver || ''}
+            onChange={(e) => setSelectedDriver(e.target.value || null)}
+            className="input w-full max-w-md"
+          >
+            <option value="">— {t('dispatch.selectDriver')} —</option>
+            {allDrivers
+              .filter((d) => d.status === 'ACTIVE')
+              .map((d) => (
+                <option key={d.driverId as string} value={d.driverId as string}>
+                  {(d.driverName as string) || (d.amaUserId as string)} ({d.role as string})
+                </option>
+              ))}
+          </select>
         </div>
 
         {/* Actions */}

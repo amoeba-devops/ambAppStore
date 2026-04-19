@@ -52,6 +52,10 @@ export class CreateDispatchRequest {
   @IsOptional()
   preferred_vehicle_id?: string;
 
+  @IsUUID()
+  @IsOptional()
+  preferred_driver_id?: string;
+
   @IsString()
   @IsOptional()
   preferred_vehicle_type?: string;

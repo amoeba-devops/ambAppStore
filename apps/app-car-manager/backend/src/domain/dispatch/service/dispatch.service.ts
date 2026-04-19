@@ -72,6 +72,7 @@ export class DispatchService {
     const dispatch = this.dispatchRepo.create({
       entId: entityId,
       cvhId: req.preferred_vehicle_id || null,
+      cvdId: req.preferred_driver_id || null,
       cdrRequesterId: userId,
       cdrRequesterName: userName,
       cdrPurposeType: req.purpose_type,
@@ -89,7 +90,9 @@ export class DispatchService {
       cdrNote: req.note || null,
     });
 
-    return this.dispatchRepo.save(dispatch);
+    const saved = await this.dispatchRepo.save(dispatch);
+    // relation 포함 재조회 (vehicle/driver 정보 반환)
+    return this.findById(entityId, saved.cdrId);
   }
 
   async update(entityId: string, id: string, req: UpdateDispatchRequest): Promise<DispatchRequestEntity> {
@@ -106,7 +109,8 @@ export class DispatchService {
     if (req.note !== undefined) dispatch.cdrNote = req.note || null;
     if (req.requester_name !== undefined) dispatch.cdrRequesterName = req.requester_name;
 
-    return this.dispatchRepo.save(dispatch);
+    await this.dispatchRepo.save(dispatch);
+    return this.findById(entityId, id);
   }
 
   async approve(entityId: string, id: string, req: ApproveDispatchRequest): Promise<DispatchRequestEntity> {
