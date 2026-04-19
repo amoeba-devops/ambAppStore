@@ -54,7 +54,7 @@ export class TripLogService {
       entId: entityId,
       cdrId: dispatchId,
       cvhId: vehicleId,
-      cvdId: driverId,
+      cvdId: driverId || null,
       ctlOrigin: origin,
       ctlDestination: destination,
       ctlDepartActual: new Date(),

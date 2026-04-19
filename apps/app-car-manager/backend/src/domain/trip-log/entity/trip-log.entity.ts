@@ -27,8 +27,8 @@ export class TripLogEntity {
   @Column({ name: 'cvh_id', type: 'char', length: 36 })
   cvhId: string;
 
-  @Column({ name: 'cvd_id', type: 'char', length: 36 })
-  cvdId: string;
+  @Column({ name: 'cvd_id', type: 'char', length: 36, nullable: true })
+  cvdId: string | null;
 
   @Column({ name: 'cdr_id', type: 'char', length: 36 })
   cdrId: string;
