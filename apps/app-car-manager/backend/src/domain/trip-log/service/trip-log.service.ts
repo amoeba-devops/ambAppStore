@@ -62,6 +62,18 @@ export class TripLogService {
     return this.tripLogRepo.save(tripLog);
   }
 
+  async completeByDispatch(entityId: string, dispatchId: string): Promise<void> {
+    const tripLog = await this.tripLogRepo.findOne({
+      where: { entId: entityId, cdrId: dispatchId, ctlDeletedAt: IsNull() },
+    });
+    if (tripLog && tripLog.ctlStatus === TripLogStatus.IN_PROGRESS) {
+      tripLog.ctlStatus = TripLogStatus.COMPLETED;
+      tripLog.ctlArriveActual = new Date();
+      tripLog.ctlSubmittedAt = new Date();
+      await this.tripLogRepo.save(tripLog);
+    }
+  }
+
   async update(entityId: string, id: string, req: UpdateTripLogRequest): Promise<TripLogEntity> {
     const tripLog = await this.findById(entityId, id);
 

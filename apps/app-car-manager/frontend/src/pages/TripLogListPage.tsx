@@ -23,11 +23,11 @@ export function TripLogListPage() {
   const { data, isLoading } = useTripLogs();
   const tripLogs: Record<string, unknown>[] = data?.data || [];
 
-  // Filter by current month
+  // Filter by current month (departActual or createdAt)
   const filtered = useMemo(() => {
     const monthStr = formatMonth(currentMonth);
     return tripLogs.filter((tl) => {
-      const d = tl.departAt as string;
+      const d = (tl.departActual as string) || (tl.createdAt as string);
       return d && d.startsWith(monthStr);
     });
   }, [tripLogs, currentMonth]);

@@ -13,8 +13,9 @@ export function LogDetailRow({ log }: LogDetailRowProps) {
   const [expanded, setExpanded] = useState(false);
 
   const status = log.status as string;
-  const departAt = log.departAt ? new Date(log.departAt as string) : null;
-  const returnAt = log.returnAt ? new Date(log.returnAt as string) : null;
+  const departAt = (log.departActual || log.departAt) ? new Date((log.departActual || log.departAt) as string) : null;
+  const returnAt = (log.arriveActual || log.returnAt) ? new Date((log.arriveActual || log.returnAt) as string) : null;
+  const isRunning = status === 'IN_PROGRESS';
 
   return (
     <>
@@ -80,11 +81,11 @@ export function LogDetailRow({ log }: LogDetailRowProps) {
               />
               <DetailField
                 label={t('tripLog.startMileage')}
-                value={log.startMileage != null ? `${(log.startMileage as number).toLocaleString()}km` : '-'}
+                value={(log.odoStart || log.startMileage) != null ? `${Number(log.odoStart || log.startMileage).toLocaleString()}km` : '-'}
               />
               <DetailField
                 label={t('tripLog.endMileage')}
-                value={log.endMileage != null ? `${(log.endMileage as number).toLocaleString()}km` : '-'}
+                value={(log.odoEnd || log.endMileage) != null ? `${Number(log.odoEnd || log.endMileage).toLocaleString()}km` : '-'}
               />
               <DetailField
                 label={t('tripLog.fuelAmount')}
@@ -92,7 +93,7 @@ export function LogDetailRow({ log }: LogDetailRowProps) {
               />
               <DetailField
                 label={t('tripLog.tollFee')}
-                value={log.tollFee != null ? `₩${(log.tollFee as number).toLocaleString()}` : '-'}
+                value={(log.tollCost || log.tollFee) != null ? `₩${Number(log.tollCost || log.tollFee).toLocaleString()}` : '-'}
               />
               {Boolean(log.note) && (
                 <div className="col-span-4">

@@ -189,7 +189,24 @@ export class DispatchService {
       await this.vehicleRepo.update(dispatch.cvhId, { cvhStatus: VehicleStatus.IN_USE });
     }
 
-    return this.dispatchRepo.save(dispatch);
+    const saved = await this.dispatchRepo.save(dispatch);
+
+    // 운행일지 자동 생성 (출발 시점 = IN_PROGRESS)
+    try {
+      await this.tripLogService.createFromDispatch(
+        entityId,
+        dispatch.cdrId,
+        dispatch.cvhId || '',
+        dispatch.cvdId || '',
+        dispatch.cdrOrigin,
+        dispatch.cdrDestination,
+      );
+      this.logger.log(`Trip log created on depart for dispatch ${dispatch.cdrId}`);
+    } catch (err) {
+      this.logger.warn(`Trip log creation on depart failed: ${(err as Error).message}`);
+    }
+
+    return saved;
   }
 
   async arrive(entityId: string, id: string): Promise<DispatchRequestEntity> {
@@ -215,19 +232,12 @@ export class DispatchService {
 
     const saved = await this.dispatchRepo.save(dispatch);
 
-    // 운행일지 자동 생성
+    // 운행일지 완료 처리 (depart에서 생성된 기존 일지 업데이트)
     try {
-      await this.tripLogService.createFromDispatch(
-        entityId,
-        dispatch.cdrId,
-        dispatch.cvhId || '',
-        dispatch.cvdId || '',
-        dispatch.cdrOrigin,
-        dispatch.cdrDestination,
-      );
-      this.logger.log(`Trip log auto-created for dispatch ${dispatch.cdrId}`);
+      await this.tripLogService.completeByDispatch(entityId, dispatch.cdrId);
+      this.logger.log(`Trip log completed for dispatch ${dispatch.cdrId}`);
     } catch (err) {
-      this.logger.warn(`Trip log creation failed for dispatch ${dispatch.cdrId}: ${(err as Error).message}`);
+      this.logger.warn(`Trip log complete failed for dispatch ${dispatch.cdrId}: ${(err as Error).message}`);
     }
 
     return saved;
