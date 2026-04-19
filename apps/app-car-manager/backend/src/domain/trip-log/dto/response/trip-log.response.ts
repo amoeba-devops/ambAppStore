@@ -1,7 +1,7 @@
 export class TripLogResponse {
   tripLogId: string;
   vehicleId: string;
-  driverId: string;
+  driverId: string | null;
   dispatchId: string;
   origin: string;
   destination: string;
