@@ -32,6 +32,8 @@ export class TripLogMapper {
       updatedAt: entity.ctlUpdatedAt?.toISOString(),
       vehiclePlateNumber: entity.vehicle?.cvhPlateNumber,
       vehicleModel: entity.vehicle ? `${entity.vehicle.cvhMake} ${entity.vehicle.cvhModel}` : undefined,
+      driverName: entity.driver?.cvdDriverName ?? null,
+      passengerCount: entity.dispatchRequest?.cdrPassengerCount ?? null,
     };
   }
 

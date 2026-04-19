@@ -11,13 +11,20 @@ import { useVehicles } from '@/hooks/useVehicles';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useCreateTripLog } from '@/hooks/useTripLogs';
 
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const MINUTES = ['00', '15', '30', '45'];
+
 const tripLogSchema = z.object({
   vehicle_id: z.string().uuid(),
   driver_id: z.string().uuid(),
   origin: z.string().min(1),
   destination: z.string().min(1),
-  depart_actual: z.string().optional().or(z.literal('')),
-  arrive_actual: z.string().optional().or(z.literal('')),
+  depart_date: z.string().optional().or(z.literal('')),
+  depart_hour: z.string().optional(),
+  depart_min: z.string().optional(),
+  arrive_date: z.string().optional().or(z.literal('')),
+  arrive_hour: z.string().optional(),
+  arrive_min: z.string().optional(),
   odo_start: z.coerce.number().int().min(0).optional().or(z.literal('')),
   odo_end: z.coerce.number().int().min(0).optional().or(z.literal('')),
   customer_name: z.string().optional(),
@@ -49,7 +56,7 @@ export function TripLogFormPage() {
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<TripLogFormData>({
     resolver: zodResolver(tripLogSchema),
-    defaultValues: { refueled: false, has_accident: false },
+    defaultValues: { refueled: false, has_accident: false, depart_hour: '09', depart_min: '00', arrive_hour: '18', arrive_min: '00' },
   });
 
   const refueled = watch('refueled');
@@ -69,8 +76,14 @@ export function TripLogFormPage() {
       origin: data.origin,
       destination: data.destination,
     };
-    if (data.depart_actual) payload.depart_actual = new Date(data.depart_actual).toISOString();
-    if (data.arrive_actual) payload.arrive_actual = new Date(data.arrive_actual).toISOString();
+    if (data.depart_date) {
+      const departAt = `${data.depart_date}T${data.depart_hour || '09'}:${data.depart_min || '00'}:00`;
+      payload.depart_actual = new Date(departAt).toISOString();
+    }
+    if (data.arrive_date) {
+      const arriveAt = `${data.arrive_date}T${data.arrive_hour || '18'}:${data.arrive_min || '00'}:00`;
+      payload.arrive_actual = new Date(arriveAt).toISOString();
+    }
     if (data.odo_start !== '' && data.odo_start != null) payload.odo_start = Number(data.odo_start);
     if (data.odo_end !== '' && data.odo_end != null) payload.odo_end = Number(data.odo_end);
     if (data.customer_name) payload.customer_name = data.customer_name;
@@ -145,10 +158,28 @@ export function TripLogFormPage() {
           <Section title={t('tripLog.sectionTrip')}>
             <div className="grid grid-cols-2 gap-4">
               <Field label={t('tripLog.departActual')}>
-                <input {...register('depart_actual')} type="datetime-local" className="input" />
+                <div className="flex gap-2">
+                  <input {...register('depart_date')} type="date" className="input flex-1" />
+                  <select {...register('depart_hour')} className="input w-[70px]">
+                    {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                  <span className="flex items-center text-gray-400">:</span>
+                  <select {...register('depart_min')} className="input w-[70px]">
+                    {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
               </Field>
               <Field label={t('tripLog.arriveActual')}>
-                <input {...register('arrive_actual')} type="datetime-local" className="input" />
+                <div className="flex gap-2">
+                  <input {...register('arrive_date')} type="date" className="input flex-1" />
+                  <select {...register('arrive_hour')} className="input w-[70px]">
+                    {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                  <span className="flex items-center text-gray-400">:</span>
+                  <select {...register('arrive_min')} className="input w-[70px]">
+                    {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
               </Field>
               <Field label={t('tripLog.odoStart')}>
                 <input {...register('odo_start')} type="number" min="0" className="input" placeholder="km" />

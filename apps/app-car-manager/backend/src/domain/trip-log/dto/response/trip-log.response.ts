@@ -28,4 +28,6 @@ export class TripLogResponse {
   // 조인 정보
   vehiclePlateNumber?: string;
   vehicleModel?: string;
+  driverName?: string | null;
+  passengerCount?: number | null;
 }

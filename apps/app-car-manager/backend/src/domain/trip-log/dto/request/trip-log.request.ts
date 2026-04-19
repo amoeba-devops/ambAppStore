@@ -1,7 +1,16 @@
-import { IsOptional, IsString, IsInt, IsNumber, IsBoolean, IsDateString, IsEnum, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsUUID, IsInt, IsNumber, IsBoolean, IsDateString, IsEnum, Min, Max } from 'class-validator';
 import { KrPurposeCode, TripLogStatus } from '../../../../common/constants/enums';
 
 export class UpdateTripLogRequest {
+  @IsUUID()
+  @IsOptional()
+  driver_id?: string;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  passenger_count?: number;
+
   @IsDateString()
   @IsOptional()
   depart_actual?: string;

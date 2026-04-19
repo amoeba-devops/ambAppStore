@@ -21,6 +21,7 @@ export class TripLogService {
     const qb = this.tripLogRepo.createQueryBuilder('t')
       .leftJoinAndSelect('t.vehicle', 'v')
       .leftJoinAndSelect('t.driver', 'd')
+      .leftJoinAndSelect('t.dispatchRequest', 'dr')
       .where('t.entId = :entityId', { entityId })
       .andWhere('t.ctlDeletedAt IS NULL');
 
@@ -148,6 +149,7 @@ export class TripLogService {
       throw new BusinessException('CAR-E6002', 'Cannot update verified trip log', HttpStatus.BAD_REQUEST);
     }
 
+    if (req.driver_id !== undefined) tripLog.cvdId = req.driver_id;
     if (req.depart_actual !== undefined) tripLog.ctlDepartActual = req.depart_actual ? new Date(req.depart_actual) : null;
     if (req.arrive_actual !== undefined) tripLog.ctlArriveActual = req.arrive_actual ? new Date(req.arrive_actual) : null;
     if (req.odo_start !== undefined) tripLog.ctlOdoStart = req.odo_start ?? null;
@@ -167,7 +169,16 @@ export class TripLogService {
       tripLog.ctlDistanceKm = tripLog.ctlOdoEnd - tripLog.ctlOdoStart;
     }
 
-    return this.tripLogRepo.save(tripLog);
+    const saved = await this.tripLogRepo.save(tripLog);
+
+    // 탑승인원 업데이트 (dispatch)
+    if (req.passenger_count !== undefined && tripLog.cdrId) {
+      await this.dispatchRepo.update(tripLog.cdrId, {
+        cdrPassengerCount: req.passenger_count,
+      });
+    }
+
+    return saved;
   }
 
   async submit(entityId: string, id: string, req: SubmitTripLogRequest): Promise<TripLogEntity> {

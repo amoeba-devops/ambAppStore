@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Download, Upload } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Upload, Search } from 'lucide-react';
 import { TripLogImportModal } from '@/components/trip-log/TripLogImportModal';
 
 import { useTripLogs } from '@/hooks/useTripLogs';
+import { useVehicles } from '@/hooks/useVehicles';
 import { PageHeader } from '@/components/common/PageHeader';
 import { StatCard } from '@/components/common/StatCard';
 import { LogDetailRow } from '@/components/triplog/LogDetailRow';
@@ -20,17 +21,33 @@ export function TripLogListPage() {
   });
 
   const [showImport, setShowImport] = useState(false);
+  const [vehicleFilter, setVehicleFilter] = useState('');
+  const [routeSearch, setRouteSearch] = useState('');
   const { data, isLoading } = useTripLogs();
+  const { data: vehiclesRes } = useVehicles();
   const tripLogs: Record<string, unknown>[] = data?.data || [];
+  const vehicles: Record<string, unknown>[] = vehiclesRes?.data ?? [];
 
   // Filter by current month (departActual or createdAt)
   const filtered = useMemo(() => {
     const monthStr = formatMonth(currentMonth);
-    return tripLogs.filter((tl) => {
+    let result = tripLogs.filter((tl) => {
       const d = (tl.departActual as string) || (tl.createdAt as string);
       return d && d.startsWith(monthStr);
     });
-  }, [tripLogs, currentMonth]);
+    if (vehicleFilter) {
+      result = result.filter((tl) => tl.vehicleId === vehicleFilter);
+    }
+    if (routeSearch.trim()) {
+      const q = routeSearch.trim().toLowerCase();
+      result = result.filter((tl) => {
+        const origin = ((tl.origin as string) || '').toLowerCase();
+        const dest = ((tl.destination as string) || '').toLowerCase();
+        return origin.includes(q) || dest.includes(q);
+      });
+    }
+    return result;
+  }, [tripLogs, currentMonth, vehicleFilter, routeSearch]);
 
   // Summary stats
   const summary = useMemo(() => {
@@ -117,6 +134,38 @@ export function TripLogListPage() {
         />
       </div>
 
+      {/* Filters */}
+      <div className="flex items-center gap-3 rounded-[10px] border border-[#e2e5eb] bg-white px-4 py-3">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-gray-500">{t('vehicle.plateNumber')}:</label>
+          <select
+            value={vehicleFilter}
+            onChange={(e) => setVehicleFilter(e.target.value)}
+            className="rounded-md border border-[#d4d8e0] bg-white px-2.5 py-1.5 text-sm text-gray-700"
+          >
+            <option value="">{t('common.all')}</option>
+            {vehicles.map((v) => (
+              <option key={v.cvhId as string} value={v.cvhId as string}>
+                {v.plateNumber as string}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-gray-500">{t('tripLog.route')}:</label>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={routeSearch}
+              onChange={(e) => setRouteSearch(e.target.value)}
+              placeholder={t('common.search')}
+              className="rounded-md border border-[#d4d8e0] bg-white py-1.5 pl-8 pr-3 text-sm text-gray-700"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Trip log table */}
       {isLoading ? (
         <div className="py-16 text-center text-gray-400">{t('common.loading')}</div>
@@ -127,11 +176,10 @@ export function TripLogListPage() {
           <table className="w-full text-left text-sm">
             <thead className="border-b border-[#e2e5eb] bg-[#f5f6f8] text-xs text-gray-500">
               <tr>
-                <th className="px-4 py-3">{t('vehicle.plateNumber')}</th>
                 <th className="px-4 py-3">{t('tripLog.date')}</th>
+                <th className="px-4 py-3">{t('vehicle.plateNumber')}</th>
                 <th className="px-4 py-3">{t('tripLog.route')}</th>
                 <th className="px-4 py-3">{t('tripLog.distance')}</th>
-                <th className="px-4 py-3">{t('tripLog.fuelCost')}</th>
                 <th className="px-4 py-3">{t('common.status')}</th>
               </tr>
             </thead>

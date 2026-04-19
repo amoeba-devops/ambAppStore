@@ -279,7 +279,9 @@
     "sectionOther": "Khác",
     "note": "Ghi chú",
     "fuelUnitPrice": "Đơn giá mỗi lít",
-    "fuelCalcHint": "Lượng nhiên liệu × Đơn giá = Chi phí nhiên liệu (tự động)"
+    "fuelCalcHint": "Lượng nhiên liệu × Đơn giá = Chi phí nhiên liệu (tự động)",
+    "edit": "Sửa",
+    "assignedDriver": "Tài xế phân công"
   },
   "tripLogImport": {
     "title": "Nhập nhật ký chuyến từ Excel",
