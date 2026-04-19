@@ -35,9 +35,15 @@
     "driverList": "Danh sách tài xế",
     "tripLogEntry": "Nhập nhật ký chuyến"
   },
+  "time": {
+    "minutesAgo": "{{count}} phút trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "daysAgo": "{{count}} ngày trước"
+  },
   "monitor": {
     "title": "Giám sát thời gian thực",
     "running": "Đang chạy",
+    "vehicleLabel": "Xe",
     "departTime": "Khởi hành",
     "returnTime": "Trở về",
     "passengers": "Hành khách",
@@ -78,6 +84,12 @@
     "typePassenger": "Xe khách",
     "typeVan": "Xe van",
     "typeTruck": "Xe tải",
+    "vin": "VIN",
+    "fuelGasoline": "Xăng",
+    "fuelDiesel": "Dầu diesel",
+    "fuelLpg": "LPG",
+    "fuelElectric": "Điện",
+    "fuelHybrid": "Hybrid",
     "insuranceExpiry": "Hết hạn bảo hiểm",
     "renewInsurance": "Gia hạn bảo hiểm",
     "alerts": "Cảnh báo"
@@ -112,7 +124,10 @@
     "assignedVehicle": "Xe được phân",
     "statusActive": "Hoạt động",
     "statusOnLeave": "Nghỉ phép",
-    "statusInactive": "Không hoạt động"
+    "statusInactive": "Không hoạt động",
+    "rolePrimary": "Chính",
+    "roleSub": "Phụ",
+    "rolePool": "Chung"
   },
   "driverForm": {
     "title": "Thêm tài xế",
@@ -240,7 +255,8 @@
     "passengers": "Hành khách",
     "startMileage": "Km bắt đầu",
     "endMileage": "Km kết thúc",
-    "tollFee": "Phí cầu đường"
+    "tollFee": "Phí cầu đường",
+    "excelDownload": "Tải Excel"
   },
   "tripLogImport": {
     "title": "Nhập nhật ký chuyến từ Excel",

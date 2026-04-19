@@ -18,7 +18,7 @@ import { Auth } from '../../../auth/decorators/auth.decorator';
 import { CurrentUser } from '../../../auth/decorators/current-user.decorator';
 import { AmaJwtPayload } from '../../../auth/interfaces/ama-jwt-payload.interface';
 import { successResponse, successListResponse } from '../../../common/dto/base-response.dto';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('maintenance')
 @ApiBearerAuth('access-token')
@@ -28,6 +28,7 @@ export class MaintenanceController {
 
   @Auth()
   @Get()
+  @ApiOperation({ summary: '정비 기록 목록 조회' })
   async findAll(
     @CurrentUser() user: AmaJwtPayload,
     @Query('vehicle_id') vehicleId?: string,
@@ -39,6 +40,7 @@ export class MaintenanceController {
 
   @Auth()
   @Get(':id')
+  @ApiOperation({ summary: '정비 기록 상세 조회' })
   async findById(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -49,6 +51,7 @@ export class MaintenanceController {
 
   @Auth()
   @Post()
+  @ApiOperation({ summary: '정비 기록 등록' })
   async create(
     @CurrentUser() user: AmaJwtPayload,
     @Body() req: CreateMaintenanceRequest,
@@ -59,6 +62,7 @@ export class MaintenanceController {
 
   @Auth()
   @Patch(':id')
+  @ApiOperation({ summary: '정비 기록 수정' })
   async update(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -70,6 +74,7 @@ export class MaintenanceController {
 
   @Auth()
   @Delete(':id')
+  @ApiOperation({ summary: '정비 기록 삭제' })
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(
     @CurrentUser() user: AmaJwtPayload,

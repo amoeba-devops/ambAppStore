@@ -25,7 +25,7 @@ import { Auth } from '../../../auth/decorators/auth.decorator';
 import { CurrentUser } from '../../../auth/decorators/current-user.decorator';
 import { AmaJwtPayload } from '../../../auth/interfaces/ama-jwt-payload.interface';
 import { successResponse, successListResponse } from '../../../common/dto/base-response.dto';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('drivers')
 @ApiBearerAuth('access-token')
@@ -35,6 +35,7 @@ export class DriverController {
 
   @Auth()
   @Get()
+  @ApiOperation({ summary: '운전자 목록 조회' })
   async findAll(
     @CurrentUser() user: AmaJwtPayload,
     @Query('vehicle_id') vehicleId?: string,
@@ -52,6 +53,7 @@ export class DriverController {
 
   @Auth()
   @Get('available')
+  @ApiOperation({ summary: '가용 운전자 조회' })
   async findAvailable(@CurrentUser() user: AmaJwtPayload) {
     const drivers = await this.driverService.findAvailableDrivers(user.ent_id);
     return successListResponse(DriverMapper.toListResponse(drivers));
@@ -59,6 +61,7 @@ export class DriverController {
 
   @Auth()
   @Get(':id')
+  @ApiOperation({ summary: '운전자 상세 조회' })
   async findById(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -69,6 +72,7 @@ export class DriverController {
 
   @Auth()
   @Post()
+  @ApiOperation({ summary: '운전자 등록' })
   async create(
     @CurrentUser() user: AmaJwtPayload,
     @Body() req: CreateDriverRequest,
@@ -79,6 +83,7 @@ export class DriverController {
 
   @Auth()
   @Patch(':id')
+  @ApiOperation({ summary: '운전자 정보 수정' })
   async update(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -90,6 +95,7 @@ export class DriverController {
 
   @Auth()
   @Patch(':id/status')
+  @ApiOperation({ summary: '운전자 상태 변경' })
   async updateStatus(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -101,6 +107,7 @@ export class DriverController {
 
   @Auth()
   @Patch(':id/assign')
+  @ApiOperation({ summary: '운전자 차량 배정' })
   async assignVehicle(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -112,6 +119,7 @@ export class DriverController {
 
   @Auth()
   @Patch(':id/unassign')
+  @ApiOperation({ summary: '운전자 차량 배정 해제' })
   async unassignVehicle(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -122,6 +130,7 @@ export class DriverController {
 
   @Auth()
   @Delete(':id')
+  @ApiOperation({ summary: '운전자 삭제' })
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(
     @CurrentUser() user: AmaJwtPayload,

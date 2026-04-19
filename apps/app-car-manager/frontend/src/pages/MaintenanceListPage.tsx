@@ -1,15 +1,10 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { maintenanceApi } from '@/services/api';
+import { useMaintenanceRecords } from '@/hooks/useMaintenance';
 
 export function MaintenanceListPage() {
   const { t } = useTranslation('car');
-  const { data, isLoading } = useQuery({
-    queryKey: ['maintenance'],
-    queryFn: () => maintenanceApi.getAll(),
-  });
+  const { data, isLoading } = useMaintenanceRecords();
 
   const records = data?.data || [];
 

@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   Index,
 } from 'typeorm';
 
@@ -48,4 +49,7 @@ export class ImportLogEntity {
 
   @UpdateDateColumn({ name: 'cil_updated_at' })
   cilUpdatedAt: Date;
+
+  @DeleteDateColumn({ name: 'cil_deleted_at' })
+  cilDeletedAt: Date | null;
 }

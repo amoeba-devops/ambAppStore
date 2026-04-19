@@ -35,9 +35,15 @@
     "driverList": "Driver List",
     "tripLogEntry": "Trip Log Entry"
   },
+  "time": {
+    "minutesAgo": "{{count}} min ago",
+    "hoursAgo": "{{count}} hr ago",
+    "daysAgo": "{{count}} days ago"
+  },
   "monitor": {
     "title": "Real-time Monitor",
     "running": "Running",
+    "vehicleLabel": "Vehicle",
     "departTime": "Depart",
     "returnTime": "Return",
     "passengers": "Passengers",
@@ -78,6 +84,12 @@
     "typePassenger": "Passenger",
     "typeVan": "Van",
     "typeTruck": "Truck",
+    "vin": "VIN",
+    "fuelGasoline": "Gasoline",
+    "fuelDiesel": "Diesel",
+    "fuelLpg": "LPG",
+    "fuelElectric": "Electric",
+    "fuelHybrid": "Hybrid",
     "insuranceExpiry": "Insurance Expiry",
     "renewInsurance": "Renew Insurance",
     "alerts": "Alerts"
@@ -112,7 +124,10 @@
     "assignedVehicle": "Assigned Vehicle",
     "statusActive": "Active",
     "statusOnLeave": "On Leave",
-    "statusInactive": "Inactive"
+    "statusInactive": "Inactive",
+    "rolePrimary": "Primary",
+    "roleSub": "Sub",
+    "rolePool": "Pool"
   },
   "driverForm": {
     "title": "Add Driver",
@@ -240,7 +255,8 @@
     "passengers": "Passengers",
     "startMileage": "Start Mileage",
     "endMileage": "End Mileage",
-    "tollFee": "Toll Fee"
+    "tollFee": "Toll Fee",
+    "excelDownload": "Excel Download"
   },
   "tripLogImport": {
     "title": "Trip Log Excel Import",

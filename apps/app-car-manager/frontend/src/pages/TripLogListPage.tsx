@@ -71,7 +71,7 @@ export function TripLogListPage() {
             </button>
             <button className="flex items-center gap-1.5 rounded-lg border border-[#d4d8e0] bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
               <Download className="h-4 w-4" />
-              Excel
+              {t('tripLog.excelDownload')}
             </button>
           </div>
         }

@@ -9,13 +9,13 @@ interface DispatchCardProps {
   onClick?: () => void;
 }
 
-function getTimeAgo(dateStr: string): string {
+function getTimeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}분 전`;
+  if (mins < 60) return t('time.minutesAgo', { count: mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  return `${Math.floor(hours / 24)}일 전`;
+  if (hours < 24) return t('time.hoursAgo', { count: hours });
+  return t('time.daysAgo', { count: Math.floor(hours / 24) });
 }
 
 export function DispatchCard({ dispatch, onApprove, onReject, onClick }: DispatchCardProps) {
@@ -65,7 +65,7 @@ export function DispatchCard({ dispatch, onApprove, onReject, onClick }: Dispatc
         </span>
         {isPending && createdAt && (
           <span className="text-[10px] text-yellow-600">
-            🔥 {getTimeAgo(createdAt)}
+            🔥 {getTimeAgo(createdAt, t)}
           </span>
         )}
         {isRunning && (

@@ -17,10 +17,10 @@ interface DriverSelectorProps {
 }
 
 const ROLE_ORDER = ['PRIMARY', 'SUB', 'POOL'];
-const ROLE_LABEL: Record<string, string> = {
-  PRIMARY: '주운전자',
-  SUB: '부운전자',
-  POOL: '풀 운전자',
+const ROLE_I18N_KEY: Record<string, string> = {
+  PRIMARY: 'driver.rolePrimary',
+  SUB: 'driver.roleSub',
+  POOL: 'driver.rolePool',
 };
 const ROLE_COLOR: Record<string, string> = {
   PRIMARY: 'bg-blue-100 text-blue-700',
@@ -51,7 +51,7 @@ export function DriverSelector({ drivers, selected, onSelect }: DriverSelectorPr
       {Object.entries(groups).map(([role, list]) => (
         <div key={role}>
           <div className="mb-1.5 text-[11px] font-semibold uppercase text-gray-400">
-            {ROLE_LABEL[role] || role}
+            {t(ROLE_I18N_KEY[role]) || role}
           </div>
           <div className="space-y-1.5">
             {list.map((driver) => {
@@ -88,7 +88,7 @@ export function DriverSelector({ drivers, selected, onSelect }: DriverSelectorPr
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-900">{driver.driverName}</span>
                       <span className={clsx('rounded-full px-1.5 py-0.5 text-[10px] font-medium', ROLE_COLOR[role])}>
-                        {ROLE_LABEL[role]}
+                        {t(ROLE_I18N_KEY[role])}
                       </span>
                       {!isAvailable && (
                         <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] text-red-600">

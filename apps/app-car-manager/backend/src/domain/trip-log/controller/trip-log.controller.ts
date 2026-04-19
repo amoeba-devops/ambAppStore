@@ -33,6 +33,7 @@ export class TripLogController {
 
   @Auth()
   @Get()
+  @ApiOperation({ summary: '운행일지 목록 조회' })
   async findAll(
     @CurrentUser() user: AmaJwtPayload,
     @Query('vehicle_id') vehicleId?: string,
@@ -44,6 +45,7 @@ export class TripLogController {
 
   @Auth()
   @Get(':id')
+  @ApiOperation({ summary: '운행일지 상세 조회' })
   async findById(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -54,6 +56,7 @@ export class TripLogController {
 
   @Auth()
   @Patch(':id')
+  @ApiOperation({ summary: '운행일지 수정' })
   async update(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -65,6 +68,7 @@ export class TripLogController {
 
   @Auth()
   @Patch(':id/submit')
+  @ApiOperation({ summary: '운행일지 제출' })
   async submit(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,

@@ -35,9 +35,15 @@
     "driverList": "운전자 목록",
     "tripLogEntry": "운행일지 등록"
   },
+  "time": {
+    "minutesAgo": "{{count}}분 전",
+    "hoursAgo": "{{count}}시간 전",
+    "daysAgo": "{{count}}일 전"
+  },
   "monitor": {
     "title": "실시간 관제",
     "running": "운행중",
+    "vehicleLabel": "차량",
     "departTime": "출발",
     "returnTime": "복귀",
     "passengers": "탑승자",
@@ -78,6 +84,12 @@
     "typePassenger": "승용",
     "typeVan": "승합",
     "typeTruck": "화물",
+    "vin": "VIN",
+    "fuelGasoline": "가솔린",
+    "fuelDiesel": "디젤",
+    "fuelLpg": "LPG",
+    "fuelElectric": "전기",
+    "fuelHybrid": "하이브리드",
     "insuranceExpiry": "보험 만료",
     "renewInsurance": "보험갱신",
     "alerts": "알림"
@@ -112,7 +124,10 @@
     "assignedVehicle": "배정차량",
     "statusActive": "활성",
     "statusOnLeave": "휴가",
-    "statusInactive": "비활성"
+    "statusInactive": "비활성",
+    "rolePrimary": "주운전자",
+    "roleSub": "부운전자",
+    "rolePool": "풀 운전자"
   },
   "driverForm": {
     "title": "운전자 추가",
@@ -240,7 +255,8 @@
     "passengers": "탑승인원",
     "startMileage": "출발 주행거리",
     "endMileage": "도착 주행거리",
-    "tollFee": "통행료"
+    "tollFee": "통행료",
+    "excelDownload": "Excel 다운로드"
   },
   "tripLogImport": {
     "title": "운행일지 엑셀 업로드",

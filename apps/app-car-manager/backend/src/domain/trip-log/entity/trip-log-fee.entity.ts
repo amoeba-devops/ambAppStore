@@ -3,6 +3,8 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   JoinColumn,
   Index,
@@ -45,6 +47,12 @@ export class TripLogFeeEntity {
 
   @CreateDateColumn({ name: 'ctlf_created_at' })
   ctlfCreatedAt: Date;
+
+  @UpdateDateColumn({ name: 'ctlf_updated_at' })
+  ctlfUpdatedAt: Date;
+
+  @DeleteDateColumn({ name: 'ctlf_deleted_at' })
+  ctlfDeletedAt: Date | null;
 
   @ManyToOne(() => TripLogEntity)
   @JoinColumn({ name: 'ctl_id' })

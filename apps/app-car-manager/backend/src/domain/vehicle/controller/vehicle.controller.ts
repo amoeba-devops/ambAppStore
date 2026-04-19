@@ -20,7 +20,7 @@ import { Auth } from '../../../auth/decorators/auth.decorator';
 import { CurrentUser } from '../../../auth/decorators/current-user.decorator';
 import { AmaJwtPayload } from '../../../auth/interfaces/ama-jwt-payload.interface';
 import { successResponse, successListResponse } from '../../../common/dto/base-response.dto';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('vehicles')
 @ApiBearerAuth('access-token')
@@ -30,6 +30,7 @@ export class VehicleController {
 
   @Auth()
   @Get()
+  @ApiOperation({ summary: '차량 목록 조회' })
   async findAll(
     @CurrentUser() user: AmaJwtPayload,
     @Query('type') type?: string,
@@ -41,6 +42,7 @@ export class VehicleController {
 
   @Auth()
   @Get(':id')
+  @ApiOperation({ summary: '차량 상세 조회' })
   async findById(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -51,6 +53,7 @@ export class VehicleController {
 
   @Auth()
   @Post()
+  @ApiOperation({ summary: '차량 등록' })
   async create(
     @CurrentUser() user: AmaJwtPayload,
     @Body() req: CreateVehicleRequest,
@@ -61,6 +64,7 @@ export class VehicleController {
 
   @Auth()
   @Patch(':id')
+  @ApiOperation({ summary: '차량 정보 수정' })
   async update(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -72,6 +76,7 @@ export class VehicleController {
 
   @Auth()
   @Patch(':id/status')
+  @ApiOperation({ summary: '차량 상태 변경' })
   async updateStatus(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -83,6 +88,7 @@ export class VehicleController {
 
   @Auth()
   @Patch(':id/dedicated')
+  @ApiOperation({ summary: '전용차량 설정' })
   async updateDedicated(
     @CurrentUser() user: AmaJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,

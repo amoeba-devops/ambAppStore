@@ -39,7 +39,7 @@ export function VehicleListPage() {
 
   // Generate alerts from vehicle data
   const alerts = useMemo(() => {
-    const items: { id: string; type: 'warning' | 'danger'; message: string; actionLabel?: string }[] = [];
+    const items: { id: string; type: 'warning' | 'danger'; plateNumber: string; label: string; highlight?: string; actionLabel?: string }[] = [];
     vehicles.forEach((v) => {
       if (v.insuranceExpiry) {
         const daysLeft = Math.ceil(
@@ -49,7 +49,9 @@ export function VehicleListPage() {
           items.push({
             id: `ins-${v.cvhId}`,
             type: daysLeft <= 7 ? 'danger' : 'warning',
-            message: `<strong>${v.plateNumber}</strong> ${t('vehicle.insuranceExpiry')} <strong>D-${daysLeft}</strong>`,
+            plateNumber: v.plateNumber as string,
+            label: t('vehicle.insuranceExpiry'),
+            highlight: `D-${daysLeft}`,
             actionLabel: t('vehicle.renewInsurance'),
           });
         }

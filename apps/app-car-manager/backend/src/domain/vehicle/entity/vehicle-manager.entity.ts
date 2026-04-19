@@ -16,6 +16,9 @@ export class VehicleManagerEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'cvm_id' })
   cvmId: string;
 
+  @Column({ name: 'ent_id', type: 'char', length: 36 })
+  entId: string;
+
   @Column({ name: 'cvh_id', type: 'char', length: 36 })
   cvhId: string;
 

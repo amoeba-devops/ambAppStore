@@ -5,7 +5,9 @@ import { clsx } from 'clsx';
 interface Alert {
   id: string;
   type: 'warning' | 'danger';
-  message: string;
+  plateNumber: string;
+  label: string;
+  highlight?: string;
   actionLabel?: string;
   onAction?: () => void;
 }
@@ -39,10 +41,10 @@ export function AlertSection({ alerts }: AlertSectionProps) {
             )}
           >
             <Bell className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
-            <span
-              className="flex-1 text-[13px] text-gray-600"
-              dangerouslySetInnerHTML={{ __html: alert.message }}
-            />
+            <span className="flex-1 text-[13px] text-gray-600">
+              <strong>{alert.plateNumber}</strong> {alert.label}{' '}
+              {alert.highlight && <strong>{alert.highlight}</strong>}
+            </span>
             {alert.actionLabel && (
               <button
                 onClick={alert.onAction}

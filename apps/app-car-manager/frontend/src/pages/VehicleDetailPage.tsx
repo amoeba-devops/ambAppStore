@@ -91,7 +91,7 @@ export function VehicleDetailPage() {
                 <InfoField label={t('vehicle.fuelType')} value={vehicle.fuelType} />
                 <InfoField label={t('detail.maxPassengers')} value={`${vehicle.maxPassengers}${t('monitor.personsUnit')}`} />
                 <InfoField label={t('detail.purchaseType')} value={vehicle.purchaseType} />
-                <InfoField label="VIN" value={vehicle.vin} mono small />
+                <InfoField label={t('vehicle.vin')} value={vehicle.vin} mono small />
               </div>
             </div>
 

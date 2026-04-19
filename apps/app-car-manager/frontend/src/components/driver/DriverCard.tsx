@@ -73,7 +73,7 @@ export function DriverCard({ driver, isPrimary, onEdit }: DriverCardProps) {
           roleBadgeStyles[role],
         )}
       >
-        {role === 'PRIMARY_DRIVER' ? 'PRIMARY' : role === 'SUB_DRIVER' ? 'SUB' : 'POOL'}
+        {role === 'PRIMARY_DRIVER' ? t('driver.rolePrimary') : role === 'SUB_DRIVER' ? t('driver.roleSub') : t('driver.rolePool')}
       </span>
 
       {/* Status */}
@@ -83,7 +83,7 @@ export function DriverCard({ driver, isPrimary, onEdit }: DriverCardProps) {
           statusStyles[status],
         )}
       >
-        {status === 'ACTIVE' ? '● ACTIVE' : status === 'ON_LEAVE' ? '🌴 ON_LEAVE' : 'INACTIVE'}
+        {status === 'ACTIVE' ? `● ${t('driver.statusActive')}` : status === 'ON_LEAVE' ? `🌴 ${t('driver.statusOnLeave')}` : t('driver.statusInactive')}
       </span>
 
       {/* License info */}

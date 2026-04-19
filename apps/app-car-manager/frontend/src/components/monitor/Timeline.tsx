@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 
 interface TimelineEntry {
@@ -34,6 +35,7 @@ export function Timeline({
   startHour = HOURS_DEFAULT_START,
   endHour = HOURS_DEFAULT_END,
 }: TimelineProps) {
+  const { t } = useTranslation('car');
   const totalHours = endHour - startHour;
   const hours = Array.from({ length: totalHours + 1 }, (_, i) => startHour + i);
 
@@ -46,7 +48,7 @@ export function Timeline({
           style={{ gridTemplateColumns: `160px repeat(${hours.length}, 1fr)` }}
         >
           <div className="border-r border-[#e2e5eb] px-3.5 py-2 text-left font-mono text-[10px] text-gray-400">
-            차량
+            {t('monitor.vehicleLabel')}
           </div>
           {hours.map((h) => (
             <div
