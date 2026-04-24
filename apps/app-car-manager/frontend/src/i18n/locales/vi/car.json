@@ -93,7 +93,20 @@
     "fuelHybrid": "Hybrid",
     "insuranceExpiry": "Hết hạn bảo hiểm",
     "renewInsurance": "Gia hạn bảo hiểm",
-    "alerts": "Cảnh báo"
+    "alerts": "Cảnh báo",
+    "editVehicle": "Chỉnh sửa thông tin xe",
+    "displacement": "Dung tích (cc)",
+    "transmission": "Hộp số",
+    "transmissionAuto": "Tự động",
+    "transmissionManual": "Số sàn",
+    "maxLoadTon": "Tải trọng tối đa (tấn)",
+    "cargoType": "Loại hàng",
+    "purchaseType": "Loại mua",
+    "inspectionDate": "Ngày kiểm định",
+    "note": "Ghi chú",
+    "uneditable": "Không thể chỉnh sửa",
+    "editSaveSuccess": "Thông tin xe đã được lưu",
+    "editSaveError": "Đã xảy ra lỗi khi lưu"
   },
   "detail": {
     "tabInfo": "Thông tin cơ bản",
@@ -281,7 +294,8 @@
     "fuelUnitPrice": "Đơn giá mỗi lít",
     "fuelCalcHint": "Lượng nhiên liệu × Đơn giá = Chi phí nhiên liệu (tự động)",
     "edit": "Sửa",
-    "assignedDriver": "Tài xế phân công"
+    "assignedDriver": "Tài xế phân công",
+    "detailTitle": "Chi tiết nhật ký chuyến"
   },
   "tripLogImport": {
     "title": "Nhập nhật ký chuyến từ Excel",

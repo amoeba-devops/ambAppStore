@@ -22,38 +22,74 @@ export function DispatchDetailPage() {
   const [editData, setEditData] = useState<Record<string, string>>({});
   const [editDriverId, setEditDriverId] = useState<string>('');
 
+  const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+  const MINUTES = ['00', '15', '30', '45'];
+
   const dispatch = data?.data;
 
   if (isLoading) return <div className="py-10 text-center text-gray-500">{t('common.loading')}</div>;
   if (!dispatch) return <div className="py-10 text-center text-gray-400">{t('common.noData')}</div>;
 
+  const parseDateParts = (isoStr: string | null | undefined) => {
+    if (!isoStr) return { date: '', hour: '09', min: '00' };
+    const d = new Date(isoStr);
+    return {
+      date: d.toISOString().slice(0, 10),
+      hour: String(d.getHours()).padStart(2, '0'),
+      min: String(Math.floor(d.getMinutes() / 15) * 15).padStart(2, '0'),
+    };
+  };
+
   const handleAction = async (action: string, data?: Record<string, unknown>) => {
     await actionMut.mutateAsync({ id: id!, action, data });
+    refetch();
   };
 
   const startEdit = () => {
+    const depart = parseDateParts(dispatch.departAt);
+    const returnAt = parseDateParts(dispatch.returnAt);
     setEditData({
       requester_name: dispatch.requesterName || '',
       purpose: dispatch.purpose || '',
       origin: dispatch.origin || '',
       destination: dispatch.destination || '',
       note: dispatch.note || '',
+      depart_date: depart.date,
+      depart_hour: depart.hour,
+      depart_min: depart.min,
+      return_date: returnAt.date,
+      return_hour: returnAt.hour,
+      return_min: returnAt.min,
     });
     setEditDriverId(dispatch.driverId || '');
     setEditing(true);
   };
 
   const saveEdit = async () => {
-    const payload: Record<string, unknown> = { ...editData };
+    const payload: Record<string, unknown> = {
+      requester_name: editData.requester_name,
+      purpose: editData.purpose,
+      origin: editData.origin,
+      destination: editData.destination,
+      note: editData.note,
+    };
     if (editDriverId !== (dispatch.driverId || '')) {
       payload.driver_id = editDriverId || null;
+    }
+    if (editData.depart_date) {
+      const dt = `${editData.depart_date}T${editData.depart_hour || '09'}:${editData.depart_min || '00'}:00`;
+      payload.depart_at = new Date(dt).toISOString();
+    }
+    if (editData.return_date) {
+      const dt = `${editData.return_date}T${editData.return_hour || '18'}:${editData.return_min || '00'}:00`;
+      payload.return_at = new Date(dt).toISOString();
     }
     await updateMut.mutateAsync({ id: id!, data: payload });
     setEditing(false);
     refetch();
   };
 
-  const canEdit = ['PENDING', 'APPROVED'].includes(dispatch.status);
+  const canEdit = ['PENDING', 'APPROVED', 'DRIVER_ACCEPTED'].includes(dispatch.status);
 
   return (
     <div>
@@ -110,8 +146,32 @@ export function DispatchDetailPage() {
                   <EditRow label={t('dispatch.purpose')} field="purpose" value={editData.purpose} onChange={(v) => setEditData((p) => ({ ...p, purpose: v }))} />
                   <EditRow label={t('dispatch.origin')} field="origin" value={editData.origin} onChange={(v) => setEditData((p) => ({ ...p, origin: v }))} />
                   <EditRow label={t('dispatch.destination')} field="destination" value={editData.destination} onChange={(v) => setEditData((p) => ({ ...p, destination: v }))} />
-                  <Row label={t('dispatch.departAt')} value={dispatch.departAt ? new Date(dispatch.departAt).toLocaleString() : '-'} />
-                  <Row label={t('dispatch.returnAt')} value={dispatch.returnAt ? new Date(dispatch.returnAt).toLocaleString() : '-'} />
+                  <div className="border-b border-[#eef0f4] py-1">
+                    <dt className="mb-1.5 text-[13px] text-gray-500">{t('dispatch.departAt')}</dt>
+                    <dd className="flex gap-2">
+                      <input type="date" value={editData.depart_date} onChange={(e) => setEditData((p) => ({ ...p, depart_date: e.target.value }))} className="w-36 rounded border border-orange-300 px-2 py-1 text-[13px] focus:outline-none focus:ring-1 focus:ring-orange-500" />
+                      <select value={editData.depart_hour} onChange={(e) => setEditData((p) => ({ ...p, depart_hour: e.target.value }))} className="w-16 rounded border border-orange-300 px-1 py-1 text-[13px] focus:outline-none focus:ring-1 focus:ring-orange-500">
+                        {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
+                      </select>
+                      <span className="flex items-center text-gray-400">:</span>
+                      <select value={editData.depart_min} onChange={(e) => setEditData((p) => ({ ...p, depart_min: e.target.value }))} className="w-16 rounded border border-orange-300 px-1 py-1 text-[13px] focus:outline-none focus:ring-1 focus:ring-orange-500">
+                        {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </dd>
+                  </div>
+                  <div className="border-b border-[#eef0f4] py-1">
+                    <dt className="mb-1.5 text-[13px] text-gray-500">{t('dispatch.returnAt')}</dt>
+                    <dd className="flex gap-2">
+                      <input type="date" value={editData.return_date} onChange={(e) => setEditData((p) => ({ ...p, return_date: e.target.value }))} className="w-36 rounded border border-orange-300 px-2 py-1 text-[13px] focus:outline-none focus:ring-1 focus:ring-orange-500" />
+                      <select value={editData.return_hour} onChange={(e) => setEditData((p) => ({ ...p, return_hour: e.target.value }))} className="w-16 rounded border border-orange-300 px-1 py-1 text-[13px] focus:outline-none focus:ring-1 focus:ring-orange-500">
+                        {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
+                      </select>
+                      <span className="flex items-center text-gray-400">:</span>
+                      <select value={editData.return_min} onChange={(e) => setEditData((p) => ({ ...p, return_min: e.target.value }))} className="w-16 rounded border border-orange-300 px-1 py-1 text-[13px] focus:outline-none focus:ring-1 focus:ring-orange-500">
+                        {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </dd>
+                  </div>
                   <Row label={t('dispatch.passengers')} value={dispatch.passengerCount} />
                   <EditRow label={t('dispatch.note')} field="note" value={editData.note} onChange={(v) => setEditData((p) => ({ ...p, note: v }))} />
                 </>

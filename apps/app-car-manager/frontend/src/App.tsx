@@ -12,11 +12,13 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { VehicleListPage } from '@/pages/VehicleListPage';
 import { VehicleDetailPage } from '@/pages/VehicleDetailPage';
 import { VehicleFormPage } from '@/pages/VehicleFormPage';
+import { VehicleEditPage } from '@/pages/VehicleEditPage';
 import { DispatchListPage } from '@/pages/DispatchListPage';
 import { DispatchDetailPage } from '@/pages/DispatchDetailPage';
 import { DispatchFormPage } from '@/pages/DispatchFormPage';
 import { TripLogListPage } from '@/pages/TripLogListPage';
 import { TripLogFormPage } from '@/pages/TripLogFormPage';
+import { TripLogDetailPage } from '@/pages/TripLogDetailPage';
 import { DriverListPage } from '@/pages/DriverListPage';
 import { useAuthStore } from '@/stores/auth.store';
 import type { User } from '@/stores/auth.store';
@@ -167,12 +169,14 @@ function App() {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/vehicles" element={<VehicleListPage />} />
               <Route path="/vehicles/new" element={<VehicleFormPage />} />
+              <Route path="/vehicles/:id/edit" element={<VehicleEditPage />} />
               <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
               <Route path="/dispatches" element={<DispatchListPage />} />
               <Route path="/dispatches/new" element={<DispatchFormPage />} />
               <Route path="/dispatches/:id" element={<DispatchDetailPage />} />
               <Route path="/trip-logs" element={<TripLogListPage />} />
               <Route path="/trip-logs/new" element={<TripLogFormPage />} />
+              <Route path="/trip-logs/:id" element={<TripLogDetailPage />} />
               <Route path="/drivers" element={<DriverListPage />} />
             </Routes>
           </AppLayout>

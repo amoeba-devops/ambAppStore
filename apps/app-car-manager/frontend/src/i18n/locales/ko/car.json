@@ -93,7 +93,20 @@
     "fuelHybrid": "하이브리드",
     "insuranceExpiry": "보험 만료",
     "renewInsurance": "보험갱신",
-    "alerts": "알림"
+    "alerts": "알림",
+    "editVehicle": "차량 정보 수정",
+    "displacement": "배기량(cc)",
+    "transmission": "변속기",
+    "transmissionAuto": "자동",
+    "transmissionManual": "수동",
+    "maxLoadTon": "최대 적재량(톤)",
+    "cargoType": "화물 유형",
+    "purchaseType": "구매 유형",
+    "inspectionDate": "검사일",
+    "note": "비고",
+    "uneditable": "수정 불가",
+    "editSaveSuccess": "차량 정보가 저장되었습니다",
+    "editSaveError": "저장 중 오류가 발생했습니다"
   },
   "detail": {
     "tabInfo": "기본 정보",
@@ -281,7 +294,8 @@
     "fuelUnitPrice": "리터당 단가",
     "fuelCalcHint": "주유량 × 리터당 단가 = 주유비 자동계산",
     "edit": "수정",
-    "assignedDriver": "배정운전자"
+    "assignedDriver": "배정운전자",
+    "detailTitle": "운행일지 상세"
   },
   "tripLogImport": {
     "title": "운행일지 엑셀 업로드",

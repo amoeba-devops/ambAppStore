@@ -93,7 +93,20 @@
     "fuelHybrid": "Hybrid",
     "insuranceExpiry": "Insurance Expiry",
     "renewInsurance": "Renew Insurance",
-    "alerts": "Alerts"
+    "alerts": "Alerts",
+    "editVehicle": "Edit Vehicle",
+    "displacement": "Displacement (cc)",
+    "transmission": "Transmission",
+    "transmissionAuto": "Automatic",
+    "transmissionManual": "Manual",
+    "maxLoadTon": "Max Load (ton)",
+    "cargoType": "Cargo Type",
+    "purchaseType": "Purchase Type",
+    "inspectionDate": "Inspection Date",
+    "note": "Note",
+    "uneditable": "Not editable",
+    "editSaveSuccess": "Vehicle information saved",
+    "editSaveError": "An error occurred while saving"
   },
   "detail": {
     "tabInfo": "Basic Info",
@@ -281,7 +294,8 @@
     "fuelUnitPrice": "Unit Price per Liter",
     "fuelCalcHint": "Fuel Amount × Unit Price = Fuel Cost (auto-calculated)",
     "edit": "Edit",
-    "assignedDriver": "Assigned Driver"
+    "assignedDriver": "Assigned Driver",
+    "detailTitle": "Trip Log Detail"
   },
   "tripLogImport": {
     "title": "Trip Log Excel Import",

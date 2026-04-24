@@ -1,0 +1,2597 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trinity LMS · Interactive Simulation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Pretendard:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --ink-soft: #3a3a3a;
+    --muted: #6b6b6b;
+    --line: #d9d4c6;
+    --line-soft: #ebe7dc;
+    --cream: #faf8f3;
+    --cream-deep: #f3eee2;
+    --paper: #ffffff;
+    --gold: #a88a44;
+    --gold-deep: #8a6d30;
+    --gold-pale: #f3ead3;
+    --sage: #5f7a5e;
+    --sage-pale: #e2eadc;
+    --coral: #c5533e;
+    --coral-pale: #f5d9d2;
+    --sky: #7a9bb5;
+    --sky-pale: #dfe9f0;
+    --serif: 'Fraunces', 'Noto Serif KR', Georgia, serif;
+    --sans: 'Pretendard', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', 'Consolas', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans); font-size: 14px; line-height: 1.6;
+    color: var(--ink); background: var(--cream);
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "ss01" on, "cv11" on;
+    letter-spacing: -0.005em;
+  }
+  button { font-family: var(--sans); }
+  input, textarea, select { font-family: var(--sans); }
+
+  /* Portal Switcher */
+  .portal-switcher {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: var(--ink); color: var(--cream);
+    padding: 10px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    z-index: 1000; border-bottom: 1px solid #000;
+  }
+  .switcher-brand {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--serif); font-size: 14px; letter-spacing: 0.02em;
+  }
+  .switcher-brand .logo {
+    width: 26px; height: 26px; background: var(--gold); color: var(--ink);
+    font-family: var(--serif); font-weight: 600; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .switcher-brand .divider { opacity: 0.3; font-weight: 300; }
+  .switcher-tabs {
+    display: flex; gap: 4px;
+    background: rgba(255,255,255,0.06);
+    padding: 3px; border-radius: 100px;
+  }
+  .switcher-tab {
+    font-size: 12px; font-weight: 500; letter-spacing: -0.01em;
+    color: rgba(250,248,243,0.6); background: transparent; border: none;
+    padding: 7px 18px; border-radius: 100px; cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .switcher-tab:hover { color: var(--cream); }
+  .switcher-tab.active {
+    background: var(--cream); color: var(--ink); font-weight: 600;
+  }
+  .switcher-meta {
+    font-family: var(--mono); font-size: 10px; opacity: 0.5;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .keyboard-hint {
+    font-family: var(--mono); font-size: 9px; opacity: 0.4;
+    letter-spacing: 0.1em; text-transform: uppercase; margin-right: 12px;
+  }
+
+  /* Portal Shell */
+  .portal { display: none; padding-top: 44px; min-height: 100vh; }
+  .portal.active { display: block; }
+
+  /* Topbar */
+  .topbar {
+    background: var(--paper); border-bottom: 1px solid var(--line);
+    padding: 14px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 44px; z-index: 50;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 20px; }
+  .portal-title {
+    font-family: var(--serif); font-size: 18px; font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .portal-title em {
+    font-style: italic; color: var(--gold-deep); font-weight: 400;
+  }
+  .subnav {
+    display: flex; gap: 4px; margin-left: 24px;
+  }
+  .subnav-item {
+    padding: 6px 14px; font-size: 12px; color: var(--muted);
+    cursor: pointer; border-radius: 2px;
+    transition: all 0.15s;
+  }
+  .subnav-item:hover { background: var(--cream); color: var(--ink); }
+  .subnav-item.active {
+    color: var(--ink); font-weight: 600;
+    background: var(--cream-deep);
+  }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+
+  .child-select {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 14px; border: 1px solid var(--line);
+    border-radius: 100px; font-size: 12px; cursor: pointer;
+    background: var(--cream); transition: border-color 0.2s;
+  }
+  .child-select:hover { border-color: var(--ink); }
+  .child-select .chev { font-size: 9px; opacity: 0.5; }
+
+  .icon-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 1px solid var(--line); background: var(--paper);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; position: relative; transition: background 0.2s;
+  }
+  .icon-btn:hover { background: var(--cream-deep); }
+  .icon-btn svg { width: 14px; height: 14px; }
+  .icon-btn .dot {
+    position: absolute; top: 6px; right: 6px;
+    width: 7px; height: 7px; background: var(--coral);
+    border-radius: 50%; border: 1.5px solid var(--paper);
+  }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--gold); color: var(--ink);
+    font-family: var(--serif); font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .main { padding: 28px 32px 60px; max-width: 1400px; margin: 0 auto; }
+  .view { display: none; }
+  .view.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Headline */
+  .headline-block {
+    padding: 20px 0 24px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 28px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+    gap: 24px;
+  }
+  .headline-block h1 {
+    font-family: var(--serif); font-size: 38px; font-weight: 400;
+    letter-spacing: -0.03em; line-height: 1.1;
+  }
+  .headline-block h1 em { font-style: italic; color: var(--gold-deep); }
+  .headline-meta {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    letter-spacing: 0.06em; text-transform: uppercase;
+    text-align: right; flex-shrink: 0;
+  }
+  .headline-meta div + div { margin-top: 3px; }
+
+  /* KPI */
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+    border: 1px solid var(--line); background: var(--paper);
+    margin-bottom: 32px;
+  }
+  .kpi-card {
+    padding: 24px 20px; border-right: 1px solid var(--line);
+    position: relative; transition: background 0.2s; cursor: pointer;
+  }
+  .kpi-card:last-child { border-right: none; }
+  .kpi-card:hover { background: var(--cream); }
+  .kpi-label {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .kpi-value {
+    font-family: var(--serif); font-size: 38px; font-weight: 500;
+    line-height: 1; letter-spacing: -0.02em; color: var(--ink);
+  }
+  .kpi-value .unit {
+    font-size: 15px; color: var(--muted); font-weight: 400; margin-left: 3px;
+  }
+  .kpi-trend {
+    margin-top: 8px; font-size: 11px; color: var(--sage);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .kpi-trend.down { color: var(--coral); }
+  .kpi-trend.warn { color: var(--gold-deep); }
+  .kpi-trend svg { width: 10px; height: 10px; }
+
+  /* Columns */
+  .cols { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; margin-bottom: 32px; }
+  .cols-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) {
+    .cols, .cols-3 { grid-template-columns: 1fr; }
+  }
+
+  /* Section */
+  .section { background: var(--paper); border: 1px solid var(--line); }
+  .section-header {
+    padding: 18px 22px;
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .section-header h2 {
+    font-family: var(--serif); font-size: 18px; font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .section-header h2 .counter {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    margin-left: 10px; letter-spacing: 0.1em; font-weight: 400;
+  }
+  .section-link {
+    font-size: 12px; color: var(--gold-deep); font-weight: 500;
+    cursor: pointer; text-decoration: none;
+    border-bottom: 1px dashed var(--gold);
+  }
+  .section-body { padding: 4px 0; }
+
+  /* List */
+  .list-item {
+    padding: 16px 22px; border-bottom: 1px solid var(--line-soft);
+    display: flex; align-items: center; gap: 16px;
+    transition: background 0.2s; cursor: pointer;
+  }
+  .list-item:last-child { border-bottom: none; }
+  .list-item:hover { background: var(--cream); }
+  .list-time {
+    font-family: var(--serif); font-size: 16px; font-weight: 500;
+    color: var(--ink); min-width: 56px; flex-shrink: 0;
+    letter-spacing: -0.01em;
+  }
+  .list-time .suffix {
+    font-family: var(--mono); font-size: 9px; color: var(--muted);
+    letter-spacing: 0.1em; display: block; font-weight: 400;
+  }
+  .list-body { flex: 1; min-width: 0; }
+  .list-title {
+    font-size: 14px; font-weight: 600; color: var(--ink);
+    margin-bottom: 2px; letter-spacing: -0.01em;
+  }
+  .list-meta { font-size: 12px; color: var(--muted); }
+  .list-action { flex-shrink: 0; }
+
+  /* Pills */
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; font-size: 10px; font-weight: 600;
+    font-family: var(--mono); letter-spacing: 0.06em;
+    text-transform: uppercase; border-radius: 3px;
+  }
+  .pill.new { background: var(--coral); color: white; }
+  .pill.warn { background: var(--gold-pale); color: var(--gold-deep); }
+  .pill.success { background: var(--sage-pale); color: var(--sage); }
+  .pill.info { background: var(--sky-pale); color: var(--sky); }
+  .pill.danger { background: var(--coral-pale); color: var(--coral); }
+  .pill.ink { background: var(--ink); color: var(--cream); }
+  .pill.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px 18px; font-size: 13px; font-weight: 500;
+    letter-spacing: -0.005em; border: 1px solid var(--line);
+    background: var(--paper); color: var(--ink); cursor: pointer;
+    border-radius: 2px; transition: all 0.15s ease; text-decoration: none;
+  }
+  .btn:hover { background: var(--cream-deep); border-color: var(--ink); }
+  .btn.primary { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+  .btn.primary:hover { background: var(--ink-soft); }
+  .btn.gold { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+  .btn.gold:hover { background: var(--gold-deep); color: white; }
+  .btn.small { padding: 5px 10px; font-size: 11px; }
+  .btn.block { width: 100%; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px; margin-top: 24px;
+  }
+
+  /* Hero */
+  .hero-card {
+    background: var(--ink); color: var(--cream);
+    padding: 24px 26px; position: relative; overflow: hidden;
+  }
+  .hero-card::before {
+    content: ''; position: absolute;
+    top: -20px; right: -20px; width: 140px; height: 140px;
+    background: radial-gradient(circle, var(--gold-deep) 0%, transparent 70%);
+    opacity: 0.3; pointer-events: none;
+  }
+  .hero-card .eyebrow {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 10px;
+  }
+  .hero-card .hero-title {
+    font-family: var(--serif); font-size: 26px; line-height: 1.2;
+    letter-spacing: -0.02em; margin-bottom: 14px;
+  }
+  .hero-card .hero-title em {
+    font-style: italic; color: var(--gold); font-weight: 400;
+  }
+  .hero-card .hero-meta {
+    font-size: 12px; color: rgba(250,248,243,0.7);
+    margin-bottom: 18px; display: flex; gap: 14px;
+    font-family: var(--mono); letter-spacing: 0.04em;
+  }
+  .hero-card .countdown {
+    display: flex; align-items: baseline; gap: 8px;
+    padding-top: 14px; border-top: 1px solid rgba(250,248,243,0.15);
+  }
+  .hero-card .countdown-num {
+    font-family: var(--serif); font-size: 32px; font-weight: 500;
+    color: var(--gold); letter-spacing: -0.02em;
+  }
+  .hero-card .countdown-label {
+    font-size: 11px; font-family: var(--mono);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: rgba(250,248,243,0.6);
+  }
+  .hero-card .hero-action { position: absolute; bottom: 24px; right: 26px; }
+  .hero-card .btn.gold {
+    background: var(--gold); color: var(--ink); border-color: var(--gold);
+  }
+
+  /* Feedback snippet */
+  .fb-item {
+    padding: 14px 22px; border-bottom: 1px solid var(--line-soft);
+    cursor: pointer; transition: background 0.15s;
+  }
+  .fb-item:last-child { border-bottom: none; }
+  .fb-item:hover { background: var(--cream); }
+  .fb-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 6px;
+  }
+  .fb-date {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .fb-subject {
+    font-family: var(--serif); font-size: 15px; font-weight: 500;
+    margin: 2px 0 6px; letter-spacing: -0.01em;
+  }
+  .fb-excerpt {
+    font-size: 12px; color: var(--muted); line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  /* Class row */
+  .class-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 120px 120px 140px;
+    align-items: center; padding: 16px 22px;
+    border-bottom: 1px solid var(--line-soft);
+    gap: 16px; transition: background 0.15s;
+  }
+  .class-row:hover { background: var(--cream); }
+  .class-row:last-child { border-bottom: none; }
+  .class-row .time {
+    font-family: var(--serif); font-size: 20px; font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .class-row .student-info .name { font-size: 14px; font-weight: 600; }
+  .class-row .student-info .meta {
+    font-size: 11px; color: var(--muted); margin-top: 2px;
+  }
+  .class-row .subject {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+
+  /* Alert */
+  .alert {
+    padding: 14px 18px; border-radius: 2px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 13px; margin-bottom: 16px;
+  }
+  .alert.warn {
+    background: var(--gold-pale); color: var(--gold-deep);
+    border-left: 3px solid var(--gold);
+  }
+  .alert.danger {
+    background: var(--coral-pale); color: var(--coral);
+    border-left: 3px solid var(--coral);
+  }
+  .alert.info {
+    background: var(--sky-pale); color: var(--sky);
+    border-left: 3px solid var(--sky);
+  }
+  .alert .alert-icon { font-size: 16px; flex-shrink: 0; }
+  .alert .alert-text { flex: 1; }
+  .alert strong { font-weight: 600; }
+  .alert .alert-action {
+    font-size: 11px; text-decoration: underline;
+    cursor: pointer; font-weight: 600;
+  }
+
+  /* Data table */
+  .table-wrap {
+    background: var(--paper); border: 1px solid var(--line); overflow: hidden;
+  }
+  .table-controls {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 20px; border-bottom: 1px solid var(--line);
+    background: var(--cream); gap: 16px;
+    flex-wrap: wrap;
+  }
+  .table-filters {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  .filter-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 5px 10px; background: var(--paper);
+    border: 1px solid var(--line); border-radius: 100px;
+    font-size: 11px; color: var(--muted);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .filter-chip:hover { border-color: var(--ink); color: var(--ink); }
+  .filter-chip.active {
+    background: var(--ink); color: var(--cream); border-color: var(--ink);
+  }
+  .filter-chip .chev { font-size: 8px; opacity: 0.5; }
+
+  .search-box {
+    display: flex; align-items: center; padding: 5px 12px;
+    border: 1px solid var(--line); background: var(--paper);
+    border-radius: 100px; gap: 6px; min-width: 200px;
+  }
+  .search-box input {
+    border: none; outline: none; background: transparent;
+    font-size: 12px; flex: 1;
+  }
+  .search-box svg { width: 12px; height: 12px; opacity: 0.5; }
+
+  table.data {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  table.data th {
+    text-align: left; padding: 12px 16px;
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase;
+    background: var(--cream); border-bottom: 1px solid var(--line);
+  }
+  table.data td { padding: 14px 16px; border-bottom: 1px solid var(--line-soft); }
+  table.data tbody tr { transition: background 0.15s; cursor: pointer; }
+  table.data tbody tr:hover { background: var(--cream); }
+  table.data tbody tr.selected {
+    background: var(--gold-pale);
+    box-shadow: inset 3px 0 0 var(--gold);
+  }
+  table.data tbody tr:last-child td { border-bottom: none; }
+
+  .student-cell { display: flex; align-items: center; gap: 10px; }
+  .student-cell .initials {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--sage-pale); color: var(--sage);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--serif); font-size: 11px; font-weight: 600;
+  }
+  .student-cell .initials.g { background: var(--gold-pale); color: var(--gold-deep); }
+  .student-cell .initials.s { background: var(--sky-pale); color: var(--sky); }
+  .student-cell .initials.c { background: var(--coral-pale); color: var(--coral); }
+  .student-cell .name { font-weight: 600; font-size: 13px; }
+  .student-cell .meta { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  .score-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--serif); font-size: 16px; font-weight: 500;
+  }
+  .score-trend { font-size: 10px; }
+  .score-trend.up { color: var(--sage); }
+  .score-trend.down { color: var(--coral); }
+  .score-trend.flat { color: var(--muted); }
+
+  /* Admin layout */
+  .admin-layout {
+    display: grid; grid-template-columns: 1fr 420px; gap: 24px;
+  }
+  @media (max-width: 1100px) {
+    .admin-layout { grid-template-columns: 1fr; }
+  }
+
+  .review-drawer {
+    background: var(--paper); border: 1px solid var(--line);
+    padding: 24px; position: sticky; top: 120px;
+    max-height: calc(100vh - 140px); overflow-y: auto;
+  }
+  .review-drawer .review-header {
+    padding-bottom: 14px; border-bottom: 1px solid var(--line);
+    margin-bottom: 16px;
+  }
+  .review-drawer .review-title {
+    font-family: var(--serif); font-size: 17px; font-weight: 500;
+  }
+  .review-drawer .review-meta {
+    font-size: 11px; color: var(--muted); margin-top: 4px;
+    font-family: var(--mono); letter-spacing: 0.04em;
+  }
+  .review-drawer .fb-section { margin-bottom: 16px; }
+  .review-drawer .fb-section-label {
+    font-family: var(--mono); font-size: 10px; color: var(--gold-deep);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-bottom: 6px; font-weight: 600;
+  }
+  .review-drawer .fb-section-body {
+    font-size: 13px; line-height: 1.6; color: var(--ink-soft);
+  }
+  .review-drawer .review-actions {
+    display: flex; gap: 8px; padding-top: 18px; border-top: 1px solid var(--line);
+  }
+
+  /* Chart panel */
+  .chart-panel {
+    background: var(--paper); border: 1px solid var(--line); padding: 24px;
+  }
+  .chart-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 20px;
+  }
+  .chart-title {
+    font-family: var(--serif); font-size: 16px; font-weight: 500;
+  }
+  .chart-legend {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  /* Bars */
+  .bars { display: flex; align-items: flex-end; gap: 8px; height: 140px; }
+  .bar {
+    flex: 1; background: var(--cream-deep);
+    position: relative; transition: background 0.2s; cursor: pointer;
+  }
+  .bar::before {
+    content: attr(data-val); position: absolute;
+    top: -18px; left: 50%; transform: translateX(-50%);
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+  }
+  .bar:hover, .bar.highlight { background: var(--gold); }
+  .bar-labels { display: flex; gap: 8px; margin-top: 8px; }
+  .bar-label {
+    flex: 1; text-align: center;
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+  }
+
+  /* Rank list */
+  .rank-list { list-style: none; }
+  .rank-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--line-soft);
+  }
+  .rank-item:last-child { border: none; }
+  .rank-num {
+    font-family: var(--serif); font-size: 22px; font-weight: 500;
+    color: var(--gold-deep); width: 32px; flex-shrink: 0;
+  }
+  .rank-body { flex: 1; }
+  .rank-name { font-weight: 600; font-size: 13px; }
+  .rank-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .rank-val { font-family: var(--serif); font-size: 17px; font-weight: 500; }
+
+  .chart-svg { width: 100%; height: 180px; }
+
+  /* Sidebar */
+  .app-shell {
+    display: grid; grid-template-columns: 220px 1fr;
+    min-height: calc(100vh - 44px - 63px);
+  }
+  .sidebar {
+    background: var(--paper); border-right: 1px solid var(--line);
+    padding: 24px 0;
+  }
+  .nav-group {
+    padding: 0 20px 16px;
+    border-bottom: 1px solid var(--line-soft); margin-bottom: 16px;
+  }
+  .nav-group:last-child { border-bottom: none; }
+  .nav-label {
+    font-family: var(--mono); font-size: 9px; color: var(--muted);
+    letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 10px;
+  }
+  .nav-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; font-size: 13px; color: var(--ink-soft);
+    cursor: pointer; border-radius: 2px; transition: color 0.15s;
+  }
+  .nav-item:hover { color: var(--ink); }
+  .nav-item.active { color: var(--ink); font-weight: 600; }
+  .nav-item.active::before {
+    content: '—'; color: var(--gold-deep); margin-right: 6px;
+  }
+  .nav-item .count {
+    font-family: var(--mono); font-size: 10px; color: var(--coral);
+    background: var(--coral-pale); padding: 1px 6px; border-radius: 10px;
+  }
+
+  .content-area { padding: 28px 32px; }
+
+  /* Form */
+  .form-group { margin-bottom: 20px; }
+  .form-label {
+    display: block; font-family: var(--mono); font-size: 10px;
+    color: var(--muted); letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 8px; font-weight: 600;
+  }
+  .form-hint {
+    font-size: 11px; color: var(--muted); margin-top: 4px;
+    display: flex; justify-content: space-between;
+  }
+  .form-hint .count { font-family: var(--mono); }
+  .form-hint .count.ok { color: var(--sage); }
+  .form-hint .count.short { color: var(--coral); }
+  .form-input, .form-textarea {
+    width: 100%; padding: 11px 14px; border: 1px solid var(--line);
+    background: var(--paper); font-size: 13px; font-family: var(--sans);
+    border-radius: 2px; transition: border-color 0.15s;
+  }
+  .form-input:focus, .form-textarea:focus {
+    outline: none; border-color: var(--ink);
+  }
+  .form-textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+
+  .radio-group {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .radio-option {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 14px; border: 1px solid var(--line);
+    cursor: pointer; font-size: 13px; transition: all 0.15s;
+    background: var(--paper);
+  }
+  .radio-option:hover { border-color: var(--ink-soft); }
+  .radio-option.active {
+    background: var(--ink); color: var(--cream); border-color: var(--ink);
+  }
+
+  .autosave-indicator {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    letter-spacing: 0.06em; display: flex; align-items: center; gap: 4px;
+  }
+  .autosave-indicator.saving { color: var(--gold-deep); }
+  .autosave-indicator.saved { color: var(--sage); }
+  .autosave-indicator .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(26,26,26,0.5); z-index: 500; backdrop-filter: blur(2px);
+  }
+  .modal-overlay.show { display: block; }
+  .modal {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%; max-width: 620px;
+    background: var(--paper); border: 1px solid var(--ink);
+    padding: 32px; z-index: 501; display: none;
+    max-height: 85vh; overflow-y: auto;
+  }
+  .modal.show { display: block; }
+  .modal-close {
+    position: absolute; top: 14px; right: 14px;
+    width: 30px; height: 30px; border: 1px solid var(--line);
+    background: var(--paper); cursor: pointer; font-size: 14px;
+  }
+  .modal h3 {
+    font-family: var(--serif); font-size: 22px; font-weight: 500;
+    letter-spacing: -0.02em; margin-bottom: 4px;
+  }
+  .modal .modal-meta {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 20px;
+  }
+
+  /* Date picker wrapper */
+  .date-time-row {
+    display: grid; grid-template-columns: 2fr 1fr; gap: 8px;
+  }
+
+  /* Mobile */
+  @media (max-width: 600px) {
+    .main { padding: 20px 16px 40px; }
+    .headline-block { flex-direction: column; align-items: flex-start; }
+    .headline-block h1 { font-size: 28px; }
+    .headline-meta { text-align: left; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .kpi-card:nth-child(even) { border-right: none; }
+    .kpi-card:nth-child(1), .kpi-card:nth-child(2) {
+      border-bottom: 1px solid var(--line);
+    }
+    .kpi-value { font-size: 30px; }
+    .app-shell { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .class-row { grid-template-columns: 70px 1fr 90px; }
+    .class-row .subject, .class-row .status { display: none; }
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--ink); color: var(--cream);
+    padding: 12px 24px; font-size: 13px; border-radius: 2px;
+    opacity: 0; transition: all 0.3s ease; z-index: 2000;
+    max-width: 420px; text-align: center;
+  }
+  .toast.show {
+    opacity: 1; transform: translateX(-50%) translateY(0);
+  }
+  .toast.success { background: var(--sage); }
+  .toast.warn { background: var(--gold-deep); }
+  .toast.danger { background: var(--coral); }
+
+  .intro-tag {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 8px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--cream); }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* Attendance radio */
+  .att-group { display: flex; gap: 8px; }
+  .att-option {
+    flex: 1; padding: 10px; text-align: center;
+    border: 1px solid var(--line); cursor: pointer;
+    font-size: 13px; transition: all 0.15s;
+    background: var(--paper);
+  }
+  .att-option:hover { border-color: var(--ink-soft); }
+  .att-option.active {
+    background: var(--ink); color: var(--cream); border-color: var(--ink);
+    font-weight: 600;
+  }
+  .att-option.active.present { background: var(--sage); border-color: var(--sage); }
+  .att-option.active.absent { background: var(--coral); border-color: var(--coral); }
+  .att-option.active.late { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+</style>
+</head>
+<body>
+
+<!-- Portal Switcher -->
+<div class="portal-switcher">
+  <div class="switcher-brand">
+    <div class="logo">T</div>
+    <span>Trinity LMS</span>
+    <span class="divider">│</span>
+    <span style="font-style: italic; opacity: 0.6; font-size: 12px;">Interactive simulation</span>
+  </div>
+  <div class="switcher-tabs">
+    <button class="switcher-tab active" data-portal="parent">학부모 포털</button>
+    <button class="switcher-tab" data-portal="teacher">강사 포털</button>
+    <button class="switcher-tab" data-portal="admin">관리자</button>
+  </div>
+  <div style="display: flex; align-items: center;">
+    <span class="keyboard-hint">1·2·3 전환</span>
+    <span class="switcher-meta">v1.0 · APR 2026</span>
+  </div>
+</div>
+
+<!-- ============================================================
+     PARENT PORTAL
+============================================================ -->
+<div class="portal active" id="portal-parent">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="portal-title">Trinity — <em>학부모</em></div>
+      <div class="subnav">
+        <div class="subnav-item active" data-view="p-dashboard">대시보드</div>
+        <div class="subnav-item" data-view="p-grades">성적</div>
+        <div class="subnav-item" data-view="p-feedbacks">피드백</div>
+        <div class="subnav-item" data-view="p-schedule">일정</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="child-select" onclick="toggleChild()">
+        <span id="current-child">김서연 · G4</span>
+        <span class="chev">▼</span>
+      </div>
+      <button class="icon-btn" title="알림" onclick="toast('미확인 알림 2건')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="dot"></span>
+      </button>
+      <div class="avatar" id="parent-avatar">김</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- Dashboard view -->
+    <div class="view active" id="view-p-dashboard">
+      <div class="headline-block">
+        <h1>안녕하세요,<br><span id="child-name">김서연</span> <em>학부모</em>님.</h1>
+        <div class="headline-meta">
+          <div>2026.04.18 FRI</div>
+          <div>N°127 · <span id="child-tenure">재원 18개월차</span></div>
+          <div style="color: var(--gold-deep); margin-top: 8px;"><span id="child-target">NLCS JEJU</span> · 목표</div>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card" onclick="switchView('parent','p-schedule')">
+          <div class="kpi-label">이번 달 수업</div>
+          <div class="kpi-value" id="kpi-classes">12<span class="unit">/ 16</span></div>
+          <div class="kpi-trend">정상 진행</div>
+        </div>
+        <div class="kpi-card" onclick="toast('출석률 96%')">
+          <div class="kpi-label">출석률</div>
+          <div class="kpi-value" id="kpi-attendance">96<span class="unit">%</span></div>
+          <div class="kpi-trend">지난달 +4%</div>
+        </div>
+        <div class="kpi-card" onclick="switchView('parent','p-grades')">
+          <div class="kpi-label">최근 MAP</div>
+          <div class="kpi-value" id="kpi-map">218</div>
+          <div class="kpi-trend">+6 RIT</div>
+        </div>
+        <div class="kpi-card" onclick="switchView('parent','p-feedbacks')">
+          <div class="kpi-label">미확인 피드백</div>
+          <div class="kpi-value" style="color: var(--coral);" id="kpi-unread">3</div>
+          <div class="kpi-trend warn">확인 필요</div>
+        </div>
+      </div>
+
+      <div class="cols">
+        <div>
+          <div class="hero-card">
+            <div class="eyebrow">NEXT SESSION</div>
+            <div class="hero-title">Reading · Unit 5<br>Main Idea <em>& Inference</em></div>
+            <div class="hero-meta">
+              <span>오늘 19:00</span>
+              <span>KIM TAEYOON</span>
+              <span>GOOGLE MEET</span>
+            </div>
+            <div class="countdown">
+              <div>
+                <div class="countdown-num">2</div>
+              </div>
+              <div class="countdown-label">hours remaining</div>
+            </div>
+            <div class="hero-action">
+              <button class="btn gold" onclick="toast('Meet 링크는 수업 1시간 전 자동 발송됩니다')">Meet 접속 →</button>
+            </div>
+          </div>
+
+          <div class="section" style="margin-top: 20px;">
+            <div class="section-header">
+              <h2>다가오는 일정 <span class="counter">N°02-06</span></h2>
+              <a class="section-link" onclick="switchView('parent','p-schedule')">전체 보기 →</a>
+            </div>
+            <div class="section-body">
+              <div class="list-item">
+                <div class="list-time">16:00<span class="suffix">TMW</span></div>
+                <div class="list-body">
+                  <div class="list-title">Writing · Essay Draft 3</div>
+                  <div class="list-meta">박지영 선생님 · Opinion Writing</div>
+                </div>
+                <div><span class="pill ghost">TOMORROW</span></div>
+              </div>
+              <div class="list-item">
+                <div class="list-time">19:00<span class="suffix">FRI</span></div>
+                <div class="list-body">
+                  <div class="list-title">Reading · Unit 5-4</div>
+                  <div class="list-meta">김태윤 선생님 · Vocabulary Focus</div>
+                </div>
+                <div><span class="pill ghost">+2 DAYS</span></div>
+              </div>
+              <div class="list-item">
+                <div class="list-time">10:00<span class="suffix">SAT</span></div>
+                <div class="list-body">
+                  <div class="list-title">MAP Mock Test · G4</div>
+                  <div class="list-meta">제주 본원 · 시험 예약 확정</div>
+                </div>
+                <div><span class="pill info">EXAM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section" id="feedback-preview">
+          <div class="section-header">
+            <h2>최근 피드백 <span class="counter">N°07-09</span></h2>
+            <a class="section-link" onclick="switchView('parent','p-feedbacks')">모두 보기</a>
+          </div>
+          <div class="section-body" id="dashboard-fb-list">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="switchView('parent','p-grades')">📊 성적 전체 보기</button>
+        <button class="btn" onclick="toast('숙제 목록은 준비 중입니다')">📝 숙제 확인</button>
+        <button class="btn primary" onclick="showModal('consult-modal')">✉ 상담 신청</button>
+      </div>
+    </div>
+
+    <!-- Grades view -->
+    <div class="view" id="view-p-grades">
+      <div class="headline-block">
+        <h1>성적 <em>· MAP Test</em></h1>
+        <div class="headline-meta">
+          <div>총 <span id="test-count">6</span>회 응시</div>
+          <div>최근 RIT <span id="latest-rit" style="color: var(--gold-deep);">218</span></div>
+        </div>
+      </div>
+
+      <div class="chart-panel" style="margin-bottom: 24px;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">MAP RIT Score 추이</div>
+            <div class="chart-legend" style="margin-top: 4px;">TARGET: <span id="target-label">NLCS 225</span></div>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="filter-chip period-btn" data-period="3M">3개월</button>
+            <button class="filter-chip period-btn active" data-period="6M">6개월</button>
+            <button class="filter-chip period-btn" data-period="1Y">1년</button>
+            <button class="filter-chip period-btn" data-period="ALL">전체</button>
+          </div>
+        </div>
+        <svg class="chart-svg" id="score-chart" viewBox="0 0 600 180" preserveAspectRatio="none"></svg>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h2>응시 이력 <span class="counter" id="history-counter">N°ALL 6</span></h2>
+        </div>
+        <table class="data">
+          <thead>
+            <tr>
+              <th>응시일</th>
+              <th>시험명</th>
+              <th>총점</th>
+              <th>백분위</th>
+              <th>RIT</th>
+              <th>리포트</th>
+            </tr>
+          </thead>
+          <tbody id="test-history-body">
+            <!-- JS populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Feedbacks view -->
+    <div class="view" id="view-p-feedbacks">
+      <div class="headline-block">
+        <h1>피드백 <em>· 전체</em></h1>
+        <div class="headline-meta">
+          <div>총 <span id="fb-total-count">24</span>건</div>
+          <div>미확인 <span id="fb-unread-count" style="color: var(--coral);">3</span>건</div>
+        </div>
+      </div>
+
+      <div class="table-controls" style="background: var(--paper); border: 1px solid var(--line); border-radius: 2px; margin-bottom: 16px;">
+        <div class="table-filters">
+          <span class="filter-chip subject-filter active" data-subject="ALL">전체</span>
+          <span class="filter-chip subject-filter" data-subject="READING">Reading</span>
+          <span class="filter-chip subject-filter" data-subject="WRITING">Writing</span>
+          <span class="filter-chip subject-filter" data-subject="SPEAKING">Speaking</span>
+        </div>
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="피드백 내용 검색…" id="fb-search">
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-body" id="full-fb-list">
+          <!-- JS populated -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule view -->
+    <div class="view" id="view-p-schedule">
+      <div class="headline-block">
+        <h1>수업 일정</h1>
+        <div class="headline-meta">
+          <div id="cal-month-label">2026 · APRIL</div>
+          <div>4 WEEKS</div>
+        </div>
+      </div>
+
+      <div class="chart-panel" style="margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="btn small" onclick="changeMonth(-1)">← Prev</button>
+            <span style="font-family: var(--serif); font-size: 18px;" id="cal-title">2026 4월</span>
+            <button class="btn small" onclick="changeMonth(1)">Next →</button>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <span class="filter-chip active">월간</span>
+            <span class="filter-chip">주간</span>
+            <button class="btn small" onclick="toast('Google Calendar 구독 URL이 복사되었습니다')">📅 iCal 구독</button>
+          </div>
+        </div>
+        <div class="calendar" id="calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line);">
+          <!-- JS populated -->
+        </div>
+        <div style="margin-top: 16px; display: flex; gap: 16px; justify-content: center; font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em;">
+          <span>● <span style="color: var(--sage);">READING</span></span>
+          <span>● <span style="color: var(--gold-deep);">WRITING</span></span>
+          <span>● <span style="color: var(--coral);">TEST</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     TEACHER PORTAL
+============================================================ -->
+<div class="portal" id="portal-teacher">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="portal-title">Trinity — <em>강사</em></div>
+      <div class="subnav">
+        <div class="subnav-item active" data-view="t-dashboard">대시보드</div>
+        <div class="subnav-item" data-view="t-students">담당 학생</div>
+        <div class="subnav-item" data-view="t-feedback">피드백 작성</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="icon-btn" onclick="toast('알림 1건')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="dot"></span>
+      </button>
+      <div class="avatar" style="background: var(--sage); color: white;">태</div>
+    </div>
+  </div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="nav-group">
+        <div class="nav-label">TODAY</div>
+        <div class="nav-item active" onclick="switchView('teacher','t-dashboard')">대시보드</div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">STUDENTS</div>
+        <div class="nav-item" onclick="switchView('teacher','t-students')">
+          담당 학생 <span class="count" style="background: var(--cream-deep); color: var(--muted);">38</span>
+        </div>
+        <div class="nav-item" onclick="toast('수업 확인표')">수업 확인표</div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">TASKS</div>
+        <div class="nav-item" onclick="switchView('teacher','t-feedback')">
+          피드백 작성 <span class="count">2</span>
+        </div>
+        <div class="nav-item" onclick="toast('숙제 관리')">숙제 관리</div>
+        <div class="nav-item" onclick="toast('자료 요청 티켓')">
+          자료 요청 <span class="count" style="background: var(--gold-pale); color: var(--gold-deep);">1</span>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <!-- Dashboard -->
+      <div class="view active" id="view-t-dashboard">
+        <div class="headline-block">
+          <h1>Good evening,<br>김태윤 <em>선생님</em>.</h1>
+          <div class="headline-meta">
+            <div>2026.04.18 FRI</div>
+            <div>4 CLASSES · 2 DUE</div>
+          </div>
+        </div>
+
+        <div class="alert warn">
+          <span class="alert-icon">⚠</span>
+          <div class="alert-text">
+            미작성 피드백 <strong>2건</strong>이 있습니다. SLA 초과 2시간 전입니다.
+          </div>
+          <span class="alert-action" onclick="switchView('teacher','t-feedback')">지금 작성하기 →</span>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">오늘 수업</div>
+            <div class="kpi-value">4</div>
+            <div class="kpi-trend">남은 수업 3건</div>
+          </div>
+          <div class="kpi-card" onclick="switchView('teacher','t-feedback')">
+            <div class="kpi-label">미작성 피드백</div>
+            <div class="kpi-value" style="color: var(--coral);">2</div>
+            <div class="kpi-trend down">SLA 임박</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">검수 대기</div>
+            <div class="kpi-value">1</div>
+            <div class="kpi-trend">어드바이저 검토 중</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">이번 주 수업</div>
+            <div class="kpi-value">12</div>
+            <div class="kpi-trend">평균 대비 정상</div>
+          </div>
+        </div>
+
+        <div class="section" style="margin-bottom: 28px;">
+          <div class="section-header">
+            <h2>오늘의 수업 <span class="counter">2026.04.18 FRI</span></h2>
+          </div>
+          <div class="section-body">
+            <div class="class-row">
+              <div class="time">16:00</div>
+              <div class="student-info">
+                <div class="name">이준호 <span style="color: var(--muted); font-weight: 400;">· G3</span></div>
+                <div class="meta">KIS · Reading Unit 4</div>
+              </div>
+              <div class="subject">READING</div>
+              <div><span class="pill ghost">UPCOMING</span></div>
+              <div>
+                <button class="btn small" style="opacity: 0.4;" disabled>Meet 대기</button>
+              </div>
+            </div>
+            <div class="class-row">
+              <div class="time">17:30</div>
+              <div class="student-info">
+                <div class="name">박하늘 <span style="color: var(--muted); font-weight: 400;">· G4</span></div>
+                <div class="meta">채드윅 · Reading Unit 5</div>
+              </div>
+              <div class="subject">READING</div>
+              <div><span class="pill ghost">UPCOMING</span></div>
+              <div>
+                <button class="btn small" style="opacity: 0.4;" disabled>Meet 대기</button>
+              </div>
+            </div>
+            <div class="class-row" style="background: var(--gold-pale);">
+              <div class="time" style="color: var(--gold-deep);">19:00</div>
+              <div class="student-info">
+                <div class="name">김서연 <span style="color: var(--muted); font-weight: 400;">· G4</span></div>
+                <div class="meta">KIS · Unit 5 Main Idea · <strong>NLCS 목표</strong></div>
+              </div>
+              <div class="subject">READING</div>
+              <div><span class="pill warn">45 MIN</span></div>
+              <div>
+                <button class="btn gold small" onclick="toast('meet.google.com/trinity-xxxx 접속')">Meet 접속 →</button>
+              </div>
+            </div>
+            <div class="class-row">
+              <div class="time">20:30</div>
+              <div class="student-info">
+                <div class="name">정민서 <span style="color: var(--muted); font-weight: 400;">· G5</span></div>
+                <div class="meta">NLCS · Reading Unit 6</div>
+              </div>
+              <div class="subject">READING</div>
+              <div><span class="pill ghost">LATER</span></div>
+              <div>
+                <button class="btn small" style="opacity: 0.4;" disabled>Meet 대기</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cols">
+          <div class="section">
+            <div class="section-header">
+              <h2>주의 필요 학생 <span class="counter">N°03</span></h2>
+              <a class="section-link" onclick="switchView('teacher','t-students')">전체 38명 →</a>
+            </div>
+            <div class="section-body">
+              <div class="list-item">
+                <div class="student-cell"><div class="initials c">최</div></div>
+                <div class="list-body">
+                  <div class="list-title">최지우 · G4</div>
+                  <div class="list-meta">출석 80% · MAP 210 (-8)</div>
+                </div>
+                <div><span class="pill danger">출석</span></div>
+              </div>
+              <div class="list-item">
+                <div class="student-cell"><div class="initials g">박</div></div>
+                <div class="list-body">
+                  <div class="list-title">박지민 · G3</div>
+                  <div class="list-meta">숙제 부분 제출 3회 연속</div>
+                </div>
+                <div><span class="pill warn">숙제</span></div>
+              </div>
+              <div class="list-item">
+                <div class="student-cell"><div class="initials s">장</div></div>
+                <div class="list-body">
+                  <div class="list-title">장하윤 · G5</div>
+                  <div class="list-meta">MAP 2회 연속 하락</div>
+                </div>
+                <div><span class="pill info">성적</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-header">
+              <h2>최근 피드백 <span class="counter">LAST 3</span></h2>
+            </div>
+            <div class="section-body">
+              <div class="fb-item">
+                <div class="fb-header">
+                  <span class="fb-date">APR 17 · 김서연</span>
+                  <span class="pill success">APPROVED</span>
+                </div>
+                <div class="fb-subject">Main idea 정확도 향상</div>
+              </div>
+              <div class="fb-item">
+                <div class="fb-header">
+                  <span class="fb-date">APR 16 · 정민서</span>
+                  <span class="pill warn">REVIEWING</span>
+                </div>
+                <div class="fb-subject">Inference 논리 전개</div>
+              </div>
+              <div class="fb-item">
+                <div class="fb-header">
+                  <span class="fb-date">APR 16 · 이준호</span>
+                  <span class="pill success">APPROVED</span>
+                </div>
+                <div class="fb-subject">Vocabulary 향상 확인</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Students view -->
+      <div class="view" id="view-t-students">
+        <div class="headline-block">
+          <h1>담당 학생 <em>· 전체</em></h1>
+          <div class="headline-meta">
+            <div>총 <span id="stu-total">38</span>명</div>
+            <div>활성 필터 적용 시 <span id="stu-filtered" style="color: var(--gold-deep);">38</span>명</div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-controls">
+            <div class="table-filters">
+              <span style="font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase;">필터</span>
+              <span class="filter-chip grade-filter active" data-grade="ALL">전체 학년</span>
+              <span class="filter-chip grade-filter" data-grade="G3">G3</span>
+              <span class="filter-chip grade-filter" data-grade="G4">G4</span>
+              <span class="filter-chip grade-filter" data-grade="G5">G5</span>
+              <span class="filter-chip" style="margin-left: 8px;">|</span>
+              <span class="filter-chip status-filter active" data-status="ALL">전체 상태</span>
+              <span class="filter-chip status-filter" data-status="ACTIVE">재원</span>
+              <span class="filter-chip status-filter" data-status="WARN">주의</span>
+            </div>
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="이름 검색…" id="student-search">
+            </div>
+          </div>
+          <table class="data">
+            <thead>
+              <tr>
+                <th>학생</th>
+                <th>학년</th>
+                <th>최근 MAP</th>
+                <th>출석률</th>
+                <th>목표교</th>
+                <th>상태</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="student-table-body">
+              <!-- JS populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Feedback write view -->
+      <div class="view" id="view-t-feedback">
+        <div class="headline-block">
+          <h1>피드백 작성 <em>· 김서연 G4</em></h1>
+          <div class="headline-meta">
+            <div>2026-04-17 (수) 19:00</div>
+            <div>Reading · Unit 5</div>
+          </div>
+        </div>
+
+        <div class="section" style="padding: 28px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <div class="autosave-indicator" id="autosave-status">
+              <span class="dot"></span>
+              <span id="autosave-text">자동 저장 대기</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn" onclick="savefeedbackDraft()">임시 저장</button>
+              <button class="btn primary" onclick="submitFeedback()">검수 제출 →</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">출석 상태</label>
+            <div class="att-group">
+              <div class="att-option active present" data-att="present" onclick="setAttendance(this,'present')">
+                ● 출석
+              </div>
+              <div class="att-option" data-att="late" onclick="setAttendance(this,'late')">
+                ◐ 지각
+              </div>
+              <div class="att-option" data-att="absent" onclick="setAttendance(this,'absent')">
+                ○ 결석
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">피드백 유형</label>
+            <div class="radio-group">
+              <div class="radio-option active">● 정규 수업</div>
+              <div class="radio-option">○ 데모 수업</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">[수업 진도]</label>
+            <textarea class="form-textarea" id="fb-progress" placeholder="이번 수업에서 진행한 내용과 범위를 입력하세요" oninput="updateCharCount(this,'progress-count',30)">Unit 5-3 진행. Workbook p.45-48 완료. Main idea 연습 3지문 · Inference 2지문 풀이 및 해설.</textarea>
+            <div class="form-hint">
+              <span>최소 30자 이상</span>
+              <span class="count ok" id="progress-count">140 자</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">[수업 피드백]</label>
+            <textarea class="form-textarea" id="fb-feedback" rows="5" placeholder="학생의 수업 중 모습, 강점과 약점, 이해도를 기술하세요" oninput="updateCharCount(this,'feedback-count',30)">이번 수업에서는 Main idea를 찾는 연습을 집중적으로 진행했습니다. 이전 대비 정확도가 30% 향상되었으며, 특히 informational text에서 강한 모습을 보여주었습니다.</textarea>
+            <div class="form-hint">
+              <span>최소 30자 이상</span>
+              <span class="count ok" id="feedback-count">320 자</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">[숙제]</label>
+            <textarea class="form-textarea" id="fb-homework" placeholder="다음 수업까지 완료할 과제와 마감일을 명시하세요" oninput="updateCharCount(this,'homework-count',30)">Unit 5-4 Reading Passages · Workbook p.50-53 · 마감: 2026-04-19 (금) 18:00</textarea>
+            <div class="form-hint">
+              <span>최소 30자 이상</span>
+              <span class="count ok" id="homework-count">80 자</span>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 20px; border-top: 1px solid var(--line);">
+            <div style="font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.06em;">
+              제출 후에는 어드바이저 승인 전까지 수정할 수 없습니다.
+            </div>
+            <button class="btn" onclick="toast('AI가 초안을 생성합니다')">✨ AI 초안 생성</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ADMIN PORTAL
+============================================================ -->
+<div class="portal" id="portal-admin">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="portal-title">Trinity — <em>관리자</em></div>
+      <div class="subnav">
+        <div class="subnav-item active" data-view="a-dashboard">대시보드</div>
+        <div class="subnav-item" data-view="a-review">피드백 검수</div>
+        <div class="subnav-item" data-view="a-admissions">합격 통계</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div style="font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0.06em;">
+        128 ACTIVE · 7 PENDING
+      </div>
+      <button class="icon-btn" onclick="toast('알림 5건')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="dot"></span>
+      </button>
+      <div class="avatar" style="background: var(--ink); color: var(--cream);">원</div>
+    </div>
+  </div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="nav-group">
+        <div class="nav-label">OVERVIEW</div>
+        <div class="nav-item active" onclick="switchView('admin','a-dashboard')">대시보드</div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">REVIEW</div>
+        <div class="nav-item" onclick="switchView('admin','a-review')">
+          피드백 검수 <span class="count">7</span>
+        </div>
+        <div class="nav-item" onclick="toast('시험 관리')">시험 관리</div>
+        <div class="nav-item" onclick="toast('상담·입학')">
+          상담·입학 <span class="count" style="background: var(--gold-pale); color: var(--gold-deep);">4</span>
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">ANALYTICS</div>
+        <div class="nav-item" onclick="switchView('admin','a-admissions')">합격 통계</div>
+        <div class="nav-item" onclick="toast('공지·알림')">공지·알림</div>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <!-- Dashboard -->
+      <div class="view active" id="view-a-dashboard">
+        <div class="headline-block">
+          <h1>운영 현황 — <em>Trinity Academy</em></h1>
+          <div class="headline-meta">
+            <div>2026 · Q2 · WEEK 16</div>
+            <div>LAST UPDATED 10 MIN AGO</div>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">재원생</div>
+            <div class="kpi-value">128</div>
+            <div class="kpi-trend">+6 이번 달</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">이번 달 수업</div>
+            <div class="kpi-value">512</div>
+            <div class="kpi-trend">계획 대비 102%</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">평균 출석률</div>
+            <div class="kpi-value" style="color: var(--coral);">91<span class="unit">%</span></div>
+            <div class="kpi-trend down">기준 94% 미달</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">신규 상담</div>
+            <div class="kpi-value">18</div>
+            <div class="kpi-trend">전환율 72%</div>
+          </div>
+        </div>
+
+        <div class="alert danger">
+          <span class="alert-icon">!</span>
+          <div class="alert-text">
+            <strong>SLA 임박 피드백 검수 2건</strong> · 박하늘(04/17, 2h) · 정민서(04/16, 4h)
+          </div>
+          <span class="alert-action" onclick="switchView('admin','a-review')">검수 대기열로 →</span>
+        </div>
+
+        <div class="chart-panel" style="margin-bottom: 24px;">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">학교별 합격자 — 최근 3년</div>
+              <div class="chart-legend" style="margin-top: 4px;">TOTAL 144 · 99% SUCCESS RATE</div>
+            </div>
+          </div>
+          <div class="bars">
+            <div class="bar" style="height: 75%;" data-val="32" title="NLCS"></div>
+            <div class="bar" style="height: 66%;" data-val="28" title="SJA"></div>
+            <div class="bar highlight" style="height: 90%;" data-val="38" title="KIS"></div>
+            <div class="bar" style="height: 42%;" data-val="18" title="Chadwick"></div>
+            <div class="bar" style="height: 28%;" data-val="12" title="DIS"></div>
+            <div class="bar" style="height: 22%;" data-val="8" title="SFS"></div>
+            <div class="bar" style="height: 38%;" data-val="16" title="UA"></div>
+          </div>
+          <div class="bar-labels">
+            <div class="bar-label">NLCS</div>
+            <div class="bar-label">SJA</div>
+            <div class="bar-label">KIS</div>
+            <div class="bar-label">CHAD</div>
+            <div class="bar-label">DIS</div>
+            <div class="bar-label">SFS</div>
+            <div class="bar-label">UA</div>
+          </div>
+        </div>
+
+        <div class="cols-3">
+          <div class="chart-panel">
+            <div class="chart-header">
+              <div class="chart-title">합격선 근접 Top 5</div>
+            </div>
+            <ul class="rank-list">
+              <li class="rank-item"><div class="rank-num">01</div><div class="rank-body"><div class="rank-name">정민서 · G5</div><div class="rank-meta">Chadwick 230/225</div></div><div class="rank-val">225</div></li>
+              <li class="rank-item"><div class="rank-num">02</div><div class="rank-body"><div class="rank-name">송유진 · G4</div><div class="rank-meta">NLCS 228/218</div></div><div class="rank-val">218</div></li>
+              <li class="rank-item"><div class="rank-num">03</div><div class="rank-body"><div class="rank-name">김서연 · G4</div><div class="rank-meta">NLCS 228/218</div></div><div class="rank-val">218</div></li>
+              <li class="rank-item"><div class="rank-num">04</div><div class="rank-body"><div class="rank-name">윤도현 · G5</div><div class="rank-meta">DIS 222/212</div></div><div class="rank-val">212</div></li>
+              <li class="rank-item"><div class="rank-num">05</div><div class="rank-body"><div class="rank-name">박하늘 · G4</div><div class="rank-meta">SJA 220/205</div></div><div class="rank-val">205</div></li>
+            </ul>
+          </div>
+
+          <div class="chart-panel">
+            <div class="chart-header">
+              <div class="chart-title">입시 파이프라인</div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line-soft);">
+                <div><div style="font-size: 13px; font-weight: 600;">상담</div><div style="font-size: 11px; color: var(--muted);">Consultation</div></div>
+                <div style="font-family: var(--serif); font-size: 22px; font-weight: 500;">18</div>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line-soft);">
+                <div><div style="font-size: 13px; font-weight: 600;">진단</div><div style="font-size: 11px; color: var(--muted);">Diagnosis</div></div>
+                <div style="font-family: var(--serif); font-size: 22px; font-weight: 500;">12</div>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line-soft);">
+                <div><div style="font-size: 13px; font-weight: 600;">수강</div><div style="font-size: 11px; color: var(--muted);">Studying</div></div>
+                <div style="font-family: var(--serif); font-size: 22px; font-weight: 500;">128</div>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line-soft);">
+                <div><div style="font-size: 13px; font-weight: 600;">지원</div><div style="font-size: 11px; color: var(--muted);">Applying</div></div>
+                <div style="font-family: var(--serif); font-size: 22px; font-weight: 500; color: var(--gold-deep);">22</div>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 10px 0;">
+                <div><div style="font-size: 13px; font-weight: 600; color: var(--sage);">합격 · 2026</div><div style="font-size: 11px; color: var(--muted);">YTD</div></div>
+                <div style="font-family: var(--serif); font-size: 22px; font-weight: 500; color: var(--sage);">42</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-panel" style="background: var(--ink); color: var(--cream); border-color: var(--ink);">
+            <div class="chart-header">
+              <div class="chart-title" style="color: var(--cream);">최근 활동</div>
+              <div class="chart-legend" style="color: var(--gold);">LIVE ·</div>
+            </div>
+            <div style="font-size: 12px;">
+              <div style="padding: 10px 0; border-bottom: 1px solid rgba(250,248,243,0.1);">
+                <div style="color: var(--gold); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; margin-bottom: 2px;">10 MIN AGO</div>
+                <div>박하늘 MAP 완료 <em style="font-family: var(--serif); color: var(--gold);">218점</em></div>
+              </div>
+              <div style="padding: 10px 0; border-bottom: 1px solid rgba(250,248,243,0.1);">
+                <div style="color: var(--gold); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; margin-bottom: 2px;">25 MIN AGO</div>
+                <div>김서연 상담 신청</div>
+              </div>
+              <div style="padding: 10px 0; border-bottom: 1px solid rgba(250,248,243,0.1);">
+                <div style="color: var(--coral); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; margin-bottom: 2px;">1 H AGO</div>
+                <div>정민서 결석</div>
+              </div>
+              <div style="padding: 10px 0;">
+                <div style="color: var(--gold); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; margin-bottom: 2px;">2 H AGO</div>
+                <div>송유진 · <em style="font-family: var(--serif); color: var(--gold);">NLCS 합격</em> 🎉</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Review queue -->
+      <div class="view" id="view-a-review">
+        <div class="headline-block">
+          <h1>피드백 검수 <em>· 대기열</em></h1>
+          <div class="headline-meta">
+            <div>대기 <span id="review-pending" style="color: var(--coral);">7</span>건</div>
+            <div>SLA 임박 <span style="color: var(--coral);">2</span>건</div>
+          </div>
+        </div>
+
+        <div class="alert info">
+          <span class="alert-icon">⌨</span>
+          <div class="alert-text">
+            키보드 단축키: <strong>J/K</strong> 이전·다음 · <strong>A</strong> 승인 · <strong>E</strong> 편집 · <strong>R</strong> 반려
+          </div>
+        </div>
+
+        <div class="admin-layout">
+          <div class="table-wrap">
+            <div class="table-controls">
+              <div class="table-filters">
+                <span class="filter-chip teacher-filter active" data-teacher="ALL">전체 강사</span>
+                <span class="filter-chip teacher-filter" data-teacher="김태윤">김태윤</span>
+                <span class="filter-chip teacher-filter" data-teacher="이은수">이은수</span>
+                <span class="filter-chip teacher-filter" data-teacher="박지영">박지영</span>
+              </div>
+            </div>
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>검수</th>
+                  <th>학생</th>
+                  <th>강사</th>
+                  <th>과목</th>
+                  <th>수업일시</th>
+                  <th>SLA</th>
+                </tr>
+              </thead>
+              <tbody id="review-queue-body">
+                <!-- JS populated -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="review-drawer">
+            <div class="intro-tag">REVIEW · <span id="review-current-id">01</span> / <span id="review-total">7</span></div>
+            <div class="review-header">
+              <div class="review-title" id="review-title">박하늘 · Reading</div>
+              <div class="review-meta" id="review-meta">APR 17 17:00 · 김태윤 선생님 · SLA 2H</div>
+            </div>
+
+            <div class="fb-section">
+              <div class="fb-section-label">[수업 진도]</div>
+              <div class="fb-section-body" id="review-progress">Unit 5-3 진행. Workbook p.45-48 완료. Main idea 연습 3지문 · Inference 2지문 풀이 및 해설.</div>
+            </div>
+            <div class="fb-section">
+              <div class="fb-section-label">[수업 피드백]</div>
+              <div class="fb-section-body" id="review-feedback">이번 수업에서는 Main idea를 찾는 연습을 집중적으로 진행했습니다. 이전 대비 정확도가 30% 향상되었으며, 특히 informational text에서 강한 모습을 보여주었습니다. 다만 길이가 긴 지문에서 시간 관리에 아쉬움이 있어 다음 수업에서 보강 예정입니다.</div>
+            </div>
+            <div class="fb-section">
+              <div class="fb-section-label">[숙제]</div>
+              <div class="fb-section-body" id="review-homework">Unit 5-4 Reading Passages · Workbook p.50-53 · 마감: 2026-04-19 (금) 18:00</div>
+            </div>
+
+            <div class="review-actions">
+              <button class="btn primary" style="flex: 1;" onclick="approveReview()">✓ 승인 [A]</button>
+              <button class="btn" onclick="toast('수정 요청 코멘트 입력')">편집 [E]</button>
+              <button class="btn" style="color: var(--coral); border-color: var(--coral);" onclick="rejectReview()">반려 [R]</button>
+            </div>
+            <div style="margin-top: 12px; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--muted);">
+              <span onclick="navReview(-1)" style="cursor:pointer;">← [J] 이전</span>
+              <span onclick="navReview(1)" style="cursor:pointer;">다음 [K] →</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admissions view -->
+      <div class="view" id="view-a-admissions">
+        <div class="headline-block">
+          <h1>합격 통계 <em>· 최근 3년</em></h1>
+          <div class="headline-meta">
+            <div>TOTAL 144 ADMITTED</div>
+            <div style="color: var(--sage);">99% SUCCESS RATE</div>
+          </div>
+        </div>
+
+        <div class="chart-panel" style="margin-bottom: 24px;">
+          <div class="chart-header">
+            <div class="chart-title">학교별 합격 분포</div>
+            <div style="display: flex; gap: 6px;">
+              <span class="filter-chip year-filter" data-year="2024">2024</span>
+              <span class="filter-chip year-filter" data-year="2025">2025</span>
+              <span class="filter-chip year-filter" data-year="2026">2026</span>
+              <span class="filter-chip year-filter active" data-year="ALL">전체</span>
+            </div>
+          </div>
+          <div class="bars" id="admission-bars">
+            <!-- JS populated -->
+          </div>
+          <div class="bar-labels">
+            <div class="bar-label">NLCS</div>
+            <div class="bar-label">SJA</div>
+            <div class="bar-label">KIS</div>
+            <div class="bar-label">CHAD</div>
+            <div class="bar-label">DIS</div>
+            <div class="bar-label">SFS</div>
+            <div class="bar-label">UA</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">
+            <h2>학교별 상세 <span class="counter">N°SCHOOLS 7</span></h2>
+          </div>
+          <table class="data">
+            <thead>
+              <tr>
+                <th>학교</th>
+                <th>합격</th>
+                <th>지원</th>
+                <th>합격률</th>
+                <th>평균 MAP</th>
+                <th>최근 합격자</th>
+              </tr>
+            </thead>
+            <tbody id="school-stats-body">
+              <!-- JS populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal()"></div>
+
+<div class="modal" id="feedback-modal">
+  <button class="modal-close" onclick="closeModal()">×</button>
+  <div class="intro-tag" id="fb-modal-date">FEEDBACK · APR 17 2026</div>
+  <h3 id="fb-modal-title">Main idea 정확도 향상</h3>
+  <div class="modal-meta" id="fb-modal-meta">Reading · 김태윤 선생님 · 김서연 G4</div>
+
+  <div class="fb-section">
+    <div class="fb-section-label">[수업 진도]</div>
+    <div class="fb-section-body" style="line-height: 1.7; font-size: 13px;" id="fb-modal-progress">
+      Unit 5-3 진행. Workbook p.45-48 완료. Main idea 연습 3지문.
+    </div>
+  </div>
+  <div class="fb-section" style="margin-top: 14px;">
+    <div class="fb-section-label">[수업 피드백]</div>
+    <div class="fb-section-body" style="line-height: 1.7; font-size: 13px;" id="fb-modal-feedback">
+      이번 수업에서는 Main idea를 찾는 연습을 집중적으로 진행했습니다.
+    </div>
+  </div>
+  <div class="fb-section" style="margin-top: 14px;">
+    <div class="fb-section-label">[숙제]</div>
+    <div class="fb-section-body" style="line-height: 1.7; font-size: 13px;" id="fb-modal-homework">
+      Unit 5-4 · 마감 04-19.
+    </div>
+  </div>
+
+  <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
+    <button class="btn" onclick="closeModal()">닫기</button>
+    <button class="btn primary" onclick="toast('어드바이저에게 문의가 전달됩니다','success'); closeModal();">어드바이저에게 문의</button>
+  </div>
+</div>
+
+<div class="modal" id="consult-modal">
+  <button class="modal-close" onclick="closeModal()">×</button>
+  <div class="intro-tag">CONSULTATION · REQUEST</div>
+  <h3>상담 신청</h3>
+  <div class="modal-meta">어드바이저가 4영업시간 이내 응답합니다</div>
+
+  <div class="form-group">
+    <label class="form-label">상담 주제</label>
+    <div class="radio-group" id="topic-group">
+      <div class="radio-option active" data-topic="진학">진학 상담</div>
+      <div class="radio-option" data-topic="학습">학습 방향</div>
+      <div class="radio-option" data-topic="시험">시험 대비</div>
+      <div class="radio-option" data-topic="기타">기타</div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">상담 방식</label>
+    <div class="radio-group" id="channel-group">
+      <div class="radio-option active" data-channel="PHONE">전화</div>
+      <div class="radio-option" data-channel="MEET">온라인 Meet</div>
+      <div class="radio-option" data-channel="JEJU">대면 제주</div>
+      <div class="radio-option" data-channel="APGUJEONG">대면 압구정</div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">희망 일시 (1지망)</label>
+    <div class="date-time-row">
+      <input type="date" class="form-input" value="2026-04-25">
+      <input type="time" class="form-input" value="15:00">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">사전 공유 내용 (선택)</label>
+    <textarea class="form-textarea" rows="3" placeholder="상담 전 공유하실 내용을 입력하세요"></textarea>
+  </div>
+
+  <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+    <button class="btn" onclick="closeModal()">취소</button>
+    <button class="btn primary" onclick="submitConsult()">신청하기 →</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ========================================================
+  // DATA
+  // ========================================================
+  const CHILDREN = [
+    { name: '김서연', short: '김', grade: 'G4', tenure: '재원 18개월차', target: 'NLCS JEJU', targetScore: 225,
+      classes: '12', attendance: 96, map: 218, unread: 3,
+      scoreHistory: [
+        {date:'2025-11',label:'NOV',rit:192}, {date:'2025-12',label:'DEC',rit:198},
+        {date:'2026-01',label:'JAN',rit:205}, {date:'2026-02',label:'FEB',rit:212},
+        {date:'2026-03',label:'MAR',rit:215}, {date:'2026-04',label:'APR',rit:218}
+      ]},
+    { name: '김지훈', short: '지', grade: 'G2', tenure: '재원 6개월차', target: 'KIS JEJU', targetScore: 200,
+      classes: '8', attendance: 100, map: 195, unread: 1,
+      scoreHistory: [
+        {date:'2025-11',label:'NOV',rit:175}, {date:'2025-12',label:'DEC',rit:180},
+        {date:'2026-01',label:'JAN',rit:186}, {date:'2026-02',label:'FEB',rit:189},
+        {date:'2026-03',label:'MAR',rit:192}, {date:'2026-04',label:'APR',rit:195}
+      ]}
+  ];
+
+  const FEEDBACKS = [
+    { id: 1, date: 'APR 17', subject: 'READING', title: 'Main idea 정확도 향상', status: 'new',
+      excerpt: '이번 수업에서는 Main idea를 찾는 연습을 집중적으로 진행했습니다. 이전 대비 정확도가 30% 향상되었고…',
+      progress: 'Unit 5-3 진행. Workbook p.45-48 완료. Main idea 연습 3지문 · Inference 2지문 풀이 및 해설.',
+      feedback: '이번 수업에서는 Main idea를 찾는 연습을 집중적으로 진행했습니다. 이전 대비 정확도가 30% 향상되었으며, 특히 informational text에서 강한 모습을 보여주었습니다. 다만 길이가 긴 지문(700+ 단어)에서 시간 관리에 어려움을 보였습니다. 두 번째 지문에서 3분 초과했고, 마지막 지문은 끝까지 읽지 못했습니다. 다음 수업에서 Skimming 전략을 소개하고 연습할 예정입니다.',
+      homework: 'Unit 5-4 Reading Passages (2지문) · Workbook p.50-53 · 마감: 2026-04-19 (금) 18:00',
+      teacher: '김태윤', student: '김서연 G4' },
+    { id: 2, date: 'APR 15', subject: 'WRITING', title: '논리 전개가 탄탄해짐', status: 'new',
+      excerpt: 'Opinion Essay Draft 2를 완성했습니다. 논리적 전개가 한결 탄탄해졌고 어휘도 다양해졌습니다…',
+      progress: 'Opinion Essay Draft 2 작성 완료. Counter-argument 섹션 추가 연습.',
+      feedback: '논리적 전개가 한결 탄탄해졌습니다. 어휘 사용의 다양성도 개선되었습니다. 다만 결론부의 임팩트가 아쉬우니 다음 수업에서 집중 보강하겠습니다.',
+      homework: 'Draft 3 완성 (결론부 보강) · 마감: 2026-04-18 (금)',
+      teacher: '박지영', student: '김서연 G4' },
+    { id: 3, date: 'APR 12', subject: 'READING', title: '소설 지문 독해 속도 개선', status: 'read',
+      excerpt: '소설 지문의 시간 내 독해 속도가 개선되었습니다. 다음 수업에서는 추론 문제 유형에 집중하겠습니다…',
+      progress: 'Unit 5-2 소설 지문 3편 정독 · 독해 속도 측정.',
+      feedback: '소설 지문의 시간 내 독해 속도가 개선되었습니다. 5분/지문에서 3.5분/지문으로 개선. 다음 수업에서는 추론 문제 유형에 집중하겠습니다.',
+      homework: 'Vocabulary List 5-2 암기 · Workbook p.38-42',
+      teacher: '김태윤', student: '김서연 G4' },
+    { id: 4, date: 'APR 10', subject: 'SPEAKING', title: 'Pronunciation 개선', status: 'read',
+      excerpt: 'th, r, v 발음의 정확도가 개선되었습니다. 다음 수업에서는 리듬과 억양 연습을…',
+      progress: 'Minimal pairs 연습 · 15분 녹음 & 피드백.',
+      feedback: 'th, r, v 발음의 정확도가 개선되었습니다. 다음 수업에서는 리듬과 억양 연습을 진행하겠습니다.',
+      homework: '매일 10분 Shadowing (TED-Ed 영상 지정)',
+      teacher: '이은수', student: '김서연 G4' },
+    { id: 5, date: 'APR 08', subject: 'READING', title: 'Vocabulary 확장', status: 'read',
+      excerpt: '이번 수업에서는 Unit 4 핵심 어휘 50개를 학습했습니다. 문맥 추론 능력이 향상되었고…',
+      progress: 'Unit 4 Vocabulary List 1-50 학습.',
+      feedback: '이번 수업에서는 Unit 4 핵심 어휘 50개를 학습했습니다. 문맥 추론 능력이 향상되었고, 암기만이 아닌 활용도 가능해졌습니다.',
+      homework: 'Unit 5-1 지문 예습 · 워크북 p.40-44',
+      teacher: '김태윤', student: '김서연 G4' }
+  ];
+
+  const TEST_HISTORY = [
+    { date: '2026-04-17', name: 'RC G4 Mock Test', score: '218/30', percentile: 82, rit: 218 },
+    { date: '2026-03-09', name: 'RC G4 Mock Test', score: '215/30', percentile: 78, rit: 215 },
+    { date: '2026-02-10', name: 'RC G4 Mock Test', score: '212/30', percentile: 75, rit: 212 },
+    { date: '2026-01-12', name: 'RC G4 Mock Test', score: '205/30', percentile: 65, rit: 205 },
+    { date: '2025-12-08', name: 'RC G3 Mock Test', score: '198/30', percentile: 58, rit: 198 },
+    { date: '2025-11-10', name: 'RC G3 Mock Test', score: '192/30', percentile: 52, rit: 192 }
+  ];
+
+  const STUDENTS = [
+    { name: '김서연', grade: 'G4', initials: 'g', school: 'KIS', map: 218, trend: 'up', trendVal: 6, attendance: 96, target: 'NLCS', status: 'active' },
+    { name: '박하늘', grade: 'G4', initials: 's', school: '채드윅', map: 205, trend: 'up', trendVal: 5, attendance: 100, target: 'SJA', status: 'active' },
+    { name: '정민서', grade: 'G5', initials: '', school: 'NLCS', map: 225, trend: 'flat', trendVal: 0, attendance: 88, target: 'Chadwick', status: 'active' },
+    { name: '이준호', grade: 'G3', initials: 'g', school: 'KIS', map: 198, trend: 'flat', trendVal: 0, attendance: 92, target: 'KIS', status: 'active' },
+    { name: '최지우', grade: 'G4', initials: 'c', school: 'KIS', map: 210, trend: 'down', trendVal: 8, attendance: 80, target: 'NLCS', status: 'warn' },
+    { name: '장하윤', grade: 'G5', initials: 's', school: 'NLCS', map: 218, trend: 'down', trendVal: 10, attendance: 94, target: 'Chadwick', status: 'warn' },
+    { name: '박지민', grade: 'G3', initials: 'g', school: 'KIS', map: 188, trend: 'flat', trendVal: 0, attendance: 84, target: 'KIS', status: 'warn' },
+    { name: '송유진', grade: 'G4', initials: '', school: 'SJA', map: 218, trend: 'up', trendVal: 8, attendance: 98, target: 'NLCS', status: 'active' },
+    { name: '윤도현', grade: 'G5', initials: '', school: 'DIS', map: 212, trend: 'up', trendVal: 4, attendance: 96, target: 'DIS', status: 'active' }
+  ];
+
+  const REVIEW_QUEUE = [
+    { id: 1, student: '박하늘 · G4', teacher: '김태윤', subject: 'Reading', datetime: 'APR 17 17:00', sla: 2,
+      progress: 'Unit 5-3 진행. Workbook p.45-48 완료. Main idea 연습 3지문.',
+      feedback: '이번 수업에서는 Main idea를 찾는 연습을 집중적으로 진행했습니다. 이전 대비 정확도가 30% 향상되었으며, 특히 informational text에서 강한 모습을 보여주었습니다. 다만 길이가 긴 지문에서 시간 관리에 아쉬움이 있어 다음 수업에서 보강 예정입니다.',
+      homework: 'Unit 5-4 Reading Passages · Workbook p.50-53 · 마감: 2026-04-19 (금) 18:00' },
+    { id: 2, student: '정민서 · G5', teacher: '김태윤', subject: 'Reading', datetime: 'APR 16 20:30', sla: 4,
+      progress: 'Unit 6 Inference 집중 연습. Workbook p.60-65.',
+      feedback: 'Inference 문제의 정답률이 75%로 향상되었습니다. 다만 논리 전개의 근거를 지문에서 찾는 연습이 더 필요합니다. Chadwick 입시 대비 추론 문제 비중이 높아질 예정이므로 다음 수업부터 중점적으로 다루겠습니다.',
+      homework: 'Inference Workbook Chapter 3 · 마감: 2026-04-18' },
+    { id: 3, student: '김서연 · G4', teacher: '김태윤', subject: 'Reading', datetime: 'APR 17 19:00', sla: 18,
+      progress: 'Unit 5-3 Main Idea 연습.',
+      feedback: '성실하게 참여했습니다.',
+      homework: 'Unit 5-4 예습' },
+    { id: 4, student: '이준호 · G3', teacher: '김태윤', subject: 'Reading', datetime: 'APR 16 16:00', sla: 20,
+      progress: 'Unit 4 Vocabulary 학습.',
+      feedback: '어휘 학습에 대한 이해도가 높아졌습니다.',
+      homework: 'Vocabulary Quiz 예습' },
+    { id: 5, student: '박지민 · G3', teacher: '이은수', subject: 'Speaking', datetime: 'APR 17 15:00', sla: 12,
+      progress: 'Conversation practice.',
+      feedback: '발음이 개선되었습니다.',
+      homework: 'Shadowing practice' },
+    { id: 6, student: '윤도현 · G5', teacher: '박지영', subject: 'Writing', datetime: 'APR 17 14:00', sla: 14,
+      progress: 'Essay Draft 2.',
+      feedback: '논리 전개가 좋아졌습니다.',
+      homework: 'Draft 3 완성' },
+    { id: 7, student: '장하윤 · G5', teacher: '이은수', subject: 'Speaking', datetime: 'APR 16 19:00', sla: 22,
+      progress: 'Presentation practice.',
+      feedback: '자신감이 붙었습니다.',
+      homework: '다음 주제 준비' }
+  ];
+
+  const SCHOOLS = [
+    { code: 'NLCS', admitted: 32, applied: 35, rate: 91, avgMap: 228, recent: '김서연, 최지우, 송유진…' },
+    { code: 'SJA', admitted: 28, applied: 30, rate: 93, avgMap: 220, recent: '박하늘, 이서준…' },
+    { code: 'KIS', admitted: 38, applied: 40, rate: 95, avgMap: 215, recent: '정민서, 한지호…' },
+    { code: 'Chadwick', admitted: 18, applied: 20, rate: 90, avgMap: 230, recent: '송유진, 장하윤…' },
+    { code: 'DIS', admitted: 12, applied: 14, rate: 86, avgMap: 222, recent: '윤도현, 강서아…' },
+    { code: 'SFS', admitted: 8, applied: 10, rate: 80, avgMap: 218, recent: '김민재…' },
+    { code: 'Unaccredited', admitted: 16, applied: 16, rate: 100, avgMap: 205, recent: '…' }
+  ];
+
+  // ========================================================
+  // STATE
+  // ========================================================
+  let childIdx = 0;
+  let selectedReviewIdx = 0;
+  let currentPeriod = '6M';
+  let currentMonth = 3; // April (0-indexed)
+  let currentYear = 2026;
+  let autosaveTimer = null;
+
+  // ========================================================
+  // PORTAL SWITCHING
+  // ========================================================
+  function switchPortal(name) {
+    document.querySelectorAll('.portal').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.switcher-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('portal-' + name).classList.add('active');
+    document.querySelector('.switcher-tab[data-portal="' + name + '"]').classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  document.querySelectorAll('.switcher-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchPortal(tab.dataset.portal));
+  });
+
+  // View switching within a portal
+  function switchView(portal, viewId) {
+    const portalEl = document.getElementById('portal-' + portal);
+    portalEl.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    portalEl.querySelectorAll('.subnav-item').forEach(s => s.classList.remove('active'));
+    portalEl.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+    const target = document.getElementById('view-' + viewId);
+    if (target) target.classList.add('active');
+
+    const subnav = portalEl.querySelector(`.subnav-item[data-view="${viewId}"]`);
+    if (subnav) subnav.classList.add('active');
+
+    // Activate matching sidebar nav
+    portalEl.querySelectorAll('.nav-item').forEach(n => {
+      if (n.textContent.trim().includes('대시보드') && viewId.endsWith('dashboard')) n.classList.add('active');
+      if (n.textContent.trim().includes('담당 학생') && viewId.endsWith('students')) n.classList.add('active');
+      if (n.textContent.trim().includes('피드백 작성') && viewId === 't-feedback') n.classList.add('active');
+      if (n.textContent.trim().includes('피드백 검수') && viewId === 'a-review') n.classList.add('active');
+      if (n.textContent.trim().includes('합격 통계') && viewId === 'a-admissions') n.classList.add('active');
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Lazy render
+    if (viewId === 'p-grades') { renderChart(currentPeriod); renderTestHistory(); }
+    if (viewId === 'p-feedbacks') renderFeedbackList();
+    if (viewId === 'p-schedule') renderCalendar();
+    if (viewId === 't-students') renderStudentTable();
+    if (viewId === 'a-review') { renderReviewQueue(); renderReviewDetail(); }
+    if (viewId === 'a-admissions') { renderAdmissionBars(); renderSchoolStats(); }
+  }
+
+  // Subnav click handlers
+  document.querySelectorAll('.subnav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const portal = item.closest('.portal').id.replace('portal-', '');
+      switchView(portal, item.dataset.view);
+    });
+  });
+
+  // ========================================================
+  // CHILD SWITCHING (Parent portal)
+  // ========================================================
+  function toggleChild() {
+    childIdx = (childIdx + 1) % CHILDREN.length;
+    const c = CHILDREN[childIdx];
+    document.getElementById('current-child').textContent = c.name + ' · ' + c.grade;
+    document.getElementById('child-name').textContent = c.name;
+    document.getElementById('child-tenure').textContent = c.tenure;
+    document.getElementById('child-target').textContent = c.target;
+    document.getElementById('parent-avatar').textContent = c.name.charAt(0);
+    document.getElementById('kpi-classes').innerHTML = c.classes + '<span class="unit">/ 16</span>';
+    document.getElementById('kpi-attendance').innerHTML = c.attendance + '<span class="unit">%</span>';
+    document.getElementById('kpi-map').textContent = c.map;
+    document.getElementById('kpi-unread').textContent = c.unread;
+    document.getElementById('latest-rit').textContent = c.map;
+    document.getElementById('target-label').textContent = c.target + ' ' + c.targetScore;
+    toast('자녀 전환: ' + c.name + ' · ' + c.grade, 'success');
+    if (document.getElementById('view-p-grades').classList.contains('active')) {
+      renderChart(currentPeriod);
+    }
+  }
+
+  // ========================================================
+  // PARENT: Feedback dashboard preview
+  // ========================================================
+  function renderDashboardFeedback() {
+    const container = document.getElementById('dashboard-fb-list');
+    container.innerHTML = FEEDBACKS.slice(0, 3).map(fb => `
+      <div class="fb-item" onclick="openFeedback(${fb.id})">
+        <div class="fb-header">
+          <span class="fb-date">${fb.date} · ${fb.subject}</span>
+          <span class="pill ${fb.status === 'new' ? 'new' : 'success'}">${fb.status === 'new' ? 'NEW' : 'READ'}</span>
+        </div>
+        <div class="fb-subject">${fb.title}</div>
+        <div class="fb-excerpt">${fb.excerpt}</div>
+      </div>
+    `).join('');
+  }
+
+  // ========================================================
+  // PARENT: Feedback full list + filter
+  // ========================================================
+  function renderFeedbackList() {
+    const container = document.getElementById('full-fb-list');
+    const filter = document.querySelector('.subject-filter.active')?.dataset.subject || 'ALL';
+    const query = document.getElementById('fb-search').value.toLowerCase();
+
+    let filtered = FEEDBACKS;
+    if (filter !== 'ALL') {
+      filtered = filtered.filter(fb => fb.subject === filter);
+    }
+    if (query) {
+      filtered = filtered.filter(fb =>
+        fb.title.toLowerCase().includes(query) ||
+        fb.excerpt.toLowerCase().includes(query) ||
+        fb.feedback.toLowerCase().includes(query)
+      );
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--muted);">검색 결과가 없습니다.</div>';
+      return;
+    }
+
+    container.innerHTML = filtered.map(fb => `
+      <div class="fb-item" style="padding: 18px 22px;" onclick="openFeedback(${fb.id})">
+        <div class="fb-header">
+          <span class="fb-date">${fb.date} · ${fb.subject} · ${fb.teacher}</span>
+          <span class="pill ${fb.status === 'new' ? 'new' : 'success'}">${fb.status === 'new' ? 'NEW' : 'READ'}</span>
+        </div>
+        <div class="fb-subject" style="font-size: 16px;">${fb.title}</div>
+        <div class="fb-excerpt" style="margin-top: 4px;">${fb.excerpt}</div>
+      </div>
+    `).join('');
+  }
+
+  document.querySelectorAll('.subject-filter').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.subject-filter').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      renderFeedbackList();
+    });
+  });
+
+  document.getElementById('fb-search').addEventListener('input', () => {
+    renderFeedbackList();
+  });
+
+  // ========================================================
+  // PARENT: Feedback modal
+  // ========================================================
+  function openFeedback(id) {
+    const fb = FEEDBACKS.find(f => f.id === id);
+    if (!fb) return;
+    document.getElementById('fb-modal-date').textContent = 'FEEDBACK · ' + fb.date + ' 2026';
+    document.getElementById('fb-modal-title').textContent = fb.title;
+    document.getElementById('fb-modal-meta').textContent = `${fb.subject} · ${fb.teacher} 선생님 · ${fb.student}`;
+    document.getElementById('fb-modal-progress').textContent = fb.progress;
+    document.getElementById('fb-modal-feedback').textContent = fb.feedback;
+    document.getElementById('fb-modal-homework').textContent = fb.homework;
+    showModal('feedback-modal');
+    // Mark as read
+    fb.status = 'read';
+    renderDashboardFeedback();
+    renderFeedbackList();
+  }
+
+  // ========================================================
+  // PARENT: MAP score chart
+  // ========================================================
+  function renderChart(period) {
+    currentPeriod = period;
+    const child = CHILDREN[childIdx];
+    let history = child.scoreHistory;
+    if (period === '3M') history = history.slice(-3);
+    if (period === '6M') history = history.slice(-6);
+    // 1Y and ALL use all 6 points (limited data)
+
+    const target = child.targetScore;
+    const max = 240;
+    const min = 180;
+    const w = 600;
+    const h = 180;
+    const padL = 40;
+    const padR = 30;
+    const padT = 20;
+    const padB = 30;
+    const chartW = w - padL - padR;
+    const chartH = h - padT - padB;
+
+    const yScale = v => padT + chartH - ((v - min) / (max - min)) * chartH;
+    const xScale = i => padL + (i / Math.max(1, history.length - 1)) * chartW;
+    const targetY = yScale(target);
+
+    let svg = '';
+    // Gridlines
+    [200, 210, 220, 230].forEach(v => {
+      const y = yScale(v);
+      svg += `<line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="#ebe7dc" stroke-width="1"/>`;
+      svg += `<text x="${padL-5}" y="${y+3}" font-family="JetBrains Mono" font-size="9" fill="#6b6b6b" text-anchor="end">${v}</text>`;
+    });
+    // Target line
+    svg += `<line x1="${padL}" y1="${targetY}" x2="${w-padR}" y2="${targetY}" stroke="#a88a44" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
+    svg += `<text x="${w-padR}" y="${targetY-4}" font-family="JetBrains Mono" font-size="9" fill="#a88a44" text-anchor="end">${target} · TARGET</text>`;
+
+    // Polyline
+    const points = history.map((pt, i) => `${xScale(i)},${yScale(pt.rit)}`).join(' ');
+    svg += `<polygon points="${points} ${xScale(history.length-1)},${padT+chartH} ${padL},${padT+chartH}" fill="#1a1a1a" opacity="0.04"/>`;
+    svg += `<polyline points="${points}" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>`;
+
+    // Data points and labels
+    history.forEach((pt, i) => {
+      const isLast = i === history.length - 1;
+      const cx = xScale(i);
+      const cy = yScale(pt.rit);
+      svg += `<circle cx="${cx}" cy="${cy}" r="${isLast ? 5 : 4}" fill="${isLast ? '#a88a44' : '#1a1a1a'}"/>`;
+      svg += `<text x="${cx}" y="${cy-10}" font-family="Fraunces" font-size="11" fill="${isLast ? '#a88a44' : '#1a1a1a'}" font-weight="${isLast ? '600' : '400'}" text-anchor="middle">${pt.rit}</text>`;
+      svg += `<text x="${cx}" y="${h-8}" font-family="JetBrains Mono" font-size="9" fill="#6b6b6b" text-anchor="middle">${pt.label}</text>`;
+    });
+
+    document.getElementById('score-chart').innerHTML = svg;
+  }
+
+  document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderChart(btn.dataset.period);
+    });
+  });
+
+  // ========================================================
+  // PARENT: Test history
+  // ========================================================
+  function renderTestHistory() {
+    const body = document.getElementById('test-history-body');
+    const child = CHILDREN[childIdx];
+    body.innerHTML = TEST_HISTORY.slice(0, child.scoreHistory.length).map((t, i) => {
+      const rit = child.scoreHistory[child.scoreHistory.length - 1 - i]?.rit || t.rit;
+      return `
+      <tr onclick="toast('리포트 PDF를 다운로드합니다')">
+        <td style="font-family: var(--mono); font-size: 12px;">${t.date}</td>
+        <td style="font-size: 13px;">${t.name}</td>
+        <td><span class="score-badge">${rit}</span></td>
+        <td><span style="font-family: var(--serif); font-size: 14px;">${t.percentile}<span style="font-size: 10px; color: var(--muted);">%</span></span></td>
+        <td><span class="score-badge">${rit}</span></td>
+        <td>
+          <button class="btn small">📄 PDF</button>
+          <button class="btn small" onclick="event.stopPropagation(); toast('상세 리포트 화면');">상세</button>
+        </td>
+      </tr>`;
+    }).join('');
+    document.getElementById('history-counter').textContent = 'N°ALL ' + child.scoreHistory.length;
+    document.getElementById('test-count').textContent = child.scoreHistory.length;
+  }
+
+  // ========================================================
+  // PARENT: Calendar
+  // ========================================================
+  function changeMonth(delta) {
+    currentMonth += delta;
+    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    renderCalendar();
+  }
+  function renderCalendar() {
+    const monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+    document.getElementById('cal-title').textContent = currentYear + ' ' + monthNames[currentMonth];
+    document.getElementById('cal-month-label').textContent = currentYear + ' · ' + monthNames[currentMonth].toUpperCase();
+
+    const grid = document.getElementById('calendar-grid');
+    grid.innerHTML = '';
+
+    // Headers
+    ['MON','TUE','WED','THU','FRI','SAT','SUN'].forEach(d => {
+      const h = document.createElement('div');
+      h.className = 'cal-head';
+      h.textContent = d;
+      h.style.cssText = 'background: var(--cream); padding: 10px 0; text-align: center; font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase;';
+      grid.appendChild(h);
+    });
+
+    const first = new Date(currentYear, currentMonth, 1);
+    const startDay = (first.getDay() + 6) % 7; // Mon = 0
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+    // Previous month days
+    const prevLast = new Date(currentYear, currentMonth, 0).getDate();
+    for (let i = startDay - 1; i >= 0; i--) {
+      grid.appendChild(makeDayCell(prevLast - i, true));
+    }
+
+    // Current month
+    const today = 18;
+    const isCurrentMonth = currentMonth === 3 && currentYear === 2026;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cell = makeDayCell(d, false);
+      if (isCurrentMonth && d === today) cell.classList.add('today');
+
+      // Add events for sample month (April 2026)
+      if (isCurrentMonth) {
+        const events = [];
+        if ([14,16,17,21,23,24,28].includes(d)) events.push({type:'reading', label:'RC 19:00'});
+        if ([15,22,29].includes(d)) events.push({type:'writing', label:'WR 16:00'});
+        if ([19].includes(d)) events.push({type:'test', label:'MAP Test'});
+        if (events.length) {
+          const ev = document.createElement('div');
+          ev.style.cssText = 'margin-top: 4px; display: flex; flex-direction: column; gap: 2px;';
+          events.forEach(e => {
+            const bg = e.type === 'reading' ? 'var(--sage)' : e.type === 'writing' ? 'var(--gold)' : 'var(--coral)';
+            const col = e.type === 'writing' ? 'var(--ink)' : 'var(--cream)';
+            const span = document.createElement('div');
+            span.style.cssText = `font-size: 9px; font-family: var(--mono); padding: 2px 4px; background: ${bg}; color: ${col}; letter-spacing: 0.04em;`;
+            span.textContent = e.label;
+            ev.appendChild(span);
+          });
+          cell.appendChild(ev);
+        }
+      }
+      grid.appendChild(cell);
+    }
+
+    // Next month to fill grid
+    const totalCells = startDay + daysInMonth;
+    const remaining = (7 - (totalCells % 7)) % 7;
+    for (let i = 1; i <= remaining; i++) {
+      grid.appendChild(makeDayCell(i, true));
+    }
+  }
+
+  function makeDayCell(d, isOther) {
+    const cell = document.createElement('div');
+    cell.className = 'cal-day' + (isOther ? ' other' : '');
+    cell.style.cssText = 'background: var(--paper); min-height: 72px; padding: 8px; position: relative; cursor: pointer; transition: background 0.15s;' + (isOther ? 'opacity: 0.3;' : '');
+    const date = document.createElement('div');
+    date.className = 'date';
+    date.textContent = d;
+    date.style.cssText = 'font-family: var(--serif); font-size: 14px; font-weight: 500;';
+    cell.appendChild(date);
+    cell.onclick = () => {
+      if (!isOther) toast(`${currentMonth+1}월 ${d}일 일정 상세`);
+    };
+    return cell;
+  }
+
+  // ========================================================
+  // PARENT: Consult modal submit
+  // ========================================================
+  document.querySelectorAll('#topic-group .radio-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      document.querySelectorAll('#topic-group .radio-option').forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+    });
+  });
+  document.querySelectorAll('#channel-group .radio-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      document.querySelectorAll('#channel-group .radio-option').forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+    });
+  });
+
+  function submitConsult() {
+    const topic = document.querySelector('#topic-group .radio-option.active')?.dataset.topic;
+    const channel = document.querySelector('#channel-group .radio-option.active')?.dataset.channel;
+    toast(`상담 신청 완료: ${topic} · ${channel} · 4시간 이내 연락드립니다`, 'success');
+    closeModal();
+  }
+
+  // ========================================================
+  // TEACHER: Student table with filters
+  // ========================================================
+  function renderStudentTable() {
+    const body = document.getElementById('student-table-body');
+    const gradeFilter = document.querySelector('.grade-filter.active')?.dataset.grade || 'ALL';
+    const statusFilter = document.querySelector('.status-filter.active')?.dataset.status || 'ALL';
+    const query = document.getElementById('student-search').value.toLowerCase();
+
+    let filtered = STUDENTS;
+    if (gradeFilter !== 'ALL') filtered = filtered.filter(s => s.grade === gradeFilter);
+    if (statusFilter !== 'ALL') {
+      if (statusFilter === 'ACTIVE') filtered = filtered.filter(s => s.status === 'active');
+      if (statusFilter === 'WARN') filtered = filtered.filter(s => s.status === 'warn');
+    }
+    if (query) filtered = filtered.filter(s => s.name.toLowerCase().includes(query));
+
+    document.getElementById('stu-filtered').textContent = filtered.length;
+
+    if (filtered.length === 0) {
+      body.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--muted);">조건에 맞는 학생이 없습니다.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = filtered.map(s => {
+      const trendArrow = s.trend === 'up' ? '▲' : s.trend === 'down' ? '▼' : '→';
+      const trendVal = s.trend === 'flat' ? '' : ' ' + s.trendVal;
+      const statusBadge = s.status === 'warn'
+        ? '<span class="pill warn">주의</span>'
+        : '<span class="pill success">재원</span>';
+      const attColor = s.attendance < 85 ? 'var(--coral)' : s.attendance < 92 ? 'var(--gold-deep)' : 'var(--sage)';
+      return `
+        <tr onclick="toast('${s.name} 학생 상세 화면')">
+          <td>
+            <div class="student-cell">
+              <div class="initials ${s.initials}">${s.name.charAt(0)}</div>
+              <div>
+                <div class="name">${s.name}</div>
+                <div class="meta">${s.school}</div>
+              </div>
+            </div>
+          </td>
+          <td>${s.grade}</td>
+          <td><div class="score-badge">${s.map} <span class="score-trend ${s.trend}">${trendArrow}${trendVal}</span></div></td>
+          <td><span style="color: ${attColor}; font-family: var(--serif); font-size: 14px; font-weight: 500;">${s.attendance}%</span></td>
+          <td>${s.target}</td>
+          <td>${statusBadge}</td>
+          <td>
+            <button class="btn small" onclick="event.stopPropagation(); toast('피드백 작성 화면'); switchView('teacher','t-feedback');">피드백</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  document.querySelectorAll('.grade-filter').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.grade-filter').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      renderStudentTable();
+    });
+  });
+  document.querySelectorAll('.status-filter').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.status-filter').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      renderStudentTable();
+    });
+  });
+  document.getElementById('student-search').addEventListener('input', renderStudentTable);
+
+  // ========================================================
+  // TEACHER: Feedback form
+  // ========================================================
+  function setAttendance(el, type) {
+    el.parentElement.querySelectorAll('.att-option').forEach(o => {
+      o.classList.remove('active','present','absent','late');
+    });
+    el.classList.add('active', type);
+    triggerAutosave();
+  }
+
+  function updateCharCount(el, counterId, minimum) {
+    const len = el.value.length;
+    const counter = document.getElementById(counterId);
+    counter.textContent = len + ' 자';
+    counter.className = 'count ' + (len >= minimum ? 'ok' : 'short');
+    triggerAutosave();
+  }
+
+  function triggerAutosave() {
+    const status = document.getElementById('autosave-status');
+    const text = document.getElementById('autosave-text');
+    status.className = 'autosave-indicator saving';
+    text.textContent = '저장 중…';
+
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(() => {
+      status.className = 'autosave-indicator saved';
+      const now = new Date();
+      text.textContent = '자동 저장됨 · ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+    }, 900);
+  }
+
+  function savefeedbackDraft() {
+    toast('임시 저장되었습니다', 'success');
+    triggerAutosave();
+  }
+
+  function submitFeedback() {
+    const progressLen = document.getElementById('fb-progress').value.length;
+    const feedbackLen = document.getElementById('fb-feedback').value.length;
+    const homeworkLen = document.getElementById('fb-homework').value.length;
+
+    if (progressLen < 30 || feedbackLen < 30 || homeworkLen < 30) {
+      toast('필수 항목을 모두 30자 이상 작성해주세요', 'danger');
+      return;
+    }
+    toast('검수 제출 완료 · 어드바이저 승인 대기', 'success');
+    setTimeout(() => switchView('teacher','t-dashboard'), 1200);
+  }
+
+  // ========================================================
+  // ADMIN: Review queue
+  // ========================================================
+  function renderReviewQueue() {
+    const body = document.getElementById('review-queue-body');
+    const teacherFilter = document.querySelector('.teacher-filter.active')?.dataset.teacher || 'ALL';
+
+    let filtered = REVIEW_QUEUE;
+    if (teacherFilter !== 'ALL') {
+      filtered = filtered.filter(r => r.teacher === teacherFilter);
+    }
+
+    document.getElementById('review-pending').textContent = filtered.length;
+    document.getElementById('review-total').textContent = filtered.length;
+
+    // Reset selected index if out of bounds
+    if (selectedReviewIdx >= filtered.length) selectedReviewIdx = 0;
+
+    body.innerHTML = filtered.map((r, i) => {
+      const slaColor = r.sla <= 4 ? 'var(--coral)' : r.sla <= 12 ? 'var(--gold-deep)' : 'var(--sage)';
+      const slaIcon = r.sla <= 4 ? '⚠' : '●';
+      return `
+        <tr class="${i === selectedReviewIdx ? 'selected' : ''}" onclick="selectReview(${i})">
+          <td>
+            ${r.sla <= 4 ? '<span class="pill danger">대기 ⚠</span>' : '<span class="pill warn">대기</span>'}
+          </td>
+          <td style="font-weight: 600;">${r.student}</td>
+          <td>${r.teacher}</td>
+          <td>${r.subject}</td>
+          <td style="font-family: var(--mono); font-size: 11px;">${r.datetime}</td>
+          <td><span style="color: ${slaColor}; font-family: var(--serif); font-size: 15px; font-weight: 500;">${r.sla}h</span></td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function renderReviewDetail() {
+    const teacherFilter = document.querySelector('.teacher-filter.active')?.dataset.teacher || 'ALL';
+    let filtered = REVIEW_QUEUE;
+    if (teacherFilter !== 'ALL') filtered = filtered.filter(r => r.teacher === teacherFilter);
+    if (filtered.length === 0) return;
+
+    const r = filtered[selectedReviewIdx];
+    document.getElementById('review-current-id').textContent = String(selectedReviewIdx + 1).padStart(2, '0');
+    document.getElementById('review-title').textContent = r.student + ' · ' + r.subject;
+    document.getElementById('review-meta').textContent = r.datetime + ' · ' + r.teacher + ' 선생님 · SLA ' + r.sla + 'H';
+    document.getElementById('review-progress').textContent = r.progress;
+    document.getElementById('review-feedback').textContent = r.feedback;
+    document.getElementById('review-homework').textContent = r.homework;
+  }
+
+  function selectReview(i) {
+    selectedReviewIdx = i;
+    renderReviewQueue();
+    renderReviewDetail();
+  }
+
+  function navReview(delta) {
+    const teacherFilter = document.querySelector('.teacher-filter.active')?.dataset.teacher || 'ALL';
+    let filtered = REVIEW_QUEUE;
+    if (teacherFilter !== 'ALL') filtered = filtered.filter(r => r.teacher === teacherFilter);
+    selectedReviewIdx = (selectedReviewIdx + delta + filtered.length) % filtered.length;
+    renderReviewQueue();
+    renderReviewDetail();
+  }
+
+  function approveReview() {
+    const teacherFilter = document.querySelector('.teacher-filter.active')?.dataset.teacher || 'ALL';
+    let filtered = REVIEW_QUEUE;
+    if (teacherFilter !== 'ALL') filtered = filtered.filter(r => r.teacher === teacherFilter);
+    const r = filtered[selectedReviewIdx];
+    if (!r) return;
+    const idx = REVIEW_QUEUE.findIndex(x => x.id === r.id);
+    if (idx >= 0) REVIEW_QUEUE.splice(idx, 1);
+    toast(r.student + ' 피드백 승인 · 학부모에게 자동 발송됨', 'success');
+    if (selectedReviewIdx >= REVIEW_QUEUE.length) selectedReviewIdx = 0;
+    renderReviewQueue();
+    renderReviewDetail();
+  }
+
+  function rejectReview() {
+    const teacherFilter = document.querySelector('.teacher-filter.active')?.dataset.teacher || 'ALL';
+    let filtered = REVIEW_QUEUE;
+    if (teacherFilter !== 'ALL') filtered = filtered.filter(r => r.teacher === teacherFilter);
+    const r = filtered[selectedReviewIdx];
+    if (!r) return;
+    const idx = REVIEW_QUEUE.findIndex(x => x.id === r.id);
+    if (idx >= 0) REVIEW_QUEUE.splice(idx, 1);
+    toast(r.student + ' 피드백 반려 · 강사에게 재작성 요청', 'warn');
+    if (selectedReviewIdx >= REVIEW_QUEUE.length) selectedReviewIdx = 0;
+    renderReviewQueue();
+    renderReviewDetail();
+  }
+
+  document.querySelectorAll('.teacher-filter').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.teacher-filter').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      selectedReviewIdx = 0;
+      renderReviewQueue();
+      renderReviewDetail();
+    });
+  });
+
+  // ========================================================
+  // ADMIN: Admissions
+  // ========================================================
+  function renderAdmissionBars() {
+    const container = document.getElementById('admission-bars');
+    const yearFilter = document.querySelector('.year-filter.active')?.dataset.year || 'ALL';
+
+    // Simulate yearly variation
+    const multipliers = { '2024': 0.3, '2025': 0.35, '2026': 0.35, 'ALL': 1.0 };
+    const m = multipliers[yearFilter];
+
+    const max = Math.max(...SCHOOLS.map(s => Math.round(s.admitted * m)));
+
+    container.innerHTML = SCHOOLS.map(s => {
+      const val = Math.round(s.admitted * m);
+      const height = (val / max) * 100;
+      return `<div class="bar ${s.code === 'KIS' ? 'highlight' : ''}" style="height: ${height}%;" data-val="${val}" title="${s.code}" onclick="toast('${s.code}: ${val}명 합격')"></div>`;
+    }).join('');
+  }
+
+  function renderSchoolStats() {
+    const body = document.getElementById('school-stats-body');
+    body.innerHTML = SCHOOLS.map(s => `
+      <tr onclick="toast('${s.code} 상세')">
+        <td style="font-weight: 600;">${s.code}</td>
+        <td><span style="font-family: var(--serif); font-size: 16px; font-weight: 500;">${s.admitted}</span></td>
+        <td>${s.applied}</td>
+        <td><span style="color: ${s.rate >= 95 ? 'var(--sage)' : s.rate >= 90 ? 'var(--ink)' : 'var(--gold-deep)'}; font-family: var(--serif); font-weight: 500;">${s.rate}%</span></td>
+        <td><span style="font-family: var(--serif); font-size: 15px;">${s.avgMap}</span></td>
+        <td style="font-size: 12px; color: var(--muted);">${s.recent}</td>
+      </tr>
+    `).join('');
+  }
+
+  document.querySelectorAll('.year-filter').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.year-filter').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      renderAdmissionBars();
+    });
+  });
+
+  // ========================================================
+  // Toast / Modal / Keyboard
+  // ========================================================
+  let toastTimer;
+  function toast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (type ? ' ' + type : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  function showModal(id) {
+    document.getElementById('modal-overlay').classList.add('show');
+    document.getElementById(id).classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('show');
+    document.querySelectorAll('.modal').forEach(m => m.classList.remove('show'));
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', (e) => {
+    // Don't trigger when typing in input
+    if (e.target.matches('input, textarea')) {
+      if (e.key === 'Escape') e.target.blur();
+      return;
+    }
+    if (e.key === 'Escape') closeModal();
+    if (e.key === '1') switchPortal('parent');
+    if (e.key === '2') switchPortal('teacher');
+    if (e.key === '3') switchPortal('admin');
+
+    // Admin review shortcuts
+    if (document.getElementById('view-a-review')?.classList.contains('active') &&
+        document.getElementById('portal-admin').classList.contains('active')) {
+      if (e.key === 'a' || e.key === 'A') { e.preventDefault(); approveReview(); }
+      if (e.key === 'r' || e.key === 'R') { e.preventDefault(); rejectReview(); }
+      if (e.key === 'j' || e.key === 'J') { e.preventDefault(); navReview(-1); }
+      if (e.key === 'k' || e.key === 'K') { e.preventDefault(); navReview(1); }
+      if (e.key === 'e' || e.key === 'E') { e.preventDefault(); toast('편집 모드'); }
+    }
+  });
+
+  // ========================================================
+  // INIT
+  // ========================================================
+  renderDashboardFeedback();
+  renderChart('6M');
+  renderTestHistory();
+
+  setTimeout(() => {
+    toast('숫자키 1·2·3으로 포털 전환 · 상단 탭으로 상세 뷰 이동', 'success');
+  }, 800);
+</script>
+
+</body>
+</html>

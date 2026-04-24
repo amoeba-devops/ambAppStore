@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 import { ChevronDown, ChevronUp, Pencil, Save, X } from 'lucide-react';
@@ -12,6 +13,7 @@ interface LogDetailRowProps {
 
 export function LogDetailRow({ log }: LogDetailRowProps) {
   const { t } = useTranslation('car');
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
 
@@ -82,7 +84,10 @@ export function LogDetailRow({ log }: LogDetailRowProps) {
           </div>
         </td>
         <td className="px-4 py-3">
-          <span className="font-mono text-sm font-bold text-gray-900">
+          <span
+            className="cursor-pointer font-mono text-sm font-bold text-orange-600 underline decoration-orange-300 underline-offset-2 hover:text-orange-700"
+            onClick={(e) => { e.stopPropagation(); navigate(`/trip-logs/${log.tripLogId}`); }}
+          >
             {log.vehiclePlateNumber as string || '-'}
           </span>
         </td>
