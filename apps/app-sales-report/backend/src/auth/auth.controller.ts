@@ -1,10 +1,7 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, HttpCode, HttpStatus, Body, NotFoundException } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
-import { Auth } from './decorators/auth.decorator';
-import { CurrentUser } from './decorators/current-user.decorator';
-import { DrdJwtPayload } from './interfaces/jwt-payload.interface';
 import { successResponse } from '../common/dto/base-response.dto';
 
 @ApiTags('auth')
@@ -32,6 +29,24 @@ export class AuthController {
       body.ent_name,
       body.email,
     );
+    return successResponse(result);
+  }
+
+  @Public()
+  @Post('dev-login')
+  @HttpCode(HttpStatus.OK)
+  async devLogin() {
+    if (process.env.NODE_ENV === 'production') {
+      throw new NotFoundException();
+    }
+    const entId = process.env.DEV_DEFAULT_ENT_ID;
+    const entCode = process.env.DEV_DEFAULT_ENT_CODE;
+    const entName = process.env.DEV_DEFAULT_ENT_NAME;
+    const email = process.env.DEV_DEFAULT_EMAIL;
+    if (!entId || !entCode || !entName || !email) {
+      throw new NotFoundException('Dev login defaults are not configured in .env');
+    }
+    const result = await this.authService.amaEntryLogin(entId, entCode, entName, email);
     return successResponse(result);
   }
 }

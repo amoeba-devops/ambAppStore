@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/lib/api-client';
@@ -12,17 +12,14 @@ export function EntityInfoPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!crpCode.trim()) return;
+  const devLogin = async () => {
     setLoading(true);
     setError('');
-
     try {
-      const res = await apiClient.post('/v1/auth/ama-entry', { crp_code: crpCode.trim() });
+      const res = await apiClient.post('/v1/auth/dev-login');
       const { accessToken, refreshToken, user } = res.data.data;
       useAuthStore.getState().setAuth(accessToken, refreshToken, user);
-      setCrpCode(crpCode.trim());
+      if (user.crpCode) setCrpCode(user.crpCode);
       navigate('/', { replace: true });
     } catch (err: any) {
       setError(err.response?.data?.error?.message || t('common.error'));
@@ -30,6 +27,18 @@ export function EntityInfoPage() {
       setLoading(false);
     }
   };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!crpCode.trim()) return;
+    devLogin();
+  };
+
+  useEffect(() => {
+    if (import.meta.env.DEV && !useAuthStore.getState().token) {
+      devLogin();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/lib/api-client';
@@ -12,6 +12,21 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    if (useAuthStore.getState().token) return;
+    (async () => {
+      try {
+        const res = await apiClient.post('/v1/auth/dev-login');
+        const { accessToken, refreshToken, user } = res.data.data;
+        useAuthStore.getState().setAuth(accessToken, refreshToken, user);
+        navigate('/', { replace: true });
+      } catch {
+        // fall through to manual form
+      }
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
