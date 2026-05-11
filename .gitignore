@@ -16,3 +16,6 @@ coverage/
 # Binary / temp files
 *.xlsx
 ~\
+
+# ambManagement
+ambManagement/
