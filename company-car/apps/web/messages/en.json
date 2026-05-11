@@ -1,0 +1,74 @@
+{
+  "common": {
+    "appName": "Company Car",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "reject": "Reject",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "back": "Back"
+  },
+  "auth": {
+    "login": "Sign in",
+    "logout": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "loginTitle": "Sign in to Company Car",
+    "loginSubtitle": "Manage trips, drivers, and costs",
+    "invalidCredentials": "Invalid email or password",
+    "submit": "Continue"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "trips": "Trips",
+    "costs": "Costs",
+    "vehicles": "Vehicles",
+    "drivers": "Drivers",
+    "users": "Users",
+    "settings": "Settings",
+    "reports": "Reports"
+  },
+  "trip": {
+    "status": {
+      "PENDING_DRIVER_CONFIRM": "Pending confirmation",
+      "CONFIRMED": "Confirmed",
+      "DRIVER_REJECTED": "Rejected by driver",
+      "IN_PROGRESS": "In progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    }
+  },
+  "cost": {
+    "type": {
+      "FUEL": "Fuel",
+      "OIL_CHANGE": "Oil change",
+      "ACCIDENT": "Accident",
+      "MEAL": "Meal",
+      "REPAIR_MAINTENANCE": "Repair / Maintenance"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "PENDING_APPROVAL": "Pending approval",
+      "APPROVED_TO_PROCEED": "Approved to proceed",
+      "SUBMITTED": "Submitted",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "vehiclesInUse": "In use",
+    "vehiclesAvailable": "Available",
+    "vehiclesMaintenance": "Maintenance"
+  },
+  "reports": {
+    "costs": { "title": "Cost report", "desc": "All costs in period — by type, vehicle, status." },
+    "trips": { "title": "Trip report", "desc": "All trips with passenger, driver, locations." },
+    "accidents": { "title": "Accident report", "desc": "Only accident-type costs with attachments count." },
+    "repairs": { "title": "Repair / Maintenance report", "desc": "Repair and maintenance costs with provider info." }
+  }
+}

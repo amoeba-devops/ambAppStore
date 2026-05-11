@@ -1,0 +1,33 @@
+{
+  "auth": {
+    "loginTitle": "Đăng nhập",
+    "loginSubtitle": "Cổng dành cho tài xế",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "submit": "Tiếp tục",
+    "invalidCredentials": "Email hoặc mật khẩu không đúng",
+    "logout": "Đăng xuất"
+  },
+  "driver": {
+    "myTrips": "Chuyến của tôi",
+    "today": "Hôm nay",
+    "upcoming": "Sắp tới",
+    "history": "Lịch sử",
+    "noTrips": "Chưa có chuyến được phân công"
+  },
+  "trip": {
+    "status": {
+      "PENDING_DRIVER_CONFIRM": "Chưa xác nhận",
+      "CONFIRMED": "Đã xác nhận",
+      "DRIVER_REJECTED": "Đã từ chối",
+      "IN_PROGRESS": "Đang đi",
+      "COMPLETED": "Hoàn tất",
+      "CANCELLED": "Đã huỷ"
+    }
+  },
+  "common": {
+    "loading": "Đang tải...",
+    "error": "Đã có lỗi xảy ra",
+    "retry": "Thử lại"
+  }
+}

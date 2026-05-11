@@ -1,0 +1,31 @@
+{
+  "name": "@repo/api-types",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./enums": "./src/enums.ts",
+    "./users": "./src/users.ts",
+    "./vehicles": "./src/vehicles.ts",
+    "./drivers": "./src/drivers.ts",
+    "./trips": "./src/trips.ts",
+    "./costs": "./src/costs.ts",
+    "./reports": "./src/reports.ts",
+    "./common": "./src/common.ts"
+  },
+  "scripts": {
+    "lint": "eslint src/",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/tsconfig": "workspace:*",
+    "typescript": "^5.7.0"
+  }
+}

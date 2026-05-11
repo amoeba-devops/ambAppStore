@@ -1,0 +1,96 @@
+services:
+  # ===========================================================================
+  # Web service — Next.js fullstack (UI + API)
+  # ===========================================================================
+  - type: web
+    name: company-car-web
+    runtime: node
+    plan: standard
+    region: singapore
+    rootDir: apps/web
+    buildCommand: cd ../.. && pnpm install --frozen-lockfile && pnpm --filter web build
+    startCommand: cd apps/web && pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: TZ
+        value: Asia/Ho_Chi_Minh
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_UNPOOLED
+        sync: false
+      - key: AUTH_SECRET
+        sync: false
+      - key: AUTH_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: NEXT_PUBLIC_VAPID_PUBLIC_KEY
+        sync: false
+      - key: EXPO_ACCESS_TOKEN
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+
+  # ===========================================================================
+  # Cron jobs — call Web service endpoints
+  # ===========================================================================
+  - type: cron
+    name: cron-maintenance-check
+    runtime: docker
+    schedule: "0 19 * * *"  # 02:00 GMT+7 daily
+    dockerCommand: |
+      curl -fsSL -H "Authorization: Bearer $CRON_SECRET" \
+        https://company-car-web.onrender.com/api/cron/maintenance-check
+    envVars:
+      - key: CRON_SECRET
+        sync: false
+
+  - type: cron
+    name: cron-license-expiry
+    runtime: docker
+    schedule: "5 19 * * *"  # 02:05 GMT+7 daily
+    dockerCommand: |
+      curl -fsSL -H "Authorization: Bearer $CRON_SECRET" \
+        https://company-car-web.onrender.com/api/cron/license-expiry-check
+    envVars:
+      - key: CRON_SECRET
+        sync: false
+
+  - type: cron
+    name: cron-trip-reminder
+    runtime: docker
+    schedule: "*/15 * * * *"  # every 15 minutes
+    dockerCommand: |
+      curl -fsSL -H "Authorization: Bearer $CRON_SECRET" \
+        https://company-car-web.onrender.com/api/cron/trip-reminder
+    envVars:
+      - key: CRON_SECRET
+        sync: false

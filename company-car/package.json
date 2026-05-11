@@ -1,0 +1,26 @@
+{
+  "name": "company-car",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.26.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:web": "turbo dev --filter=web",
+    "dev:mobile": "turbo dev --filter=mobile",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "db:generate": "turbo db:generate --filter=web",
+    "db:migrate": "turbo db:migrate --filter=web",
+    "db:studio": "turbo db:studio --filter=web",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.5.0",
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.0"
+  }
+}

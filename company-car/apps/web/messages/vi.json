@@ -1,0 +1,74 @@
+{
+  "common": {
+    "appName": "Quản lý xe công ty",
+    "loading": "Đang tải...",
+    "error": "Đã xảy ra lỗi",
+    "save": "Lưu",
+    "cancel": "Huỷ",
+    "confirm": "Xác nhận",
+    "reject": "Từ chối",
+    "delete": "Xoá",
+    "edit": "Sửa",
+    "create": "Tạo mới",
+    "back": "Quay lại"
+  },
+  "auth": {
+    "login": "Đăng nhập",
+    "logout": "Đăng xuất",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "loginTitle": "Đăng nhập hệ thống quản lý xe",
+    "loginSubtitle": "Quản lý chuyến đi, tài xế và chi phí",
+    "invalidCredentials": "Email hoặc mật khẩu không đúng",
+    "submit": "Tiếp tục"
+  },
+  "nav": {
+    "dashboard": "Bảng điều khiển",
+    "trips": "Chuyến đi",
+    "costs": "Chi phí",
+    "vehicles": "Xe",
+    "drivers": "Tài xế",
+    "users": "Người dùng",
+    "settings": "Cài đặt",
+    "reports": "Báo cáo"
+  },
+  "trip": {
+    "status": {
+      "PENDING_DRIVER_CONFIRM": "Chưa xác nhận",
+      "CONFIRMED": "Đã xác nhận",
+      "DRIVER_REJECTED": "Tài xế từ chối",
+      "IN_PROGRESS": "Đang đi",
+      "COMPLETED": "Hoàn tất",
+      "CANCELLED": "Đã huỷ"
+    }
+  },
+  "cost": {
+    "type": {
+      "FUEL": "Đổ xăng",
+      "OIL_CHANGE": "Thay dầu",
+      "ACCIDENT": "Tai nạn",
+      "MEAL": "Ăn uống",
+      "REPAIR_MAINTENANCE": "Sửa chữa / Bảo dưỡng"
+    },
+    "status": {
+      "DRAFT": "Bản nháp",
+      "PENDING_APPROVAL": "Chờ duyệt",
+      "APPROVED_TO_PROCEED": "Duyệt thực hiện",
+      "SUBMITTED": "Đã gửi",
+      "APPROVED": "Đã duyệt",
+      "REJECTED": "Bị từ chối"
+    }
+  },
+  "dashboard": {
+    "title": "Bảng điều khiển",
+    "vehiclesInUse": "Đang chạy",
+    "vehiclesAvailable": "Sẵn sàng",
+    "vehiclesMaintenance": "Bảo trì"
+  },
+  "reports": {
+    "costs": { "title": "Báo cáo chi phí", "desc": "Tất cả chi phí trong kỳ — theo loại, xe, trạng thái" },
+    "trips": { "title": "Báo cáo chuyến đi", "desc": "Tất cả chuyến với người đi, tài xế, điểm đón/đến" },
+    "accidents": { "title": "Báo cáo tai nạn", "desc": "Chi phí tai nạn kèm số file đính kèm" },
+    "repairs": { "title": "Báo cáo sửa chữa", "desc": "Chi phí sửa chữa/bảo dưỡng kèm thông tin nhà cung cấp" }
+  }
+}

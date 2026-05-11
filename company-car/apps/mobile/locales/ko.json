@@ -1,0 +1,33 @@
+{
+  "auth": {
+    "loginTitle": "로그인",
+    "loginSubtitle": "기사 포털",
+    "email": "이메일",
+    "password": "비밀번호",
+    "submit": "계속",
+    "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다",
+    "logout": "로그아웃"
+  },
+  "driver": {
+    "myTrips": "내 운행",
+    "today": "오늘",
+    "upcoming": "예정",
+    "history": "이력",
+    "noTrips": "배차된 운행이 없습니다"
+  },
+  "trip": {
+    "status": {
+      "PENDING_DRIVER_CONFIRM": "확인 대기 중",
+      "CONFIRMED": "확인됨",
+      "DRIVER_REJECTED": "거절됨",
+      "IN_PROGRESS": "진행 중",
+      "COMPLETED": "완료",
+      "CANCELLED": "취소됨"
+    }
+  },
+  "common": {
+    "loading": "불러오는 중...",
+    "error": "오류가 발생했습니다",
+    "retry": "다시 시도"
+  }
+}

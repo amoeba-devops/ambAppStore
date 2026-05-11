@@ -1,0 +1,33 @@
+{
+  "auth": {
+    "loginTitle": "Sign in",
+    "loginSubtitle": "Driver portal",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Continue",
+    "invalidCredentials": "Invalid email or password",
+    "logout": "Sign out"
+  },
+  "driver": {
+    "myTrips": "My trips",
+    "today": "Today",
+    "upcoming": "Upcoming",
+    "history": "History",
+    "noTrips": "No trips assigned"
+  },
+  "trip": {
+    "status": {
+      "PENDING_DRIVER_CONFIRM": "Pending confirmation",
+      "CONFIRMED": "Confirmed",
+      "DRIVER_REJECTED": "Rejected",
+      "IN_PROGRESS": "In progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry"
+  }
+}

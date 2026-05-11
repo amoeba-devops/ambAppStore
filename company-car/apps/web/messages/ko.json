@@ -1,0 +1,74 @@
+{
+  "common": {
+    "appName": "법인차량",
+    "loading": "불러오는 중...",
+    "error": "오류가 발생했습니다",
+    "save": "저장",
+    "cancel": "취소",
+    "confirm": "확인",
+    "reject": "거절",
+    "delete": "삭제",
+    "edit": "수정",
+    "create": "등록",
+    "back": "뒤로"
+  },
+  "auth": {
+    "login": "로그인",
+    "logout": "로그아웃",
+    "email": "이메일",
+    "password": "비밀번호",
+    "loginTitle": "법인차량 시스템 로그인",
+    "loginSubtitle": "운행·기사·비용을 한 곳에서",
+    "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다",
+    "submit": "계속"
+  },
+  "nav": {
+    "dashboard": "대시보드",
+    "trips": "운행",
+    "costs": "비용",
+    "vehicles": "차량",
+    "drivers": "기사",
+    "users": "사용자",
+    "settings": "설정",
+    "reports": "보고서"
+  },
+  "trip": {
+    "status": {
+      "PENDING_DRIVER_CONFIRM": "확인 대기 중",
+      "CONFIRMED": "확인됨",
+      "DRIVER_REJECTED": "기사 거절",
+      "IN_PROGRESS": "진행 중",
+      "COMPLETED": "완료",
+      "CANCELLED": "취소됨"
+    }
+  },
+  "cost": {
+    "type": {
+      "FUEL": "주유",
+      "OIL_CHANGE": "엔진오일 교체",
+      "ACCIDENT": "사고",
+      "MEAL": "식비",
+      "REPAIR_MAINTENANCE": "수리·정비"
+    },
+    "status": {
+      "DRAFT": "임시저장",
+      "PENDING_APPROVAL": "승인 대기",
+      "APPROVED_TO_PROCEED": "진행 승인",
+      "SUBMITTED": "제출됨",
+      "APPROVED": "승인됨",
+      "REJECTED": "반려됨"
+    }
+  },
+  "dashboard": {
+    "title": "대시보드",
+    "vehiclesInUse": "운행 중",
+    "vehiclesAvailable": "대기",
+    "vehiclesMaintenance": "정비 중"
+  },
+  "reports": {
+    "costs": { "title": "비용 보고서", "desc": "기간 내 모든 비용 — 유형, 차량, 상태별" },
+    "trips": { "title": "운행 보고서", "desc": "탑승자, 기사, 출발지·도착지를 포함한 모든 운행" },
+    "accidents": { "title": "사고 보고서", "desc": "사고 비용 + 첨부파일 개수" },
+    "repairs": { "title": "수리·정비 보고서", "desc": "수리·정비 비용 + 공급자 정보" }
+  }
+}
