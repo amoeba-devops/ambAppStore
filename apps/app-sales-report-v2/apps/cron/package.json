@@ -1,0 +1,25 @@
+{
+  "name": "@v2/cron",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/daily-user-sync.ts",
+  "scripts": {
+    "dev": "tsx src/daily-user-sync.ts",
+    "build": "tsc --noEmit",
+    "start": "tsx src/daily-user-sync.ts",
+    "start:retry-failed": "tsx src/retry-failed.ts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@v2/db": "*",
+    "@v2/shared": "*",
+    "drizzle-orm": "^0.38.3",
+    "tsx": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

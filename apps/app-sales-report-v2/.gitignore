@@ -36,6 +36,9 @@ coverage/
 # Drizzle generated meta
 packages/db/.drizzle/
 
+# TypeScript build info
+*.tsbuildinfo
+
 # Vercel
 .vercel
 

@@ -1,0 +1,31 @@
+{
+  "name": "app-sales-report-v2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FIRGI Sales Report v2 — Turborepo standalone for Socialbean Vietnam",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rm -rf node_modules .turbo",
+    "db:push": "npm run db:push -w @v2/db",
+    "db:generate": "npm run db:generate -w @v2/db",
+    "db:migrate": "npm run db:migrate -w @v2/db",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "packageManager": "npm@10.8.2",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
