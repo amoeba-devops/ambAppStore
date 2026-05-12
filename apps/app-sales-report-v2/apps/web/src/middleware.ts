@@ -3,6 +3,14 @@ import { verifyAmaJwt } from '@/lib/auth/verify-jwt';
 
 const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? 'amb_session';
 const PUBLIC_PATHS = ['/api/v1/health', '/session-expired', '/_next', '/favicon.ico'];
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+const cookieAttrs = {
+  httpOnly: true,
+  secure: IS_PROD,
+  sameSite: IS_PROD ? ('none' as const) : ('lax' as const),
+  path: '/',
+};
 
 export async function middleware(req: NextRequest) {
   const { pathname, searchParams } = req.nextUrl;
@@ -21,12 +29,7 @@ export async function middleware(req: NextRequest) {
     const cleanUrl = new URL(req.nextUrl);
     cleanUrl.searchParams.delete('ama_token');
     const res = NextResponse.redirect(cleanUrl);
-    res.cookies.set(SESSION_COOKIE, incomingToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      path: '/',
-    });
+    res.cookies.set(SESSION_COOKIE, incomingToken, cookieAttrs);
     return res;
   }
 
