@@ -88,7 +88,24 @@ curl https://sales-report-v2-web.onrender.com/api/v1/health
 
 If 200 OK → deploy thành công.
 
-## 3. View dashboard trên prod (mint JWT)
+## 3. ⭐ Quick demo view (no CLI needed) — DEMO_AUTO_LOGIN
+
+Bật env var `DEMO_AUTO_LOGIN=true` trên Render service (Environment tab) → page `/session-expired` sẽ hiển thị **3 nút demo login** (Admin / Manager / Operator). Click → cookie set tự động → vào dashboard.
+
+```
+1. Render dashboard → sales-report-v2-web → Environment
+2. Add: DEMO_AUTO_LOGIN = true
+3. Save → service auto-restart ~30s
+4. Mở https://<your-app>.onrender.com/
+   → /session-expired hiển thị 3 nút "Login as Admin/Manager/Operator"
+5. Click bất kỳ nút → /dev-login route mint token → cookie set → /dashboard
+```
+
+⚠️ **CHỈ enable cho demo/staging.** Set `DEMO_AUTO_LOGIN=false` (hoặc remove) khi go-live prod thật.
+
+---
+
+## 4. Alternative: mint JWT từ local CLI (no DEMO_AUTO_LOGIN needed)
 
 Render KHÔNG có UI để mint test JWT. Bạn phải mint từ local + paste URL vào browser.
 

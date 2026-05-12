@@ -28,6 +28,8 @@ services:
         value: sales-report-v2
       - key: NEXT_PUBLIC_DEFAULT_LOCALE
         value: ko
+      - key: DEMO_AUTO_LOGIN
+        sync: false
 
   - type: worker
     name: sales-report-v2-worker
