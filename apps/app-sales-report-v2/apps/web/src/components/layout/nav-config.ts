@@ -4,6 +4,7 @@ import {
   Upload,
   Pencil,
   Database,
+  FileText,
   BarChart3,
   ScrollText,
   type LucideIcon,
@@ -45,12 +46,18 @@ export const navSections: NavSection[] = [
     ],
   },
   {
-    title: 'Master Data',
+    title: 'RFR Data',
     items: [
       {
         label: 'Prime Cost',
         href: '/cost-master/prime-cost',
         icon: Database,
+        roles: ['OPERATOR', 'ADMIN'],
+      },
+      {
+        label: 'COGS File',
+        href: '/cost-master/cogs-file',
+        icon: FileText,
         roles: ['OPERATOR', 'ADMIN'],
       },
     ],
