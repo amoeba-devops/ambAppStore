@@ -1,0 +1,34 @@
+{
+  "name": "app-car-manager-v2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Company Car Management System (CCMS) v2 — standalone Turborepo",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:web": "npm run dev -w @car-v2/web",
+    "dev:token": "node --env-file=.env scripts/dev-token.mjs",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rm -rf node_modules .turbo",
+    "db:push": "npm run db:push -w @car-v2/db",
+    "db:generate": "npm run db:generate -w @car-v2/db",
+    "db:migrate": "npm run db:migrate -w @car-v2/db",
+    "db:studio": "npm run db:studio -w @car-v2/db",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "packageManager": "npm@10.8.2",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

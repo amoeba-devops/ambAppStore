@@ -1,0 +1,139 @@
+{
+  "id": "93e3a73f-3713-48d2-8367-0c390e4427e1",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.car_users": {
+      "name": "car_users",
+      "schema": "",
+      "columns": {
+        "usr_id": {
+          "name": "usr_id",
+          "type": "char(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ent_id": {
+          "name": "ent_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usr_ama_user_id": {
+          "name": "usr_ama_user_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usr_email": {
+          "name": "usr_email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_name": {
+          "name": "usr_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_local_role": {
+          "name": "usr_local_role",
+          "type": "car_user_local_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'DRIVER'"
+        },
+        "usr_ama_role_snapshot": {
+          "name": "usr_ama_role_snapshot",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_preferred_locale": {
+          "name": "usr_preferred_locale",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_last_login_at": {
+          "name": "usr_last_login_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_created_at": {
+          "name": "usr_created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "usr_updated_at": {
+          "name": "usr_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_deleted_at": {
+          "name": "usr_deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "uniq_car_users_ent_ama": {
+          "name": "uniq_car_users_ent_ama",
+          "columns": [
+            {
+              "expression": "ent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "usr_ama_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.car_user_local_role": {
+      "name": "car_user_local_role",
+      "schema": "public",
+      "values": [
+        "DRIVER",
+        "MANAGER",
+        "ADMIN"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
