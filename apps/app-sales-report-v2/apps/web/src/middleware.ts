@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { verifyAmaJwt } from '@/lib/auth/verify-jwt';
 
 const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? 'amb_session';
-const PUBLIC_PATHS = ['/api/v1/health', '/session-expired', '/_next', '/favicon.ico'];
+const PUBLIC_PATHS = ['/api/v1/health', '/session-expired', '/dev-login', '/_next', '/favicon.ico'];
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 const cookieAttrs = {
