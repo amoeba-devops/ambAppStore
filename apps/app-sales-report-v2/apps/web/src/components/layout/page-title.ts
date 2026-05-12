@@ -3,6 +3,7 @@ const TITLE_MAP: Record<string, string> = {
   '/upload': 'Upload Reports',
   '/manual-input': 'Manual Cost Input',
   '/cost-master/prime-cost': 'Prime Cost Master',
+  '/cost-master/cogs-file': 'COGS File',
   '/reports/weekly': 'Weekly Report',
   '/activity-log/login': 'Login History',
   '/activity-log/action': 'Action History',
