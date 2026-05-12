@@ -19,6 +19,8 @@
     "db:push": "npm run db:push -w @car-v2/db",
     "db:generate": "npm run db:generate -w @car-v2/db",
     "db:migrate": "npm run db:migrate -w @car-v2/db",
+    "db:migrate:dev": "node scripts/db-migrate.mjs dev",
+    "db:migrate:staging": "node scripts/db-migrate.mjs staging",
     "db:studio": "npm run db:studio -w @car-v2/db",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
   },
