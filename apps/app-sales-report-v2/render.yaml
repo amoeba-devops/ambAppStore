@@ -3,7 +3,7 @@ services:
     name: sales-report-v2-web
     runtime: node
     rootDir: apps/app-sales-report-v2
-    buildCommand: npm install && npm run build --workspace @v2/web
+    buildCommand: npm install --include=dev && npm run build --workspace @v2/web
     startCommand: npm start --workspace @v2/web
     plan: starter
     healthCheckPath: /api/v1/health
@@ -33,7 +33,7 @@ services:
     name: sales-report-v2-worker
     runtime: node
     rootDir: apps/app-sales-report-v2
-    buildCommand: npm install && npm run build --workspace @v2/worker
+    buildCommand: npm install --include=dev && npm run build --workspace @v2/worker
     startCommand: npm start --workspace @v2/worker
     plan: starter
     envVars:
@@ -57,7 +57,7 @@ services:
     runtime: node
     rootDir: apps/app-sales-report-v2
     schedule: "0 19 * * *"
-    buildCommand: npm install && npm run build --workspace @v2/cron
+    buildCommand: npm install --include=dev && npm run build --workspace @v2/cron
     startCommand: npm start --workspace @v2/cron
     plan: starter
     envVars:
@@ -71,7 +71,7 @@ services:
     runtime: node
     rootDir: apps/app-sales-report-v2
     schedule: "*/15 * * * *"
-    buildCommand: npm install && npm run build --workspace @v2/cron
+    buildCommand: npm install --include=dev && npm run build --workspace @v2/cron
     startCommand: npm run start:retry-failed --workspace @v2/cron
     plan: starter
     envVars:
