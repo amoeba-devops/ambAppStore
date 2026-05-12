@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { SignJWT } from 'jose';
+import { absoluteUrl } from '@/lib/request-origin';
 
 const validRoles = ['OWNER', 'MASTER', 'MANAGER', 'MEMBER'] as const;
 type AmaRole = (typeof validRoles)[number];
@@ -46,9 +47,7 @@ export async function GET(req: NextRequest) {
   const cookieName = process.env.SESSION_COOKIE_NAME ?? 'amb_session';
 
   const redirectTo = req.nextUrl.searchParams.get('next') ?? '/';
-  const safePath = redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : '/';
-
-  const res = NextResponse.redirect(new URL(safePath, req.url));
+  const res = NextResponse.redirect(absoluteUrl(req, redirectTo));
   res.cookies.set(cookieName, token, {
     httpOnly: true,
     secure: IS_PROD,

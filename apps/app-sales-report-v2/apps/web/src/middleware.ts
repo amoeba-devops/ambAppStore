@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { verifyAmaJwt } from '@/lib/auth/verify-jwt';
+import { absoluteUrl, getRequestOrigin } from '@/lib/request-origin';
 
 const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? 'amb_session';
 const PUBLIC_PATHS = ['/api/v1/health', '/session-expired', '/dev-login', '/_next', '/favicon.ico'];
@@ -26,8 +27,10 @@ export async function middleware(req: NextRequest) {
     } catch {
       return new NextResponse('Invalid token', { status: 401 });
     }
-    const cleanUrl = new URL(req.nextUrl);
-    cleanUrl.searchParams.delete('ama_token');
+    const cleanUrl = new URL(pathname, getRequestOrigin(req));
+    searchParams.forEach((value, key) => {
+      if (key !== 'ama_token') cleanUrl.searchParams.set(key, value);
+    });
     const res = NextResponse.redirect(cleanUrl);
     res.cookies.set(SESSION_COOKIE, incomingToken, cookieAttrs);
     return res;
@@ -35,7 +38,7 @@ export async function middleware(req: NextRequest) {
 
   const cookieToken = req.cookies.get(SESSION_COOKIE)?.value;
   if (!cookieToken) {
-    return NextResponse.redirect(new URL('/session-expired', req.url));
+    return NextResponse.redirect(absoluteUrl(req, '/session-expired'));
   }
   try {
     const claims = await verifyAmaJwt(cookieToken);
@@ -45,7 +48,7 @@ export async function middleware(req: NextRequest) {
     res.headers.set('x-user-role', claims.role);
     return res;
   } catch {
-    return NextResponse.redirect(new URL('/session-expired', req.url));
+    return NextResponse.redirect(absoluteUrl(req, '/session-expired'));
   }
 }
 
