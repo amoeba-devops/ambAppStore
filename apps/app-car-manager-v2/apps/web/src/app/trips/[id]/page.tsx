@@ -97,7 +97,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
                 <div className="mt-5 pt-4 border-t border-border">
                   <div className="text-xs font-medium text-text-muted mb-1.5">Purpose</div>
                   <p className="text-sm text-text leading-relaxed">
-                    Airport pickup for Seoul HQ delegation. Wait at gate B, hold "HanaTech" sign.
+                    Airport pickup for Seoul HQ delegation. Wait at gate B, hold &ldquo;HanaTech&rdquo; sign.
                   </p>
                 </div>
               </CardContent>

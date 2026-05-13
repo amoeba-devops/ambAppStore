@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { AlertOctagon, RotateCcw } from 'lucide-react';
 import { Button, Card, CardContent } from '@car-v2/ui';
 
@@ -36,7 +37,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
 
             <div className="mt-6 flex gap-2 w-full">
               <Button variant="secondary" size="lg" className="flex-1" asChild>
-                <a href="/">Go home</a>
+                <Link href="/">Go home</Link>
               </Button>
               <Button variant="accent" size="lg" className="flex-1" iconLeft={<RotateCcw />} onClick={reset}>
                 Try again
