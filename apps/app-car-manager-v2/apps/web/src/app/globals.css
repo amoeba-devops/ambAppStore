@@ -1,6 +1,9 @@
-/* Pretendard (Korean enterprise standard) + JetBrains Mono — matches design tokens */
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* Pretendard ships with the `pretendard` npm package — Next.js bundles the
+ * font files via webpack, so no CDN is hit at runtime (iframe-safe).
+ * Other fonts (Inter, Be Vietnam Pro, JetBrains Mono) are loaded via
+ * `next/font/google` in app/layout.tsx and exposed as CSS variables. */
+@import 'pretendard/dist/web/static/pretendard.css';
+@import '@car-v2/ui/tokens.css';
 
 @tailwind base;
 @tailwind components;
@@ -11,16 +14,31 @@
     height: 100%;
   }
   body {
-    @apply font-sans antialiased text-neutral-800 bg-neutral-50;
+    @apply font-sans antialiased text-text bg-bg;
     text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-bg;
   }
   ::selection {
-    background: #cfe0ff;
+    background: hsl(var(--accent-soft));
+    color: hsl(var(--text));
   }
 }
 
 @layer utilities {
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+  /* Honor user's reduced-motion preference globally. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

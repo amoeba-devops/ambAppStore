@@ -45,3 +45,6 @@ _inspect.mjs
 
 # Resources
 resources/
+
+# Claude
+.claude/

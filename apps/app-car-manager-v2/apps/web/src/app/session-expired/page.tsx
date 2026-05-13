@@ -1,52 +1,60 @@
-export default function SessionExpiredPage() {
+import { getTranslations } from 'next-intl/server';
+import { LogIn, ShieldOff } from 'lucide-react';
+import { Button, Card, CardContent } from '@car-v2/ui';
+
+export default async function SessionExpiredPage() {
+  const tA  = await getTranslations('actions');
+  const tCo = await getTranslations('company');
   const amaOrigin = process.env.NEXT_PUBLIC_AMA_ORIGIN ?? 'https://ama.amoeba.site';
   const demoEnabled = process.env.DEMO_AUTO_LOGIN === 'true';
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 font-sans">
-      <div className="max-w-md w-full rounded-xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
-        <h1 className="text-xl font-semibold text-neutral-900">Session expired</h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          Please return to ambManagement and re-open the app.
-        </p>
-        <a
-          href={amaOrigin}
-          className="mt-6 inline-flex h-10 items-center justify-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white hover:bg-brand-600"
-        >
-          Open ambManagement
-        </a>
-
-        {demoEnabled && (
-          <div className="mt-8 pt-6 border-t border-neutral-100">
-            <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-[0.08em] mb-3">
-              Dev login (local only)
+    <div className="min-h-dvh flex items-center justify-center bg-bg p-6">
+      <Card variant="elevated" className="w-full max-w-md">
+        <CardContent>
+          <div className="flex flex-col items-center text-center py-2">
+            <div className="h-14 w-14 rounded-full bg-warning-soft text-warning flex items-center justify-center mb-5">
+              <ShieldOff className="h-6 w-6" />
             </div>
-            <div className="flex flex-col gap-2">
-              <a
-                href="/dev-login?role=OWNER"
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-neutral-150 bg-white px-3 text-[13px] font-semibold text-neutral-700 hover:bg-neutral-25"
-              >
-                Sign in as <span className="font-bold text-brand-700 ml-1">ADMIN</span>
-              </a>
-              <a
-                href="/dev-login?role=MANAGER"
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-neutral-150 bg-white px-3 text-[13px] font-semibold text-neutral-700 hover:bg-neutral-25"
-              >
-                Sign in as <span className="font-bold text-brand-700 ml-1">MANAGER</span>
-              </a>
-              <a
-                href="/dev-login?role=MEMBER"
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-neutral-150 bg-white px-3 text-[13px] font-semibold text-neutral-700 hover:bg-neutral-25"
-              >
-                Sign in as <span className="font-bold text-brand-700 ml-1">DRIVER</span>
-              </a>
-            </div>
-            <p className="mt-3 text-[11px] text-neutral-400">
-              Enabled because <code className="font-mono">DEMO_AUTO_LOGIN=true</code>. Turn off in production.
+            <h1 className="text-xl font-semibold text-text">Session expired</h1>
+            <p className="mt-2 text-sm text-text-muted leading-relaxed max-w-xs">
+              Your access to <span className="font-medium text-text">{tCo('tenant')}</span> has timed out. Return to
+              amoeba management to re-open the app.
             </p>
+            <Button
+              variant="accent"
+              size="lg"
+              className="mt-6 w-full"
+              asChild
+            >
+              <a href={amaOrigin}><LogIn />Open ambManagement</a>
+            </Button>
           </div>
-        )}
-      </div>
-    </main>
+
+          {demoEnabled && (
+            <div className="mt-6 pt-5 border-t border-border">
+              <div className="text-[10.5px] font-semibold text-text-faint uppercase tracking-wider mb-3">
+                Dev login · local only
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                {(['OWNER', 'MANAGER', 'MEMBER'] as const).map((role) => (
+                  <Button key={role} variant="secondary" size="md" asChild>
+                    <a href={`/dev-login?role=${role}`}>
+                      Sign in as <span className="font-semibold text-accent ml-1">
+                        {role === 'OWNER' ? 'ADMIN' : role === 'MEMBER' ? 'DRIVER' : 'MANAGER'}
+                      </span>
+                    </a>
+                  </Button>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-text-faint">
+                Active because <code className="font-mono bg-surface-2 px-1 rounded">DEMO_AUTO_LOGIN=true</code>.
+                Disable in production.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

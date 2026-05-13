@@ -1,78 +1,137 @@
 import type { Config } from 'tailwindcss';
 
-// Tokens ported verbatim from design/project/tokens.jsx.
-// Korean enterprise SaaS · Toss-inspired blue · data-dense.
+/* CCMS Design System — Swiss Modernism 2.0 + Minimalism.
+ * Tokens defined as CSS variables in `packages/ui/src/tokens.css`.
+ * This file maps the variables to Tailwind utilities. */
 const config: Config = {
-  content: ['./src/**/*.{ts,tsx}', '../../packages/ui/src/**/*.{ts,tsx}'],
+  content: [
+    './src/**/*.{ts,tsx}',
+    '../../packages/ui/src/**/*.{ts,tsx}',
+  ],
   theme: {
+    container: {
+      center: true,
+      padding: '1.5rem',
+      screens: { '2xl': '1440px' },
+    },
     extend: {
-      colors: {
-        // Brand blue (Toss-inspired #3182F6 family)
-        brand: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3182f6',
-          600: '#2566db',
-          700: '#1d4fb0',
-          800: '#1c3f88',
-          900: '#1a356b',
-        },
-        // Cool neutral with a hint of blue (enterprise)
-        neutral: {
-          0: '#ffffff',
-          25: '#fbfbfd',
-          50: '#f7f8fa',
-          75: '#f1f3f6',
-          100: '#e7eaf0',
-          150: '#d9dde5',
-          200: '#c8ced9',
-          300: '#a8b1c0',
-          400: '#7e8799',
-          500: '#5b6374',
-          600: '#424a59',
-          700: '#2d3340',
-          800: '#1a1f2a',
-          900: '#0b1018',
-        },
-        // Semantic
-        success: { 50: '#ecfdf3', 100: '#d1fadf', 500: '#12b76a', 600: '#039855', 700: '#027a48' },
-        warning: { 50: '#fffaeb', 100: '#fef0c7', 500: '#f79009', 600: '#dc6803', 700: '#b54708' },
-        danger:  { 50: '#fef3f2', 100: '#fee4e2', 500: '#f04438', 600: '#d92d20', 700: '#b42318' },
-        purple:  { 50: '#f4f3ff', 100: '#ebe9fe', 500: '#7a5af8', 600: '#6938ef', 700: '#5925dc' },
-        teal:    { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e' },
-      },
       fontFamily: {
         sans: [
           'Pretendard Variable',
           'Pretendard',
+          'var(--font-be-vietnam)',
+          'var(--font-inter)',
+          'system-ui',
           '-apple-system',
-          'BlinkMacSystemFont',
-          'Apple SD Gothic Neo',
-          'Noto Sans KR',
           'Segoe UI',
-          'Roboto',
           'sans-serif',
         ],
-        mono: [
-          'JetBrains Mono',
-          'ui-monospace',
-          'SFMono-Regular',
-          'Menlo',
-          'monospace',
-        ],
+        mono: ['var(--font-mono)', 'JetBrains Mono', 'ui-monospace', 'monospace'],
+      },
+      fontSize: {
+        xs:   ['12px', { lineHeight: '16px' }],
+        sm:   ['13px', { lineHeight: '18px' }],
+        base: ['14px', { lineHeight: '20px' }],
+        md:   ['15px', { lineHeight: '22px' }],
+        lg:   ['17px', { lineHeight: '24px' }],
+        xl:   ['20px', { lineHeight: '28px' }],
+        '2xl':['24px', { lineHeight: '32px' }],
+        '3xl':['30px', { lineHeight: '38px' }],
+        '4xl':['36px', { lineHeight: '44px' }],
+      },
+      colors: {
+        bg:             'hsl(var(--bg) / <alpha-value>)',
+        surface:        'hsl(var(--surface) / <alpha-value>)',
+        'surface-2':    'hsl(var(--surface-2) / <alpha-value>)',
+        border:         'hsl(var(--border) / <alpha-value>)',
+        'border-strong':'hsl(var(--border-strong) / <alpha-value>)',
+        ring:           'hsl(var(--ring) / <alpha-value>)',
+        text: {
+          DEFAULT: 'hsl(var(--text) / <alpha-value>)',
+          muted:   'hsl(var(--text-muted) / <alpha-value>)',
+          faint:   'hsl(var(--text-faint) / <alpha-value>)',
+        },
+        primary: {
+          DEFAULT: 'hsl(var(--primary) / <alpha-value>)',
+          fg:      'hsl(var(--primary-fg) / <alpha-value>)',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent) / <alpha-value>)',
+          fg:      'hsl(var(--accent-fg) / <alpha-value>)',
+          soft:    'hsl(var(--accent-soft) / <alpha-value>)',
+        },
+        success: {
+          DEFAULT: 'hsl(var(--success) / <alpha-value>)',
+          fg:      'hsl(var(--success-fg) / <alpha-value>)',
+          soft:    'hsl(var(--success-soft) / <alpha-value>)',
+        },
+        warning: {
+          DEFAULT: 'hsl(var(--warning) / <alpha-value>)',
+          fg:      'hsl(var(--warning-fg) / <alpha-value>)',
+          soft:    'hsl(var(--warning-soft) / <alpha-value>)',
+        },
+        danger: {
+          DEFAULT: 'hsl(var(--danger) / <alpha-value>)',
+          fg:      'hsl(var(--danger-fg) / <alpha-value>)',
+          soft:    'hsl(var(--danger-soft) / <alpha-value>)',
+        },
+        info: {
+          DEFAULT: 'hsl(var(--info) / <alpha-value>)',
+          fg:      'hsl(var(--info-fg) / <alpha-value>)',
+          soft:    'hsl(var(--info-soft) / <alpha-value>)',
+        },
+        purple: {
+          DEFAULT: 'hsl(var(--purple) / <alpha-value>)',
+          fg:      'hsl(var(--purple-fg) / <alpha-value>)',
+          soft:    'hsl(var(--purple-soft) / <alpha-value>)',
+        },
+        chart: {
+          1: 'hsl(var(--c1))',
+          2: 'hsl(var(--c2))',
+          3: 'hsl(var(--c3))',
+          4: 'hsl(var(--c4))',
+          5: 'hsl(var(--c5))',
+          6: 'hsl(var(--c6))',
+          7: 'hsl(var(--c7))',
+          8: 'hsl(var(--c8))',
+        },
+      },
+      borderRadius: {
+        none:    '0',
+        sm:      '4px',
+        DEFAULT: '6px',
+        md:      '8px',
+        lg:      '12px',
+        xl:      '16px',
+        full:    '9999px',
       },
       boxShadow: {
-        sm: '0 1px 2px 0 rgba(0,0,0,0.06)',
-        DEFAULT: '0 1px 3px 0 rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.04)',
-        md: '0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.04)',
-        lg: '0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04)',
+        xs: '0 1px 2px 0 rgb(15 23 42 / 0.04)',
+        sm: '0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.04)',
+        md: '0 4px 6px -2px rgb(15 23 42 / 0.06), 0 2px 4px -2px rgb(15 23 42 / 0.04)',
+        lg: '0 12px 16px -4px rgb(15 23 42 / 0.08), 0 4px 6px -2px rgb(15 23 42 / 0.04)',
+        pop:'0 8px 24px rgb(15 23 42 / 0.12)',
+      },
+      transitionDuration: {
+        DEFAULT: '180ms',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: { height: '0' },
+          to:   { height: 'var(--radix-accordion-content-height)' },
+        },
+        'accordion-up': {
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to:   { height: '0' },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 180ms ease-out',
+        'accordion-up':   'accordion-up 180ms ease-out',
       },
     },
   },
-  plugins: [],
+  plugins: [require('tailwindcss-animate')],
 };
 
 export default config;
