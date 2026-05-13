@@ -133,7 +133,25 @@ URL sẽ tự dùng `NEXT_PUBLIC_DEFAULT_LOCALE` (mặc định `vi`). Để đ�
 
 ## 3. Database migrations
 
-### 3.1 Workflow khi thêm bảng / cột mới
+### 3.1 Multi-branch setup (DEV + STAGING)
+
+`.env` chứa 3 URL keys:
+- `DATABASE_URL` — branch hiện đang dùng cho local app (dev server đọc)
+- `DATABASE_URL_DEV` — fixed pointer đến dev branch
+- `DATABASE_URL_STAGING` — fixed pointer đến staging branch
+
+3 commands target từng branch tương ứng:
+
+```bash
+npm run db:migrate              # uses DATABASE_URL (active branch — usually dev)
+npm run db:migrate:dev          # forces DATABASE_URL_DEV
+npm run db:migrate:staging      # forces DATABASE_URL_STAGING
+```
+
+`db:migrate:dev|staging` override `DATABASE_URL` trong child process (in-memory),
+KHÔNG sửa `.env` trên đĩa. Password được mask trong log.
+
+### 3.2 Workflow khi thêm bảng / cột mới
 
 ```bash
 # 1. Edit/add schema file
@@ -147,8 +165,16 @@ npm run db:generate
 # 3. Review SQL trước khi apply
 cat packages/db/migrations/NNNN_*.sql
 
-# 4. Apply lên Neon (DB pointed by DATABASE_URL)
-npm run db:migrate
+# 4. Apply lên dev branch (test local)
+npm run db:migrate:dev
+
+# 5. Khi PR pass review → apply staging trước khi merge
+npm run db:migrate:staging
+
+# 6. Commit migration files + push → Render auto-deploys với staging schema đã đúng
+git add packages/db/migrations/ packages/db/src/schema/
+git commit -m "feat: add car_vehicles schema"
+git push origin main
 ```
 
 ### 3.2 Drizzle Studio (web UI inspect DB)
@@ -220,10 +246,13 @@ git push origin main           # → Render auto-build + deploy ~3 phút
 ### 5.3 Apply migration lên prod DB
 
 ```bash
-# Cách 1: Local với prod DATABASE_URL tạm thời
+# Cách 1 (khuyến nghị): dùng named script — local với .env đã có DATABASE_URL_STAGING
+npm run db:migrate:staging
+
+# Cách 2: One-off với prod main branch URL
 DATABASE_URL=postgresql://...@main-branch... npm run db:migrate
 
-# Cách 2: Render service shell
+# Cách 3: Render service shell (env đã set sẵn DATABASE_URL → staging)
 # Dashboard → car-manager-v2-web → Shell → npm run db:migrate
 ```
 
@@ -382,9 +411,11 @@ npm run format               # Prettier write
 
 # DB
 npm run db:generate          # Drizzle: schema → migration SQL
-npm run db:migrate           # apply pending migrations to Neon
+npm run db:migrate           # apply to active DATABASE_URL
+npm run db:migrate:dev       # apply to DATABASE_URL_DEV (explicit)
+npm run db:migrate:staging   # apply to DATABASE_URL_STAGING (explicit)
 npm run db:push              # ⚠️ destructive direct push (dev only)
-npm run db:studio            # web UI inspect DB
+npm run db:studio            # web UI inspect DB (uses active DATABASE_URL)
 
 # Cleanup
 npm run clean                # rm node_modules + .turbo
