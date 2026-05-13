@@ -4,11 +4,18 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@v2/ui';
 import type { LocalRole } from '@v2/shared/auth';
-import { navSections, filterNavByRole } from './nav-config';
+import { useDraftCount } from '@/lib/raw-archive-state';
+import { navSections, filterNavByRole, type NavItem } from './nav-config';
 
 export function Sidebar({ role }: { role: LocalRole }) {
   const pathname = usePathname();
   const sections = filterNavByRole(navSections, role);
+  const draftCount = useDraftCount();
+
+  function badgeFor(item: NavItem): number | null {
+    if (item.badge === 'pending-approval' && draftCount > 0) return draftCount;
+    return null;
+  }
 
   return (
     <aside className="hidden w-60 shrink-0 border-r border-neutral-200 bg-neutral-100 lg:flex lg:flex-col">
@@ -30,6 +37,7 @@ export function Sidebar({ role }: { role: LocalRole }) {
               {section.items.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(item.href + '/');
                 const Icon = item.icon;
+                const badge = badgeFor(item);
                 return (
                   <li key={item.href}>
                     <Link
@@ -42,7 +50,15 @@ export function Sidebar({ role }: { role: LocalRole }) {
                       )}
                     >
                       <Icon className="h-4 w-4 shrink-0 text-neutral-600 group-hover:text-neutral-900" />
-                      <span className="truncate">{item.label}</span>
+                      <span className="truncate flex-1">{item.label}</span>
+                      {badge !== null && (
+                        <span
+                          className="inline-flex items-center justify-center rounded-full bg-warning-500 px-1.5 min-w-[18px] h-[18px] text-[10px] font-semibold text-white tabular-nums"
+                          title={`${badge} pending approval`}
+                        >
+                          {badge}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );

@@ -2,11 +2,14 @@ import type { LocalRole } from '@v2/shared/auth';
 import {
   LayoutDashboard,
   Upload,
-  Pencil,
+  Archive,
   Database,
-  FileText,
   BarChart3,
+  CalendarRange,
+  TrendingUp,
   ScrollText,
+  Users,
+  SlidersHorizontal,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -15,6 +18,8 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   roles?: readonly LocalRole[];
+  /** Source key for the dynamic badge count rendered next to the label. */
+  badge?: 'pending-approval';
 }
 
 export interface NavSection {
@@ -29,19 +34,23 @@ export const navSections: NavSection[] = [
     ],
   },
   {
-    title: 'Operations',
     items: [
       {
-        label: 'Upload',
+        label: 'Upload Reports',
         href: '/upload',
         icon: Upload,
         roles: ['OPERATOR', 'ADMIN'],
       },
+    ],
+  },
+  {
+    title: 'Data Ingest',
+    items: [
       {
-        label: 'Manual Input',
-        href: '/manual-input',
-        icon: Pencil,
-        roles: ['OPERATOR', 'ADMIN'],
+        label: 'Raw archive',
+        href: '/raw-archive',
+        icon: Archive,
+        badge: 'pending-approval',
       },
     ],
   },
@@ -54,40 +63,41 @@ export const navSections: NavSection[] = [
         icon: Database,
         roles: ['OPERATOR', 'ADMIN'],
       },
-      {
-        label: 'COGS File',
-        href: '/cost-master/cogs-file',
-        icon: FileText,
-        roles: ['OPERATOR', 'ADMIN'],
-      },
     ],
   },
   {
     title: 'Reports',
     items: [
       { label: 'Weekly Report', href: '/reports/weekly', icon: BarChart3 },
+      { label: 'Monthly Report', href: '/reports/monthly', icon: CalendarRange },
+      { label: 'Trending Report', href: '/reports/trending', icon: TrendingUp },
     ],
   },
   {
-    title: 'Audit',
+    title: 'Activity Log',
     items: [
-      {
-        label: 'Login History',
-        href: '/activity-log/login',
-        icon: ScrollText,
-        roles: ['MANAGER', 'ADMIN'],
-      },
       {
         label: 'Action History',
         href: '/activity-log/action',
         icon: ScrollText,
         roles: ['MANAGER', 'ADMIN'],
       },
+    ],
+  },
+  {
+    title: 'Settings',
+    items: [
       {
-        label: 'Download History',
-        href: '/activity-log/download',
-        icon: ScrollText,
-        roles: ['MANAGER', 'ADMIN'],
+        label: 'User Management',
+        href: '/settings/users',
+        icon: Users,
+        roles: ['ADMIN'],
+      },
+      {
+        label: 'Formula Config',
+        href: '/settings/formula-config',
+        icon: SlidersHorizontal,
+        roles: ['ADMIN'],
       },
     ],
   },
