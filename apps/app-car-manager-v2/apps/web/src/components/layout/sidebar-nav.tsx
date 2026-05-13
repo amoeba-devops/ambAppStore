@@ -5,13 +5,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import { Avatar, cn, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@car-v2/ui';
-import { activeKeyFor, NAV_ITEMS, type NavKey } from './nav-items';
+import type { LocalRole } from '@car-v2/shared/auth';
+import { activeKeyFor, navItemsForRole, type NavKey } from './nav-items';
 
 interface SidebarNavProps {
   collapsed: boolean;
+  role: LocalRole;
 }
 
-export function SidebarNav({ collapsed }: SidebarNavProps) {
+export function SidebarNav({ collapsed, role }: SidebarNavProps) {
   const tNav   = useTranslations('nav');
   const tCo    = useTranslations('company');
   const tAct   = useTranslations('actions');
@@ -19,8 +21,9 @@ export function SidebarNav({ collapsed }: SidebarNavProps) {
   const pathname = usePathname();
   const active = activeKeyFor(pathname ?? '/');
 
-  const workspace = NAV_ITEMS.filter((i) => i.group === 'workspace');
-  const admin = NAV_ITEMS.filter((i) => i.group === 'admin');
+  const items = navItemsForRole(role);
+  const workspace = items.filter((i) => i.group === 'workspace');
+  const admin = items.filter((i) => i.group === 'admin');
 
   return (
     <aside
@@ -104,7 +107,7 @@ interface NavGroupProps {
   collapsed: boolean;
   t: (key: NavKey) => string;
 }
-type NavItem = (typeof NAV_ITEMS)[number];
+type NavItem = ReturnType<typeof navItemsForRole>[number];
 
 function NavGroup({ label, items, activeKey, collapsed, t }: NavGroupProps) {
   return (

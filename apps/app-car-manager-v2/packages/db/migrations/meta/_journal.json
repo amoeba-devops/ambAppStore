@@ -8,6 +8,13 @@
       "when": 1778572996978,
       "tag": "0000_new_earthquake",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1778661257404,
+      "tag": "0001_serious_maginty",
+      "breakpoints": true
     }
   ]
 }
