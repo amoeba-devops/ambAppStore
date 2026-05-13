@@ -42,11 +42,14 @@ export async function middleware(req: NextRequest) {
   }
   try {
     const claims = await verifyAmaJwt(cookieToken);
-    const res = NextResponse.next();
-    res.headers.set('x-ent-id', claims.ent_id);
-    res.headers.set('x-user-id', claims.sub);
-    res.headers.set('x-user-role', claims.role);
-    return res;
+    // MUST propagate as REQUEST headers (not response headers) so RSC's
+    // `headers()` in getCurrentUser() can read x-ent-id / x-user-id / x-user-role.
+    // Setting on `res.headers` would only send them to the browser, not the page.
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set('x-ent-id', claims.ent_id);
+    requestHeaders.set('x-user-id', claims.sub);
+    requestHeaders.set('x-user-role', claims.role);
+    return NextResponse.next({ request: { headers: requestHeaders } });
   } catch {
     // Cookie present but verification failed — most common cause: cookie minted
     // by a sibling app with different `app_code` (Zod parse fails). On localhost
@@ -60,5 +63,8 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // Match every path INCLUDING root '/' — the pattern needs both an explicit
+  // '/' entry AND the negative-lookahead variant; using only the latter skips
+  // the root request (which is where the dashboard lives under basePath).
+  matcher: ['/', '/((?!_next/static|_next/image|favicon.ico).+)'],
 };

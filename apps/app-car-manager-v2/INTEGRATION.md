@@ -1,0 +1,326 @@
+# Integration — `app-car-manager-v2` ↔ ambAppStore + ambManagement
+
+> Single source of truth for how this Next.js 15 app embeds into the **ambAppStore** catalog and authenticates through **ambManagement (AMA)**. Local dev + staging + production share the same `/app-car-manager-v2/*` routing convention.
+>
+> If you change anything in this doc, also update [CLAUDE.md §5](CLAUDE.md).
+
+---
+
+## 1. Topology
+
+```
+   ┌─────────────────────────┐
+   │   AMA (ambManagement)   │  issues JWT (HS256, JWT_SECRET) ──┐
+   │   amb_partner_apps      │                                    │
+   │     pap_code=car-manager-v2                                  │
+   │   amb_entity_custom_apps│                                    │
+   │     eca_code=car-manager-v2                                  │
+   └────────────┬────────────┘                                    │
+                │ user clicks app in AMA sidebar                  │
+                ▼                                                  │
+   ┌─────────────────────────┐                                    │
+   │   ambAppStore Platform   │   nginx (prod) / Vite proxy (dev) │
+   │   plt_apps.app_slug=     │   ─────────────────────────────►  │
+   │     app-car-manager-v2   │   /app-car-manager-v2/*           │
+   │   catalog UI (AppCard)   │                                   │
+   └────────────┬────────────┘                                    │
+                │ "Use Service" → /app-car-manager-v2/            │
+                ▼                                                  │
+   ┌─────────────────────────┐                                    │
+   │   app-car-manager-v2     │ ◄──────────────────────────────────┘
+   │   Next.js :3001          │   middleware verifies JWT (jose)
+   │   basePath=$BASE_PATH    │   → sets HttpOnly cookie amb_session
+   └─────────────────────────┘
+```
+
+Three independent runtimes, **one shared `JWT_SECRET`**. The platform is the catalog only — it never proxies auth. AMA mints, v2 verifies. Cookie lives on the user-facing origin (`stg-apps.amoeba.site` / `apps.amoeba.site` / `localhost:5200`), not on the Render origin.
+
+---
+
+## 2. Files touched by this integration
+
+| File | Purpose |
+|---|---|
+| [scripts/seed-ambappstore-app.sql](scripts/seed-ambappstore-app.sql) | MySQL: add `app-car-manager-v2` row to `plt_apps` (catalog UI) |
+| [scripts/seed-ama-partner-app.sql](scripts/seed-ama-partner-app.sql) | Postgres: register `pap_code=car-manager-v2` on AMA |
+| [apps/web/next.config.ts](apps/web/next.config.ts) | `basePath = process.env.BASE_PATH \|\| undefined` |
+| [apps/web/src/middleware.ts](apps/web/src/middleware.ts) | JWT verify + cookie + request-header propagation (see §6) |
+| [.env](.env) (gitignored) | `BASE_PATH=/app-car-manager-v2`, `JWT_SECRET` shared, `NEXT_PUBLIC_AMA_ORIGIN` allow-list |
+| [.env.example](.env.example) | template with `BASE_PATH` documented |
+| `../platform/frontend/vite.config.ts` | Dev proxy `/app-car-manager-v2/*` → `:3001` with `x-forwarded-host` (see §6) |
+| `../platform/frontend/src/components/AppCard.tsx` | `APP_ICONS['app-car-manager-v2'] = '🚙'` |
+| `../platform/frontend/src/pages/AppDetailPage.tsx` | same icon mapping |
+| `../platform/frontend/src/components/SubscriptionCard.tsx` | same icon mapping |
+| `../../.env.local` (gitignored) | dev identity profile — fixed UUIDs for `ent_id` / `user_id` |
+
+---
+
+## 3. Local dev — from a fresh checkout
+
+```bash
+# A) ambAppStore platform — MySQL :3306, FE :5200, BE :3100
+cd <repo-root>
+npm install
+mysql -h localhost -P 3306 -u root -proot \
+  < apps/app-car-manager-v2/scripts/seed-ambappstore-app.sql
+npm run dev                  # turbo: FE :5200 + BE :3100 + (4 other apps)
+
+# B) car-manager-v2 — standalone Turborepo
+cd apps/app-car-manager-v2
+npm install                  # first time only
+npm run db:migrate           # apply Drizzle schema to Neon (uses DATABASE_URL from .env)
+npm run dev:web              # Next.js :3001 with basePath=/app-car-manager-v2
+```
+
+### 3.1 Auto-fill access URLs (paste into address bar)
+
+Identity is fixed in [.env.local](../../.env.local) — these URLs work without typing anything:
+
+```
+# 1. Open catalog + set entity context (auto-fills SubscriptionRequestModal)
+http://localhost:5200/?ent_id=00000000-0000-0000-0000-000000000010&ent_code=DEMO&ent_name=Demo%20Company&email=dev-owner@dev.car-manager-v2.local
+
+# 2. Mint cookie + jump straight to v2 dashboard
+http://localhost:5200/app-car-manager-v2/dev-login?role=OWNER   # → DashboardA as ADMIN
+http://localhost:5200/app-car-manager-v2/dev-login?role=MANAGER # → as MANAGER
+http://localhost:5200/app-car-manager-v2/dev-login?role=MEMBER  # → as DRIVER
+```
+
+`dev-login` is gated by `DEMO_AUTO_LOGIN=true` — must be `false` in production.
+
+### 3.2 Why `BASE_PATH` is env-driven
+
+Setting `basePath` in Next.js makes the app **only** reachable under that prefix. Keeping it driven by `process.env.BASE_PATH`:
+
+- Standalone development of v2 alone: omit `BASE_PATH` → reachable at `http://localhost:3001/`.
+- Integrated dev (current setup): `BASE_PATH=/app-car-manager-v2` → reachable at `http://localhost:5200/app-car-manager-v2/` via Vite proxy, mirroring the production nginx layout.
+
+---
+
+## 4. Subscription approval flow
+
+The platform gates app usage by `plt_subscriptions.sub_status`. From an entity's first visit:
+
+```
+Entity user (no subscription yet)
+   ↓ click v2 card
+AppDetailPage → button "Apply"
+   ↓ submit SubscriptionRequestModal
+POST /api/v1/platform/subscriptions/public
+   → INSERT plt_subscriptions (status=PENDING)
+   ↓
+Admin approves (UI or SQL):
+   UPDATE plt_subscriptions SET sub_status='ACTIVE'
+   ↓ user refreshes detail page
+Button becomes "Use Service" (green)
+   ↓ click
+Navigates /app-car-manager-v2/
+```
+
+To approve without admin UI:
+```sql
+UPDATE plt_subscriptions
+SET sub_status='ACTIVE', sub_approved_at=NOW()
+WHERE ent_id='<entity-uuid>'
+  AND app_id=(SELECT app_id FROM plt_apps WHERE app_slug='app-car-manager-v2');
+```
+
+`ent_code` (in `plt_subscriptions`) is **scoped per app** — same entity can subscribe to multiple apps with the same `ent_code`.
+
+---
+
+## 5. Production / staging deploy
+
+### 5.1 Layer A — v2 Web on Render
+
+[render.yaml](render.yaml) is already provisioned. First deploy:
+
+1. `git push origin main` — Render auto-builds.
+2. Render Dashboard → service `car-manager-v2-web` → **Environment**:
+
+| Key | Value |
+|---|---|
+| `BASE_PATH` | `/app-car-manager-v2` |
+| `JWT_SECRET` | **shared** with AMA + platform (HS256, byte-for-byte) |
+| `DEMO_AUTO_LOGIN` | **`false`** ⚠️ |
+| `NEXT_PUBLIC_AMA_ORIGIN` | `https://ama.amoeba.site https://apps.amoeba.site https://stg-apps.amoeba.site` |
+| `DATABASE_URL` | Neon staging/main branch (pooler URL) |
+| `APP_URL` | `https://stg-apps.amoeba.site` — used by `getRequestOrigin()` for redirects |
+| `AWS_*` | only when wiring S3 (P2+) |
+
+3. Manual deploy → verify `https://car-manager-v2-web.onrender.com/app-car-manager-v2/api/v1/health` returns `{"success":true}`.
+
+4. Apply migrations:
+   ```bash
+   npm run db:migrate:staging  # uses DATABASE_URL_STAGING from local .env
+   ```
+
+### 5.2 Layer B — ambAppStore catalog
+
+Idempotent on `app_slug`. Run once per environment:
+
+```bash
+# Staging
+ssh ambAppStore@stg-apps.amoeba.site \
+  "cd ~/ambAppStore && git pull && docker exec -i mysql-apps mysql -uroot -p<PWD> db_app_platform \
+   < apps/app-car-manager-v2/scripts/seed-ambappstore-app.sql"
+
+# Production (only after staging is green)
+ssh amoeba-shop \
+  "cd /var/www/apps_amoeba && git pull && docker exec -i mysql-apps mysql -uroot -p<PWD> db_app_platform \
+   < apps/app-car-manager-v2/scripts/seed-ambappstore-app.sql"
+```
+
+### 5.3 Layer C — Nginx route
+
+Add to `platform/nginx/apps.amoeba.site.conf` next to the existing v1 block:
+
+```nginx
+location /app-car-manager-v2/ {
+    proxy_pass         https://car-manager-v2-web.onrender.com;
+    proxy_set_header   Host              car-manager-v2-web.onrender.com;
+    proxy_set_header   X-Forwarded-Host  $host;          # critical — see §6.3
+    proxy_set_header   X-Forwarded-Proto $scheme;
+    proxy_set_header   X-Real-IP         $remote_addr;
+    proxy_http_version 1.1;
+    proxy_set_header   Upgrade           $http_upgrade;
+    proxy_set_header   Connection        "upgrade";
+}
+```
+
+Reload: `sudo nginx -t && sudo systemctl reload nginx`.
+
+### 5.4 Layer D — AMA registration (optional, enables AMA sidebar entry)
+
+```bash
+psql -h <ama-pg-host> -U <user> -d <ama-db> \
+  -f apps/app-car-manager-v2/scripts/seed-ama-partner-app.sql
+```
+
+Replace `<ADMIN_USER_UUID>` placeholder first. Entities then "install" via AMA admin UI, or uncomment Step 3 of the SQL to auto-install for a test entity. URL contract: `{eca_url}?ama_token={jwt}&locale={lang}`.
+
+### 5.5 Pre-flight checklist
+
+- [ ] `JWT_SECRET` is **identical** across AMA, platform-backend `.env`, and Render `car-manager-v2-web` env
+- [ ] `DEMO_AUTO_LOGIN=false` on Render prod
+- [ ] `BASE_PATH=/app-car-manager-v2` on Render
+- [ ] `APP_URL` set on Render so `getRequestOrigin()` returns the user-facing domain
+- [ ] Seed `plt_apps` ran at least once on target MySQL (verify: `SELECT app_slug FROM plt_apps WHERE app_slug='app-car-manager-v2'`)
+- [ ] Nginx config validates: `nginx -t`
+- [ ] Health endpoint reachable via the public domain: `curl https://stg-apps.amoeba.site/app-car-manager-v2/api/v1/health`
+- [ ] Staging tested end-to-end (catalog → subscribe → approve → dashboard) before `main → production` PR
+
+---
+
+## 6. Why these 3 things are non-obvious (learned the hard way)
+
+> These bugs cost a debugging session — keep them in mind before changing anything.
+
+### 6.1 Middleware must propagate request headers via `request:` option
+
+In [middleware.ts](apps/web/src/middleware.ts), the auth context is passed to RSC via headers:
+
+```ts
+const requestHeaders = new Headers(req.headers);
+requestHeaders.set('x-ent-id', claims.ent_id);
+requestHeaders.set('x-user-id', claims.sub);
+requestHeaders.set('x-user-role', claims.role);
+return NextResponse.next({ request: { headers: requestHeaders } });
+```
+
+Do **not** use `res.headers.set('x-ent-id', ...)` — that sets **response** headers (sent to the browser), but RSC `headers()` in [get-current-user.ts](apps/web/src/lib/auth/get-current-user.ts) reads **request** headers. With `res.headers.set`, middleware verify succeeds, the page renders 200, but `getCurrentUser` throws `CAR-E0101` because the headers it needs don't exist on the request. Symptom: "Something went wrong" error page on every dashboard load.
+
+### 6.2 Middleware matcher must include `/` explicitly
+
+```ts
+export const config = {
+  matcher: ['/', '/((?!_next/static|_next/image|favicon.ico).+)'],
+};
+```
+
+The single-pattern form `'/((?!_next/static|_next/image|favicon.ico).*)'` empirically **does not match the root path `/`** in Next.js 15 with `basePath` enabled. Symptom: middleware never runs for the dashboard, headers never propagate, identical error to §6.1.
+
+Diagnose: add `console.log('[mw]', pathname)` at the top of `middleware()` — if you don't see it for `/`, the matcher is wrong.
+
+### 6.3 Vite proxy + `getRequestOrigin` need `x-forwarded-host`
+
+[vite.config.ts](../platform/frontend/vite.config.ts) forwards `x-forwarded-host` so v2's `getRequestOrigin(req)` returns `localhost:5200` instead of `localhost:3001`. Without it:
+
+- `dev-login` mints a cookie on `localhost:5200` (correct — the browser-facing origin)
+- v2 then redirects to `absoluteUrl(req, '/')` → resolves to `http://localhost:3001/` (cross-origin!)
+- Browser jumps to `:3001`, doesn't send the cookie (different origin) → middleware redirects to `/session-expired` → infinite loop
+
+Production analog: nginx must send `X-Forwarded-Host $host` (see §5.3) so v2 on Render constructs redirects that point back to `apps.amoeba.site`, not the internal `*.onrender.com` host.
+
+---
+
+## 7. JWT contract (frozen — change in lockstep across all three)
+
+`HS256`, secret = `JWT_SECRET`. Payload AMA issues:
+
+```json
+{
+  "sub": "<uuid-user>",
+  "ent_id": "<uuid-entity>",
+  "role": "OWNER | MASTER | MANAGER | MEMBER",
+  "email": "...",
+  "name": "...",
+  "app_code": "car-manager-v2",
+  "iss": "amb-management",
+  "aud": "car-manager-v2",
+  "exp": <unix-seconds>
+}
+```
+
+- `app_code` mismatch → middleware verify throws → cookie cleared → `/session-expired`.
+- `iss` / `aud` are enforced in [verify-jwt.ts](apps/web/src/lib/auth/verify-jwt.ts).
+- AMA role → app local role mapping (PRD §4): `OWNER|MASTER → ADMIN`, `MANAGER → MANAGER`, `MEMBER → DRIVER`.
+
+Local `dev-login` and [scripts/dev-token.mjs](scripts/dev-token.mjs) hard-code the same UUIDs as [.env.local](../../.env.local) — change in lockstep.
+
+---
+
+## 8. Runtime flow (production iframe scenario)
+
+```
+1. User opens AMA → clicks "Company Car Management v2" in custom-apps sidebar
+2. AMA iframe https://apps.amoeba.site/?ent_id=...&ent_code=...&from=iframe
+3. ambAppStore platform catalog renders; entity context saved into Zustand
+4. User clicks card → /apps/app-car-manager-v2
+5. AppDetailPage: subscription ACTIVE → "Use Service" button shows
+6. Click → href="/app-car-manager-v2/" → nginx routes to Render
+7. v2 middleware:
+   a. no cookie → 307 /session-expired
+   b. user → AMA → re-issues JWT → redirects /app-car-manager-v2/?ama_token=<jwt>
+   c. middleware verifies, sets cookie amb_session (HttpOnly, SameSite=None in prod), redirects to clean URL
+8. Dashboard loads — getCurrentUser reads x-ent-id from middleware-injected headers
+9. Every subsequent request: cookie is sent → middleware verify → headers → RSC
+```
+
+---
+
+## 9. Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Card not on catalog | seed not applied to that env | re-run `scripts/seed-ambappstore-app.sql` against target `db_app_platform` |
+| `/app-car-manager-v2/` 404 via :5200 | v2 not running on :3001 | `cd apps/app-car-manager-v2 && npm run dev:web` |
+| `_next/static/...` 404 | `BASE_PATH` not set or doesn't match nginx prefix | restart v2 after `.env` change (env loads once at boot) |
+| `Something went wrong` error page after dev-login | §6.1 or §6.2 regressed | check middleware matcher + request-header propagation |
+| Loops between `/session-expired` and dashboard | cross-origin redirect, cookie not sticking | §6.3 — confirm `x-forwarded-host` arrives at v2 |
+| `401` after pasting `?ama_token=` | `JWT_SECRET` mismatch | grep all three envs, must match byte-for-byte |
+| CSP blocks iframe | `NEXT_PUBLIC_AMA_ORIGIN` missing parent origin | add origin space-separated to env, rebuild |
+| Card icon shows 📱 | icon map not updated in platform FE | check the 3 files in §2 (AppCard / AppDetailPage / SubscriptionCard) |
+| Subscription stuck at PENDING | no admin to approve in dev | run UPDATE SQL in §4 |
+| Form fields empty | entity context not set | open via the auto-fill URL §3.1 first, then navigate |
+
+---
+
+## 10. See also
+
+- [README.md](README.md) — first-time setup + dev quickstart
+- [CLAUDE.md](CLAUDE.md) — architecture rules + DDD layers + role mapping
+- [PRD.md](PRD.md) — MVP business spec
+- Root [CLAUDE.md](../../CLAUDE.md) — ambAppStore monorepo conventions
+- Root [.env.local](../../.env.local) — fixed dev identity (entity + user UUIDs)
+- v1 reference: [apps/app-car-manager/](../app-car-manager/) — older NestJS/Vite stack, same `/app-car-manager/*` routing pattern

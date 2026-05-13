@@ -20,6 +20,7 @@ const SUBSCRIPTION_BADGE: Record<string, { label: string; className: string }> =
 
 const APP_ICONS: Record<string, string> = {
   'app-car-manager': '🚗',
+  'app-car-manager-v2': '🚙',
   'app-hscode': '📦',
   'app-sales-report': '📊',
   'app-stock-management': '📈',
