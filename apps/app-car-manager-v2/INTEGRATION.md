@@ -49,7 +49,16 @@
 
 Three independent runtimes, **one shared `JWT_SECRET`**. The platform is the catalog only — it never proxies auth. AMA mints, v2 verifies. Cookie lives on the user-facing origin (`stg-apps.amoeba.site` / `apps.amoeba.site` / `localhost:5200`), not on the Render origin (this is what `X-Forwarded-Host` accomplishes — see §6.3).
 
-**Deploy topology (Option A — chosen):** v2 runs on Render (per its CLAUDE.md fixed stack), staging nginx reverse-proxies `/app-car-manager-v2/*` to the Render hostname. v2 is NOT containerized on the staging server alongside the four other apps because Next.js needs a Node runtime (the existing nginx `alias` static-SPA pattern doesn't apply).
+**Deploy topology (D1 — dual target, one BASE_PATH):**
+
+v2 is deployed to **two runtime hosts in parallel**, both built with the same `BASE_PATH=/app-car-manager-v2`:
+
+| Target | URL | Purpose | Wiring |
+|---|---|---|---|
+| **Staging Docker** | `https://stg-apps.amoeba.site/app-car-manager-v2/` | Embedded flow via AMA + ambAppStore catalog (primary user traffic) | nginx → `next-car-manager-v2:3001` container on `amb-apps-network` |
+| **Render** | `https://car-manager-v2-web.onrender.com/app-car-manager-v2/` | Direct access (QA, external API consumers, fallback if staging Docker is down) | Render service `car-manager-v2-web` (independent deploy from `render.yaml`) |
+
+Both deploys share **the same Neon Postgres** (`DATABASE_URL` identical) and **the same `JWT_SECRET`**. There is no data divergence — only the runtime host and the entry URL differ.
 
 ---
 
@@ -60,7 +69,12 @@ Three independent runtimes, **one shared `JWT_SECRET`**. The platform is the cat
 | [scripts/seed-ambappstore-app.sql](scripts/seed-ambappstore-app.sql) | MySQL: add `app-car-manager-v2` row to `plt_apps` (catalog UI) |
 | [scripts/seed-ama-entity-custom-app.sql](scripts/seed-ama-entity-custom-app.sql) | **(PRIMARY)** Postgres: register per-entity in `amb_entity_custom_apps` so AMA mints JWT + shows v2 in sidebar |
 | [scripts/seed-ama-partner-app.sql](scripts/seed-ama-partner-app.sql) | (alternative, NOT working end-to-end) Postgres: register in `amb_partner_apps` — kept for documentation only |
-| [../../platform/nginx/apps.amoeba.site.conf](../../platform/nginx/apps.amoeba.site.conf) | nginx `location /app-car-manager-v2/` proxy to Render |
+| [Dockerfile](Dockerfile) | Multi-stage Node 20 alpine — used by staging server compose |
+| [docker-compose.app-car-manager-v2.yml](docker-compose.app-car-manager-v2.yml) | Single-service compose for staging (sibling of v1's compose) |
+| [.dockerignore](.dockerignore) | Excludes node_modules / .next / .env / resources from build context |
+| [render.yaml](render.yaml) | Render deploy spec (parallel target, independent of Docker) |
+| [../../platform/nginx/apps.amoeba.site.conf](../../platform/nginx/apps.amoeba.site.conf) | nginx `location /app-car-manager-v2/` → `next-car-manager-v2:3001` container |
+| [../../platform/scripts/deploy-staging.sh](../../platform/scripts/deploy-staging.sh) | Registered as `car-manager-v2` target (single-service + custom health path) |
 | [apps/web/next.config.ts](apps/web/next.config.ts) | `basePath = process.env.BASE_PATH \|\| undefined` |
 | [apps/web/src/middleware.ts](apps/web/src/middleware.ts) | JWT verify + cookie + request-header propagation (see §6) |
 | [.env](.env) (gitignored) | `BASE_PATH=/app-car-manager-v2`, `JWT_SECRET` shared, `NEXT_PUBLIC_AMA_ORIGIN` allow-list |
@@ -149,6 +163,23 @@ WHERE ent_id='<entity-uuid>'
 
 ## 5. Production / staging deploy
 
+### 5.0 Dual deploy at a glance
+
+v2 ships to **two runtime hosts in parallel**, same code / same DB / same JWT:
+
+| | Staging Docker (LAN) | Render (cloud) |
+|---|---|---|
+| **Build** | `bash platform/scripts/deploy-staging.sh build car-manager-v2` (on staging server) | git push → Render auto-build |
+| **Image / Process** | Container `next-car-manager-v2:3001` on `amb-apps-network` | `car-manager-v2-web` service |
+| **External URL** | `https://stg-apps.amoeba.site/app-car-manager-v2/` (via nginx) | `https://car-manager-v2-web.onrender.com/app-car-manager-v2/` |
+| **Used by** | All end-user flows through AMA sidebar + ambAppStore catalog | Direct access — QA, API consumers, fallback |
+| **BASE_PATH** | `/app-car-manager-v2` (set in `docker-compose.app-car-manager-v2.yml` build args) | `/app-car-manager-v2` (set in Render dashboard env) |
+| **DATABASE_URL** | Neon staging (same as Render) | Neon staging (same as Docker) |
+| **JWT_SECRET** | Same as AMA + platform | Same as AMA + platform |
+| **DEMO_AUTO_LOGIN** | `false` | `false` |
+
+Both must keep these env vars in sync — `JWT_SECRET` divergence is the most common failure mode.
+
 ### 5.1 Layer A — v2 Web on Render
 
 [render.yaml](render.yaml) is already provisioned. First deploy:
@@ -189,15 +220,28 @@ ssh amoeba-shop \
    < apps/app-car-manager-v2/scripts/seed-ambappstore-app.sql"
 ```
 
-### 5.3 Layer C — Nginx route (Option A)
+### 5.3 Layer C — Staging Docker + Nginx route
 
-Already committed in [../../platform/nginx/apps.amoeba.site.conf](../../platform/nginx/apps.amoeba.site.conf) (see the `app-car-manager-v2` block at the end). The pattern differs from the four sibling apps — those use `alias` to serve a built static SPA, this one uses `proxy_pass` to Render because Next.js needs a Node runtime. The `BASE_PATH=/app-car-manager-v2` on the Render side means the upstream path is preserved (no rewrite). On any update to the conf:
+**Build & start the container** (run on staging server):
+
+```bash
+ssh ambAppStore@stg-apps.amoeba.site "cd ~/ambAppStore && git pull && \
+  bash platform/scripts/deploy-staging.sh full car-manager-v2"
+```
+
+`deploy-staging.sh` knows v2 is single-service (BFF_NAME == WEB_NAME) and uses a custom health path (`/app-car-manager-v2/api/v1/health` because of the basePath). Verify step skips the redundant frontend probe.
+
+Required on the staging server before first build: `apps/app-car-manager-v2/.env` with at minimum `JWT_SECRET` and `DATABASE_URL` (Neon staging URL). Same shape as Render's env vars in §5.1.
+
+**Nginx route** is already committed in [../../platform/nginx/apps.amoeba.site.conf](../../platform/nginx/apps.amoeba.site.conf). On any update:
 
 ```bash
 ssh ambAppStore@stg-apps.amoeba.site "sudo nginx -t && sudo systemctl reload nginx"
 ```
 
-Pitfall to know: `X-Forwarded-Host` must be forwarded so the cookie is set on `apps.amoeba.site`, not `*.onrender.com`. See §6.3.
+The proxy_pass targets the local container (`http://next-car-manager-v2:3001`), NOT Render. This keeps all embedded-flow traffic on the staging LAN (low latency, same network as MySQL + AMA). Render is reached only when the user explicitly browses its `*.onrender.com` URL.
+
+Pitfall: `X-Forwarded-Host` must be forwarded so v2's `getRequestOrigin()` returns `stg-apps.amoeba.site` (not the container hostname). See §6.3.
 
 ### 5.4 Layer D — AMA registration (enables AMA sidebar entry)
 

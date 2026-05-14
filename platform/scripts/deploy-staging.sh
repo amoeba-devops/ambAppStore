@@ -11,6 +11,7 @@
 #   bash platform/scripts/deploy-staging.sh build car-manager  # build car-manager only
 #   bash platform/scripts/deploy-staging.sh build stock        # build stock-management only
 #   bash platform/scripts/deploy-staging.sh build sales        # build sales-report only
+#   bash platform/scripts/deploy-staging.sh build car-manager-v2  # build v2 only (Next.js)
 # ============================================================
 set -euo pipefail
 
@@ -28,7 +29,9 @@ warn()  { echo -e "${YELLOW}[warn]${NC} $1"; }
 error() { echo -e "${RED}[error]${NC} $1" >&2; }
 
 # ---- App definitions ----
-declare -A APP_DIRS APP_COMPOSE APP_BFF_PORT APP_WEB_PORT APP_BFF_NAME APP_WEB_NAME
+# APP_HEALTH_PATH: optional per-app override of the `/api/v1/health` default
+#   (needed for apps with a Next.js basePath that prefixes ALL routes).
+declare -A APP_DIRS APP_COMPOSE APP_BFF_PORT APP_WEB_PORT APP_BFF_NAME APP_WEB_NAME APP_HEALTH_PATH
 
 APP_DIRS[platform]="$PROJECT_ROOT/apps/platform"
 APP_COMPOSE[platform]="docker-compose.platform.yml"
@@ -58,7 +61,18 @@ APP_WEB_PORT[sales]=5203
 APP_BFF_NAME[sales]="bff-sales-report"
 APP_WEB_NAME[sales]="web-sales-report"
 
-ALL_APPS=(platform car-manager stock sales)
+# car-manager-v2: Next.js 15 single-service (BFF+Web in one container).
+# BFF_NAME == WEB_NAME and BFF_PORT == WEB_PORT by design.
+# Health endpoint lives under basePath (/app-car-manager-v2/api/v1/health).
+APP_DIRS[car-manager-v2]="$PROJECT_ROOT/apps/app-car-manager-v2"
+APP_COMPOSE[car-manager-v2]="docker-compose.app-car-manager-v2.yml"
+APP_BFF_PORT[car-manager-v2]=3105
+APP_WEB_PORT[car-manager-v2]=3105
+APP_BFF_NAME[car-manager-v2]="next-car-manager-v2"
+APP_WEB_NAME[car-manager-v2]="next-car-manager-v2"
+APP_HEALTH_PATH[car-manager-v2]="/app-car-manager-v2/api/v1/health"
+
+ALL_APPS=(platform car-manager stock sales car-manager-v2)
 
 MODE="${1:-full}"
 TARGET_APP="${2:-all}"
@@ -95,7 +109,7 @@ done
 
 # Ensure platform (with MySQL) is deployed first when deploying all apps
 if [ "$TARGET_APP" = "all" ]; then
-  APPS=(platform car-manager stock sales)
+  APPS=(platform car-manager stock sales car-manager-v2)
 fi
 
 build_app() {
@@ -132,19 +146,26 @@ verify_app() {
   local app=$1
   local bff_port="${APP_BFF_PORT[$app]}"
   local web_port="${APP_WEB_PORT[$app]}"
+  local bff_name="${APP_BFF_NAME[$app]}"
   local web_name="${APP_WEB_NAME[$app]}"
   local dir="${APP_DIRS[$app]}"
   local compose="${APP_COMPOSE[$app]}"
+  local health_path="${APP_HEALTH_PATH[$app]:-/api/v1/health}"
 
   log "Verifying [$app]..."
-  echo -n "  Backend API (port $bff_port): "
-  curl -sf "http://localhost:$bff_port/api/v1/health" && echo "" || echo "FAIL"
+  echo -n "  Backend API (port $bff_port$health_path): "
+  curl -sf "http://localhost:$bff_port$health_path" && echo "" || echo "FAIL"
 
-  echo -n "  Frontend (port $web_port):    "
-  curl -sf -o /dev/null -w "%{http_code}" "http://localhost:$web_port/" && echo "" || echo "FAIL"
+  # Single-service apps (BFF == WEB container) skip the redundant front-end probe
+  if [ "$bff_name" = "$web_name" ]; then
+    echo "  Frontend: served by same container — skipped"
+  else
+    echo -n "  Frontend (port $web_port):    "
+    curl -sf -o /dev/null -w "%{http_code}" "http://localhost:$web_port/" && echo "" || echo "FAIL"
 
-  log "Checking for wrong domain references in [$app]..."
-  docker exec "$web_name" sh -c 'grep -rl "mng.amoeba.site" /usr/share/nginx/html/ 2>/dev/null || echo "  No wrong domains found — OK"' 2>/dev/null || true
+    log "Checking for wrong domain references in [$app]..."
+    docker exec "$web_name" sh -c 'grep -rl "mng.amoeba.site" /usr/share/nginx/html/ 2>/dev/null || echo "  No wrong domains found — OK"' 2>/dev/null || true
+  fi
 
   log "Container status [$app]:"
   cd "$dir"
@@ -199,7 +220,7 @@ case "$MODE" in
     ;;
 
   *)
-    echo "Usage: $0 {full|build|restart|verify} [platform|car-manager|stock|sales|all]"
+    echo "Usage: $0 {full|build|restart|verify} [platform|car-manager|stock|sales|car-manager-v2|all]"
     exit 1
     ;;
 esac
