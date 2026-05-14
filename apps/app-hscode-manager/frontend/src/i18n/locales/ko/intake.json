@@ -1,0 +1,74 @@
+{
+  "channel": {
+    "title": "입력 방식 선택",
+    "subtitle": "원부자재 정보를 어떻게 등록할까요?",
+    "excel": "엑셀 일괄 등록",
+    "excel_desc": "다수 행을 한 번에 (최대 1,000행)",
+    "direct": "앱 직접 입력",
+    "direct_desc": "단건·소량 입력",
+    "barcode": "바코드 스캔",
+    "barcode_desc": "기성품 보조 (Phase 2 비활성)",
+    "back": "이전"
+  },
+  "direct": {
+    "title": "원부자재 정보 입력",
+    "category": "카테고리",
+    "name": "품명",
+    "usage": "용도 설명",
+    "spec": "카테고리별 속성",
+    "completeness": "완성도",
+    "soft_block_message": "완성도 점수가 0.7 미만입니다. 진행 사유를 입력하면 강제 진행할 수 있습니다.",
+    "force_reason": "강제 진행 사유",
+    "submit": "매칭 시작",
+    "save_draft": "임시저장",
+    "attachment_count": "첨부 파일 개수",
+    "categories": {
+      "CHEMICAL": "화학물질",
+      "STEEL_MECHANICAL": "철강·기계",
+      "EQUIPMENT": "설비",
+      "OTHER": "기타"
+    },
+    "auto_escalate_warning": "기타 카테고리는 전문가 검토를 자동 발동합니다."
+  },
+  "excel": {
+    "title": "엑셀 일괄 등록",
+    "select_file": "파일 선택",
+    "preview": "미리보기",
+    "sheet": "시트",
+    "header_row": "헤더 행",
+    "mapping_title": "헤더 매핑",
+    "system_field": "시스템 필드",
+    "excel_column": "엑셀 컬럼",
+    "category_override": "카테고리 일괄 지정 (선택)",
+    "save_profile": "매핑 프로파일로 저장",
+    "profile_name": "프로파일 이름",
+    "do_import": "검증·등록 실행",
+    "stats": "정상 {{imported}}건 / 보류 {{hold}}건 / 전체 {{total}}건",
+    "view_hold": "보류 큐 보기",
+    "unmapped_to_attrs": "매핑 안 된 컬럼은 spec_attributes(JSON)로 보존됩니다",
+    "preview_rows": "미리보기 (최대 10행)"
+  },
+  "hold": {
+    "title": "보류 큐",
+    "row": "행",
+    "errors": "오류",
+    "edit": "수정·재검증",
+    "resolved": "해결됨",
+    "empty": "보류 행이 없습니다"
+  },
+  "fields": {
+    "name": "품명",
+    "category": "카테고리",
+    "material": "재질",
+    "usage_description": "용도",
+    "composition": "성분",
+    "thickness_mm": "두께(mm)",
+    "gtin": "바코드(GTIN)",
+    "ignore": "(무시)"
+  },
+  "modal": {
+    "direct_created": "1건이 등록되었습니다 (완성도 {{score}})",
+    "excel_imported": "엑셀 등록 완료 — 정상 {{imported}}건 / 보류 {{hold}}건",
+    "hold_resolved": "보류 행이 해결되었습니다"
+  }
+}

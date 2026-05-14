@@ -1,0 +1,74 @@
+{
+  "channel": {
+    "title": "Chọn phương thức nhập",
+    "subtitle": "Bạn muốn đăng ký thông tin nguyên vật liệu như thế nào?",
+    "excel": "Tải Excel hàng loạt",
+    "excel_desc": "Nhiều dòng cùng lúc (tối đa 1.000)",
+    "direct": "Nhập trực tiếp",
+    "direct_desc": "Đơn lẻ / số lượng nhỏ",
+    "barcode": "Quét mã vạch",
+    "barcode_desc": "Hỗ trợ thành phẩm (Phase 2 chưa bật)",
+    "back": "Trước"
+  },
+  "direct": {
+    "title": "Nhập thông tin nguyên vật liệu",
+    "category": "Phân loại",
+    "name": "Tên hàng",
+    "usage": "Mô tả công dụng",
+    "spec": "Thuộc tính theo phân loại",
+    "completeness": "Mức độ hoàn thiện",
+    "soft_block_message": "Điểm hoàn thiện dưới 0,7. Nhập lý do để tiếp tục dù sao.",
+    "force_reason": "Lý do tiếp tục",
+    "submit": "Bắt đầu phân loại",
+    "save_draft": "Lưu nháp",
+    "attachment_count": "Số tập tin đính kèm",
+    "categories": {
+      "CHEMICAL": "Hóa chất",
+      "STEEL_MECHANICAL": "Thép / cơ khí",
+      "EQUIPMENT": "Thiết bị",
+      "OTHER": "Khác"
+    },
+    "auto_escalate_warning": "Phân loại Khác sẽ tự động kích hoạt chuyên gia xem xét."
+  },
+  "excel": {
+    "title": "Tải Excel hàng loạt",
+    "select_file": "Chọn tệp",
+    "preview": "Xem trước",
+    "sheet": "Sheet",
+    "header_row": "Hàng tiêu đề",
+    "mapping_title": "Ánh xạ tiêu đề",
+    "system_field": "Trường hệ thống",
+    "excel_column": "Cột Excel",
+    "category_override": "Áp dụng phân loại (tùy chọn)",
+    "save_profile": "Lưu hồ sơ ánh xạ",
+    "profile_name": "Tên hồ sơ",
+    "do_import": "Kiểm tra & tải lên",
+    "stats": "Đã nhập {{imported}} / Tạm giữ {{hold}} / Tổng {{total}}",
+    "view_hold": "Xem hàng tạm giữ",
+    "unmapped_to_attrs": "Cột chưa ánh xạ sẽ được giữ trong spec_attributes (JSON)",
+    "preview_rows": "Xem trước (tối đa 10 hàng)"
+  },
+  "hold": {
+    "title": "Hàng tạm giữ",
+    "row": "Hàng",
+    "errors": "Lỗi",
+    "edit": "Sửa & kiểm tra lại",
+    "resolved": "Đã giải quyết",
+    "empty": "Không có hàng tạm giữ"
+  },
+  "fields": {
+    "name": "Tên",
+    "category": "Phân loại",
+    "material": "Vật liệu",
+    "usage_description": "Công dụng",
+    "composition": "Thành phần",
+    "thickness_mm": "Độ dày (mm)",
+    "gtin": "GTIN",
+    "ignore": "(bỏ qua)"
+  },
+  "modal": {
+    "direct_created": "Đã đăng ký 1 mục (độ hoàn thiện {{score}})",
+    "excel_imported": "Hoàn tất nhập Excel — {{imported}} đã nhập / {{hold}} tạm giữ",
+    "hold_resolved": "Đã xử lý hàng tạm giữ"
+  }
+}

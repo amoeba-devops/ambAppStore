@@ -1,0 +1,36 @@
+{
+  "app": {
+    "title": "HS Code Manager",
+    "subtitle": "Nền tảng tra cứu mã HS cho nguyên vật liệu"
+  },
+  "nav": {
+    "dashboard": "Bảng điều khiển",
+    "new_work": "Yêu cầu mới",
+    "history": "Lịch sử",
+    "verification": "Xác minh",
+    "expert": "Chuyên gia",
+    "admin": "Quản trị"
+  },
+  "dashboard": {
+    "title": "Bảng điều khiển",
+    "in_progress": "Yêu cầu đang xử lý",
+    "kpi_summary": "Tỷ lệ truy thu / điều chỉnh",
+    "recent_activity": "Hoạt động gần đây",
+    "empty_state": "Chưa có công việc. Chọn [Yêu cầu mới] ở góc trên bên phải để bắt đầu."
+  },
+  "language": {
+    "ko": "한국어",
+    "en": "English",
+    "vi": "Tiếng Việt"
+  },
+  "common": {
+    "loading": "Đang tải...",
+    "error": "Đã xảy ra lỗi",
+    "retry": "Thử lại",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "confirm": "Xác nhận",
+    "back": "Trước",
+    "next": "Tiếp"
+  }
+}
