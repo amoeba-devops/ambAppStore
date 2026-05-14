@@ -5,7 +5,7 @@
 # Node process handles both RSC pages and /api/* route handlers.
 #
 # Why this exists alongside render.yaml:
-#   - Render serves the canonical external URL (car-manager-v2-web.onrender.com)
+#   - Render serves the canonical external URL (car-manager-staging.onrender.com)
 #     for direct access, bypassing ambAppStore catalog UI.
 #   - This Docker container serves traffic routed through the staging nginx
 #     (/app-car-manager-v2/* → here), keeping the embedded flow on the same

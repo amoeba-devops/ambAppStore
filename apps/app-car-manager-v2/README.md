@@ -122,7 +122,7 @@ Tự set cookie + redirect `/`. Param `?next=/trips` để landing path khác.
 
 ```bash
 curl http://localhost:3001/api/v1/health
-# → {"success":true,"data":{"status":"ok","service":"car-manager-v2-web",...}}
+# → {"success":true,"data":{"status":"ok","service":"car-manager-staging",...}}
 ```
 
 ### 2.4 Đổi language UI
@@ -218,7 +218,7 @@ npm run test                   # Vitest (P6 — chưa có test files)
 1. Tạo Render account → connect GitHub repo
 2. Dashboard → **New** → **Blueprint** → chọn repo + branch (`main` cho staging)
 3. Render auto-detect `apps/app-car-manager-v2/render.yaml` → provision:
-   - `car-manager-v2-web` (Web Service, **Starter** plan $7/mo)
+   - `car-manager-staging` (Web Service, **Starter** plan $7/mo)
 4. **Vào service** → tab **Environment** → set các `sync: false` vars:
 
 | Var | Giá trị |
@@ -233,7 +233,7 @@ npm run test                   # Vitest (P6 — chưa có test files)
 | `AWS_SECRET_ACCESS_KEY` | IAM secret (P2+) |
 
 5. Click **Manual Deploy** → wait ~3-5 phút build
-6. Verify: `curl https://car-manager-v2-web.onrender.com/api/v1/health`
+6. Verify: `curl https://car-manager-staging.onrender.com/api/v1/health`
 
 ### 5.2 Tiếp tục deploy (sau khi setup xong)
 
@@ -253,7 +253,7 @@ npm run db:migrate:staging
 DATABASE_URL=postgresql://...@main-branch... npm run db:migrate
 
 # Cách 3: Render service shell (env đã set sẵn DATABASE_URL → staging)
-# Dashboard → car-manager-v2-web → Shell → npm run db:migrate
+# Dashboard → car-manager-staging → Shell → npm run db:migrate
 ```
 
 ### 5.4 Rollback
@@ -266,7 +266,7 @@ Dashboard → service → tab **Logs** (live tail).
 
 ### 5.6 Custom domain
 
-Dashboard → service → tab **Settings** → **Custom Domains** → add domain → cập nhật DNS CNAME tới `car-manager-v2-web.onrender.com`. Update `NEXT_PUBLIC_AMA_ORIGIN` nếu cần khớp domain mới.
+Dashboard → service → tab **Settings** → **Custom Domains** → add domain → cập nhật DNS CNAME tới `car-manager-staging.onrender.com`. Update `NEXT_PUBLIC_AMA_ORIGIN` nếu cần khớp domain mới.
 
 ---
 
