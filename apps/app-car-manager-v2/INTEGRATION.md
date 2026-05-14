@@ -56,7 +56,7 @@ v2 is deployed to **two runtime hosts in parallel**, both built with the same `B
 | Target | URL | Purpose | Wiring |
 |---|---|---|---|
 | **Staging Docker** | `https://stg-apps.amoeba.site/app-car-manager-v2/` | Embedded flow via AMA + ambAppStore catalog (primary user traffic) | nginx → `next-car-manager-v2:3001` container on `amb-apps-network` |
-| **Render** | `https://car-manager-v2-web.onrender.com/app-car-manager-v2/` | Direct access (QA, external API consumers, fallback if staging Docker is down) | Render service `car-manager-v2-web` (independent deploy from `render.yaml`) |
+| **Render** | `https://car-manager-staging.onrender.com/app-car-manager-v2/` | Direct access (QA, external API consumers, fallback if staging Docker is down) | Render service `car-manager-staging` (independent deploy from `render.yaml`) |
 
 Both deploys share **the same Neon Postgres** (`DATABASE_URL` identical) and **the same `JWT_SECRET`**. There is no data divergence — only the runtime host and the entry URL differ.
 
@@ -170,8 +170,8 @@ v2 ships to **two runtime hosts in parallel**, same code / same DB / same JWT:
 | | Staging Docker (LAN) | Render (cloud) |
 |---|---|---|
 | **Build** | `bash platform/scripts/deploy-staging.sh build car-manager-v2` (on staging server) | git push → Render auto-build |
-| **Image / Process** | Container `next-car-manager-v2:3001` on `amb-apps-network` | `car-manager-v2-web` service |
-| **External URL** | `https://stg-apps.amoeba.site/app-car-manager-v2/` (via nginx) | `https://car-manager-v2-web.onrender.com/app-car-manager-v2/` |
+| **Image / Process** | Container `next-car-manager-v2:3001` on `amb-apps-network` | `car-manager-staging` service |
+| **External URL** | `https://stg-apps.amoeba.site/app-car-manager-v2/` (via nginx) | `https://car-manager-staging.onrender.com/app-car-manager-v2/` |
 | **Used by** | All end-user flows through AMA sidebar + ambAppStore catalog | Direct access — QA, API consumers, fallback |
 | **BASE_PATH** | `/app-car-manager-v2` (set in `docker-compose.app-car-manager-v2.yml` build args) | `/app-car-manager-v2` (set in Render dashboard env) |
 | **DATABASE_URL** | Neon staging (same as Render) | Neon staging (same as Docker) |
@@ -185,7 +185,7 @@ Both must keep these env vars in sync — `JWT_SECRET` divergence is the most co
 [render.yaml](render.yaml) is already provisioned. First deploy:
 
 1. `git push origin main` — Render auto-builds.
-2. Render Dashboard → service `car-manager-v2-web` → **Environment**:
+2. Render Dashboard → service `car-manager-staging` → **Environment**:
 
 | Key | Value |
 |---|---|
@@ -197,7 +197,7 @@ Both must keep these env vars in sync — `JWT_SECRET` divergence is the most co
 | `APP_URL` | `https://stg-apps.amoeba.site` — used by `getRequestOrigin()` for redirects |
 | `AWS_*` | only when wiring S3 (P2+) |
 
-3. Manual deploy → verify `https://car-manager-v2-web.onrender.com/app-car-manager-v2/api/v1/health` returns `{"success":true}`.
+3. Manual deploy → verify `https://car-manager-staging.onrender.com/app-car-manager-v2/api/v1/health` returns `{"success":true}`.
 
 4. Apply migrations:
    ```bash
@@ -264,7 +264,7 @@ The legacy [scripts/seed-ama-partner-app.sql](scripts/seed-ama-partner-app.sql) 
 
 ### 5.5 Pre-flight checklist
 
-- [ ] `JWT_SECRET` is **identical** across AMA, platform-backend `.env`, and Render `car-manager-v2-web` env
+- [ ] `JWT_SECRET` is **identical** across AMA, platform-backend `.env`, and Render `car-manager-staging` env
 - [ ] `DEMO_AUTO_LOGIN=false` on Render prod
 - [ ] `BASE_PATH=/app-car-manager-v2` on Render
 - [ ] `APP_URL` set on Render so `getRequestOrigin()` returns the user-facing domain
