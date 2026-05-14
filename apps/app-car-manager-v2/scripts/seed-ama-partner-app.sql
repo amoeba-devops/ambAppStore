@@ -1,4 +1,29 @@
 -- ============================================================================
+-- ⚠️  ALTERNATIVE / NOT-RECOMMENDED PATH
+--
+-- For the primary integration path, use:
+--   → scripts/seed-ama-entity-custom-app.sql  (amb_entity_custom_apps)
+--
+-- WHY THIS FILE IS NOT THE DEFAULT:
+--   AMA's `amb_partner_apps` lifecycle is only PARTLY implemented in the
+--   backend. The full 6-step DRAFT→SUBMITTED→IN_REVIEW→APPROVED→PUBLISHED
+--   flow exists in UI + DTOs, BUT there is NO endpoint that mints a JWT
+--   for `pap_auth_mode='SSO_JWT'` — PartnerAppService does not inject
+--   JwtService and has no `generateAppToken()` method. As a result, an
+--   app registered here cannot actually be launched (verified: 4 rows
+--   exist on staging, 0 installs in amb_partner_app_installs).
+--
+--   Every embedded app that ACTUALLY works on staging (apps-stock,
+--   redmine, ...) lives in `amb_entity_custom_apps`, which DOES have a
+--   working JWT mint flow.
+--
+--   Keep this script only as a marker for the day the partner-apps flow
+--   is completed end-to-end (mint endpoint + cross-DB federation in
+--   ambAppStore). Until then it is purely informational.
+--
+-- ----------------------------------------------------------------------------
+-- (original header below preserved for reference)
+-- ----------------------------------------------------------------------------
 -- ambManagement (AMA) Partner App Registration — Car Manager v2
 --
 -- Run against ambManagement Postgres DB (NOT car-manager-v2 Neon DB).

@@ -9,31 +9,56 @@
 ## 1. Topology
 
 ```
-   ┌─────────────────────────┐
-   │   AMA (ambManagement)   │  issues JWT (HS256, JWT_SECRET) ──┐
-   │   amb_partner_apps      │                                    │
-   │     pap_code=car-manager-v2                                  │
-   │   amb_entity_custom_apps│                                    │
-   │     eca_code=car-manager-v2                                  │
-   └────────────┬────────────┘                                    │
-                │ user clicks app in AMA sidebar                  │
-                ▼                                                  │
-   ┌─────────────────────────┐                                    │
-   │   ambAppStore Platform   │   nginx (prod) / Vite proxy (dev) │
-   │   plt_apps.app_slug=     │   ─────────────────────────────►  │
-   │     app-car-manager-v2   │   /app-car-manager-v2/*           │
-   │   catalog UI (AppCard)   │                                   │
-   └────────────┬────────────┘                                    │
-                │ "Use Service" → /app-car-manager-v2/            │
-                ▼                                                  │
-   ┌─────────────────────────┐                                    │
-   │   app-car-manager-v2     │ ◄──────────────────────────────────┘
-   │   Next.js :3001          │   middleware verifies JWT (jose)
-   │   basePath=$BASE_PATH    │   → sets HttpOnly cookie amb_session
-   └─────────────────────────┘
+   ┌──────────────────────────────────────┐
+   │   AMA (ambManagement) — Postgres     │  issues JWT (HS256, JWT_SECRET) ──┐
+   │                                       │                                    │
+   │   amb_entity_custom_apps  (PRIMARY)  │                                    │
+   │     eca_code='app-car-manager-v2'    │                                    │
+   │     eca_auth_mode='jwt'              │                                    │
+   │     eca_open_mode='iframe'           │                                    │
+   │     eca_url=https://stg-apps..../v2  │                                    │
+   │                                       │                                    │
+   │   amb_partner_apps  (NOT USED — see  │                                    │
+   │   §5.4 note about missing JWT mint)  │                                    │
+   └──────────────┬───────────────────────┘                                    │
+                  │ user clicks "Quản lý điều xe v2" in AMA sidebar           │
+                  ▼                                                             │
+   ┌──────────────────────────────────────┐                                    │
+   │   nginx (host on staging server)     │                                    │
+   │   proxy_pass → Render (Option A)     │                                    │
+   │   /app-car-manager-v2/* preserved    │                                    │
+   └──────────────┬───────────────────────┘                                    │
+                  │ HTTPS (X-Forwarded-Host: stg-apps.amoeba.site)             │
+                  ▼                                                             │
+   ┌──────────────────────────────────────┐                                    │
+   │   app-car-manager-v2 on Render        │ ◄───────────────────────────────────┘
+   │   Next.js (RSC + Server Actions)      │   middleware verifies JWT (jose)
+   │   BASE_PATH=/app-car-manager-v2       │   → sets HttpOnly cookie amb_session
+   │   APP_URL=https://stg-apps.amoeba.site│     on stg-apps.amoeba.site (not onrender)
+   └──────────────────────────────────────┘
+                  ▲
+                  │ alternative entry: ambAppStore catalog
+                  │ user clicks "Use Service" → same /app-car-manager-v2/
+   ┌──────────────────────────────────────┐
+   │   ambAppStore Platform (MySQL)        │
+   │   plt_apps.app_slug=                  │
+   │     'app-car-manager-v2'              │
+   │   catalog UI (AppCard 🚙)             │
+   └──────────────────────────────────────┘
 ```
 
-Three independent runtimes, **one shared `JWT_SECRET`**. The platform is the catalog only — it never proxies auth. AMA mints, v2 verifies. Cookie lives on the user-facing origin (`stg-apps.amoeba.site` / `apps.amoeba.site` / `localhost:5200`), not on the Render origin.
+Three independent runtimes, **one shared `JWT_SECRET`**. The platform is the catalog only — it never proxies auth. AMA mints, v2 verifies. Cookie lives on the user-facing origin (`stg-apps.amoeba.site` / `apps.amoeba.site` / `localhost:5200`), not on the Render origin (this is what `X-Forwarded-Host` accomplishes — see §6.3).
+
+**Deploy topology (D1 — dual target, one BASE_PATH):**
+
+v2 is deployed to **two runtime hosts in parallel**, both built with the same `BASE_PATH=/app-car-manager-v2`:
+
+| Target | URL | Purpose | Wiring |
+|---|---|---|---|
+| **Staging Docker** | `https://stg-apps.amoeba.site/app-car-manager-v2/` | Embedded flow via AMA + ambAppStore catalog (primary user traffic) | nginx → `next-car-manager-v2:3001` container on `amb-apps-network` |
+| **Render** | `https://car-manager-v2-web.onrender.com/app-car-manager-v2/` | Direct access (QA, external API consumers, fallback if staging Docker is down) | Render service `car-manager-v2-web` (independent deploy from `render.yaml`) |
+
+Both deploys share **the same Neon Postgres** (`DATABASE_URL` identical) and **the same `JWT_SECRET`**. There is no data divergence — only the runtime host and the entry URL differ.
 
 ---
 
@@ -42,7 +67,14 @@ Three independent runtimes, **one shared `JWT_SECRET`**. The platform is the cat
 | File | Purpose |
 |---|---|
 | [scripts/seed-ambappstore-app.sql](scripts/seed-ambappstore-app.sql) | MySQL: add `app-car-manager-v2` row to `plt_apps` (catalog UI) |
-| [scripts/seed-ama-partner-app.sql](scripts/seed-ama-partner-app.sql) | Postgres: register `pap_code=car-manager-v2` on AMA |
+| [scripts/seed-ama-entity-custom-app.sql](scripts/seed-ama-entity-custom-app.sql) | **(PRIMARY)** Postgres: register per-entity in `amb_entity_custom_apps` so AMA mints JWT + shows v2 in sidebar |
+| [scripts/seed-ama-partner-app.sql](scripts/seed-ama-partner-app.sql) | (alternative, NOT working end-to-end) Postgres: register in `amb_partner_apps` — kept for documentation only |
+| [Dockerfile](Dockerfile) | Multi-stage Node 20 alpine — used by staging server compose |
+| [docker-compose.app-car-manager-v2.yml](docker-compose.app-car-manager-v2.yml) | Single-service compose for staging (sibling of v1's compose) |
+| [.dockerignore](.dockerignore) | Excludes node_modules / .next / .env / resources from build context |
+| [render.yaml](render.yaml) | Render deploy spec (parallel target, independent of Docker) |
+| [../../platform/nginx/apps.amoeba.site.conf](../../platform/nginx/apps.amoeba.site.conf) | nginx `location /app-car-manager-v2/` → `next-car-manager-v2:3001` container |
+| [../../platform/scripts/deploy-staging.sh](../../platform/scripts/deploy-staging.sh) | Registered as `car-manager-v2` target (single-service + custom health path) |
 | [apps/web/next.config.ts](apps/web/next.config.ts) | `basePath = process.env.BASE_PATH \|\| undefined` |
 | [apps/web/src/middleware.ts](apps/web/src/middleware.ts) | JWT verify + cookie + request-header propagation (see §6) |
 | [.env](.env) (gitignored) | `BASE_PATH=/app-car-manager-v2`, `JWT_SECRET` shared, `NEXT_PUBLIC_AMA_ORIGIN` allow-list |
@@ -131,6 +163,23 @@ WHERE ent_id='<entity-uuid>'
 
 ## 5. Production / staging deploy
 
+### 5.0 Dual deploy at a glance
+
+v2 ships to **two runtime hosts in parallel**, same code / same DB / same JWT:
+
+| | Staging Docker (LAN) | Render (cloud) |
+|---|---|---|
+| **Build** | `bash platform/scripts/deploy-staging.sh build car-manager-v2` (on staging server) | git push → Render auto-build |
+| **Image / Process** | Container `next-car-manager-v2:3001` on `amb-apps-network` | `car-manager-v2-web` service |
+| **External URL** | `https://stg-apps.amoeba.site/app-car-manager-v2/` (via nginx) | `https://car-manager-v2-web.onrender.com/app-car-manager-v2/` |
+| **Used by** | All end-user flows through AMA sidebar + ambAppStore catalog | Direct access — QA, API consumers, fallback |
+| **BASE_PATH** | `/app-car-manager-v2` (set in `docker-compose.app-car-manager-v2.yml` build args) | `/app-car-manager-v2` (set in Render dashboard env) |
+| **DATABASE_URL** | Neon staging (same as Render) | Neon staging (same as Docker) |
+| **JWT_SECRET** | Same as AMA + platform | Same as AMA + platform |
+| **DEMO_AUTO_LOGIN** | `false` | `false` |
+
+Both must keep these env vars in sync — `JWT_SECRET` divergence is the most common failure mode.
+
 ### 5.1 Layer A — v2 Web on Render
 
 [render.yaml](render.yaml) is already provisioned. First deploy:
@@ -171,33 +220,47 @@ ssh amoeba-shop \
    < apps/app-car-manager-v2/scripts/seed-ambappstore-app.sql"
 ```
 
-### 5.3 Layer C — Nginx route
+### 5.3 Layer C — Staging Docker + Nginx route
 
-Add to `platform/nginx/apps.amoeba.site.conf` next to the existing v1 block:
-
-```nginx
-location /app-car-manager-v2/ {
-    proxy_pass         https://car-manager-v2-web.onrender.com;
-    proxy_set_header   Host              car-manager-v2-web.onrender.com;
-    proxy_set_header   X-Forwarded-Host  $host;          # critical — see §6.3
-    proxy_set_header   X-Forwarded-Proto $scheme;
-    proxy_set_header   X-Real-IP         $remote_addr;
-    proxy_http_version 1.1;
-    proxy_set_header   Upgrade           $http_upgrade;
-    proxy_set_header   Connection        "upgrade";
-}
-```
-
-Reload: `sudo nginx -t && sudo systemctl reload nginx`.
-
-### 5.4 Layer D — AMA registration (optional, enables AMA sidebar entry)
+**Build & start the container** (run on staging server):
 
 ```bash
-psql -h <ama-pg-host> -U <user> -d <ama-db> \
-  -f apps/app-car-manager-v2/scripts/seed-ama-partner-app.sql
+ssh ambAppStore@stg-apps.amoeba.site "cd ~/ambAppStore && git pull && \
+  bash platform/scripts/deploy-staging.sh full car-manager-v2"
 ```
 
-Replace `<ADMIN_USER_UUID>` placeholder first. Entities then "install" via AMA admin UI, or uncomment Step 3 of the SQL to auto-install for a test entity. URL contract: `{eca_url}?ama_token={jwt}&locale={lang}`.
+`deploy-staging.sh` knows v2 is single-service (BFF_NAME == WEB_NAME) and uses a custom health path (`/app-car-manager-v2/api/v1/health` because of the basePath). Verify step skips the redundant frontend probe.
+
+Required on the staging server before first build: `apps/app-car-manager-v2/.env` with at minimum `JWT_SECRET` and `DATABASE_URL` (Neon staging URL). Same shape as Render's env vars in §5.1.
+
+**Nginx route** is already committed in [../../platform/nginx/apps.amoeba.site.conf](../../platform/nginx/apps.amoeba.site.conf). On any update:
+
+```bash
+ssh ambAppStore@stg-apps.amoeba.site "sudo nginx -t && sudo systemctl reload nginx"
+```
+
+The proxy_pass targets the local container (`http://next-car-manager-v2:3001`), NOT Render. This keeps all embedded-flow traffic on the staging LAN (low latency, same network as MySQL + AMA). Render is reached only when the user explicitly browses its `*.onrender.com` URL.
+
+Pitfall: `X-Forwarded-Host` must be forwarded so v2's `getRequestOrigin()` returns `stg-apps.amoeba.site` (not the container hostname). See §6.3.
+
+### 5.4 Layer D — AMA registration (enables AMA sidebar entry)
+
+**Use [scripts/seed-ama-entity-custom-app.sql](scripts/seed-ama-entity-custom-app.sql)** — the primary path. AMA's `amb_partner_apps` lifecycle is only partly implemented (no JWT mint endpoint for `pap_auth_mode='SSO_JWT'`); every embedded app that actually launches on staging today uses `amb_entity_custom_apps`. This is the same pattern as `apps-stock`, `redmine`, etc.
+
+```bash
+# Edit the file first to replace <ENT_UUID> + <ADMIN_USER_UUID> placeholders
+psql -h 192.168.1.150 -U amb_user -d db_amb \
+  -f apps/app-car-manager-v2/scripts/seed-ama-entity-custom-app.sql
+```
+
+One row per entity that should see the app. The seed is idempotent on `(ent_id, eca_code)` so re-running per entity is safe. URL contract that AMA constructs on click: `{eca_url}?ama_token={jwt}&locale={lang}`.
+
+For an entity to "see" the app:
+1. AMA admin (or entity owner) runs the INSERT once for that `ent_id`
+2. AMA sidebar / custom-apps section now shows "Quản lý điều xe v2"
+3. Click → AMA mints JWT → redirects to `https://stg-apps.amoeba.site/app-car-manager-v2/?ama_token=...` → nginx → Render → v2 middleware sets cookie → dashboard
+
+The legacy [scripts/seed-ama-partner-app.sql](scripts/seed-ama-partner-app.sql) is kept for documentation only — see its header for the gap details.
 
 ### 5.5 Pre-flight checklist
 

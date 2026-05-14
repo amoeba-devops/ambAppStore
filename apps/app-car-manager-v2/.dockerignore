@@ -1,0 +1,39 @@
+# Build artifacts & deps
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/build
+
+# Local env & secrets
+.env
+.env.*
+!.env.example
+
+# Logs & caches
+*.log
+.npm
+.cache
+
+# IDE / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.github
+
+# Docs / reference assets — not needed in image
+docs
+resources
+*.md
+!apps/web/**/*.md
+
+# Render-specific (Dockerfile build is for staging server only)
+render.yaml
+
+# Scripts that run from dev workstation, not in container
+scripts
