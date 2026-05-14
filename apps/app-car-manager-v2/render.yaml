@@ -1,6 +1,9 @@
 services:
   - type: web
-    name: car-manager-v2-web
+    # MUST match the service name in Render dashboard. Mismatched name causes
+    # Render to spin up a brand-new service instead of updating the existing
+    # one. Current staging service URL: https://car-manager-staging.onrender.com
+    name: car-manager-staging
     runtime: node
     rootDir: apps/app-car-manager-v2
     buildCommand: npm install --include=dev && npm run build --workspace @car-v2/web
@@ -8,7 +11,7 @@ services:
     plan: starter
     # No healthCheckPath — Render considers deploy successful as soon as the
     # process binds to $PORT. Verify manually after deploy with:
-    #   curl https://car-manager-v2-web.onrender.com/app-car-manager-v2/api/v1/health
+    #   curl https://car-manager-staging.onrender.com/app-car-manager-v2/api/v1/health
     envVars:
       # BASE_PATH is BUILD-TIME (Next.js bakes it into the JS bundle). Set
       # it here so it's present during `npm run build` — must match the
