@@ -18,10 +18,12 @@ services:
       # nginx route prefix on staging.
       - key: BASE_PATH
         value: /app-car-manager-v2
-      # Public origin override for getRequestOrigin() — points cookie domain
-      # and redirect URLs at the user-facing host instead of *.onrender.com.
+      # Public origin override for getRequestOrigin() — sets cookie domain
+      # and redirect URLs. Must match the host the user types in the browser
+      # for this deploy target. Render-direct access = the onrender hostname.
+      # (Staging Docker container has its own .env with APP_URL=stg-apps.)
       - key: APP_URL
-        value: https://stg-apps.amoeba.site
+        value: https://car-manager-staging.onrender.com
       - key: NODE_ENV
         value: production
       - key: JWT_SECRET
