@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: car-manager-v2-web
+    runtime: node
+    rootDir: apps/app-car-manager-v2
+    buildCommand: npm install --include=dev && npm run build --workspace @car-v2/web
+    startCommand: npm start --workspace @car-v2/web
+    plan: starter
+    # No healthCheckPath — Render considers deploy successful as soon as the
+    # process binds to $PORT. Verify manually after deploy with:
+    #   curl https://car-manager-v2-web.onrender.com/app-car-manager-v2/api/v1/health
+    envVars:
+      # BASE_PATH is BUILD-TIME (Next.js bakes it into the JS bundle). Set
+      # it here so it's present during `npm run build` — must match the
+      # nginx route prefix on staging.
+      - key: BASE_PATH
+        value: /app-car-manager-v2
+      # Public origin override for getRequestOrigin() — points cookie domain
+      # and redirect URLs at the user-facing host instead of *.onrender.com.
+      - key: APP_URL
+        value: https://stg-apps.amoeba.site
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_S3_BUCKET
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: NEXT_PUBLIC_AMA_ORIGIN
+        sync: false
+      - key: NEXT_PUBLIC_APP_CODE
+        value: car-manager-v2
+      - key: NEXT_PUBLIC_DEFAULT_LOCALE
+        value: vi
+      - key: DEMO_AUTO_LOGIN
+        sync: false

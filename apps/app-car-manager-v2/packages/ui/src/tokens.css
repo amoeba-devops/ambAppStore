@@ -1,0 +1,56 @@
+/* CCMS Design Tokens — Swiss Modernism 2.0 + Minimalism
+ * Light mode only. Dark mode deferred (see REQ-20260512-ui-restyle §3.2).
+ * All values in HSL so Tailwind `<alpha-value>` modifier works. */
+
+:root {
+  /* Surface */
+  --bg:             210 40% 98%;   /* #F8FAFC  page background */
+  --surface:        0 0% 100%;     /* #FFFFFF  card / sheet */
+  --surface-2:      220 14% 96%;   /* #F1F3F8  muted card, hover row */
+  --border:         220 13% 91%;   /* #E2E5EB  hairline */
+  --border-strong:  220 13% 82%;   /* stronger border for focus, dividers */
+
+  /* Text */
+  --text:           222 47% 11%;   /* #0F172A  primary text */
+  --text-muted:     215 20% 35%;   /* #475569  secondary text */
+  --text-faint:     215 16% 55%;   /* #64748B  helper, placeholder */
+
+  /* Brand — Slate Navy primary + Royal Blue CTA */
+  --primary:        222 47% 11%;   /* #0F172A  primary button / dark heading */
+  --primary-fg:     0 0% 100%;
+  --accent:         210 92% 31%;   /* #0369A1  CTA button / link */
+  --accent-fg:      0 0% 100%;
+  --accent-soft:    210 100% 95%;  /* #E0F2FE  tag background, hover tint */
+
+  /* Status (semantic, used for pills and chart) */
+  --success:        152 76% 36%;   /* #15A36E */
+  --success-fg:     0 0% 100%;
+  --success-soft:   152 56% 92%;
+  --warning:        35 92% 50%;    /* #F59E0B */
+  --warning-fg:     0 0% 100%;
+  --warning-soft:   35 92% 94%;
+  --danger:         0 84% 60%;     /* #EF4444 */
+  --danger-fg:      0 0% 100%;
+  --danger-soft:    0 84% 95%;
+  --info:           199 89% 48%;   /* #0EA5E9 */
+  --info-fg:        0 0% 100%;
+  --info-soft:      199 89% 94%;
+  --purple:         258 90% 66%;   /* #8B5CF6 */
+  --purple-fg:      0 0% 100%;
+  --purple-soft:    258 90% 95%;
+
+  /* Focus ring — accent at full saturation */
+  --ring:           210 92% 45%;
+
+  /* Chart sequence — colorblind-safe (no red+green clash on adjacent slices)
+   * Mapping to 8 expense categories:
+   *  c1 Fuel · c2 Repair · c3 Meal · c4 Oil · c5 Accident · c6 Parking · c7 Toll · c8 Inspection */
+  --c1: 221 83% 53%;   /* #2563EB  Fuel       — blue */
+  --c2: 258 90% 66%;   /* #8B5CF6  Repair     — purple */
+  --c3: 35 92% 50%;    /* #F59E0B  Meal       — amber */
+  --c4: 173 80% 36%;   /* #0D9488  Oil        — teal */
+  --c5: 0 84% 60%;     /* #EF4444  Accident   — red */
+  --c6: 199 89% 48%;   /* #0EA5E9  Parking    — sky */
+  --c7: 152 76% 36%;   /* #15A36E  Toll       — green */
+  --c8: 280 80% 50%;   /* #A626E0  Inspection — magenta */
+}
