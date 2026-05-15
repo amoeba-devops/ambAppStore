@@ -183,6 +183,12 @@ export interface OverviewRow {
   isRatio?: boolean;
   /** vs prev direction where positive = bad. */
   invertDelta?: boolean;
+  /** Group identifier — rows with the same group are visually clustered. */
+  group?: 'revenue' | 'discount' | 'promo' | 'prime-cost' | 'platform-fee' | 'result';
+  /** Render as group subtotal (bold, top border). */
+  isGroupTotal?: boolean;
+  /** Render indented (sub-item under group). */
+  isSubItem?: boolean;
 }
 
 export interface BreakdownItem {
@@ -425,7 +431,7 @@ function emptyReport(): WeeklyReportData {
   };
 }
 
-export function getAvailableWeeks(): { weekNum: number; year: number; label: string; periodLabel: string }[] {
+export function getAvailableWeeks(): WeekEntry[] {
   // Generate every weekly period in the current year so Operators can upload
   // for any week — not just the ones the trends mock pre-baked.
   return generateWeeksForYear(2026);
@@ -453,10 +459,21 @@ function fmtFriThu(startMs: number, endMs: number): string {
   return `${s.getUTCDate()} ${sm} – ${e.getUTCDate()} ${em}`;
 }
 
+export interface WeekEntry {
+  weekNum: number;
+  year: number;
+  label: string;
+  periodLabel: string;
+  /** UTC midnight at week start (Friday). */
+  startMs: number;
+  /** UTC midnight at week end (Thursday). */
+  endMs: number;
+}
+
 /** All Fri→Thu weeks whose Thursday falls within `year`, numbered W1..W53. */
-function generateWeeksForYear(year: number): { weekNum: number; year: number; label: string; periodLabel: string }[] {
+function generateWeeksForYear(year: number): WeekEntry[] {
   const anchor = firstFridayAnchor(year);
-  const out: { weekNum: number; year: number; label: string; periodLabel: string }[] = [];
+  const out: WeekEntry[] = [];
   for (let i = 0; i < 55; i++) {
     const startMs = anchor + i * 7 * MS_PER_DAY;
     const endMs = startMs + 6 * MS_PER_DAY;
@@ -469,6 +486,8 @@ function generateWeeksForYear(year: number): { weekNum: number; year: number; la
       year,
       label: `W${weekNum}`,
       periodLabel: fmtFriThu(startMs, endMs),
+      startMs,
+      endMs,
     });
   }
   return out;
@@ -619,23 +638,24 @@ export function getMonthlyReport(monthIdx: number, channel: WeeklyChannel): Week
   return buildReportFromPoints(cur, prev ?? null, channel, prevLabel);
 }
 
-export function getAvailableMonths(): {
+export interface MonthEntry {
   monthIdx: number;
   year: number;
   label: string;
   periodLabel: string;
-}[] {
+  /** UTC midnight 1st of month. */
+  startMs: number;
+  /** UTC midnight last day of month. */
+  endMs: number;
+}
+
+export function getAvailableMonths(): MonthEntry[] {
   // Generate all 12 calendar months of the current year so Operators can upload
   // for any month, not just the ones the trends mock pre-baked.
   return generateMonthsForYear(2026);
 }
 
-function generateMonthsForYear(year: number): {
-  monthIdx: number;
-  year: number;
-  label: string;
-  periodLabel: string;
-}[] {
+function generateMonthsForYear(year: number): MonthEntry[] {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return months.map((m, i) => {
     const lastDay = new Date(Date.UTC(year, i + 1, 0)).getUTCDate();
@@ -644,6 +664,8 @@ function generateMonthsForYear(year: number): {
       year,
       label: `${m} ${year}`,
       periodLabel: `1 – ${lastDay} ${m}`,
+      startMs: Date.UTC(year, i, 1),
+      endMs: Date.UTC(year, i, lastDay),
     };
   });
 }

@@ -1,14 +1,17 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { Download, Banknote, TrendingUp, Percent, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Download, Banknote, TrendingUp, Percent, ChevronLeft, ChevronRight, Database, Cloud } from 'lucide-react';
 import { cn } from '@v2/ui';
 import {
   getWeeklyReport,
   getProductMetrics,
   getAvailableWeeks,
   type WeeklyChannel,
+  type WeeklyReportData,
 } from '@/lib/weekly-report-mock';
+import { snapshotToWeeklyReport } from '@/lib/snapshot-to-report';
+import { loadSnapshotAction } from '@/server/actions/ingest.actions';
 import { WeeklyOverviewTable } from './WeeklyOverviewTable';
 import { WeeklyProductBreakdownTable } from './WeeklyProductBreakdownTable';
 import { KpiCard } from './KpiCard';
@@ -30,7 +33,38 @@ export function WeeklyReportClient() {
   const [channel, setChannel] = useState<WeeklyChannel>('ALL');
   const [krwRate, setKrwRate] = useState(DEFAULT_KRW_RATE);
 
-  const report = useMemo(() => getWeeklyReport(weekNum, channel), [weekNum, channel]);
+  // Try loading a real-data snapshot for the selected week; fall back to mock.
+  const [snapshotReport, setSnapshotReport] = useState<WeeklyReportData | null>(null);
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const selectedWeek = weeks.find((w) => w.weekNum === weekNum);
+  useEffect(() => {
+    if (!selectedWeek) {
+      setSnapshotReport(null);
+      return;
+    }
+    let cancelled = false;
+    setSnapshotLoading(true);
+    loadSnapshotAction({
+      granularity: 'WEEKLY',
+      weekNum: selectedWeek.weekNum,
+      year: selectedWeek.year,
+    }).then((res) => {
+      if (cancelled) return;
+      setSnapshotLoading(false);
+      if (res.success && res.data.metrics) {
+        setSnapshotReport(snapshotToWeeklyReport(res.data.metrics, channel));
+      } else {
+        setSnapshotReport(null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedWeek, channel]);
+
+  const mockReport = useMemo(() => getWeeklyReport(weekNum, channel), [weekNum, channel]);
+  const report = snapshotReport ?? mockReport;
+  const isRealData = snapshotReport != null;
   const products = useMemo(() => getProductMetrics(weekNum, channel), [weekNum, channel]);
 
   // Sliding 5-week window that keeps the selected week in view (centered when possible)
@@ -81,9 +115,40 @@ export function WeeklyReportClient() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-semibold text-neutral-900">Weekly Report</h1>
-        <p className="mt-1 text-sm text-neutral-500">Week-over-week performance</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-neutral-900">Weekly Report</h1>
+          <p className="mt-1 text-sm text-neutral-500">Week-over-week performance</p>
+        </div>
+        <span
+          className={cn(
+            'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider whitespace-nowrap shrink-0',
+            snapshotLoading
+              ? 'bg-neutral-100 text-neutral-500'
+              : isRealData
+                ? 'bg-success-500/10 text-success-500'
+                : 'bg-neutral-100 text-neutral-500',
+          )}
+          title={
+            isRealData
+              ? 'Showing real ingested data from your uploaded files'
+              : 'Showing mock data — ingest files via Upload wizard to see real numbers'
+          }
+        >
+          {snapshotLoading ? (
+            <>
+              <Cloud className="h-3 w-3 animate-pulse" /> Loading…
+            </>
+          ) : isRealData ? (
+            <>
+              <Database className="h-3 w-3" /> Real data
+            </>
+          ) : (
+            <>
+              <Cloud className="h-3 w-3" /> Mock
+            </>
+          )}
+        </span>
       </div>
 
       <div className="inline-flex rounded-md border border-neutral-300 bg-white p-0.5 text-sm self-start">

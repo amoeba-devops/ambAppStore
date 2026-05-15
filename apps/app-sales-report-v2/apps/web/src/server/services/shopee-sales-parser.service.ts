@@ -19,6 +19,8 @@ export interface ShopeeSaleRow {
   // [[per-order-vs-per-row-metrics]]). Must be deduped by orderId before sum.
   shopVoucher: number; // Mã giảm giá của Shop
   shopCombo: number; // Giảm giá từ Combo của Shop
+  shopeeVoucher: number; // Mã giảm giá của Shopee (platform-funded)
+  shopeeCombo: number; // Giảm giá từ combo Shopee (platform-funded)
   fixedFee: number; // Phí cố định
   serviceFee: number; // Phí Dịch Vụ
   paymentFee: number; // Phí thanh toán
@@ -37,6 +39,8 @@ const HEADER_MAP = {
   nmv: 'Tổng số tiền Người mua thanh toán',
   shopVoucher: 'Mã giảm giá của Shop',
   shopCombo: 'Giảm giá từ Combo của Shop',
+  shopeeVoucher: 'Mã giảm giá của Shopee',
+  shopeeCombo: 'Giảm giá từ combo Shopee',
   fixedFee: 'Phí cố định',
   serviceFee: 'Phí Dịch Vụ',
   paymentFee: 'Phí thanh toán',
@@ -134,6 +138,8 @@ export async function parseShopeeSales(buffer: ArrayBuffer): Promise<ShopeeSaleR
       nmv: num(row.getCell(colByField.nmv).value),
       shopVoucher: num(row.getCell(colByField.shopVoucher).value),
       shopCombo: num(row.getCell(colByField.shopCombo).value),
+      shopeeVoucher: num(row.getCell(colByField.shopeeVoucher).value),
+      shopeeCombo: num(row.getCell(colByField.shopeeCombo).value),
       fixedFee: num(row.getCell(colByField.fixedFee).value),
       serviceFee: num(row.getCell(colByField.serviceFee).value),
       paymentFee: num(row.getCell(colByField.paymentFee).value),

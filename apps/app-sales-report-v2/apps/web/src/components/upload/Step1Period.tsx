@@ -23,6 +23,12 @@ export interface SelectedPeriod {
   periodId: number; // weekNum or monthIdx
   label: string;
   rangeLabel: string;
+  /** UTC start-of-period ISO date (YYYY-MM-DD). */
+  periodStartIso: string;
+  /** UTC end-of-period ISO date (YYYY-MM-DD). */
+  periodEndIso: string;
+  /** Calendar year the period belongs to (Thursday's year for weekly). */
+  year: number;
 }
 
 interface Props {
@@ -210,6 +216,9 @@ function WeekPicker({
       periodId: w.weekNum,
       label: w.label,
       rangeLabel: w.periodLabel,
+      periodStartIso: new Date(w.startMs).toISOString().slice(0, 10),
+      periodEndIso: new Date(w.endMs).toISOString().slice(0, 10),
+      year: w.year,
     });
     // Snap carousel center on the picked week so collapsing re-centers there
     const idx = weeks.findIndex((x) => x.weekNum === w.weekNum);
@@ -337,6 +346,9 @@ function MonthPicker({
                 periodId: m.monthIdx,
                 label: displayLabel,
                 rangeLabel: m.periodLabel,
+                periodStartIso: new Date(m.startMs).toISOString().slice(0, 10),
+                periodEndIso: new Date(m.endMs).toISOString().slice(0, 10),
+                year: m.year,
               })
             }
           />

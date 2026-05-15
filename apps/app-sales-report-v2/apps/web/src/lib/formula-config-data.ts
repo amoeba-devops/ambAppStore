@@ -74,9 +74,11 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Total Seller Vouchers — Shopee',
-        description: 'Field Map — select columns from Shopee Sales CSV',
+        description:
+          'Per-order: values duplicate across SKU lines — MAX per order, sum across non-cancelled orders',
         dataSources: ['Shopee Sales CSV'],
-        formula: '{Mã giảm giá của Shop} + {Giảm giá từ Combo của Shop}',
+        formula:
+          'SUM_PER_ORDER( MAX({Mã giảm giá của Shop} + {Giảm giá từ Combo của Shop}) ) WHERE {Trạng Thái Đơn Hàng} != "Đã hủy"',
         versions: 1,
       },
       {
@@ -99,9 +101,9 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Total Brand Ads Fee — Shopee',
-        description: 'Field Map — {Expense} column',
+        description: 'Field Map — sum of {Expense} across all brand ads campaigns',
         dataSources: ['Shopee Brand Ads CSV'],
-        formula: '{Expense}',
+        formula: 'Sum of {Expense}',
         versions: 1,
       },
       {
@@ -134,9 +136,11 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Total Platform Fee — Shopee',
-        description: 'Field Map — three fee columns summed',
+        description:
+          'Per-order: three fee columns duplicate across SKU lines — MAX per order, sum across non-cancelled orders',
         dataSources: ['Shopee Sales CSV'],
-        formula: '{Phí cố định} + {Phí Dịch Vụ} + {Phí thanh toán}',
+        formula:
+          'SUM_PER_ORDER( MAX({Phí cố định} + {Phí Dịch Vụ} + {Phí thanh toán}) ) WHERE {Trạng Thái Đơn Hàng} != "Đã hủy"',
         versions: 1,
       },
       {
@@ -308,9 +312,10 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Prime Cost — Shopee',
-        description: 'Lookup from Prime Cost table',
+        description: 'Lookup from Prime Cost table × units sold',
         dataSources: ['Shopee Sales CSV', 'Prime Cost Table'],
-        formula: 'XLOOKUP({SKU phân loại hàng}, {SKU}, {Prime Cost}, 0)',
+        formula:
+          'XLOOKUP({SKU phân loại hàng}, {SKU}, {Prime Cost}, 0) × {Item Sold — Shopee}',
         versions: 1,
       },
       {
@@ -416,9 +421,9 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Platform Fee Rate — TikTok',
-        description: 'Manual Input — TikTok platform fee rate (% of Net GMV)',
-        dataSources: ['Manual Input'],
-        formula: '{Platform Fee Rate — TikTok}',
+        description: 'Constant — set once in Formula Config',
+        dataSources: ['Constant'],
+        formula: '24',
         unit: '%',
         versions: 1,
       },
@@ -502,8 +507,9 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Net GMV — TikTok',
-        dataSources: ['Calculated'],
-        formula: '{Original Price — TikTok} × {Item Sold — TikTok}',
+        description: 'Raw subtotal before discount minus the seller-funded discount.',
+        dataSources: ['TikTok Sales CSV'],
+        formula: '{SKU Subtotal Before Discount} − {SKU Seller Discount}',
         versions: 1,
       },
       {
@@ -515,10 +521,9 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Seller Discount — TikTok',
-        description: 'Edge case: if result < 0 → use 0',
-        dataSources: ['TikTok Sales CSV', 'Calculated'],
-        formula:
-          'IF({Quantity} = {Sku Quantity of return}, 0, MAX(0, {SKU Seller Discount} − ({GMV — TikTok} − {Net GMV — TikTok})))',
+        description: 'Direct from TikTok Sales CSV column (no clamping)',
+        dataSources: ['TikTok Sales CSV'],
+        formula: '{SKU Seller Discount}',
         versions: 1,
       },
       {
@@ -558,15 +563,16 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Platform Fee — TikTok',
+        description: 'Allocated by Net GMV share',
         dataSources: ['Calculated'],
-        formula: '{Net GMV — TikTok} × {Platform Fee Rate — TikTok}',
+        formula: '({Net GMV — TikTok} / {Total Net GMV — TikTok}) × {Total Platform Fee — TikTok}',
         versions: 1,
       },
       {
         metric: 'Prime Cost — TikTok',
-        description: 'Lookup from Prime Cost table',
+        description: 'Lookup from Prime Cost table × units sold',
         dataSources: ['TikTok Sales CSV', 'Prime Cost Table'],
-        formula: 'XLOOKUP({Seller SKU}, {SKU}, {Prime Cost}, 0)',
+        formula: 'XLOOKUP({Seller SKU}, {SKU}, {Prime Cost}, 0) × {Item Sold — TikTok}',
         versions: 1,
       },
       {
@@ -696,9 +702,10 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       {
         metric: 'Free Gift identification — Shopee',
         description:
-          'SKUs with NMV = 0 are treated as free gifts. Revenue and platform discount excluded from Net GMV. Add Prime Cost of Free Gifts to Total Prime Cost.',
+          'SKUs with GMV ≠ 0 and NMV = 0 (excluding cancelled) are treated as free gifts. Revenue excluded from Net GMV; Prime Cost of Free Gifts added to Total Prime Cost.',
         dataSources: ['Calculated'],
-        formula: '{NMV — Shopee} = [0]',
+        formula:
+          '{GMV — Shopee} ≠ [0] AND {NMV — Shopee} = [0] AND {Trạng Thái Đơn Hàng} ≠ [Đã hủy]',
         versions: 1,
       },
       {

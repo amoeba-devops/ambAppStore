@@ -46,17 +46,28 @@ export function WeeklyOverviewTable({ rows, prevWeekLabel, currentWeekLabel, krw
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {rows.map((row) => {
+              {rows.map((row, i) => {
+                const prevGroup = i > 0 ? rows[i - 1]!.group : undefined;
+                const isGroupStart = row.group != null && row.group !== prevGroup;
                 const rowBg =
                   row.highlight === 'cm'
                     ? 'bg-success-50/60'
                     : row.highlight === 'cmPct'
                       ? 'bg-success-50/30'
-                      : '';
-                const labelClass = row.highlight ? 'font-semibold text-neutral-900' : 'text-neutral-700';
+                      : row.isGroupTotal
+                        ? 'bg-neutral-50'
+                        : '';
+                const labelClass = row.highlight
+                  ? 'font-semibold text-neutral-900'
+                  : row.isGroupTotal
+                    ? 'font-semibold text-neutral-900'
+                    : row.isSubItem
+                      ? 'pl-10 text-neutral-600'
+                      : 'text-neutral-700';
+                const borderClass = isGroupStart && i > 0 ? 'border-t-2 border-t-neutral-200' : '';
                 return (
-                  <tr key={row.metric} className={cn('hover:bg-neutral-50/60', rowBg)}>
-                    <td className={cn('px-5 py-3', labelClass)}>{row.metric}</td>
+                  <tr key={row.metric} className={cn('hover:bg-neutral-50/60', rowBg, borderClass)}>
+                    <td className={cn('py-3', labelClass, row.isSubItem ? 'pl-10' : 'px-5')}>{row.metric}</td>
                     <td className={cn('px-3 py-3 text-right font-mono tabular-nums', labelClass)}>
                       {row.isRatio ? fmtPct(row.vnd) : fmtVnd(row.vnd)}
                     </td>

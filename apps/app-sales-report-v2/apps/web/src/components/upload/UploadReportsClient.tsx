@@ -142,7 +142,13 @@ export function UploadReportsClient() {
         )}
         {step === 4 && <Step4Review selectedPeriod={selectedPeriod} />}
         {step === 5 && <Step5Validate selectedPeriod={selectedPeriod} />}
-        {step === 6 && <Step6Ingest selectedPeriod={selectedPeriod} />}
+        {step === 6 && (
+          <Step6Ingest
+            selectedPeriod={selectedPeriod}
+            files={files}
+            manualInputs={manualInputs}
+          />
+        )}
       </div>
 
       <div className="flex items-center justify-between">

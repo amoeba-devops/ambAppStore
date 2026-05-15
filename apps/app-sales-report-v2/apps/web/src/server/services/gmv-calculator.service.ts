@@ -43,6 +43,8 @@ export interface ShopeeMetricsResult {
   totalSellerVouchers: number;
   /** Sum of MAX(fixedFee + serviceFee + paymentFee) per non-cancelled order. */
   totalPlatformFee: number;
+  /** Sum of MAX(shopeeVoucher + shopeeCombo) per non-cancelled order — platform-funded discount, reference only. */
+  totalPlatformDiscount: number;
   /** Distinct order counts for transparency. */
   orderCounts: { totalDistinct: number; cancelled: number; nonCancelled: number };
   /** Ads spending — only populated when Ads CSV is provided. */
@@ -184,6 +186,13 @@ export const SHOPEE_METRIC_SPECS = {
     requires: ['shopee_affiliate_csv'],
     note: 'Includes pure commission + Shopee 8% processing fee. All statuses (pending/completed/cancelled) included.',
   },
+  TOTAL_PLATFORM_DISCOUNT_SHOPEE: {
+    id: 'TOTAL_PLATFORM_DISCOUNT_SHOPEE',
+    name: 'Total Platform Discount — Shopee',
+    expression:
+      'SUM_PER_ORDER( MAX({Mã giảm giá của Shopee} + {Giảm giá từ combo Shopee}) ) WHERE {Trạng Thái Đơn Hàng} != "Đã hủy"',
+    note: 'Shopee-funded discount (reference-only display). Not deducted from CM since cost is borne by Shopee, not seller.',
+  },
   EXCLUSIONS: {
     id: 'SHOPEE_EXCLUSIONS',
     rules: [
@@ -231,7 +240,16 @@ export function computeShopeeMetrics(
   // Per-order accumulator (MAX dedupe) — see [[per-order-vs-per-row-metrics]]
   const orderMaxes = new Map<
     string,
-    { allCancelled: boolean; shopVoucher: number; shopCombo: number; fixedFee: number; serviceFee: number; paymentFee: number }
+    {
+      allCancelled: boolean;
+      shopVoucher: number;
+      shopCombo: number;
+      fixedFee: number;
+      serviceFee: number;
+      paymentFee: number;
+      shopeeVoucher: number;
+      shopeeCombo: number;
+    }
   >();
 
   for (const row of rows) {
@@ -239,7 +257,16 @@ export function computeShopeeMetrics(
     // don't affect the MAX; what matters is whether the order has ANY non-cancelled row.
     let orderAgg = orderMaxes.get(row.orderId);
     if (!orderAgg) {
-      orderAgg = { allCancelled: true, shopVoucher: 0, shopCombo: 0, fixedFee: 0, serviceFee: 0, paymentFee: 0 };
+      orderAgg = {
+        allCancelled: true,
+        shopVoucher: 0,
+        shopCombo: 0,
+        fixedFee: 0,
+        serviceFee: 0,
+        paymentFee: 0,
+        shopeeVoucher: 0,
+        shopeeCombo: 0,
+      };
       orderMaxes.set(row.orderId, orderAgg);
     }
     if (row.orderStatus !== 'Đã hủy') orderAgg.allCancelled = false;
@@ -248,6 +275,8 @@ export function computeShopeeMetrics(
     orderAgg.fixedFee = Math.max(orderAgg.fixedFee, row.fixedFee);
     orderAgg.serviceFee = Math.max(orderAgg.serviceFee, row.serviceFee);
     orderAgg.paymentFee = Math.max(orderAgg.paymentFee, row.paymentFee);
+    orderAgg.shopeeVoucher = Math.max(orderAgg.shopeeVoucher, row.shopeeVoucher);
+    orderAgg.shopeeCombo = Math.max(orderAgg.shopeeCombo, row.shopeeCombo);
 
     if (row.orderStatus === 'Đã hủy') {
       cancelled++;
@@ -327,6 +356,7 @@ export function computeShopeeMetrics(
   // Per-order metrics: sum MAX values across non-cancelled orders only
   let totalSellerVouchers = 0;
   let totalPlatformFee = 0;
+  let totalPlatformDiscount = 0;
   let cancelledOrders = 0;
   let nonCancelledOrders = 0;
   for (const o of orderMaxes.values()) {
@@ -337,6 +367,7 @@ export function computeShopeeMetrics(
     nonCancelledOrders++;
     totalSellerVouchers += o.shopVoucher + o.shopCombo;
     totalPlatformFee += o.fixedFee + o.serviceFee + o.paymentFee;
+    totalPlatformDiscount += o.shopeeVoucher + o.shopeeCombo;
   }
 
   return {
@@ -349,6 +380,7 @@ export function computeShopeeMetrics(
     primeCostFreeGift,
     totalSellerVouchers,
     totalPlatformFee,
+    totalPlatformDiscount,
     orderCounts: { totalDistinct: orderMaxes.size, cancelled: cancelledOrders, nonCancelled: nonCancelledOrders },
     ads: adsRows && adsRows.length > 0 ? aggregateAds(adsRows) : null,
     brandAds: brandAdsRows ? aggregateBrandAds(brandAdsRows) : null,

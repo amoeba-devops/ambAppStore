@@ -5,13 +5,12 @@ import { AlertTriangle, AlertCircle } from 'lucide-react';
 import { cn } from '@v2/ui';
 import type { SelectedPeriod } from './Step1Period';
 
-// All 5 fields the user must enter
+// All 4 fields the user must enter
 export type ManualFieldKey =
   | 'affiliateBookingFees'
   | 'shopeeLivestreamFees'
   | 'tiktokLivestreamFees'
-  | 'tiktokAdsSpending'
-  | 'tiktokPlatformFeeRate';
+  | 'tiktokAdsSpending';
 
 export type ManualInputs = Record<ManualFieldKey, string>;
 
@@ -20,7 +19,6 @@ export const ALL_MANUAL_FIELDS: ManualFieldKey[] = [
   'shopeeLivestreamFees',
   'tiktokLivestreamFees',
   'tiktokAdsSpending',
-  'tiktokPlatformFeeRate',
 ];
 
 export const FIELD_LABELS: Record<ManualFieldKey, string> = {
@@ -28,7 +26,6 @@ export const FIELD_LABELS: Record<ManualFieldKey, string> = {
   shopeeLivestreamFees: 'Total Livestream Fee — Shopee',
   tiktokLivestreamFees: 'Total Livestream Fee — TikTok',
   tiktokAdsSpending: 'Total Ad Spending — TikTok',
-  tiktokPlatformFeeRate: 'Platform Fee Rate — TikTok (%)',
 };
 
 export function emptyManualInputs(): ManualInputs {
@@ -138,14 +135,6 @@ export function Step3ManualInput({ values, onChange, attempted = false, selected
           value={values.tiktokAdsSpending}
           onChange={(v) => set('tiktokAdsSpending', v)}
           invalid={attempted && !isFilled(values.tiktokAdsSpending)}
-        />
-        <FieldRow
-          label={FIELD_LABELS.tiktokPlatformFeeRate}
-          value={values.tiktokPlatformFeeRate}
-          onChange={(v) => set('tiktokPlatformFeeRate', v)}
-          invalid={attempted && !isFilled(values.tiktokPlatformFeeRate)}
-          hint="Total Platform Fee = Total Net GMV × this rate"
-          unit="%"
         />
       </SectionGroup>
     </div>

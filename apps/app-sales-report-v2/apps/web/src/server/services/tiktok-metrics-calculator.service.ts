@@ -75,20 +75,18 @@ export const TIKTOK_METRIC_SPECS = {
   TOTAL_NET_GMV_TIKTOK: {
     id: 'TOTAL_NET_GMV_TIKTOK',
     name: 'Total Net GMV — TikTok',
-    expression:
-      'SUM(original_price × item_sold) WHERE NOT excluded.  original_price = IF({Q}={Return}, 0, {SKU Unit Original Price}).',
-    note: 'TikTok Net GMV uses ORIGINAL price (not selling — opposite of Shopee).',
+    expression: 'SUM({SKU Subtotal Before Discount} − {SKU Seller Discount}) per kept row',
+    note: 'Per-row: Net GMV = revenue at original price minus the seller-funded discount.',
   },
   TOTAL_NMV_TIKTOK: {
     id: 'TOTAL_NMV_TIKTOK',
     name: 'Total NMV — TikTok',
-    expression: 'SUM(net_gmv_row − seller_discount_row) WHERE NOT excluded',
+    expression: 'SUM(net_gmv_row − seller_discount_row) per kept row',
   },
   TOTAL_SELLER_DISCOUNT_TIKTOK: {
     id: 'TOTAL_SELLER_DISCOUNT_TIKTOK',
     name: 'Total Seller Discount — TikTok',
-    expression:
-      'SUM(IF({Q}={Return}, 0, MAX(0, {SKU Seller Discount} − (gmv − net_gmv)))) per row',
+    expression: 'SUM({SKU Seller Discount}) per kept row (raw, no clamping)',
   },
   TOTAL_PRIME_COST_TIKTOK: {
     id: 'TOTAL_PRIME_COST_TIKTOK',
@@ -150,30 +148,34 @@ export function computeTikTokMetrics(
       continue;
     }
 
-    // TikTok item_sold: full-or-nothing
+    // Full return → exclude
     const isFullReturn = row.quantity === row.quantityReturn;
-    const itemSold = isFullReturn ? 0 : row.quantity;
-    const originalPrice = isFullReturn ? 0 : row.skuOriginalPrice;
+    if (isFullReturn) {
+      returned++;
+      continue;
+    }
+    const itemSold = row.quantity;
+
+    // Free Gift detection — [GIFT] prefix in product name
+    const isGift = row.productName.startsWith('[GIFT]');
+
     const master = primeCosts.get(row.sellerSku);
     const listingPrice = master?.listingPrice ?? 0;
     const primeCost = master?.primeCost ?? 0;
     const gmv = listingPrice * itemSold;
-    const netGmv = originalPrice * itemSold;
-
-    // Free Gift detection — primary [GIFT] prefix, fallback netGmv=0 && originalPrice=0
-    const isGift =
-      row.productName.startsWith('[GIFT]') || (netGmv === 0 && originalPrice === 0 && row.skuOriginalPrice > 0);
-
-    // Returned: netGmv=0 and NOT gift
-    if (netGmv === 0 && !isGift) {
-      returned++;
-      continue;
-    }
 
     if (isGift) {
       freeGift++;
       freeGiftProducts.add(row.productName);
-      primeCostFreeGift += primeCost * (isFullReturn ? 0 : row.quantity);
+      primeCostFreeGift += primeCost * itemSold;
+      continue;
+    }
+
+    // Net GMV per row (new formula: SBD − SSD). If 0 (full seller discount, etc.)
+    // and not a tagged gift, treat as returned/zero-revenue → exclude.
+    const netGmvRow = row.skuSubtotalBeforeDiscount - row.skuSellerDiscount;
+    if (netGmvRow === 0) {
+      returned++;
       continue;
     }
 
@@ -189,10 +191,12 @@ export function computeTikTokMetrics(
       missingByProduct.set(row.sellerSku, prev);
     }
 
-    // seller_discount = IF(Q=return, 0, MAX(0, SKU Seller Discount − (GMV − Net GMV)))
-    const sellerDiscountRow = isFullReturn
-      ? 0
-      : Math.max(0, row.skuSellerDiscount - (gmv - netGmv));
+    // Per Formula Config (new chain):
+    //   Net GMV     = {SKU Subtotal Before Discount} − {SKU Seller Discount}  (already computed above)
+    //   Seller Disc = {SKU Seller Discount}
+    //   NMV         = Net GMV − Seller Discount
+    const sellerDiscountRow = row.skuSellerDiscount;
+    const netGmv = netGmvRow;
     const nmvRow = netGmv - sellerDiscountRow;
     const primeCostLine = primeCost * itemSold;
 

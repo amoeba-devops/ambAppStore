@@ -21,6 +21,7 @@ export interface TikTokSaleRow {
   quantity: number;
   quantityReturn: number;
   skuOriginalPrice: number;
+  skuSubtotalBeforeDiscount: number;
   skuPlatformDiscount: number;
   skuSellerDiscount: number;
   skuSubtotalAfterDiscount: number;
@@ -40,6 +41,7 @@ const HEADER_MAP = {
   quantity: 'Quantity',
   quantityReturn: 'Sku Quantity of return',
   skuOriginalPrice: 'SKU Unit Original Price',
+  skuSubtotalBeforeDiscount: 'SKU Subtotal Before Discount',
   skuPlatformDiscount: 'SKU Platform Discount',
   skuSellerDiscount: 'SKU Seller Discount',
   skuSubtotalAfterDiscount: 'SKU Subtotal After Discount',
@@ -164,6 +166,7 @@ export async function parseTikTokSales(buffer: ArrayBuffer): Promise<TikTokSaleR
       quantity: num(row.get(colByField.quantity)),
       quantityReturn: num(row.get(colByField.quantityReturn)),
       skuOriginalPrice: num(row.get(colByField.skuOriginalPrice)),
+      skuSubtotalBeforeDiscount: num(row.get(colByField.skuSubtotalBeforeDiscount)),
       skuPlatformDiscount: num(row.get(colByField.skuPlatformDiscount)),
       skuSellerDiscount: num(row.get(colByField.skuSellerDiscount)),
       skuSubtotalAfterDiscount: num(row.get(colByField.skuSubtotalAfterDiscount)),
