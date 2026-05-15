@@ -107,7 +107,7 @@ const SEEDS: PeriodSeed[] = [
   {
     periodKey: 'W18',
     label: 'W18',
-    rangeLabel: 'Apr 27 – May 03',
+    rangeLabel: '27 Apr – 3 May',
     granularity: 'week',
     status: 'Draft',
     ingestedAt: '2026-05-08T09:42:11Z',
@@ -118,7 +118,7 @@ const SEEDS: PeriodSeed[] = [
   {
     periodKey: 'W17',
     label: 'W17',
-    rangeLabel: '20 – 26 Apr 2026',
+    rangeLabel: '20 – 26 Apr',
     granularity: 'week',
     status: 'Locked',
     ingestedAt: '2026-05-06T11:08:44Z',
@@ -131,7 +131,7 @@ const SEEDS: PeriodSeed[] = [
   {
     periodKey: 'W16',
     label: 'W16',
-    rangeLabel: '13 – 19 Apr 2026',
+    rangeLabel: '13 – 19 Apr',
     granularity: 'week',
     status: 'Locked',
     ingestedAt: '2026-04-29T15:21:12Z',
@@ -144,7 +144,7 @@ const SEEDS: PeriodSeed[] = [
   {
     periodKey: 'W15',
     label: 'W15',
-    rangeLabel: '6 – 12 Apr 2026',
+    rangeLabel: '6 – 12 Apr',
     granularity: 'week',
     status: 'Locked',
     ingestedAt: '2026-04-22T09:47:33Z',
@@ -170,7 +170,7 @@ const SEEDS: PeriodSeed[] = [
   {
     periodKey: 'W14',
     label: 'W14',
-    rangeLabel: '30 Mar – 5 Apr 2026',
+    rangeLabel: '30 Mar – 5 Apr',
     granularity: 'week',
     status: 'Locked',
     ingestedAt: '2026-04-15T10:12:00Z',
@@ -183,7 +183,7 @@ const SEEDS: PeriodSeed[] = [
   {
     periodKey: 'W13',
     label: 'W13',
-    rangeLabel: '23 – 29 Mar 2026',
+    rangeLabel: '23 – 29 Mar',
     granularity: 'week',
     status: 'Draft',
     ingestedAt: '2026-04-08T13:30:00Z',

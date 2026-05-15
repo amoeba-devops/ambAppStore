@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@v2/ui';
 import { updateUserAction, inviteUserAction, type UserRow } from '@/server/actions/user.actions';
+import { grantMockAccess, isMockUserId } from '@/lib/users-state';
 
 const ROLES = ['OPERATOR', 'MANAGER', 'ADMIN'] as const;
 type Role = (typeof ROLES)[number];
@@ -16,17 +17,20 @@ interface Props {
   onSaved: () => void;
 }
 
+type Status = 'ACTIVE' | 'INACTIVE';
+
 export function UserFormModal({ open, mode, initial, onClose, onSaved }: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('OPERATOR');
+  const [status, setStatus] = useState<Status>('ACTIVE');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Mock AMA members (usrId starts with `mock-ama-`) aren't in the DB yet —
-  // editing them really means "import + assign role" → route to invite.
+  // editing them is purely client-side localStorage state.
   const isMockAmaImport =
-    mode === 'edit' && initial != null && initial.usrId.startsWith('mock-ama-');
+    mode === 'edit' && initial != null && isMockUserId(initial.usrId);
 
   useEffect(() => {
     if (open) {
@@ -34,9 +38,12 @@ export function UserFormModal({ open, mode, initial, onClose, onSaved }: Props) 
       setEmail(initial?.email ?? '');
       const r = (initial?.role as Role | 'UNASSIGNED') ?? 'OPERATOR';
       setRole(r === 'UNASSIGNED' ? 'OPERATOR' : (r as Role));
+      // Default Active when granting AMA member; keep current for edit; Active for new add
+      const seedStatus = initial?.status as Status | undefined;
+      setStatus(isMockAmaImport ? 'ACTIVE' : (seedStatus ?? 'ACTIVE'));
       setError(null);
     }
-  }, [open, initial]);
+  }, [open, initial, isMockAmaImport]);
 
   if (!open) return null;
 
@@ -48,8 +55,17 @@ export function UserFormModal({ open, mode, initial, onClose, onSaved }: Props) 
       return;
     }
     setSubmitting(true);
+
+    // Mock AMA grant — purely local, no DB hit
+    if (isMockAmaImport && initial) {
+      grantMockAccess(initial, { name: name || null, role, status });
+      setSubmitting(false);
+      onSaved();
+      return;
+    }
+
     const res =
-      mode === 'edit' && initial && !isMockAmaImport
+      mode === 'edit' && initial
         ? await updateUserAction({ usrId: initial.usrId, name: name || null, role })
         : await inviteUserAction({ email, name: name || undefined, role });
     setSubmitting(false);
@@ -136,6 +152,62 @@ export function UserFormModal({ open, mode, initial, onClose, onSaved }: Props) 
               <option value="ADMIN">Admin — full control</option>
             </select>
           </label>
+
+          {isMockAmaImport && (
+            <fieldset>
+              <legend className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-neutral-500">
+                Status
+              </legend>
+              <div className="grid grid-cols-2 gap-2">
+                <label
+                  className={cn(
+                    'flex items-start gap-2 rounded-md border px-3 py-2 cursor-pointer transition-colors',
+                    status === 'ACTIVE'
+                      ? 'border-success-500 bg-success-500/5'
+                      : 'border-neutral-300 bg-white hover:bg-neutral-50',
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="status"
+                    value="ACTIVE"
+                    checked={status === 'ACTIVE'}
+                    onChange={() => setStatus('ACTIVE')}
+                    className="mt-0.5 accent-success-500"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-neutral-900">Active</span>
+                    <span className="block text-[11px] text-neutral-500">
+                      Can sign in immediately
+                    </span>
+                  </span>
+                </label>
+                <label
+                  className={cn(
+                    'flex items-start gap-2 rounded-md border px-3 py-2 cursor-pointer transition-colors',
+                    status === 'INACTIVE'
+                      ? 'border-neutral-900 bg-neutral-50'
+                      : 'border-neutral-300 bg-white hover:bg-neutral-50',
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="status"
+                    value="INACTIVE"
+                    checked={status === 'INACTIVE'}
+                    onChange={() => setStatus('INACTIVE')}
+                    className="mt-0.5 accent-neutral-700"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-neutral-900">Inactive</span>
+                    <span className="block text-[11px] text-neutral-500">
+                      Grant role but block sign-in
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+          )}
 
           {error && (
             <div className="rounded-md border border-error-500 bg-error-50 px-3 py-2 text-sm text-error-500">

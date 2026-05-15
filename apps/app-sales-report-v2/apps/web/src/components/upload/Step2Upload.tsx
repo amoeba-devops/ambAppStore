@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Upload, FileText, X, RefreshCw, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
 import { cn } from '@v2/ui';
 import type { SelectedPeriod } from './Step1Period';
+import { TotalGmvPreviewCard } from './TotalGmvPreviewCard';
+import { TikTokMetricsPreviewCard } from './TikTokMetricsPreviewCard';
 
 export type Channel = 'SHOPEE' | 'TIKTOK';
 export type ReportType =
@@ -135,20 +137,30 @@ export function Step2Upload({ selectedPeriod, files, onFilesChange, attempted = 
         count={SHOPEE_REPORTS.filter((r) => files.has(slotKey(r))).length}
         total={SHOPEE_REPORTS.length}
       >
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {SHOPEE_REPORTS.map((slot) => {
-            const k = slotKey(slot);
-            const f = files.get(k) ?? null;
-            return (
-              <FileSlot
-                key={k}
-                slot={slot}
-                file={f}
-                onChange={(file) => onSetFile(k, file)}
-                highlight={attempted && !f}
-              />
-            );
-          })}
+        <div className="space-y-3">
+          <TotalGmvPreviewCard
+            file={files.get(slotKey({ channel: 'SHOPEE', type: 'SALES' })) ?? null}
+            adsFile={files.get(slotKey({ channel: 'SHOPEE', type: 'ADS' })) ?? null}
+            brandAdsFile={files.get(slotKey({ channel: 'SHOPEE', type: 'BRAND_ADS' })) ?? null}
+            offPlatformAdsFile={files.get(slotKey({ channel: 'SHOPEE', type: 'OFF_PLATFORM_ADS' })) ?? null}
+            trafficFile={files.get(slotKey({ channel: 'SHOPEE', type: 'TRAFFIC' })) ?? null}
+            affiliateFile={files.get(slotKey({ channel: 'SHOPEE', type: 'AFFILIATE' })) ?? null}
+          />
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {SHOPEE_REPORTS.map((slot) => {
+              const k = slotKey(slot);
+              const f = files.get(k) ?? null;
+              return (
+                <FileSlot
+                  key={k}
+                  slot={slot}
+                  file={f}
+                  onChange={(file) => onSetFile(k, file)}
+                  highlight={attempted && !f}
+                />
+              );
+            })}
+          </div>
         </div>
       </SectionGroup>
 
@@ -160,20 +172,27 @@ export function Step2Upload({ selectedPeriod, files, onFilesChange, attempted = 
         count={TIKTOK_REPORTS.filter((r) => files.has(slotKey(r))).length}
         total={TIKTOK_REPORTS.length}
       >
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {TIKTOK_REPORTS.map((slot) => {
-            const k = slotKey(slot);
-            const f = files.get(k) ?? null;
-            return (
-              <FileSlot
-                key={k}
-                slot={slot}
-                file={f}
-                onChange={(file) => onSetFile(k, file)}
-                highlight={attempted && !f}
-              />
-            );
-          })}
+        <div className="space-y-3">
+          <TikTokMetricsPreviewCard
+            file={files.get(slotKey({ channel: 'TIKTOK', type: 'SALES' })) ?? null}
+            trafficFile={files.get(slotKey({ channel: 'TIKTOK', type: 'TRAFFIC' })) ?? null}
+            affiliateFile={files.get(slotKey({ channel: 'TIKTOK', type: 'AFFILIATE' })) ?? null}
+          />
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {TIKTOK_REPORTS.map((slot) => {
+              const k = slotKey(slot);
+              const f = files.get(k) ?? null;
+              return (
+                <FileSlot
+                  key={k}
+                  slot={slot}
+                  file={f}
+                  onChange={(file) => onSetFile(k, file)}
+                  highlight={attempted && !f}
+                />
+              );
+            })}
+          </div>
         </div>
       </SectionGroup>
     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Plus } from 'lucide-react';
 import { cn } from '@v2/ui';
 import { fmtDateTime } from '@/lib/format';
@@ -11,6 +11,11 @@ import {
   resetPasswordAction,
   type UserRow,
 } from '@/server/actions/user.actions';
+import {
+  isMockUserId,
+  setMockUserStatus,
+  useEffectiveMockMembers,
+} from '@/lib/users-state';
 import { UserFormModal } from './UserFormModal';
 
 type RoleFilter = 'ALL' | 'OPERATOR' | 'MANAGER' | 'ADMIN';
@@ -24,12 +29,14 @@ const ROLE_PILL: Record<string, string> = {
 };
 
 interface Props {
-  initialRows: UserRow[];
+  initialRealRows: UserRow[];
+  mockSeeds: UserRow[];
   currentUserId: string;
 }
 
-export function UserAccountsCard({ initialRows, currentUserId }: Props) {
-  const [rows, setRows] = useState<UserRow[]>(initialRows);
+export function UserAccountsCard({ initialRealRows, mockSeeds, currentUserId }: Props) {
+  const [realRows, setRealRows] = useState<UserRow[]>(initialRealRows);
+  const effectiveMock = useEffectiveMockMembers(mockSeeds);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
@@ -40,6 +47,22 @@ export function UserAccountsCard({ initialRows, currentUserId }: Props) {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const firstRender = useRef(true);
 
+  // Merge real + mock (real wins by email), then apply local search/role/status filters
+  const rows = useMemo(() => {
+    const realEmails = new Set(realRows.map((r) => r.email ?? '').filter(Boolean));
+    const mockOnly = effectiveMock.filter((m) => !realEmails.has(m.email ?? ''));
+    const all = [...realRows, ...mockOnly];
+    const q = search.trim().toLowerCase();
+    return all.filter((u) => {
+      if (q && !((u.email ?? '').toLowerCase().includes(q) || (u.name ?? '').toLowerCase().includes(q))) {
+        return false;
+      }
+      if (roleFilter !== 'ALL' && u.role !== roleFilter) return false;
+      if (statusFilter !== 'ALL' && u.status !== statusFilter) return false;
+      return true;
+    });
+  }, [realRows, effectiveMock, search, roleFilter, statusFilter]);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     const res = await listUsersAction({ search: search || undefined, role: roleFilter, status: statusFilter });
@@ -48,7 +71,7 @@ export function UserAccountsCard({ initialRows, currentUserId }: Props) {
       setFeedback({ tone: 'error', msg: res.error.message });
       return;
     }
-    setRows(res.data.rows);
+    setRealRows(res.data.rows);
   }, [search, roleFilter, statusFilter]);
 
   useEffect(() => {
@@ -73,6 +96,11 @@ export function UserAccountsCard({ initialRows, currentUserId }: Props) {
 
   const onDeactivate = async (row: UserRow) => {
     if (!confirm(`Deactivate ${row.name ?? row.email}? They won't be able to access this app.`)) return;
+    if (isMockUserId(row.usrId)) {
+      setMockUserStatus(row, 'INACTIVE');
+      setFeedback({ tone: 'success', msg: 'User deactivated' });
+      return;
+    }
     setPendingId(row.usrId);
     const res = await deactivateUserAction({ usrId: row.usrId });
     setPendingId(null);
@@ -93,6 +121,11 @@ export function UserAccountsCard({ initialRows, currentUserId }: Props) {
       setModal({ mode: 'edit', initial: row });
       return;
     }
+    if (isMockUserId(row.usrId)) {
+      setMockUserStatus(row, 'ACTIVE');
+      setFeedback({ tone: 'success', msg: 'User activated' });
+      return;
+    }
     setPendingId(row.usrId);
     const res = await activateUserAction({ usrId: row.usrId });
     setPendingId(null);
@@ -106,6 +139,13 @@ export function UserAccountsCard({ initialRows, currentUserId }: Props) {
 
   const onResetPwd = async (row: UserRow) => {
     if (!confirm(`Send password reset reminder for ${row.email}?\nNote: Passwords are managed by AMA. This logs the request only.`)) return;
+    if (isMockUserId(row.usrId)) {
+      setFeedback({
+        tone: 'success',
+        msg: 'Reset request logged (mock). Direct user to ama.amoeba.site',
+      });
+      return;
+    }
     setPendingId(row.usrId);
     const res = await resetPasswordAction({ usrId: row.usrId });
     setPendingId(null);

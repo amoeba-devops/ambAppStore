@@ -32,6 +32,8 @@ export interface PeriodOverride {
   rejectedAt?: string;
   rejectedBy?: string;
   rejectedReason?: string;
+  /** Replaces the ingest-time Manual Input snapshot when set. */
+  manualInputs?: Record<string, number>;
   extraActivityLog: ActivityEntry[];
 }
 
@@ -77,6 +79,7 @@ export function applyOverride(period: ArchivePeriod): EffectivePeriod {
     status: o.status ?? period.status,
     finalizedAt: o.finalizedAt ?? period.finalizedAt,
     finalizedBy: o.finalizedBy ?? period.finalizedBy,
+    manualInputs: o.manualInputs ?? period.manualInputs,
   };
   if (o.extraActivityLog && o.extraActivityLog.length > 0) {
     merged.activityLog = [...o.extraActivityLog, ...period.activityLog].sort((a, b) =>
@@ -204,6 +207,93 @@ export function resubmitPeriod(periodKey: string): void {
   });
 }
 
+/**
+ * Operator updates Manual Input values for a Draft period. Caller already
+ * checked the period is editable. Logs a single MANUAL_INPUT entry summarising
+ * which fields changed.
+ */
+export function updateManualInputs(
+  periodKey: string,
+  baseInputs: Record<string, number>,
+  nextInputs: Record<string, number>,
+): { changedFields: string[] } {
+  const map = readMap();
+  const now = new Date().toISOString();
+  const existing = map[periodKey] ?? { extraActivityLog: [] };
+
+  const changedFields = Object.keys(nextInputs).filter(
+    (k) => nextInputs[k] !== baseInputs[k],
+  );
+
+  const desc =
+    changedFields.length === 0
+      ? 'Manual Input saved (no changes)'
+      : changedFields.length <= 3
+        ? `Updated ${changedFields.length} manual input field${changedFields.length !== 1 ? 's' : ''}: ${changedFields.join(', ')}`
+        : `Updated ${changedFields.length} manual input fields`;
+
+  const newEntries: ActivityEntry[] = [
+    {
+      timestamp: now,
+      category: 'MANUAL_INPUT',
+      description: desc,
+      user: 'truc@socialbean.vn',
+    },
+  ];
+
+  map[periodKey] = {
+    ...existing,
+    manualInputs: nextInputs,
+    extraActivityLog: [...existing.extraActivityLog, ...newEntries],
+  };
+  writeMap(map);
+
+  if (changedFields.length > 0) {
+    appendActionLog({
+      username: 'truc@socialbean.vn',
+      userRole: 'OPERATOR',
+      category: 'MANUAL_INPUT',
+      verb: 'UPDATE',
+      targetType: 'period',
+      targetLabel: periodKey,
+      summary: desc,
+      metadata: { changedFields, fieldCount: changedFields.length },
+    });
+  }
+
+  return { changedFields };
+}
+
+/** Manager manually locks a Finalized period — closes it for good. */
+export function lockPeriod(periodKey: string, reason: string): void {
+  const map = readMap();
+  const now = new Date().toISOString();
+  const existing = map[periodKey] ?? { extraActivityLog: [] };
+  const newEntries: ActivityEntry[] = [
+    {
+      timestamp: now,
+      category: 'FINALIZE',
+      description: reason ? `Manually locked by Manager: "${reason}"` : 'Manually locked by Manager',
+      user: MANAGER_USER,
+    },
+  ];
+  map[periodKey] = {
+    ...existing,
+    status: 'Locked',
+    extraActivityLog: [...existing.extraActivityLog, ...newEntries],
+  };
+  writeMap(map);
+  appendActionLog({
+    username: MANAGER_USER,
+    userRole: 'MANAGER',
+    category: 'APPROVAL',
+    verb: 'LOCK',
+    targetType: 'period',
+    targetLabel: periodKey,
+    summary: reason ? `Manually locked — "${reason}"` : 'Manually locked',
+  });
+}
+
 export function unfinalizePeriod(periodKey: string, reason: string): void {
   const map = readMap();
   const now = new Date().toISOString();
@@ -286,6 +376,24 @@ export function useEffectivePeriod(base: ArchivePeriod): EffectivePeriod {
     () => (mounted ? applyOverride(base) : (base as EffectivePeriod)),
     [base, tick, mounted],
   );
+}
+
+/**
+ * Map from `periodLabel` (e.g. "W13", "Apr 2026") → effective PeriodStatus.
+ * Used by Upload Step 1 to flag/disable Locked or Finalized periods.
+ */
+export function useArchiveStatusByLabel(): Map<string, PeriodStatus> {
+  const { tick, mounted } = useMountedTick();
+  return useMemo(() => {
+    const m = new Map<string, PeriodStatus>();
+    if (!mounted) return m;
+    for (const base of getAllArchivePeriods()) {
+      const eff = applyOverride(base);
+      m.set(eff.label, eff.status);
+    }
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick, mounted]);
 }
 
 /** Count of periods currently in Draft status (pending Manager approval). */

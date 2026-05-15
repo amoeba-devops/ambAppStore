@@ -10,11 +10,7 @@ export default async function UserManagementPage() {
 
   const res = await listUsersAction({});
   const realRows = res.success ? res.data.rows : [];
-  // Merge with mock AMA members — real users (those already registered in this
-  // app) override any mock seed sharing the same email.
-  const realEmails = new Set(realRows.map((r) => r.email ?? '').filter(Boolean));
-  const mockRows = getAmaMockMembers().filter((m) => !realEmails.has(m.email ?? ''));
-  const initialRows = [...realRows, ...mockRows];
+  const mockSeeds = getAmaMockMembers();
 
   return (
     <div className="space-y-5">
@@ -25,7 +21,11 @@ export default async function UserManagementPage() {
         </p>
       </div>
 
-      <UserAccountsCard initialRows={initialRows} currentUserId={user.userId} />
+      <UserAccountsCard
+        initialRealRows={realRows}
+        mockSeeds={mockSeeds}
+        currentUserId={user.userId}
+      />
 
       <RolePermissionMatrix />
     </div>

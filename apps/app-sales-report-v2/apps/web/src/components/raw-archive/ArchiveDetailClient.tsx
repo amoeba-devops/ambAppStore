@@ -19,10 +19,14 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { cn } from '@v2/ui';
+import { Pencil, Lock as LockIcon } from 'lucide-react';
 import { fmtDateTime, fmtVND } from '@/lib/format';
 import type { ArchivePeriod, ArchiveFile, PeriodStatus } from '@/lib/raw-archive-mock';
 import { useEffectivePeriod } from '@/lib/raw-archive-state';
+import { downloadArchiveFile, downloadPeriodBulk } from '@/lib/raw-archive-download';
 import { ApprovalCard } from './ApprovalCard';
+import { FilePreviewModal } from './FilePreviewModal';
+import { ManualInputEditModal } from './ManualInputEditModal';
 
 interface Props {
   period: ArchivePeriod;
@@ -30,6 +34,8 @@ interface Props {
 
 export function ArchiveDetailClient({ period: basePeriod }: Props) {
   const period = useEffectivePeriod(basePeriod);
+  const [manualEditOpen, setManualEditOpen] = useState(false);
+  const canEditManual = period.status === 'Draft';
   const [openFile, setOpenFile] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<ArchiveFile | null>(null);
 
@@ -84,18 +90,28 @@ export function ArchiveDetailClient({ period: basePeriod }: Props) {
           </div>
 
           {/* Files archived */}
-          <Section
-            icon={<Files className="h-4 w-4 text-neutral-500" />}
-            title="Files archived"
-            sub={
-              <>
-                stored at{' '}
-                <code className="font-mono text-neutral-700">
-                  /raw/{new Date(period.ingestedAt).getUTCFullYear()}/{period.periodKey}/
-                </code>
-              </>
-            }
-          >
+          <div className="rounded-lg border border-neutral-200 bg-white overflow-hidden">
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-neutral-100">
+              <div className="flex items-center gap-2">
+                <Files className="h-4 w-4 text-neutral-500" />
+                <h3 className="text-sm font-semibold text-neutral-900">Files archived</h3>
+                <span className="text-[11px] text-neutral-500">
+                  stored at{' '}
+                  <code className="font-mono text-neutral-700">
+                    /raw/{new Date(period.ingestedAt).getUTCFullYear()}/{period.periodKey}/
+                  </code>
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => downloadPeriodBulk(period)}
+                title="Bundle all files for this period into a single download"
+                className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+              >
+                <Download className="h-3 w-3" />
+                Bulk download · {period.files.length} files
+              </button>
+            </div>
             <ul className="divide-y divide-neutral-100">
               {period.files.map((f) => (
                 <FileRow
@@ -107,17 +123,50 @@ export function ArchiveDetailClient({ period: basePeriod }: Props) {
                 />
               ))}
             </ul>
-          </Section>
+          </div>
 
-          {/* Manual Input snapshot */}
-          <Section
-            icon={<Calculator className="h-4 w-4 text-neutral-500" />}
-            title="Manual Input snapshot"
-            sub="frozen at ingest — cannot be edited"
-          >
+          {/* Manual Input */}
+          <div className="rounded-lg border border-neutral-200 bg-white overflow-hidden">
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-neutral-100">
+              <div className="flex items-center gap-2">
+                <Calculator className="h-4 w-4 text-neutral-500" />
+                <h3 className="text-sm font-semibold text-neutral-900">Manual Input</h3>
+                {canEditManual ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-success-500/10 px-2 py-0.5 text-[10px] font-medium text-success-500">
+                    Editable
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-500">
+                    <LockIcon className="h-2.5 w-2.5" />
+                    Locked
+                  </span>
+                )}
+              </div>
+              {canEditManual ? (
+                <button
+                  type="button"
+                  onClick={() => setManualEditOpen(true)}
+                  className="inline-flex items-center gap-1 rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+                >
+                  <Pencil className="h-3 w-3" />
+                  Edit
+                </button>
+              ) : (
+                <span className="text-[11px] text-neutral-500">
+                  {period.status === 'Finalized'
+                    ? 'Unfinalize to edit'
+                    : period.status === 'Locked'
+                      ? 'Admin override required'
+                      : ''}
+                </span>
+              )}
+            </div>
             <div className="px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
               {Object.entries(period.manualInputs).map(([field, value]) => (
-                <div key={field} className="flex items-baseline justify-between gap-3 py-1 border-b border-neutral-50 last:border-0">
+                <div
+                  key={field}
+                  className="flex items-baseline justify-between gap-3 py-1 border-b border-neutral-50 last:border-0"
+                >
                   <span className="text-neutral-600 truncate">{field}</span>
                   <span className="font-mono font-semibold text-neutral-900 tabular-nums whitespace-nowrap">
                     {fmtVND(value)}
@@ -125,7 +174,7 @@ export function ArchiveDetailClient({ period: basePeriod }: Props) {
                 </div>
               ))}
             </div>
-          </Section>
+          </div>
 
           {/* Formula Config snapshot */}
           <Section
@@ -230,7 +279,7 @@ export function ArchiveDetailClient({ period: basePeriod }: Props) {
             </ul>
             {period.status === 'Finalized' && (
               <p className="mt-2 text-[10px] text-neutral-400">
-                Auto-locks 14 days after period end. Use Approval card to unfinalize.
+                Use the Approval card above to lock this period manually, or unfinalize to reopen.
               </p>
             )}
           </div>
@@ -255,7 +304,15 @@ export function ArchiveDetailClient({ period: basePeriod }: Props) {
       </div>
 
       {/* File preview modal */}
-      {previewFile && <PreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />}
+      {previewFile && <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />}
+      {manualEditOpen && (
+        <ManualInputEditModal
+          periodKey={period.periodKey}
+          periodLabel={period.label}
+          initial={period.manualInputs}
+          onClose={() => setManualEditOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -360,6 +417,7 @@ function FileRow({
           </button>
           <button
             type="button"
+            onClick={() => downloadArchiveFile(file)}
             title="Download original file"
             className="inline-flex items-center gap-1 rounded-md bg-info-500 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-info-500/90"
           >
@@ -391,77 +449,6 @@ function FileRow({
         </div>
       )}
     </li>
-  );
-}
-
-function PreviewModal({ file, onClose }: { file: ArchiveFile; onClose: () => void }) {
-  // Mock 5 preview rows
-  const headers = ['Order ID', 'SKU', 'Product Name', 'Quantity', 'GMV'];
-  const rows = Array.from({ length: 5 }, (_, i) => [
-    `${241204000 + i + 1}`,
-    `SKU-${100 + i}`,
-    `Sample Product ${i + 1}`,
-    `${1 + i}`,
-    `${(199_000 * (i + 1)).toLocaleString('en-US')}`,
-  ]);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 backdrop-blur-sm px-4 py-6 text-left"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-3xl max-h-full rounded-xl bg-white shadow-2xl overflow-hidden flex flex-col text-left"
-      >
-        <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-3">
-          <div>
-            <h3 className="text-sm font-semibold text-neutral-900 font-mono leading-tight">
-              {file.filename}
-            </h3>
-            <p className="text-[10px] uppercase tracking-wider text-neutral-500 mt-0.5">
-              File preview · first 5 rows
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex items-center gap-1 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
-          >
-            Close
-          </button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="bg-neutral-50 text-[10px] uppercase tracking-wider text-neutral-500">
-              <tr>
-                {headers.map((h) => (
-                  <th key={h} className="px-3 py-2 text-left font-semibold whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {rows.map((r, i) => (
-                <tr key={i}>
-                  {r.map((c, j) => (
-                    <td key={j} className="px-3 py-2 font-mono text-xs text-neutral-700 whitespace-nowrap">
-                      {c}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="border-t border-neutral-100 bg-neutral-50/40 px-5 py-2.5 text-[11px] text-neutral-500">
-          Showing 5 of {file.rows.toLocaleString('en-US')} rows. Download to inspect the full file.
-        </div>
-      </div>
-    </div>
   );
 }
 

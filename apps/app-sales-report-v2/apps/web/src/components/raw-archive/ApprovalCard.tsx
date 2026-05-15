@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle2, Clock, RotateCcw, XCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Clock, RotateCcw, XCircle, RefreshCw, Lock } from 'lucide-react';
 import { cn } from '@v2/ui';
 import {
   approvePeriod,
   rejectPeriod,
   resubmitPeriod,
   unfinalizePeriod,
+  lockPeriod,
   type EffectivePeriod,
 } from '@/lib/raw-archive-state';
 import { fmtDateTime } from '@/lib/format';
@@ -179,8 +180,13 @@ function RejectedCard({ period }: Props) {
 // ----------------------------------------------------------------------------
 
 function FinalizedActionsCard({ period }: Props) {
-  const [showUnfinalize, setShowUnfinalize] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'unfinalize' | 'lock' | null>(null);
   const [reason, setReason] = useState('');
+
+  const resetForm = () => {
+    setPendingAction(null);
+    setReason('');
+  };
 
   return (
     <div className="rounded-lg border border-info-500/30 bg-info-50/40 px-4 py-3 space-y-2">
@@ -199,19 +205,29 @@ function FinalizedActionsCard({ period }: Props) {
             </p>
           </div>
         </div>
-        {!showUnfinalize && (
-          <button
-            type="button"
-            onClick={() => setShowUnfinalize(true)}
-            className="inline-flex items-center gap-1 rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 shrink-0"
-          >
-            <RotateCcw className="h-3 w-3" />
-            Unfinalize
-          </button>
+        {pendingAction === null && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setPendingAction('unfinalize')}
+              className="inline-flex items-center gap-1 rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Unfinalize
+            </button>
+            <button
+              type="button"
+              onClick={() => setPendingAction('lock')}
+              className="inline-flex items-center gap-1 rounded-md border border-neutral-300 bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-neutral-800"
+            >
+              <Lock className="h-3 w-3" />
+              Lock period
+            </button>
+          </div>
         )}
       </div>
 
-      {showUnfinalize && (
+      {pendingAction === 'unfinalize' && (
         <div className="mt-2 rounded-md border border-warning-500/30 bg-white px-3 py-2 space-y-2">
           <div className="text-[11px] text-warning-500 leading-relaxed">
             <span className="font-semibold">Reason required.</span> Unfinalizing reopens this
@@ -227,10 +243,7 @@ function FinalizedActionsCard({ period }: Props) {
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
-              onClick={() => {
-                setShowUnfinalize(false);
-                setReason('');
-              }}
+              onClick={resetForm}
               className="rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
             >
               Cancel
@@ -240,8 +253,7 @@ function FinalizedActionsCard({ period }: Props) {
               disabled={reason.trim().length === 0}
               onClick={() => {
                 unfinalizePeriod(period.periodKey, reason.trim());
-                setShowUnfinalize(false);
-                setReason('');
+                resetForm();
               }}
               className={cn(
                 'rounded-md px-3 py-1 text-xs font-semibold text-white transition-colors',
@@ -251,6 +263,43 @@ function FinalizedActionsCard({ period }: Props) {
               )}
             >
               Unfinalize
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pendingAction === 'lock' && (
+        <div className="mt-2 rounded-md border border-neutral-300 bg-white px-3 py-2 space-y-2">
+          <div className="text-[11px] text-neutral-700 leading-relaxed">
+            <span className="font-semibold">Locking is permanent for daily operations.</span> No
+            more re-uploads or edits on this period. Only Admin can unlock later (with super
+            audit log). Reason optional.
+          </div>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="e.g. Period closed for accounting"
+            rows={2}
+            className="w-full resize-none rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-500"
+          />
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                lockPeriod(period.periodKey, reason.trim());
+                resetForm();
+              }}
+              className="inline-flex items-center gap-1 rounded-md bg-neutral-900 px-3 py-1 text-xs font-semibold text-white hover:bg-neutral-800"
+            >
+              <Lock className="h-3 w-3" />
+              Lock period
             </button>
           </div>
         </div>

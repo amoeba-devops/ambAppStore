@@ -74,10 +74,9 @@ export const navSections: NavSection[] = [
     ],
   },
   {
-    title: 'Activity Log',
     items: [
       {
-        label: 'Action History',
+        label: 'Activity Log',
         href: '/activity-log/action',
         icon: ScrollText,
         roles: ['MANAGER', 'ADMIN'],

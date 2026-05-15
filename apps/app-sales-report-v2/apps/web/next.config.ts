@@ -5,6 +5,12 @@ const amaOrigin = process.env.NEXT_PUBLIC_AMA_ORIGIN ?? 'https://*.amoeba.site';
 const nextConfig: NextConfig = {
   transpilePackages: ['@v2/db', '@v2/shared', '@v2/ui'],
   outputFileTracingRoot: __dirname,
+  experimental: {
+    serverActions: {
+      // Shopee Sales xlsx exports can be ~5–10 MB at scale.
+      bodySizeLimit: '15mb',
+    },
+  },
   webpack: (config) => {
     config.resolve.extensionAlias = {
       '.js': ['.ts', '.tsx', '.js'],

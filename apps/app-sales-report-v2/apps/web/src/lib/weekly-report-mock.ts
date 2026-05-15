@@ -426,12 +426,52 @@ function emptyReport(): WeeklyReportData {
 }
 
 export function getAvailableWeeks(): { weekNum: number; year: number; label: string; periodLabel: string }[] {
-  return WEEKLY_DATA.map((w) => ({
-    weekNum: w.weekNum,
-    year: w.year,
-    label: `W${w.weekNum}`,
-    periodLabel: w.periodLabel,
-  }));
+  // Generate every weekly period in the current year so Operators can upload
+  // for any week — not just the ones the trends mock pre-baked.
+  return generateWeeksForYear(2026);
+}
+
+const MS_PER_DAY = 86_400_000;
+
+/** Friday on/before Jan 1 of `year` — anchor for W1. */
+function firstFridayAnchor(year: number): number {
+  const jan1 = Date.UTC(year, 0, 1);
+  const dow = new Date(jan1).getUTCDay(); // 0=Sun, …, 5=Fri, 6=Sat
+  const offsetDays = (dow - 5 + 7) % 7; // days back to Friday
+  return jan1 - offsetDays * MS_PER_DAY;
+}
+
+function fmtFriThu(startMs: number, endMs: number): string {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const s = new Date(startMs);
+  const e = new Date(endMs);
+  const sm = months[s.getUTCMonth()];
+  const em = months[e.getUTCMonth()];
+  if (sm === em) {
+    return `${s.getUTCDate()} – ${e.getUTCDate()} ${em}`;
+  }
+  return `${s.getUTCDate()} ${sm} – ${e.getUTCDate()} ${em}`;
+}
+
+/** All Fri→Thu weeks whose Thursday falls within `year`, numbered W1..W53. */
+function generateWeeksForYear(year: number): { weekNum: number; year: number; label: string; periodLabel: string }[] {
+  const anchor = firstFridayAnchor(year);
+  const out: { weekNum: number; year: number; label: string; periodLabel: string }[] = [];
+  for (let i = 0; i < 55; i++) {
+    const startMs = anchor + i * 7 * MS_PER_DAY;
+    const endMs = startMs + 6 * MS_PER_DAY;
+    const end = new Date(endMs);
+    if (end.getUTCFullYear() < year) continue;
+    if (end.getUTCFullYear() > year) break;
+    const weekNum = i + 1;
+    out.push({
+      weekNum,
+      year,
+      label: `W${weekNum}`,
+      periodLabel: fmtFriThu(startMs, endMs),
+    });
+  }
+  return out;
 }
 
 // ============================================================================
@@ -585,12 +625,27 @@ export function getAvailableMonths(): {
   label: string;
   periodLabel: string;
 }[] {
-  return MONTHLY_REPORT_DATA.map((m) => ({
-    monthIdx: m.weekNum,
-    year: m.year,
-    label: m.displayLabel ?? `M${m.weekNum}`,
-    periodLabel: m.periodLabel,
-  }));
+  // Generate all 12 calendar months of the current year so Operators can upload
+  // for any month, not just the ones the trends mock pre-baked.
+  return generateMonthsForYear(2026);
+}
+
+function generateMonthsForYear(year: number): {
+  monthIdx: number;
+  year: number;
+  label: string;
+  periodLabel: string;
+}[] {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return months.map((m, i) => {
+    const lastDay = new Date(Date.UTC(year, i + 1, 0)).getUTCDate();
+    return {
+      monthIdx: i + 1, // 1..12 for the year
+      year,
+      label: `${m} ${year}`,
+      periodLabel: `1 – ${lastDay} ${m}`,
+    };
+  });
 }
 
 export function getProductMetricsForMonth(_monthIdx: number, channel: WeeklyChannel): ProductMetric[] {

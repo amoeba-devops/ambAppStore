@@ -7,7 +7,7 @@ const TITLE_MAP: Record<string, string> = {
   '/reports/weekly': 'Weekly Report',
   '/reports/monthly': 'Monthly Report',
   '/reports/trending': 'Trending Report',
-  '/activity-log/action': 'Action History',
+  '/activity-log/action': 'Activity Log',
   '/settings/users': 'User Management',
   '/settings/formula-config': 'Formula Config',
 };
