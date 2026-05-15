@@ -19,6 +19,7 @@ import {
   Switch,
 } from '@car-v2/ui';
 import { PageHeader } from '@/components/layout/page-header';
+import { LocaleSelect } from './_components/locale-select';
 
 const APPROVAL_RULES: Array<{ type: string; needsApproval: boolean; threshold: string }> = [
   { type: 'Fuel',       needsApproval: false, threshold: '—' },
@@ -64,14 +65,7 @@ export default async function SettingsPage() {
                 </div>
                 <div>
                   <Label className="mb-1.5 block">Default language</Label>
-                  <Select defaultValue="vi">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="vi">Tiếng Việt</SelectItem>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="ko">한국어</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <LocaleSelect />
                 </div>
                 <div>
                   <Label className="mb-1.5 block">Currency</Label>

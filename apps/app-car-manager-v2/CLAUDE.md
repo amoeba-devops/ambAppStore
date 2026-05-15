@@ -194,7 +194,7 @@ Cấu hình theo loại + ngưỡng auto-approve. Lưu trong `car_approval_rules
 
 1. **JWT Passthrough**: AMA issue JWT chứa `entId`, `userId`, `role` → app verify bằng shared `JWT_SECRET` (env). Middleware Next.js đọc `?ama_token=` lần đầu → set HttpOnly cookie → verify mọi request sau.
 2. **Đăng ký**: admin AMA tạo record `amb_entity_custom_apps` với `eca_code=car-manager-v2`, `eca_url=<deploy_url>`, `eca_auth_mode=jwt`, `eca_open_mode=iframe`.
-3. **iframe sandbox**: app phải work trong iframe. CSP `frame-ancestors` cho phép domain AMA (set trong `next.config.ts`).
+3. **iframe sandbox**: app phải work trong iframe. CSP `frame-ancestors` cho phép domain AMA (set trong `next.config.mjs`).
 4. **Locale**: nhận `?locale=ko|en|vi` từ AMA → init i18n (default `vi`).
 
 ## 6. Roadmap (phased delivery)

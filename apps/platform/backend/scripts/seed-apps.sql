@@ -43,5 +43,15 @@ VALUES
      JSON_OBJECT('icon', 'brain', 'label', 'AI demand forecasting'),
      JSON_OBJECT('icon', 'alert-triangle', 'label', 'Low stock alerts'),
      JSON_OBJECT('icon', 'truck', 'label', 'Automatic purchase order suggestions')
+   )),
+  (UUID(), 'app-car-manager-v2', '법인차량관리 v2', 'Company Car Management v2',
+   'Next.js fullstack — Trip dispatch state machine, 8 expense categories, maintenance alerts. Multi-tenant, JWT passthrough.',
+   'ACTIVE', 3001, 3001, 5,
+   JSON_ARRAY(
+     JSON_OBJECT('icon', 'route', 'label', 'Trip dispatch with state machine workflow'),
+     JSON_OBJECT('icon', 'receipt', 'label', '8 expense categories with approval rules'),
+     JSON_OBJECT('icon', 'bell', 'label', 'Maintenance & inspection alerts'),
+     JSON_OBJECT('icon', 'bar-chart-3', 'label', 'Cost & utilization reports'),
+     JSON_OBJECT('icon', 'shield-check', 'label', 'Multi-tenant data isolation (ent_id)')
    ))
 ON DUPLICATE KEY UPDATE app_name = VALUES(app_name);

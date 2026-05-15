@@ -1,16 +1,17 @@
-import type { NextConfig } from 'next';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 const amaOrigin = process.env.NEXT_PUBLIC_AMA_ORIGIN ?? 'https://*.amoeba.site';
 
-// When embedded under ambAppStore (e.g. `/app-car-manager-v2/*` routed via nginx
-// or the platform Vite proxy), set BASE_PATH so Next emits matching asset URLs.
-// Leave empty for standalone dev (http://localhost:3001/).
 const basePath = process.env.BASE_PATH || undefined;
 
-const nextConfig: NextConfig = {
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   basePath,
   transpilePackages: ['@car-v2/db', '@car-v2/shared', '@car-v2/ui'],
   outputFileTracingRoot: __dirname,

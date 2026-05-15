@@ -11,17 +11,21 @@ services:
     plan: starter
     # No healthCheckPath — Render considers deploy successful as soon as the
     # process binds to $PORT. Verify manually after deploy with:
-    #   curl https://car-manager-staging.onrender.com/app-car-manager-v2/api/v1/health
+    #   curl https://car-manager-staging.onrender.com/api/v1/health
+    # (no /app-car-manager-v2 prefix under D2 — Render serves at root)
     envVars:
-      # BASE_PATH is BUILD-TIME (Next.js bakes it into the JS bundle). Set
-      # it here so it's present during `npm run build` — must match the
-      # nginx route prefix on staging.
-      - key: BASE_PATH
-        value: /app-car-manager-v2
-      # Public origin override for getRequestOrigin() — points cookie domain
-      # and redirect URLs at the user-facing host instead of *.onrender.com.
+      # D2 topology: Render serves at ROOT (no basePath). Staging Docker
+      # serves under /app-car-manager-v2 (its own .env sets BASE_PATH).
+      # → Render URL is clean: https://car-manager-staging.onrender.com/...
+      #   instead of the redundant /app-car-manager-v2/ prefix.
+      # → BASE_PATH intentionally OMITTED here (empty string also works,
+      #   but omitting is cleaner — Next.js falls back to no basePath).
+      #
+      # Public origin override. For Render direct access, cookie domain +
+      # redirect URLs must point to the onrender hostname (NOT stg-apps),
+      # otherwise dev-login mints cookie on Render but redirects off-domain.
       - key: APP_URL
-        value: https://stg-apps.amoeba.site
+        value: https://car-manager-staging.onrender.com
       - key: NODE_ENV
         value: production
       - key: JWT_SECRET
