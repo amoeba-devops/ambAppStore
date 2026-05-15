@@ -1,0 +1,483 @@
+{
+  "id": "2d6a57e4-ac61-434e-a20f-bede37f8749d",
+  "prevId": "2d15faf3-3599-4f3a-a6d1-695cdefdf5c3",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.sal_prime_costs": {
+      "name": "sal_prime_costs",
+      "schema": "",
+      "columns": {
+        "pcs_id": {
+          "name": "pcs_id",
+          "type": "char(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ent_id": {
+          "name": "ent_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pcs_product_id": {
+          "name": "pcs_product_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pcs_variation_code": {
+          "name": "pcs_variation_code",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pcs_product_name_vi": {
+          "name": "pcs_product_name_vi",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pcs_product_name_en": {
+          "name": "pcs_product_name_en",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pcs_sku_code": {
+          "name": "pcs_sku_code",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pcs_prime_cost_vnd": {
+          "name": "pcs_prime_cost_vnd",
+          "type": "numeric(18, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pcs_selling_price_vnd": {
+          "name": "pcs_selling_price_vnd",
+          "type": "numeric(18, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pcs_listing_price_vnd": {
+          "name": "pcs_listing_price_vnd",
+          "type": "numeric(18, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pcs_created_by": {
+          "name": "pcs_created_by",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pcs_created_at": {
+          "name": "pcs_created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "pcs_updated_at": {
+          "name": "pcs_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pcs_deleted_at": {
+          "name": "pcs_deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "uniq_sal_pcs_ent_sku": {
+          "name": "uniq_sal_pcs_ent_sku",
+          "columns": [
+            {
+              "expression": "ent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "pcs_sku_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "pcs_deleted_at IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_sal_pcs_ent_name": {
+          "name": "idx_sal_pcs_ent_name",
+          "columns": [
+            {
+              "expression": "ent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "pcs_product_name_vi",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sal_upload_sessions": {
+      "name": "sal_upload_sessions",
+      "schema": "",
+      "columns": {
+        "ups_id": {
+          "name": "ups_id",
+          "type": "char(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ent_id": {
+          "name": "ent_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usr_id": {
+          "name": "usr_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ups_period_start": {
+          "name": "ups_period_start",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ups_period_end": {
+          "name": "ups_period_end",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ups_granularity": {
+          "name": "ups_granularity",
+          "type": "sal_upload_granularity",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ups_status": {
+          "name": "ups_status",
+          "type": "sal_upload_session_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "ups_worker_id": {
+          "name": "ups_worker_id",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ups_retry_count": {
+          "name": "ups_retry_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "ups_max_retries": {
+          "name": "ups_max_retries",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 3
+        },
+        "ups_next_retry_at": {
+          "name": "ups_next_retry_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ups_error_log": {
+          "name": "ups_error_log",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ups_started_at": {
+          "name": "ups_started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ups_finalized_at": {
+          "name": "ups_finalized_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ups_finalize_count": {
+          "name": "ups_finalize_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "ups_last_unfinalized_by": {
+          "name": "ups_last_unfinalized_by",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ups_last_unfinalized_at": {
+          "name": "ups_last_unfinalized_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ups_created_at": {
+          "name": "ups_created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "ups_updated_at": {
+          "name": "ups_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "uniq_sal_ups_ent_period": {
+          "name": "uniq_sal_ups_ent_period",
+          "columns": [
+            {
+              "expression": "ent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ups_period_start",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ups_period_end",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ups_granularity",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_sal_ups_status_created": {
+          "name": "idx_sal_ups_status_created",
+          "columns": [
+            {
+              "expression": "ups_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ups_created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sal_users": {
+      "name": "sal_users",
+      "schema": "",
+      "columns": {
+        "usr_id": {
+          "name": "usr_id",
+          "type": "char(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ent_id": {
+          "name": "ent_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usr_ama_user_id": {
+          "name": "usr_ama_user_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usr_email": {
+          "name": "usr_email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_name": {
+          "name": "usr_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_local_role": {
+          "name": "usr_local_role",
+          "type": "sal_user_local_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'OPERATOR'"
+        },
+        "usr_ama_role_snapshot": {
+          "name": "usr_ama_role_snapshot",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_last_login_at": {
+          "name": "usr_last_login_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_created_at": {
+          "name": "usr_created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "usr_updated_at": {
+          "name": "usr_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_deleted_at": {
+          "name": "usr_deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "uniq_sal_users_ent_ama": {
+          "name": "uniq_sal_users_ent_ama",
+          "columns": [
+            {
+              "expression": "ent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "usr_ama_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.sal_upload_granularity": {
+      "name": "sal_upload_granularity",
+      "schema": "public",
+      "values": [
+        "WEEKLY",
+        "MONTHLY"
+      ]
+    },
+    "public.sal_upload_session_status": {
+      "name": "sal_upload_session_status",
+      "schema": "public",
+      "values": [
+        "PENDING",
+        "PROCESSING",
+        "READY",
+        "FAILED",
+        "FINALIZED"
+      ]
+    },
+    "public.sal_user_local_role": {
+      "name": "sal_user_local_role",
+      "schema": "public",
+      "values": [
+        "OPERATOR",
+        "MANAGER",
+        "ADMIN"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

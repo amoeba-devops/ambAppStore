@@ -46,6 +46,8 @@ export async function middleware(req: NextRequest) {
     res.headers.set('x-ent-id', claims.ent_id);
     res.headers.set('x-user-id', claims.sub);
     res.headers.set('x-user-role', claims.role);
+    if (claims.email) res.headers.set('x-user-email', claims.email);
+    if (claims.name) res.headers.set('x-user-name', encodeURIComponent(claims.name));
     return res;
   } catch {
     return NextResponse.redirect(absoluteUrl(req, '/session-expired'));

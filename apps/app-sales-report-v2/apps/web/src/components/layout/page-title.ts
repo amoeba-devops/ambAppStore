@@ -1,13 +1,15 @@
 const TITLE_MAP: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/upload': 'Upload Reports',
+  '/raw-archive': 'Raw Archive',
   '/manual-input': 'Manual Cost Input',
   '/cost-master/prime-cost': 'Prime Cost Master',
-  '/cost-master/cogs-file': 'COGS File',
   '/reports/weekly': 'Weekly Report',
-  '/activity-log/login': 'Login History',
-  '/activity-log/action': 'Action History',
-  '/activity-log/download': 'Download History',
+  '/reports/monthly': 'Monthly Report',
+  '/reports/trending': 'Trending Report',
+  '/activity-log/action': 'Activity Log',
+  '/settings/users': 'User Management',
+  '/settings/formula-config': 'Formula Config',
 };
 
 export function pageTitleForPath(pathname: string): string {

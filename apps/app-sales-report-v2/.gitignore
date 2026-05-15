@@ -48,3 +48,11 @@ resources/
 # Prototype audit tmp files
 .tmp-decoded/
 .tmp-*.py
+# Real test data — DO NOT COMMIT (PII/financial)
+test-data/
+
+# Local Claude Code settings (user-specific permissions)
+.claude/settings.local.json
+
+# Dev-only verify / diagnose / inspect scripts — contain hardcoded customer file paths
+apps/web/scripts/
