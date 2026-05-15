@@ -3,13 +3,27 @@ services:
     name: sales-report-v2-web
     runtime: node
     rootDir: apps/app-sales-report-v2
+    # BASE_PATH must be present at build time — Next.js inlines it into the
+    # JS bundle. Render exports envVars to the build environment by default.
     buildCommand: npm install --include=dev && npm run build --workspace @v2/web
     startCommand: npm start --workspace @v2/web
     plan: starter
-    healthCheckPath: /api/v1/health
+    # With BASE_PATH set, ALL routes (including /api/v1/*) are served under
+    # that prefix. Render's health probe must hit the full path.
+    healthCheckPath: /app-sales-report-v2/api/v1/health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: BASE_PATH
+        value: /app-sales-report-v2
+      - key: APP_URL
+        # User-facing origin used by getRequestOrigin() for redirects.
+        # Matches the staging nginx domain so cookies stick.
+        value: https://stg-apps.amoeba.site
+      - key: SESSION_COOKIE_NAME
+        # Distinct from car-manager-v2's `amb_session` to avoid cookie
+        # collision on the shared stg-apps.amoeba.site origin.
+        value: amb_session_sales
       - key: JWT_SECRET
         sync: false
       - key: DATABASE_URL
