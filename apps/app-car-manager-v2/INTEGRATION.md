@@ -49,16 +49,20 @@
 
 Three independent runtimes, **one shared `JWT_SECRET`**. The platform is the catalog only — it never proxies auth. AMA mints, v2 verifies. Cookie lives on the user-facing origin (`stg-apps.amoeba.site` / `apps.amoeba.site` / `localhost:5200`), not on the Render origin (this is what `X-Forwarded-Host` accomplishes — see §6.3).
 
-**Deploy topology (D1 — dual target, one BASE_PATH):**
+**Deploy topology (D2 — dual target, different BASE_PATH per host):**
 
-v2 is deployed to **two runtime hosts in parallel**, both built with the same `BASE_PATH=/app-car-manager-v2`:
+v2 is deployed to **two runtime hosts in parallel** with different build configs so each URL is natural for its host:
 
-| Target | URL | Purpose | Wiring |
-|---|---|---|---|
-| **Staging Docker** | `https://stg-apps.amoeba.site/app-car-manager-v2/` | Embedded flow via AMA + ambAppStore catalog (primary user traffic) | nginx → `next-car-manager-v2:3001` container on `amb-apps-network` |
-| **Render** | `https://car-manager-staging.onrender.com/app-car-manager-v2/` | Direct access (QA, external API consumers, fallback if staging Docker is down) | Render service `car-manager-staging` (independent deploy from `render.yaml`) |
+| Target | URL | `BASE_PATH` | `APP_URL` | Purpose |
+|---|---|---|---|---|
+| **Staging Docker** | `https://stg-apps.amoeba.site/app-car-manager-v2/` | `/app-car-manager-v2` | `https://stg-apps.amoeba.site` | Embedded flow via AMA + ambAppStore catalog (primary user traffic) |
+| **Render** | `https://car-manager-staging.onrender.com/` (clean, no prefix) | (unset) | `https://car-manager-staging.onrender.com` | Direct access (QA, external API consumers, fallback if staging Docker is down) |
 
-Both deploys share **the same Neon Postgres** (`DATABASE_URL` identical) and **the same `JWT_SECRET`**. There is no data divergence — only the runtime host and the entry URL differ.
+Both deploys share **the same Neon Postgres** (`DATABASE_URL` identical) and **the same `JWT_SECRET`** — no data divergence. The two diverge only in `BASE_PATH` (build-time, baked into bundle) and `APP_URL` (runtime, cookie/redirect domain). This means **two separate builds** — accept the duplication so each URL surface is natural for its host.
+
+Health endpoint per target:
+- Staging Docker: `https://stg-apps.amoeba.site/app-car-manager-v2/api/v1/health`
+- Render:        `https://car-manager-staging.onrender.com/api/v1/health` (no prefix)
 
 ---
 
@@ -163,22 +167,23 @@ WHERE ent_id='<entity-uuid>'
 
 ## 5. Production / staging deploy
 
-### 5.0 Dual deploy at a glance
+### 5.0 Dual deploy at a glance (D2 — clean Render URL)
 
-v2 ships to **two runtime hosts in parallel**, same code / same DB / same JWT:
+v2 ships to **two runtime hosts in parallel**, same code / same DB / same JWT, but **different `BASE_PATH` per host** so each URL is natural:
 
 | | Staging Docker (LAN) | Render (cloud) |
 |---|---|---|
 | **Build** | `bash platform/scripts/deploy-staging.sh build car-manager-v2` (on staging server) | git push → Render auto-build |
 | **Image / Process** | Container `next-car-manager-v2:3001` on `amb-apps-network` | `car-manager-staging` service |
-| **External URL** | `https://stg-apps.amoeba.site/app-car-manager-v2/` (via nginx) | `https://car-manager-staging.onrender.com/app-car-manager-v2/` |
+| **External URL** | `https://stg-apps.amoeba.site/app-car-manager-v2/` (via nginx) | `https://car-manager-staging.onrender.com/` (clean, no prefix) |
 | **Used by** | All end-user flows through AMA sidebar + ambAppStore catalog | Direct access — QA, API consumers, fallback |
-| **BASE_PATH** | `/app-car-manager-v2` (set in `docker-compose.app-car-manager-v2.yml` build args) | `/app-car-manager-v2` (set in Render dashboard env) |
-| **DATABASE_URL** | Neon staging (same as Render) | Neon staging (same as Docker) |
-| **JWT_SECRET** | Same as AMA + platform | Same as AMA + platform |
-| **DEMO_AUTO_LOGIN** | `false` | `false` |
+| **`BASE_PATH`** | `/app-car-manager-v2` (build arg in `docker-compose.app-car-manager-v2.yml`) | **(unset)** — render.yaml omits it on purpose |
+| **`APP_URL`** | `https://stg-apps.amoeba.site` (set in container `.env`) | `https://car-manager-staging.onrender.com` (set in render.yaml) |
+| **`DATABASE_URL`** | Neon staging (same as Render) | Neon staging (same as Docker) |
+| **`JWT_SECRET`** | Same as AMA + platform | Same as AMA + platform |
+| **`DEMO_AUTO_LOGIN`** | `false` | `false` (set `true` only when actively debugging) |
 
-Both must keep these env vars in sync — `JWT_SECRET` divergence is the most common failure mode.
+`BASE_PATH` and `APP_URL` are the two values that intentionally diverge between hosts — every other env var must match byte-for-byte. `JWT_SECRET` mismatch is the most common failure mode.
 
 ### 5.1 Layer A — v2 Web on Render
 
@@ -187,17 +192,19 @@ Both must keep these env vars in sync — `JWT_SECRET` divergence is the most co
 1. `git push origin main` — Render auto-builds.
 2. Render Dashboard → service `car-manager-staging` → **Environment**:
 
-| Key | Value |
-|---|---|
-| `BASE_PATH` | `/app-car-manager-v2` |
-| `JWT_SECRET` | **shared** with AMA + platform (HS256, byte-for-byte) |
-| `DEMO_AUTO_LOGIN` | **`false`** ⚠️ |
-| `NEXT_PUBLIC_AMA_ORIGIN` | `https://ama.amoeba.site https://apps.amoeba.site https://stg-apps.amoeba.site` |
-| `DATABASE_URL` | Neon staging/main branch (pooler URL) |
-| `APP_URL` | `https://stg-apps.amoeba.site` — used by `getRequestOrigin()` for redirects |
-| `AWS_*` | only when wiring S3 (P2+) |
+| Key | Value | Note |
+|---|---|---|
+| `BASE_PATH` | **DO NOT SET** | D2: Render serves at root for clean URL |
+| `JWT_SECRET` | **shared** with AMA + platform (HS256, byte-for-byte) | — |
+| `DEMO_AUTO_LOGIN` | **`false`** in normal use, `true` only when debugging | — |
+| `NEXT_PUBLIC_AMA_ORIGIN` | `https://ama.amoeba.site https://stg-ama.amoeba.site` | for CSP frame-ancestors |
+| `DATABASE_URL` | Neon staging/main branch (pooler URL) | same as Docker container |
+| `APP_URL` | `https://car-manager-staging.onrender.com` | Render-direct, NOT stg-apps |
+| `AWS_*` | only when wiring S3 (P2+) | — |
 
-3. Manual deploy → verify `https://car-manager-staging.onrender.com/app-car-manager-v2/api/v1/health` returns `{"success":true}`.
+⚠️ Render dashboard env vars take **priority over render.yaml**. If you previously set `APP_URL` or `BASE_PATH` in the dashboard, delete them so render.yaml values apply.
+
+3. Manual deploy → verify `https://car-manager-staging.onrender.com/api/v1/health` returns `{"success":true}` (no `/app-car-manager-v2/` prefix on Render under D2).
 
 4. Apply migrations:
    ```bash
