@@ -286,7 +286,7 @@ export function TotalGmvPreviewCard({
                 <details className="rounded-md border border-warning-500/30 bg-warning-500/5 px-3 py-2 text-xs">
                   <summary className="cursor-pointer font-medium text-warning-500">
                     <AlertTriangle className="mr-1 inline h-3 w-3" />
-                    {r.missingFromMaster.length} SKU{r.missingFromMaster.length > 1 ? 's' : ''} sold but missing from Prime Cost master — Net GMV / Prime Cost can't include these
+                    {r.missingFromMaster.length} SKU{r.missingFromMaster.length > 1 ? 's' : ''} sold but missing from Prime Cost master — Net GMV / Prime Cost cannot include these
                   </summary>
                   <ul className="mt-2 space-y-1 text-neutral-700">
                     {r.missingFromMaster.slice(0, 10).map((m) => (
