@@ -10,9 +10,9 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     <textarea
       ref={ref}
       className={cn(
-        'flex min-h-[88px] md:min-h-[80px] w-full rounded border bg-surface px-3 py-2 text-base md:text-sm leading-relaxed',
+        'flex min-h-[88px] md:min-h-[80px] w-full rounded border bg-surface px-3 py-2 text-base md:text-sm leading-relaxed transition-colors',
         'placeholder:text-text-faint',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+        'focus-visible:outline-none',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         error ? 'border-danger focus-visible:border-danger' : 'border-border focus-visible:border-accent',
         className,
