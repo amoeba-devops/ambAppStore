@@ -2,7 +2,13 @@ import type { NextConfig } from 'next';
 
 const amaOrigin = process.env.NEXT_PUBLIC_AMA_ORIGIN ?? 'https://*.amoeba.site';
 
+// When embedded under ambAppStore (e.g. `/app-sales-report-v2/*` routed via nginx
+// or the platform Vite proxy), set BASE_PATH so Next emits matching asset URLs.
+// Leave empty for standalone dev (http://localhost:3000/).
+const basePath = process.env.BASE_PATH || undefined;
+
 const nextConfig: NextConfig = {
+  basePath,
   transpilePackages: ['@v2/db', '@v2/shared', '@v2/ui'],
   outputFileTracingRoot: __dirname,
   experimental: {
