@@ -31,17 +31,20 @@ export async function GET(req: NextRequest) {
   }
 
   const key = new TextEncoder().encode(secret);
+  // Payload shape MUST match AMA's `generateAppToken` exactly — camelCase keys
+  // (`entityId`, `appCode`) — so amaJwtClaimsSchema.parse() succeeds on verify.
+  // See packages/shared/src/auth/jwt-claims.ts. Drift between mint and verify
+  // shows up as: cookie set → next request fails Zod parse → /session-expired
+  // loop with the cookie cleared.
   const token = await new SignJWT({
     sub: '00000000-0000-0000-0000-000000000001',
-    ent_id: '00000000-0000-0000-0000-000000000010',
+    entityId: '00000000-0000-0000-0000-000000000010',
     role,
     email: `demo-${role.toLowerCase()}@dev.car-manager-v2.local`,
     name: `Demo ${role}`,
-    app_code: 'car-manager-v2',
+    appCode: 'car-manager-v2',
   })
     .setProtectedHeader({ alg: 'HS256' })
-    .setIssuer('amb-management')
-    .setAudience('car-manager-v2')
     .setIssuedAt()
     .setExpirationTime('8h')
     .sign(key);
