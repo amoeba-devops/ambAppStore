@@ -415,35 +415,17 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
         versions: 1,
       },
       {
-        metric: 'Total Platform Fee — TikTok (monthly)',
-        description: 'Manual Input — sum of all TikTok platform fee components',
-        dataSources: ['Manual Input'],
-        formula:
-          '{Transaction Fee} + {TikTok Shop Commission} + {Seller Shipping Fee} + {Exclusive Benefit Access Fee} + {Voucher Xtra Service Fee} + {Order Processing Fee} + {SFR Service Fee}',
-        versions: 1,
-      },
-      {
         metric: 'Platform Fee Rate — TikTok',
-        description: 'Monthly Platform Fee / Monthly Net GMV — used to estimate weekly Platform Fee',
-        dataSources: ['Calculated'],
-        formula: '{Total Platform Fee — TikTok (monthly)} / {Total Net GMV — TikTok}',
+        description: 'Manual Input — TikTok platform fee rate (% of Net GMV)',
+        dataSources: ['Manual Input'],
+        formula: '{Platform Fee Rate — TikTok}',
         unit: '%',
         versions: 1,
       },
       {
-        metric: 'Total Platform Fee — TikTok (weekly)',
-        description: 'Calculated using the average Platform Fee Rate over the last 4 weeks',
-        dataSources: ['Calculated'],
-        formula:
-          'Avg {Platform Fee Rate — TikTok} of [4] previous weeks × {Total Net GMV — TikTok}',
-        versions: 1,
-      },
-      {
         metric: 'Total Platform Fee — TikTok',
-        description: 'Auto-picks monthly or weekly variant based on report period',
         dataSources: ['Calculated'],
-        formula:
-          'IF([period] = [weekly], {Total Platform Fee — TikTok (weekly)}, {Total Platform Fee — TikTok (monthly)})',
+        formula: '{Total Net GMV — TikTok} × {Platform Fee Rate — TikTok}',
         versions: 1,
       },
       {

@@ -1,23 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
-import { AlertTriangle, AlertCircle, Calculator } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { AlertTriangle, AlertCircle } from 'lucide-react';
 import { cn } from '@v2/ui';
 import type { SelectedPeriod } from './Step1Period';
 
-// All 11 fields the user must enter
+// All 5 fields the user must enter
 export type ManualFieldKey =
   | 'affiliateBookingFees'
   | 'shopeeLivestreamFees'
   | 'tiktokLivestreamFees'
   | 'tiktokAdsSpending'
-  | 'tiktokPfTransaction'
-  | 'tiktokPfCommission'
-  | 'tiktokPfSellerShipping'
-  | 'tiktokPfExclusiveBenefit'
-  | 'tiktokPfVoucherXtra'
-  | 'tiktokPfOrderProcessing'
-  | 'tiktokPfSfrService';
+  | 'tiktokPlatformFeeRate';
 
 export type ManualInputs = Record<ManualFieldKey, string>;
 
@@ -26,13 +20,7 @@ export const ALL_MANUAL_FIELDS: ManualFieldKey[] = [
   'shopeeLivestreamFees',
   'tiktokLivestreamFees',
   'tiktokAdsSpending',
-  'tiktokPfTransaction',
-  'tiktokPfCommission',
-  'tiktokPfSellerShipping',
-  'tiktokPfExclusiveBenefit',
-  'tiktokPfVoucherXtra',
-  'tiktokPfOrderProcessing',
-  'tiktokPfSfrService',
+  'tiktokPlatformFeeRate',
 ];
 
 export const FIELD_LABELS: Record<ManualFieldKey, string> = {
@@ -40,24 +28,8 @@ export const FIELD_LABELS: Record<ManualFieldKey, string> = {
   shopeeLivestreamFees: 'Total Livestream Fee — Shopee',
   tiktokLivestreamFees: 'Total Livestream Fee — TikTok',
   tiktokAdsSpending: 'Total Ad Spending — TikTok',
-  tiktokPfTransaction: 'Transaction Fee',
-  tiktokPfCommission: 'TikTok Shop Commission',
-  tiktokPfSellerShipping: 'Seller Shipping Fee',
-  tiktokPfExclusiveBenefit: 'Exclusive Benefit Access Fee',
-  tiktokPfVoucherXtra: 'Voucher Xtra Service Fee',
-  tiktokPfOrderProcessing: 'Order Processing Fee',
-  tiktokPfSfrService: 'SFR Service Fee',
+  tiktokPlatformFeeRate: 'Platform Fee Rate — TikTok (%)',
 };
-
-const PLATFORM_FEE_KEYS: ManualFieldKey[] = [
-  'tiktokPfTransaction',
-  'tiktokPfCommission',
-  'tiktokPfSellerShipping',
-  'tiktokPfExclusiveBenefit',
-  'tiktokPfVoucherXtra',
-  'tiktokPfOrderProcessing',
-  'tiktokPfSfrService',
-];
 
 export function emptyManualInputs(): ManualInputs {
   return ALL_MANUAL_FIELDS.reduce((acc, k) => {
@@ -80,15 +52,6 @@ function isFilled(v: string): boolean {
 }
 
 export function Step3ManualInput({ values, onChange, attempted = false, selectedPeriod = null }: Props) {
-  const platformFeeTotal = useMemo(
-    () =>
-      PLATFORM_FEE_KEYS.reduce((sum, k) => {
-        const n = Number(values[k]);
-        return sum + (Number.isFinite(n) ? n : 0);
-      }, 0),
-    [values],
-  );
-
   const missing = ALL_MANUAL_FIELDS.filter((k) => !isFilled(values[k]));
   const showError = attempted && missing.length > 0;
   const errorRef = useRef<HTMLDivElement | null>(null);
@@ -176,36 +139,14 @@ export function Step3ManualInput({ values, onChange, attempted = false, selected
           onChange={(v) => set('tiktokAdsSpending', v)}
           invalid={attempted && !isFilled(values.tiktokAdsSpending)}
         />
-
-        {/* Platform Fee subgroup */}
-        <div className="rounded-md border border-neutral-200 bg-neutral-50/60 p-3 mt-2">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Calculator className="h-4 w-4 text-neutral-500" />
-              <span className="text-sm font-semibold text-neutral-900">Platform Fee</span>
-              <span className="text-[10px] uppercase tracking-wider text-neutral-400">auto-computed</span>
-            </div>
-            <span className="font-mono text-sm font-semibold tabular-nums text-info-500">
-              {new Intl.NumberFormat('en-US').format(Math.round(platformFeeTotal))} VND
-            </span>
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {PLATFORM_FEE_KEYS.map((k) => (
-              <FieldRow
-                key={k}
-                label={FIELD_LABELS[k]}
-                value={values[k]}
-                onChange={(v) => set(k, v)}
-                invalid={attempted && !isFilled(values[k])}
-                compact
-                indent
-              />
-            ))}
-          </div>
-          <div className="mt-2 text-[11px] text-neutral-500">
-            Platform Fee = sum of the 7 fees above
-          </div>
-        </div>
+        <FieldRow
+          label={FIELD_LABELS.tiktokPlatformFeeRate}
+          value={values.tiktokPlatformFeeRate}
+          onChange={(v) => set('tiktokPlatformFeeRate', v)}
+          invalid={attempted && !isFilled(values.tiktokPlatformFeeRate)}
+          hint="Total Platform Fee = Total Net GMV × this rate"
+          unit="%"
+        />
       </SectionGroup>
     </div>
   );
@@ -248,6 +189,7 @@ function FieldRow({
   hint,
   compact,
   indent,
+  unit = 'VND',
 }: {
   label: string;
   value: string;
@@ -256,6 +198,7 @@ function FieldRow({
   hint?: string;
   compact?: boolean;
   indent?: boolean;
+  unit?: string;
 }) {
   return (
     <label
@@ -293,7 +236,7 @@ function FieldRow({
               : 'border-neutral-300 focus:border-neutral-500',
           )}
         />
-        <span className="text-[10px] font-medium uppercase text-neutral-400">VND</span>
+        <span className="text-[10px] font-medium uppercase text-neutral-400">{unit}</span>
       </span>
     </label>
   );
