@@ -558,9 +558,8 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Platform Fee — TikTok',
-        description: 'Allocated',
         dataSources: ['Calculated'],
-        formula: '{Total Platform Fee — TikTok} × {NMV — TikTok} / {Total NMV — TikTok}',
+        formula: '{Net GMV — TikTok} × {Platform Fee Rate — TikTok}',
         versions: 1,
       },
       {
