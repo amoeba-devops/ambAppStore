@@ -1,4 +1,4 @@
-﻿import { getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import {
   Calendar,
@@ -40,8 +40,9 @@ function minutesFromNow(d: Date | string): number {
 }
 
 export default async function TodayPage() {
-  const tA  = await getTranslations('actions');
-  const tCo = await getTranslations('company');
+  const tCo     = await getTranslations('company');
+  const tT      = await getTranslations('today');
+  const tStatus = await getTranslations('today.status');
   const user = await getCurrentUser();
 
   let myTrips: TripListItem[] = [];
@@ -75,18 +76,18 @@ export default async function TodayPage() {
   return (
     <>
       <PageHeader
-        title="Today"
-        subtitle={`${tCo('currentUser')} · ${todayTrips.length} trip${todayTrips.length === 1 ? '' : 's'} today`}
-        breadcrumbs={[{ label: tCo('tenant') }, { label: 'Today' }]}
+        title={tT('title')}
+        subtitle={`${tCo('currentUser')} · ${tT('subtitleTrips', { count: todayTrips.length })}`}
+        breadcrumbs={[{ label: tCo('tenant') }, { label: tT('title') }]}
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
-        {nextTrip ? <NextTripHero trip={nextTrip} /> : (
+        {nextTrip ? <NextTripHero trip={nextTrip} t={tT} tStatus={tStatus} /> : (
           <Card>
             <EmptyState
               icon={<Calendar />}
-              title="Nothing scheduled today"
-              description={user.role === 'DRIVER' ? 'You have no trips assigned today. Enjoy the quiet.' : 'No trips on the calendar for today.'}
+              title={tT('emptyTitle')}
+              description={user.role === 'DRIVER' ? tT('emptyDriverDesc') : tT('emptyOtherDesc')}
             />
           </Card>
         )}
@@ -95,7 +96,7 @@ export default async function TodayPage() {
           <Card>
             <CardHeader>
               <CardHeaderText>
-                <CardTitle>Later today</CardTitle>
+                <CardTitle>{tT('laterToday')}</CardTitle>
               </CardHeaderText>
             </CardHeader>
             <CardContent padded={false}>
@@ -126,13 +127,21 @@ export default async function TodayPage() {
 }
 
 /* ── Hero card for the next/active trip ────────────────────────────────── */
-function NextTripHero({ trip }: { trip: TripListItem }) {
+function NextTripHero({
+  trip,
+  t,
+  tStatus,
+}: {
+  trip: TripListItem;
+  t: (key: string, vars?: Record<string, string | number>) => string;
+  tStatus: (key: string) => string;
+}) {
   const minutes = minutesFromNow(trip.trpScheduledAt);
   const subtitle =
-    trip.trpStatus === 'IN_PROGRESS' ? 'In progress now'
-      : minutes <= 0 ? 'Starting now'
-      : minutes < 60 ? `in ${minutes} min`
-      : `at ${TIME_FMT.format(new Date(trip.trpScheduledAt))}`;
+    trip.trpStatus === 'IN_PROGRESS' ? t('inProgressNow')
+      : minutes <= 0 ? t('startingNow')
+      : minutes < 60 ? t('inMinutes', { n: minutes })
+      : t('atTime', { time: TIME_FMT.format(new Date(trip.trpScheduledAt)) });
   const heroTone = STATUS_HERO[trip.trpStatus];
 
   return (
@@ -140,12 +149,12 @@ function NextTripHero({ trip }: { trip: TripListItem }) {
       <div className={`px-5 py-4 flex items-center justify-between ${heroTone.bg} ${heroTone.text}`}>
         <div>
           <div className="text-xs font-semibold uppercase tracking-wider opacity-80">
-            {trip.trpStatus === 'IN_PROGRESS' ? 'Active trip' : 'Next trip'} · {subtitle}
+            {trip.trpStatus === 'IN_PROGRESS' ? t('activeTrip') : t('nextTrip')} · {subtitle}
           </div>
           <div className="mt-1 text-lg font-bold font-mono tabular">{trip.trpRef}</div>
         </div>
         <Badge tone="solid" size="md" className="bg-white/15 text-white ring-white/20">
-          {STATUS_LABEL[trip.trpStatus]}
+          {tStatus(trip.trpStatus)}
         </Badge>
       </div>
 
@@ -153,20 +162,20 @@ function NextTripHero({ trip }: { trip: TripListItem }) {
         <div className="flex items-center gap-3 pb-4 border-b border-border">
           <Avatar name={trip.passengerName ?? '?'} size="lg" />
           <div className="flex-1 min-w-0">
-            <div className="text-md font-semibold text-text truncate">{trip.passengerName ?? 'Unspecified'}</div>
+            <div className="text-md font-semibold text-text truncate">{trip.passengerName ?? t('passengerUnspecified')}</div>
             {trip.trpPurpose && <div className="text-sm text-text-muted truncate">{trip.trpPurpose}</div>}
           </div>
         </div>
 
         <div className="pt-4 space-y-3.5">
-          <RouteStep tone="accent"  label="Pickup"   value={trip.trpPickupAddress} />
-          <RouteStep tone="success" label="Drop-off" value={trip.trpDropoffAddress} />
+          <RouteStep tone="accent"  label={t('pickup')}  value={trip.trpPickupAddress} />
+          <RouteStep tone="success" label={t('dropoff')} value={trip.trpDropoffAddress} />
           <div className="flex items-center justify-between text-sm pt-2">
             <span className="inline-flex items-center gap-2 text-text-muted">
               <Clock className="h-3.5 w-3.5" />
               <span className="font-medium text-text tabular">{TIME_FMT.format(new Date(trip.trpScheduledAt))}</span>
               {trip.trpDurationMinutes && (
-                <span className="text-text-faint">· {trip.trpDurationMinutes} min</span>
+                <span className="text-text-faint">· {t('durationMin', { n: trip.trpDurationMinutes })}</span>
               )}
             </span>
             {trip.vehiclePlate && (
@@ -183,7 +192,7 @@ function NextTripHero({ trip }: { trip: TripListItem }) {
         href={`/trips/${trip.trpId}`}
         className="block border-t border-border h-12 inline-flex items-center justify-center gap-2 text-accent font-semibold text-sm hover:bg-accent-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
       >
-        Open trip <ChevronRight className="h-4 w-4" />
+        {t('openTrip')} <ChevronRight className="h-4 w-4" />
       </Link>
     </Card>
   );
@@ -214,16 +223,6 @@ const STATUS_HERO: Record<CarTripStatus, { bg: string; text: string }> = {
   COMPLETED:                   { bg: 'bg-surface-2', text: 'text-text' },
   REJECTED_BY_DRIVER:          { bg: 'bg-danger-soft', text: 'text-danger' },
   CANCELLED:                   { bg: 'bg-surface-2', text: 'text-text-muted' },
-};
-
-const STATUS_LABEL: Record<CarTripStatus, string> = {
-  PENDING_ASSIGNMENT:          'Pending',
-  PENDING_DRIVER_CONFIRMATION: 'Awaiting',
-  CONFIRMED:                   'Confirmed',
-  IN_PROGRESS:                 'In progress',
-  COMPLETED:                   'Completed',
-  REJECTED_BY_DRIVER:          'Rejected',
-  CANCELLED:                   'Cancelled',
 };
 
 void CheckCircle2; // reserved for future "Completed today" widget

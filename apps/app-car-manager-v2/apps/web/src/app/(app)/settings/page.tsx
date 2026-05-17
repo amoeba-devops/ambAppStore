@@ -1,4 +1,4 @@
-﻿import { getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import { Save } from 'lucide-react';
 import {
   Badge,
@@ -21,22 +21,24 @@ import {
 import { PageHeader } from '@/components/layout/page-header';
 import { LocaleSelect } from './_components/locale-select';
 
-const APPROVAL_RULES: Array<{ type: string; needsApproval: boolean; threshold: string }> = [
-  { type: 'Fuel',       needsApproval: false, threshold: '—' },
-  { type: 'Oil',        needsApproval: false, threshold: '—' },
-  { type: 'Parking',    needsApproval: false, threshold: '—' },
-  { type: 'Toll',       needsApproval: false, threshold: '—' },
-  { type: 'Meal',       needsApproval: false, threshold: '500,000₫ (warn)' },
-  { type: 'Repair',     needsApproval: true,  threshold: '1,000,000₫' },
-  { type: 'Accident',   needsApproval: true,  threshold: '—' },
-  { type: 'Inspection', needsApproval: false, threshold: '—' },
+const APPROVAL_RULES: Array<{ typeKey: string; needsApproval: boolean; threshold: string }> = [
+  { typeKey: 'FUEL',       needsApproval: false, threshold: '—' },
+  { typeKey: 'OIL',        needsApproval: false, threshold: '—' },
+  { typeKey: 'PARKING',    needsApproval: false, threshold: '—' },
+  { typeKey: 'TOLL',       needsApproval: false, threshold: '—' },
+  { typeKey: 'MEAL',       needsApproval: false, threshold: '500,000₫ (warn)' },
+  { typeKey: 'REPAIR',     needsApproval: true,  threshold: '1,000,000₫' },
+  { typeKey: 'ACCIDENT',   needsApproval: true,  threshold: '—' },
+  { typeKey: 'INSPECTION', needsApproval: false, threshold: '—' },
 ];
 
 export default async function SettingsPage() {
-  const t    = await getTranslations('screens.settings');
-  const tA   = await getTranslations('actions');
-  const tNav = await getTranslations('nav');
-  const tCo  = await getTranslations('company');
+  const t       = await getTranslations('screens.settings');
+  const tA      = await getTranslations('actions');
+  const tNav    = await getTranslations('nav');
+  const tCo     = await getTranslations('company');
+  const tS      = await getTranslations('settings');
+  const tCost   = await getTranslations('costs.types');
 
   return (
     <>
@@ -53,22 +55,22 @@ export default async function SettingsPage() {
           <Card>
             <CardHeader>
               <CardHeaderText>
-                <CardTitle>General</CardTitle>
-                <CardDescription>Workspace identity and locale defaults.</CardDescription>
+                <CardTitle>{tS('general')}</CardTitle>
+                <CardDescription>{tS('generalDesc')}</CardDescription>
               </CardHeaderText>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="mb-1.5 block">Tenant name</Label>
+                  <Label className="mb-1.5 block">{tS('tenantName')}</Label>
                   <Input defaultValue={tCo('tenant')} />
                 </div>
                 <div>
-                  <Label className="mb-1.5 block">Default language</Label>
+                  <Label className="mb-1.5 block">{tS('defaultLanguage')}</Label>
                   <LocaleSelect />
                 </div>
                 <div>
-                  <Label className="mb-1.5 block">Currency</Label>
+                  <Label className="mb-1.5 block">{tS('currency')}</Label>
                   <Select defaultValue="vnd">
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -79,7 +81,7 @@ export default async function SettingsPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="mb-1.5 block">Timezone</Label>
+                  <Label className="mb-1.5 block">{tS('timezone')}</Label>
                   <Select defaultValue="vn">
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -96,22 +98,22 @@ export default async function SettingsPage() {
           <Card>
             <CardHeader>
               <CardHeaderText>
-                <CardTitle>Expense approval rules</CardTitle>
-                <CardDescription>Per category — defines who/when an expense needs review (PRD §6.2.2).</CardDescription>
+                <CardTitle>{tS('approval')}</CardTitle>
+                <CardDescription>{tS('approvalDesc')}</CardDescription>
               </CardHeaderText>
             </CardHeader>
             <CardContent padded={false}>
               <ul className="divide-y divide-border">
                 {APPROVAL_RULES.map((r) => (
-                  <li key={r.type} className="flex items-center justify-between gap-4 px-5 py-3">
+                  <li key={r.typeKey} className="flex items-center justify-between gap-4 px-5 py-3">
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-text">{r.type}</div>
-                      <div className="text-xs text-text-faint">Auto-approve threshold: <span className="tabular">{r.threshold}</span></div>
+                      <div className="text-sm font-medium text-text">{tCost(r.typeKey)}</div>
+                      <div className="text-xs text-text-faint">{tS('approvalThreshold')} <span className="tabular">{r.threshold}</span></div>
                     </div>
                     {r.needsApproval ? (
-                      <Badge tone="warning" size="sm">Approval required</Badge>
+                      <Badge tone="warning" size="sm">{tS('approvalRequired')}</Badge>
                     ) : (
-                      <Badge tone="success" size="sm">Auto-approved</Badge>
+                      <Badge tone="success" size="sm">{tS('autoApproved')}</Badge>
                     )}
                   </li>
                 ))}
@@ -123,16 +125,16 @@ export default async function SettingsPage() {
           <Card>
             <CardHeader>
               <CardHeaderText>
-                <CardTitle>Notifications</CardTitle>
-                <CardDescription>How the system reaches admins and drivers.</CardDescription>
+                <CardTitle>{tS('notifications')}</CardTitle>
+                <CardDescription>{tS('notificationsDesc')}</CardDescription>
               </CardHeaderText>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <ToggleRow title="In-app notifications" description="Bell icon in the top bar." defaultChecked />
-                <ToggleRow title="Email notifications" description="Send to user's primary email." defaultChecked />
-                <ToggleRow title="Web push (PWA)" description="Browser push for installed drivers · P4." />
-                <ToggleRow title="Daily digest" description="9:00 AM summary of pending approvals." defaultChecked />
+                <ToggleRow title={tS('notifInApp')}  description={tS('notifInAppDesc')}  defaultChecked />
+                <ToggleRow title={tS('notifEmail')}  description={tS('notifEmailDesc')}  defaultChecked />
+                <ToggleRow title={tS('notifPush')}   description={tS('notifPushDesc')} />
+                <ToggleRow title={tS('notifDigest')} description={tS('notifDigestDesc')} defaultChecked />
               </div>
             </CardContent>
           </Card>
@@ -141,37 +143,37 @@ export default async function SettingsPage() {
           <Card>
             <CardHeader>
               <CardHeaderText>
-                <CardTitle>Data retention</CardTitle>
-                <CardDescription>How long records are kept before purge.</CardDescription>
+                <CardTitle>{tS('retention')}</CardTitle>
+                <CardDescription>{tS('retentionDesc')}</CardDescription>
               </CardHeaderText>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="mb-1.5 block">Trip records</Label>
+                  <Label className="mb-1.5 block">{tS('tripRecords')}</Label>
                   <Select defaultValue="5y">
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1y">1 year</SelectItem>
-                      <SelectItem value="3y">3 years</SelectItem>
-                      <SelectItem value="5y">5 years (default)</SelectItem>
-                      <SelectItem value="7y">7 years</SelectItem>
+                      <SelectItem value="1y">{tS('ret1y')}</SelectItem>
+                      <SelectItem value="3y">{tS('ret3y')}</SelectItem>
+                      <SelectItem value="5y">{tS('ret5y')}</SelectItem>
+                      <SelectItem value="7y">{tS('ret7y')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label className="mb-1.5 block">Audit log</Label>
+                  <Label className="mb-1.5 block">{tS('auditLog')}</Label>
                   <Select defaultValue="5y">
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="3y">3 years</SelectItem>
-                      <SelectItem value="5y">5 years (default)</SelectItem>
-                      <SelectItem value="indefinite">Indefinite</SelectItem>
+                      <SelectItem value="3y">{tS('ret3y')}</SelectItem>
+                      <SelectItem value="5y">{tS('ret5y')}</SelectItem>
+                      <SelectItem value="indefinite">{tS('retIndefinite')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              <p className="mt-3 text-xs text-text-faint">Default 5 years to satisfy NFR-10 (PRD §7).</p>
+              <p className="mt-3 text-xs text-text-faint">{tS('retentionDefault')}</p>
             </CardContent>
           </Card>
         </div>

@@ -1,5 +1,5 @@
-﻿import { getTranslations } from 'next-intl/server';
-import { Calendar, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
+import { Calendar, FileSpreadsheet, FileText } from 'lucide-react';
 import {
   Button,
   Card,
@@ -17,16 +17,6 @@ import {
 } from '@car-v2/ui';
 import { PageHeader } from '@/components/layout/page-header';
 
-const SPEND_MIX = [
-  { name: 'Fuel',       amount: '24.4M₫', pct: 38, color: chartColors[0] },
-  { name: 'Repair',     amount: '17.2M₫', pct: 27, color: chartColors[1] },
-  { name: 'Meal',       amount:  '8.6M₫', pct: 13, color: chartColors[2] },
-  { name: 'Oil',        amount:  '5.1M₫', pct:  8, color: chartColors[3] },
-  { name: 'Parking',    amount:  '3.8M₫', pct:  6, color: chartColors[5] },
-  { name: 'Toll',       amount:  '3.2M₫', pct:  5, color: chartColors[6] },
-  { name: 'Inspection', amount:  '1.9M₫', pct:  3, color: chartColors[7] },
-];
-
 const WEEKLY = Array.from({ length: 12 }, (_, i) => ({
   week: `W${i + 1}`,
   Fuel:   2.1 + Math.sin(i / 1.6) * 0.7 + i * 0.12,
@@ -43,10 +33,21 @@ const UTIL = Array.from({ length: 12 }, (_, i) => ({
 }));
 
 export default async function ReportsPage() {
-  const t    = await getTranslations('screens.reports');
-  const tA   = await getTranslations('actions');
-  const tNav = await getTranslations('nav');
-  const tCo  = await getTranslations('company');
+  const t       = await getTranslations('screens.reports');
+  const tNav    = await getTranslations('nav');
+  const tCo     = await getTranslations('company');
+  const tR      = await getTranslations('reports');
+  const tCat    = await getTranslations('reports.categories');
+
+  const SPEND_MIX = [
+    { name: tCat('Fuel'),       key: 'Fuel',       amount: '24.4M₫', pct: 38, color: chartColors[0] },
+    { name: tCat('Repair'),     key: 'Repair',     amount: '17.2M₫', pct: 27, color: chartColors[1] },
+    { name: tCat('Meal'),       key: 'Meal',       amount:  '8.6M₫', pct: 13, color: chartColors[2] },
+    { name: tCat('Oil'),        key: 'Oil',        amount:  '5.1M₫', pct:  8, color: chartColors[3] },
+    { name: tCat('Parking'),    key: 'Parking',    amount:  '3.8M₫', pct:  6, color: chartColors[5] },
+    { name: tCat('Toll'),       key: 'Toll',       amount:  '3.2M₫', pct:  5, color: chartColors[6] },
+    { name: tCat('Inspection'), key: 'Inspection', amount:  '1.9M₫', pct:  3, color: chartColors[7] },
+  ];
 
   return (
     <>
@@ -56,9 +57,9 @@ export default async function ReportsPage() {
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('reports') }]}
         actions={
           <>
-            <Button variant="ghost" size="md" iconLeft={<Calendar />}>Q2 2026 · Apr — Jun</Button>
-            <Button variant="secondary" size="md" iconLeft={<FileSpreadsheet />}>Excel</Button>
-            <Button variant="accent" size="md" iconLeft={<FileText />}>PDF</Button>
+            <Button variant="ghost" size="md" iconLeft={<Calendar />}>{tR('period')}</Button>
+            <Button variant="secondary" size="md" iconLeft={<FileSpreadsheet />}>{tR('actionExcel')}</Button>
+            <Button variant="accent" size="md" iconLeft={<FileText />}>{tR('actionPdf')}</Button>
           </>
         }
       />
@@ -66,13 +67,13 @@ export default async function ReportsPage() {
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
         {/* Period KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KpiCard label="Total trips · 90d"    value="284"   delta="+18%" deltaKind="up"
+          <KpiCard label={tR('kTotalTrips')}    value="284"   delta="+18%" deltaKind="up"
             trailing={<div className="w-24"><Sparkline data={[18, 22, 19, 25, 21, 28, 24, 30, 32, 28, 30, 38]} /></div>} />
-          <KpiCard label="Total spend · 90d"    value="63.2M₫" delta="+6.4%" deltaKind="up"
+          <KpiCard label={tR('kTotalSpend')}    value="63.2M₫" delta="+6.4%" deltaKind="up"
             trailing={<div className="w-24"><Sparkline data={[4, 5, 4, 6, 5, 8, 6, 7, 9, 7, 8, 11]} color={chartColors[1]} /></div>} />
-          <KpiCard label="Avg cost / trip"      value="222K₫"  delta="-3.1%" deltaKind="down"
+          <KpiCard label={tR('kAvgCost')}      value="222K₫"  delta="-3.1%" deltaKind="down"
             trailing={<div className="w-24"><Sparkline data={[260, 250, 245, 240, 235, 230, 228, 225, 222, 220, 222, 222]} color={chartColors[2]} /></div>} />
-          <KpiCard label="Fleet utilisation"    value="68%"    delta="+5 pts" deltaKind="up"
+          <KpiCard label={tR('kUtil')}    value="68%"    delta="+5 pts" deltaKind="up"
             trailing={<div className="w-24"><Sparkline data={[55, 58, 60, 62, 60, 64, 66, 68, 70, 68, 70, 68]} color="hsl(var(--success))" /></div>} />
         </div>
 
@@ -81,8 +82,8 @@ export default async function ReportsPage() {
           <Card>
             <CardHeader>
               <CardHeaderText>
-                <CardTitle>Spend mix · last 90 days</CardTitle>
-                <CardDescription>Total 63.2M₫ across 8 categories</CardDescription>
+                <CardTitle>{tR('spendMixTitle')}</CardTitle>
+                <CardDescription>{tR('spendMixDesc')}</CardDescription>
               </CardHeaderText>
             </CardHeader>
             <CardContent>
@@ -92,11 +93,11 @@ export default async function ReportsPage() {
                   size={180}
                   thickness={22}
                   centerValue="63.2M"
-                  centerLabel="VND · 90d"
+                  centerLabel={tR('donutCenter')}
                 />
                 <ul className="flex-1 space-y-1.5 text-sm">
                   {SPEND_MIX.map((s) => (
-                    <li key={s.name} className="flex items-center gap-2.5">
+                    <li key={s.key} className="flex items-center gap-2.5">
                       <span className="h-2 w-2 rounded-full" style={{ background: s.color }} />
                       <span className="flex-1 text-text font-medium">{s.name}</span>
                       <span className="text-text-muted tabular">{s.amount}</span>
@@ -111,8 +112,8 @@ export default async function ReportsPage() {
           <Card>
             <CardHeader>
               <CardHeaderText>
-                <CardTitle>Weekly spend by category</CardTitle>
-                <CardDescription>Stacked, last 12 weeks</CardDescription>
+                <CardTitle>{tR('weeklyTitle')}</CardTitle>
+                <CardDescription>{tR('weeklyDesc')}</CardDescription>
               </CardHeaderText>
             </CardHeader>
             <CardContent>
@@ -120,10 +121,10 @@ export default async function ReportsPage() {
                 data={WEEKLY}
                 xKey="week"
                 series={[
-                  { key: 'Fuel',   name: 'Fuel',   color: chartColors[0] },
-                  { key: 'Repair', name: 'Repair', color: chartColors[1] },
-                  { key: 'Meal',   name: 'Meal',   color: chartColors[2] },
-                  { key: 'Oil',    name: 'Oil',    color: chartColors[3] },
+                  { key: 'Fuel',   name: tCat('Fuel'),   color: chartColors[0] },
+                  { key: 'Repair', name: tCat('Repair'), color: chartColors[1] },
+                  { key: 'Meal',   name: tCat('Meal'),   color: chartColors[2] },
+                  { key: 'Oil',    name: tCat('Oil'),    color: chartColors[3] },
                 ]}
                 height={260}
                 valueSuffix="M"
@@ -137,8 +138,8 @@ export default async function ReportsPage() {
         <Card>
           <CardHeader>
             <CardHeaderText>
-              <CardTitle>Fleet utilisation by vehicle</CardTitle>
-              <CardDescription>% of working hours in use · last 12 weeks</CardDescription>
+              <CardTitle>{tR('utilTitle')}</CardTitle>
+              <CardDescription>{tR('utilDesc')}</CardDescription>
             </CardHeaderText>
           </CardHeader>
           <CardContent>

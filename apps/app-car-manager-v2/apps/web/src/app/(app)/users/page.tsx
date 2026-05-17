@@ -1,4 +1,4 @@
-﻿import { getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import { Plus, Search } from 'lucide-react';
 import {
   Avatar,
@@ -39,10 +39,13 @@ const ROLE_TONE: Record<UserRow['appRole'], 'accent' | 'info' | 'neutral'> = {
 };
 
 export default async function UsersPage() {
-  const t    = await getTranslations('screens.users');
-  const tA   = await getTranslations('actions');
-  const tNav = await getTranslations('nav');
-  const tCo  = await getTranslations('company');
+  const t       = await getTranslations('screens.users');
+  const tA      = await getTranslations('actions');
+  const tNav    = await getTranslations('nav');
+  const tCo     = await getTranslations('company');
+  const tList   = await getTranslations('users.list');
+  const active = USERS.filter((u) => u.active).length;
+  const inactive = USERS.length - active;
 
   return (
     <>
@@ -51,16 +54,15 @@ export default async function UsersPage() {
         subtitle={t('subtitle')}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('users') }]}
         actions={
-          <Button variant="accent" size="md" iconLeft={<Plus />}>Invite user</Button>
+          <Button variant="accent" size="md" iconLeft={<Plus />}>{tList('inviteUser')}</Button>
         }
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <Input placeholder="Search by name or email…" iconLeft={<Search />} className="md:w-80" />
+          <Input placeholder={tList('searchPlaceholder')} iconLeft={<Search />} className="md:w-80" />
           <div className="text-xs md:text-sm text-text-muted">
-            <span className="font-semibold text-text">{USERS.filter((u) => u.active).length}</span> active ·{' '}
-            <span className="text-text-faint">{USERS.length - USERS.filter((u) => u.active).length} inactive</span>
+            {tList('statsActive', { active, inactive })}
           </div>
         </div>
 
@@ -79,9 +81,9 @@ export default async function UsersPage() {
                     <Badge tone={ROLE_TONE[u.appRole]} size="sm">{u.appRole}</Badge>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-xs">
-                    <span className="text-text-muted">AMA: <span className="font-mono">{u.amaRole}</span></span>
+                    <span className="text-text-muted">{tList('amaPrefix')} <span className="font-mono">{u.amaRole}</span></span>
                     <span className={u.active ? 'text-text-faint' : 'text-text-faint italic'}>
-                      {u.active ? u.lastSeen : 'Inactive'}
+                      {u.active ? u.lastSeen : tList('inactive')}
                     </span>
                   </div>
                 </div>
@@ -94,10 +96,10 @@ export default async function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>App role</TableHead>
-                <TableHead>AMA role</TableHead>
-                <TableHead>Last active</TableHead>
+                <TableHead>{tList('thUser')}</TableHead>
+                <TableHead>{tList('thAppRole')}</TableHead>
+                <TableHead>{tList('thAmaRole')}</TableHead>
+                <TableHead>{tList('thLastActive')}</TableHead>
                 <TableHead className="w-24 text-right" />
               </TableRow>
             </TableHeader>
@@ -122,7 +124,7 @@ export default async function UsersPage() {
                     {u.active ? (
                       <Button variant="ghost" size="sm">{tA('edit')}</Button>
                     ) : (
-                      <span className="text-xs text-text-faint italic">Inactive</span>
+                      <span className="text-xs text-text-faint italic">{tList('inactive')}</span>
                     )}
                   </TableCell>
                 </TableRow>

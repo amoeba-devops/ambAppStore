@@ -16,6 +16,7 @@ export default async function NewTripPage() {
   const tA   = await getTranslations('actions');
   const tNav = await getTranslations('nav');
   const tCo  = await getTranslations('company');
+  const tScr = await getTranslations('screens.newTrip');
   const user = await getCurrentUser();
 
   /* Driver doesn't create trips. */
@@ -45,12 +46,12 @@ export default async function NewTripPage() {
   return (
     <>
       <PageHeader
-        title="New trip"
-        subtitle="Schedule a vehicle for a passenger"
+        title={tScr('title')}
+        subtitle={tScr('subtitle')}
         breadcrumbs={[
           { label: tCo('tenant') },
           { label: tNav('trips'), href: '/trips' },
-          { label: 'New' },
+          { label: tA('new') },
         ]}
         back="/trips"
         actions={

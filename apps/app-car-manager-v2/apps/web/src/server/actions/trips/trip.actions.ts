@@ -251,6 +251,9 @@ export async function updateTripAction(id: string, input: unknown): Promise<Acti
 export async function assignTripAction(id: string, input: unknown): Promise<ActionResult<CarTrip>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
+    /* Admin-only at entry — state machine also gates, but explicit check
+     * keeps the API contract obvious and gives a clear 403 error. */
+    requireRole(actor.role, ['ADMIN']);
     const data = assignTripSchema.parse(input);
     const trip = await loadTrip(id, actor);
     const transition = trip.trpStatus === 'REJECTED_BY_DRIVER' ? 'reassign' : 'assign';
@@ -317,6 +320,9 @@ export async function endTripAction(id: string, input: unknown): Promise<ActionR
 export async function cancelTripAction(id: string, input: unknown): Promise<ActionResult<CarTrip>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
+    /* Manager may cancel own trip; Admin may cancel any. State machine
+     * enforces ownership for MANAGER role — this just blocks DRIVER. */
+    requireRole(actor.role, ['ADMIN', 'MANAGER']);
     const data = cancelTripSchema.parse(input ?? {});
     const updated = await transitionTrip(id, 'cancel', actor, {
       kind: 'cancel',

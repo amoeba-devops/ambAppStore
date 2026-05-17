@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { Loader2, Save, Trash2 } from 'lucide-react';
 import {
   Button,
@@ -42,6 +43,10 @@ interface VehicleFormProps {
 }
 
 export function VehicleForm({ vehicle }: VehicleFormProps) {
+  const t       = useTranslations('vehicles.form');
+  const tStatus = useTranslations('vehicles.status');
+  const tFuel   = useTranslations('vehicles.fuel');
+  const tA      = useTranslations('actions');
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const isEdit = !!vehicle;
@@ -61,7 +66,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
 
   const onSubmit = () => {
     if (!plateNumber.trim() || !model.trim()) {
-      toast.error('Missing required fields', { description: 'Plate number and model are required.' });
+      toast.error(t('errMissing'), { description: t('errMissingDesc') });
       return;
     }
 
@@ -85,13 +90,13 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         : await createVehicleAction(payload);
 
       if (result.success) {
-        toast.success(isEdit ? 'Vehicle updated' : 'Vehicle added', {
+        toast.success(isEdit ? t('tUpdated') : t('tAdded'), {
           description: result.data.cvhPlateNumber,
         });
         router.push(`/vehicles/${result.data.cvhId}`);
         router.refresh();
       } else {
-        toast.error(isEdit ? 'Could not update' : 'Could not create', {
+        toast.error(isEdit ? t('errUpdate') : t('errCreate'), {
           description: `${result.error.code} — ${result.error.message}`,
         });
       }
@@ -100,17 +105,17 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
 
   const onDelete = () => {
     if (!vehicle) return;
-    if (!confirm(`Remove ${vehicle.cvhPlateNumber}? This soft-deletes the vehicle — trip history is preserved.`)) {
+    if (!confirm(t('confirmRemove', { plate: vehicle.cvhPlateNumber }))) {
       return;
     }
     startTransition(async () => {
       const result = await deleteVehicleAction(vehicle.cvhId);
       if (result.success) {
-        toast.success('Vehicle removed');
+        toast.success(t('tRemoved'));
         router.push('/vehicles');
         router.refresh();
       } else {
-        toast.error('Could not remove', { description: `${result.error.code} — ${result.error.message}` });
+        toast.error(t('errRemove'), { description: `${result.error.code} — ${result.error.message}` });
       }
     });
   };
@@ -126,49 +131,49 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
       <Card>
         <CardHeader>
           <CardHeaderText>
-            <CardTitle>Vehicle details</CardTitle>
-            <CardDescription>Identification and ownership data.</CardDescription>
+            <CardTitle>{t('sectionDetails')}</CardTitle>
+            <CardDescription>{t('sectionDetailsDesc')}</CardDescription>
           </CardHeaderText>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="License plate" required>
-              <Input value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder="51K-238.91" maxLength={20} className="font-mono" />
+            <Field label={t('plate')} required>
+              <Input value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder={t('platePlaceholder')} maxLength={20} className="font-mono" />
             </Field>
-            <Field label="Status">
+            <Field label={t('status')}>
               <Select value={status} onValueChange={(v) => setStatus(v as CarVehicleStatus)} disabled={!isEdit}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>{s.replace('_', ' ').toLowerCase().replace(/(?:^|\s)\S/g, (c) => c.toUpperCase())}</SelectItem>
+                    <SelectItem key={s} value={s}>{tStatus(s)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Model" required>
-              <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="Hyundai Staria 11" maxLength={100} />
+            <Field label={t('model')} required>
+              <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder={t('modelPlaceholder')} maxLength={100} />
             </Field>
-            <Field label="Make">
-              <Input value={make ?? ''} onChange={(e) => setMake(e.target.value)} placeholder="Hyundai" maxLength={50} />
+            <Field label={t('make')}>
+              <Input value={make ?? ''} onChange={(e) => setMake(e.target.value)} placeholder={t('makePlaceholder')} maxLength={50} />
             </Field>
-            <Field label="Year">
+            <Field label={t('year')}>
               <Input type="number" value={year} onChange={(e) => setYear(e.target.value)} min={1990} max={2100} />
             </Field>
-            <Field label="Color">
-              <Input value={color ?? ''} onChange={(e) => setColor(e.target.value)} placeholder="Pearl White" maxLength={50} />
+            <Field label={t('color')}>
+              <Input value={color ?? ''} onChange={(e) => setColor(e.target.value)} placeholder={t('colorPlaceholder')} maxLength={50} />
             </Field>
-            <Field label="Fuel type">
+            <Field label={t('fuel')}>
               <Select value={fuelType} onValueChange={(v) => setFuelType(v as CarVehicleFuel)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {FUEL_TYPES.map((f) => (
-                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                    <SelectItem key={f} value={f}>{tFuel(f)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Home base">
-              <Input value={homeBase ?? ''} onChange={(e) => setHomeBase(e.target.value)} placeholder="HCMC HQ" maxLength={100} />
+            <Field label={t('base')}>
+              <Input value={homeBase ?? ''} onChange={(e) => setHomeBase(e.target.value)} placeholder={t('basePlaceholder')} maxLength={100} />
             </Field>
           </div>
         </CardContent>
@@ -177,19 +182,19 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
       <Card>
         <CardHeader>
           <CardHeaderText>
-            <CardTitle>Mileage &amp; maintenance</CardTitle>
-            <CardDescription>Used for oil-change reminders.</CardDescription>
+            <CardTitle>{t('sectionMileage')}</CardTitle>
+            <CardDescription>{t('sectionMileageDesc')}</CardDescription>
           </CardHeaderText>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Field label="Odometer (km)">
+            <Field label={t('odometer')}>
               <Input type="number" value={odometer} onChange={(e) => setOdometer(e.target.value)} min={0} inputMode="numeric" />
             </Field>
-            <Field label="Oil change every (km)">
+            <Field label={t('oilEveryKm')}>
               <Input type="number" value={oilIntervalKm} onChange={(e) => setOilIntervalKm(e.target.value)} min={1000} max={30000} inputMode="numeric" />
             </Field>
-            <Field label="Or every (months)">
+            <Field label={t('oilEveryMonths')}>
               <Input type="number" value={oilIntervalMonths} onChange={(e) => setOilIntervalMonths(e.target.value)} min={1} max={24} inputMode="numeric" />
             </Field>
           </div>
@@ -199,11 +204,11 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
       <Card>
         <CardHeader>
           <CardHeaderText>
-            <CardTitle>Notes</CardTitle>
+            <CardTitle>{t('sectionNotes')}</CardTitle>
           </CardHeaderText>
         </CardHeader>
         <CardContent>
-          <Textarea value={notes ?? ''} onChange={(e) => setNotes(e.target.value)} placeholder="Internal notes, quirks, accessories…" rows={3} maxLength={2000} />
+          <Textarea value={notes ?? ''} onChange={(e) => setNotes(e.target.value)} placeholder={t('notesPlaceholder')} rows={3} maxLength={2000} />
         </CardContent>
       </Card>
 
@@ -211,15 +216,15 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         sticky bottom-0 -mx-4 px-4 py-3 bg-bg/95 backdrop-blur border-t border-border flex gap-2">
         {isEdit && (
           <Button type="button" variant="danger" size="lg" onClick={onDelete} disabled={pending} iconLeft={<Trash2 />} className="md:mr-auto">
-            Remove
+            {t('submitRemove')}
           </Button>
         )}
         <Button type="button" variant="secondary" size="lg" className="flex-1 md:flex-initial" asChild>
-          <Link href={isEdit ? `/vehicles/${vehicle.cvhId}` : '/vehicles'}>Cancel</Link>
+          <Link href={isEdit ? `/vehicles/${vehicle.cvhId}` : '/vehicles'}>{tA('cancel')}</Link>
         </Button>
         <Button type="submit" variant="accent" size="lg" className="flex-1 md:flex-initial" disabled={pending}
           iconLeft={pending ? <Loader2 className="animate-spin" /> : <Save />}>
-          {pending ? 'Saving…' : isEdit ? 'Save changes' : 'Add vehicle'}
+          {pending ? t('submitSaving') : isEdit ? t('submitSave') : t('submitAdd')}
         </Button>
       </div>
     </form>

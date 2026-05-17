@@ -1,11 +1,13 @@
 'use client';
 
+import { useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut } from 'lucide-react';
+import { Loader2, LogOut } from 'lucide-react';
 import { Avatar, cn, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
+import { logoutAction } from '@/server/actions/auth/auth.actions';
 import { activeKeyFor, navItemsForRole, type NavKey } from './nav-items';
 
 interface SidebarNavProps {
@@ -20,6 +22,16 @@ export function SidebarNav({ collapsed, role }: SidebarNavProps) {
   const tGroup = useTranslations();
   const pathname = usePathname();
   const active = activeKeyFor(pathname ?? '/');
+  const [signingOut, startSignOut] = useTransition();
+
+  const handleSignOut = () => {
+    startSignOut(async () => {
+      await logoutAction();
+      /* Hard reload so middleware reads the now-cleared cookie and the
+       * /session-expired page renders with a fresh server context. */
+      window.location.href = '/session-expired';
+    });
+  };
 
   const items = navItemsForRole(role);
   const workspace = items.filter((i) => i.group === 'workspace');
@@ -32,7 +44,7 @@ export function SidebarNav({ collapsed, role }: SidebarNavProps) {
         'transition-[width] duration-180 motion-reduce:transition-none',
         collapsed ? 'w-[64px]' : 'w-[240px]',
       )}
-      aria-label="Primary"
+      aria-label={tGroup('layout.sidebarAria')}
     >
       {/* Brand */}
       <div className="h-14 px-3 flex items-center gap-2.5 border-b border-border">
@@ -72,11 +84,13 @@ export function SidebarNav({ collapsed, role }: SidebarNavProps) {
           <div className="flex justify-center">
             <button
               type="button"
+              onClick={handleSignOut}
+              disabled={signingOut}
               aria-label={tAct('signOut')}
               title={`${tCo('currentUser')} — ${tAct('signOut')}`}
-              className="h-9 w-9 rounded flex items-center justify-center hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-9 w-9 rounded flex items-center justify-center hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
             >
-              <Avatar name={tCo('currentUser')} size="sm" />
+              {signingOut ? <Loader2 className="h-4 w-4 animate-spin text-text-muted" /> : <Avatar name={tCo('currentUser')} size="sm" />}
             </button>
           </div>
         ) : (
@@ -88,10 +102,13 @@ export function SidebarNav({ collapsed, role }: SidebarNavProps) {
             </div>
             <button
               type="button"
+              onClick={handleSignOut}
+              disabled={signingOut}
               aria-label={tAct('signOut')}
-              className="h-7 w-7 rounded flex items-center justify-center text-text-faint hover:bg-surface hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              title={tAct('signOut')}
+              className="h-7 w-7 rounded flex items-center justify-center text-text-faint hover:bg-surface hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
             >
-              <LogOut className="h-3.5 w-3.5" />
+              {signingOut ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5" />}
             </button>
           </div>
         )}

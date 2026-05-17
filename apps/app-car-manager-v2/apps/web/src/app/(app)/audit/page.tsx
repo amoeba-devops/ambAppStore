@@ -1,4 +1,4 @@
-﻿import { getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import { Download, Search } from 'lucide-react';
 import {
   Avatar,
@@ -33,6 +33,7 @@ export default async function AuditLogPage() {
   const tA   = await getTranslations('actions');
   const tNav = await getTranslations('nav');
   const tCo  = await getTranslations('company');
+  const tAu  = await getTranslations('audit');
   const user = await getCurrentUser();
   requireRole(user.role, ['ADMIN']);
 
@@ -49,9 +50,9 @@ export default async function AuditLogPage() {
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <Input placeholder="Search by actor, action, entity ref…" iconLeft={<Search />} className="md:w-96" />
+          <Input placeholder={tAu('searchPlaceholder')} iconLeft={<Search />} className="md:w-96" />
           <div className="text-sm text-text-muted">
-            <span className="font-semibold text-text tabular">{rows.length}</span> recent events
+            <span className="font-semibold text-text tabular">{tAu('recentEvents', { count: rows.length })}</span>
           </div>
         </div>
 
@@ -59,8 +60,8 @@ export default async function AuditLogPage() {
           <Card>
             <EmptyState
               icon={<Search />}
-              title="Audit log is empty"
-              description="Once people start creating trips or recording expenses, every action will show up here."
+              title={tAu('emptyTitle')}
+              description={tAu('emptyDesc')}
             />
           </Card>
         ) : (
@@ -68,12 +69,12 @@ export default async function AuditLogPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[180px]">Timestamp</TableHead>
-                  <TableHead>Actor</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Entity</TableHead>
-                  <TableHead>Ref</TableHead>
-                  <TableHead className="w-[140px]">IP</TableHead>
+                  <TableHead className="w-[180px]">{tAu('thTimestamp')}</TableHead>
+                  <TableHead>{tAu('thActor')}</TableHead>
+                  <TableHead>{tAu('thAction')}</TableHead>
+                  <TableHead>{tAu('thEntity')}</TableHead>
+                  <TableHead>{tAu('thRef')}</TableHead>
+                  <TableHead className="w-[140px]">{tAu('thIp')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -108,8 +109,8 @@ export default async function AuditLogPage() {
         )}
 
         <div className="rounded-md border border-border bg-surface-2/40 px-4 py-3 text-xs text-text-muted leading-relaxed">
-          Audit log is <span className="font-medium text-text">append-only</span> — records cannot be edited or deleted (CLAUDE.md §8).
-          Retention: <span className="font-medium text-text tabular">5 years</span> per NFR-10.
+          {tAu('appendOnlyNote')} <span className="font-medium text-text">{tAu('appendOnly')}</span>{tAu('appendOnlyDesc')}{' '}
+          <span className="font-medium text-text tabular">{tAu('retention')}</span> {tAu('retentionNote')}
         </div>
       </div>
     </>

@@ -1,4 +1,4 @@
-﻿import { getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Car, ChevronLeft, Edit3, FileText, Fuel, Gauge, MapPin, Wrench } from 'lucide-react';
@@ -33,12 +33,6 @@ const STATUS_TONE: Record<CarVehicleStatus, 'success' | 'info' | 'warning' | 'ne
   MAINTENANCE: 'warning',
   RETIRED: 'neutral',
 };
-const STATUS_LABEL: Record<CarVehicleStatus, string> = {
-  AVAILABLE: 'Available',
-  IN_USE: 'In use',
-  MAINTENANCE: 'Maintenance',
-  RETIRED: 'Retired',
-};
 
 const TRIP_STATUS_TONE: Record<CarTripStatus, 'info' | 'success' | 'neutral' | 'warning' | 'danger' | 'accent'> = {
   PENDING_ASSIGNMENT: 'accent',
@@ -49,21 +43,15 @@ const TRIP_STATUS_TONE: Record<CarTripStatus, 'info' | 'success' | 'neutral' | '
   REJECTED_BY_DRIVER: 'danger',
   CANCELLED: 'danger',
 };
-const TRIP_STATUS_LABEL: Record<CarTripStatus, string> = {
-  PENDING_ASSIGNMENT: 'Pending',
-  PENDING_DRIVER_CONFIRMATION: 'Awaiting driver',
-  CONFIRMED: 'Confirmed',
-  IN_PROGRESS: 'In progress',
-  COMPLETED: 'Completed',
-  REJECTED_BY_DRIVER: 'Rejected',
-  CANCELLED: 'Cancelled',
-};
 
 export default async function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const tA   = await getTranslations('actions');
-  const tNav = await getTranslations('nav');
-  const tCo  = await getTranslations('company');
+  const tA       = await getTranslations('actions');
+  const tNav     = await getTranslations('nav');
+  const tCo      = await getTranslations('company');
+  const tStatus  = await getTranslations('vehicles.status');
+  const tDetail  = await getTranslations('vehicles.detail');
+  const tTripSt  = await getTranslations('trips.status');
   const user = await getCurrentUser();
 
   const vehicle = await getVehicle(user.entId, id);
@@ -111,14 +99,14 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 flex-wrap">
                   <h2 className="text-2xl font-bold text-text font-mono tracking-tight">{vehicle.cvhPlateNumber}</h2>
-                  <Badge tone={STATUS_TONE[vehicle.cvhStatus]}>{STATUS_LABEL[vehicle.cvhStatus]}</Badge>
+                  <Badge tone={STATUS_TONE[vehicle.cvhStatus]}>{tStatus(vehicle.cvhStatus)}</Badge>
                 </div>
                 {vehicle.cvhNotes && <p className="mt-1 text-text-muted">{vehicle.cvhNotes}</p>}
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-5">
-                  <Stat icon={<Gauge />}  label="Odometer"     value={`${vehicle.cvhOdometerKm.toLocaleString()} km`} />
-                  <Stat icon={<Fuel />}   label="Oil change in" value={remainingOil < 0 ? `${Math.abs(remainingOil)} km over` : `${remainingOil.toLocaleString()} km`} />
-                  <Stat icon={<Wrench />} label="Last service"  value={lastService} />
-                  <Stat icon={<MapPin />} label="Home base"    value={vehicle.cvhHomeBase ?? '—'} />
+                  <Stat icon={<Gauge />}  label={tDetail('statOdometer')}    value={`${vehicle.cvhOdometerKm.toLocaleString()} km`} />
+                  <Stat icon={<Fuel />}   label={tDetail('statOilIn')}       value={remainingOil < 0 ? `${Math.abs(remainingOil)} km` : `${remainingOil.toLocaleString()} km`} />
+                  <Stat icon={<Wrench />} label={tDetail('statLastService')} value={lastService} />
+                  <Stat icon={<MapPin />} label={tDetail('statBase')}        value={vehicle.cvhHomeBase ?? '—'} />
                 </div>
               </div>
             </div>
@@ -127,31 +115,31 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
         <Tabs defaultValue="trips">
           <TabsList>
-            <TabsTrigger value="trips">Recent trips</TabsTrigger>
-            <TabsTrigger value="docs">Documents</TabsTrigger>
-            <TabsTrigger value="costs">Cost history</TabsTrigger>
-            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+            <TabsTrigger value="trips">{tDetail('tabTrips')}</TabsTrigger>
+            <TabsTrigger value="docs">{tDetail('tabDocs')}</TabsTrigger>
+            <TabsTrigger value="costs">{tDetail('tabCosts')}</TabsTrigger>
+            <TabsTrigger value="maintenance">{tDetail('tabMaintenance')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="trips">
             <Card>
               <CardHeader>
                 <CardHeaderText>
-                  <CardTitle>Recent trips · last 10</CardTitle>
+                  <CardTitle>{tDetail('recentTripsTitle')}</CardTitle>
                 </CardHeaderText>
               </CardHeader>
               <CardContent padded={false}>
                 {trips.length === 0 ? (
-                  <div className="p-8 text-center text-sm text-text-muted">No trips yet for this vehicle.</div>
+                  <div className="p-8 text-center text-sm text-text-muted">{tDetail('noTrips')}</div>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Ref</TableHead>
-                        <TableHead>When</TableHead>
-                        <TableHead>Route</TableHead>
-                        <TableHead>Driver</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>{tDetail('thRef')}</TableHead>
+                        <TableHead>{tDetail('thWhen')}</TableHead>
+                        <TableHead>{tDetail('thRoute')}</TableHead>
+                        <TableHead>{tDetail('thDriver')}</TableHead>
+                        <TableHead>{tDetail('thStatus')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -164,7 +152,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
                           <TableCell className="max-w-[280px] truncate">{r.trpPickupAddress} → {r.trpDropoffAddress}</TableCell>
                           <TableCell>{r.driverName ?? '—'}</TableCell>
                           <TableCell>
-                            <Badge tone={TRIP_STATUS_TONE[r.trpStatus]} size="sm">{TRIP_STATUS_LABEL[r.trpStatus]}</Badge>
+                            <Badge tone={TRIP_STATUS_TONE[r.trpStatus]} size="sm">{tTripSt(r.trpStatus)}</Badge>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -179,12 +167,12 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
             <Card>
               <CardHeader>
                 <CardHeaderText>
-                  <CardTitle>Documents</CardTitle>
+                  <CardTitle>{tDetail('docsTitle')}</CardTitle>
                 </CardHeaderText>
-                <Button variant="secondary" size="sm" iconLeft={<FileText />}>Upload</Button>
+                <Button variant="secondary" size="sm" iconLeft={<FileText />}>{tDetail('upload')}</Button>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-text-muted">Documents (insurance, registration, inspection) will be available in P2.</p>
+                <p className="text-sm text-text-muted">{tDetail('docsP2Note')}</p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -192,7 +180,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
           <TabsContent value="costs">
             <Card>
               <CardContent>
-                <p className="text-sm text-text-muted">Cost history will be available in <span className="font-medium text-text">P2</span>.</p>
+                <p className="text-sm text-text-muted">{tDetail('costsP2Note')} <span className="font-medium text-text">P2</span>.</p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -200,7 +188,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
           <TabsContent value="maintenance">
             <Card>
               <CardContent>
-                <p className="text-sm text-text-muted">Maintenance log will be available in <span className="font-medium text-text">P4</span>.</p>
+                <p className="text-sm text-text-muted">{tDetail('maintP4Note')} <span className="font-medium text-text">P4</span>.</p>
               </CardContent>
             </Card>
           </TabsContent>

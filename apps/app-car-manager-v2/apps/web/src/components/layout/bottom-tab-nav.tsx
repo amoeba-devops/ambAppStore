@@ -1,6 +1,6 @@
 'use client';
 
-import { useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CalendarClock, ClipboardList, Receipt, User, type LucideIcon } from 'lucide-react';
@@ -24,26 +24,19 @@ const TABS: TabItem[] = [
   { key: 'me',       href: '/settings', Icon: User,           matches: (p) => p.startsWith('/settings') || p.startsWith('/users') || p.startsWith('/me'), labelKey: 'me' },
 ];
 
-const LABELS: Record<TabItem['labelKey'], { ko: string; en: string; vi: string }> = {
-  today:    { ko: '오늘',   en: 'Today',    vi: 'Hôm nay' },
-  trips:    { ko: '운행',   en: 'Trips',    vi: 'Chuyến đi' },
-  expenses: { ko: '비용',   en: 'Expenses', vi: 'Chi phí' },
-  me:       { ko: '나',     en: 'Me',       vi: 'Tôi' },
-};
-
 export function BottomTabNav() {
   const pathname = usePathname() ?? '/';
-  const locale = useLocale() as 'ko' | 'en' | 'vi';
+  const tTabs = useTranslations('layout.tabs');
+  const tL    = useTranslations('layout');
 
   return (
     <nav
-      aria-label="Mobile navigation"
+      aria-label={tL('mobileNavAria')}
       className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-surface/95 backdrop-blur border-t border-border pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="grid grid-cols-4 h-14">
         {TABS.map((tab) => {
           const isActive = tab.matches(pathname);
-          const label = LABELS[tab.labelKey][locale] ?? LABELS[tab.labelKey].en;
           return (
             <li key={tab.key} className="relative">
               {/* Active indicator — top accent bar */}
@@ -69,7 +62,7 @@ export function BottomTabNav() {
                   strokeWidth={isActive ? 2.4 : 1.8}
                   aria-hidden
                 />
-                <span className={cn('leading-none', isActive && 'font-semibold')}>{label}</span>
+                <span className={cn('leading-none', isActive && 'font-semibold')}>{tTabs(tab.labelKey)}</span>
               </Link>
             </li>
           );

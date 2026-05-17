@@ -1,4 +1,4 @@
-﻿import { getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { AlertTriangle, Car, Download, Fuel, Gauge, MapPin, Plus, Wrench } from 'lucide-react';
 import { Badge, Button, Card, EmptyState } from '@car-v2/ui';
@@ -14,12 +14,6 @@ const STATUS_TONE: Record<CarVehicleStatus, 'success' | 'info' | 'warning' | 'ne
   MAINTENANCE: 'warning',
   RETIRED: 'neutral',
 };
-const STATUS_LABEL: Record<CarVehicleStatus, string> = {
-  AVAILABLE: 'Available',
-  IN_USE: 'In use',
-  MAINTENANCE: 'Maintenance',
-  RETIRED: 'Retired',
-};
 
 function oilRemaining(v: CarVehicle): number {
   if (v.cvhLastOilChangeKm == null) return v.cvhOilIntervalKm;
@@ -28,10 +22,12 @@ function oilRemaining(v: CarVehicle): number {
 }
 
 export default async function VehiclesPage() {
-  const t    = await getTranslations('screens.vehicles');
-  const tA   = await getTranslations('actions');
-  const tNav = await getTranslations('nav');
-  const tCo  = await getTranslations('company');
+  const t       = await getTranslations('screens.vehicles');
+  const tA      = await getTranslations('actions');
+  const tNav    = await getTranslations('nav');
+  const tCo     = await getTranslations('company');
+  const tList   = await getTranslations('vehicles.list');
+  const tStatus = await getTranslations('vehicles.status');
   const user = await getCurrentUser();
   const vehicles = await listVehicles(user.entId);
 
@@ -46,7 +42,7 @@ export default async function VehiclesPage() {
     <>
       <PageHeader
         title={t('title')}
-        subtitle={`${summary.total} vehicles · ${summary.maintenance} in maintenance`}
+        subtitle={tList('subtitle', { count: summary.total, maint: summary.maintenance })}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('vehicles') }]}
         actions={
           <>
@@ -61,21 +57,21 @@ export default async function VehiclesPage() {
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-5">
         {/* Summary KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <SummaryCard label="Total" value={String(summary.total)} />
-          <SummaryCard label="Available" value={String(summary.available)} tone="success" />
-          <SummaryCard label="In use" value={String(summary.inUse)} tone="info" />
-          <SummaryCard label="Maintenance" value={String(summary.maintenance)} tone="warning" />
+          <SummaryCard label={tList('summaryTotal')} value={String(summary.total)} />
+          <SummaryCard label={tList('summaryAvailable')} value={String(summary.available)} tone="success" />
+          <SummaryCard label={tList('summaryInUse')} value={String(summary.inUse)} tone="info" />
+          <SummaryCard label={tList('summaryMaintenance')} value={String(summary.maintenance)} tone="warning" />
         </div>
 
         {vehicles.length === 0 ? (
           <Card>
             <EmptyState
               icon={<Car />}
-              title="No vehicles yet"
-              description="Add your first fleet vehicle to start scheduling trips."
+              title={tList('emptyTitle')}
+              description={tList('emptyDesc')}
               action={
                 <Button variant="accent" size="md" asChild>
-                  <Link href="/vehicles/new"><Plus />Add vehicle</Link>
+                  <Link href="/vehicles/new"><Plus />{tList('addVehicle')}</Link>
                 </Button>
               }
             />
@@ -96,7 +92,7 @@ export default async function VehiclesPage() {
                       <Car className="h-4 w-4" />
                       <span className="font-mono font-semibold text-text">{v.cvhPlateNumber}</span>
                     </div>
-                    <Badge tone={STATUS_TONE[v.cvhStatus]}>{STATUS_LABEL[v.cvhStatus]}</Badge>
+                    <Badge tone={STATUS_TONE[v.cvhStatus]}>{tStatus(v.cvhStatus)}</Badge>
                   </div>
                   <div className="mt-3 text-lg font-semibold text-text leading-tight">{v.cvhModel}</div>
                   <div className="text-sm text-text-muted">
@@ -104,14 +100,14 @@ export default async function VehiclesPage() {
                   </div>
 
                   <div className="mt-4 grid grid-cols-3 gap-3 text-sm pt-4 border-t border-border">
-                    <Stat icon={<Gauge />} label="Odometer" value={`${v.cvhOdometerKm.toLocaleString()} km`} />
+                    <Stat icon={<Gauge />} label={tList('statOdometer')} value={`${v.cvhOdometerKm.toLocaleString()} km`} />
                     <Stat
                       icon={<Fuel />}
-                      label="Oil in"
-                      value={overdue ? `${Math.abs(remainingOil)} km over` : `${remainingOil.toLocaleString()} km`}
+                      label={tList('statOilIn')}
+                      value={overdue ? tList('kmOver', { km: Math.abs(remainingOil) }) : tList('kmRemaining', { km: remainingOil.toLocaleString() })}
                       tone={overdue ? 'danger' : undefined}
                     />
-                    <Stat icon={<MapPin />} label="Base" value={v.cvhHomeBase ?? '—'} />
+                    <Stat icon={<MapPin />} label={tList('statBase')} value={v.cvhHomeBase ?? '—'} />
                   </div>
 
                   {(overdue || v.cvhStatus === 'MAINTENANCE') && (
@@ -121,7 +117,7 @@ export default async function VehiclesPage() {
                     }>
                       {overdue ? <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" /> : <Wrench className="h-3.5 w-3.5 shrink-0 mt-0.5" />}
                       <span className="leading-snug">
-                        {overdue ? 'Oil change overdue' : 'In maintenance'}
+                        {overdue ? tList('oilOverdue') : tList('inMaintenance')}
                       </span>
                     </div>
                   )}
@@ -132,7 +128,7 @@ export default async function VehiclesPage() {
         )}
       </div>
 
-      <Fab href="/vehicles/new" label="Add vehicle" icon={<Plus />} />
+      <Fab href="/vehicles/new" label={tList('addVehicle')} icon={<Plus />} />
     </>
   );
 }

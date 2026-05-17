@@ -1,4 +1,4 @@
-﻿import { getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { Calendar, ChevronRight, Download, Phone, Plus, Search } from 'lucide-react';
 import {
@@ -21,11 +21,11 @@ import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listDrivers } from '@/server/queries/drivers.queries';
 
-const STATUS: Record<CarDriverStatus, { tone: 'success' | 'info' | 'neutral'; label: string }> = {
-  AVAILABLE:   { tone: 'success', label: 'Available' },
-  ON_TRIP:     { tone: 'info',    label: 'On a trip' },
-  OFF_DUTY:    { tone: 'neutral', label: 'Off duty'  },
-  UNAVAILABLE: { tone: 'neutral', label: 'Unavailable' },
+const STATUS_TONE: Record<CarDriverStatus, 'success' | 'info' | 'neutral'> = {
+  AVAILABLE:   'success',
+  ON_TRIP:     'info',
+  OFF_DUTY:    'neutral',
+  UNAVAILABLE: 'neutral',
 };
 
 function daysUntil(dateStr: string): number {
@@ -34,9 +34,11 @@ function daysUntil(dateStr: string): number {
 }
 
 export default async function DriversPage() {
-  const tA   = await getTranslations('actions');
-  const tNav = await getTranslations('nav');
-  const tCo  = await getTranslations('company');
+  const tA      = await getTranslations('actions');
+  const tNav    = await getTranslations('nav');
+  const tCo     = await getTranslations('company');
+  const tList   = await getTranslations('drivers.list');
+  const tStatus = await getTranslations('drivers.status');
   const user = await getCurrentUser();
   const drivers = await listDrivers(user.entId);
 
@@ -46,7 +48,7 @@ export default async function DriversPage() {
     <>
       <PageHeader
         title={tNav('drivers')}
-        subtitle={`${drivers.length} drivers · ${expiringSoon} license${expiringSoon === 1 ? '' : 's'} expiring within 30 days`}
+        subtitle={tList('subtitle', { count: drivers.length, expiring: expiringSoon })}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('drivers') }]}
         actions={
           <>
@@ -60,12 +62,9 @@ export default async function DriversPage() {
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <Input placeholder="Search by name, license, phone…" iconLeft={<Search />} className="md:w-80" />
+          <Input placeholder={tList('searchPlaceholder')} iconLeft={<Search />} className="md:w-80" />
           <div className="text-xs md:text-sm text-text-muted">
-            <span className="font-semibold text-text">{drivers.length}</span> drivers ·{' '}
-            <span className={'font-semibold ' + (expiringSoon > 0 ? 'text-danger' : 'text-text-faint')}>
-              {expiringSoon}
-            </span> license expiring within 30 days
+            {tList('stats', { count: drivers.length, expiring: expiringSoon })}
           </div>
         </div>
 
@@ -73,11 +72,11 @@ export default async function DriversPage() {
           <Card>
             <EmptyState
               icon={<Phone />}
-              title="No drivers yet"
-              description="Invite a driver — they need to have an account in this tenant first."
+              title={tList('emptyTitle')}
+              description={tList('emptyDesc')}
               action={
                 <Button variant="accent" size="md" asChild>
-                  <Link href="/drivers/new"><Plus />Add driver</Link>
+                  <Link href="/drivers/new"><Plus />{tList('addDriver')}</Link>
                 </Button>
               }
             />
@@ -102,7 +101,7 @@ export default async function DriversPage() {
                               <div className="font-semibold text-text truncate">{d.user.usrName}</div>
                               <div className="text-xs text-text-faint truncate font-mono tabular">{d.drvPhone ?? '—'}</div>
                             </div>
-                            <Badge tone={STATUS[d.drvStatus].tone} size="sm">{STATUS[d.drvStatus].label}</Badge>
+                            <Badge tone={STATUS_TONE[d.drvStatus]} size="sm">{tStatus(d.drvStatus)}</Badge>
                           </div>
                           <div className="mt-2 text-xs text-text-muted">
                             <span className="font-mono tabular">{d.drvLicenseNumber}</span>
@@ -111,7 +110,7 @@ export default async function DriversPage() {
                           {daysLeft <= 30 && (
                             <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-danger bg-danger-soft px-2 py-0.5 rounded">
                               <Calendar className="h-3 w-3" />
-                              License expires {d.drvLicenseExpiry} ({daysLeft}d)
+                              {tList('expiresInDays', { date: d.drvLicenseExpiry, days: daysLeft })}
                             </div>
                           )}
                         </div>
@@ -128,10 +127,10 @@ export default async function DriversPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Driver</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>License</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{tList('thDriver')}</TableHead>
+                    <TableHead>{tList('thContact')}</TableHead>
+                    <TableHead>{tList('thLicense')}</TableHead>
+                    <TableHead>{tList('thStatus')}</TableHead>
                     <TableHead className="w-12 text-right" />
                   </TableRow>
                 </TableHeader>
@@ -158,19 +157,19 @@ export default async function DriversPage() {
                         <TableCell>
                           <div className="text-text">
                             <span className="font-mono tabular text-sm">{d.drvLicenseNumber}</span>
-                            <span className="text-xs text-text-faint ml-2">Class {d.drvLicenseClass}</span>
+                            <span className="text-xs text-text-faint ml-2">{tList('classLabel', { class: d.drvLicenseClass })}</span>
                           </div>
                           <div className={
                             'inline-flex items-center gap-1 text-xs mt-0.5 ' +
                             (daysLeft <= 30 ? 'text-danger' : daysLeft <= 90 ? 'text-warning' : 'text-text-faint')
                           }>
                             <Calendar className="h-3 w-3" />
-                            <span>Expires {d.drvLicenseExpiry}</span>
+                            <span>{tList('expiresOn', { date: d.drvLicenseExpiry })}</span>
                             {daysLeft <= 30 && <span className="ml-1 font-semibold">({daysLeft}d)</span>}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge tone={STATUS[d.drvStatus].tone} size="sm">{STATUS[d.drvStatus].label}</Badge>
+                          <Badge tone={STATUS_TONE[d.drvStatus]} size="sm">{tStatus(d.drvStatus)}</Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" asChild>
