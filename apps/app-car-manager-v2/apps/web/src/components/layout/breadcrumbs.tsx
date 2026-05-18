@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@car-v2/ui';
 
@@ -12,10 +13,11 @@ interface BreadcrumbsProps {
   className?: string;
 }
 
-export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
+export async function Breadcrumbs({ items, className }: BreadcrumbsProps) {
+  const tL = await getTranslations('layout');
   if (!items.length) return null;
   return (
-    <nav aria-label="Breadcrumb" className={cn('flex items-center gap-1 text-xs text-text-muted', className)}>
+    <nav aria-label={tL('breadcrumbAria')} className={cn('flex items-center gap-1 text-xs text-text-muted', className)}>
       {items.map((item, i) => {
         const isLast = i === items.length - 1;
         return (

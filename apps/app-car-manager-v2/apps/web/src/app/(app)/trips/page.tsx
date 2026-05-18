@@ -1,4 +1,4 @@
-﻿import { getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { Calendar, ChevronRight, Download, Filter, Plus, Search } from 'lucide-react';
 import {
@@ -30,31 +30,15 @@ const STATUS_TONE: Record<CarTripStatus, 'accent' | 'warning' | 'success' | 'inf
   REJECTED_BY_DRIVER:          'danger',
   CANCELLED:                   'danger',
 };
-const STATUS_LABEL: Record<CarTripStatus, string> = {
-  PENDING_ASSIGNMENT:          'Pending assignment',
-  PENDING_DRIVER_CONFIRMATION: 'Pending driver',
-  CONFIRMED:                   'Confirmed',
-  IN_PROGRESS:                 'In progress',
-  COMPLETED:                   'Completed',
-  REJECTED_BY_DRIVER:          'Rejected',
-  CANCELLED:                   'Cancelled',
-};
 
-const FILTERS = [
-  { key: 'all',         label: 'All' },
-  { key: 'pending',     label: 'Pending' },
-  { key: 'active',      label: 'Active' },
-  { key: 'completed',   label: 'Completed' },
-];
-
-function formatWhen(iso: Date): string {
+function formatWhen(iso: Date, labels: { today: string; tomorrow: string; yesterday: string }): string {
   const d = new Date(iso);
   const now = new Date();
   const days = Math.floor((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  if (days === 0) return `Today · ${time}`;
-  if (days === 1) return `Tomorrow · ${time}`;
-  if (days === -1) return `Yesterday · ${time}`;
+  if (days === 0) return `${labels.today} · ${time}`;
+  if (days === 1) return `${labels.tomorrow} · ${time}`;
+  if (days === -1) return `${labels.yesterday} · ${time}`;
   return `${d.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })} · ${time}`;
 }
 
@@ -64,9 +48,13 @@ interface PageProps {
 
 export default async function TripsListPage({ searchParams }: PageProps) {
   const sp = await searchParams;
-  const tA   = await getTranslations('actions');
-  const tNav = await getTranslations('nav');
-  const tCo  = await getTranslations('company');
+  const tA      = await getTranslations('actions');
+  const tNav    = await getTranslations('nav');
+  const tCo     = await getTranslations('company');
+  const tList   = await getTranslations('trips.list');
+  const tStatus = await getTranslations('trips.status');
+  const tFilter = await getTranslations('filters');
+  const tCommon = await getTranslations('common');
   const user = await getCurrentUser();
 
   const statusFilter = (sp.status ?? 'all') as 'all' | 'pending' | 'active' | 'completed';
@@ -83,11 +71,20 @@ export default async function TripsListPage({ searchParams }: PageProps) {
   const showingTo = Math.min(total, page * pageSize);
   const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
 
+  const FILTERS: Array<{ key: 'all' | 'pending' | 'active' | 'completed'; label: string }> = [
+    { key: 'all',       label: tFilter('all') },
+    { key: 'pending',   label: tFilter('pending') },
+    { key: 'active',    label: tFilter('active') },
+    { key: 'completed', label: tFilter('completed') },
+  ];
+
+  const dayLabels = { today: tCommon('today'), tomorrow: tCommon('tomorrow'), yesterday: tCommon('yesterday') };
+
   return (
     <>
       <PageHeader
         title={tNav('trips')}
-        subtitle={`${total} trip${total === 1 ? '' : 's'} · viewing as ${user.role}`}
+        subtitle={tList('subtitle', { count: total, role: user.role })}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('trips') }]}
         actions={
           <>
@@ -125,11 +122,11 @@ export default async function TripsListPage({ searchParams }: PageProps) {
           </div>
           <div className="flex items-center gap-2">
             <Input
-              placeholder="Search…"
+              placeholder={tList('searchPlaceholder')}
               iconLeft={<Search />}
               className="flex-1 md:w-72 md:flex-initial"
             />
-            <Button variant="secondary" size="md" iconLeft={<Calendar />} className="hidden md:inline-flex">This week</Button>
+            <Button variant="secondary" size="md" iconLeft={<Calendar />} className="hidden md:inline-flex">{tList('thisWeek')}</Button>
             <Button variant="ghost" size="icon" aria-label={tA('filter')}><Filter /></Button>
           </div>
         </div>
@@ -138,13 +135,13 @@ export default async function TripsListPage({ searchParams }: PageProps) {
           <Card>
             <EmptyState
               icon={<Calendar />}
-              title="No trips here"
+              title={tList('emptyTitle')}
               description={
                 statusFilter === 'all'
                   ? user.role === 'DRIVER'
-                    ? 'You have no trips assigned to you yet.'
-                    : 'Create the first trip to get started.'
-                  : `No trips match the "${statusFilter}" filter.`
+                    ? tList('emptyDriverDesc')
+                    : tList('emptyAdminDesc')
+                  : tList('emptyFilterDesc', { filter: statusFilter })
               }
               action={
                 user.role !== 'DRIVER' ? (
@@ -163,7 +160,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                 <li key={trip.trpId}>
                   <Link
                     href={`/trips/${trip.trpId}`}
-                    aria-label={`Open ${trip.trpRef}`}
+                    aria-label={tList('openAria', { ref: trip.trpRef })}
                     className="block rounded-md border border-border bg-surface px-4 py-3.5 active:bg-surface-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
                   >
                     <div className="flex items-start gap-3">
@@ -172,9 +169,9 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <div className="font-mono text-[11px] text-text-faint tabular">{trip.trpRef}</div>
-                            <div className="font-semibold text-text truncate leading-tight">{trip.passengerName ?? 'Unknown'}</div>
+                            <div className="font-semibold text-text truncate leading-tight">{trip.passengerName ?? tCommon('unknown')}</div>
                           </div>
-                          <Badge tone={STATUS_TONE[trip.trpStatus]} size="sm">{STATUS_LABEL[trip.trpStatus]}</Badge>
+                          <Badge tone={STATUS_TONE[trip.trpStatus]} size="sm">{tStatus(trip.trpStatus)}</Badge>
                         </div>
                         <div className="mt-2 text-xs text-text-muted leading-snug">
                           <span className="text-text">{trip.trpPickupAddress}</span>
@@ -182,10 +179,10 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                           <span className="text-text">{trip.trpDropoffAddress}</span>
                         </div>
                         <div className="mt-1.5 flex items-center gap-2 text-xs text-text-faint">
-                          <span className="tabular">{formatWhen(trip.trpScheduledAt)}</span>
+                          <span className="tabular">{formatWhen(trip.trpScheduledAt, dayLabels)}</span>
                           <span>·</span>
                           <span className="truncate">
-                            {trip.driverName ? `${trip.driverName} · ${trip.vehiclePlate}` : <span className="italic">Unassigned</span>}
+                            {trip.driverName ? `${trip.driverName} · ${trip.vehiclePlate}` : <span className="italic">{tList('unassigned')}</span>}
                           </span>
                         </div>
                       </div>
@@ -201,12 +198,12 @@ export default async function TripsListPage({ searchParams }: PageProps) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[100px]">Ref</TableHead>
-                    <TableHead>Passenger</TableHead>
-                    <TableHead>Route</TableHead>
-                    <TableHead>When</TableHead>
-                    <TableHead>Driver / Vehicle</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[100px]">{tList('thRef')}</TableHead>
+                    <TableHead>{tList('thPassenger')}</TableHead>
+                    <TableHead>{tList('thRoute')}</TableHead>
+                    <TableHead>{tList('thWhen')}</TableHead>
+                    <TableHead>{tList('thDriverVehicle')}</TableHead>
+                    <TableHead>{tList('thStatus')}</TableHead>
                     <TableHead className="w-12 text-right" />
                   </TableRow>
                 </TableHeader>
@@ -218,7 +215,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                         <div className="flex items-center gap-2.5">
                           <Avatar name={trip.passengerName ?? '?'} size="sm" />
                           <div className="min-w-0">
-                            <div className="font-medium text-text truncate">{trip.passengerName ?? 'Unknown'}</div>
+                            <div className="font-medium text-text truncate">{trip.passengerName ?? tCommon('unknown')}</div>
                           </div>
                         </div>
                       </TableCell>
@@ -226,7 +223,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                         <div className="text-text text-sm leading-tight max-w-[260px] truncate">{trip.trpPickupAddress}</div>
                         <div className="text-xs text-text-faint max-w-[260px] truncate">→ {trip.trpDropoffAddress}</div>
                       </TableCell>
-                      <TableCell className="text-text-muted tabular text-sm">{formatWhen(trip.trpScheduledAt)}</TableCell>
+                      <TableCell className="text-text-muted tabular text-sm">{formatWhen(trip.trpScheduledAt, dayLabels)}</TableCell>
                       <TableCell>
                         {trip.driverName ? (
                           <>
@@ -234,15 +231,15 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                             <div className="text-xs text-text-faint font-mono tabular">{trip.vehiclePlate}</div>
                           </>
                         ) : (
-                          <span className="text-xs italic text-text-faint">Unassigned</span>
+                          <span className="text-xs italic text-text-faint">{tList('unassigned')}</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge tone={STATUS_TONE[trip.trpStatus]} size="sm">{STATUS_LABEL[trip.trpStatus]}</Badge>
+                        <Badge tone={STATUS_TONE[trip.trpStatus]} size="sm">{tStatus(trip.trpStatus)}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/trips/${trip.trpId}`} aria-label={`Open ${trip.trpRef}`}>{tA('view')}</Link>
+                          <Link href={`/trips/${trip.trpId}`} aria-label={tList('openAria', { ref: trip.trpRef })}>{tA('view')}</Link>
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -254,22 +251,22 @@ export default async function TripsListPage({ searchParams }: PageProps) {
             {/* Pagination summary */}
             {totalPages > 1 && (
               <div className="flex flex-col-reverse md:flex-row md:items-center md:justify-between gap-3 text-sm text-text-muted">
-                <span className="text-xs md:text-sm">Showing <span className="font-semibold text-text tabular">{showingFrom}–{showingTo}</span> of <span className="font-semibold text-text tabular">{total}</span></span>
+                <span className="text-xs md:text-sm">{tList('showing')} <span className="font-semibold text-text tabular">{showingFrom}–{showingTo}</span> {tList('of')} <span className="font-semibold text-text tabular">{total}</span></span>
                 <div className="inline-flex items-center gap-1 self-end md:self-auto">
                   {page > 1 ? (
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={pageHref(statusFilter, page - 1)}>Previous</Link>
+                      <Link href={pageHref(statusFilter, page - 1)}>{tList('previous')}</Link>
                     </Button>
                   ) : (
-                    <Button variant="ghost" size="sm" disabled>Previous</Button>
+                    <Button variant="ghost" size="sm" disabled>{tList('previous')}</Button>
                   )}
                   <span className="px-3 text-sm tabular">{page} / {totalPages}</span>
                   {page < totalPages ? (
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={pageHref(statusFilter, page + 1)}>Next</Link>
+                      <Link href={pageHref(statusFilter, page + 1)}>{tList('next')}</Link>
                     </Button>
                   ) : (
-                    <Button variant="ghost" size="sm" disabled>Next</Button>
+                    <Button variant="ghost" size="sm" disabled>{tList('next')}</Button>
                   )}
                 </div>
               </div>

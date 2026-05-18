@@ -1,7 +1,6 @@
-﻿import { getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import { Check, Download, Filter, Fuel, Receipt, Wrench, X } from 'lucide-react';
 import {
-  Avatar,
   Badge,
   Button,
   Card,
@@ -38,11 +37,6 @@ const EXPENSE_TYPE_COLOR: Record<ExpenseType, string> = {
   INSPECTION: chartColors[7],
 };
 
-const EXPENSE_LABEL: Record<ExpenseType, string> = {
-  FUEL: 'Fuel', OIL: 'Oil', REPAIR: 'Repair', PARKING: 'Parking', TOLL: 'Toll',
-  MEAL: 'Meal', ACCIDENT: 'Accident', INSPECTION: 'Inspection',
-};
-
 const PENDING: ExpenseRow[] = [
   { id: 'e-512', type: 'REPAIR',   amount: 4_200_000, amountFmt: '4.2M₫',    vehicle: '51F-712.34', driver: 'Lê Minh Đức',     trip: 'TR-1030', when: '35 min ago' },
   { id: 'e-510', type: 'FUEL',     amount: 1_250_000, amountFmt: '1,250,000₫', vehicle: '30A-556.07', driver: 'Trần Quốc Hùng', trip: 'TR-1041', when: '2 hr ago',  thresholdExceeded: true },
@@ -51,10 +45,11 @@ const PENDING: ExpenseRow[] = [
 ];
 
 export default async function CostsPage() {
-  const t    = await getTranslations('screens.costList');
-  const tA   = await getTranslations('actions');
-  const tNav = await getTranslations('nav');
-  const tCo  = await getTranslations('company');
+  const tA      = await getTranslations('actions');
+  const tNav    = await getTranslations('nav');
+  const tCo     = await getTranslations('company');
+  const t       = await getTranslations('costs');
+  const tType   = await getTranslations('costs.types');
 
   // simulate selection for the right-pane preview
   const selected = PENDING[0]!;
@@ -62,8 +57,8 @@ export default async function CostsPage() {
   return (
     <>
       <PageHeader
-        title="Approval queue"
-        subtitle="4 expenses waiting · auto-approved hidden"
+        title={t('approvalTitle')}
+        subtitle={t('approvalSubtitle')}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('costs') }]}
         actions={
           <>
@@ -74,12 +69,10 @@ export default async function CostsPage() {
       />
 
       <div className="flex-1 overflow-hidden flex flex-col md:grid md:grid-cols-[420px_1fr]">
-        {/* List pane — full-width on mobile, fixed left rail on desktop.
-         * Mobile shows ONLY the list; tapping a row navigates to detail. */}
         <aside className="md:border-r border-border bg-bg overflow-y-auto flex-1 md:flex-initial">
           <div className="px-4 md:px-5 py-3 flex items-center justify-between border-b border-border bg-surface/70 backdrop-blur sticky top-0 z-10">
-            <div className="text-sm font-semibold text-text">Pending review · {PENDING.length}</div>
-            <Badge tone="warning" size="sm">Needs you</Badge>
+            <div className="text-sm font-semibold text-text">{t('pendingReview', { count: PENDING.length })}</div>
+            <Badge tone="warning" size="sm">{t('needsYou')}</Badge>
           </div>
           <ul className="divide-y divide-border">
             {PENDING.map((e, i) => (
@@ -88,7 +81,6 @@ export default async function CostsPage() {
                   type="button"
                   className={
                     'w-full text-left px-4 md:px-5 py-3.5 md:py-3 active:bg-surface-2 md:hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors ' +
-                    /* Active highlight only on desktop (mobile navigates away) */
                     (i === 0 ? 'md:bg-surface md:border-l-2 md:border-l-accent' : 'md:border-l-2 md:border-l-transparent')
                   }
                 >
@@ -101,13 +93,13 @@ export default async function CostsPage() {
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="text-sm font-semibold text-text truncate">{EXPENSE_LABEL[e.type]} · {e.vehicle}</div>
+                        <div className="text-sm font-semibold text-text truncate">{tType(e.type)} · {e.vehicle}</div>
                         <div className="text-sm font-bold text-text tabular shrink-0">{e.amountFmt}</div>
                       </div>
                       <div className="text-xs text-text-faint truncate mt-0.5">{e.driver} · {e.when}</div>
                       {e.thresholdExceeded && (
                         <div className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-wide text-warning bg-warning-soft px-1.5 py-0.5 rounded">
-                          Threshold exceeded
+                          {t('thresholdExceeded')}
                         </div>
                       )}
                     </div>
@@ -118,17 +110,16 @@ export default async function CostsPage() {
           </ul>
         </aside>
 
-        {/* Detail pane — hidden on mobile (would compete with list). */}
         <section className="hidden md:block overflow-y-auto p-6 bg-bg">
           <div className="max-w-2xl mx-auto space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="font-mono text-xs text-text-muted tabular">EXP-{selected.id.slice(2).toUpperCase()}</div>
-                <h2 className="text-xl font-semibold text-text mt-0.5">{EXPENSE_LABEL[selected.type]} · {selected.vehicle}</h2>
-                <p className="mt-1 text-sm text-text-muted">Submitted by <span className="font-medium text-text">{selected.driver}</span> · {selected.when}</p>
+                <h2 className="text-xl font-semibold text-text mt-0.5">{tType(selected.type)} · {selected.vehicle}</h2>
+                <p className="mt-1 text-sm text-text-muted">{t('submittedBy')} <span className="font-medium text-text">{selected.driver}</span> · {selected.when}</p>
               </div>
               <div className="text-right">
-                <div className="text-xs text-text-muted">Amount</div>
+                <div className="text-xs text-text-muted">{t('fAmount')}</div>
                 <div className="text-3xl font-bold text-text tabular leading-none mt-1">{selected.amountFmt}</div>
               </div>
             </div>
@@ -136,12 +127,12 @@ export default async function CostsPage() {
             <Card>
               <CardContent>
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                  <DField label="Type" value={EXPENSE_LABEL[selected.type]} />
-                  <DField label="Linked trip" value={selected.trip ?? '—'} />
-                  <DField label="Vehicle" value={selected.vehicle} mono />
-                  <DField label="Driver" value={selected.driver} />
-                  <DField label="Auto-approve threshold" value="1,000,000₫" />
-                  <DField label="Status" value={<Badge tone="warning" size="sm">Pending</Badge>} />
+                  <DField label={t('fType')} value={tType(selected.type)} />
+                  <DField label={t('fLinkedTrip')} value={selected.trip ?? '—'} />
+                  <DField label={t('fVehicle')} value={selected.vehicle} mono />
+                  <DField label={t('fDriver')} value={selected.driver} />
+                  <DField label={t('fThreshold')} value="1,000,000₫" />
+                  <DField label={t('fStatus')} value={<Badge tone="warning" size="sm">{t('fPending')}</Badge>} />
                 </dl>
               </CardContent>
             </Card>
@@ -149,7 +140,7 @@ export default async function CostsPage() {
             <Card>
               <CardHeader>
                 <CardHeaderText>
-                  <CardTitle>Receipt</CardTitle>
+                  <CardTitle>{t('receiptTitle')}</CardTitle>
                 </CardHeaderText>
               </CardHeader>
               <CardContent>
@@ -158,16 +149,16 @@ export default async function CostsPage() {
                     <Receipt className="h-6 w-6" />
                   </div>
                   <div className="aspect-[3/4] rounded border border-border bg-surface-2 flex items-center justify-center text-text-faint text-xs">
-                    + Receipt 2
+                    {t('receipt2')}
                   </div>
                 </div>
-                <p className="mt-3 text-xs text-text-faint">Attachments stored in S3 (NFR-11). Click to enlarge.</p>
+                <p className="mt-3 text-xs text-text-faint">{t('receiptNote')}</p>
               </CardContent>
             </Card>
 
             <div className="sticky bottom-0 -mx-6 px-6 py-4 bg-bg/90 backdrop-blur border-t border-border">
               <div className="flex items-center justify-end gap-2">
-                <Button variant="ghost" size="lg">Request changes</Button>
+                <Button variant="ghost" size="lg">{t('requestChanges')}</Button>
                 <Button variant="danger" size="lg" iconLeft={<X />}>{tA('reject')}</Button>
                 <Button variant="accent" size="lg" iconLeft={<Check />}>{tA('approve')}</Button>
               </div>

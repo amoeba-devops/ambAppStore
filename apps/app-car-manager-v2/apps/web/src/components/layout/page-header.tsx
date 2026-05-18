@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import { ChevronLeft } from 'lucide-react';
 import { cn } from '@car-v2/ui';
 import { Breadcrumbs, type BreadcrumbItem } from './breadcrumbs';
@@ -20,7 +21,7 @@ interface PageHeaderProps {
   className?: string;
 }
 
-export function PageHeader({
+export async function PageHeader({
   title,
   subtitle,
   breadcrumbs,
@@ -30,6 +31,7 @@ export function PageHeader({
   density = 'comfortable',
   className,
 }: PageHeaderProps) {
+  const tL = await getTranslations('layout');
   return (
     <header
       className={cn(
@@ -40,7 +42,7 @@ export function PageHeader({
     >
       {/* ── Mobile app bar (< md) ───────────────────────────────────────── */}
       <div className="md:hidden flex items-center gap-2 h-14 px-2">
-        {back ? <BackButton href={back} /> : <span className="w-10" aria-hidden />}
+        {back ? <BackButton href={back} ariaLabel={tL('back')} /> : <span className="w-10" aria-hidden />}
         <div className="flex-1 min-w-0 text-center">
           <h1 className="text-md font-semibold text-text leading-tight truncate">{title}</h1>
           {subtitle && <p className="text-[11px] text-text-muted truncate leading-tight">{subtitle}</p>}
@@ -74,11 +76,11 @@ export function PageHeader({
   );
 }
 
-function BackButton({ href }: { href: string }) {
+function BackButton({ href, ariaLabel }: { href: string; ariaLabel: string }) {
   return (
     <Link
       href={href}
-      aria-label="Back"
+      aria-label={ariaLabel}
       className={
         'inline-flex items-center justify-center h-10 w-10 rounded-full -ml-1 text-text-muted ' +
         'hover:bg-surface-2 hover:text-text active:bg-surface-2/80 ' +

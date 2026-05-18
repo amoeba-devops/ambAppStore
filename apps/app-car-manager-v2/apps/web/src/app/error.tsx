@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { AlertOctagon, RotateCcw } from 'lucide-react';
 import { Button, Card, CardContent } from '@car-v2/ui';
@@ -9,6 +10,7 @@ import { Button, Card, CardContent } from '@car-v2/ui';
  * re-renders the segment. We avoid logging full stack on the page itself
  * (already streamed to Render logs). */
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  const t = useTranslations('errors');
   useEffect(() => {
     // Surface to dev console so engineers see it locally; in prod this also
     // shows up in the Render service logs.
@@ -24,23 +26,23 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
             <div className="h-14 w-14 rounded-full bg-danger-soft text-danger flex items-center justify-center mb-5">
               <AlertOctagon className="h-6 w-6" />
             </div>
-            <h1 className="text-xl font-semibold text-text">Something went wrong</h1>
+            <h1 className="text-xl font-semibold text-text">{t('title')}</h1>
             <p className="mt-2 text-sm text-text-muted leading-relaxed max-w-xs">
-              We hit an unexpected error while loading this page. The team has been notified.
+              {t('desc')}
             </p>
 
             {error.digest && (
               <code className="mt-4 inline-flex items-center font-mono text-[11px] tabular bg-surface-2 text-text-muted px-2 py-1 rounded">
-                Error ref: {error.digest}
+                {t('ref')} {error.digest}
               </code>
             )}
 
             <div className="mt-6 flex gap-2 w-full">
               <Button variant="secondary" size="lg" className="flex-1" asChild>
-                <Link href="/">Go home</Link>
+                <Link href="/">{t('goHome')}</Link>
               </Button>
               <Button variant="accent" size="lg" className="flex-1" iconLeft={<RotateCcw />} onClick={reset}>
-                Try again
+                {t('tryAgain')}
               </Button>
             </div>
           </div>

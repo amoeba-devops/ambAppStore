@@ -1,4 +1,4 @@
-﻿import { getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -31,15 +31,6 @@ import { listAudit } from '@/server/queries/audit.queries';
 import { listTrips, listTodayTrips } from '@/server/queries/trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 
-/* Spend data is sample until P2 (Expense) lands. */
-const SPEND_MIX = [
-  { name: 'Fuel',     amount: '6.2M₫', pct: 42, color: chartColors[0] },
-  { name: 'Repair',   amount: '4.1M₫', pct: 28, color: chartColors[1] },
-  { name: 'Meal',     amount: '2.1M₫', pct: 14, color: chartColors[2] },
-  { name: 'Oil',      amount: '1.3M₫', pct:  9, color: chartColors[3] },
-  { name: 'Accident', amount: '1.0M₫', pct:  7, color: chartColors[4] },
-];
-
 const STACKED = Array.from({ length: 8 }, (_, i) => ({
   week: `W${i + 1}`,
   Fuel:   1.2 + Math.sin(i / 1.4) * 0.6 + i * 0.18,
@@ -53,12 +44,6 @@ const VEHICLE_STATUS_TONE: Record<CarVehicleStatus, 'success' | 'info' | 'warnin
   IN_USE: 'info',
   MAINTENANCE: 'warning',
   RETIRED: 'neutral',
-};
-const VEHICLE_STATUS_LABEL: Record<CarVehicleStatus, string> = {
-  AVAILABLE: 'Available',
-  IN_USE: 'In progress',
-  MAINTENANCE: 'Maintenance',
-  RETIRED: 'Retired',
 };
 
 const TRIP_STATUS_TONE: Record<CarTripStatus, 'accent' | 'warning' | 'success' | 'info' | 'neutral' | 'danger'> = {
@@ -74,10 +59,14 @@ const TRIP_STATUS_TONE: Record<CarTripStatus, 'accent' | 'warning' | 'success' |
 const TIME_FMT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
 
 export default async function DashboardPage() {
-  const t    = await getTranslations('screens.dashboardA');
-  const tNav = await getTranslations('nav');
-  const tCo  = await getTranslations('company');
-  const tAct = await getTranslations('actions');
+  const t        = await getTranslations('screens.dashboardA');
+  const tNav     = await getTranslations('nav');
+  const tCo      = await getTranslations('company');
+  const tAct     = await getTranslations('actions');
+  const tD       = await getTranslations('dashboard');
+  const tVStatus = await getTranslations('vehicles.status');
+  const tTStatus = await getTranslations('trips.status');
+  const tCat     = await getTranslations('reports.categories');
   const user = await getCurrentUser();
 
   const [vehicles, todayTrips, allTrips, recentAudit] = await Promise.all([
@@ -94,6 +83,14 @@ export default async function DashboardPage() {
   const utilizationPct = vehicles.length === 0
     ? 0
     : Math.round((inUseVehicles / vehicles.length) * 100);
+
+  const SPEND_MIX = [
+    { key: 'Fuel',     name: tCat('Fuel'),     amount: '6.2M₫', pct: 42, color: chartColors[0] },
+    { key: 'Repair',   name: tCat('Repair'),   amount: '4.1M₫', pct: 28, color: chartColors[1] },
+    { key: 'Meal',     name: tCat('Meal'),     amount: '2.1M₫', pct: 14, color: chartColors[2] },
+    { key: 'Oil',      name: tCat('Oil'),      amount: '1.3M₫', pct:  9, color: chartColors[3] },
+    { key: 'Accident', name: tCat('Accident'), amount: '1.0M₫', pct:  7, color: chartColors[4] },
+  ];
 
   return (
     <>
@@ -122,23 +119,23 @@ export default async function DashboardPage() {
             trailing={<div className="w-24"><Sparkline data={[3, 5, 4, 6, 5, 7, 8, 4, 6, todayTrips.length]} /></div>}
           />
           <KpiCard
-            label="Pending review"
+            label={tD('pendingReview')}
             value={String(pending)}
-            delta={pending === 0 ? 'No backlog' : 'Action needed'}
+            delta={pending === 0 ? tD('noBacklog') : tD('actionNeeded')}
             deltaKind={pending === 0 ? 'flat' : 'down'}
             trailing={<div className="w-24"><Sparkline data={[1, 2, 1, 3, 2, 2, 4, 3, 4, pending]} color={chartColors[2]} /></div>}
           />
           <KpiCard
-            label="Vehicles in use"
+            label={tD('vehiclesInUse')}
             value={`${inUseVehicles} / ${vehicles.length}`}
-            delta={`${vehicles.length - inUseVehicles - vehicles.filter((v) => v.cvhStatus === 'MAINTENANCE').length} available`}
+            delta={`${vehicles.length - inUseVehicles - vehicles.filter((v) => v.cvhStatus === 'MAINTENANCE').length} ${tD('available')}`}
             deltaKind="flat"
             trailing={<div className="w-24"><Sparkline data={[1, 1, 2, 2, 1, 2, 3, 2, 1, inUseVehicles]} color={chartColors[1]} /></div>}
           />
           <KpiCard
-            label="Fleet utilisation"
+            label={t('kUtil')}
             value={`${utilizationPct}%`}
-            delta="Live"
+            delta={tD('live')}
             deltaKind="up"
             trailing={<div className="w-24"><Sparkline data={[40, 55, 52, 60, 68, 65, 72, 70, 73, utilizationPct]} color="hsl(var(--success))" /></div>}
           />
@@ -158,10 +155,10 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               {vehicles.length === 0 ? (
-                <p className="text-sm text-text-muted">No vehicles yet.</p>
+                <p className="text-sm text-text-muted">{tD('noVehicles')}</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {vehicles.slice(0, 3).map((v) => <FleetCard key={v.cvhId} v={v} />)}
+                  {vehicles.slice(0, 3).map((v) => <FleetCard key={v.cvhId} v={v} statusLabel={tVStatus(v.cvhStatus)} noBaseLabel={tD('noBase')} />)}
                 </div>
               )}
             </CardContent>
@@ -171,7 +168,7 @@ export default async function DashboardPage() {
             <CardHeader>
               <CardHeaderText>
                 <CardTitle>{t('spendTitle')}</CardTitle>
-                <CardDescription>P2 — sample data</CardDescription>
+                <CardDescription>{tD('spendSampleNote')}</CardDescription>
               </CardHeaderText>
             </CardHeader>
             <CardContent>
@@ -185,7 +182,7 @@ export default async function DashboardPage() {
                 />
                 <ul className="flex-1 space-y-1.5 text-sm">
                   {SPEND_MIX.map((s) => (
-                    <li key={s.name} className="flex items-center gap-2.5">
+                    <li key={s.key} className="flex items-center gap-2.5">
                       <span className="h-2 w-2 rounded-full" style={{ background: s.color }} aria-hidden />
                       <span className="flex-1 text-text font-medium">{s.name}</span>
                       <span className="text-text-muted tabular">{s.amount}</span>
@@ -202,8 +199,8 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader>
               <CardHeaderText>
-                <CardTitle>Today&apos;s schedule</CardTitle>
-                <CardDescription>{todayTrips.length} trip{todayTrips.length === 1 ? '' : 's'} scheduled today</CardDescription>
+                <CardTitle>{tD('todaySchedule')}</CardTitle>
+                <CardDescription>{tD('tripsToday', { count: todayTrips.length })}</CardDescription>
               </CardHeaderText>
               <Button variant="ghost" size="sm" iconRight={<ArrowRight />} asChild>
                 <Link href="/trips">{t('viewAll')}</Link>
@@ -211,7 +208,7 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent padded={false}>
               {todayTrips.length === 0 ? (
-                <div className="p-6 text-center text-sm text-text-muted">No trips today.</div>
+                <div className="p-6 text-center text-sm text-text-muted">{tD('noTripsToday')}</div>
               ) : (
                 <ul className="divide-y divide-border">
                   {todayTrips.slice(0, 5).map((trip) => (
@@ -222,7 +219,7 @@ export default async function DashboardPage() {
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-xs text-text-faint tabular">{trip.trpRef}</span>
                             <Badge tone={TRIP_STATUS_TONE[trip.trpStatus]} size="sm">
-                              {VEHICLE_STATUS_LABEL[trip.trpStatus as never] ?? trip.trpStatus}
+                              {tTStatus(trip.trpStatus)}
                             </Badge>
                           </div>
                           <div className="text-sm text-text font-medium truncate">{trip.passengerName ?? '—'}</div>
@@ -244,13 +241,13 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader>
               <CardHeaderText>
-                <CardTitle>Recent activity</CardTitle>
-                <CardDescription>Last {recentAudit.length} events</CardDescription>
+                <CardTitle>{tD('recentActivity')}</CardTitle>
+                <CardDescription>{tD('lastEvents', { count: recentAudit.length })}</CardDescription>
               </CardHeaderText>
             </CardHeader>
             <CardContent padded={false}>
               {recentAudit.length === 0 ? (
-                <div className="p-6 text-center text-sm text-text-muted">No activity yet.</div>
+                <div className="p-6 text-center text-sm text-text-muted">{tD('noActivity')}</div>
               ) : (
                 <ul className="divide-y divide-border">
                   {recentAudit.map((row) => (
@@ -277,8 +274,8 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader>
             <CardHeaderText>
-              <CardTitle>Spend by category · last 8 weeks</CardTitle>
-              <CardDescription>P2 — sample data</CardDescription>
+              <CardTitle>{tD('spendByCategory')}</CardTitle>
+              <CardDescription>{tD('spendSampleNote')}</CardDescription>
             </CardHeaderText>
           </CardHeader>
           <CardContent>
@@ -286,10 +283,10 @@ export default async function DashboardPage() {
               data={STACKED}
               xKey="week"
               series={[
-                { key: 'Fuel',   name: 'Fuel',   color: chartColors[0] },
-                { key: 'Repair', name: 'Repair', color: chartColors[1] },
-                { key: 'Meal',   name: 'Meal',   color: chartColors[2] },
-                { key: 'Oil',    name: 'Oil',    color: chartColors[3] },
+                { key: 'Fuel',   name: tCat('Fuel'),   color: chartColors[0] },
+                { key: 'Repair', name: tCat('Repair'), color: chartColors[1] },
+                { key: 'Meal',   name: tCat('Meal'),   color: chartColors[2] },
+                { key: 'Oil',    name: tCat('Oil'),    color: chartColors[3] },
               ]}
               height={220}
               valueSuffix="M"
@@ -302,7 +299,7 @@ export default async function DashboardPage() {
   );
 }
 
-function FleetCard({ v }: { v: CarVehicle }) {
+function FleetCard({ v, statusLabel, noBaseLabel }: { v: CarVehicle; statusLabel: string; noBaseLabel: string }) {
   return (
     <Link
       href={`/vehicles/${v.cvhId}`}
@@ -314,7 +311,7 @@ function FleetCard({ v }: { v: CarVehicle }) {
           <span className="font-mono text-[12px] text-text font-semibold tracking-tight">{v.cvhPlateNumber}</span>
         </div>
         <Badge tone={VEHICLE_STATUS_TONE[v.cvhStatus]} size="sm">
-          {VEHICLE_STATUS_LABEL[v.cvhStatus]}
+          {statusLabel}
         </Badge>
       </div>
       <div className="mt-2 text-sm font-semibold text-text leading-tight truncate">{v.cvhModel}</div>
@@ -322,7 +319,7 @@ function FleetCard({ v }: { v: CarVehicle }) {
       <div className="mt-3 flex items-center gap-2 text-xs text-text-muted border-t border-border pt-2.5">
         <Clock className="h-3.5 w-3.5 shrink-0" />
         <span className="truncate">
-          {v.cvhHomeBase ?? 'No base set'}
+          {v.cvhHomeBase ?? noBaseLabel}
         </span>
       </div>
     </Link>

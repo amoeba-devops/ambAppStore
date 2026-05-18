@@ -11,18 +11,19 @@ export default async function NewVehiclePage() {
   const tA   = await getTranslations('actions');
   const tNav = await getTranslations('nav');
   const tCo  = await getTranslations('company');
+  const tScr = await getTranslations('screens.newVehicle');
   const user = await getCurrentUser();
   if (user.role !== 'ADMIN') redirect('/vehicles');
 
   return (
     <>
       <PageHeader
-        title="Add vehicle"
-        subtitle="Register a new vehicle in the fleet"
+        title={tScr('title')}
+        subtitle={tScr('subtitle')}
         breadcrumbs={[
           { label: tCo('tenant') },
           { label: tNav('vehicles'), href: '/vehicles' },
-          { label: 'New' },
+          { label: tA('new') },
         ]}
         back="/vehicles"
         actions={

@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import { Loader2, MapPin, Plus, Save, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { Loader2, Plus, Save, X } from 'lucide-react';
 import {
   Button,
   Card,
@@ -23,7 +24,29 @@ import {
   Textarea,
   toast,
 } from '@car-v2/ui';
+import { AddressAutocomplete } from '@/components/inputs/address-autocomplete';
+import { MapPreview } from '@/components/inputs/map-preview';
+import { useTripConflicts } from '@/hooks/use-trip-conflicts';
+import { toMinutes, type DurationUnit } from '@/lib/duration';
+import type { ConflictResult } from '@/server/services/trip-conflict.service';
 import { createTripAction } from '@/server/actions/trips/trip.actions';
+import { TripConflictBanner } from '../_components/trip-conflict-banner';
+
+/** Inline equivalent of server-only `collectConflictIds` — pure utility. */
+function flattenConflictIds(c: ConflictResult | null): string[] {
+  if (!c) return [];
+  const set = new Set<string>();
+  for (const x of c.vehicle) set.add(x.trpId);
+  for (const x of c.driver) set.add(x.trpId);
+  return Array.from(set);
+}
+
+/** `datetime-local` input → ISO string. Empty string khi parse fail —
+ *  hook sẽ skip check khi thấy chuỗi rỗng. */
+function safeIsoOrEmpty(localValue: string): string {
+  const d = new Date(localValue);
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+}
 
 interface SelectOption {
   id: string;
@@ -38,6 +61,8 @@ interface NewTripFormProps {
 }
 
 export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: NewTripFormProps) {
+  const t  = useTranslations('trips.form');
+  const tA = useTranslations('actions');
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -45,12 +70,26 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
   const [pickup, setPickup] = useState('');
   const [dropoff, setDropoff] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
-  const [durationStr, setDurationStr] = useState('');
+  const [durationValue, setDurationValue] = useState<string>('');
+  const [durationUnit, setDurationUnit] = useState<DurationUnit>('hours');
   const [purpose, setPurpose] = useState('');
   const [notes, setNotes] = useState('');
   const [driverId, setDriverId] = useState<string>('');
   const [vehicleId, setVehicleId] = useState<string>('');
   const [stopovers, setStopovers] = useState<string[]>([]);
+  /* Per-field error flags. Set on failed submit, cleared as user types. */
+  const [fieldErrors, setFieldErrors] = useState<{ pickup?: boolean; dropoff?: boolean; scheduledAt?: boolean; driver?: boolean; vehicle?: boolean }>({});
+
+  /* PRD R-1/R-2 R3 — debounced conflict check. Chỉ active khi có đủ
+   * (driver | vehicle) + scheduledAt. Banner hiện trong card Assignment. */
+  const scheduledIso = scheduledAt ? safeIsoOrEmpty(scheduledAt) : '';
+  const durationMinutes = toMinutes(durationValue, durationUnit) ?? null;
+  const { conflicts, loading: conflictsLoading } = useTripConflicts({
+    vehicleId: vehicleId || null,
+    driverId: driverId || null,
+    scheduledAtIso: scheduledIso,
+    durationMinutes,
+  });
 
   const addStopover = () => {
     if (stopovers.length >= 10) return;
@@ -62,35 +101,45 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
     setStopovers((s) => s.map((v, idx) => (idx === i ? value : v)));
 
   const onSubmit = () => {
-    if (!pickup.trim() || !dropoff.trim() || !scheduledAt) {
-      toast.error('Missing required fields', { description: 'Pickup, drop-off and time are required.' });
+    const missing = {
+      pickup: !pickup.trim(),
+      dropoff: !dropoff.trim(),
+      scheduledAt: !scheduledAt,
+    };
+    if (missing.pickup || missing.dropoff || missing.scheduledAt) {
+      setFieldErrors((prev) => ({ ...prev, ...missing }));
+      toast.error(t('errMissing'), { description: t('errMissingDesc') });
       return;
     }
     /* Validate assignment is all-or-nothing on client to give early feedback. */
     if ((driverId && !vehicleId) || (!driverId && vehicleId)) {
-      toast.error('Incomplete assignment', { description: 'Pick both driver and vehicle, or neither.' });
+      setFieldErrors((prev) => ({ ...prev, driver: !driverId, vehicle: !vehicleId }));
+      toast.error(t('errIncomplete'), { description: t('errIncompleteDesc') });
       return;
     }
+    setFieldErrors({});
 
     startTransition(async () => {
-      const scheduledIso = new Date(scheduledAt).toISOString();
+      const scheduledIsoSubmit = new Date(scheduledAt).toISOString();
+      const acknowledged = flattenConflictIds(conflicts);
       const result = await createTripAction({
         passenger_id: passengerId || undefined,
         pickup_address: pickup.trim(),
         dropoff_address: dropoff.trim(),
-        scheduled_at: scheduledIso,
-        duration_minutes: durationStr ? Number(durationStr) : undefined,
+        scheduled_at: scheduledIsoSubmit,
+        duration_minutes: toMinutes(durationValue, durationUnit),
         purpose: purpose.trim() || undefined,
         notes: notes.trim() || undefined,
         driver_id: driverId || undefined,
         vehicle_id: vehicleId || undefined,
         stopovers: stopovers.filter((s) => s.trim()).map((s) => s.trim()),
+        acknowledged_conflicts: acknowledged.length > 0 ? acknowledged : undefined,
       });
       if (result.success) {
-        toast.success('Trip created', { description: result.data.trpRef });
+        toast.success(t('tCreated'), { description: result.data.trpRef });
         router.push(`/trips/${result.data.trpId}`);
       } else {
-        toast.error('Could not create trip', {
+        toast.error(t('errCreate'), {
           description: `${result.error.code} — ${result.error.message}`,
         });
       }
@@ -104,21 +153,21 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
         e.preventDefault();
         onSubmit();
       }}
-      aria-label="Create new trip"
+      aria-label={t('createAria')}
     >
       {/* Trip basics */}
       <Card>
         <CardHeader>
           <CardHeaderText>
-            <CardTitle>Trip details</CardTitle>
-            <CardDescription>Who is travelling and why.</CardDescription>
+            <CardTitle>{t('sectionDetails')}</CardTitle>
+            <CardDescription>{t('sectionDetailsDesc')}</CardDescription>
           </CardHeaderText>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Passenger">
+            <FormField label={t('passenger')}>
               <Select value={passengerId} onValueChange={setPassengerId}>
-                <SelectTrigger><SelectValue placeholder="Select passenger" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('passengerPlaceholder')} /></SelectTrigger>
                 <SelectContent>
                   {passengers.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
@@ -126,19 +175,19 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
                 </SelectContent>
               </Select>
             </FormField>
-            <FormField label="Purpose" hint="Short description, used by approvers.">
+            <FormField label={t('purpose')} hint={t('purposeHint')}>
               <Input
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
-                placeholder="e.g. Airport pickup for HQ delegation"
+                placeholder={t('purposePlaceholder')}
                 maxLength={255}
               />
             </FormField>
-            <FormField label="Notes" className="md:col-span-2">
+            <FormField label={t('notes')} className="md:col-span-2">
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Optional context, special requirements, etc."
+                placeholder={t('notesPlaceholder')}
                 rows={3}
                 maxLength={2000}
               />
@@ -151,69 +200,90 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
       <Card>
         <CardHeader>
           <CardHeaderText>
-            <CardTitle>Schedule &amp; route</CardTitle>
-            <CardDescription>Pickup, drop-off and timing.</CardDescription>
+            <CardTitle>{t('sectionSchedule')}</CardTitle>
+            <CardDescription>{t('sectionScheduleDesc')}</CardDescription>
           </CardHeaderText>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Pickup address" required className="md:col-span-2">
-              <Input
+            <FormField label={t('pickup')} required error={fieldErrors.pickup} className="md:col-span-2">
+              <AddressAutocomplete
                 value={pickup}
-                onChange={(e) => setPickup(e.target.value)}
-                iconLeft={<MapPin />}
-                placeholder="Building, street, district…"
+                onChange={(val) => {
+                  setPickup(val);
+                  if (fieldErrors.pickup && val.trim()) setFieldErrors((p) => ({ ...p, pickup: false }));
+                }}
+                error={fieldErrors.pickup}
+                placeholder={t('pickupPlaceholder')}
                 maxLength={2000}
               />
             </FormField>
-            <FormField label="Drop-off address" required className="md:col-span-2">
-              <Input
+            <FormField label={t('dropoff')} required error={fieldErrors.dropoff} className="md:col-span-2">
+              <AddressAutocomplete
                 value={dropoff}
-                onChange={(e) => setDropoff(e.target.value)}
-                iconLeft={<MapPin />}
-                placeholder="Building, street, district…"
+                onChange={(val) => {
+                  setDropoff(val);
+                  if (fieldErrors.dropoff && val.trim()) setFieldErrors((p) => ({ ...p, dropoff: false }));
+                }}
+                error={fieldErrors.dropoff}
+                placeholder={t('dropoffPlaceholder')}
                 maxLength={2000}
               />
             </FormField>
-            <FormField label="Pickup date & time" required hint="Rounded to 15-minute steps.">
+            <FormField label={t('scheduledAt')} required error={fieldErrors.scheduledAt} hint={t('scheduledAtHint')}>
               <Input
                 type="datetime-local"
                 step={900}
                 value={scheduledAt}
-                onChange={(e) => setScheduledAt(e.target.value)}
+                onChange={(e) => {
+                  setScheduledAt(e.target.value);
+                  if (fieldErrors.scheduledAt && e.target.value) setFieldErrors((p) => ({ ...p, scheduledAt: false }));
+                }}
+                error={fieldErrors.scheduledAt}
               />
             </FormField>
-            <FormField label="Expected duration">
-              <Select value={durationStr} onValueChange={setDurationStr}>
-                <SelectTrigger><SelectValue placeholder="Select duration" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="30">30 minutes</SelectItem>
-                  <SelectItem value="60">1 hour</SelectItem>
-                  <SelectItem value="120">2 hours</SelectItem>
-                  <SelectItem value="240">Half day (4h)</SelectItem>
-                  <SelectItem value="480">Full day (8h)</SelectItem>
-                </SelectContent>
-              </Select>
+            <FormField label={t('duration')}>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  value={durationValue}
+                  onChange={(e) => setDurationValue(e.target.value)}
+                  placeholder={t('durationValuePlaceholder')}
+                  className="w-24 shrink-0"
+                />
+                <Select value={durationUnit} onValueChange={(v) => setDurationUnit(v as DurationUnit)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="minutes">{t('unitMinutes')}</SelectItem>
+                    <SelectItem value="hours">{t('unitHours')}</SelectItem>
+                    <SelectItem value="days">{t('unitDays')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </FormField>
           </div>
 
           <Separator className="my-5" />
 
           <div>
-            <div className="text-xs font-medium text-text-muted mb-2">Stopovers ({stopovers.length}/10)</div>
+            <div className="text-xs font-medium text-text-muted mb-2">{t('stopoversLabel', { count: stopovers.length })}</div>
             {stopovers.length === 0 && (
-              <div className="text-xs text-text-faint mb-2">Add stops along the route — up to 10.</div>
+              <div className="text-xs text-text-faint mb-2">{t('stopoversHint')}</div>
             )}
             <ul className="space-y-2">
               {stopovers.map((s, i) => (
                 <li key={i} className="flex items-center gap-2">
-                  <Input
-                    value={s}
-                    onChange={(e) => updateStopover(i, e.target.value)}
-                    placeholder={`Stop ${i + 1}`}
-                    iconLeft={<MapPin />}
-                  />
-                  <Button type="button" variant="ghost" size="icon" aria-label="Remove" onClick={() => removeStopover(i)}>
+                  <div className="flex-1">
+                    <AddressAutocomplete
+                      value={s}
+                      onChange={(val) => updateStopover(i, val)}
+                      placeholder={t('stopPlaceholder', { n: i + 1 })}
+                      maxLength={2000}
+                    />
+                  </div>
+                  <Button type="button" variant="ghost" size="icon" aria-label={t('removeStopAria')} onClick={() => removeStopover(i)}>
                     <X />
                   </Button>
                 </li>
@@ -221,10 +291,12 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
             </ul>
             {stopovers.length < 10 && (
               <Button type="button" variant="ghost" size="sm" iconLeft={<Plus />} onClick={addStopover} className="mt-2">
-                Add stopover
+                {t('addStop')}
               </Button>
             )}
           </div>
+
+          <MapPreview pickup={pickup} dropoff={dropoff} stopovers={stopovers} />
         </CardContent>
       </Card>
 
@@ -232,15 +304,21 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
       <Card>
         <CardHeader>
           <CardHeaderText>
-            <CardTitle>Assignment</CardTitle>
-            <CardDescription>Optional — leave blank for Admin to assign later.</CardDescription>
+            <CardTitle>{t('sectionAssignment')}</CardTitle>
+            <CardDescription>{t('sectionAssignmentDesc')}</CardDescription>
           </CardHeaderText>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Driver">
-              <Select value={driverId} onValueChange={setDriverId}>
-                <SelectTrigger><SelectValue placeholder="Leave for Admin to assign" /></SelectTrigger>
+            <FormField label={t('driver')} error={fieldErrors.driver}>
+              <Select
+                value={driverId}
+                onValueChange={(v) => {
+                  setDriverId(v);
+                  if (fieldErrors.driver && v) setFieldErrors((p) => ({ ...p, driver: false }));
+                }}
+              >
+                <SelectTrigger error={fieldErrors.driver}><SelectValue placeholder={t('driverPlaceholder')} /></SelectTrigger>
                 <SelectContent>
                   {drivers.map((d) => (
                     <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>
@@ -248,9 +326,15 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
                 </SelectContent>
               </Select>
             </FormField>
-            <FormField label="Vehicle">
-              <Select value={vehicleId} onValueChange={setVehicleId}>
-                <SelectTrigger><SelectValue placeholder="Leave for Admin to assign" /></SelectTrigger>
+            <FormField label={t('vehicle')} error={fieldErrors.vehicle}>
+              <Select
+                value={vehicleId}
+                onValueChange={(v) => {
+                  setVehicleId(v);
+                  if (fieldErrors.vehicle && v) setFieldErrors((p) => ({ ...p, vehicle: false }));
+                }}
+              >
+                <SelectTrigger error={fieldErrors.vehicle}><SelectValue placeholder={t('vehiclePlaceholder')} /></SelectTrigger>
                 <SelectContent>
                   {vehicles.map((v) => (
                     <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
@@ -259,6 +343,11 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
               </Select>
             </FormField>
           </div>
+          <TripConflictBanner
+            conflicts={conflicts}
+            loading={conflictsLoading}
+            className="mt-4"
+          />
         </CardContent>
       </Card>
 
@@ -266,11 +355,11 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
       <div className="md:flex md:justify-end md:gap-2 md:pt-2 md:static md:bg-transparent md:px-0 md:py-0 md:border-t-0
         sticky bottom-0 -mx-4 px-4 py-3 bg-bg/95 backdrop-blur border-t border-border flex gap-2">
         <Button type="button" variant="secondary" size="lg" className="flex-1 md:flex-initial" asChild>
-          <Link href="/trips">Cancel</Link>
+          <Link href="/trips">{tA('cancel')}</Link>
         </Button>
         <Button type="submit" variant="accent" size="lg" className="flex-1 md:flex-initial" disabled={pending}
           iconLeft={pending ? <Loader2 className="animate-spin" /> : <Save />}>
-          {pending ? 'Creating…' : 'Create trip'}
+          {pending ? t('submitCreating') : t('submitCreate')}
         </Button>
       </div>
     </form>
@@ -280,17 +369,18 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
 interface FormFieldProps {
   label: string;
   required?: boolean;
+  error?: boolean;
   hint?: string;
   className?: string;
   children: React.ReactNode;
 }
 
-function FormField({ label, required, hint, className, children }: FormFieldProps) {
+function FormField({ label, required, error, hint, className, children }: FormFieldProps) {
   return (
     <div className={className}>
-      <Label className="mb-1.5 block" required={required}>{label}</Label>
+      <Label className={'mb-1.5 block ' + (error ? 'text-danger' : '')} required={required}>{label}</Label>
       {children}
-      {hint && <div className="text-xs text-text-faint mt-1">{hint}</div>}
+      {hint && !error && <div className="text-xs text-text-faint mt-1">{hint}</div>}
     </div>
   );
 }
