@@ -24,8 +24,14 @@ services:
     build:
       context: .
       args:
-        # BASE_PATH is inlined into JS bundle at build time; rebuild on change
+        # All NEXT_PUBLIC_* vars are inlined into JS bundle at build time —
+        # they MUST be present here, not just in env_file (which is runtime-only
+        # and won't reach client-side code). Rebuild image whenever they change.
         BASE_PATH: /app-car-manager-v2
+        NEXT_PUBLIC_APP_CODE: ${NEXT_PUBLIC_APP_CODE}
+        NEXT_PUBLIC_DEFAULT_LOCALE: ${NEXT_PUBLIC_DEFAULT_LOCALE}
+        NEXT_PUBLIC_AMA_ORIGIN: ${NEXT_PUBLIC_AMA_ORIGIN}
+        NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY}
     container_name: next-car-manager-v2
     ports:
       - "3105:3001"
