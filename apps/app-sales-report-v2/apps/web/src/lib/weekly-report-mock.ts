@@ -439,6 +439,19 @@ export function getAvailableWeeks(): WeekEntry[] {
 
 const MS_PER_DAY = 86_400_000;
 
+/** Week containing today (Fri→Thu). Falls back to the latest week if today is outside the generated range. */
+export function findCurrentWeekNum(weeks: WeekEntry[]): number {
+  const now = Date.now();
+  const found = weeks.find((w) => now >= w.startMs && now < w.endMs + MS_PER_DAY);
+  return found?.weekNum ?? weeks[weeks.length - 1]!.weekNum;
+}
+
+/** Index of the week containing today, or `-1` if none. */
+export function findCurrentWeekIdx(weeks: WeekEntry[]): number {
+  const now = Date.now();
+  return weeks.findIndex((w) => now >= w.startMs && now < w.endMs + MS_PER_DAY);
+}
+
 /** Friday on/before Jan 1 of `year` — anchor for W1. */
 function firstFridayAnchor(year: number): number {
   const jan1 = Date.UTC(year, 0, 1);

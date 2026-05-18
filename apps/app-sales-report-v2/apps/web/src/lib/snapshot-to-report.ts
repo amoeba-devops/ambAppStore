@@ -138,11 +138,16 @@ export function snapshotToWeeklyReport(
   ];
 
   const promo: BreakdownItem[] = [
-    { label: 'Affiliate Commission', vnd: affiliateCommission, pctGmv: pct(affiliateCommission), wowPct: null, invertWow: true },
-    { label: 'Livestream Fee', vnd: livestreamFee, pctGmv: pct(livestreamFee), wowPct: null, invertWow: true },
-    ...(channel === 'ALL'
-      ? [{ label: 'Affiliate Booking Fee', vnd: affiliateBookingFee, pctGmv: pct(affiliateBookingFee), wowPct: null, invertWow: true }]
+    { label: 'Total AD Spend', vnd: adSpending, pctGmv: pct(adSpending), wowPct: null, invertWow: true },
+    ...(useShopee
+      ? [
+          { label: 'Total Brand Ads', vnd: brandAds, pctGmv: pct(brandAds), wowPct: null, invertWow: true } as BreakdownItem,
+          { label: 'Total Off-Platform Ads', vnd: offPlatformAds, pctGmv: pct(offPlatformAds), wowPct: null, invertWow: true } as BreakdownItem,
+        ]
       : []),
+    { label: 'Total Affiliate Commission', vnd: affiliateCommission, pctGmv: pct(affiliateCommission), wowPct: null, invertWow: true },
+    { label: 'Total Affiliate Booking Fee', vnd: affiliateBookingFee, pctGmv: pct(affiliateBookingFee), wowPct: null, invertWow: true },
+    { label: 'Total Livestream Fee', vnd: livestreamFee, pctGmv: pct(livestreamFee), wowPct: null, invertWow: true },
   ];
 
   const traffic: BreakdownItem[] = [

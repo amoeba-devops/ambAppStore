@@ -1,17 +1,20 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Download, Banknote, TrendingUp, Percent, ChevronLeft, ChevronRight, Database, Cloud } from 'lucide-react';
+import { Download, Banknote, TrendingUp, Percent, Database, Cloud } from 'lucide-react';
 import { cn } from '@v2/ui';
 import {
   getWeeklyReport,
   getProductMetrics,
   getAvailableWeeks,
+  findCurrentWeekNum,
   type WeeklyChannel,
   type WeeklyReportData,
 } from '@/lib/weekly-report-mock';
 import { snapshotToWeeklyReport } from '@/lib/snapshot-to-report';
 import { loadSnapshotAction } from '@/server/actions/ingest.actions';
+import { useArchiveStatusByLabel } from '@/lib/raw-archive-state';
+import { WeekPicker } from '@/components/shared/WeekPicker';
 import { WeeklyOverviewTable } from './WeeklyOverviewTable';
 import { WeeklyProductBreakdownTable } from './WeeklyProductBreakdownTable';
 import { KpiCard } from './KpiCard';
@@ -29,7 +32,8 @@ const DEFAULT_KRW_RATE = 17543;
 
 export function WeeklyReportClient() {
   const weeks = useMemo(() => getAvailableWeeks(), []);
-  const [weekNum, setWeekNum] = useState(weeks[weeks.length - 2]?.weekNum ?? weeks[weeks.length - 1]!.weekNum);
+  const statusByLabel = useArchiveStatusByLabel();
+  const [weekNum, setWeekNum] = useState(() => findCurrentWeekNum(weeks));
   const [channel, setChannel] = useState<WeeklyChannel>('ALL');
   const [krwRate, setKrwRate] = useState(DEFAULT_KRW_RATE);
 
@@ -66,17 +70,6 @@ export function WeeklyReportClient() {
   const report = snapshotReport ?? mockReport;
   const isRealData = snapshotReport != null;
   const products = useMemo(() => getProductMetrics(weekNum, channel), [weekNum, channel]);
-
-  // Sliding 5-week window that keeps the selected week in view (centered when possible)
-  const WINDOW = 5;
-  const selectedIdx = weeks.findIndex((w) => w.weekNum === weekNum);
-  const windowStart = Math.max(0, Math.min(weeks.length - WINDOW, selectedIdx - 2));
-  const visibleWeeks = weeks.slice(windowStart, windowStart + WINDOW);
-
-  const canGoPrev = selectedIdx > 0;
-  const canGoNext = selectedIdx >= 0 && selectedIdx < weeks.length - 1;
-  const goPrev = () => canGoPrev && setWeekNum(weeks[selectedIdx - 1]!.weekNum);
-  const goNext = () => canGoNext && setWeekNum(weeks[selectedIdx + 1]!.weekNum);
 
   const currentWeekLabel = `W${weekNum}`;
 
@@ -151,80 +144,26 @@ export function WeeklyReportClient() {
         </span>
       </div>
 
-      <div className="inline-flex rounded-md border border-neutral-300 bg-white p-0.5 text-sm self-start">
-        {CHANNEL_OPTS.map((opt) => (
-          <button
-            key={opt.key}
-            type="button"
-            onClick={() => setChannel(opt.key)}
-            className={cn(
-              'rounded px-3 py-1.5 font-medium transition-colors',
-              channel === opt.key
-                ? 'bg-neutral-900 text-white'
-                : 'text-neutral-700 hover:bg-neutral-50',
-            )}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={goPrev}
-            disabled={!canGoPrev}
-            aria-label="Previous week"
-            className={cn(
-              'inline-flex h-12 w-9 items-center justify-center rounded-xl border transition-colors',
-              canGoPrev
-                ? 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
-                : 'border-neutral-200 bg-neutral-50 text-neutral-300 cursor-not-allowed',
-            )}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-
-          {visibleWeeks.map((w) => {
-            const active = w.weekNum === weekNum;
-            return (
-              <button
-                key={w.weekNum}
-                type="button"
-                onClick={() => setWeekNum(w.weekNum)}
-                className={cn(
-                  'flex w-32 flex-col items-center rounded-xl border px-3 py-1.5 text-sm font-medium transition-colors leading-tight',
-                  active
-                    ? 'border-info-500 bg-info-50 text-info-500'
-                    : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50',
-                )}
-              >
-                <span>{w.label}</span>
-                <span className={cn('text-[10px] font-normal', active ? 'text-info-500/80' : 'text-neutral-500')}>
-                  ({w.periodLabel})
-                </span>
-              </button>
-            );
-          })}
-
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={!canGoNext}
-            aria-label="Next week"
-            className={cn(
-              'inline-flex h-12 w-9 items-center justify-center rounded-xl border transition-colors',
-              canGoNext
-                ? 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
-                : 'border-neutral-200 bg-neutral-50 text-neutral-300 cursor-not-allowed',
-            )}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+        <div className="inline-flex rounded-md border border-neutral-300 bg-white p-0.5 text-sm">
+          {CHANNEL_OPTS.map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setChannel(opt.key)}
+              className={cn(
+                'rounded px-3 py-1.5 font-medium transition-colors',
+                channel === opt.key
+                  ? 'bg-neutral-900 text-white'
+                  : 'text-neutral-700 hover:bg-neutral-50',
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="inline-flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm">
             <span className="text-neutral-500">1 KRW =</span>
             <input
@@ -246,6 +185,19 @@ export function WeeklyReportClient() {
             Export
           </button>
         </div>
+      </div>
+
+      <div>
+        <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+          Pick the week
+        </div>
+        <WeekPicker
+          weeks={weeks}
+          selectedWeekNum={weekNum}
+          statusByLabel={statusByLabel}
+          allowClickLocked
+          onPickWeek={(w) => setWeekNum(w.weekNum)}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_1fr] lg:items-stretch">
@@ -297,10 +249,9 @@ export function WeeklyReportClient() {
         <BreakdownCard title="Promotional Breakdown" accent="orange" items={report.promo} krwRate={krwRate} />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <BreakdownCard title="Traffic" accent="pink" items={report.traffic} krwRate={krwRate} />
         <BreakdownCard title="Sales" accent="green" items={report.sales} krwRate={krwRate} />
-        <BreakdownCard title="Ads" accent="neutral" items={report.ads} krwRate={krwRate} />
       </div>
 
       <WeeklyProductBreakdownTable products={products} krwRate={krwRate} />

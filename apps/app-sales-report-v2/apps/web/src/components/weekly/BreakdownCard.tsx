@@ -77,9 +77,6 @@ export function BreakdownCard({ title, accent, items, krwRate, deltaLabel = 'WoW
                 )}
               >
                 {it.label}
-                {it.reference && (
-                  <span className="ml-1.5 text-[10px] not-italic text-neutral-400">(reference)</span>
-                )}
               </span>
               <span
                 className={cn(

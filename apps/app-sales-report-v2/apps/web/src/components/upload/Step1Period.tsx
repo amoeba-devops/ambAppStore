@@ -7,14 +7,12 @@ import {
   Check,
   Lock,
   Lightbulb,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsUpDown,
 } from 'lucide-react';
 import { cn } from '@v2/ui';
 import { getAvailableWeeks, getAvailableMonths } from '@/lib/weekly-report-mock';
 import { useArchiveStatusByLabel } from '@/lib/raw-archive-state';
 import type { PeriodStatus } from '@/lib/raw-archive-mock';
+import { WeekPicker } from '@/components/shared/WeekPicker';
 
 export type Granularity = 'WEEK' | 'MONTH';
 
@@ -83,7 +81,7 @@ export function Step1Period({ granularity, selected, onChangeGranularity, onChan
             2. {granularity === 'WEEK' ? 'Pick the week' : 'Pick the month'}
           </div>
           {granularity === 'WEEK' ? (
-            <WeekPicker selected={selected} onChange={onChangePeriod} />
+            <WeekPickerForUpload selected={selected} onChange={onChangePeriod} />
           ) : (
             <MonthPicker selected={selected} onChange={onChangePeriod} />
           )}
@@ -143,9 +141,7 @@ function GranularityCard({ label, description, icon: Icon, active, onClick }: Gr
   );
 }
 
-const VISIBLE_WEEKS = 5;
-
-function WeekPicker({
+function WeekPickerForUpload({
   selected,
   onChange,
 }: {
@@ -154,164 +150,25 @@ function WeekPicker({
 }) {
   const weeks = useMemo(() => getAvailableWeeks(), []);
   const statusByLabel = useArchiveStatusByLabel();
-
-  // Figure out which week index is "current" based on today
-  const currentIdx = useMemo(() => {
-    const today = new Date();
-    const todayStart = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
-    // periodLabel is human-only; use index based on week start, which we can
-    // reconstruct via firstFridayAnchor logic here. Easier: scan weeks for the
-    // one whose Thursday >= today (the in-progress / latest finished week).
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    // Try to parse `periodLabel` like "8 – 14 May" or "27 Nov – 3 Dec" to a Thursday date in `weeks[i].year`.
-    let idx = weeks.findIndex((w) => {
-      const m = w.periodLabel.match(/(\d+)\s+(\w+)\s+–\s+(\d+)\s+(\w+)/) || w.periodLabel.match(/(\d+)\s+–\s+(\d+)\s+(\w+)/);
-      if (!m) return false;
-      let endDay: number;
-      let endMonthName: string;
-      if (m.length === 5) {
-        endDay = Number(m[3]);
-        endMonthName = m[4] ?? '';
-      } else {
-        endDay = Number(m[2]);
-        endMonthName = m[3] ?? '';
-      }
-      const endMonth = months.indexOf(endMonthName);
-      if (endMonth === -1) return false;
-      const endMs = Date.UTC(w.year, endMonth, endDay);
-      return endMs >= todayStart;
-    });
-    if (idx === -1) idx = weeks.length - 1;
-    return idx;
-  }, [weeks]);
-
-  // Viewport: which slice of weeks is visible. Centered on selected if any,
-  // otherwise on current week.
-  const initialCenter = currentIdx;
-  const [center, setCenter] = useState(initialCenter);
-  const [expanded, setExpanded] = useState(false);
-  // If user picks a period via external action (e.g. URL), re-center
-  useEffect(() => {
-    if (!selected || selected.granularity !== 'WEEK') return;
-    const idx = weeks.findIndex((w) => w.weekNum === selected.periodId);
-    if (idx >= 0) setCenter(idx);
-  }, [selected, weeks]);
-
-  const halfWindow = Math.floor(VISIBLE_WEEKS / 2);
-  // Clamp window so we don't run off either end
-  const clampedCenter = Math.max(halfWindow, Math.min(weeks.length - 1 - halfWindow, center));
-  const start = Math.max(0, clampedCenter - halfWindow);
-  const end = Math.min(weeks.length, start + VISIBLE_WEEKS);
-  const visible = weeks.slice(start, end);
-
-  const canPrev = start > 0;
-  const canNext = end < weeks.length;
-
-  const goPrev = () => setCenter((c) => Math.max(0, c - 1));
-  const goNext = () => setCenter((c) => Math.min(weeks.length - 1, c + 1));
-
-  const handlePick = (w: (typeof weeks)[number]) => {
-    onChange({
-      granularity: 'WEEK',
-      periodId: w.weekNum,
-      label: w.label,
-      rangeLabel: w.periodLabel,
-      periodStartIso: new Date(w.startMs).toISOString().slice(0, 10),
-      periodEndIso: new Date(w.endMs).toISOString().slice(0, 10),
-      year: w.year,
-    });
-    // Snap carousel center on the picked week so collapsing re-centers there
-    const idx = weeks.findIndex((x) => x.weekNum === w.weekNum);
-    if (idx >= 0) setCenter(idx);
-  };
+  const selectedWeekNum = selected?.granularity === 'WEEK' ? selected.periodId : null;
 
   return (
-    <div className="space-y-2">
-      {expanded ? (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
-          {weeks.map((w) => {
-            const active = selected?.granularity === 'WEEK' && selected.periodId === w.weekNum;
-            const status = statusByLabel.get(w.label);
-            const isLocked = status === 'Locked';
-            return (
-              <PeriodPill
-                key={w.weekNum}
-                label={w.label}
-                rangeLabel={w.periodLabel}
-                active={active}
-                status={status}
-                isLocked={isLocked}
-                onClick={() => handlePick(w)}
-              />
-            );
-          })}
-        </div>
-      ) : (
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={goPrev}
-            disabled={!canPrev}
-            aria-label="Previous week"
-            className={cn(
-              'inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors shrink-0',
-              canPrev
-                ? 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
-                : 'border-neutral-200 bg-neutral-50 text-neutral-300 cursor-not-allowed',
-            )}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <div className="grid flex-1 grid-cols-5 gap-2">
-            {visible.map((w) => {
-              const active = selected?.granularity === 'WEEK' && selected.periodId === w.weekNum;
-              const status = statusByLabel.get(w.label);
-              const isLocked = status === 'Locked';
-              return (
-                <PeriodPill
-                  key={w.weekNum}
-                  label={w.label}
-                  rangeLabel={w.periodLabel}
-                  active={active}
-                  status={status}
-                  isLocked={isLocked}
-                  onClick={() => handlePick(w)}
-                />
-              );
-            })}
-          </div>
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={!canNext}
-            aria-label="Next week"
-            className={cn(
-              'inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors shrink-0',
-              canNext
-                ? 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
-                : 'border-neutral-200 bg-neutral-50 text-neutral-300 cursor-not-allowed',
-            )}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors',
-            expanded
-              ? 'border-info-500 bg-info-50 text-info-500'
-              : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50',
-          )}
-        >
-          <ChevronsUpDown className="h-3.5 w-3.5" />
-          {expanded ? 'Collapse' : `Show all ${weeks.length} weeks`}
-        </button>
-      </div>
-    </div>
+    <WeekPicker
+      weeks={weeks}
+      selectedWeekNum={selectedWeekNum}
+      statusByLabel={statusByLabel}
+      onPickWeek={(w) =>
+        onChange({
+          granularity: 'WEEK',
+          periodId: w.weekNum,
+          label: w.label,
+          rangeLabel: w.periodLabel,
+          periodStartIso: new Date(w.startMs).toISOString().slice(0, 10),
+          periodEndIso: new Date(w.endMs).toISOString().slice(0, 10),
+          year: w.year,
+        })
+      }
+    />
   );
 }
 
