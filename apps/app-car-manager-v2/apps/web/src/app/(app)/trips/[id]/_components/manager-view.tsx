@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { Car, CheckCircle2, Clock, Hourglass, Mail, Phone, ShieldCheck, User } from 'lucide-react';
 import { Badge } from '@car-v2/ui';
-import { MapRoute } from '@/components/inputs/map-route';
+import { MapPreview } from '@/components/inputs/map-preview';
 import type { AuditRow } from '@/server/queries/audit.queries';
 import type { TripDetail } from '@/server/queries/trips.queries';
 import { TripActions } from '../trip-actions';
@@ -163,12 +163,11 @@ export async function ManagerView({
 
           {hasMap && (
             <div className="rounded-2xl border border-border bg-surface overflow-hidden">
-              <MapRoute
+              <MapPreview
                 pickup={trip.trpPickupAddress}
                 dropoff={trip.trpDropoffAddress}
                 stopovers={trip.stopovers.map((s) => s.address)}
                 showFullscreenLink
-                heightClassName="h-[280px] md:h-[360px] lg:h-full lg:min-h-[400px]"
               />
             </div>
           )}
@@ -245,6 +244,8 @@ export async function ManagerView({
                   isCreator={isCreator}
                   drivers={[]}
                   vehicles={[]}
+                  tripScheduledAtIso={trip.trpScheduledAt.toISOString()}
+                  tripDurationMinutes={trip.trpDurationMinutes}
                 />
               </div>
             </section>

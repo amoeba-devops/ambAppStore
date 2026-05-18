@@ -228,6 +228,15 @@
       "errCreate": "Không tạo được chuyến",
       "errUpdate": "Không cập nhật được"
     },
+    "conflict": {
+      "checking": "Đang kiểm tra trùng lịch…",
+      "title": "Phát hiện trùng lịch",
+      "description": "Có chuyến khác đang dùng cùng xe hoặc tài xế trong khoảng thời gian này. Bạn vẫn có thể lưu, hệ thống sẽ ghi nhận quyết định bỏ qua cảnh báo.",
+      "vehicleLabel": "Xe đang được dùng:",
+      "driverLabel": "Tài xế đang được giao:",
+      "durationMinutes": "~{minutes} phút",
+      "andNMore": "và {count} chuyến khác"
+    },
     "detail": {
       "summary": "Tóm tắt",
       "passenger": "Hành khách",

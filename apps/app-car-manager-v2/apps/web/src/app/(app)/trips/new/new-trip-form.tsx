@@ -26,8 +26,27 @@ import {
 } from '@car-v2/ui';
 import { AddressAutocomplete } from '@/components/inputs/address-autocomplete';
 import { MapPreview } from '@/components/inputs/map-preview';
+import { useTripConflicts } from '@/hooks/use-trip-conflicts';
 import { toMinutes, type DurationUnit } from '@/lib/duration';
+import type { ConflictResult } from '@/server/services/trip-conflict.service';
 import { createTripAction } from '@/server/actions/trips/trip.actions';
+import { TripConflictBanner } from '../_components/trip-conflict-banner';
+
+/** Inline equivalent of server-only `collectConflictIds` — pure utility. */
+function flattenConflictIds(c: ConflictResult | null): string[] {
+  if (!c) return [];
+  const set = new Set<string>();
+  for (const x of c.vehicle) set.add(x.trpId);
+  for (const x of c.driver) set.add(x.trpId);
+  return Array.from(set);
+}
+
+/** `datetime-local` input → ISO string. Empty string khi parse fail —
+ *  hook sẽ skip check khi thấy chuỗi rỗng. */
+function safeIsoOrEmpty(localValue: string): string {
+  const d = new Date(localValue);
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+}
 
 interface SelectOption {
   id: string;
@@ -61,6 +80,17 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
   /* Per-field error flags. Set on failed submit, cleared as user types. */
   const [fieldErrors, setFieldErrors] = useState<{ pickup?: boolean; dropoff?: boolean; scheduledAt?: boolean; driver?: boolean; vehicle?: boolean }>({});
 
+  /* PRD R-1/R-2 R3 — debounced conflict check. Chỉ active khi có đủ
+   * (driver | vehicle) + scheduledAt. Banner hiện trong card Assignment. */
+  const scheduledIso = scheduledAt ? safeIsoOrEmpty(scheduledAt) : '';
+  const durationMinutes = toMinutes(durationValue, durationUnit) ?? null;
+  const { conflicts, loading: conflictsLoading } = useTripConflicts({
+    vehicleId: vehicleId || null,
+    driverId: driverId || null,
+    scheduledAtIso: scheduledIso,
+    durationMinutes,
+  });
+
   const addStopover = () => {
     if (stopovers.length >= 10) return;
     setStopovers((s) => [...s, '']);
@@ -90,18 +120,20 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
     setFieldErrors({});
 
     startTransition(async () => {
-      const scheduledIso = new Date(scheduledAt).toISOString();
+      const scheduledIsoSubmit = new Date(scheduledAt).toISOString();
+      const acknowledged = flattenConflictIds(conflicts);
       const result = await createTripAction({
         passenger_id: passengerId || undefined,
         pickup_address: pickup.trim(),
         dropoff_address: dropoff.trim(),
-        scheduled_at: scheduledIso,
+        scheduled_at: scheduledIsoSubmit,
         duration_minutes: toMinutes(durationValue, durationUnit),
         purpose: purpose.trim() || undefined,
         notes: notes.trim() || undefined,
         driver_id: driverId || undefined,
         vehicle_id: vehicleId || undefined,
         stopovers: stopovers.filter((s) => s.trim()).map((s) => s.trim()),
+        acknowledged_conflicts: acknowledged.length > 0 ? acknowledged : undefined,
       });
       if (result.success) {
         toast.success(t('tCreated'), { description: result.data.trpRef });
@@ -311,6 +343,11 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
               </Select>
             </FormField>
           </div>
+          <TripConflictBanner
+            conflicts={conflicts}
+            loading={conflictsLoading}
+            className="mt-4"
+          />
         </CardContent>
       </Card>
 

@@ -228,6 +228,15 @@
       "errCreate": "운행을 생성할 수 없습니다",
       "errUpdate": "수정할 수 없습니다"
     },
+    "conflict": {
+      "checking": "일정 충돌 확인 중…",
+      "title": "일정 충돌이 감지되었습니다",
+      "description": "이 시간대에 같은 차량 또는 기사가 다른 운행에 배정되어 있습니다. 그대로 저장할 수 있으며, 시스템이 무시 결정을 기록합니다.",
+      "vehicleLabel": "이미 사용 중인 차량:",
+      "driverLabel": "이미 배정된 기사:",
+      "durationMinutes": "약 {minutes}분",
+      "andNMore": "외 {count}건"
+    },
     "detail": {
       "summary": "요약",
       "passenger": "승객",

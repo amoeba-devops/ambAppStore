@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { Calendar, Clock, Hourglass, Mail, Phone, User } from 'lucide-react';
 import { Badge } from '@car-v2/ui';
-import { MapRoute } from '@/components/inputs/map-route';
+import { MapPreview } from '@/components/inputs/map-preview';
 import type { TripDetail } from '@/server/queries/trips.queries';
 import { TripActions } from '../trip-actions';
 import {
@@ -80,12 +80,11 @@ export async function DriverView({ trip, isAssignedDriver, hasMap }: DriverViewP
         {/* ── MAP HERO — full-width, ~50vh on mobile, taller on tablet ── */}
         {hasMap && (
           <section>
-            <MapRoute
+            <MapPreview
               pickup={trip.trpPickupAddress}
               dropoff={trip.trpDropoffAddress}
               stopovers={trip.stopovers.map((s) => s.address)}
               showFullscreenLink
-              heightClassName="h-[50vh] md:h-[420px]"
             />
           </section>
         )}
@@ -111,6 +110,8 @@ export async function DriverView({ trip, isAssignedDriver, hasMap }: DriverViewP
               isCreator={false}
               drivers={[]}
               vehicles={[]}
+              tripScheduledAtIso={trip.trpScheduledAt.toISOString()}
+              tripDurationMinutes={trip.trpDurationMinutes}
             />
           </div>
         </section>

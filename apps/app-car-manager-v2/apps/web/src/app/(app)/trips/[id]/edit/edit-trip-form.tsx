@@ -27,8 +27,24 @@ import type { CarTrip } from '@car-v2/db/schema';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { AddressAutocomplete } from '@/components/inputs/address-autocomplete';
 import { MapPreview } from '@/components/inputs/map-preview';
+import { useTripConflicts } from '@/hooks/use-trip-conflicts';
 import { fromMinutes, toMinutes, type DurationUnit } from '@/lib/duration';
+import type { ConflictResult } from '@/server/services/trip-conflict.service';
 import { updateTripAction } from '@/server/actions/trips/trip.actions';
+import { TripConflictBanner } from '../../_components/trip-conflict-banner';
+
+function flattenConflictIds(c: ConflictResult | null): string[] {
+  if (!c) return [];
+  const set = new Set<string>();
+  for (const x of c.vehicle) set.add(x.trpId);
+  for (const x of c.driver) set.add(x.trpId);
+  return Array.from(set);
+}
+
+function safeIsoOrEmpty(localValue: string): string {
+  const d = new Date(localValue);
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+}
 
 interface SelectOption {
   id: string;
@@ -67,6 +83,18 @@ export function EditTripForm({ trip, passengers, role }: EditTripFormProps) {
   const [purpose, setPurpose] = useState(trip.trpPurpose ?? '');
   const [notes, setNotes] = useState(trip.trpNotes ?? '');
 
+  /* Conflict check chỉ active khi trip đã có driver + vehicle (mới có nghĩa). */
+  const durationMinutes = toMinutes(durationValue, durationUnit) ?? null;
+  const scheduledIso = safeIsoOrEmpty(scheduledAt);
+  const { conflicts, loading: conflictsLoading } = useTripConflicts({
+    vehicleId: trip.trpVehicleId,
+    driverId: trip.trpDriverId,
+    scheduledAtIso: scheduledIso,
+    durationMinutes,
+    excludeTripId: trip.trpId,
+    enabled: Boolean(trip.trpVehicleId && trip.trpDriverId),
+  });
+
   const onSubmit = () => {
     if (!pickup.trim() || !dropoff.trim() || !scheduledAt) {
       toast.error(t('errMissing'), { description: t('errMissingDesc') });
@@ -74,6 +102,7 @@ export function EditTripForm({ trip, passengers, role }: EditTripFormProps) {
     }
 
     startTransition(async () => {
+      const acknowledged = flattenConflictIds(conflicts);
       const result = await updateTripAction(trip.trpId, {
         passenger_id: passengerLocked ? undefined : passengerId || undefined,
         pickup_address: pickup.trim(),
@@ -82,6 +111,7 @@ export function EditTripForm({ trip, passengers, role }: EditTripFormProps) {
         duration_minutes: toMinutes(durationValue, durationUnit) ?? null,
         purpose: purpose.trim() || null,
         notes: notes.trim() || null,
+        acknowledged_conflicts: acknowledged.length > 0 ? acknowledged : undefined,
       });
       if (result.success) {
         toast.success(t('tUpdated'), { description: result.data.trpRef });
@@ -169,6 +199,11 @@ export function EditTripForm({ trip, passengers, role }: EditTripFormProps) {
               </div>
             </Field>
           </div>
+          <TripConflictBanner
+            conflicts={conflicts}
+            loading={conflictsLoading}
+            className="mt-4"
+          />
           <MapPreview pickup={pickup} dropoff={dropoff} />
         </CardContent>
       </Card>

@@ -228,6 +228,15 @@
       "errCreate": "Could not create trip",
       "errUpdate": "Could not update"
     },
+    "conflict": {
+      "checking": "Checking schedule conflicts…",
+      "title": "Schedule conflict detected",
+      "description": "Another trip is using the same vehicle or driver during this window. You can still save — the system will log this override.",
+      "vehicleLabel": "Vehicle already in use:",
+      "driverLabel": "Driver already booked:",
+      "durationMinutes": "~{minutes} min",
+      "andNMore": "and {count} more"
+    },
     "detail": {
       "summary": "Summary",
       "passenger": "Passenger",

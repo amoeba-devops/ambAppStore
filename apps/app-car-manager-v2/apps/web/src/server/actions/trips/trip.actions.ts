@@ -25,8 +25,46 @@ import { logAudit } from '@/server/services/audit-log.service';
 import { buildGoogleMapsUrl } from '@/server/services/google-maps-url.service';
 import { notifyUser } from '@/server/services/notification.service';
 import { nextTripRef } from '@/server/services/trip-ref.service';
+import {
+  collectConflictIds,
+  findTripConflicts,
+  hasAnyConflict,
+  type ConflictResult,
+} from '@/server/services/trip-conflict.service';
 import { transitionTrip, type TransitionPayload } from '@/server/services/trip-state-machine.service';
 import { runAction } from '../_helpers';
+
+/**
+ * Soft-warning conflict logging (PRD R-1, R-2 — R3 mode).
+ * Caller phát hiện conflict server-side rồi audit log riêng. Không block save.
+ * `acknowledged` = trpIds mà UI đã gửi qua (admin đã thấy banner). Detected
+ * mismatch (server thấy thêm) vẫn được ghi để truy vết.
+ */
+async function auditConflictOverrideIfAny(
+  actor: AuthContext,
+  trip: { trpId: string; trpRef: string },
+  conflicts: ConflictResult,
+  acknowledged: string[] | undefined,
+  context: 'CREATE' | 'UPDATE' | 'ASSIGN',
+): Promise<void> {
+  if (!hasAnyConflict(conflicts)) return;
+  const detected = collectConflictIds(conflicts);
+  await logAudit({
+    entId: actor.entId,
+    userId: actor.userId,
+    action: 'TRIP.CONFLICT_OVERRIDDEN',
+    entity: 'Trip',
+    entityId: trip.trpId,
+    entityRef: trip.trpRef,
+    after: {
+      context,
+      detectedConflicts: detected,
+      acknowledgedConflicts: acknowledged ?? [],
+      vehicleConflicts: conflicts.vehicle.map((c) => c.trpId),
+      driverConflicts: conflicts.driver.map((c) => c.trpId),
+    },
+  });
+}
 
 /* ─── Create ───────────────────────────────────────────────────────────── */
 
@@ -63,6 +101,16 @@ export async function createTripAction(input: unknown): Promise<ActionResult<Car
 
     const initialStatus =
       data.driver_id && data.vehicle_id ? 'PENDING_DRIVER_CONFIRMATION' : 'PENDING_ASSIGNMENT';
+
+    /* PRD R-1/R-2 R3: soft-warning. Detect conflicts trước khi insert; nếu
+     * có và admin/manager đã ack qua UI → save anyway, audit log riêng. */
+    const conflicts = await findTripConflicts({
+      entId: actor.entId,
+      vehicleId: data.vehicle_id ?? null,
+      driverId: data.driver_id ?? null,
+      scheduledAt,
+      durationMinutes: data.duration_minutes ?? null,
+    });
 
     const [created] = await db
       .insert(carTrips)
@@ -112,6 +160,8 @@ export async function createTripAction(input: unknown): Promise<ActionResult<Car
         dropoff: created.trpDropoffAddress,
       },
     });
+
+    await auditConflictOverrideIfAny(actor, created, conflicts, data.acknowledged_conflicts, 'CREATE');
 
     /* PRD R-10 + §13.1: */
     if (created.trpDriverId) {
@@ -215,6 +265,26 @@ export async function updateTripAction(id: string, input: unknown): Promise<Acti
     if (data.purpose !== undefined) patch.trpPurpose = data.purpose;
     if (data.notes !== undefined) patch.trpNotes = data.notes;
 
+    /* PRD R-1/R-2 R3: re-check conflicts khi đổi time hoặc duration. Exclude
+     * chính trip này khỏi candidate set. Driver/Vehicle giữ nguyên (update
+     * không cho đổi 2 field này — phải qua assignTripAction). */
+    const timeChanged =
+      data.scheduled_at !== undefined || data.duration_minutes !== undefined;
+    const updateConflicts =
+      timeChanged && existing.trpDriverId && existing.trpVehicleId
+        ? await findTripConflicts({
+            entId: actor.entId,
+            vehicleId: existing.trpVehicleId,
+            driverId: existing.trpDriverId,
+            scheduledAt: patch.trpScheduledAt ?? existing.trpScheduledAt,
+            durationMinutes:
+              patch.trpDurationMinutes !== undefined
+                ? patch.trpDurationMinutes
+                : existing.trpDurationMinutes,
+            excludeTripId: id,
+          })
+        : null;
+
     /* If pickup/dropoff changed, rebuild gmaps URL. */
     if (data.pickup_address !== undefined || data.dropoff_address !== undefined) {
       patch.trpGoogleMapsUrl = buildGoogleMapsUrl({
@@ -240,6 +310,16 @@ export async function updateTripAction(id: string, input: unknown): Promise<Acti
       after: { fields: Object.keys(patch).filter((k) => k !== 'trpUpdatedAt') },
     });
 
+    if (updateConflicts) {
+      await auditConflictOverrideIfAny(
+        actor,
+        updated,
+        updateConflicts,
+        data.acknowledged_conflicts,
+        'UPDATE',
+      );
+    }
+
     revalidatePath('/trips');
     revalidatePath(`/trips/${id}`);
     return updated;
@@ -256,12 +336,28 @@ export async function assignTripAction(id: string, input: unknown): Promise<Acti
     requireRole(actor.role, ['ADMIN']);
     const data = assignTripSchema.parse(input);
     const trip = await loadTrip(id, actor);
+
+    /* PRD R-1/R-2 R3: re-check conflicts ngay trước assign (driver/vehicle
+     * mới) — admin có thể đã thấy banner ở dialog, nhưng state có thể đổi
+     * giữa thời gian fetch và submit. Audit log mọi override. */
+    const conflicts = await findTripConflicts({
+      entId: actor.entId,
+      vehicleId: data.vehicle_id,
+      driverId: data.driver_id,
+      scheduledAt: trip.trpScheduledAt,
+      durationMinutes: trip.trpDurationMinutes,
+      excludeTripId: id,
+    });
+
     const transition = trip.trpStatus === 'REJECTED_BY_DRIVER' ? 'reassign' : 'assign';
     const updated = await transitionTrip(id, transition, actor, {
       kind: transition,
       driverId: data.driver_id,
       vehicleId: data.vehicle_id,
     } as TransitionPayload);
+
+    await auditConflictOverrideIfAny(actor, updated, conflicts, data.acknowledged_conflicts, 'ASSIGN');
+
     revalidatePathsForTrip(id);
     return updated;
   });

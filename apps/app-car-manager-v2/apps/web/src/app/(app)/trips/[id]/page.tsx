@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { Badge, Button } from '@car-v2/ui';
 import type { CarTripStatus } from '@car-v2/db/schema';
-import { MapRoute } from '@/components/inputs/map-route';
+import { MapPreview } from '@/components/inputs/map-preview';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listAuditForEntity } from '@/server/queries/audit.queries';
@@ -152,12 +152,11 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
             {/* MAP HERO — full-width, rounded, subtle shadow. Driver's primary focus. */}
             {hasMap && (
               <section className="mt-6">
-                <MapRoute
+                <MapPreview
                   pickup={trip.trpPickupAddress}
                   dropoff={trip.trpDropoffAddress}
                   stopovers={trip.stopovers.map((s) => s.address)}
                   showFullscreenLink
-                  heightClassName="h-[260px] md:h-[360px] lg:h-[420px]"
                   className=""
                 />
               </section>
@@ -297,6 +296,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
                 isCreator={isCreator}
                 drivers={driverOptions}
                 vehicles={vehicleOptions}
+                tripScheduledAtIso={trip.trpScheduledAt.toISOString()}
+                tripDurationMinutes={trip.trpDurationMinutes}
               />
             </section>
 

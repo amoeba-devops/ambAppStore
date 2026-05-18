@@ -328,7 +328,11 @@ Người dùng có vai trò **Manager / Director / Admin** có thể tạo yêu 
 - Tài xế có thể **Xác nhận** hoặc **Từ chối** (kèm lý do).
 - Trạng thái hiển thị rõ: `Chưa xác nhận` / `Đã xác nhận` / `Từ chối`.
 - Nếu từ chối, **Admin nhận thông báo** và có thể **phân công lại** tài xế khác.
-- ~~Kiểm tra xung đột lịch xe~~ → **Đã loại bỏ ở R2** theo yêu cầu khách hàng (không check conflict trong MVP). Có thể bật lại ở phase 2 dưới dạng cảnh báo mềm.
+- **Kiểm tra xung đột lịch xe & tài xế** (Post-MVP R3, kích hoạt 2026-05-18 sau khi MVP go-live):
+  - Khi Admin gán xe / tài xế cho một Trip, hệ thống quét overlap với các Trip khác cùng `ent_id` ở trạng thái `PENDING_DRIVER_CONFIRMATION` / `CONFIRMED` / `IN_PROGRESS`.
+  - Overlap được phát hiện theo cặp `(trp_start_time, trp_end_time)` giao nhau.
+  - **Soft-warning mode**: hiển thị banner "Conflict detected" liệt kê các trip xung đột (link tới trip), nhưng KHÔNG chặn save. Admin chủ động quyết định.
+  - Ghi `aud_event = TRIP.CONFLICT_OVERRIDDEN` vào audit log nếu admin save chuyến đã có warning.
 
 #### FR-1.3 — Hủy / Sửa chuyến đi
 
@@ -561,8 +565,8 @@ ELSE status = PENDING_APPROVAL, gửi notify Admin
 
 ### 9.3 Tập quy tắc nghiệp vụ (Business Rules)
 
-- **R-1:** Một xe **không thể** được book overlap nhau (cùng thời điểm). *(Tạm bỏ ở MVP theo R2; đề xuất bật lại ở phase 2 dưới dạng cảnh báo mềm.)*
-- **R-2:** Một tài xế **không thể** được gán 2 chuyến overlap. *(Cùng note như R-1.)*
+- **R-1:** Một xe **không nên** được book overlap nhau (cùng thời điểm). *(Post-MVP R3: phát hiện overlap → soft-warning banner trên form assign/edit trip, KHÔNG block save.)*
+- **R-2:** Một tài xế **không nên** được gán 2 chuyến overlap. *(Cùng cơ chế R-1: soft-warning, không block. Audit log ghi `TRIP.CONFLICT_OVERRIDDEN` nếu admin bypass.)*
 - **R-3:** Phạm vi nhìn thấy chuyến đi:
   - Manager / Director: chỉ thấy chuyến liên quan đến mình (tạo hoặc là người sử dụng).
   - Driver: chỉ thấy chuyến mình được gán.
@@ -920,7 +924,7 @@ COMPLETED    ─────── nộp chứng từ ────────�
 | # | Vấn đề | Đề xuất |
 |---|--------|---------|
 | Q1 | **Mâu thuẫn về phê duyệt chi phí** giữa "phê duyệt 2 cấp" và "chỉ cần ghi nhận k cần duyệt". | Cấu hình theo loại + ngưỡng auto-approve (xem 6.2.2). **Cần chốt với khách hàng.** |
-| Q2 | Conflict check đã bỏ ở R2 — có muốn cảnh báo **soft warning** (không block) không? | Đề xuất: có, hiển thị cảnh báo nhưng không chặn. |
+| Q2 | Conflict check đã bỏ ở R2 — có muốn cảnh báo **soft warning** (không block) không? | ✅ **CHỐT 2026-05-18 (R3)**: Bật soft-warning, không block. Xem FR-1.2 + R-1/R-2. |
 | Q3 | Tài xế có app riêng, hay chung app với Manager (chỉ khác giao diện theo role)? | Đề xuất: chung app, định tuyến giao diện theo role. |
 | Q4 | Có cần hỗ trợ **xe ngoài** (Grab / taxi thuê) trong cùng hệ thống không? | MVP: không. |
 | Q5 | Tiền tệ — đa tiền tệ (VND + KRW) hay chỉ VND? | MVP: chỉ VND, phase 2 mở rộng. |
