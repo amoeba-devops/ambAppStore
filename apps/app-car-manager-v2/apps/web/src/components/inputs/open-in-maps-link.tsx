@@ -42,6 +42,12 @@ export function OpenInMapsLink({ origin, dest, waypoints }: OpenInMapsLinkProps)
         dest,
         waypoints,
         ua: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+        /* iPad iOS 13+ defaults to "desktop mode" — UA reads "Macintosh".
+         * maxTouchPoints > 1 is the canonical signal that it's actually a
+         * touch iPad, not a real Mac (Mac trackpads expose 0–1). Without this
+         * the iPad branch falls through to `kind: 'web'` and the link opens
+         * Safari instead of staying inside the PWA. */
+        maxTouchPoints: typeof navigator !== 'undefined' ? navigator.maxTouchPoints : 0,
       }),
     );
   }, [origin, dest, waypoints]);
