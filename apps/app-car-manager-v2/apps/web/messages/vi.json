@@ -662,7 +662,22 @@
     "previewTitle": "Bản đồ tuyến đường",
     "previewHint": "Map sẽ hiện khi đã nhập điểm đón + điểm đến",
     "openFullscreen": "Mở rộng",
+    "opensInNewTab": "Mở trong tab mới",
     "errorLoad": "Không tải được bản đồ"
+  },
+  "pwa": {
+    "installPrompt": "Cài đặt Fleet làm ứng dụng",
+    "installPromptSub": "Truy cập nhanh từ màn hình chính, hoạt động ngoại tuyến.",
+    "installButton": "Cài đặt",
+    "installDismiss": "Để sau",
+    "iosInstallTitle": "Cài đặt trên iPhone",
+    "iosInstallStep1": "Bấm nút Chia sẻ trên Safari",
+    "iosInstallStep2": "Chọn \"Thêm vào Màn hình chính\"",
+    "offlineTitle": "Mất kết nối mạng",
+    "offlineMessage": "Vui lòng kiểm tra kết nối và thử lại.",
+    "offlineRetry": "Thử lại",
+    "opensInBrowser": "Mở trong trình duyệt",
+    "opensInMapsApp": "Mở trong ứng dụng Maps"
   },
   "sessionExpired": {
     "title": "Phiên đã hết hạn",

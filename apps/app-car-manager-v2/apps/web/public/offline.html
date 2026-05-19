@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#3182f6" />
+  <title>Offline — Fleet</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #0a0d10;
+      color: #e8eaed;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      padding-top: max(24px, env(safe-area-inset-top));
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+      text-align: center;
+    }
+    .card {
+      max-width: 360px;
+      width: 100%;
+      background: #14181d;
+      border: 1px solid #2a3038;
+      border-radius: 16px;
+      padding: 32px 24px;
+    }
+    .icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      background: rgba(49, 130, 246, 0.12);
+      color: #3182f6;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    h1 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    p { font-size: 14px; color: #9aa3ad; line-height: 1.55; margin-bottom: 24px; }
+    button {
+      width: 100%;
+      height: 44px;
+      border: none;
+      border-radius: 10px;
+      background: #3182f6;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 120ms;
+    }
+    button:hover { background: #2a72d8; }
+    button:active { background: #235ec0; }
+    .lang { display: none; }
+    .lang.active { display: block; }
+  </style>
+</head>
+<body>
+  <div class="card" role="alert">
+    <div class="icon" aria-hidden="true">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23"/>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"/>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+        <line x1="12" y1="20" x2="12.01" y2="20"/>
+      </svg>
+    </div>
+
+    <div class="lang" data-lang="vi">
+      <h1>Mất kết nối mạng</h1>
+      <p>Vui lòng kiểm tra kết nối và thử lại.</p>
+      <button type="button" onclick="location.reload()">Thử lại</button>
+    </div>
+    <div class="lang" data-lang="en">
+      <h1>You're offline</h1>
+      <p>Check your connection and try again.</p>
+      <button type="button" onclick="location.reload()">Retry</button>
+    </div>
+    <div class="lang" data-lang="ko">
+      <h1>인터넷 연결 끊김</h1>
+      <p>연결을 확인하고 다시 시도해 주세요.</p>
+      <button type="button" onclick="location.reload()">다시 시도</button>
+    </div>
+  </div>
+
+  <script>
+    /* Pick the best-matching language from navigator.language; fall back to vi.
+     * Cookie-based locale (set inside the app) isn't readable here because
+     * the offline page is served directly by the service worker. */
+    (function () {
+      var langs = ['vi', 'en', 'ko'];
+      var nav = (navigator.language || 'vi').toLowerCase();
+      var picked = langs.find(function (l) { return nav.indexOf(l) === 0; }) || 'vi';
+      document.documentElement.lang = picked;
+      var els = document.querySelectorAll('.lang');
+      for (var i = 0; i < els.length; i++) {
+        if (els[i].getAttribute('data-lang') === picked) els[i].classList.add('active');
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -27,6 +27,7 @@ import type { CarTrip } from '@car-v2/db/schema';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { AddressAutocomplete } from '@/components/inputs/address-autocomplete';
 import { MapPreview } from '@/components/inputs/map-preview';
+import { useFormPersistence } from '@/hooks/use-form-persistence';
 import { useTripConflicts } from '@/hooks/use-trip-conflicts';
 import { fromMinutes, toMinutes, type DurationUnit } from '@/lib/duration';
 import type { ConflictResult } from '@/server/services/trip-conflict.service';
@@ -83,6 +84,24 @@ export function EditTripForm({ trip, passengers, role }: EditTripFormProps) {
   const [purpose, setPurpose] = useState(trip.trpPurpose ?? '');
   const [notes, setNotes] = useState(trip.trpNotes ?? '');
 
+  /* sessionStorage draft — keyed per-trip so editing two trips concurrently
+   * does not collide. Restores form values after a round-trip through a
+   * conflict-banner internal link. */
+  const { clearDraft } = useFormPersistence(
+    `trip-edit-${trip.trpId}-draft`,
+    { passengerId, pickup, dropoff, scheduledAt, durationValue, durationUnit, purpose, notes },
+    (v) => {
+      if (!passengerLocked && typeof v.passengerId === 'string') setPassengerId(v.passengerId);
+      if (typeof v.pickup === 'string') setPickup(v.pickup);
+      if (typeof v.dropoff === 'string') setDropoff(v.dropoff);
+      if (typeof v.scheduledAt === 'string') setScheduledAt(v.scheduledAt);
+      if (typeof v.durationValue === 'string') setDurationValue(v.durationValue);
+      if (v.durationUnit === 'minutes' || v.durationUnit === 'hours' || v.durationUnit === 'days') setDurationUnit(v.durationUnit);
+      if (typeof v.purpose === 'string') setPurpose(v.purpose);
+      if (typeof v.notes === 'string') setNotes(v.notes);
+    },
+  );
+
   /* Conflict check chỉ active khi trip đã có driver + vehicle (mới có nghĩa). */
   const durationMinutes = toMinutes(durationValue, durationUnit) ?? null;
   const scheduledIso = safeIsoOrEmpty(scheduledAt);
@@ -114,6 +133,7 @@ export function EditTripForm({ trip, passengers, role }: EditTripFormProps) {
         acknowledged_conflicts: acknowledged.length > 0 ? acknowledged : undefined,
       });
       if (result.success) {
+        clearDraft();
         toast.success(t('tUpdated'), { description: result.data.trpRef });
         router.push(`/trips/${trip.trpId}`);
         router.refresh();

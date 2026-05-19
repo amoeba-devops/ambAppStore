@@ -1,7 +1,8 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Be_Vietnam_Pro, Inter, JetBrains_Mono } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
+import { SWRegister } from '@/components/pwa/sw-register';
 import './globals.css';
 
 /* Self-hosted via next/font (no CDN at runtime).
@@ -28,9 +29,33 @@ const jetbrainsMono = JetBrains_Mono({
  * Inter / Be Vietnam Pro through next/font for Latin/VN. */
 const fontVariables = `${inter.variable} ${beVietnam.variable} ${jetbrainsMono.variable}`;
 
+/* basePath handling: Next.js auto-prefixes the `manifest` href when rendering
+ * `<link rel="manifest" ...>`, but does NOT prefix `icons.icon` / `icons.apple`.
+ * Without the manual prefix below the `<link rel="icon">` tags 404 on the
+ * staging Docker deploy (basePath = `/app-car-manager-v2`). */
+const basePath = process.env.BASE_PATH ?? '';
+
 export const metadata: Metadata = {
   title: 'Fleet — Company Car Management',
   description: 'Dispatch & cost control for company vehicles',
+  applicationName: 'Fleet',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Fleet',
+  },
+  icons: {
+    icon: `${basePath}/icons/icon-192.png`,
+    apple: `${basePath}/icons/apple-touch-icon-180.png`,
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#3182f6',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -46,6 +71,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-screen" suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
+          <SWRegister />
         </NextIntlClientProvider>
       </body>
     </html>

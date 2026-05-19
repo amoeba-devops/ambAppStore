@@ -18,7 +18,8 @@ interface TripConflictBannerProps {
  * Render `null` khi không có conflict — caller không cần điều kiện hoá.
  *
  * Mỗi loại (vehicle / driver) liệt kê tối đa 3 trip; số dư hiện "+N more".
- * Click vào trpRef → mở trip detail trong tab mới (giữ context form hiện tại).
+ * Click vào trpRef → điều hướng tới trip detail trong cùng tab/PWA standalone.
+ * Form context được giữ qua sessionStorage auto-draft (useFormPersistence).
  */
 export function TripConflictBanner({ conflicts, loading, compact, className }: TripConflictBannerProps) {
   const t = useTranslations('trips.conflict');
@@ -63,8 +64,6 @@ function ConflictList({ label, items }: { label: string; items: ConflictRef[] })
           <li key={c.trpId} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 leading-snug">
             <Link
               href={`/trips/${c.trpId}`}
-              target="_blank"
-              rel="noreferrer"
               className="font-mono font-semibold text-warning hover:underline focus-visible:underline focus-visible:outline-none"
             >
               {c.trpRef}
