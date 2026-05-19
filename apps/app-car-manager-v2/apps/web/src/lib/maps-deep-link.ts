@@ -34,6 +34,9 @@ export interface MapsLinkOpts {
   waypoints?: string[];
   /** navigator.userAgent — pass empty string for SSR. */
   ua: string;
+  /** navigator.maxTouchPoints — used to detect iPad in iOS 13+ "desktop mode"
+   *  (UA reports "Macintosh" but maxTouchPoints > 1). Defaults to 0 for SSR. */
+  maxTouchPoints?: number;
 }
 
 export type MapsLink =
@@ -42,7 +45,7 @@ export type MapsLink =
   | { kind: 'android-intent'; url: string; webFallback: string };
 
 export function buildMapsLink(opts: MapsLinkOpts): MapsLink {
-  const { origin, dest, waypoints = [], ua } = opts;
+  const { origin, dest, waypoints = [], ua, maxTouchPoints = 0 } = opts;
 
   const webParams = new URLSearchParams({
     api: '1',
@@ -55,7 +58,15 @@ export function buildMapsLink(opts: MapsLinkOpts): MapsLink {
 
   if (!ua) return { kind: 'web', url: webUrl };
 
-  const isIOS = /iPhone|iPad|iPod/.test(ua);
+  /* iPad on iOS 13+ defaults to "desktop mode" — UA looks like
+   *   Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ...
+   * which is INDISTINGUISHABLE from a real Mac by UA alone. Apple's signal
+   * for "this is actually an iPad" is `navigator.maxTouchPoints > 1` paired
+   * with a Mac UA. Without this check, a PWA running standalone on iPad
+   * would get `kind: 'web'` + `target="_blank"` and escape to Safari on tap. */
+  const isIpadInDesktopMode =
+    /Macintosh/.test(ua) && !/iPhone|iPad|iPod/.test(ua) && maxTouchPoints > 1;
+  const isIOS = /iPhone|iPad|iPod/.test(ua) || isIpadInDesktopMode;
   const isAndroid = /Android/.test(ua);
 
   if (isIOS) {
