@@ -26,6 +26,7 @@ import {
 } from '@car-v2/ui';
 import { AddressAutocomplete } from '@/components/inputs/address-autocomplete';
 import { MapPreview } from '@/components/inputs/map-preview';
+import { useFormPersistence } from '@/hooks/use-form-persistence';
 import { useTripConflicts } from '@/hooks/use-trip-conflicts';
 import { toMinutes, type DurationUnit } from '@/lib/duration';
 import type { ConflictResult } from '@/server/services/trip-conflict.service';
@@ -79,6 +80,27 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
   const [stopovers, setStopovers] = useState<string[]>([]);
   /* Per-field error flags. Set on failed submit, cleared as user types. */
   const [fieldErrors, setFieldErrors] = useState<{ pickup?: boolean; dropoff?: boolean; scheduledAt?: boolean; driver?: boolean; vehicle?: boolean }>({});
+
+  /* sessionStorage draft — survives the conflict-banner internal link round-trip
+   * (PRD R-1/R-2: user clicks into a conflicting trip without losing form state).
+   * Auto-clears on successful submit. */
+  const { clearDraft } = useFormPersistence(
+    'trip-new-draft',
+    { passengerId, pickup, dropoff, scheduledAt, durationValue, durationUnit, purpose, notes, driverId, vehicleId, stopovers },
+    (v) => {
+      if (typeof v.passengerId === 'string') setPassengerId(v.passengerId);
+      if (typeof v.pickup === 'string') setPickup(v.pickup);
+      if (typeof v.dropoff === 'string') setDropoff(v.dropoff);
+      if (typeof v.scheduledAt === 'string') setScheduledAt(v.scheduledAt);
+      if (typeof v.durationValue === 'string') setDurationValue(v.durationValue);
+      if (v.durationUnit === 'minutes' || v.durationUnit === 'hours' || v.durationUnit === 'days') setDurationUnit(v.durationUnit);
+      if (typeof v.purpose === 'string') setPurpose(v.purpose);
+      if (typeof v.notes === 'string') setNotes(v.notes);
+      if (typeof v.driverId === 'string') setDriverId(v.driverId);
+      if (typeof v.vehicleId === 'string') setVehicleId(v.vehicleId);
+      if (Array.isArray(v.stopovers) && v.stopovers.every((s) => typeof s === 'string')) setStopovers(v.stopovers);
+    },
+  );
 
   /* PRD R-1/R-2 R3 — debounced conflict check. Chỉ active khi có đủ
    * (driver | vehicle) + scheduledAt. Banner hiện trong card Assignment. */
@@ -136,6 +158,7 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
         acknowledged_conflicts: acknowledged.length > 0 ? acknowledged : undefined,
       });
       if (result.success) {
+        clearDraft();
         toast.success(t('tCreated'), { description: result.data.trpRef });
         router.push(`/trips/${result.data.trpId}`);
       } else {

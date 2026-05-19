@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle, ExternalLink, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
+import { OpenInMapsLink } from './open-in-maps-link';
 
 interface MapRouteProps {
   pickup: string;
@@ -108,20 +109,12 @@ export function MapRoute({
    * render which would otherwise re-run the effect needlessly. */
   const stopoverKey = stopovers.join('|');
 
-  const fullscreenUrl = useMemo(() => {
+  const fullscreenRoute = (() => {
     const p = pickup.trim();
     const d = dropoff.trim();
     if (p.length < 3 || d.length < 3) return null;
-    const waypoints = stopovers.map((s) => s.trim()).filter(Boolean);
-    const params = new URLSearchParams({
-      api: '1',
-      origin: p,
-      destination: d,
-      travelmode: 'driving',
-    });
-    if (waypoints.length > 0) params.set('waypoints', waypoints.join('|'));
-    return `https://www.google.com/maps/dir/?${params.toString()}`;
-  }, [pickup, dropoff, stopoverKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    return { origin: p, dest: d, waypoints: stopovers.map((s) => s.trim()).filter(Boolean) };
+  })();
 
   useEffect(() => {
     if (!apiKey || !mapDivRef.current) return;
@@ -224,16 +217,12 @@ export function MapRoute({
     <div className={className ?? ''}>
       <div className="flex items-center justify-between mb-2">
         <div className="text-xs font-medium text-text-muted">{t('previewTitle')}</div>
-        {showFullscreenLink && fullscreenUrl && (
-          <a
-            href={fullscreenUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg rounded"
-          >
-            {t('openFullscreen')}
-            <ExternalLink className="h-3 w-3" />
-          </a>
+        {showFullscreenLink && fullscreenRoute && (
+          <OpenInMapsLink
+            origin={fullscreenRoute.origin}
+            dest={fullscreenRoute.dest}
+            waypoints={fullscreenRoute.waypoints}
+          />
         )}
       </div>
       <div className="relative rounded-md overflow-hidden border border-border bg-surface-2">

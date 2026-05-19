@@ -3,7 +3,19 @@ import { verifyAmaJwt } from '@/lib/auth/verify-jwt';
 import { absoluteUrl } from '@/lib/request-origin';
 
 const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? 'amb_session';
-const PUBLIC_PATHS = ['/api/v1/health', '/session-expired', '/dev-login', '/_next', '/favicon.ico'];
+const PUBLIC_PATHS = [
+  '/api/v1/health',
+  '/session-expired',
+  '/dev-login',
+  '/_next',
+  '/favicon.ico',
+  /* PWA assets — must be reachable without a session so the browser can
+   * install + bootstrap the SW before the user authenticates. */
+  '/manifest.webmanifest',
+  '/sw.js',
+  '/icons',
+  '/offline.html',
+];
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 const cookieAttrs = {

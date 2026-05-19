@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn, Toaster } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
+import { InstallPrompt } from '@/components/pwa/install-prompt';
 import { BottomTabNav } from './bottom-tab-nav';
 import { SidebarNav } from './sidebar-nav';
 
@@ -52,6 +53,7 @@ export function AppShellClient({ role, children }: AppShellClientProps) {
         <CollapseHandle collapsed={collapsed} onClick={toggle} />
       </div>
       <BottomTabNav />
+      <InstallPrompt />
       <Toaster />
     </div>
   );

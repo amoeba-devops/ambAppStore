@@ -115,6 +115,16 @@ const config: Config = {
       transitionDuration: {
         DEFAULT: '180ms',
       },
+      /* iOS safe-area utilities — for components positioned at the screen
+       * edge in PWA standalone mode (notch, home indicator). Usage:
+       *   pt-safe-top, pb-safe-bottom, pl-safe-left, pr-safe-right
+       *   mb-safe-bottom, etc. */
+      spacing: {
+        'safe-top':    'env(safe-area-inset-top)',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+        'safe-left':   'env(safe-area-inset-left)',
+        'safe-right':  'env(safe-area-inset-right)',
+      },
       keyframes: {
         'accordion-down': {
           from: { height: '0' },
