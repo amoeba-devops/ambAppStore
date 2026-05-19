@@ -736,7 +736,22 @@
     "previewTitle": "Route preview",
     "previewHint": "Map appears once pickup and drop-off are filled",
     "openFullscreen": "Open in Maps",
+    "opensInNewTab": "Opens in a new tab",
     "errorLoad": "Failed to load map"
+  },
+  "pwa": {
+    "installPrompt": "Install Fleet as an app",
+    "installPromptSub": "Launch from your home screen, works offline.",
+    "installButton": "Install",
+    "installDismiss": "Later",
+    "iosInstallTitle": "Install on iPhone",
+    "iosInstallStep1": "Tap the Share button in Safari",
+    "iosInstallStep2": "Choose \"Add to Home Screen\"",
+    "offlineTitle": "You're offline",
+    "offlineMessage": "Check your connection and try again.",
+    "offlineRetry": "Retry",
+    "opensInBrowser": "Opens in the browser",
+    "opensInMapsApp": "Opens in the Maps app"
   },
   "sessionExpired": {
     "title": "Session expired",

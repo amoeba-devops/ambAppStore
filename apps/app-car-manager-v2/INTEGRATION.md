@@ -79,7 +79,7 @@ Health endpoint per target:
 | [render.yaml](render.yaml) | Render deploy spec (parallel target, independent of Docker) |
 | [../../platform/nginx/apps.amoeba.site.conf](../../platform/nginx/apps.amoeba.site.conf) | nginx `location /app-car-manager-v2/` → `next-car-manager-v2:3001` container |
 | [../../platform/scripts/deploy-staging.sh](../../platform/scripts/deploy-staging.sh) | Registered as `car-manager-v2` target (single-service + custom health path) |
-| [apps/web/next.config.ts](apps/web/next.config.ts) | `basePath = process.env.BASE_PATH \|\| undefined` |
+| [apps/web/next.config.mjs](apps/web/next.config.mjs) | `basePath = process.env.BASE_PATH \|\| undefined` |
 | [apps/web/src/middleware.ts](apps/web/src/middleware.ts) | JWT verify + cookie + request-header propagation (see §6) |
 | [.env](.env) (gitignored) | `BASE_PATH=/app-car-manager-v2`, `JWT_SECRET` shared, `NEXT_PUBLIC_AMA_ORIGIN` allow-list |
 | [.env.example](.env.example) | template with `BASE_PATH` documented |

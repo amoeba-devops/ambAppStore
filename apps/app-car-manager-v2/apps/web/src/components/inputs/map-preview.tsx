@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { ExternalLink } from 'lucide-react';
+import { OpenInMapsLink } from './open-in-maps-link';
 
 interface MapPreviewProps {
   pickup: string;
@@ -56,10 +56,10 @@ export function MapPreview({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickup, dropoff, stopoverKey]);
 
-  const { embedSrc, fullscreenUrl } = useMemo(() => {
+  const { embedSrc, mapsRoute } = useMemo(() => {
     const p = debounced.pickup.trim();
     const d = debounced.dropoff.trim();
-    if (p.length < 3 || d.length < 3) return { embedSrc: null, fullscreenUrl: null };
+    if (p.length < 3 || d.length < 3) return { embedSrc: null, mapsRoute: null };
 
     const waypoints = debounced.stopovers.map((s) => s.trim()).filter(Boolean);
 
@@ -76,17 +76,7 @@ export function MapPreview({
       embed = `https://www.google.com/maps/embed/v1/directions?${params.toString()}`;
     }
 
-    /* Fullscreen link to public maps — no key needed, uses the universal API. */
-    const fsParams = new URLSearchParams({
-      api: '1',
-      origin: p,
-      destination: d,
-      travelmode: 'driving',
-    });
-    if (waypoints.length > 0) fsParams.set('waypoints', waypoints.join('|'));
-    const fs = `https://www.google.com/maps/dir/?${fsParams.toString()}`;
-
-    return { embedSrc: embed, fullscreenUrl: fs };
+    return { embedSrc: embed, mapsRoute: { origin: p, dest: d, waypoints } };
   }, [apiKey, debounced]);
 
   if (!apiKey) return null;
@@ -95,16 +85,12 @@ export function MapPreview({
     <div className={className ?? 'mt-4'}>
       <div className="flex items-center justify-between mb-2">
         <div className="text-xs font-medium text-text-muted">{t('previewTitle')}</div>
-        {showFullscreenLink && fullscreenUrl && (
-          <a
-            href={fullscreenUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg rounded"
-          >
-            {t('openFullscreen')}
-            <ExternalLink className="h-3 w-3" />
-          </a>
+        {showFullscreenLink && mapsRoute && (
+          <OpenInMapsLink
+            origin={mapsRoute.origin}
+            dest={mapsRoute.dest}
+            waypoints={mapsRoute.waypoints}
+          />
         )}
       </div>
       {embedSrc ? (

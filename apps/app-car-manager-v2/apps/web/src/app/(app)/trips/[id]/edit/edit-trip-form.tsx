@@ -126,7 +126,7 @@ export function EditTripForm({ trip, passengers, role }: EditTripFormProps) {
   const handleRestoreDraft = () => {
     if (!draft) return;
     const v = draft.values;
-    setPassengerId(v.passengerId);
+    if (!passengerLocked) setPassengerId(v.passengerId);
     setPickup(v.pickup);
     setDropoff(v.dropoff);
     setScheduledAt(v.scheduledAt);

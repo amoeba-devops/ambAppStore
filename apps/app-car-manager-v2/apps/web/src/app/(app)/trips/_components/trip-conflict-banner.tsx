@@ -44,7 +44,8 @@ interface TripConflictBannerProps {
  * Sau khi resolve thành công → refetch() → banner re-render bỏ trip đó khỏi
  * list. Khi banner empty → admin save trip mới mà không cần override.
  *
- * Còn lại "Mở chi tiết" — link tab mới để admin review trước khi action.
+ * Mỗi loại (vehicle / driver) liệt kê tối đa 3 trip; số dư hiện "+N more".
+ * "Mở chi tiết" link mở tab mới để admin review trước khi action.
  */
 export function TripConflictBanner({
   conflicts,
