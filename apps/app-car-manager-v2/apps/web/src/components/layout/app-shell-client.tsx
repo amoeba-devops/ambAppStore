@@ -11,10 +11,12 @@ const COLLAPSE_KEY = 'ccms.sidebar.collapsed';
 
 interface AppShellClientProps {
   role: LocalRole;
+  /** Server-counted pending trips in the user's visibility scope. */
+  pendingTripCount: number;
   children: React.ReactNode;
 }
 
-export function AppShellClient({ role, children }: AppShellClientProps) {
+export function AppShellClient({ role, pendingTripCount, children }: AppShellClientProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -42,7 +44,7 @@ export function AppShellClient({ role, children }: AppShellClientProps) {
     <div className="flex min-h-dvh bg-bg text-text">
       {/* Sidebar — hidden on mobile, replaced by BottomTabNav below. */}
       <div className="hidden md:contents">
-        <SidebarNav collapsed={collapsed} role={role} />
+        <SidebarNav collapsed={collapsed} role={role} pendingTripCount={pendingTripCount} />
       </div>
       {/* Main: reserve bottom space on mobile for the fixed bottom-tab bar. */}
       <main className="flex-1 min-w-0 flex flex-col pb-[64px] md:pb-0">

@@ -2,17 +2,11 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { Loader2, Plus, Save, X } from 'lucide-react';
 import {
   Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardHeaderText,
-  CardTitle,
   Input,
   Label,
   Select,
@@ -20,17 +14,34 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Separator,
   Textarea,
   toast,
 } from '@car-v2/ui';
+import { FormField, FormSection } from '@/components/forms/form-section';
 import { AddressAutocomplete } from '@/components/inputs/address-autocomplete';
+import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
 import { MapPreview } from '@/components/inputs/map-preview';
+import { useFormDraft } from '@/hooks/use-form-draft';
 import { useTripConflicts } from '@/hooks/use-trip-conflicts';
 import { toMinutes, type DurationUnit } from '@/lib/duration';
+import { formatActionError } from '@/lib/format-action-error';
 import type { ConflictResult } from '@/server/services/trip-conflict.service';
 import { createTripAction } from '@/server/actions/trips/trip.actions';
 import { TripConflictBanner } from '../_components/trip-conflict-banner';
+
+interface TripDraftValues {
+  passengerId: string;
+  pickup: string;
+  dropoff: string;
+  scheduledAt: string;
+  durationValue: string;
+  durationUnit: DurationUnit;
+  purpose: string;
+  notes: string;
+  driverId: string;
+  vehicleId: string;
+  stopovers: string[];
+}
 
 /** Inline equivalent of server-only `collectConflictIds` — pure utility. */
 function flattenConflictIds(c: ConflictResult | null): string[] {
@@ -63,6 +74,7 @@ interface NewTripFormProps {
 export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: NewTripFormProps) {
   const t  = useTranslations('trips.form');
   const tA = useTranslations('actions');
+  const tErr = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -84,12 +96,62 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
    * (driver | vehicle) + scheduledAt. Banner hiện trong card Assignment. */
   const scheduledIso = scheduledAt ? safeIsoOrEmpty(scheduledAt) : '';
   const durationMinutes = toMinutes(durationValue, durationUnit) ?? null;
-  const { conflicts, loading: conflictsLoading } = useTripConflicts({
+  const { conflicts, loading: conflictsLoading, refetch: refetchConflicts } = useTripConflicts({
     vehicleId: vehicleId || null,
     driverId: driverId || null,
     scheduledAtIso: scheduledIso,
     durationMinutes,
   });
+
+  /* Auto-persist form state. Restore offer shown via banner on mount if a
+   * non-stale draft exists. Cleared on successful submit (router.push fires
+   * after `clearDraft()` so the next visit to /trips/new is clean). */
+  const draftValues: TripDraftValues = {
+    passengerId,
+    pickup,
+    dropoff,
+    scheduledAt,
+    durationValue,
+    durationUnit,
+    purpose,
+    notes,
+    driverId,
+    vehicleId,
+    stopovers,
+  };
+  /* Sidebar label — primary is action-oriented ("Đang đặt chuyến"), secondary
+   * shows the route snippet the user typed so they can recognise the draft. */
+  const pickupSnip = pickup.trim().slice(0, 28);
+  const dropoffSnip = dropoff.trim().slice(0, 28);
+  const draftSecondary =
+    pickupSnip && dropoffSnip ? `${pickupSnip} → ${dropoffSnip}` :
+    pickupSnip ? pickupSnip :
+    dropoffSnip ? `→ ${dropoffSnip}` :
+    undefined;
+  const { draft, clearDraft, dismissDraft } = useFormDraft<TripDraftValues>({
+    key: 'trip:new',
+    values: draftValues,
+    label: { primary: t('draftLabelNew'), secondary: draftSecondary },
+    href: '/trips/new',
+    entity: 'trip',
+  });
+
+  const handleRestoreDraft = () => {
+    if (!draft) return;
+    const v = draft.values;
+    setPassengerId(v.passengerId || currentUserId);
+    setPickup(v.pickup);
+    setDropoff(v.dropoff);
+    setScheduledAt(v.scheduledAt);
+    setDurationValue(v.durationValue);
+    setDurationUnit(v.durationUnit);
+    setPurpose(v.purpose);
+    setNotes(v.notes);
+    setDriverId(v.driverId);
+    setVehicleId(v.vehicleId);
+    setStopovers(v.stopovers);
+    dismissDraft();
+  };
 
   const addStopover = () => {
     if (stopovers.length >= 10) return;
@@ -101,6 +163,11 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
     setStopovers((s) => s.map((v, idx) => (idx === i ? value : v)));
 
   const onSubmit = () => {
+    /* Guard against double-submit: Enter key + click race, useTransition
+     * pending flag re-renders may still leave a 1-frame window. Bailing
+     * here is cheaper than the createTripAction work that follows. */
+    if (pending) return;
+
     const missing = {
       pickup: !pickup.trim(),
       dropoff: !dropoff.trim(),
@@ -136,77 +203,61 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
         acknowledged_conflicts: acknowledged.length > 0 ? acknowledged : undefined,
       });
       if (result.success) {
-        toast.success(t('tCreated'), { description: result.data.trpRef });
-        router.push(`/trips/${result.data.trpId}`);
-      } else {
-        toast.error(t('errCreate'), {
-          description: `${result.error.code} — ${result.error.message}`,
+        clearDraft();
+        /* Friendly toast: lead with the trip ref then a brief route summary
+         * so the user sees what they just booked, not just an opaque code. */
+        const routeSummary = `${pickup.trim()} → ${dropoff.trim()}`;
+        toast.success(t('tCreated', { ref: result.data.trpRef }), {
+          description: routeSummary,
         });
+        /* Land on the All-trips list with this trip highlighted so the user
+         * can confirm it appears in the queue. The detail page is one click
+         * away from there, and the highlight ring fades after ~3s. */
+        router.push(`/trips?status=all&highlight=${result.data.trpId}`);
+      } else {
+        toast.error(t('errCreate'), { description: formatActionError(result.error, tErr) });
       }
     });
   };
 
   return (
     <form
-      className="max-w-[720px] mx-auto space-y-5"
+      /* Layout strategy:
+       *   Mobile: single column, page-level vertical scroll.
+       *   Desktop (lg+): 2-col grid filling the parent's available height.
+       *     - Left column scrolls internally (form fields)
+       *     - Right column is sticky map at full column height
+       *   The form itself uses h-full so the inner grid can claim viewport height
+       *   without page-level scroll. */
+      /* `overflow-x-hidden` is a safety net: any descendant that escapes its
+       * column (datetime-local native widget min-width, long select options,
+       * etc) is clipped here instead of forcing a page-level horizontal
+       * scroll. The grid columns already use `minmax(0, 1fr)` to allow
+       * shrinking; this just guarantees the floor. */
+      className="lg:h-full lg:max-w-[1100px] mx-auto lg:flex lg:flex-col overflow-x-hidden"
       onSubmit={(e) => {
         e.preventDefault();
         onSubmit();
       }}
       aria-label={t('createAria')}
     >
-      {/* Trip basics */}
-      <Card>
-        <CardHeader>
-          <CardHeaderText>
-            <CardTitle>{t('sectionDetails')}</CardTitle>
-            <CardDescription>{t('sectionDetailsDesc')}</CardDescription>
-          </CardHeaderText>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label={t('passenger')}>
-              <Select value={passengerId} onValueChange={setPassengerId}>
-                <SelectTrigger><SelectValue placeholder={t('passengerPlaceholder')} /></SelectTrigger>
-                <SelectContent>
-                  {passengers.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-            <FormField label={t('purpose')} hint={t('purposeHint')}>
-              <Input
-                value={purpose}
-                onChange={(e) => setPurpose(e.target.value)}
-                placeholder={t('purposePlaceholder')}
-                maxLength={255}
-              />
-            </FormField>
-            <FormField label={t('notes')} className="md:col-span-2">
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder={t('notesPlaceholder')}
-                rows={3}
-                maxLength={2000}
-              />
-            </FormField>
-          </div>
-        </CardContent>
-      </Card>
+      {draft && (
+        <DraftRestoreBanner
+          savedAt={draft.savedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={clearDraft}
+          className="mb-4 lg:mb-3"
+        />
+      )}
 
-      {/* Schedule + route */}
-      <Card>
-        <CardHeader>
-          <CardHeaderText>
-            <CardTitle>{t('sectionSchedule')}</CardTitle>
-            <CardDescription>{t('sectionScheduleDesc')}</CardDescription>
-          </CardHeaderText>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label={t('pickup')} required error={fieldErrors.pickup} className="md:col-span-2">
+      {/* Route section spans the full form width above the 2-col grid so the
+       * pickup/dropoff inputs (which often hold long Vietnamese addresses) get
+       * the entire form's horizontal real estate. `shrink-0` keeps it pinned
+       * at fixed height — the grid below absorbs leftover height instead. */}
+      <div className="lg:shrink-0 lg:mb-4 min-w-0 overflow-x-hidden">
+        <FormSection label={t('sectionRoute')} required>
+          <div className="space-y-2.5">
+            <FormField label={t('pickup')} required error={fieldErrors.pickup} inline>
               <AddressAutocomplete
                 value={pickup}
                 onChange={(val) => {
@@ -218,7 +269,7 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
                 maxLength={2000}
               />
             </FormField>
-            <FormField label={t('dropoff')} required error={fieldErrors.dropoff} className="md:col-span-2">
+            <FormField label={t('dropoff')} required error={fieldErrors.dropoff} inline>
               <AddressAutocomplete
                 value={dropoff}
                 onChange={(val) => {
@@ -230,157 +281,264 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
                 maxLength={2000}
               />
             </FormField>
-            <FormField label={t('scheduledAt')} required error={fieldErrors.scheduledAt} hint={t('scheduledAtHint')}>
-              <Input
-                type="datetime-local"
-                step={900}
-                value={scheduledAt}
-                onChange={(e) => {
-                  setScheduledAt(e.target.value);
-                  if (fieldErrors.scheduledAt && e.target.value) setFieldErrors((p) => ({ ...p, scheduledAt: false }));
-                }}
-                error={fieldErrors.scheduledAt}
-              />
-            </FormField>
-            <FormField label={t('duration')}>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  min={1}
-                  inputMode="numeric"
-                  value={durationValue}
-                  onChange={(e) => setDurationValue(e.target.value)}
-                  placeholder={t('durationValuePlaceholder')}
-                  className="w-24 shrink-0"
-                />
-                <Select value={durationUnit} onValueChange={(v) => setDurationUnit(v as DurationUnit)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="minutes">{t('unitMinutes')}</SelectItem>
-                    <SelectItem value="hours">{t('unitHours')}</SelectItem>
-                    <SelectItem value="days">{t('unitDays')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </FormField>
-          </div>
-
-          <Separator className="my-5" />
-
-          <div>
-            <div className="text-xs font-medium text-text-muted mb-2">{t('stopoversLabel', { count: stopovers.length })}</div>
-            {stopovers.length === 0 && (
-              <div className="text-xs text-text-faint mb-2">{t('stopoversHint')}</div>
+            {stopovers.length > 0 && (
+              <ul className="space-y-1.5">
+                {stopovers.map((s, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <AddressAutocomplete
+                        value={s}
+                        onChange={(val) => updateStopover(i, val)}
+                        placeholder={t('stopPlaceholder', { n: i + 1 })}
+                        maxLength={2000}
+                      />
+                    </div>
+                    <Button type="button" variant="ghost" size="icon" aria-label={t('removeStopAria')} onClick={() => removeStopover(i)}>
+                      <X />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
             )}
-            <ul className="space-y-2">
-              {stopovers.map((s, i) => (
-                <li key={i} className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <AddressAutocomplete
-                      value={s}
-                      onChange={(val) => updateStopover(i, val)}
-                      placeholder={t('stopPlaceholder', { n: i + 1 })}
-                      maxLength={2000}
-                    />
-                  </div>
-                  <Button type="button" variant="ghost" size="icon" aria-label={t('removeStopAria')} onClick={() => removeStopover(i)}>
-                    <X />
-                  </Button>
-                </li>
-              ))}
-            </ul>
             {stopovers.length < 10 && (
-              <Button type="button" variant="ghost" size="sm" iconLeft={<Plus />} onClick={addStopover} className="mt-2">
-                {t('addStop')}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                iconLeft={<Plus />}
+                onClick={addStopover}
+                className="h-7 px-2 text-xs"
+              >
+                {t('addStop')}{stopovers.length > 0 ? ` (${stopovers.length}/10)` : ''}
               </Button>
             )}
           </div>
+        </FormSection>
+      </div>
 
-          <MapPreview pickup={pickup} dropoff={dropoff} stopovers={stopovers} />
-        </CardContent>
-      </Card>
+      <div className="lg:flex-1 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(360px,440px)] lg:gap-5 lg:overflow-hidden">
+        {/* Left column — flat compact form (Route already lives above this
+         * grid, so this column only carries Time + Passenger + Assignment).
+         * `min-w-0` is critical: without it, grid children default to
+         * min-width: auto and expand to fit content (datetime-local widget,
+         * long select option text) → horizontal overflow → page scroll-x.
+         * Adding `overflow-x-hidden` belt-and-suspenders: even if a deeper
+         * descendant insists on its intrinsic min-width, it gets clipped here
+         * rather than escaping to the page. */}
+        <div className="min-w-0 overflow-x-hidden space-y-4 lg:space-y-3.5 lg:overflow-y-auto lg:pr-2">
 
-      {/* Assignment (optional) */}
-      <Card>
-        <CardHeader>
-          <CardHeaderText>
-            <CardTitle>{t('sectionAssignment')}</CardTitle>
-            <CardDescription>{t('sectionAssignmentDesc')}</CardDescription>
-          </CardHeaderText>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label={t('driver')} error={fieldErrors.driver}>
-              <Select
-                value={driverId}
-                onValueChange={(v) => {
-                  setDriverId(v);
-                  if (fieldErrors.driver && v) setFieldErrors((p) => ({ ...p, driver: false }));
-                }}
-              >
-                <SelectTrigger error={fieldErrors.driver}><SelectValue placeholder={t('driverPlaceholder')} /></SelectTrigger>
-                <SelectContent>
-                  {drivers.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-            <FormField label={t('vehicle')} error={fieldErrors.vehicle}>
-              <Select
-                value={vehicleId}
-                onValueChange={(v) => {
-                  setVehicleId(v);
-                  if (fieldErrors.vehicle && v) setFieldErrors((p) => ({ ...p, vehicle: false }));
-                }}
-              >
-                <SelectTrigger error={fieldErrors.vehicle}><SelectValue placeholder={t('vehiclePlaceholder')} /></SelectTrigger>
-                <SelectContent>
-                  {vehicles.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
+          {/* ── TIME ──
+           * Side-by-side: datetime takes 1fr (flexible), duration takes a fixed
+           * 190px column. The `minmax(0, 1fr)` lets the datetime cell shrink
+           * past its intrinsic content width (datetime-local native widget min
+           * ~200px); the surrounding overflow-x-hidden chain clips any visual
+           * overflow rather than expanding the column. */}
+          <FormSection label={t('sectionTime')} required>
+            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_190px] gap-2.5 md:items-end">
+              <FormField label={t('scheduledAt')} required error={fieldErrors.scheduledAt} inline className="min-w-0">
+                <Input
+                  type="datetime-local"
+                  step={900}
+                  value={scheduledAt}
+                  onChange={(e) => {
+                    setScheduledAt(e.target.value);
+                    if (fieldErrors.scheduledAt && e.target.value) setFieldErrors((p) => ({ ...p, scheduledAt: false }));
+                  }}
+                  error={fieldErrors.scheduledAt}
+                  className="w-full min-w-0"
+                />
+              </FormField>
+              <FormField label={t('duration')} inline className="min-w-0">
+                <div className="flex gap-2 min-w-0">
+                  <Input
+                    type="number"
+                    min={1}
+                    inputMode="numeric"
+                    value={durationValue}
+                    onChange={(e) => setDurationValue(e.target.value)}
+                    placeholder={t('durationValuePlaceholder')}
+                    className="w-16 shrink-0"
+                  />
+                  <Select value={durationUnit} onValueChange={(v) => setDurationUnit(v as DurationUnit)}>
+                    <SelectTrigger className="flex-1 min-w-0"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="minutes">{t('unitMinutes')}</SelectItem>
+                      <SelectItem value="hours">{t('unitHours')}</SelectItem>
+                      <SelectItem value="days">{t('unitDays')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </FormField>
+            </div>
+          </FormSection>
+
+          {/* ── PASSENGER & PURPOSE — with collapsible Notes ── */}
+          <FormSection label={t('sectionPassenger')}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <FormField label={t('passenger')} inline className="min-w-0">
+                <Select value={passengerId} onValueChange={setPassengerId}>
+                  <SelectTrigger className="w-full min-w-0"><SelectValue placeholder={t('passengerPlaceholder')} /></SelectTrigger>
+                  <SelectContent>
+                    {passengers.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <FormField label={t('purpose')} inline className="min-w-0">
+                <Input
+                  value={purpose}
+                  onChange={(e) => setPurpose(e.target.value)}
+                  placeholder={t('purposePlaceholder')}
+                  maxLength={255}
+                  className="w-full"
+                />
+              </FormField>
+            </div>
+            <NotesDisclosure
+              notes={notes}
+              setNotes={setNotes}
+              labelOpen={t('addNotes')}
+              labelField={t('notes')}
+              placeholder={t('notesPlaceholder')}
+            />
+          </FormSection>
+
+          {/* ── ASSIGNMENT (optional) — also hosts conflict banner ── */}
+          <FormSection label={t('sectionAssignment')} hint={t('sectionAssignmentDescShort')}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <FormField label={t('driver')} error={fieldErrors.driver} inline className="min-w-0">
+                <Select
+                  value={driverId}
+                  onValueChange={(v) => {
+                    setDriverId(v);
+                    if (fieldErrors.driver && v) setFieldErrors((p) => ({ ...p, driver: false }));
+                  }}
+                >
+                  <SelectTrigger error={fieldErrors.driver} className="w-full min-w-0"><SelectValue placeholder={t('driverPlaceholder')} /></SelectTrigger>
+                  <SelectContent>
+                    {drivers.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <FormField label={t('vehicle')} error={fieldErrors.vehicle} inline className="min-w-0">
+                <Select
+                  value={vehicleId}
+                  onValueChange={(v) => {
+                    setVehicleId(v);
+                    if (fieldErrors.vehicle && v) setFieldErrors((p) => ({ ...p, vehicle: false }));
+                  }}
+                >
+                  <SelectTrigger error={fieldErrors.vehicle} className="w-full min-w-0"><SelectValue placeholder={t('vehiclePlaceholder')} /></SelectTrigger>
+                  <SelectContent>
+                    {vehicles.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+            </div>
+            <TripConflictBanner
+              conflicts={conflicts}
+              loading={conflictsLoading}
+              refetch={refetchConflicts}
+              className="mt-2.5"
+            />
+          </FormSection>
+
+          {/* Mobile-only inline map. Desktop has its own sticky map column. */}
+          <div className="lg:hidden">
+            <MapPreview pickup={pickup} dropoff={dropoff} stopovers={stopovers} />
           </div>
-          <TripConflictBanner
-            conflicts={conflicts}
-            loading={conflictsLoading}
-            className="mt-4"
-          />
-        </CardContent>
-      </Card>
 
-      {/* Sticky footer */}
-      <div className="md:flex md:justify-end md:gap-2 md:pt-2 md:static md:bg-transparent md:px-0 md:py-0 md:border-t-0
-        sticky bottom-0 -mx-4 px-4 py-3 bg-bg/95 backdrop-blur border-t border-border flex gap-2">
-        <Button type="button" variant="secondary" size="lg" className="flex-1 md:flex-initial" asChild>
-          <Link href="/trips">{tA('cancel')}</Link>
-        </Button>
-        <Button type="submit" variant="accent" size="lg" className="flex-1 md:flex-initial" disabled={pending}
-          iconLeft={pending ? <Loader2 className="animate-spin" /> : <Save />}>
-          {pending ? t('submitCreating') : t('submitCreate')}
-        </Button>
+          {/* Footer buttons — placed below the Assignment section in the left
+           * column. Mobile keeps the sticky-bottom treatment so they remain
+           * reachable while scrolling a long page; desktop is inline since
+           * no scroll is expected on a typical viewport.
+           *
+           * Important: the mobile `-mx-4` (bleed sticky bar to viewport edges)
+           * MUST be cancelled on desktop via `md:mx-0`. Otherwise the negative
+           * margin extends the footer 16px past its column edge, and the
+           * surrounding overflow-x-hidden clips the right side of the
+           * "Create trip" button. */}
+          <div className="md:flex md:justify-end md:gap-2 md:pt-2 md:static md:bg-transparent md:px-0 md:py-0 md:border-t-0 md:mx-0
+            sticky bottom-0 -mx-4 px-4 py-3 bg-bg/95 backdrop-blur border-t border-border flex gap-2">
+            <Button type="button" variant="secondary" size="lg" className="flex-1 md:flex-initial" asChild>
+              <Link href="/trips">{tA('cancel')}</Link>
+            </Button>
+            <Button type="submit" variant="accent" size="lg" className="flex-1 md:flex-initial" disabled={pending}
+              iconLeft={pending ? <Loader2 className="animate-spin" /> : <Save />}>
+              {pending ? t('submitCreating') : t('submitCreate')}
+            </Button>
+          </div>
+        </div>
+        {/* end left column */}
+
+        {/* Right column — desktop-only sticky map fills column height. */}
+        <aside className="hidden lg:flex lg:flex-col lg:h-full">
+          <MapPreview
+            pickup={pickup}
+            dropoff={dropoff}
+            stopovers={stopovers}
+            heightClassName="h-full min-h-[300px]"
+            showFullscreenLink
+            className="flex-1 flex flex-col [&>div:last-child]:flex-1"
+          />
+        </aside>
       </div>
     </form>
   );
 }
 
-interface FormFieldProps {
-  label: string;
-  required?: boolean;
-  error?: boolean;
-  hint?: string;
-  className?: string;
-  children: React.ReactNode;
-}
+/* Notes are optional — collapse to a button so they don't eat ~80px when
+ * unused. If a draft restores non-empty notes, we expand automatically. */
+function NotesDisclosure({
+  notes,
+  setNotes,
+  labelOpen,
+  labelField,
+  placeholder,
+}: {
+  notes: string;
+  setNotes: (v: string) => void;
+  labelOpen: string;
+  labelField: string;
+  placeholder: string;
+}) {
+  const [expanded, setExpanded] = useState(!!notes);
+  /* Sync open-state when draft restore hydrates notes after mount. */
+  useEffect(() => {
+    if (notes && !expanded) setExpanded(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes]);
 
-function FormField({ label, required, error, hint, className, children }: FormFieldProps) {
+  if (!expanded) {
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        iconLeft={<Plus />}
+        onClick={() => setExpanded(true)}
+        className="h-7 px-2 mt-2 text-xs"
+      >
+        {labelOpen}
+      </Button>
+    );
+  }
   return (
-    <div className={className}>
-      <Label className={'mb-1.5 block ' + (error ? 'text-danger' : '')} required={required}>{label}</Label>
-      {children}
-      {hint && !error && <div className="text-xs text-text-faint mt-1">{hint}</div>}
+    <div className="mt-2.5">
+      <Label className="mb-1 block text-xs">{labelField}</Label>
+      <Textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder={placeholder}
+        rows={2}
+        maxLength={2000}
+      />
     </div>
   );
 }
+

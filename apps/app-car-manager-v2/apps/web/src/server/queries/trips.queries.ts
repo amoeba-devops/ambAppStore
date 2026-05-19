@@ -95,6 +95,42 @@ export async function listTrips({
   };
 }
 
+/**
+ * Lightweight count of trips currently in a "pending" state for this user's
+ * visibility scope. Used by the sidebar to show a badge on the Trips nav item.
+ *
+ * PRD R-3 visibility rules apply (Admin all, Manager own, Driver assigned).
+ * Pending = PENDING_ASSIGNMENT ∪ PENDING_DRIVER_CONFIRMATION (same set as the
+ * `pending` filter chip on the list page so the number matches).
+ */
+export async function countPendingTrips(args: {
+  entId: string;
+  role: LocalRole;
+  userId: string;
+}): Promise<number> {
+  const { entId, role, userId } = args;
+  const filters: SQL[] = [
+    eq(carTrips.entId, entId),
+    isNull(carTrips.trpDeletedAt),
+    inArray(carTrips.trpStatus, ['PENDING_ASSIGNMENT', 'PENDING_DRIVER_CONFIRMATION']),
+  ];
+
+  if (role === 'MANAGER') {
+    const visibility = or(eq(carTrips.trpCreatorId, userId), eq(carTrips.trpPassengerId, userId));
+    if (visibility) filters.push(visibility);
+  } else if (role === 'DRIVER') {
+    const driver = await getDriverByUserId(entId, userId);
+    if (!driver) return 0;
+    filters.push(eq(carTrips.trpDriverId, driver.drvId));
+  }
+
+  const rows = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(carTrips)
+    .where(and(...filters));
+  return Number(rows[0]?.count ?? 0);
+}
+
 function statusToWhere(status: ListInput['status']): SQL | null {
   switch (status) {
     case 'all':

@@ -1,6 +1,14 @@
 {
   "appName": "Fleet",
   "appSub": "Quản lý xe công ty",
+  "forms": {
+    "draft": {
+      "title": "Tiếp tục bản nháp chưa lưu?",
+      "savedRelative": "Bạn đã chỉnh sửa form này {time}.",
+      "restore": "Khôi phục bản nháp",
+      "discard": "Bỏ nháp"
+    }
+  },
   "nav": {
     "dashboard": "Tổng quan",
     "trips": "Chuyến đi",
@@ -12,7 +20,9 @@
     "settings": "Cài đặt",
     "auditLog": "Nhật ký kiểm toán",
     "inbox": "Hộp thư",
-    "schedule": "Lịch trình"
+    "schedule": "Lịch trình",
+    "pendingCountTitle": "{n} chuyến đang chờ xử lý",
+    "pendingBadgeLabel": "chờ"
   },
   "actions": {
     "new": "Tạo mới",
@@ -171,14 +181,25 @@
       "previous": "Trước",
       "next": "Tiếp"
     },
+    "peek": {
+      "a11yTitle": "Chi tiết chuyến {ref}",
+      "a11yDescription": "Bản xem nhanh chuyến đi — nhấn Esc hoặc nhấn ra ngoài để đóng",
+      "close": "Đóng",
+      "openFull": "Mở trang chi tiết đầy đủ"
+    },
     "form": {
       "createAria": "Tạo chuyến mới",
       "sectionDetails": "Thông tin chuyến",
       "sectionDetailsDesc": "Ai đi và mục đích.",
+      "sectionRoute": "Lộ trình",
+      "sectionTime": "Thời gian",
+      "sectionPassenger": "Hành khách & mục đích",
       "sectionSchedule": "Lịch trình & lộ trình",
       "sectionScheduleDesc": "Điểm đón, điểm đến và thời gian.",
       "sectionAssignment": "Phân công",
       "sectionAssignmentDesc": "Tùy chọn — để trống nếu Admin sẽ phân công sau.",
+      "sectionAssignmentDescShort": "tuỳ chọn",
+      "addNotes": "Thêm ghi chú",
       "editScheduleHint": "Có thể chỉnh sửa khi đang chờ. Phân công tài xế/xe được đổi từ trang chi tiết chuyến.",
       "passenger": "Người sử dụng xe",
       "passengerPlaceholder": "Chọn hành khách",
@@ -223,19 +244,35 @@
       "errMissingDesc": "Điểm đón, điểm đến và thời gian là bắt buộc.",
       "errIncomplete": "Phân công chưa đủ",
       "errIncompleteDesc": "Chọn cả tài xế và xe, hoặc bỏ trống cả hai.",
-      "tCreated": "Đã tạo chuyến",
-      "tUpdated": "Đã cập nhật chuyến",
+      "tCreated": "Đã tạo chuyến {ref}",
+      "tUpdated": "Đã cập nhật chuyến {ref}",
       "errCreate": "Không tạo được chuyến",
-      "errUpdate": "Không cập nhật được"
+      "errUpdate": "Không cập nhật được",
+      "draftLabelNew": "Đang đặt chuyến",
+      "draftLabelEdit": "Đang sửa {ref}"
     },
     "conflict": {
       "checking": "Đang kiểm tra trùng lịch…",
       "title": "Phát hiện trùng lịch",
-      "description": "Có chuyến khác đang dùng cùng xe hoặc tài xế trong khoảng thời gian này. Bạn vẫn có thể lưu, hệ thống sẽ ghi nhận quyết định bỏ qua cảnh báo.",
+      "description": "Có chuyến khác đang dùng cùng xe hoặc tài xế trong khoảng thời gian này. Xử lý chuyến cũ rồi lưu chuyến mới, hoặc lưu đè để ghi nhận override.",
       "vehicleLabel": "Xe đang được dùng:",
       "driverLabel": "Tài xế đang được giao:",
       "durationMinutes": "~{minutes} phút",
-      "andNMore": "và {count} chuyến khác"
+      "andNMore": "và {count} chuyến khác",
+      "actionEnd": "Hoàn tất",
+      "actionCancel": "Huỷ chuyến",
+      "actionView": "Mở chi tiết",
+      "confirmEnd": "Đánh dấu chuyến {ref} là hoàn tất?",
+      "tEndedShort": "Đã hoàn tất {ref}",
+      "tEndedFailed": "Không đánh dấu hoàn tất được",
+      "cancelDialogTitle": "Huỷ chuyến {ref}",
+      "cancelDialogDesc": "Chuyến này sẽ chuyển sang trạng thái CANCELLED và tài xế được thông báo.",
+      "cancelDialogConfirm": "Xác nhận huỷ",
+      "cancelReasonLabel": "Lý do huỷ",
+      "cancelReasonDefault": "Thay bằng chuyến mới đang tạo",
+      "cancelReasonPlaceholder": "Vd: Đổi sang xe khác, đổi lịch, …",
+      "tCancelledShort": "Đã huỷ {ref}",
+      "tCancelledFailed": "Không huỷ được"
     },
     "detail": {
       "summary": "Tóm tắt",
@@ -364,7 +401,9 @@
       "tRemoved": "Đã xoá xe",
       "errCreate": "Không tạo được",
       "errUpdate": "Không cập nhật được",
-      "errRemove": "Không xoá được"
+      "errRemove": "Không xoá được",
+      "draftLabelNew": "Đang thêm xe mới",
+      "draftLabelEdit": "Đang sửa xe {plate}"
     },
     "detail": {
       "statOdometer": "Số km",
@@ -441,7 +480,9 @@
       "tAdded": "Đã thêm tài xế",
       "tUpdated": "Đã cập nhật tài xế",
       "errCreate": "Không tạo được",
-      "errUpdate": "Không cập nhật được"
+      "errUpdate": "Không cập nhật được",
+      "draftLabelNew": "Đang thêm tài xế mới",
+      "draftLabelEdit": "Đang sửa tài xế {name}"
     },
     "detail": {
       "statLicense": "Bằng lái",
@@ -551,7 +592,14 @@
     "notifEmail": "Thông báo email",
     "notifEmailDesc": "Gửi đến email chính của user.",
     "notifPush": "Web push (PWA)",
-    "notifPushDesc": "Push trên trình duyệt cho tài xế đã cài app · P4.",
+    "notifPushDesc": "Push trên trình duyệt cho tài xế đã cài app.",
+    "push": {
+      "subscribed": "Đã bật thông báo trên thiết bị này.",
+      "denied": "Thiết bị này đã chặn thông báo. Bật lại trong cài đặt trình duyệt.",
+      "unsupported": "Trình duyệt này không hỗ trợ Web Push.",
+      "serverDisabled": "Push chưa được cấu hình trên máy chủ.",
+      "error": "Không thể bật push: {message}"
+    },
     "notifDigest": "Tóm tắt hàng ngày",
     "notifDigestDesc": "Bản tóm tắt các khoản chờ duyệt lúc 9:00 sáng.",
     "retention": "Lưu trữ dữ liệu",
@@ -602,6 +650,7 @@
     "noBase": "Chưa đặt nơi đỗ"
   },
   "errors": {
+    "internal": "Lỗi hệ thống — vui lòng thử lại sau hoặc liên hệ quản trị viên",
     "title": "Đã có lỗi xảy ra",
     "desc": "Có lỗi không mong muốn khi tải trang. Đội ngũ đã được thông báo.",
     "ref": "Mã lỗi:",
@@ -617,6 +666,31 @@
     "mobileNavAria": "Điều hướng mobile",
     "breadcrumbAria": "Đường dẫn điều hướng",
     "back": "Quay lại",
+    "drafts": {
+      "title": "Đang dang dở",
+      "count": "{n} việc đang dang dở",
+      "savedAt": "Lưu {time}",
+      "discardAria": "Bỏ bản nháp",
+      "discardConfirm": "Bỏ bản nháp \"{label}\"?",
+      "fallback": {
+        "trip": {
+          "new": "Đang đặt chuyến",
+          "edit": "Đang sửa chuyến"
+        },
+        "vehicle": {
+          "new": "Đang thêm xe",
+          "edit": "Đang sửa xe"
+        },
+        "driver": {
+          "new": "Đang thêm tài xế",
+          "edit": "Đang sửa tài xế"
+        },
+        "unknown": {
+          "new": "Đang dang dở",
+          "edit": "Đang sửa"
+        }
+      }
+    },
     "tabs": {
       "today": "Hôm nay",
       "trips": "Chuyến đi",
