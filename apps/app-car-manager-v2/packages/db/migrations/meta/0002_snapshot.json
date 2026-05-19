@@ -1,0 +1,1309 @@
+{
+  "id": "9259de90-9cd9-48c6-9c55-85f3856a72a3",
+  "prevId": "cdecc33d-e92f-440c-9f5e-56875a677e9e",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.car_audit_logs": {
+      "name": "car_audit_logs",
+      "schema": "",
+      "columns": {
+        "aud_id": {
+          "name": "aud_id",
+          "type": "char(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ent_id": {
+          "name": "ent_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aud_user_id": {
+          "name": "aud_user_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aud_action": {
+          "name": "aud_action",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aud_entity": {
+          "name": "aud_entity",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aud_entity_id": {
+          "name": "aud_entity_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aud_entity_ref": {
+          "name": "aud_entity_ref",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aud_before": {
+          "name": "aud_before",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aud_after": {
+          "name": "aud_after",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aud_ip": {
+          "name": "aud_ip",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aud_user_agent": {
+          "name": "aud_user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aud_created_at": {
+          "name": "aud_created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_car_audit_logs_ent_created": {
+          "name": "idx_car_audit_logs_ent_created",
+          "columns": [
+            {
+              "expression": "ent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "aud_created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_car_audit_logs_entity": {
+          "name": "idx_car_audit_logs_entity",
+          "columns": [
+            {
+              "expression": "aud_entity",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "aud_entity_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "car_audit_logs_aud_user_id_car_users_usr_id_fk": {
+          "name": "car_audit_logs_aud_user_id_car_users_usr_id_fk",
+          "tableFrom": "car_audit_logs",
+          "tableTo": "car_users",
+          "columnsFrom": [
+            "aud_user_id"
+          ],
+          "columnsTo": [
+            "usr_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.car_drivers": {
+      "name": "car_drivers",
+      "schema": "",
+      "columns": {
+        "drv_id": {
+          "name": "drv_id",
+          "type": "char(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ent_id": {
+          "name": "ent_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "drv_user_id": {
+          "name": "drv_user_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "drv_license_number": {
+          "name": "drv_license_number",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "drv_license_class": {
+          "name": "drv_license_class",
+          "type": "car_driver_license_class",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'B2'"
+        },
+        "drv_license_expiry": {
+          "name": "drv_license_expiry",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "drv_phone": {
+          "name": "drv_phone",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "drv_status": {
+          "name": "drv_status",
+          "type": "car_driver_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'AVAILABLE'"
+        },
+        "drv_emergency_contact": {
+          "name": "drv_emergency_contact",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "drv_notes": {
+          "name": "drv_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "drv_created_at": {
+          "name": "drv_created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "drv_updated_at": {
+          "name": "drv_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "drv_deleted_at": {
+          "name": "drv_deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "uniq_car_drivers_ent_user": {
+          "name": "uniq_car_drivers_ent_user",
+          "columns": [
+            {
+              "expression": "ent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "drv_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"car_drivers\".\"drv_deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_car_drivers_ent_status": {
+          "name": "idx_car_drivers_ent_status",
+          "columns": [
+            {
+              "expression": "ent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "drv_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_car_drivers_license_expiry": {
+          "name": "idx_car_drivers_license_expiry",
+          "columns": [
+            {
+              "expression": "drv_license_expiry",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "car_drivers_drv_user_id_car_users_usr_id_fk": {
+          "name": "car_drivers_drv_user_id_car_users_usr_id_fk",
+          "tableFrom": "car_drivers",
+          "tableTo": "car_users",
+          "columnsFrom": [
+            "drv_user_id"
+          ],
+          "columnsTo": [
+            "usr_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.car_notifications": {
+      "name": "car_notifications",
+      "schema": "",
+      "columns": {
+        "ntf_id": {
+          "name": "ntf_id",
+          "type": "char(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ent_id": {
+          "name": "ent_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ntf_user_id": {
+          "name": "ntf_user_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ntf_event": {
+          "name": "ntf_event",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ntf_title": {
+          "name": "ntf_title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ntf_body": {
+          "name": "ntf_body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ntf_entity_id": {
+          "name": "ntf_entity_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ntf_entity_ref": {
+          "name": "ntf_entity_ref",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ntf_read_at": {
+          "name": "ntf_read_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ntf_created_at": {
+          "name": "ntf_created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_car_notifications_user_unread": {
+          "name": "idx_car_notifications_user_unread",
+          "columns": [
+            {
+              "expression": "ntf_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ntf_read_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "car_notifications_ntf_user_id_car_users_usr_id_fk": {
+          "name": "car_notifications_ntf_user_id_car_users_usr_id_fk",
+          "tableFrom": "car_notifications",
+          "tableTo": "car_users",
+          "columnsFrom": [
+            "ntf_user_id"
+          ],
+          "columnsTo": [
+            "usr_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.car_push_subscriptions": {
+      "name": "car_push_subscriptions",
+      "schema": "",
+      "columns": {
+        "psh_id": {
+          "name": "psh_id",
+          "type": "char(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ent_id": {
+          "name": "ent_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "psh_user_id": {
+          "name": "psh_user_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "psh_endpoint": {
+          "name": "psh_endpoint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "psh_p256dh": {
+          "name": "psh_p256dh",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "psh_auth": {
+          "name": "psh_auth",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "psh_user_agent": {
+          "name": "psh_user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "psh_created_at": {
+          "name": "psh_created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "psh_last_used_at": {
+          "name": "psh_last_used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "uniq_car_push_subscriptions_endpoint": {
+          "name": "uniq_car_push_subscriptions_endpoint",
+          "columns": [
+            {
+              "expression": "psh_endpoint",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_car_push_subscriptions_user": {
+          "name": "idx_car_push_subscriptions_user",
+          "columns": [
+            {
+              "expression": "ent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "psh_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "car_push_subscriptions_psh_user_id_car_users_usr_id_fk": {
+          "name": "car_push_subscriptions_psh_user_id_car_users_usr_id_fk",
+          "tableFrom": "car_push_subscriptions",
+          "tableTo": "car_users",
+          "columnsFrom": [
+            "psh_user_id"
+          ],
+          "columnsTo": [
+            "usr_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.car_trip_stopovers": {
+      "name": "car_trip_stopovers",
+      "schema": "",
+      "columns": {
+        "tst_id": {
+          "name": "tst_id",
+          "type": "char(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ent_id": {
+          "name": "ent_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tst_trip_id": {
+          "name": "tst_trip_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tst_address": {
+          "name": "tst_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tst_order": {
+          "name": "tst_order",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tst_created_at": {
+          "name": "tst_created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_car_trip_stopovers_trip_order": {
+          "name": "idx_car_trip_stopovers_trip_order",
+          "columns": [
+            {
+              "expression": "tst_trip_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tst_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "car_trip_stopovers_tst_trip_id_car_trips_trp_id_fk": {
+          "name": "car_trip_stopovers_tst_trip_id_car_trips_trp_id_fk",
+          "tableFrom": "car_trip_stopovers",
+          "tableTo": "car_trips",
+          "columnsFrom": [
+            "tst_trip_id"
+          ],
+          "columnsTo": [
+            "trp_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.car_trips": {
+      "name": "car_trips",
+      "schema": "",
+      "columns": {
+        "trp_id": {
+          "name": "trp_id",
+          "type": "char(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ent_id": {
+          "name": "ent_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trp_ref": {
+          "name": "trp_ref",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trp_creator_id": {
+          "name": "trp_creator_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trp_passenger_id": {
+          "name": "trp_passenger_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trp_driver_id": {
+          "name": "trp_driver_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trp_vehicle_id": {
+          "name": "trp_vehicle_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trp_status": {
+          "name": "trp_status",
+          "type": "car_trip_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING_ASSIGNMENT'"
+        },
+        "trp_pickup_address": {
+          "name": "trp_pickup_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trp_dropoff_address": {
+          "name": "trp_dropoff_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trp_scheduled_at": {
+          "name": "trp_scheduled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trp_duration_minutes": {
+          "name": "trp_duration_minutes",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trp_purpose": {
+          "name": "trp_purpose",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trp_notes": {
+          "name": "trp_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trp_google_maps_url": {
+          "name": "trp_google_maps_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trp_started_at": {
+          "name": "trp_started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trp_ended_at": {
+          "name": "trp_ended_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trp_start_odometer": {
+          "name": "trp_start_odometer",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trp_end_odometer": {
+          "name": "trp_end_odometer",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trp_reject_reason": {
+          "name": "trp_reject_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trp_cancel_reason": {
+          "name": "trp_cancel_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trp_created_at": {
+          "name": "trp_created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "trp_updated_at": {
+          "name": "trp_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trp_deleted_at": {
+          "name": "trp_deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "uniq_car_trips_ent_ref": {
+          "name": "uniq_car_trips_ent_ref",
+          "columns": [
+            {
+              "expression": "ent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "trp_ref",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"car_trips\".\"trp_deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_car_trips_ent_status_scheduled": {
+          "name": "idx_car_trips_ent_status_scheduled",
+          "columns": [
+            {
+              "expression": "ent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "trp_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "trp_scheduled_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_car_trips_creator": {
+          "name": "idx_car_trips_creator",
+          "columns": [
+            {
+              "expression": "trp_creator_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_car_trips_driver": {
+          "name": "idx_car_trips_driver",
+          "columns": [
+            {
+              "expression": "trp_driver_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_car_trips_vehicle": {
+          "name": "idx_car_trips_vehicle",
+          "columns": [
+            {
+              "expression": "trp_vehicle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "car_trips_trp_creator_id_car_users_usr_id_fk": {
+          "name": "car_trips_trp_creator_id_car_users_usr_id_fk",
+          "tableFrom": "car_trips",
+          "tableTo": "car_users",
+          "columnsFrom": [
+            "trp_creator_id"
+          ],
+          "columnsTo": [
+            "usr_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "car_trips_trp_passenger_id_car_users_usr_id_fk": {
+          "name": "car_trips_trp_passenger_id_car_users_usr_id_fk",
+          "tableFrom": "car_trips",
+          "tableTo": "car_users",
+          "columnsFrom": [
+            "trp_passenger_id"
+          ],
+          "columnsTo": [
+            "usr_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "car_trips_trp_driver_id_car_drivers_drv_id_fk": {
+          "name": "car_trips_trp_driver_id_car_drivers_drv_id_fk",
+          "tableFrom": "car_trips",
+          "tableTo": "car_drivers",
+          "columnsFrom": [
+            "trp_driver_id"
+          ],
+          "columnsTo": [
+            "drv_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "car_trips_trp_vehicle_id_car_vehicles_cvh_id_fk": {
+          "name": "car_trips_trp_vehicle_id_car_vehicles_cvh_id_fk",
+          "tableFrom": "car_trips",
+          "tableTo": "car_vehicles",
+          "columnsFrom": [
+            "trp_vehicle_id"
+          ],
+          "columnsTo": [
+            "cvh_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.car_users": {
+      "name": "car_users",
+      "schema": "",
+      "columns": {
+        "usr_id": {
+          "name": "usr_id",
+          "type": "char(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ent_id": {
+          "name": "ent_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usr_ama_user_id": {
+          "name": "usr_ama_user_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usr_email": {
+          "name": "usr_email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_name": {
+          "name": "usr_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_local_role": {
+          "name": "usr_local_role",
+          "type": "car_user_local_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'DRIVER'"
+        },
+        "usr_ama_role_snapshot": {
+          "name": "usr_ama_role_snapshot",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_preferred_locale": {
+          "name": "usr_preferred_locale",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_last_login_at": {
+          "name": "usr_last_login_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_created_at": {
+          "name": "usr_created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "usr_updated_at": {
+          "name": "usr_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usr_deleted_at": {
+          "name": "usr_deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "uniq_car_users_ent_ama": {
+          "name": "uniq_car_users_ent_ama",
+          "columns": [
+            {
+              "expression": "ent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "usr_ama_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.car_vehicles": {
+      "name": "car_vehicles",
+      "schema": "",
+      "columns": {
+        "cvh_id": {
+          "name": "cvh_id",
+          "type": "char(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ent_id": {
+          "name": "ent_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cvh_plate_number": {
+          "name": "cvh_plate_number",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cvh_model": {
+          "name": "cvh_model",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cvh_make": {
+          "name": "cvh_make",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cvh_year": {
+          "name": "cvh_year",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cvh_color": {
+          "name": "cvh_color",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cvh_fuel_type": {
+          "name": "cvh_fuel_type",
+          "type": "car_vehicle_fuel",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PETROL'"
+        },
+        "cvh_status": {
+          "name": "cvh_status",
+          "type": "car_vehicle_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'AVAILABLE'"
+        },
+        "cvh_odometer_km": {
+          "name": "cvh_odometer_km",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "cvh_last_oil_change_km": {
+          "name": "cvh_last_oil_change_km",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cvh_last_oil_change_at": {
+          "name": "cvh_last_oil_change_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cvh_oil_interval_km": {
+          "name": "cvh_oil_interval_km",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 5000
+        },
+        "cvh_oil_interval_months": {
+          "name": "cvh_oil_interval_months",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 3
+        },
+        "cvh_home_base": {
+          "name": "cvh_home_base",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cvh_notes": {
+          "name": "cvh_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cvh_created_at": {
+          "name": "cvh_created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "cvh_updated_at": {
+          "name": "cvh_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cvh_deleted_at": {
+          "name": "cvh_deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "uniq_car_vehicles_ent_plate": {
+          "name": "uniq_car_vehicles_ent_plate",
+          "columns": [
+            {
+              "expression": "ent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cvh_plate_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"car_vehicles\".\"cvh_deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_car_vehicles_ent_status": {
+          "name": "idx_car_vehicles_ent_status",
+          "columns": [
+            {
+              "expression": "ent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cvh_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.car_driver_license_class": {
+      "name": "car_driver_license_class",
+      "schema": "public",
+      "values": [
+        "A2",
+        "B1",
+        "B2",
+        "C",
+        "D",
+        "E",
+        "F"
+      ]
+    },
+    "public.car_driver_status": {
+      "name": "car_driver_status",
+      "schema": "public",
+      "values": [
+        "AVAILABLE",
+        "ON_TRIP",
+        "OFF_DUTY",
+        "UNAVAILABLE"
+      ]
+    },
+    "public.car_trip_status": {
+      "name": "car_trip_status",
+      "schema": "public",
+      "values": [
+        "PENDING_ASSIGNMENT",
+        "PENDING_DRIVER_CONFIRMATION",
+        "CONFIRMED",
+        "IN_PROGRESS",
+        "COMPLETED",
+        "REJECTED_BY_DRIVER",
+        "CANCELLED"
+      ]
+    },
+    "public.car_user_local_role": {
+      "name": "car_user_local_role",
+      "schema": "public",
+      "values": [
+        "DRIVER",
+        "MANAGER",
+        "ADMIN"
+      ]
+    },
+    "public.car_vehicle_fuel": {
+      "name": "car_vehicle_fuel",
+      "schema": "public",
+      "values": [
+        "PETROL",
+        "DIESEL",
+        "HYBRID",
+        "EV"
+      ]
+    },
+    "public.car_vehicle_status": {
+      "name": "car_vehicle_status",
+      "schema": "public",
+      "values": [
+        "AVAILABLE",
+        "IN_USE",
+        "MAINTENANCE",
+        "RETIRED"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

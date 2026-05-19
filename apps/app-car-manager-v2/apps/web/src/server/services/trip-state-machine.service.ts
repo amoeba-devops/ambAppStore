@@ -292,6 +292,10 @@ async function notifyForTransition(
   after: CarTrip,
   actor: AuthContext,
 ): Promise<void> {
+  const route = `${after.trpPickupAddress} → ${after.trpDropoffAddress}`;
+  const tripPath = `/trips/${after.trpId}`;
+  const baseTemplate = { ref: after.trpRef, route, tripPath };
+
   switch (transition) {
     case 'assign':
     case 'reassign': {
@@ -306,9 +310,10 @@ async function notifyForTransition(
         userId: driver.drvUserId,
         event: 'TRIP.ASSIGNED',
         title: `New trip ${after.trpRef}`,
-        body: `${after.trpPickupAddress} → ${after.trpDropoffAddress}`,
+        body: route,
         entityId: after.trpId,
         entityRef: after.trpRef,
+        template: baseTemplate,
       });
       return;
     }
@@ -323,6 +328,10 @@ async function notifyForTransition(
         body: transition === 'reject' ? after.trpRejectReason ?? '' : undefined,
         entityId: after.trpId,
         entityRef: after.trpRef,
+        template:
+          transition === 'reject'
+            ? { ...baseTemplate, reason: after.trpRejectReason ?? undefined }
+            : baseTemplate,
       });
       return;
     case 'end':
@@ -334,13 +343,15 @@ async function notifyForTransition(
           userId: before.trpCreatorId,
           event: 'TRIP.COMPLETED',
           title: `${after.trpRef} completed`,
-          body: `${after.trpPickupAddress} → ${after.trpDropoffAddress}`,
+          body: route,
           entityId: after.trpId,
           entityRef: after.trpRef,
+          template: baseTemplate,
         });
       }
       return;
-    case 'cancel':
+    case 'cancel': {
+      const cancelTemplate = { ...baseTemplate, reason: after.trpCancelReason ?? undefined };
       /* PRD FR-1.3 + §13.1: notify driver if trip was already confirmed/in-progress.
        * Also notify creator if Admin (not the creator) cancelled. */
       if (
@@ -359,6 +370,7 @@ async function notifyForTransition(
             body: after.trpCancelReason ?? undefined,
             entityId: after.trpId,
             entityRef: after.trpRef,
+            template: cancelTemplate,
           });
         }
       }
@@ -372,9 +384,11 @@ async function notifyForTransition(
           body: after.trpCancelReason ?? undefined,
           entityId: after.trpId,
           entityRef: after.trpRef,
+          template: cancelTemplate,
         });
       }
       return;
+    }
     default:
       /* start: no notify in P1 (driver is the one acting, manager will see on completion). */
       return;

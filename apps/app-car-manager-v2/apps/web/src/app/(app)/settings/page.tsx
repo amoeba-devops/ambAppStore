@@ -20,6 +20,7 @@ import {
 } from '@car-v2/ui';
 import { PageHeader } from '@/components/layout/page-header';
 import { LocaleSelect } from './_components/locale-select';
+import { PushToggle } from './_components/push-toggle';
 
 const APPROVAL_RULES: Array<{ typeKey: string; needsApproval: boolean; threshold: string }> = [
   { typeKey: 'FUEL',       needsApproval: false, threshold: '—' },
@@ -133,7 +134,10 @@ export default async function SettingsPage() {
               <div className="space-y-4">
                 <ToggleRow title={tS('notifInApp')}  description={tS('notifInAppDesc')}  defaultChecked />
                 <ToggleRow title={tS('notifEmail')}  description={tS('notifEmailDesc')}  defaultChecked />
-                <ToggleRow title={tS('notifPush')}   description={tS('notifPushDesc')} />
+                <PushToggle
+                  vapidPublicKey={process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC}
+                  basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''}
+                />
                 <ToggleRow title={tS('notifDigest')} description={tS('notifDigestDesc')} defaultChecked />
               </div>
             </CardContent>
