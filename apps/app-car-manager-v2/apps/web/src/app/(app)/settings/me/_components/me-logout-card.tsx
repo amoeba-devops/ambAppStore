@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { Loader2, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { Button } from '@car-v2/ui';
 import { logoutAction } from '@/server/actions/auth/auth.actions';
 
@@ -31,10 +31,12 @@ export function MeLogoutCard() {
       </div>
       <Button
         variant="danger"
-        size="lg"
+        size="2xl"
         onClick={handle}
         disabled={pending}
-        iconLeft={pending ? <Loader2 className="animate-spin" /> : <LogOut />}
+        loading={pending}
+        iconLeft={<LogOut />}
+        className="w-full md:w-auto md:min-w-[200px]"
       >
         {pending ? tMe('logoutPending') : tAct('signOut')}
       </Button>

@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { Calendar, ChevronRight, Receipt } from 'lucide-react';
+import { Calendar, ChevronRight } from 'lucide-react';
 import { Button, Card, CardContent, CardHeader, CardHeaderText, CardTitle, EmptyState } from '@car-v2/ui';
 import { DriverActionBar } from '@/components/layout/driver-action-bar';
 import { TripActions } from '@/app/(app)/trips/[id]/trip-actions';
@@ -56,10 +56,16 @@ export async function DriverTodayView({ trips }: DriverTodayViewProps) {
 
   return (
     <>
-      {/* Main scroll area — reserve generous bottom padding so the last card
-       * isn't tucked under the sticky action bar (h-14 + 2 stacked buttons +
-       * BottomTabNav + safe-area ≈ 200px on mobile). */}
-      <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4 pb-[220px] md:pb-[120px]">
+      {/* Main scroll area — bottom padding is conditional: with a primary trip
+       * we reserve room for the sticky action bar (h-14 + 2 stacked buttons +
+       * BottomTabNav + safe-area ≈ 200px). Without a primary trip there's no
+       * action bar, so we only clear the BottomTabNav. */}
+      <div
+        className={
+          'flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4 ' +
+          (primary ? 'pb-[220px] md:pb-[120px]' : 'pb-24 md:pb-12')
+        }
+      >
         {primary ? (
           <>
             <DriverNextTripCard
@@ -131,28 +137,10 @@ export async function DriverTodayView({ trips }: DriverTodayViewProps) {
         )}
       </div>
 
-      {/* Floating "Record expense" — positioned ABOVE the DriverActionBar on
-       * mobile (action bar uses bottom-[calc(56px+safe-area)], so FAB sits at
-       * ~180px from bottom to clear both bar + tab nav). On desktop the bar is
-       * inline so FAB drops to its normal md:bottom-7. */}
-      <Link
-        href={primary ? `/expenses/new?tripId=${primary.trpId}` : '/expenses/new'}
-        aria-label={tD('recordExpenseAria')}
-        className="
-          fixed right-4 z-40
-          bottom-[calc(56px+env(safe-area-inset-bottom,0px)+128px)]
-          md:bottom-7 md:right-7
-          inline-flex items-center justify-center h-14 w-14 rounded-full
-          bg-surface text-text border border-border shadow-lg
-          hover:bg-surface-2 active:scale-95
-          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg
-          transition-all duration-150 motion-reduce:transition-none
-        "
-      >
-        <Receipt className="h-6 w-6" />
-      </Link>
-
-      {/* Bottom action bar — only when there's actually something to do. */}
+      {/* Bottom action bar — only when there's actually something to do.
+       * (Expense submission is reached via the bottom-tab "Expenses" → "+ New"
+       * — no separate FAB on /today to avoid two Receipt-icon affordances
+       * competing in the same viewport.) */}
       {primary && (
         <DriverActionBar>
           <TripActions

@@ -6,8 +6,8 @@ import {
   Coins,
   Droplet,
   Fuel,
+  ParkingSquare,
   ShieldAlert,
-  Square,
   UtensilsCrossed,
   Wrench,
   type LucideIcon,
@@ -87,11 +87,11 @@ export function ExpenseTypeChipGrid({ value, onChange, labelledBy }: ExpenseType
           >
             <span
               className={cn(
-                'h-9 w-9 rounded-full flex items-center justify-center',
+                'h-10 w-10 rounded-full flex items-center justify-center',
                 selected ? 'bg-accent text-accent-fg' : tone,
               )}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-5 w-5" />
             </span>
             <span className="text-xs font-medium leading-tight">{t(id)}</span>
           </div>
@@ -112,7 +112,7 @@ const TYPES: TypeMeta[] = [
   { id: 'OIL',        Icon: Droplet,          tone: 'bg-info-soft text-info' },
   { id: 'MEAL',       Icon: UtensilsCrossed,  tone: 'bg-warning-soft text-warning' },
   { id: 'REPAIR',     Icon: Wrench,           tone: 'bg-surface-2 text-text-muted' },
-  { id: 'PARKING',    Icon: Square,           tone: 'bg-surface-2 text-text-muted' },
+  { id: 'PARKING',    Icon: ParkingSquare,    tone: 'bg-surface-2 text-text-muted' },
   { id: 'TOLL',       Icon: Coins,            tone: 'bg-surface-2 text-text-muted' },
   { id: 'ACCIDENT',   Icon: ShieldAlert,      tone: 'bg-danger-soft text-danger' },
   { id: 'INSPECTION', Icon: ClipboardCheck,   tone: 'bg-success-soft text-success' },

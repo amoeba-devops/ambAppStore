@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Camera, ImagePlus, Loader2, X } from 'lucide-react';
-import { Button, cn } from '@car-v2/ui';
+import { Camera, ImagePlus, Loader2, Plus, X } from 'lucide-react';
+import { cn } from '@car-v2/ui';
 
 const MAX_FILES = 5;
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -199,70 +199,134 @@ export function ReceiptCameraInput({ files, onChange, onError }: ReceiptCameraIn
         }}
       />
 
-      <div className="flex flex-col sm:flex-row gap-2">
-        <Button
-          type="button"
-          variant="secondary"
-          size="lg"
-          iconLeft={converting ? <Loader2 className="animate-spin" /> : <Camera />}
-          onClick={() => cameraRef.current?.click()}
-          disabled={disabled}
-          className="flex-1"
-        >
-          {converting ? t('receiptConverting') : t('receiptCamera')}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="lg"
-          iconLeft={<ImagePlus />}
-          onClick={() => galleryRef.current?.click()}
-          disabled={disabled}
-          className="flex-1"
-        >
-          {t('receiptGallery')}
-        </Button>
-      </div>
-
-      {files.length > 0 && (
-        <ul className="mt-3 grid grid-cols-3 sm:grid-cols-5 gap-2">
-          {files.map((f, i) => {
-            const url = previewUrlsRef.current.get(f);
-            return (
-              <li
-                key={`${f.name}-${i}`}
-                className={cn(
-                  'relative aspect-square rounded-lg overflow-hidden border border-border bg-surface-2',
-                  'group',
-                )}
-              >
-                {url && (
-                  /* Native <img> is fine here — these are tiny client-only
-                   * blob URLs, not optimised remote images. next/image would
-                   * need a domain config it can't have for blob:. */
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={url} alt={f.name} className="h-full w-full object-cover" />
-                )}
+      {files.length === 0 ? (
+        /* Empty state — large dashed dropzone card. Tap = camera (driver is
+         * almost always capturing in the moment). Gallery is offered as a
+         * smaller secondary link below so the primary intent stays obvious. */
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => cameraRef.current?.click()}
+            disabled={converting}
+            className={cn(
+              'w-full rounded-xl border-2 border-dashed border-border bg-surface-2/40',
+              'px-4 py-7 flex flex-col items-center justify-center gap-3 min-h-[148px]',
+              'hover:border-accent/40 hover:bg-accent-soft/30 active:scale-[0.99]',
+              'transition-all duration-150 motion-reduce:transition-none',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+              'disabled:opacity-60 disabled:pointer-events-none',
+            )}
+          >
+            <div className="h-14 w-14 rounded-full bg-accent-soft text-accent flex items-center justify-center">
+              {converting
+                ? <Loader2 className="h-7 w-7 animate-spin" />
+                : <Camera className="h-7 w-7" strokeWidth={1.8} />}
+            </div>
+            <div className="text-center">
+              <div className="text-md font-semibold text-text">
+                {converting ? t('receiptConverting') : t('receiptEmptyTitle')}
+              </div>
+              <div className="text-xs text-text-muted mt-0.5 leading-relaxed max-w-xs mx-auto">
+                {t('receiptEmptyDesc')}
+              </div>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => galleryRef.current?.click()}
+            disabled={disabled}
+            className={cn(
+              'mx-auto flex items-center gap-1.5 text-sm font-medium text-accent',
+              'hover:underline focus-visible:outline-none focus-visible:underline',
+              'disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed',
+            )}
+          >
+            <ImagePlus className="h-4 w-4" /> {t('receiptGallery')}
+          </button>
+          <p className="text-center text-[11px] text-text-muted">{t('receiptHint')}</p>
+        </div>
+      ) : (
+        /* Filled state — thumbnail tiles + a trailing "+" tile that mirrors
+         * the dashed dropzone (visual continuity with the empty state). The
+         * counter + gallery link below give a clear escape hatch when the
+         * camera-direct affordance isn't what the user wants. */
+        <div className="space-y-3">
+          <ul className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            {files.map((f, i) => {
+              const url = previewUrlsRef.current.get(f);
+              return (
+                <li
+                  key={`${f.name}-${i}`}
+                  className="relative aspect-square rounded-lg overflow-hidden border border-border bg-surface-2 group"
+                >
+                  {url && (
+                    /* Native <img> — blob URLs aren't a fit for next/image. */
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={url} alt={f.name} className="h-full w-full object-cover" />
+                  )}
+                  <button
+                    type="button"
+                    aria-label={t('receiptRemoveAria')}
+                    onClick={() => remove(i)}
+                    className={cn(
+                      'absolute top-1.5 right-1.5 h-9 w-9 rounded-full bg-bg/85 text-text shadow-sm',
+                      'backdrop-blur flex items-center justify-center',
+                      'hover:bg-bg active:scale-95',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    )}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </li>
+              );
+            })}
+            {files.length < MAX_FILES && (
+              <li>
                 <button
                   type="button"
-                  aria-label={t('receiptRemoveAria')}
-                  onClick={() => remove(i)}
+                  onClick={() => cameraRef.current?.click()}
+                  disabled={converting}
+                  aria-label={t('receiptAddMore')}
                   className={cn(
-                    'absolute top-1 right-1 h-7 w-7 rounded-full bg-bg/80 text-text',
-                    'backdrop-blur flex items-center justify-center',
-                    'hover:bg-bg active:scale-95',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'w-full aspect-square rounded-lg border-2 border-dashed border-border bg-surface-2/40',
+                    'flex flex-col items-center justify-center gap-1',
+                    'hover:border-accent/40 hover:bg-accent-soft/30 active:scale-95',
+                    'transition-all duration-150 motion-reduce:transition-none',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+                    'disabled:opacity-60 disabled:pointer-events-none',
                   )}
                 >
-                  <X className="h-3.5 w-3.5" />
+                  {converting
+                    ? <Loader2 className="h-6 w-6 animate-spin text-text-muted" />
+                    : <Plus className="h-6 w-6 text-text-muted" strokeWidth={1.8} />}
+                  <span className="text-[11px] font-medium text-text-muted leading-none">
+                    {t('receiptAddMore')}
+                  </span>
                 </button>
               </li>
-            );
-          })}
-        </ul>
+            )}
+          </ul>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-text-muted tabular">
+              {t('receiptCounter', { count: files.length, max: MAX_FILES })}
+            </span>
+            {files.length < MAX_FILES && (
+              <button
+                type="button"
+                onClick={() => galleryRef.current?.click()}
+                disabled={disabled}
+                className={cn(
+                  'inline-flex items-center gap-1.5 text-sm font-medium text-accent',
+                  'hover:underline focus-visible:outline-none focus-visible:underline',
+                  'disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed',
+                )}
+              >
+                <ImagePlus className="h-4 w-4" /> {t('receiptGallery')}
+              </button>
+            )}
+          </div>
+        </div>
       )}
-
-      <p className="mt-2 text-xs text-text-muted">{t('receiptHint')}</p>
     </div>
   );
 }

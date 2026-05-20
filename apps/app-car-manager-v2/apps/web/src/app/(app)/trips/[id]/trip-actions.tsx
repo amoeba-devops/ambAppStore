@@ -6,13 +6,12 @@ import {
   Check,
   Loader2,
   Play,
-  Square,
+  StopCircle,
   UserPlus,
   X,
 } from 'lucide-react';
 import {
   Button,
-  Input,
   Label,
   Select,
   SelectContent,
@@ -156,7 +155,7 @@ export function TripActions({
           </Button>
         )}
         {canEnd && (
-          <Button variant="primary" size={primarySize} iconLeft={pending ? <Loader2 className="animate-spin" /> : <Square />} onClick={() => handle(t('tCompleted'), () => endTripAction(tripId, {}))} disabled={pending}>
+          <Button variant="primary" size={primarySize} iconLeft={pending ? <Loader2 className="animate-spin" /> : <StopCircle />} onClick={() => handle(t('tCompleted'), () => endTripAction(tripId, {}))} disabled={pending}>
             {t('endTrip')}
           </Button>
         )}
@@ -367,5 +366,3 @@ function ReasonDialog({ open, onClose, title, description, confirmLabel, confirm
   );
 }
 
-/* Silence unused import warnings for inputs we may bring back in P2. */
-void Input;

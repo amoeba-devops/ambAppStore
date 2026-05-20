@@ -40,21 +40,21 @@ export function InboxList({ items }: InboxListProps) {
         const inner = (
           <Card
             className={cn(
-              'p-4 transition-colors',
+              'p-5 transition-colors',
               isRead
                 ? 'opacity-70 hover:opacity-100'
                 : 'border-l-4 border-l-accent shadow-sm',
             )}
           >
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3.5">
               <div
                 className={cn(
-                  'h-9 w-9 rounded-full flex items-center justify-center shrink-0',
+                  'h-10 w-10 rounded-full flex items-center justify-center shrink-0',
                   isRead ? 'bg-surface-2 text-text-muted' : 'bg-accent-soft text-accent',
                 )}
                 aria-hidden
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">

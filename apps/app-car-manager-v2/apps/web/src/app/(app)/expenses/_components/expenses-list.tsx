@@ -49,7 +49,7 @@ export async function ExpensesList({ items }: ExpensesListProps) {
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-md font-bold tabular text-text">{formatAmount(amount)}</div>
-                      <Badge tone={STATUS_TONE[exp.expStatus]} size="sm">
+                      <Badge tone={STATUS_TONE[exp.expStatus]} size="md" className="font-semibold mt-1">
                         {tStatus(exp.expStatus)}
                       </Badge>
                     </div>

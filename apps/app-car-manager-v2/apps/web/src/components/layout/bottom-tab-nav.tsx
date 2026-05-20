@@ -53,14 +53,14 @@ export function BottomTabNav({ role }: BottomTabNavProps) {
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium',
+                  'h-full flex flex-col items-center justify-center gap-1 text-[12px] font-medium',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                   'active:bg-surface-2/60 transition-colors duration-150 motion-reduce:transition-none',
                   isActive ? 'text-accent' : 'text-text-muted',
                 )}
               >
                 <item.Icon
-                  className={cn('h-[22px] w-[22px] transition-transform duration-180', isActive && 'scale-[1.05]')}
+                  className={cn('h-6 w-6 transition-transform duration-180', isActive && 'scale-[1.05]')}
                   strokeWidth={isActive ? 2.4 : 1.8}
                   aria-hidden
                 />

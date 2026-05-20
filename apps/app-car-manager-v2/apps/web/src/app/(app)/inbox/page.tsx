@@ -36,7 +36,12 @@ export default async function InboxPage() {
         title={tI('title')}
         subtitle={unreadCount > 0 ? tI('unreadCount', { n: unreadCount }) : tI('allRead')}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('inbox') }]}
+        /* Desktop puts the bulk action in the header chrome (next to the title).
+         * Mobile's app-bar only has a single icon slot, so the same button is
+         * rendered as `mobileAction` — kept compact via the icon-only variant
+         * inside <MarkAllReadButton>. */
         actions={unreadCount > 0 ? <MarkAllReadButton /> : undefined}
+        mobileAction={unreadCount > 0 ? <MarkAllReadButton mobile /> : undefined}
         back={user.role === 'DRIVER' ? '/today' : undefined}
       />
 
