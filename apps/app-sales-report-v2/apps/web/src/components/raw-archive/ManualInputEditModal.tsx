@@ -5,11 +5,19 @@ import { X, Calculator, AlertCircle } from 'lucide-react';
 import { cn } from '@v2/ui';
 import { fmtVND } from '@/lib/format';
 import { updateManualInputs } from '@/lib/raw-archive-state';
+import { updateSnapshotManualInputsAction } from '@/server/actions/ingest.actions';
 
 interface Props {
   periodKey: string;
   periodLabel: string;
   initial: Record<string, number>;
+  /** When provided, also syncs new values to the DB snapshot so Weekly/Monthly Report reload with updated numbers. */
+  snapshotRef?: {
+    granularity: 'WEEKLY' | 'MONTHLY';
+    weekNum?: number;
+    monthIdx?: number;
+    year: number;
+  };
   onClose: () => void;
 }
 
@@ -22,7 +30,7 @@ function groupOf(field: string): 'Total Platform' | 'Shopee' | 'TikTok' {
   return 'TikTok';
 }
 
-export function ManualInputEditModal({ periodKey, periodLabel, initial, onClose }: Props) {
+export function ManualInputEditModal({ periodKey, periodLabel, initial, snapshotRef, onClose }: Props) {
   const [values, setValues] = useState<Record<string, string>>(() => {
     const out: Record<string, string> = {};
     for (const [k, v] of Object.entries(initial)) out[k] = String(v);
@@ -61,12 +69,23 @@ export function ManualInputEditModal({ periodKey, periodLabel, initial, onClose 
   );
   const canSubmit = missing.length === 0;
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
     const next: Record<string, number> = {};
     for (const f of fields) next[f] = parseFloat(values[f] ?? '0');
+    // Local audit trail (activity log + persisted override)
     updateManualInputs(periodKey, initial, next);
+    // Persist to the DB snapshot so Weekly/Monthly Report pick up the new
+    // values on next load. Best-effort — local UI still updates if the
+    // snapshot doesn't exist yet (period was never ingested).
+    if (snapshotRef) {
+      try {
+        await updateSnapshotManualInputsAction({ ...snapshotRef, manualInputs: next });
+      } catch (err) {
+        console.error('[manual-input-edit] snapshot update failed:', err);
+      }
+    }
     setSubmitting(false);
     onClose();
   };

@@ -310,6 +310,16 @@ export function ArchiveDetailClient({ period: basePeriod }: Props) {
           periodKey={period.periodKey}
           periodLabel={period.label}
           initial={period.manualInputs}
+          snapshotRef={
+            period.year != null
+              ? {
+                  granularity: period.granularity === 'week' ? 'WEEKLY' : 'MONTHLY',
+                  weekNum: period.weekNum ?? undefined,
+                  monthIdx: period.monthIdx ?? undefined,
+                  year: period.year,
+                }
+              : undefined
+          }
           onClose={() => setManualEditOpen(false)}
         />
       )}

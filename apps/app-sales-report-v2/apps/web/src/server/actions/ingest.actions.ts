@@ -1,6 +1,8 @@
 'use server';
 
 import 'server-only';
+import { and, eq } from 'drizzle-orm';
+import { db, schema, withEnt } from '@v2/db';
 import { SalError, type ActionResult } from '@v2/shared/errors';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { loadPrimeCostMaster } from '@/server/services/prime-cost-master.service';
@@ -326,6 +328,93 @@ export async function commitIngestAction(
       return { success: false, error: { code: err.code, message: err.message } };
     }
     console.error('[commit-ingest] unexpected', err);
+    return {
+      success: false,
+      error: { code: 'SAL-E0500', message: err instanceof Error ? err.message : 'Unknown error' },
+    };
+  }
+}
+
+/**
+ * Update only the `manualInputs` block of an existing snapshot — used by the
+ * Raw Archive Manual Input edit modal. Reports will pick up the new values on
+ * next load. Returns updated metrics so the caller can update local cache.
+ */
+export async function updateSnapshotManualInputsAction(input: {
+  granularity: 'WEEKLY' | 'MONTHLY';
+  weekNum?: number;
+  monthIdx?: number;
+  year: number;
+  manualInputs: Record<string, number>;
+}): Promise<ActionResult<{ updated: boolean }>> {
+  try {
+    const user = await getCurrentUser();
+    const existing = await loadPeriodSnapshot({
+      entId: user.entId,
+      granularity: input.granularity,
+      weekNum: input.weekNum,
+      monthIdx: input.monthIdx,
+      year: input.year,
+    });
+    if (!existing) {
+      return {
+        success: false,
+        error: { code: 'SAL-E0404', message: 'Snapshot not found for this period' },
+      };
+    }
+    // Coerce manualInput values to numbers, then merge over existing
+    const numericInputs: Record<string, number> = {};
+    for (const [k, v] of Object.entries(input.manualInputs)) {
+      const n = Number(v);
+      if (Number.isFinite(n)) numericInputs[k] = n;
+    }
+    const next: PeriodSnapshotMetrics = {
+      ...existing,
+      manualInputs: { ...existing.manualInputs, ...numericInputs },
+      computedAt: new Date().toISOString(),
+    };
+    // Reuse savePeriodSnapshot to upsert by period key
+    const periodStart = new Date();
+    const periodEnd = new Date();
+    // We need periodStart/End — query the existing snapshot's row to get them
+    const row = await db
+      .select({
+        periodStart: schema.salPeriodSnapshots.pspPeriodStart,
+        periodEnd: schema.salPeriodSnapshots.pspPeriodEnd,
+        pspId: schema.salPeriodSnapshots.pspId,
+      })
+      .from(schema.salPeriodSnapshots)
+      .where(
+        and(
+          withEnt(schema.salPeriodSnapshots.entId, user.entId),
+          eq(schema.salPeriodSnapshots.pspGranularity, input.granularity),
+          eq(schema.salPeriodSnapshots.pspYear, input.year),
+          input.granularity === 'WEEKLY' && input.weekNum != null
+            ? eq(schema.salPeriodSnapshots.pspWeekNum, input.weekNum)
+            : input.monthIdx != null
+              ? eq(schema.salPeriodSnapshots.pspMonthIdx, input.monthIdx)
+              : undefined,
+        ),
+      )
+      .limit(1);
+    if (!row[0]) {
+      return {
+        success: false,
+        error: { code: 'SAL-E0404', message: 'Snapshot row not found' },
+      };
+    }
+    await db
+      .update(schema.salPeriodSnapshots)
+      .set({ pspMetrics: next, pspUpdatedAt: new Date() })
+      .where(eq(schema.salPeriodSnapshots.pspId, row[0].pspId));
+    void periodStart;
+    void periodEnd;
+    return { success: true, data: { updated: true } };
+  } catch (err) {
+    if (err instanceof SalError) {
+      return { success: false, error: { code: err.code, message: err.message } };
+    }
+    console.error('[updateSnapshotManualInputs]', err);
     return {
       success: false,
       error: { code: 'SAL-E0500', message: err instanceof Error ? err.message : 'Unknown error' },
