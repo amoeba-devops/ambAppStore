@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Download } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Download, Database, Cloud } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import {
-  WEEKLY_DATA,
-  MONTHLY_DATA,
   buildWowSummary,
   computeChannelSummary,
   getChartSeries,
@@ -13,6 +12,8 @@ import {
   type Granularity,
   type WeekPoint,
 } from '@/lib/trends-mock';
+import { snapshotsToWeekPoints } from '@/lib/snapshot-to-trends';
+import { listSnapshotsAction } from '@/server/actions/ingest.actions';
 import { ChannelTrendCard } from './ChannelTrendCard';
 import { MetricBreakdownTable } from './MetricBreakdownTable';
 import { MultiMetricSelect } from './MultiMetricSelect';
@@ -20,10 +21,36 @@ import { buildCsv } from '@/lib/csv';
 import { appendActionLog } from '@/lib/action-log-mock';
 
 export function TrendsClient() {
+  const t = useTranslations('trendingReport');
+  const tW = useTranslations('weeklyReport');
   const [selectedMetrics, setSelectedMetrics] = useState<Metric[]>(['GMV']);
   const [granularity, setGranularity] = useState<Granularity>('WEEK');
+  const [weeklyPoints, setWeeklyPoints] = useState<WeekPoint[]>([]);
+  const [monthlyPoints, setMonthlyPoints] = useState<WeekPoint[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const data = granularity === 'WEEK' ? WEEKLY_DATA : MONTHLY_DATA;
+  // Load every weekly + monthly snapshot from DB once on mount. Real ingested
+  // data only — no more mock backfill. Empty arrays render an empty-state
+  // banner instead of fabricated numbers.
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([
+      listSnapshotsAction({ granularity: 'WEEKLY' }),
+      listSnapshotsAction({ granularity: 'MONTHLY' }),
+    ]).then(([weekRes, monthRes]) => {
+      if (cancelled) return;
+      setLoading(false);
+      setWeeklyPoints(weekRes.success ? snapshotsToWeekPoints(weekRes.data.rows) : []);
+      setMonthlyPoints(monthRes.success ? snapshotsToWeekPoints(monthRes.data.rows) : []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const data = granularity === 'WEEK' ? weeklyPoints : monthlyPoints;
+  const hasData = data.length > 0;
 
   const wowRows = useMemo(() => buildWowSummary(data), [data]);
 
@@ -68,11 +95,36 @@ export function TrendsClient() {
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-neutral-900">Trends</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            Compare growth across weeks and months. Reports are computed against locked Master Data snapshots.
-          </p>
+        <div className="flex items-start gap-3">
+          <div>
+            <h1 className="text-xl font-semibold text-neutral-900">{t('title')}</h1>
+            <p className="mt-1 text-sm text-neutral-500">{t('subtitle')}</p>
+          </div>
+          <span
+            className={cn(
+              'mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider whitespace-nowrap shrink-0',
+              loading
+                ? 'bg-neutral-100 text-neutral-500'
+                : hasData
+                  ? 'bg-success-500/10 text-success-500'
+                  : 'bg-neutral-100 text-neutral-500',
+            )}
+            title={hasData ? tW('badge.realDataTooltip') : tW('badge.noDataTooltip')}
+          >
+            {loading ? (
+              <>
+                <Cloud className="h-3 w-3 animate-pulse" /> {tW('badge.loading')}
+              </>
+            ) : hasData ? (
+              <>
+                <Database className="h-3 w-3" /> {tW('badge.realData')}
+              </>
+            ) : (
+              <>
+                <Cloud className="h-3 w-3" /> {tW('badge.noData')}
+              </>
+            )}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <div className="inline-flex rounded-md border border-neutral-300 bg-white p-0.5 text-sm">
@@ -84,7 +136,7 @@ export function TrendsClient() {
                 granularity === 'WEEK' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-50',
               )}
             >
-              Week over Week
+              {t('weekOverWeek')}
             </button>
             <button
               type="button"
@@ -94,7 +146,7 @@ export function TrendsClient() {
                 granularity === 'MONTH' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-50',
               )}
             >
-              Month over Month
+              {t('monthOverMonth')}
             </button>
           </div>
           <button
@@ -103,23 +155,33 @@ export function TrendsClient() {
             className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
           >
             <Download className="h-4 w-4" />
-            Export
+            {t('export')}
           </button>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">Metric</span>
+        <span className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">{t('metricLabel')}</span>
         <MultiMetricSelect value={selectedMetrics} onChange={setSelectedMetrics} max={5} />
       </div>
 
-      <div className="space-y-4">
-        {selectedMetrics.map((m) => (
-          <MetricRow key={m} metric={m} weeks={data} granularity={granularity} />
-        ))}
-      </div>
+      {!loading && !hasData && (
+        <div className="rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-12 text-center text-sm text-neutral-500">
+          {tW('badge.noDataTooltip')}
+        </div>
+      )}
 
-      <MetricBreakdownTable weeks={data} granularity={granularity} />
+      {hasData && (
+        <>
+          <div className="space-y-4">
+            {selectedMetrics.map((m) => (
+              <MetricRow key={m} metric={m} weeks={data} granularity={granularity} />
+            ))}
+          </div>
+
+          <MetricBreakdownTable weeks={data} granularity={granularity} />
+        </>
+      )}
     </div>
   );
 }

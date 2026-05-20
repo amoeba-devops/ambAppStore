@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import type { ProductMetric } from '@/lib/weekly-report-mock';
 
@@ -34,6 +35,7 @@ const ALLOC = 'bg-warning-50/40';
 const CALC = 'bg-success-50/40';
 
 export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
+  const t = useTranslations('weeklyReport.productBreakdown');
   const [search, setSearch] = useState('');
   const [currency, setCurrency] = useState<Currency>('VND');
   const safeRate = krwRate > 0 ? krwRate : 1;
@@ -86,15 +88,15 @@ export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
     <div className="rounded-lg border border-neutral-200 bg-white">
       <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4 gap-3">
         <div className="flex items-center gap-4">
-          <h2 className="text-base font-semibold text-neutral-900">Product Breakdown</h2>
+          <h2 className="text-base font-semibold text-neutral-900">{t('title')}</h2>
           <div className="flex items-center gap-3 text-[11px] text-neutral-500">
             <span className="inline-flex items-center gap-1.5">
               <span className={cn('inline-block h-3 w-3 rounded-sm border border-neutral-200', ALLOC)} />
-              Allocated
+              {t('legend.allocated')}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className={cn('inline-block h-3 w-3 rounded-sm border border-neutral-200', CALC)} />
-              Calculated
+              {t('legend.calculated')}
             </span>
           </div>
         </div>
@@ -131,7 +133,7 @@ export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search SKU or product…"
+              placeholder={t('searchPlaceholder')}
               className="w-56 rounded-md border border-neutral-300 bg-white py-1.5 pl-8 pr-3 text-sm placeholder:text-neutral-400 focus:border-neutral-500 focus:outline-none"
             />
           </div>
@@ -141,43 +143,43 @@ export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
         <table className="w-full min-w-[1600px] text-sm">
           <thead className="bg-neutral-50 text-[11px] uppercase tracking-wider text-neutral-500">
             <tr>
-              <th className="sticky left-0 top-0 z-40 w-12 bg-neutral-50 px-3 py-2.5 text-left font-medium">No</th>
-              <th className="sticky left-12 top-0 z-40 w-28 bg-neutral-50 px-3 py-2.5 text-left font-medium">SKU</th>
-              <th className="sticky left-[10rem] top-0 z-40 w-44 bg-neutral-50 px-3 py-2.5 text-left font-medium">Product (VI)</th>
-              <th className="sticky left-[21rem] top-0 z-40 w-44 border-r border-neutral-200 bg-neutral-50 px-3 py-2.5 text-left font-medium">Product (EN)</th>
-              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-left font-medium">Platform</th>
-              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">PV</th>
-              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">CVR%</th>
-              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">Items</th>
-              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">GMV</th>
-              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">Net GMV</th>
-              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">NMV</th>
-              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">Voucher</th>
-              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">Seller Disc</th>
-              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">Free Gift</th>
-              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">AD Spend</th>
-              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">Brand Ads</th>
-              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">Off-Platform Ads</th>
-              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">Aff.Comm</th>
-              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">Aff.Book</th>
-              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">Livestream</th>
-              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">Platform Fee</th>
-              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">Prime Cost</th>
-              <th className="sticky top-0 right-20 z-40 w-32 bg-success-50 border-l border-neutral-200 px-3 py-2.5 text-right font-medium">CM</th>
-              <th className="sticky top-0 right-0 z-40 w-20 bg-success-50 px-3 py-2.5 text-right font-medium">CM%</th>
+              <th className="sticky left-0 top-0 z-40 w-12 bg-neutral-50 px-3 py-2.5 text-left font-medium">{t('col.no')}</th>
+              <th className="sticky left-12 top-0 z-40 w-28 bg-neutral-50 px-3 py-2.5 text-left font-medium">{t('col.sku')}</th>
+              <th className="sticky left-[10rem] top-0 z-40 w-44 bg-neutral-50 px-3 py-2.5 text-left font-medium">{t('col.productVi')}</th>
+              <th className="sticky left-[21rem] top-0 z-40 w-44 border-r border-neutral-200 bg-neutral-50 px-3 py-2.5 text-left font-medium">{t('col.productEn')}</th>
+              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-left font-medium">{t('col.platform')}</th>
+              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.pv')}</th>
+              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.cvr')}</th>
+              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.items')}</th>
+              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.gmv')}</th>
+              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.netGmv')}</th>
+              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.nmv')}</th>
+              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">{t('col.voucher')}</th>
+              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.sellerDisc')}</th>
+              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">{t('col.freeGift')}</th>
+              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">{t('col.adSpend')}</th>
+              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">{t('col.brandAds')}</th>
+              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">{t('col.offPlatformAds')}</th>
+              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">{t('col.affComm')}</th>
+              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">{t('col.affBook')}</th>
+              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">{t('col.livestream')}</th>
+              <th className="sticky top-0 z-30 bg-warning-50 px-3 py-2.5 text-right font-medium">{t('col.platformFee')}</th>
+              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.primeCost')}</th>
+              <th className="sticky top-0 right-20 z-40 w-32 bg-success-50 border-l border-neutral-200 px-3 py-2.5 text-right font-medium">{t('col.cm')}</th>
+              <th className="sticky top-0 right-0 z-40 w-20 bg-success-50 px-3 py-2.5 text-right font-medium">{t('col.cmPct')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={24} className="px-5 py-8 text-center text-sm text-neutral-500">
-                  No products match.
+                  {t('empty')}
                 </td>
               </tr>
             )}
             {filtered.length > 0 && (
               <tr className="font-semibold">
-                <td className="sticky left-0 top-[37px] z-30 w-12 bg-neutral-100 border-b-2 border-neutral-300 px-3 py-3 text-neutral-900">TOTAL</td>
+                <td className="sticky left-0 top-[37px] z-30 w-12 bg-neutral-100 border-b-2 border-neutral-300 px-3 py-3 text-neutral-900">{t('total')}</td>
                 <td className="sticky left-12 top-[37px] z-30 w-28 bg-neutral-100 border-b-2 border-neutral-300 px-3 py-3"></td>
                 <td className="sticky left-[10rem] top-[37px] z-30 w-44 bg-neutral-100 border-b-2 border-neutral-300 px-3 py-3"></td>
                 <td className="sticky left-[21rem] top-[37px] z-30 w-44 border-r border-neutral-200 bg-neutral-100 border-b-2 border-b-neutral-300 px-3 py-3"></td>

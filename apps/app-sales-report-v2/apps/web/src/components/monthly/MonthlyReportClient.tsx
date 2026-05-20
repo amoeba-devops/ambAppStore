@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Download, Banknote, TrendingUp, Percent, Database, Cloud } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import {
-  getMonthlyReport,
-  getProductMetricsForMonth,
   generateMonthsForYear,
   buildPlaceholderOverview,
   buildPlaceholderBreakdowns,
@@ -24,116 +23,178 @@ import { WeeklyOverviewTable } from '@/components/weekly/WeeklyOverviewTable';
 import { WeeklyProductBreakdownTable } from '@/components/weekly/WeeklyProductBreakdownTable';
 import { KpiCard } from '@/components/weekly/KpiCard';
 import { BreakdownCard } from '@/components/weekly/BreakdownCard';
-import { buildCsv } from '@/lib/csv';
+import { downloadReportXlsx } from '@/lib/weekly-report-xlsx';
 import { appendActionLog } from '@/lib/action-log-mock';
 
-const CHANNEL_OPTS: { key: WeeklyChannel; label: string }[] = [
-  { key: 'ALL', label: 'Total Platform' },
-  { key: 'SHOPEE', label: 'Shopee' },
-  { key: 'TIKTOK', label: 'TikTok' },
+type ChannelOpt = { key: WeeklyChannel; labelKey: 'all' | 'shopee' | 'tiktok' };
+const CHANNEL_OPTS: ChannelOpt[] = [
+  { key: 'ALL', labelKey: 'all' },
+  { key: 'SHOPEE', labelKey: 'shopee' },
+  { key: 'TIKTOK', labelKey: 'tiktok' },
 ];
 
 const DEFAULT_KRW_RATE = 17543;
 const DEFAULT_YEAR = 2026;
 
-export function MonthlyReportClient() {
+interface MonthlyReportClientProps {
+  /** Reserved for future use; MonthPicker still shows all 12 months. */
+  realMonthKeys?: Array<{ monthIdx: number; year: number }>;
+}
+
+export function MonthlyReportClient({ realMonthKeys = [] }: MonthlyReportClientProps = {}) {
+  const t = useTranslations('monthlyReport');
+  const tW = useTranslations('weeklyReport');
   const searchParams = useSearchParams();
+  const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const realLabels = useMemo(
+    () => realMonthKeys.map((k) => `${MONTH_NAMES[k.monthIdx]} ${k.year}`),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [realMonthKeys.map((k) => `${k.year}::${k.monthIdx}`).join(',')],
+  );
   // Deep-link from upload wizard: ?monthIdx=N&year=Y selects that month directly.
+  // Important: check for null before Number() — `Number(null) === 0` would
+  // otherwise make the default jump to January (monthIdx 0) instead of falling
+  // through to `latestRealForYear`.
   const urlMonthIdx = (() => {
-    const n = Number(searchParams?.get('monthIdx'));
+    const raw = searchParams?.get('monthIdx');
+    if (raw == null) return null;
+    const n = Number(raw);
     return Number.isFinite(n) && n >= 0 && n <= 11 ? n : null;
   })();
   const urlYear = (() => {
-    const y = Number(searchParams?.get('year'));
+    const raw = searchParams?.get('year');
+    if (raw == null) return null;
+    const y = Number(raw);
     return Number.isFinite(y) && y > 2000 ? y : null;
   })();
-  const [year, setYear] = useState(urlYear ?? DEFAULT_YEAR);
+  // Latest real (DB-backed) month for the URL year — used as the default
+  // selection so the user lands on a populated month, not the empty "Open"
+  // tail of the calendar.
+  const latestRealForYear = useMemo(() => {
+    const targetYear = urlYear ?? DEFAULT_YEAR;
+    const sameYear = realMonthKeys.filter((k) => k.year === targetYear);
+    if (sameYear.length === 0) return null;
+    return sameYear.reduce((a, b) => (b.monthIdx > a.monthIdx ? b : a));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realMonthKeys.map((k) => `${k.year}::${k.monthIdx}`).join(','), urlYear]);
+
+  const [year, setYear] = useState(urlYear ?? latestRealForYear?.year ?? DEFAULT_YEAR);
   const months = useMemo(() => generateMonthsForYear(year), [year]);
-  const statusByLabel = useArchiveStatusByLabel();
+  const statusByLabel = useArchiveStatusByLabel(realLabels);
   const [monthIdx, setMonthIdx] = useState(
-    urlMonthIdx ?? months[months.length - 2]?.monthIdx ?? months[months.length - 1]!.monthIdx,
+    urlMonthIdx ??
+      latestRealForYear?.monthIdx ??
+      months[months.length - 2]?.monthIdx ??
+      months[months.length - 1]!.monthIdx,
   );
   const [channel, setChannel] = useState<WeeklyChannel>('ALL');
   const [krwRate, setKrwRate] = useState(DEFAULT_KRW_RATE);
 
-  // Try loading a real-data snapshot for the selected month; fall back to mock.
+  // Try loading a real-data snapshot for the selected month + previous month
+  // (for MoM deltas). Fall back to mock if current snapshot missing.
   const [snapshotMetrics, setSnapshotMetrics] = useState<PeriodSnapshotMetrics | null>(null);
+  const [prevSnapshotMetrics, setPrevSnapshotMetrics] = useState<PeriodSnapshotMetrics | null>(null);
   const [snapshotLoading, setSnapshotLoading] = useState(false);
   const selectedMonth = months.find((m) => m.monthIdx === monthIdx);
+  const prevMonth = useMemo(() => {
+    if (!selectedMonth) return null;
+    if (selectedMonth.monthIdx > 0) {
+      // Same year — pick from `months` (regenerated for selected year)
+      return months.find((m) => m.monthIdx === selectedMonth.monthIdx - 1) ?? null;
+    }
+    // Jan → Dec of prev year — generate that month entry
+    const prevYearMonths = generateMonthsForYear(selectedMonth.year - 1);
+    return prevYearMonths[11] ?? null;
+  }, [selectedMonth, months]);
+
   useEffect(() => {
     if (!selectedMonth) {
       setSnapshotMetrics(null);
+      setPrevSnapshotMetrics(null);
       return;
     }
     let cancelled = false;
     setSnapshotLoading(true);
-    loadSnapshotAction({
-      granularity: 'MONTHLY',
-      monthIdx: selectedMonth.monthIdx,
-      year: selectedMonth.year,
-    }).then((res) => {
+    Promise.all([
+      loadSnapshotAction({
+        granularity: 'MONTHLY',
+        monthIdx: selectedMonth.monthIdx,
+        year: selectedMonth.year,
+      }),
+      prevMonth
+        ? loadSnapshotAction({
+            granularity: 'MONTHLY',
+            monthIdx: prevMonth.monthIdx,
+            year: prevMonth.year,
+          })
+        : Promise.resolve({ success: true as const, data: { metrics: null } }),
+    ]).then(([cur, prv]) => {
       if (cancelled) return;
       setSnapshotLoading(false);
-      setSnapshotMetrics(res.success ? res.data.metrics : null);
+      setSnapshotMetrics(cur.success ? cur.data.metrics : null);
+      setPrevSnapshotMetrics(prv.success ? prv.data.metrics : null);
     });
     return () => {
       cancelled = true;
     };
-  }, [selectedMonth]);
+  }, [selectedMonth, prevMonth]);
 
   const snapshotReport: WeeklyReportData | null = useMemo(
-    () => (snapshotMetrics ? snapshotToWeeklyReport(snapshotMetrics, channel) : null),
-    [snapshotMetrics, channel],
+    () =>
+      snapshotMetrics
+        ? snapshotToWeeklyReport(
+            snapshotMetrics,
+            channel,
+            prevSnapshotMetrics,
+            prevMonth?.label,
+          )
+        : null,
+    [snapshotMetrics, prevSnapshotMetrics, channel, prevMonth],
   );
-  // When there's no real monthly snapshot, render placeholder overview +
-  // breakdown items (same metric labels as Weekly Report) with "—" values.
-  // Don't fall back to mock data because mock uses different metric names
-  // (e.g. "Page Views" vs "Total Page Views") that drift from the spec.
-  const mockReport = useMemo(() => getMonthlyReport(monthIdx, channel), [monthIdx, channel]);
+  // Placeholder when no snapshot — same metric structure with "—" values.
+  // Mock monthly data removed per user spec.
   const placeholderReport: WeeklyReportData = useMemo(() => {
     const b = buildPlaceholderBreakdowns(channel);
     return {
-      ...mockReport,
+      netGmv: 0,
+      cm: 0,
+      cmPct: 0,
+      netGmvWow: null,
+      cmWow: null,
+      cmPctWow: null,
       overview: buildPlaceholderOverview(),
       discounts: b.discounts,
       promo: b.promo,
       traffic: b.traffic,
       sales: b.sales,
+      ads: [],
+      prevWeekLabel: '—',
     };
-  }, [mockReport, channel]);
+  }, [channel]);
   const report = snapshotReport ?? placeholderReport;
   const isRealData = snapshotReport != null;
   const products = useMemo<ProductMetric[]>(
-    () =>
-      snapshotMetrics
-        ? snapshotToProducts(snapshotMetrics, channel)
-        : getProductMetricsForMonth(monthIdx, channel),
-    [snapshotMetrics, monthIdx, channel],
+    () => (snapshotMetrics ? snapshotToProducts(snapshotMetrics, channel) : []),
+    [snapshotMetrics, channel],
   );
 
   const currentMonth = months.find((m) => m.monthIdx === monthIdx);
   const currentMonthLabel = currentMonth?.label ?? 'M' + monthIdx;
 
-  const onDownload = () => {
-    const header = ['Metric', 'VND', 'KRW', '% Net GMV', 'MoM%'];
-    const rows = report.overview.map((r) => [
-      r.metric,
-      r.isRatio ? (r.vnd * 100).toFixed(2) + '%' : Math.round(r.vnd).toString(),
-      r.isRatio ? '' : Math.round(r.vnd / (krwRate || 1)).toString(),
-      (r.pctGmv * 100).toFixed(2) + '%',
-      r.wowPct != null ? (r.wowPct * 100).toFixed(2) + '%' : '',
-    ]);
-    const csv = buildCsv(header, rows);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const filename = `monthly-report_${currentMonthLabel}_${new Date().toISOString().slice(0, 10)}.csv`;
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const onDownload = async () => {
+    const channelLabel =
+      channel === 'ALL' ? 'Total Platform' : channel === 'SHOPEE' ? 'Shopee' : 'TikTok';
+    await downloadReportXlsx({
+      reportTitle: 'Monthly Report',
+      currentLabel: currentMonthLabel,
+      prevLabel: report.prevWeekLabel,
+      deltaLabel: 'MoM%',
+      channel,
+      channelLabel,
+      krwRate,
+      report,
+      products: channel === 'ALL' ? [] : products,
+    });
 
     appendActionLog({
       username: 'dev@amoeba.group',
@@ -142,8 +203,13 @@ export function MonthlyReportClient() {
       verb: 'EXPORT',
       targetType: 'monthly-report',
       targetLabel: `Monthly Report ${currentMonthLabel}`,
-      summary: `Exported ${rows.length} overview rows for ${channel} channel as CSV`,
-      metadata: { month: currentMonthLabel, channel, filename, rowCount: rows.length },
+      summary: `Exported Monthly Report ${currentMonthLabel} (${channelLabel}) as xlsx`,
+      metadata: {
+        month: currentMonthLabel,
+        channel,
+        overviewRows: report.overview.length,
+        productRows: channel === 'ALL' ? 0 : products.length,
+      },
     });
   };
 
@@ -151,8 +217,8 @@ export function MonthlyReportClient() {
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-neutral-900">Monthly Report</h1>
-          <p className="mt-1 text-sm text-neutral-500">Month-over-month performance</p>
+          <h1 className="text-xl font-semibold text-neutral-900">{t('title')}</h1>
+          <p className="mt-1 text-sm text-neutral-500">{t('subtitle')}</p>
         </div>
         <span
           className={cn(
@@ -163,23 +229,19 @@ export function MonthlyReportClient() {
                 ? 'bg-success-500/10 text-success-500'
                 : 'bg-neutral-100 text-neutral-500',
           )}
-          title={
-            isRealData
-              ? 'Showing real ingested data from your uploaded files'
-              : 'Showing mock data — ingest files via Upload wizard to see real numbers'
-          }
+          title={isRealData ? t('badge.realDataTooltip') : t('badge.noDataTooltip')}
         >
           {snapshotLoading ? (
             <>
-              <Cloud className="h-3 w-3 animate-pulse" /> Loading…
+              <Cloud className="h-3 w-3 animate-pulse" /> {tW('badge.loading')}
             </>
           ) : isRealData ? (
             <>
-              <Database className="h-3 w-3" /> Real data
+              <Database className="h-3 w-3" /> {tW('badge.realData')}
             </>
           ) : (
             <>
-              <Cloud className="h-3 w-3" /> Mock
+              <Cloud className="h-3 w-3" /> {tW('badge.noData')}
             </>
           )}
         </span>
@@ -199,14 +261,14 @@ export function MonthlyReportClient() {
                   : 'text-neutral-700 hover:bg-neutral-50',
               )}
             >
-              {opt.label}
+              {tW(`channel.${opt.labelKey}`)}
             </button>
           ))}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="inline-flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm">
-            <span className="text-neutral-500">1 KRW =</span>
+            <span className="text-neutral-500">{tW('krwRate.prefix')}</span>
             <input
               type="number"
               value={krwRate}
@@ -215,7 +277,7 @@ export function MonthlyReportClient() {
               min="1"
               step="0.01"
             />
-            <span className="text-neutral-500">VND</span>
+            <span className="text-neutral-500">{tW('krwRate.suffix')}</span>
           </div>
           <button
             type="button"
@@ -223,14 +285,14 @@ export function MonthlyReportClient() {
             className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
           >
             <Download className="h-4 w-4" />
-            Export
+            {tW('export')}
           </button>
         </div>
       </div>
 
       <div>
         <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-          Pick the month
+          {t('pickMonth')}
         </div>
         <MonthPicker
           months={months}
@@ -287,45 +349,45 @@ export function MonthlyReportClient() {
           prevWeekLabel={report.prevWeekLabel}
           currentWeekLabel={currentMonthLabel}
           krwRate={krwRate}
-          deltaLabel="MoM"
+          deltaLabel={tW('table.mom')}
           channel={channel}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <BreakdownCard
-          title="Discount Breakdown"
+          title={tW('section.discount')}
           accent="indigo"
           items={report.discounts}
           krwRate={krwRate}
-          deltaLabel="MoM"
+          deltaLabel={tW('table.mom')}
           channel={channel}
         />
         <BreakdownCard
-          title="Promotional Breakdown"
+          title={tW('section.promotional')}
           accent="orange"
           items={report.promo}
           krwRate={krwRate}
-          deltaLabel="MoM"
+          deltaLabel={tW('table.mom')}
           channel={channel}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <BreakdownCard
-          title={channel === 'TIKTOK' ? 'Traffic' : 'Traffic and Ads'}
+          title={channel === 'TIKTOK' ? tW('section.traffic') : tW('section.trafficAndAds')}
           accent="pink"
           items={report.traffic}
           krwRate={krwRate}
-          deltaLabel="MoM"
+          deltaLabel={tW('table.mom')}
           channel={channel}
         />
         <BreakdownCard
-          title="Sales"
+          title={tW('section.sales')}
           accent="green"
           items={report.sales}
           krwRate={krwRate}
-          deltaLabel="MoM"
+          deltaLabel={tW('table.mom')}
           channel={channel}
         />
       </div>

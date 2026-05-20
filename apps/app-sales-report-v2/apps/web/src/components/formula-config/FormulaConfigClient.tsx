@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Search, X, Download } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { FORMULA_SECTIONS } from '@/lib/formula-config-data';
 import { FormulaSection } from './FormulaSection';
@@ -39,6 +40,7 @@ export function FormulaConfigClient({
   showFilters = true,
   showExport = true,
 }: FormulaConfigClientProps = {}) {
+  const t = useTranslations('formulaConfig');
   const [values, setValues] = useState<Record<string, string>>({});
   const [sources, setSources] = useState<Record<string, string[]>>({});
   const [savedKey, setSavedKey] = useState<string | null>(null);
@@ -158,22 +160,19 @@ export function FormulaConfigClient({
       <div className="flex items-center gap-3 text-[11px] text-neutral-500">
         <span className="inline-flex items-center gap-1">
           <span className="inline-block h-2 w-2 rounded-full bg-accent-700" />
-          <span>raw column</span>
+          <span>{t('legend.rawColumn')}</span>
         </span>
         <span className="inline-flex items-center gap-1">
           <span className="inline-block h-2 w-2 rounded-full bg-info-500" />
-          <span>calculated</span>
+          <span>{t('legend.calculated')}</span>
         </span>
         <span className="inline-flex items-center gap-1">
           <span className="inline-block h-2 w-2 rounded-full bg-error-500" />
-          <span>unknown</span>
+          <span>{t('legend.unknown')}</span>
         </span>
-        <span
-          className="inline-flex items-center gap-1"
-          title="Editable parameter / literal value"
-        >
+        <span className="inline-flex items-center gap-1" title={t('legend.editableHint')}>
           <span className="inline-block h-2 w-2 rounded-full bg-success-500" />
-          <span>[editable]</span>
+          <span>{t('legend.editable')}</span>
         </span>
       </div>
       {showExport && (
@@ -184,7 +183,7 @@ export function FormulaConfigClient({
         onClick={() => setAllOpen(!allOpen)}
         className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
       >
-        {allOpen ? 'Collapse all' : 'Expand all'}
+        {allOpen ? t('collapseAll') : t('expandAll')}
       </button>
     </div>
   );
@@ -199,17 +198,13 @@ export function FormulaConfigClient({
       ) : (
         <>
           <div>
-            <h1 className="text-xl font-semibold text-neutral-900">Settings</h1>
-            <p className="mt-1 text-sm text-neutral-500">
-              User management and formula configuration — Admin only
-            </p>
+            <h1 className="text-xl font-semibold text-neutral-900">{t('pageTitle')}</h1>
+            <p className="mt-1 text-sm text-neutral-500">{t('pageSubtitle')}</p>
           </div>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-semibold text-neutral-900">Formula Configuration</h2>
-              <p className="mt-0.5 text-xs text-neutral-500">
-                Changes are auto-saved to your browser
-              </p>
+              <h2 className="text-base font-semibold text-neutral-900">{t('title')}</h2>
+              <p className="mt-0.5 text-xs text-neutral-500">{t('subtitle')}</p>
             </div>
             {toolbar}
           </div>
@@ -224,25 +219,27 @@ export function FormulaConfigClient({
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search metric by name…"
+              placeholder={t('filter.searchPlaceholder')}
               className="w-full rounded-md border border-neutral-300 bg-white py-1.5 pl-8 pr-2 text-sm placeholder:text-neutral-400 focus:outline-none focus:border-info-500"
             />
           </div>
           <FilterChipDropdown
-            label="Section"
-            options={FORMULA_SECTIONS.map((s) => ({ id: s.id, label: s.title }))}
+            label={t('filter.section')}
+            options={FORMULA_SECTIONS.map((s) => ({
+              id: s.id,
+              label: t(`section.${s.id}` as never) || s.title,
+            }))}
             selected={sectionFilters}
             onChange={setSectionFilters}
           />
           <FilterChipDropdown
-            label="Data Source"
+            label={t('filter.dataSource')}
             options={ALL_DATA_SOURCES.map((s) => ({ id: s, label: s }))}
             selected={sourceFilters}
             onChange={setSourceFilters}
           />
           <span className="text-xs text-neutral-500 ml-auto">
-            Showing <span className="font-semibold text-neutral-900">{visibleMetrics}</span> /{' '}
-            {totalMetrics}
+            {t('filter.showing', { visible: visibleMetrics, total: totalMetrics })}
           </span>
           {hasActiveFilter && (
             <button
@@ -255,7 +252,7 @@ export function FormulaConfigClient({
               className="inline-flex items-center gap-1 rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
             >
               <X className="h-3 w-3" />
-              Clear filters
+              {t('filter.clear')}
             </button>
           )}
         </div>
@@ -265,7 +262,7 @@ export function FormulaConfigClient({
       <div className="space-y-5">
         {filteredSections.length === 0 ? (
           <div className="rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-10 text-center text-sm text-neutral-500">
-            No metrics match the current filters.
+            {t('empty')}
           </div>
         ) : (
           filteredSections.map((section) => (
@@ -364,6 +361,7 @@ function ExportMenu({
   values: Record<string, string>;
   sources: Record<string, string[]>;
 }) {
+  const t = useTranslations('formulaConfig');
   return (
     <div className="relative">
       <button
@@ -372,7 +370,7 @@ function ExportMenu({
         className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
       >
         <Download className="h-3.5 w-3.5" />
-        Export
+        {t('export')}
       </button>
       {open && (
         <>
@@ -386,7 +384,7 @@ function ExportMenu({
               }}
               className="block w-full text-left rounded px-2.5 py-1.5 text-xs text-neutral-700 hover:bg-neutral-50"
             >
-              Export as JSON
+              {t('exportJson')}
             </button>
             <button
               type="button"
@@ -396,7 +394,7 @@ function ExportMenu({
               }}
               className="block w-full text-left rounded px-2.5 py-1.5 text-xs text-neutral-700 hover:bg-neutral-50"
             >
-              Export as CSV
+              {t('exportCsv')}
             </button>
           </div>
         </>

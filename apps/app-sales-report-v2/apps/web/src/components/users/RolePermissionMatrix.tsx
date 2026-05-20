@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Check, Minus, RotateCcw, Lock } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { appendActionLog } from '@/lib/action-log-mock';
 
@@ -9,20 +10,21 @@ type Role = 'OPERATOR' | 'MANAGER' | 'ADMIN';
 
 interface Permission {
   key: string;
-  label: string;
+  /** i18n key under `usersPage.permissions.row.*` */
+  labelKey: string;
   defaults: Record<Role, boolean>;
 }
 
 /** Keep `key` stable — defaults seeded from spec. Admin always retains all. */
 const PERMISSIONS: Permission[] = [
-  { key: 'upload', label: 'Upload CSV files', defaults: { OPERATOR: true, MANAGER: false, ADMIN: true } },
-  { key: 'manual', label: 'Input / edit manual data', defaults: { OPERATOR: true, MANAGER: false, ADMIN: true } },
-  { key: 'view_reports', label: 'View reports', defaults: { OPERATOR: true, MANAGER: true, ADMIN: true } },
-  { key: 'download_reports', label: 'Download reports', defaults: { OPERATOR: true, MANAGER: true, ADMIN: true } },
-  { key: 'edit_prime_cost', label: 'Edit Prime Cost / COGS', defaults: { OPERATOR: true, MANAGER: false, ADMIN: true } },
-  { key: 'view_activity_log', label: 'View Activity Log', defaults: { OPERATOR: false, MANAGER: true, ADMIN: true } },
-  { key: 'manage_users', label: 'Manage users', defaults: { OPERATOR: false, MANAGER: false, ADMIN: true } },
-  { key: 'configure_formulas', label: 'Configure formulas', defaults: { OPERATOR: false, MANAGER: false, ADMIN: true } },
+  { key: 'upload', labelKey: 'upload', defaults: { OPERATOR: true, MANAGER: false, ADMIN: true } },
+  { key: 'manual', labelKey: 'manual', defaults: { OPERATOR: true, MANAGER: false, ADMIN: true } },
+  { key: 'view_reports', labelKey: 'view_reports', defaults: { OPERATOR: true, MANAGER: true, ADMIN: true } },
+  { key: 'download_reports', labelKey: 'download_reports', defaults: { OPERATOR: true, MANAGER: true, ADMIN: true } },
+  { key: 'edit_prime_cost', labelKey: 'edit_prime_cost', defaults: { OPERATOR: true, MANAGER: false, ADMIN: true } },
+  { key: 'view_activity_log', labelKey: 'view_activity_log', defaults: { OPERATOR: false, MANAGER: true, ADMIN: true } },
+  { key: 'manage_users', labelKey: 'manage_users', defaults: { OPERATOR: false, MANAGER: false, ADMIN: true } },
+  { key: 'configure_formulas', labelKey: 'configure_formulas', defaults: { OPERATOR: false, MANAGER: false, ADMIN: true } },
 ];
 
 const ROLES: Role[] = ['OPERATOR', 'MANAGER', 'ADMIN'];
@@ -52,6 +54,8 @@ function writeOverrides(map: OverrideMap): void {
 }
 
 export function RolePermissionMatrix() {
+  const t = useTranslations('usersPage.permissions');
+  const tRole = useTranslations('role');
   const [overrides, setOverrides] = useState<OverrideMap>({});
   const [lastEdited, setLastEdited] = useState<{ at: string; by: string } | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -71,9 +75,15 @@ export function RolePermissionMatrix() {
 
   useEffect(() => {
     if (!feedback) return;
-    const t = setTimeout(() => setFeedback(null), 2000);
-    return () => clearTimeout(t);
+    const handle = setTimeout(() => setFeedback(null), 2000);
+    return () => clearTimeout(handle);
   }, [feedback]);
+
+  const roleLabel = (r: Role): string => {
+    if (r === 'ADMIN') return tRole('admin');
+    if (r === 'MANAGER') return tRole('manager');
+    return tRole('operator');
+  };
 
   const resolve = (key: string, role: Role): boolean => {
     const ov = overrides[key]?.[role];
@@ -106,23 +116,28 @@ export function RolePermissionMatrix() {
       // ignore
     }
 
+    const localizedLabel = t(`row.${perm.labelKey}`);
     appendActionLog({
       username: by,
       userRole: 'ADMIN',
       category: 'OTHER',
       verb: next ? 'GRANT' : 'REVOKE',
       targetType: 'permission',
-      targetLabel: `${role} · ${perm.label}`,
-      summary: `${next ? 'Granted' : 'Revoked'} "${perm.label}" for ${role}`,
+      targetLabel: `${role} · ${localizedLabel}`,
+      summary: `${next ? 'Granted' : 'Revoked'} "${localizedLabel}" for ${role}`,
       metadata: { permissionKey: perm.key, role, value: next },
     });
 
-    setFeedback(`${next ? 'Granted' : 'Revoked'} "${perm.label}" for ${role}`);
+    setFeedback(
+      next
+        ? t('feedback.granted', { label: localizedLabel, role: roleLabel(role) })
+        : t('feedback.revoked', { label: localizedLabel, role: roleLabel(role) }),
+    );
   };
 
   const resetAll = () => {
     if (Object.keys(overrides).length === 0) return;
-    if (!confirm('Reset all role permissions to defaults? This will discard your overrides.')) return;
+    if (!confirm(t('confirmReset'))) return;
     setOverrides({});
     writeOverrides({});
     const now = new Date().toISOString();
@@ -142,7 +157,7 @@ export function RolePermissionMatrix() {
       targetLabel: 'Role Permission Matrix',
       summary: 'Reset all role permissions to defaults',
     });
-    setFeedback('All permissions reset to defaults');
+    setFeedback(t('feedback.resetAll'));
   };
 
   const hasOverrides = Object.values(overrides).some(
@@ -153,15 +168,11 @@ export function RolePermissionMatrix() {
     <div className="rounded-lg border border-neutral-200 bg-white">
       <div className="flex items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
         <div>
-          <h2 className="text-base font-semibold text-neutral-900">Role Permission Matrix</h2>
+          <h2 className="text-base font-semibold text-neutral-900">{t('title')}</h2>
           <p className="mt-0.5 text-xs text-neutral-500">
-            Click a cell to toggle. Admin column is locked — Admin always retains all permissions.
+            {t('subtitle')}
             {lastEdited && (
-              <>
-                {' · '}Last edited{' '}
-                <span className="font-mono text-neutral-700">{fmtDateTime(lastEdited.at)}</span>{' '}
-                by <span className="font-mono text-neutral-700">{lastEdited.by}</span>
-              </>
+              <>{t('lastEdited', { at: fmtDateTime(lastEdited.at), by: lastEdited.by })}</>
             )}
           </p>
         </div>
@@ -172,7 +183,7 @@ export function RolePermissionMatrix() {
             className="inline-flex items-center gap-1 rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 shrink-0"
           >
             <RotateCcw className="h-3 w-3" />
-            Reset to defaults
+            {t('resetButton')}
           </button>
         )}
       </div>
@@ -187,11 +198,11 @@ export function RolePermissionMatrix() {
         <table className="w-full text-sm">
           <thead className="bg-neutral-50 text-xs uppercase tracking-wider text-neutral-500">
             <tr>
-              <th className="px-5 py-2.5 text-left font-medium">Permission</th>
+              <th className="px-5 py-2.5 text-left font-medium">{t('permissionColHeader')}</th>
               {ROLES.map((r) => (
                 <th key={r} className="px-5 py-2.5 text-center font-medium">
                   <div className="inline-flex items-center justify-center gap-1">
-                    <span>{r[0] + r.slice(1).toLowerCase()}</span>
+                    <span>{roleLabel(r)}</span>
                     {r === 'ADMIN' && <Lock className="h-3 w-3 text-neutral-400" />}
                   </div>
                 </th>
@@ -201,7 +212,7 @@ export function RolePermissionMatrix() {
           <tbody className="divide-y divide-neutral-100">
             {PERMISSIONS.map((p) => (
               <tr key={p.key} className="hover:bg-neutral-50/60">
-                <td className="px-5 py-3 text-neutral-700">{p.label}</td>
+                <td className="px-5 py-3 text-neutral-700">{t(`row.${p.labelKey}`)}</td>
                 {ROLES.map((r) => {
                   const allowed = resolve(p.key, r);
                   const dirty = isDirty(p.key, r);
@@ -214,10 +225,10 @@ export function RolePermissionMatrix() {
                         disabled={locked}
                         title={
                           locked
-                            ? 'Admin always retains all permissions'
+                            ? t('tooltip.adminLocked')
                             : allowed
-                              ? `Revoke for ${r}`
-                              : `Grant for ${r}`
+                              ? t('tooltip.revokeFor', { role: roleLabel(r) })
+                              : t('tooltip.grantFor', { role: roleLabel(r) })
                         }
                         className={cn(
                           'inline-flex h-6 w-6 items-center justify-center rounded-full transition-colors',

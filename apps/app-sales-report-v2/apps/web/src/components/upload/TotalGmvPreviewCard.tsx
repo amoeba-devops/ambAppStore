@@ -10,6 +10,7 @@ import {
   Gift,
   AlertTriangle,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { previewShopeeMetricsAction } from '@/server/actions/preview-calc.actions';
 import type { ShopeeMetricsPreview } from '@/server/actions/preview-calc.actions';
@@ -41,6 +42,8 @@ export function TotalGmvPreviewCard({
   trafficFile = null,
   affiliateFile = null,
 }: Props) {
+  const t = useTranslations('uploadWizard.preview');
+  void CheckCircle;
   const [pending, startTransition] = useTransition();
   const [preview, setPreview] = useState<ShopeeMetricsPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -78,10 +81,8 @@ export function TotalGmvPreviewCard({
         <div className="flex-1">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <h3 className="text-sm font-semibold text-neutral-900">Shopee metrics preview</h3>
-              <p className="text-xs text-neutral-500">
-                Quick sanity-check from the Sales file + Prime Cost master. No DB writes.
-              </p>
+              <h3 className="text-sm font-semibold text-neutral-900">{t('shopee.title')}</h3>
+              <p className="text-xs text-neutral-500">{t('shopee.subtitle')}</p>
             </div>
             <button
               type="button"
@@ -97,21 +98,19 @@ export function TotalGmvPreviewCard({
               {pending ? (
                 <>
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Computing…
+                  {t('computing')}
                 </>
               ) : (
                 <>
                   <Calculator className="h-3 w-3" />
-                  {preview ? 'Recompute' : 'Compute preview'}
+                  {preview ? t('recompute') : t('compute')}
                 </>
               )}
             </button>
           </div>
 
           {!file && (
-            <p className="mt-3 text-xs text-neutral-500">
-              Upload the Shopee Sales file first to enable preview.
-            </p>
+            <p className="mt-3 text-xs text-neutral-500">{t('shopee.uploadFirst')}</p>
           )}
 
           {error && (
@@ -126,7 +125,7 @@ export function TotalGmvPreviewCard({
               {/* Revenue / cost metric cards — 5 base + 2 per-order */}
               <div>
                 <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
-                  Revenue & cost
+                  {t('section.revenueCost')}
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
                   <MetricCard label="Total GMV" value={r.totalGmv} tone="primary" />
@@ -145,7 +144,7 @@ export function TotalGmvPreviewCard({
               {/* Per-order metrics (Group A — dedupe by Order ID) */}
               <div>
                 <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
-                  Per-order (Group A — MAX dedupe by Order ID)
+                  {t('section.perOrder')}
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <MetricCard
@@ -167,7 +166,7 @@ export function TotalGmvPreviewCard({
               {(r.ads || r.brandAds || r.offPlatformAds || r.affiliate) && (
                 <div>
                   <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
-                    Marketing costs
+                    {t('section.marketingCosts')}
                   </div>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                     {r.ads && (
@@ -207,24 +206,24 @@ export function TotalGmvPreviewCard({
               )}
               {!r.ads && adsFile === null && (
                 <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
-                  💡 Upload the Shopee Ads CSV to enable Total Ad Spending.
+                  {t('hint.uploadShopeeAds')}
                 </div>
               )}
               {!r.brandAds && brandAdsFile === null && (
                 <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
-                  💡 Upload the Shopee Brand Ads CSV to enable Total Brand Ads.
+                  {t('hint.uploadShopeeBrandAds')}
                 </div>
               )}
               {!r.offPlatformAds && offPlatformAdsFile === null && (
                 <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
-                  💡 Upload the Shopee Off-Platform Ads CSV to enable Total Off-Platform Ads.
+                  {t('hint.uploadShopeeOffPlatform')}
                 </div>
               )}
 
               {r.traffic && (
                 <div>
                   <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
-                    Traffic
+                    {t('section.traffic')}
                   </div>
                   <MetricCard
                     label="Total Page Views"
@@ -237,28 +236,28 @@ export function TotalGmvPreviewCard({
               )}
               {!r.traffic && trafficFile === null && (
                 <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
-                  💡 Upload the Shopee Traffic xlsx to enable Total Page Views.
+                  {t('hint.uploadShopeeTraffic')}
                 </div>
               )}
               {!r.affiliate && affiliateFile === null && (
                 <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
-                  💡 Upload the Shopee Affiliate CSV to enable Total Affiliate Commission.
+                  {t('hint.uploadShopeeAffiliate')}
                 </div>
               )}
 
               {/* Row + order breakdown stats */}
               <div className="grid grid-cols-5 gap-2 text-center">
-                <Stat label="Rows kept" value={r.rowsKept} tone="ok" />
-                <Stat label="Cancelled rows" value={r.rowsExcluded.cancelled} tone="warn" />
-                <Stat label="Returned rows" value={r.rowsExcluded.returned} tone="warn" />
+                <Stat label={t('stat.rowsKept')} value={r.rowsKept} tone="ok" />
+                <Stat label={t('stat.cancelled')} value={r.rowsExcluded.cancelled} tone="warn" />
+                <Stat label={t('stat.returned')} value={r.rowsExcluded.returned} tone="warn" />
                 <Stat
-                  label="Free gift rows"
+                  label={t('stat.freeGift')}
                   value={r.rowsExcluded.freeGift}
                   tone="info"
                   icon={<Gift className="h-2.5 w-2.5" />}
                 />
                 <Stat
-                  label="Orders"
+                  label={t('stat.orders')}
                   value={r.orderCounts.nonCancelled}
                   tone="ok"
                   icon={null}
@@ -269,7 +268,7 @@ export function TotalGmvPreviewCard({
                 <details className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-xs">
                   <summary className="cursor-pointer font-medium text-neutral-700">
                     <Gift className="mr-1 inline h-3 w-3 text-info-500" />
-                    Free gift products detected ({r.freeGiftProducts.length})
+                    {t('freeGiftDetected', { count: r.freeGiftProducts.length })}
                   </summary>
                   <ul className="mt-2 space-y-1 text-neutral-600">
                     {r.freeGiftProducts.map((p) => (
@@ -286,7 +285,9 @@ export function TotalGmvPreviewCard({
                 <details className="rounded-md border border-warning-500/30 bg-warning-500/5 px-3 py-2 text-xs">
                   <summary className="cursor-pointer font-medium text-warning-500">
                     <AlertTriangle className="mr-1 inline h-3 w-3" />
-                    {r.missingFromMaster.length} SKU{r.missingFromMaster.length > 1 ? 's' : ''} sold but missing from Prime Cost master — Net GMV / Prime Cost can't include these
+                    {r.missingFromMaster.length === 1
+                      ? t('missingFromMasterSingular')
+                      : t('missingFromMaster', { count: r.missingFromMaster.length })}
                   </summary>
                   <ul className="mt-2 space-y-1 text-neutral-700">
                     {r.missingFromMaster.slice(0, 10).map((m) => (
@@ -300,7 +301,7 @@ export function TotalGmvPreviewCard({
                     ))}
                     {r.missingFromMaster.length > 10 && (
                       <li className="text-[10px] text-neutral-500">
-                        … and {r.missingFromMaster.length - 10} more
+                        {t('andMore', { count: r.missingFromMaster.length - 10 })}
                       </li>
                     )}
                   </ul>
@@ -313,7 +314,7 @@ export function TotalGmvPreviewCard({
                 className="flex items-center gap-1 text-[11px] font-medium text-neutral-600 hover:text-neutral-900"
               >
                 <ChevronDown className={cn('h-3 w-3 transition-transform', expanded && 'rotate-180')} />
-                {expanded ? 'Hide' : 'Show'} formula specs + per-product breakdown
+                {expanded ? t('hideFormulas') : t('showFormulas')}
               </button>
 
               {expanded && (
@@ -324,7 +325,7 @@ export function TotalGmvPreviewCard({
               )}
 
               <div className="text-[10px] text-neutral-500">
-                Loaded {preview.master.skuCount} SKUs from Prime Cost master.
+                {t('loadedSkus', { count: preview.master.skuCount })}
               </div>
             </div>
           )}
@@ -400,6 +401,7 @@ function Stat({
 }
 
 function FormulaSpecsBlock({ specs }: { specs: ShopeeMetricsPreview['specs'] }) {
+  const t = useTranslations('uploadWizard.preview.formulaSpecs');
   const metricSpecs = [
     specs.TOTAL_GMV_SHOPEE,
     specs.TOTAL_NET_GMV_SHOPEE,
@@ -417,7 +419,7 @@ function FormulaSpecsBlock({ specs }: { specs: ShopeeMetricsPreview['specs'] }) 
   return (
     <div className="rounded-md border border-neutral-200 bg-neutral-50 p-3">
       <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
-        Formulas (Cách A — text-based engine)
+        {t('shopeeTitle')}
       </div>
       <div className="space-y-2 font-mono text-[11px] text-neutral-700">
         {metricSpecs.map((m) => (
@@ -430,13 +432,13 @@ function FormulaSpecsBlock({ specs }: { specs: ShopeeMetricsPreview['specs'] }) 
           </div>
         ))}
         <div className="rounded bg-white px-2 py-1.5">
-          <div className="font-sans text-[10px] font-semibold text-neutral-900">Derived per row</div>
+          <div className="font-sans text-[10px] font-semibold text-neutral-900">{t('derived')}</div>
           <div className="mt-0.5">item_sold = {specs.DERIVED.item_sold}</div>
           <div>gmv       = {specs.DERIVED.gmv}</div>
           <div>net_gmv   = {specs.DERIVED.net_gmv}</div>
         </div>
         <div className="rounded bg-white px-2 py-1.5">
-          <div className="font-sans text-[10px] font-semibold text-neutral-900">Exclusions</div>
+          <div className="font-sans text-[10px] font-semibold text-neutral-900">{t('exclusions')}</div>
           {specs.EXCLUSIONS.rules.map((rule) => (
             <div key={rule.code}>
               {rule.code.padEnd(10)} {rule.expression}
@@ -453,23 +455,24 @@ function ProductBreakdownTable({
 }: {
   rows: ShopeeMetricsPreview['result']['productBreakdown'];
 }) {
+  const t = useTranslations('uploadWizard.preview.breakdown');
   return (
     <div className="rounded-md border border-neutral-200 bg-white">
       <div className="border-b border-neutral-200 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
-        Per-product breakdown ({rows.length} products)
+        {t('title', { count: rows.length })}
       </div>
       <div className="max-h-96 overflow-y-auto">
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-neutral-50 text-[9px] uppercase tracking-wider text-neutral-500">
             <tr>
-              <th className="px-2 py-1.5 text-right">#</th>
-              <th className="px-2 py-1.5 text-left">Product</th>
-              <th className="px-2 py-1.5 text-right">Units</th>
-              <th className="px-2 py-1.5 text-right">GMV</th>
-              <th className="px-2 py-1.5 text-right">Net GMV</th>
-              <th className="px-2 py-1.5 text-right">NMV</th>
-              <th className="px-2 py-1.5 text-right">Sel.Disc</th>
-              <th className="px-2 py-1.5 text-right">PrimeCost</th>
+              <th className="px-2 py-1.5 text-right">{t('col.num')}</th>
+              <th className="px-2 py-1.5 text-left">{t('col.product')}</th>
+              <th className="px-2 py-1.5 text-right">{t('col.units')}</th>
+              <th className="px-2 py-1.5 text-right">{t('col.gmv')}</th>
+              <th className="px-2 py-1.5 text-right">{t('col.netGmv')}</th>
+              <th className="px-2 py-1.5 text-right">{t('col.nmv')}</th>
+              <th className="px-2 py-1.5 text-right">{t('col.sellerDiscount')}</th>
+              <th className="px-2 py-1.5 text-right">{t('col.primeCost')}</th>
             </tr>
           </thead>
           <tbody>

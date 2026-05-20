@@ -1,10 +1,25 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronLeft, ChevronRight, History } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
+import { loadSnapshotAction } from '@/server/actions/ingest.actions';
+import { listArchiveFilesForPeriodAction } from '@/server/actions/archive.actions';
 import { WizardStepper, type WizardStep } from './WizardStepper';
-import { Step1Period, type Granularity, type SelectedPeriod } from './Step1Period';
+import { Step1Period, effectiveStatus, type Granularity, type SelectedPeriod } from './Step1Period';
+
+export interface ExistingArchiveFile {
+  arfId: string;
+  channel: 'SHOPEE' | 'TIKTOK';
+  fileType: 'SALES' | 'ADS' | 'BRAND_ADS' | 'OFF_PLATFORM_ADS' | 'TRAFFIC' | 'AFFILIATE';
+  filename: string;
+  sizeBytes: number;
+  rowCount: number | null;
+  uploadedAt: string;
+  uploadedBy: string;
+  s3Key: string | null;
+}
 import { Step2Upload } from './Step2Upload';
 import {
   Step3ManualInput,
@@ -16,16 +31,27 @@ import { Step4Review } from './Step4Review';
 import { Step5Validate } from './Step5Validate';
 import { Step6Ingest } from './Step6Ingest';
 
-const STEPS: WizardStep[] = [
-  { id: 1, label: 'Period' },
-  { id: 2, label: 'Upload files' },
-  { id: 3, label: 'Manual Input' },
-  { id: 4, label: 'Review' },
-  { id: 5, label: 'Validate' },
-  { id: 6, label: 'Ingest' },
-];
+function buildSteps(t: (key: '1' | '2' | '3' | '4' | '5' | '6') => string): WizardStep[] {
+  return [
+    { id: 1, label: t('1') },
+    { id: 2, label: t('2') },
+    { id: 3, label: t('3') },
+    { id: 4, label: t('4') },
+    { id: 5, label: t('5') },
+    { id: 6, label: t('6') },
+  ];
+}
 
-export function UploadReportsClient() {
+interface UploadReportsClientProps {
+  /** Real DB-backed period keys, used to filter stale status overrides in Step 1. */
+  realPeriodKeys?: string[];
+}
+
+export function UploadReportsClient({ realPeriodKeys = [] }: UploadReportsClientProps = {}) {
+  const tHeader = useTranslations('uploadWizard.header');
+  const tStepper = useTranslations('uploadWizard.stepperLabels');
+  const tNav = useTranslations('uploadWizard.nav');
+  const STEPS = buildSteps(tStepper);
   const [step, setStep] = useState(1);
   const [completed, setCompleted] = useState<number[]>([]);
 
@@ -45,6 +71,66 @@ export function UploadReportsClient() {
 
   const isManualFilled = (v: string) => /^-?\d+(\.\d+)?$/.test(v.trim());
   const manualMissing = ALL_MANUAL_FIELDS.filter((k) => !isManualFilled(manualInputs[k]));
+
+  // Compute effective status for selected period. Drives Continue gating
+  // (Finalized → blocked) and Active pre-fill behavior.
+  const periodStatus = selectedPeriod
+    ? effectiveStatus(selectedPeriod.label, realPeriodKeys)
+    : null;
+
+  // Existing archive files for the selected period (Active only) — shown in
+  // Step 2 as a "Previously uploaded" panel so operator knows what's there
+  // and can choose to skip Step 2 (keep existing) or upload replacements.
+  const [existingFiles, setExistingFiles] = useState<ExistingArchiveFile[]>([]);
+
+  // When Active period is selected, pre-load Manual Input + existing files
+  // from the DB so operator doesn't re-enter / re-upload everything.
+  useEffect(() => {
+    if (!selectedPeriod || periodStatus !== 'Active') {
+      setExistingFiles([]);
+      return;
+    }
+    let cancelled = false;
+    const granularity = selectedPeriod.granularity === 'WEEK' ? 'WEEKLY' : 'MONTHLY';
+    const weekNum =
+      selectedPeriod.granularity === 'WEEK' ? selectedPeriod.periodId : undefined;
+    const monthIdx =
+      selectedPeriod.granularity === 'MONTH' ? selectedPeriod.periodId : undefined;
+    Promise.all([
+      loadSnapshotAction({ granularity, weekNum, monthIdx, year: selectedPeriod.year }),
+      listArchiveFilesForPeriodAction({ granularity, weekNum, monthIdx, year: selectedPeriod.year }),
+    ]).then(([snapRes, filesRes]) => {
+      if (cancelled) return;
+      if (snapRes.success && snapRes.data.metrics) {
+        const mi = snapRes.data.metrics.manualInputs;
+        setManualInputs({
+          affiliateBookingFees: String(mi.affiliateBookingFees ?? ''),
+          shopeeLivestreamFees: String(mi.shopeeLivestreamFees ?? ''),
+          tiktokLivestreamFees: String(mi.tiktokLivestreamFees ?? ''),
+          tiktokAdsSpending: String(mi.tiktokAdsSpending ?? ''),
+        });
+      }
+      if (filesRes.success) {
+        setExistingFiles(
+          filesRes.data.files.map((f) => ({
+            arfId: f.arfId,
+            channel: f.channel,
+            fileType: f.fileType,
+            filename: f.filename,
+            sizeBytes: f.sizeBytes,
+            rowCount: f.rowCount,
+            uploadedAt:
+              f.uploadedAt instanceof Date ? f.uploadedAt.toISOString() : String(f.uploadedAt),
+            uploadedBy: f.uploadedBy,
+            s3Key: f.s3Key,
+          })),
+        );
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPeriod, periodStatus]);
 
   const onChangeGranularity = (g: Granularity) => {
     setGranularity(g);
@@ -73,26 +159,20 @@ export function UploadReportsClient() {
   // Continue button enabled only when step is complete
   // For Step 2, keep button visually enabled so user can click → triggers error message
   const canContinue = (() => {
-    if (step === 1) return selectedPeriod !== null;
+    if (step === 1) {
+      if (!selectedPeriod) return false;
+      // Finalized periods are read-only — admin must unfinalize first.
+      if (periodStatus === 'Finalized' || periodStatus === 'Locked') return false;
+      return true;
+    }
     return true;
   })();
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-neutral-900">Upload reports</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            Add raw exports from Shopee Seller Center and TikTok Shop Seller. Files stay archived for audit.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
-        >
-          <History className="h-4 w-4" />
-          Past uploads
-        </button>
+      <div>
+        <h1 className="text-xl font-semibold text-neutral-900">{tHeader('title')}</h1>
+        <p className="mt-1 text-sm text-neutral-500">{tHeader('subtitle')}</p>
       </div>
 
       <div className="rounded-md border border-neutral-200 bg-white px-6 py-4">
@@ -113,6 +193,7 @@ export function UploadReportsClient() {
             selected={selectedPeriod}
             onChangeGranularity={onChangeGranularity}
             onChangePeriod={setSelectedPeriod}
+            realPeriodKeys={realPeriodKeys}
           />
         )}
         {step === 2 && (
@@ -124,6 +205,7 @@ export function UploadReportsClient() {
               if (next.size === totalSlots) setStep2Attempted(false);
             }}
             attempted={step2Attempted}
+            existingFiles={existingFiles}
           />
         )}
         {step === 3 && (
@@ -164,7 +246,7 @@ export function UploadReportsClient() {
           )}
         >
           <ChevronLeft className="h-4 w-4" />
-          Back
+          {tNav('back')}
         </button>
         {!isLast && (
           <button
@@ -178,7 +260,7 @@ export function UploadReportsClient() {
                 : 'bg-neutral-900 text-white hover:bg-neutral-800',
             )}
           >
-            Continue
+            {tNav('continue')}
             <ChevronRight className="h-4 w-4" />
           </button>
         )}

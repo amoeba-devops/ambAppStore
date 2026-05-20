@@ -22,6 +22,8 @@ import { getMetricFormula } from './formula-lookup';
 export function snapshotToWeeklyReport(
   snap: PeriodSnapshotMetrics,
   channel: WeeklyChannel,
+  prevSnap?: PeriodSnapshotMetrics | null,
+  prevLabel?: string,
 ): WeeklyReportData {
   const { shopee, tiktok, manualInputs, constants } = snap;
 
@@ -233,7 +235,7 @@ export function snapshotToWeeklyReport(
   const withFormulaBreakdown = (items: BreakdownItem[]): BreakdownItem[] =>
     items.map((i) => ({ ...i, formula: getMetricFormula(i.label, channel) }));
 
-  return {
+  const currentReport: WeeklyReportData = {
     netGmv,
     cm,
     cmPct,
@@ -246,7 +248,51 @@ export function snapshotToWeeklyReport(
     traffic: withFormulaBreakdown(traffic),
     sales: withFormulaBreakdown(sales),
     ads: withFormulaBreakdown(ads),
-    prevWeekLabel: '—',
+    prevWeekLabel: prevLabel ?? '—',
+  };
+
+  // No prev snapshot → return without WoW deltas
+  if (!prevSnap) return currentReport;
+
+  // Build the same shape from the prev snapshot, then merge wowPct fields.
+  const prev = snapshotToWeeklyReport(prevSnap, channel);
+
+  const wowPct = (c: number, p: number): number | null => {
+    if (p === 0) return null;
+    return (c - p) / Math.abs(p);
+  };
+
+  // OverviewRow: ratio rows get absolute pct-point delta; money rows get %-change.
+  const overviewWithWow = currentReport.overview.map((row) => {
+    const prevRow = prev.overview.find((x) => x.metric === row.metric);
+    if (!prevRow) return row;
+    if (row.isRatio) {
+      return { ...row, wowPct: prevRow.vnd === 0 && row.vnd === 0 ? null : row.vnd - prevRow.vnd };
+    }
+    return { ...row, wowPct: wowPct(row.vnd, prevRow.vnd) };
+  });
+
+  // BreakdownItem: prefer `vnd` then `raw` for the delta source.
+  const mergeBreakdown = (cur: BreakdownItem[], prv: BreakdownItem[]) =>
+    cur.map((it) => {
+      const p = prv.find((x) => x.label === it.label);
+      if (!p) return it;
+      if (it.vnd != null && p.vnd != null) return { ...it, wowPct: wowPct(it.vnd, p.vnd) };
+      if (it.raw != null && p.raw != null) return { ...it, wowPct: wowPct(it.raw, p.raw) };
+      return it;
+    });
+
+  return {
+    ...currentReport,
+    netGmvWow: wowPct(netGmv, prev.netGmv),
+    cmWow: wowPct(cm, prev.cm),
+    cmPctWow: prev.cmPct === 0 && cmPct === 0 ? null : cmPct - prev.cmPct,
+    overview: overviewWithWow,
+    discounts: mergeBreakdown(currentReport.discounts, prev.discounts),
+    promo: mergeBreakdown(currentReport.promo, prev.promo),
+    traffic: mergeBreakdown(currentReport.traffic, prev.traffic),
+    sales: mergeBreakdown(currentReport.sales, prev.sales),
+    ads: mergeBreakdown(currentReport.ads, prev.ads),
   };
 }
 

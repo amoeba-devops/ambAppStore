@@ -1,0 +1,1027 @@
+{
+  "app": {
+    "name": "FIRGI · 매출 운영",
+    "version": "v0.1.0 · MVP"
+  },
+  "nav": {
+    "section": {
+      "dataIngest": "데이터 수집",
+      "rfrData": "RFR 데이터",
+      "reports": "리포트",
+      "audit": "활동 로그",
+      "settings": "설정"
+    },
+    "item": {
+      "dashboard": "대시보드",
+      "uploadReports": "리포트 업로드",
+      "rawArchive": "원본 아카이브",
+      "primeCost": "원가",
+      "weeklyReport": "주간 리포트",
+      "monthlyReport": "월간 리포트",
+      "trendingReport": "추세 리포트",
+      "activityLog": "활동 로그",
+      "userManagement": "사용자 관리",
+      "formulaConfig": "수식 설정"
+    },
+    "badge": {
+      "pendingApproval": "{count}건 승인 대기"
+    }
+  },
+  "pageTitle": {
+    "dashboard": "대시보드",
+    "upload": "리포트 업로드",
+    "rawArchive": "원본 아카이브",
+    "manualInput": "수동 비용 입력",
+    "primeCost": "원가 마스터",
+    "weeklyReport": "주간 리포트",
+    "monthlyReport": "월간 리포트",
+    "trendingReport": "추세 리포트",
+    "activityLog": "활동 로그",
+    "userManagement": "사용자 관리",
+    "formulaConfig": "수식 설정",
+    "fallback": "매출 리포트"
+  },
+  "header": {
+    "language": {
+      "label": "언어",
+      "en": "영어",
+      "ko": "한국어"
+    }
+  },
+  "common": {
+    "loading": "불러오는 중…",
+    "saving": "저장 중…",
+    "cancel": "취소",
+    "save": "저장",
+    "close": "닫기",
+    "edit": "수정",
+    "delete": "삭제",
+    "confirm": "확인",
+    "yes": "예",
+    "no": "아니오",
+    "all": "전체",
+    "search": "검색",
+    "actions": "작업",
+    "dash": "—",
+    "currentUser": "현재 사용자"
+  },
+  "role": {
+    "admin": "관리자",
+    "manager": "매니저",
+    "operator": "운영자",
+    "unassigned": "미지정"
+  },
+  "userStatus": {
+    "active": "활성",
+    "inactive": "비활성"
+  },
+  "usersPage": {
+    "title": "설정",
+    "subtitle": "사용자 관리 및 수식 설정 — 관리자 전용",
+    "accounts": {
+      "title": "사용자 계정",
+      "subtitle": "FR-22 — 역할 기반 접근 제어",
+      "searchPlaceholder": "사용자 검색…",
+      "filterRoleAll": "전체 역할",
+      "filterStatusAll": "전체 상태",
+      "addUser": "사용자 추가",
+      "empty": "조건에 맞는 사용자가 없습니다.",
+      "amaPrefix": "AMA: {role}",
+      "column": {
+        "user": "이름",
+        "email": "이메일",
+        "role": "역할",
+        "status": "상태",
+        "lastLogin": "마지막 로그인",
+        "loginCount": "로그인 횟수",
+        "created": "생성일",
+        "actions": "작업"
+      },
+      "action": {
+        "edit": "수정",
+        "resetPwd": "비밀번호 재설정",
+        "activate": "활성화",
+        "deactivate": "비활성화"
+      },
+      "confirm": {
+        "deactivate": "{target} 계정을 비활성화하시겠습니까? 이 앱에 접근할 수 없게 됩니다.",
+        "resetPwd": "{email} 의 비밀번호 재설정 안내를 보내시겠습니까?\n비밀번호는 AMA가 관리합니다. 이 요청은 로그만 남깁니다."
+      },
+      "toast": {
+        "deactivated": "사용자가 비활성화되었습니다",
+        "activated": "사용자가 활성화되었습니다",
+        "assignRoleFirst": "활성화 전에 역할을 지정하세요 — 수정에서 OPERATOR / MANAGER / ADMIN 중 선택하세요.",
+        "resetMock": "재설정 요청이 기록되었습니다 (mock). 사용자를 ama.amoeba.site 로 안내하세요",
+        "resetReal": "재설정 요청이 기록되었습니다. 사용자를 ama.amoeba.site 로 안내하세요",
+        "updated": "사용자가 수정되었습니다",
+        "added": "사용자가 추가되었습니다"
+      }
+    },
+    "form": {
+      "titleAdd": "사용자 추가",
+      "titleEdit": "사용자 수정",
+      "titleGrantAma": "접근 권한 부여 — AMA 멤버",
+      "addNote": "신원은 AMA가 관리합니다. 미리 등록한 사용자는 이 앱에 처음 로그인할 때 실제 AMA 계정과 연결됩니다.",
+      "grantAmaNote": "<mono>{email}</mono> 에게 앱 접근 권한을 부여합니다. 신원은 AMA가 관리하며, 여기서 선택한 역할은 로컬 권한만 기록합니다.",
+      "labelEmail": "이메일",
+      "labelName": "이름",
+      "labelRole": "역할",
+      "labelStatus": "상태",
+      "emailPlaceholder": "user@socialbean.vn",
+      "namePlaceholder": "홍길동",
+      "roleOption": {
+        "operator": "운영자 — 파일 업로드, 데이터 수정",
+        "manager": "매니저 — 조회 + 승인",
+        "admin": "관리자 — 모든 권한"
+      },
+      "statusActive": "활성",
+      "statusActiveDesc": "즉시 로그인 가능",
+      "statusInactive": "비활성",
+      "statusInactiveDesc": "역할은 부여하지만 로그인은 차단",
+      "errorEmailRequired": "이메일은 필수입니다",
+      "submitAdd": "사용자 추가",
+      "submitSave": "저장"
+    },
+    "permissions": {
+      "title": "역할별 권한 매트릭스",
+      "subtitle": "셀을 클릭하여 토글합니다. 관리자 열은 잠금 — 관리자는 항상 모든 권한을 보유합니다.",
+      "lastEdited": " · 최근 수정 {at} ({by})",
+      "resetButton": "기본값으로 초기화",
+      "confirmReset": "모든 역할 권한을 기본값으로 초기화하시겠습니까? 변경 사항이 삭제됩니다.",
+      "feedback": {
+        "granted": "{role} 에 \"{label}\" 권한을 부여했습니다",
+        "revoked": "{role} 에서 \"{label}\" 권한을 회수했습니다",
+        "resetAll": "모든 권한이 기본값으로 초기화되었습니다"
+      },
+      "permissionColHeader": "권한",
+      "tooltip": {
+        "adminLocked": "관리자는 항상 모든 권한을 보유합니다",
+        "revokeFor": "{role} 권한 회수",
+        "grantFor": "{role} 권한 부여"
+      },
+      "row": {
+        "upload": "CSV 파일 업로드",
+        "manual": "수동 데이터 입력/수정",
+        "view_reports": "리포트 조회",
+        "download_reports": "리포트 다운로드",
+        "edit_prime_cost": "원가 / COGS 수정",
+        "view_activity_log": "활동 로그 조회",
+        "manage_users": "사용자 관리",
+        "configure_formulas": "수식 설정"
+      }
+    }
+  },
+  "dashboard": {
+    "title": "대시보드",
+    "subtitle": "{name} 님, Socialbean Vietnam 의 오늘 현황입니다.",
+    "subtitleNoName": "Socialbean Vietnam 의 오늘 현황입니다.",
+    "emptyTitle": "스냅샷이 아직 없습니다",
+    "emptyBody": "업로드 마법사에서 첫 리포트를 업로드하세요 — 수집이 완료되면 KPI 와 최근 활동 피드가 채워집니다.",
+    "uploadCta": "업로드로 이동",
+    "kpi": {
+      "sectionTitle": "최근 주",
+      "noDelta": "—",
+      "viaPeriod": "기간 {label}",
+      "vsPrev": "전주 대비",
+      "netGmv": "Net GMV",
+      "totalCm": "Total CM",
+      "cmPct": "CM %",
+      "orders": "주문"
+    },
+    "actions": {
+      "sectionTitle": "빠른 작업",
+      "upload": "리포트 업로드",
+      "uploadDesc": "새 주/월의 원본 리포트 추가",
+      "rawArchive": "원본 아카이브",
+      "rawArchiveDesc": "수집된 기간 + 승인 관리",
+      "weekly": "주간 리포트",
+      "weeklyDesc": "WoW 성과 + Breakdown",
+      "monthly": "월간 리포트",
+      "monthlyDesc": "최근 달의 MoM 성과",
+      "trending": "추세 리포트",
+      "trendingDesc": "기간별 성장 + 차트",
+      "primeCost": "원가 마스터",
+      "primeCostDesc": "SKU별 COGS 관리",
+      "users": "사용자 관리",
+      "usersDesc": "역할 + 권한",
+      "formulaConfig": "수식 설정",
+      "formulaConfigDesc": "48개 수식 파라미터 편집",
+      "activityLog": "활동 로그",
+      "activityLogDesc": "모든 작업의 감사 기록"
+    },
+    "activity": {
+      "sectionTitle": "최근 활동",
+      "viewAll": "전체 보기",
+      "empty": "기록된 활동이 없습니다."
+    }
+  },
+  "trendingReport": {
+    "title": "추세",
+    "subtitle": "주간 및 월간 성장 비교. 리포트는 잠금된 마스터 데이터 스냅샷 기준으로 계산됩니다.",
+    "weekOverWeek": "주 단위 비교",
+    "monthOverMonth": "월 단위 비교",
+    "export": "내보내기",
+    "metricLabel": "지표",
+    "channel": {
+      "shopee": "Shopee",
+      "tiktok": "TikTok Shop",
+      "total": "전체 플랫폼"
+    },
+    "card": {
+      "thisWeek": "이번 주",
+      "thisMonth": "이번 달",
+      "fourWeekAvg": "4주 평균",
+      "fourMonthAvg": "4개월 평균",
+      "wowSuffix": "WoW",
+      "momSuffix": "MoM",
+      "secondaryWow": "WoW: {value}",
+      "secondaryMom": "MoM: {value}"
+    },
+    "select": {
+      "removeTitle": "{label} 제거",
+      "removeAria": "{label} 제거",
+      "removeDisabledTitle": "최소 1개 지표는 필수입니다",
+      "maxLabel": "최대 {max}개",
+      "addMetric": "지표 추가",
+      "selectedOfMax": "{count} / {max} 선택됨",
+      "close": "닫기",
+      "limitReached": "한도 도달. 다른 지표를 추가하려면 기존 지표를 해제하세요.",
+      "group": {
+        "volume": "거래량",
+        "margin": "마진",
+        "discount": "할인 비용",
+        "promo": "프로모션 비용",
+        "traffic": "트래픽"
+      }
+    },
+    "breakdown": {
+      "titleWeekly": "주 단위 Breakdown",
+      "titleMonthly": "월 단위 Breakdown",
+      "col": {
+        "metric": "지표",
+        "value": "값"
+      },
+      "section": {
+        "amount": "금액",
+        "ratio": "비율 (Net GMV 대비)",
+        "traffic": "트래픽"
+      }
+    }
+  },
+  "monthlyReport": {
+    "title": "월간 리포트",
+    "subtitle": "전월 대비 성과",
+    "badge": {
+      "realDataTooltip": "업로드한 파일에서 수집된 실제 데이터를 표시 중",
+      "noDataTooltip": "이 달의 스냅샷이 없습니다 — 업로드 마법사로 파일을 올려주세요"
+    },
+    "pickMonth": "월 선택"
+  },
+  "weeklyReport": {
+    "title": "주간 리포트",
+    "subtitle": "전주 대비 성과",
+    "badge": {
+      "loading": "불러오는 중…",
+      "realData": "실데이터",
+      "noData": "데이터 없음",
+      "realDataTooltip": "업로드한 파일에서 수집된 실제 데이터를 표시 중",
+      "noDataTooltip": "이 주의 스냅샷이 없습니다 — 업로드 마법사로 파일을 올려주세요"
+    },
+    "channel": {
+      "all": "전체 플랫폼",
+      "shopee": "Shopee",
+      "tiktok": "TikTok"
+    },
+    "krwRate": {
+      "prefix": "1 KRW =",
+      "suffix": "VND"
+    },
+    "export": "내보내기",
+    "pickWeek": "주 선택",
+    "section": {
+      "discount": "할인 Breakdown",
+      "promotional": "프로모션 Breakdown",
+      "trafficAndAds": "트래픽 & 광고",
+      "traffic": "트래픽",
+      "sales": "판매"
+    },
+    "overview": {
+      "title": "개요",
+      "comparison": "— {current} vs {prev}"
+    },
+    "table": {
+      "metric": "지표",
+      "vnd": "VND",
+      "krw": "KRW",
+      "pctNetGmv": "% Net GMV",
+      "wow": "WoW",
+      "mom": "MoM"
+    },
+    "productBreakdown": {
+      "title": "상품 Breakdown",
+      "legend": {
+        "allocated": "배분",
+        "calculated": "계산"
+      },
+      "searchPlaceholder": "SKU 또는 상품명 검색…",
+      "empty": "조건에 맞는 상품이 없습니다.",
+      "total": "합계",
+      "col": {
+        "no": "번호",
+        "sku": "SKU",
+        "productVi": "상품명 (VI)",
+        "productEn": "상품명 (EN)",
+        "platform": "플랫폼",
+        "pv": "PV",
+        "cvr": "CVR%",
+        "items": "수량",
+        "gmv": "GMV",
+        "netGmv": "Net GMV",
+        "nmv": "NMV",
+        "voucher": "Voucher",
+        "sellerDisc": "Seller Disc",
+        "freeGift": "사은품",
+        "adSpend": "AD Spend",
+        "brandAds": "Brand Ads",
+        "offPlatformAds": "Off-Platform Ads",
+        "affComm": "Aff.Comm",
+        "affBook": "Aff.Book",
+        "livestream": "라이브",
+        "platformFee": "Platform Fee",
+        "primeCost": "원가",
+        "cm": "CM",
+        "cmPct": "CM%"
+      }
+    }
+  },
+  "uploadWizard": {
+    "header": {
+      "title": "리포트 업로드",
+      "subtitle": "Shopee Seller Center 와 TikTok Shop Seller 의 원본 내보내기를 추가하세요. 파일은 감사용으로 아카이브됩니다."
+    },
+    "stepperLabels": {
+      "1": "기간",
+      "2": "파일 업로드",
+      "3": "수동 입력",
+      "4": "검토",
+      "5": "검증",
+      "6": "수집"
+    },
+    "nav": {
+      "back": "뒤로",
+      "continue": "계속"
+    },
+    "step1": {
+      "title": "1단계 · 기간 선택",
+      "subtitle": "단위를 선택한 뒤, 업로드 대상 기간을 고르세요.",
+      "label1": "1. 단위",
+      "label2Week": "2. 주 선택",
+      "label2Month": "2. 월 선택",
+      "card": {
+        "weekly": "주간 리포트",
+        "weeklyDesc": "금요일 → 목요일 (예: 3월 27일 – 4월 2일)",
+        "monthly": "월간 리포트",
+        "monthlyDesc": "전체 달력 월 (예: 3월 01-31일)"
+      },
+      "banner": {
+        "finalizedTitle": "기간 {label} 은(는) 관리자가 확정한 상태입니다",
+        "finalizedBody": "새 파일을 업로드하려면 관리자가 원본 아카이브에서 이 기간을 확정 해제해야 합니다.",
+        "activeTitle": "기간 {label} 에 이미 데이터가 있습니다",
+        "activeBody": "수동 입력은 기존 스냅샷에서 미리 채워집니다. 새 파일을 업로드하면 현재 스냅샷을 덮어씁니다 — 수동 입력만 갱신하려면 업로드 단계를 건너뛰세요.",
+        "selectedTitle": "선택된 기간"
+      },
+      "tips": {
+        "button": "도움말",
+        "title": "기간 상태 안내",
+        "open": "열림",
+        "openDesc": "수집된 적 없음 — 첫 업로드 가능.",
+        "active": "활성",
+        "activeDesc": "방금 수집됨, 매니저 승인 대기 — 재업로드/수정 가능.",
+        "finalized": "확정",
+        "finalizedDesc": "매니저 승인 완료 — 리포트 데이터 잠금. 수정 전 확정 해제 필요.",
+        "locked": "잠금",
+        "lockedDesc": "매니저가 수동으로 잠금 — 재업로드/수정 불가."
+      },
+      "pill": {
+        "lockedTitle": "{label} 잠금 상태 — 기간 마감, 재업로드 불가."
+      }
+    },
+    "step2": {
+      "title": "2단계 · 파일 업로드",
+      "subtitle": "각 리포트 유형의 원본 내보내기를 추가하세요. 없는 항목은 건너뛰어도 됩니다 — 부분 업로드 허용.",
+      "fileCount": "{uploaded} / {total} 파일",
+      "fileTag": "파일에 태그될 기간:",
+      "previouslyUploaded": "이전에 업로드된 파일 ({count}개)",
+      "previouslyUploadedBody": "2단계를 건너뛰면 이 파일들을 유지하고 수동 입력만 갱신합니다. 아래 슬롯에 새 파일을 올리면 기존 파일이 <b>교체</b>됩니다.",
+      "willReplace": "교체 예정",
+      "rowsCount": "{count}행",
+      "errorMissing": "리포트 {count}개 누락 — 계속하려면 업로드 필요",
+      "errorMissingSingular": "리포트 1개 누락 — 계속하려면 업로드 필요",
+      "shopee": "Shopee",
+      "tiktok": "TikTok Shop",
+      "selected": "{count}/{total} 선택됨",
+      "slot": {
+        "salesLabel": "판매 리포트",
+        "salesSubtitle": "주문 단위 거래",
+        "adsLabel": "광고 리포트",
+        "adsSubtitle": "후원 상품 광고비",
+        "brandAdsLabel": "브랜드 광고 리포트",
+        "brandAdsSubtitle": "브랜드 인지도 광고비",
+        "offPlatformAdsLabel": "오프플랫폼 광고 리포트",
+        "offPlatformAdsSubtitle": "오프사이트 광고비",
+        "trafficLabel": "트래픽 리포트",
+        "trafficSubtitle": "세션, PV, 전환",
+        "affiliateLabel": "제휴 리포트",
+        "affiliateSubtitle": "수수료 지급"
+      },
+      "fileSlot": {
+        "required": "필수",
+        "dropHere": "여기에 놓기",
+        "dragDrop": "드래그 & 드롭 또는 클릭하여 찾아보기",
+        "fileSpec": ".csv 또는 .xlsx — 최대 100 MB",
+        "ready": "준비됨",
+        "replace": "교체",
+        "remove": "제거",
+        "errorTooBig": "파일이 100 MB 한도를 초과합니다",
+        "errorBadExt": ".csv 및 .xlsx 만 허용됩니다"
+      }
+    },
+    "step3": {
+      "title": "3단계 · 수동 입력",
+      "subtitle": "업로드된 원본 파일에 포함되지 않은 비용을 입력하세요. 모든 금액은 VND 입니다.",
+      "banner": "수동 비용 적용 대상:",
+      "errorMissing": "필드 {count}개 누락 — 모두 입력해야 계속됩니다",
+      "errorMissingSingular": "필드 1개 누락 — 모두 입력해야 계속됩니다",
+      "field": {
+        "affiliateBookingFees": "총 제휴 예약 수수료",
+        "shopeeLivestreamFees": "총 라이브 수수료 — Shopee",
+        "tiktokLivestreamFees": "총 라이브 수수료 — TikTok",
+        "tiktokAdsSpending": "총 광고비 — TikTok"
+      },
+      "hint": {
+        "affiliateBookingFees": "Shopee + TikTok 양 채널 공통 제휴 예약 수수료"
+      },
+      "group": {
+        "totalPlatform": "전체 플랫폼",
+        "shopee": "Shopee",
+        "tiktok": "TikTok Shop"
+      }
+    },
+    "step4": {
+      "title": "4단계 · 검토",
+      "subtitle": "수집 전에 수식 설정을 확인하세요. 필요 시 수정 가능 — 변경은 이번 수집에만 적용됩니다.",
+      "banner": "수식 적용 대상:"
+    },
+    "step5": {
+      "title": "5단계 · 검증",
+      "subtitle": "모든 수식의 정적 분석: 구문, 누락 참조, 순환 의존, 0으로 나누기 위험, 데이터 타입 호환성.",
+      "rerun": "검증 다시 실행",
+      "banner": "수식 검증 대상:",
+      "allValid": "전체 {total}개 수식 유효 — 진행 가능",
+      "failed": "검증 실패 — 수집 전에 오류 {count}개를 수정해야 합니다",
+      "failedSingular": "검증 실패 — 수집 전에 오류 1개를 수정해야 합니다",
+      "summary": "유효 {valid}/{total} · 오류 {errors} · 경고 {warnings}",
+      "summarySingular": "유효 {valid}/{total} · 오류 {errors} · 경고 {warnings}",
+      "lastRun": " · 최근 실행 {time}",
+      "stat": {
+        "valid": "유효",
+        "errors": "오류",
+        "warnings": "경고"
+      },
+      "empty": {
+        "errors": "🎉 오류 없음. 모든 수식이 엄격한 검증을 통과했습니다.",
+        "warnings": "경고 없음.",
+        "fallback": "이 필터에 해당하는 결과가 없습니다."
+      },
+      "metricCount": "{count}개 지표",
+      "metricCountSingular": "1개 지표",
+      "issueCount": "{count}건 문제",
+      "issueCountSingular": "1건 문제",
+      "noIssues": "문제 없음",
+      "passed": "모든 검사 통과.",
+      "pill": {
+        "valid": "유효",
+        "warning": "경고",
+        "invalid": "오류"
+      }
+    },
+    "step6": {
+      "ingestingTitle": "파일 통합 중…",
+      "ingestingBody": "기간 {periodLabel} 의 {totalFiles} 파일을 파싱하고, 지표를 계산한 뒤 스냅샷을 저장 중.",
+      "readyTitle": "수집 준비 완료",
+      "readyBody": "{totalFiles} 파일을 파싱하고 Shopee + TikTok 지표를 계산해 기간 {periodLabel} 의 스냅샷을 저장합니다.",
+      "readyBodySingular": "{totalFiles} 파일을 파싱하고 Shopee + TikTok 지표를 계산해 기간 {periodLabel} 의 스냅샷을 저장합니다.",
+      "confirm": "수집 확인",
+      "errorNoPeriod": "선택된 기간 없음 — 1단계로 돌아가세요",
+      "completeTagNew": "통합 완료",
+      "completeTagUpdate": "스냅샷 갱신",
+      "completeTitle": "기간 <mono>{periodLabel}</mono> 활성화 완료",
+      "completeBody": "스냅샷이 DB에 저장되었습니다. 리포트가 실제 업로드로 재계산되었습니다.",
+      "viewArchive": "원본 아카이브 보기",
+      "openWeekly": "주간 상세 보기",
+      "openMonthly": "월간 상세 보기",
+      "tile": {
+        "shopeeNetGmv": "Shopee Net GMV",
+        "tiktokNetGmv": "TikTok Net GMV",
+        "totalNetGmv": "Total Net GMV",
+        "totalCm": "Total CM (추정)"
+      },
+      "cmNote": "<b>CM 추정값</b> 은 상품별 배분을 제외합니다 (Phase B v2). Shopee 는 Brand Ads / Off-Platform / Vouchers 를 포함하고, TikTok 은 비율 기반 Platform Fee + 수동 광고비 + 라이브 수수료를 사용합니다."
+    },
+    "preview": {
+      "shopee": {
+        "title": "Shopee 지표 미리보기",
+        "subtitle": "판매 파일 + 원가 마스터 기반의 빠른 검증. DB 쓰기 없음.",
+        "uploadFirst": "미리보기를 활성화하려면 Shopee 판매 파일을 먼저 업로드하세요."
+      },
+      "tiktok": {
+        "title": "TikTok 지표 미리보기",
+        "subtitle": "판매 파일 (OrderSKUList) + 원가 마스터. 수식은 Shopee 와 다름 — GMV 는 listing_price 사용, item_sold 는 전부-또는-없음.",
+        "uploadFirst": "미리보기를 활성화하려면 TikTok 판매 파일 (OrderSKUList) 을 업로드하세요."
+      },
+      "compute": "미리보기 계산",
+      "computing": "계산 중…",
+      "recompute": "다시 계산",
+      "section": {
+        "revenueCost": "매출 & 비용",
+        "perOrder": "주문 단위 (Group A — Order ID 별 MAX 중복 제거)",
+        "marketingCosts": "마케팅 비용",
+        "traffic": "트래픽",
+        "affiliate": "제휴"
+      },
+      "hint": {
+        "uploadShopeeAds": "💡 Shopee Ads CSV 를 업로드하면 Total Ad Spending 가 활성화됩니다.",
+        "uploadShopeeBrandAds": "💡 Shopee Brand Ads CSV 를 업로드하면 Total Brand Ads 가 활성화됩니다.",
+        "uploadShopeeOffPlatform": "💡 Shopee Off-Platform Ads CSV 를 업로드하면 Total Off-Platform Ads 가 활성화됩니다.",
+        "uploadShopeeTraffic": "💡 Shopee Traffic xlsx 를 업로드하면 Total Page Views 가 활성화됩니다.",
+        "uploadShopeeAffiliate": "💡 Shopee Affiliate CSV 를 업로드하면 Total Affiliate Commission 가 활성화됩니다.",
+        "uploadTikTokTraffic": "💡 TikTok Traffic xlsx (product_list) 를 업로드하면 Total Page Views 가 활성화됩니다.",
+        "uploadTikTokAffiliate": "💡 TikTok Affiliate xlsx (Creator_List) 를 업로드하면 Total Affiliate Commission 가 활성화됩니다."
+      },
+      "stat": {
+        "rowsKept": "유지된 행",
+        "cancelled": "취소된 행",
+        "returned": "환불된 행",
+        "freeGift": "사은품 행",
+        "orders": "주문"
+      },
+      "freeGiftDetected": "감지된 사은품 상품 ({count}개)",
+      "freeGiftProducts": "사은품 상품 ({count}개)",
+      "missingFromMaster": "원가 마스터에 누락된 판매 SKU {count}개 — Net GMV / Prime Cost 에 포함되지 않습니다",
+      "missingFromMasterTikTok": "마스터에 누락된 SKU {count}개",
+      "missingFromMasterSingular": "원가 마스터에 누락된 판매 SKU 1개 — Net GMV / Prime Cost 에 포함되지 않습니다",
+      "missingFromMasterTikTokSingular": "마스터에 누락된 SKU 1개",
+      "andMore": "… 그리고 {count}개 더",
+      "showFormulas": "수식 명세 + 상품별 breakdown 표시",
+      "hideFormulas": "수식 명세 + 상품별 breakdown 숨기기",
+      "loadedSkus": "원가 마스터에서 SKU {count}개 로드.",
+      "loadedSummaryTikTok": "유지 {kept} + 제외 {excluded}. 마스터: SKU {sku}개.",
+      "breakdown": {
+        "title": "상품별 breakdown (상품 {count}개)",
+        "col": {
+          "num": "#",
+          "product": "상품",
+          "units": "수량",
+          "gmv": "GMV",
+          "netGmv": "Net GMV",
+          "nmv": "NMV",
+          "sellerDiscount": "할인",
+          "primeCost": "원가"
+        }
+      },
+      "formulaSpecs": {
+        "shopeeTitle": "수식 (Cách A — 텍스트 기반 엔진)",
+        "tiktokTitle": "수식 — TikTok (Cách A)",
+        "derived": "행별 파생",
+        "exclusions": "제외 규칙"
+      }
+    }
+  },
+  "rawArchive": {
+    "pageTitle": "원본 아카이브",
+    "pageSubtitle": "모든 업로드된 리포트는 감사 목적으로 변경 불가능하게 아카이브됩니다. 원본은 수집된 그대로 보존되며 수정할 수 없습니다.",
+    "stat": {
+      "files": "아카이브 파일",
+      "filesSub": "{count}개 기간",
+      "filesSubSingular": "{count}개 기간",
+      "rows": "수집된 총 행 수",
+      "rowsSub": "압축 용량 {size}",
+      "activePeriod": "활성 기간",
+      "activePeriodSub": "{count}개 파일 · 재수집 가능",
+      "activePeriodEmpty": "활성 기간 없음",
+      "retention": "보존 기간",
+      "retentionValue": "5년",
+      "retentionSub": "베트남 세법 기준"
+    },
+    "filter": {
+      "weekly": "주간",
+      "monthly": "월간",
+      "all": "전체",
+      "searchPlaceholder": "파일명…"
+    },
+    "empty": "현재 필터에 일치하는 파일이 없습니다.",
+    "section": {
+      "fileCount": "파일 {count}개",
+      "rowCount": "{count}행",
+      "openDetail": "상세 보기"
+    },
+    "fileColumn": {
+      "file": "파일",
+      "channel": "채널",
+      "type": "유형",
+      "rows": "행",
+      "size": "크기",
+      "uploaded": "업로드 일시",
+      "by": "업로드자"
+    },
+    "manualSection": {
+      "title": "수동 입력",
+      "fieldCount": " · {count}개 필드 · 합계 ",
+      "editable": "수정 가능",
+      "locked": "잠금",
+      "show": "값 보기",
+      "hide": "값 숨기기",
+      "editHint": "<link>상세 보기</link> 에서 값을 수정할 수 있습니다."
+    },
+    "status": {
+      "active": "활성",
+      "locked": "잠금",
+      "finalized": "확정",
+      "draft": "초안"
+    },
+    "iconBtn": {
+      "download": "원본 파일 다운로드",
+      "priorVersions": "이전 버전 {count}개",
+      "noPriorVersions": "이전 버전 없음"
+    },
+    "detail": {
+      "back": "원본 아카이브로 돌아가기",
+      "periodTitle": "기간 {label}",
+      "snapshotSuffix": " · {gran} 스냅샷",
+      "weeklySnapshot": "주간",
+      "monthlySnapshot": "월간",
+      "tile": {
+        "files": "파일",
+        "filesSub": "Shopee {shopee} · TikTok {tiktok}",
+        "rows": "행",
+        "rowsSub": "정상 파싱",
+        "reuploads": "재업로드",
+        "reuploadsNone": "없음",
+        "reuploadsSome": "파일 이력 확인",
+        "formulaConfig": "수식 설정",
+        "formulaConfigSub": "수집 시점 스냅샷"
+      },
+      "filesArchived": "아카이브된 파일",
+      "filesStoredAt": "저장 위치:",
+      "bulkDownload": "일괄 다운로드 · 파일 {count}개",
+      "bulkDownloadTooltip": "이 기간의 모든 파일을 묶어 한 번에 다운로드",
+      "fileToggleAria": "이력 토글",
+      "rowsSuffix": "행",
+      "priorVersionInline": "이전 버전 {count}개",
+      "priorVersionsInline": "이전 버전 {count}개",
+      "priorVersionsTitle": "이전 버전 (교체됨)",
+      "rowsCount": "{count}행",
+      "download": "다운로드",
+      "manualEdit": "수정",
+      "manualHint": {
+        "unfinalize": "수정하려면 확정 해제 필요",
+        "adminOverride": "관리자 권한 필요"
+      },
+      "formulaSnapshot": "수식 설정 스냅샷",
+      "formulaSnapshotSub": "{version} — {at} 시점 스냅샷",
+      "formulaSnapshotBody": "이 기간이 수집될 당시 수식 상태의 읽기 전용 보기. 수집 이후 수식 설정을 변경해도 이 스냅샷에 소급 적용되지 않습니다 (NFR-08).",
+      "viewFormulaSnapshot": "수식 스냅샷 보기",
+      "activityLog": "활동 로그",
+      "activityEntries": "{count}건",
+      "sidebar": {
+        "ingested": "수집 일시",
+        "finalized": "확정 일시",
+        "periodClose": "기간 마감",
+        "downstreamReports": "연결된 리포트",
+        "lockedItems": {
+          "1": "리포트 확정 — 재계산 없음",
+          "2": "원본 파일 삭제 불가",
+          "3": "잠금 이후 수식 변경 소급 적용 없음",
+          "4": "수동 입력 수정 불가"
+        },
+        "finalizedItems": {
+          "1": "매니저가 스냅샷을 확정함",
+          "2": "리뷰 후 완전 잠금 대기 중"
+        },
+        "draftItems": {
+          "1": "초안 — 매니저 승인 대기",
+          "2": "원본 파일 보존 (NFR-06)"
+        },
+        "finalizedFootnote": "위의 승인 카드에서 이 기간을 수동 잠금 하거나, 확정 해제하여 다시 열 수 있습니다."
+      }
+    },
+    "approval": {
+      "draft": {
+        "title": "매니저 승인 대기",
+        "subtitle": "이 기간은 <mono>초안</mono> 상태입니다. 외부 공유 전에 매니저 검토가 필요합니다.",
+        "noteLabel": "메모",
+        "noteOptional": "(선택)",
+        "notePlaceholder": "예: 모든 파일 검증 완료, 해당 주 승인",
+        "reject": "거부 — 운영자에게 반환",
+        "approve": "승인 & 확정",
+        "confirmApprove": "{label}을(를) 승인하시겠습니까? 리포트가 확정되어 공유됩니다.",
+        "confirmYes": "예, 승인"
+      },
+      "rejected": {
+        "title": "매니저가 거부함",
+        "reasonLabel": "사유",
+        "operatorAction": "<b>운영자 작업:</b> 문제(파일 재업로드, 수동 입력 수정, 수식 조정 등)를 해결한 뒤 재제출을 클릭해 매니저에게 다시 검토 요청하세요.",
+        "resubmit": "재검토 요청",
+        "confirmResubmit": "재제출하면 거부 표시가 제거되고 매니저 검토로 다시 보냅니다.",
+        "confirmYes": "예, 재제출"
+      },
+      "finalized": {
+        "title": "확정됨",
+        "subtitle": "<mono>{by}</mono> 가 <mono>{at}</mono> 에 승인. 이 기간의 리포트가 잠금되었습니다.",
+        "unfinalize": "확정 해제",
+        "lock": "기간 잠금",
+        "unfinalizeReason": {
+          "header": "사유 필수. 확정 해제 시 이 기간이 수정 가능하게 다시 열립니다. 사용자와 사유가 감사 로그에 기록됩니다.",
+          "placeholder": "이 기간을 다시 여는 이유는?"
+        },
+        "lockReason": {
+          "header": "잠금은 일상 운영에서 영구적입니다. 이 기간은 더 이상 재업로드/수정이 불가합니다. 관리자만 추후 잠금 해제 가능 (감사 로그 필수). 사유는 선택.",
+          "placeholder": "예: 회계 마감으로 인한 기간 잠금"
+        }
+      },
+      "rejectForm": {
+        "header": "사유 필수. 거부 사유는 로그에 기록됩니다. 운영자는 이 메모를 보고 재제출 전에 문제를 해결합니다.",
+        "placeholder": "예: Shopee Sales 파일 W18 에 2일치 데이터 누락",
+        "submit": "거부 — 운영자에게 반환"
+      },
+      "cancel": "취소"
+    },
+    "manualEdit": {
+      "header": "수동 입력 수정",
+      "periodLabel": "기간 {label}",
+      "close": "닫기",
+      "missing": "{count}개 필드 누락 — 모두 입력해야 저장됩니다.",
+      "missingSingular": "1개 필드 누락 — 모두 입력해야 저장됩니다.",
+      "group": {
+        "totalPlatform": "전체 플랫폼",
+        "shopee": "Shopee",
+        "tiktok": "TikTok"
+      },
+      "wasValue": "이전 {value}",
+      "noChanges": "변경 사항 없음",
+      "changedCount": "{count}개 필드 변경됨",
+      "changedCountSingular": "1개 필드 변경됨",
+      "cancel": "취소",
+      "save": "변경 사항 저장"
+    },
+"downstreamLink": {
+      "weekly": "주간 리포트 {label}",
+      "monthly": "월간 리포트 {label}"
+    },
+    "fileHistory": {
+      "title": "파일 버전 이력",
+      "close": "닫기",
+      "versionCount": "버전 {count}개",
+      "versionCountPlural": "버전 {count}개",
+      "latestReupload": "최근 재업로드: {at}",
+      "current": "현재",
+      "replaced": "교체됨",
+      "labelRows": "행",
+      "labelSize": "크기",
+      "labelChecksum": "SHA-256",
+      "noPriorVersions": "이전 버전 없음 — 이 파일은 처음 업로드된 상태입니다."
+    }
+  },
+  "primeCost": {
+    "pageTitle": "RFR 데이터",
+    "pageSubtitle": "원가 마스터 테이블",
+    "searchPlaceholder": "상품명 또는 SKU 검색...",
+    "badge": "원가",
+    "download": "다운로드",
+    "downloading": "준비 중…",
+    "downloadedCount": "{count}건 다운로드 완료",
+    "upload": "업로드",
+    "uploading": "가져오는 중…",
+    "uploadTooltip": "CSV 일괄 업로드 (SKU 기준 upsert)",
+    "addRow": "행 추가",
+    "fileTooLarge": "파일이 너무 큽니다 (CSV 가져오기 최대 5MB)",
+    "rowDeleted": "행이 삭제되었습니다",
+    "rowAdded": "행이 추가되었습니다",
+    "rowUpdated": "행이 수정되었습니다",
+    "confirmDelete": "\"{name}\" ({sku}) 행을 삭제하시겠습니까?",
+    "column": {
+      "productId": "상품 ID",
+      "variationId": "변형 ID",
+      "productVi": "상품명 (VI)",
+      "productEn": "상품명 (EN)",
+      "sku": "SKU",
+      "primeCostVnd": "원가 (VND)",
+      "krw": "KRW",
+      "sellingPrice": "판매가",
+      "listingPrice": "정상가",
+      "lastUpdated": "최근 수정",
+      "actions": "작업"
+    },
+    "row": {
+      "edit": "수정",
+      "delete": "삭제",
+      "deleting": "삭제 중…"
+    },
+    "empty": {
+      "search": "검색 결과가 없습니다.",
+      "initial": "등록된 원가 항목이 없습니다. \"+ 행 추가\" 를 눌러 시작하세요."
+    },
+    "footer": {
+      "count": "{visible} / 총 {total}건",
+      "versionControl": "버전 관리 · 변경 사항 자동 기록"
+    },
+    "import": {
+      "title": "가져오기 결과",
+      "inserted": "추가",
+      "updated": "수정",
+      "errors": "오류",
+      "rowsSkipped": "건너뛴 행",
+      "rowPrefix": "행 {index}",
+      "close": "닫기"
+    },
+    "form": {
+      "titleAdd": "원가 행 추가",
+      "titleEdit": "원가 행 수정",
+      "labelProductId": "상품 ID",
+      "labelVariationId": "변형 ID",
+      "labelProductVi": "상품명 (VI) *",
+      "labelProductEn": "상품명 (EN)",
+      "labelSku": "SKU *",
+      "labelPrimeCost": "원가 (VND) *",
+      "labelSellingPrice": "판매가 (VND)",
+      "labelListingPrice": "정상가 (VND)",
+      "krwHint": "≈ {value} KRW (환율 17.543)",
+      "errorPrimeCost": "원가는 필수이며 유효한 숫자여야 합니다",
+      "errorRequired": "상품명 (VI) 과 SKU 는 필수입니다",
+      "cancel": "취소",
+      "submitAdd": "행 추가",
+      "submitEdit": "변경 사항 저장",
+      "saving": "저장 중…"
+    }
+  },
+  "activityLog": {
+    "pageTitle": "활동 로그",
+    "pageSubtitle": "모든 작업 — 업로드, 수정, 승인, 수식 변경 — 이 여기에 기록됩니다. 항목은 변경할 수 없습니다.",
+    "searchPlaceholder": "사용자, 파일, 작업…",
+    "filter": "필터",
+    "filterCategories": "카테고리",
+    "clearAll": "전체 해제",
+    "export": "내보내기",
+    "exporting": "내보내는 중…",
+    "empty": "기록된 활동이 없습니다. 작업 (업로드, 수정, 내보내기) 시 여기에 나타납니다.",
+    "dayHeader": {
+      "today": "오늘 · {date}",
+      "yesterday": "어제 · {date}"
+    },
+    "dayActionCount": "{count}건",
+    "column": {
+      "time": "시간",
+      "category": "카테고리",
+      "user": "사용자",
+      "action": "동작",
+      "target": "대상",
+      "details": "세부 정보"
+    },
+    "category": {
+      "UPLOAD": "업로드",
+      "APPROVAL": "승인",
+      "MANUAL_INPUT": "수동 입력",
+      "MASTER_DATA": "마스터 데이터",
+      "FORMULA": "수식",
+      "REPORT": "리포트",
+      "EXPORT": "내보내기",
+      "OTHER": "기타"
+    },
+    "pagination": {
+      "rowsPerPage": "페이지당 행 수",
+      "range": "{start}–{end}",
+      "of": "/",
+      "totalSuffix": " (총 {total}건)",
+      "firstPage": "첫 페이지",
+      "prevPage": "이전 페이지",
+      "nextPage": "다음 페이지",
+      "lastPage": "마지막 페이지",
+      "loadMore": "서버에서 더 불러오기",
+      "loadingMore": "불러오는 중…"
+    }
+  },
+  "formulaConfig": {
+    "pageTitle": "설정",
+    "pageSubtitle": "사용자 관리 및 수식 설정 — 관리자 전용",
+    "title": "수식 설정",
+    "subtitle": "변경 사항은 브라우저에 자동 저장됩니다",
+    "legend": {
+      "rawColumn": "원본 컬럼",
+      "calculated": "계산",
+      "unknown": "알 수 없음",
+      "editable": "[수정 가능]",
+      "editableHint": "수정 가능한 파라미터 / 리터럴 값"
+    },
+    "export": "내보내기",
+    "exportJson": "JSON으로 내보내기",
+    "exportCsv": "CSV로 내보내기",
+    "expandAll": "모두 펼치기",
+    "collapseAll": "모두 접기",
+    "filter": {
+      "searchPlaceholder": "지표 이름으로 검색…",
+      "section": "섹션",
+      "dataSource": "데이터 소스",
+      "showing": "표시 {visible} / {total}",
+      "clear": "필터 초기화"
+    },
+    "empty": "현재 필터에 일치하는 지표가 없습니다.",
+    "table": {
+      "metric": "지표",
+      "dataSource": "데이터 소스",
+      "formulaValue": "수식 / 값",
+      "unit": "단위",
+      "edit": "수정",
+      "history": "이력",
+      "formulaCount": "수식 {count}개",
+      "save": "저장",
+      "saved": "저장됨",
+      "resetToDefault": "기본값으로 초기화 (카탈로그 시드)",
+      "viewHistoryAria": "{metric} 의 버전 이력 보기"
+    },
+    "section": {
+      "shopee-platform": "플랫폼 수식 — Shopee",
+      "shopee-product": "상품 수식 — Shopee",
+      "tiktok-platform": "플랫폼 수식 — TikTok",
+      "tiktok-product": "상품 수식 — TikTok",
+      "aggregated": "통합 지표 — 양 플랫폼",
+      "currency-period": "환율 & 기간 비교",
+      "order-exclusion": "주문 제외 규칙",
+      "cost-master": "원가 마스터"
+    },
+    "dataSource": {
+      "group": {
+        "shopee": "Shopee",
+        "tiktok": "TikTok",
+        "other": "기타",
+        "calculated": "계산 필드"
+      },
+      "searchPlaceholder": "검색…",
+      "add": "추가",
+      "removeAria": "{source} 제거"
+    },
+    "formulaInput": {
+      "bracketHint": "<code>[대괄호]</code> 안의 값은 수정 가능한 파라미터 / 리터럴입니다 — 수식 튜닝 시 변경하세요.",
+      "emptyAutocomplete": "사용 가능한 필드를 보려면 데이터 소스를 선택하세요.",
+      "title": {
+        "calculated": "계산 지표: {field}",
+        "rawColumn": "원본 컬럼: {field}",
+        "unknown": "알 수 없는 필드: \"{field}\". 일치하는 데이터 소스를 추가하세요.",
+        "param": "수정 가능한 파라미터: {value}. 임의 숫자로 변경 가능.",
+        "literal": "리터럴 값: \"{value}\". 카테고리/상태명이 바뀌면 수정하세요."
+      }
+    },
+    "newVersion": {
+      "title": "새 버전",
+      "diff": {
+        "before": "이전",
+        "after": "이후",
+        "empty": "(비어 있음)"
+      },
+      "impact": {
+        "title": "영향 분석",
+        "affected": "영향 {count}건",
+        "reports": "영향받는 리포트",
+        "sections": "영향받는 리포트 섹션",
+        "charts": "영향받는 차트"
+      },
+      "effectiveFrom": "적용 시작일",
+      "retroactive": "소급 적용",
+      "retroactiveHint": "(과거 리포트도 덮어씀)",
+      "retroactiveWarningTitle": "주의: 이 지표에 의존하는 모든 과거 리포트가 재계산됩니다.",
+      "retroactiveWarningBody": "이미 다운로드된 리포트 숫자가 앱 내 값과 달라집니다. 감사 추적이 끊깁니다. 이전 수식이 명백히 잘못된 경우에만 진행하세요.",
+      "changeReason": "변경 사유",
+      "reasonPlaceholder": "이 수식을 변경하는 이유를 설명하세요...",
+      "reasonRequired": "필수 — 변경 사유를 입력하세요.",
+      "cancel": "취소",
+      "submit": "새 버전 생성"
+    },
+    "history": {
+      "title": "버전 이력",
+      "close": "닫기",
+      "versionCount": "버전 {count}개",
+      "versionCountPlural": "버전 {count}개",
+      "latestChange": "최근 변경: {at}",
+      "col": {
+        "num": "#",
+        "metric": "지표",
+        "formula": "수식 값",
+        "reason": "사유",
+        "effective": "적용 기간",
+        "changedBy": "변경자",
+        "status": "상태"
+      },
+      "unit": "단위:",
+      "noReason": "—"
+    }
+  }
+}

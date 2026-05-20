@@ -47,7 +47,9 @@ import { computeTikTokMetrics } from '@/server/services/tiktok-metrics-calculato
 import {
   savePeriodSnapshot,
   loadPeriodSnapshot,
+  listAllPeriodSnapshots,
   type PeriodSnapshotMetrics,
+  type PeriodSnapshotRow,
 } from '@/server/services/period-snapshot.service';
 import {
   archiveFile,
@@ -129,6 +131,10 @@ export async function commitIngestAction(
       loadPrimeCostMaster(user.entId),
     ]);
 
+    // Row counts captured during parsing so each archived file can record how
+    // many rows it contributed. Keyed by `${channel}/${fileType}`.
+    const rowCounts = new Map<string, number>();
+
     // Shopee compute (requires sales)
     let shopee: PeriodSnapshotMetrics['shopee'] | null = null;
     if (shopeeSalesFile) {
@@ -155,6 +161,12 @@ export async function commitIngestAction(
             ? parseWithContext('Shopee Affiliate', shopeeAffiliateFile, parseShopeeAffiliate)
             : Promise.resolve(null),
         ]);
+      rowCounts.set('SHOPEE/SALES', salesRows.length);
+      if (adsRows) rowCounts.set('SHOPEE/ADS', adsRows.length);
+      if (brandRows) rowCounts.set('SHOPEE/BRAND_ADS', brandRows.length);
+      if (offPlatformRows) rowCounts.set('SHOPEE/OFF_PLATFORM_ADS', offPlatformRows.length);
+      if (trafficRows) rowCounts.set('SHOPEE/TRAFFIC', trafficRows.length);
+      if (affiliateRows) rowCounts.set('SHOPEE/AFFILIATE', affiliateRows.length);
       const r = computeShopeeMetrics(
         salesRows,
         master,
@@ -204,6 +216,9 @@ export async function commitIngestAction(
           ? parseWithContext('TikTok Affiliate', tiktokAffiliateFile, parseTikTokAffiliate)
           : Promise.resolve(null),
       ]);
+      rowCounts.set('TIKTOK/SALES', salesRows.length);
+      if (trafficRows) rowCounts.set('TIKTOK/TRAFFIC', trafficRows.length);
+      if (affiliateRows) rowCounts.set('TIKTOK/AFFILIATE', affiliateRows.length);
       const r = computeTikTokMetrics(
         salesRows,
         master,
@@ -232,14 +247,49 @@ export async function commitIngestAction(
       };
     }
 
+    const periodStart = new Date(periodStartIso);
+    const periodEnd = new Date(periodEndIso);
+
+    // No files uploaded → "manual-input-only" re-ingest path. Load the
+    // existing snapshot, swap in the new manualInputs + tiktokPlatformFeeRatePct,
+    // and save. Used when an Operator re-opens an Active period just to fix
+    // Manual Input values without re-uploading raw files.
     if (!shopee && !tiktok) {
-      return {
-        success: false,
-        error: {
-          code: 'SAL-E0410',
-          message: 'At least one platform Sales file is required (Shopee or TikTok)',
-        },
+      const existing = await loadPeriodSnapshot({
+        entId: user.entId,
+        granularity,
+        weekNum,
+        monthIdx,
+        year,
+      });
+      if (!existing) {
+        return {
+          success: false,
+          error: {
+            code: 'SAL-E0410',
+            message:
+              'At least one platform Sales file is required (no existing snapshot to update)',
+          },
+        };
+      }
+      const updated: PeriodSnapshotMetrics = {
+        ...existing,
+        manualInputs,
+        constants: { tiktokPlatformFeeRatePct },
+        computedAt: new Date().toISOString(),
       };
+      const { pspId, isNew } = await savePeriodSnapshot({
+        entId: user.entId,
+        userId: user.userId,
+        periodStart,
+        periodEnd,
+        granularity,
+        weekNum,
+        monthIdx,
+        year,
+        metrics: updated,
+      });
+      return { success: true, data: { pspId, isNew, metrics: updated } };
     }
 
     const metrics: PeriodSnapshotMetrics = {
@@ -250,9 +300,6 @@ export async function commitIngestAction(
       constants: { tiktokPlatformFeeRatePct },
       computedAt: new Date().toISOString(),
     };
-
-    const periodStart = new Date(periodStartIso);
-    const periodEnd = new Date(periodEndIso);
 
     const { pspId, isNew } = await savePeriodSnapshot({
       entId: user.entId,
@@ -300,6 +347,7 @@ export async function commitIngestAction(
           fileType: item.fileType,
           filename: item.file.filename,
           buffer: item.file.buffer,
+          rowCount: rowCounts.get(`${item.channel}/${item.fileType}`) ?? null,
         });
       } catch (err) {
         console.error(
@@ -447,6 +495,29 @@ export async function loadSnapshotAction(input: {
       return { success: false, error: { code: err.code, message: err.message } };
     }
     console.error('[load-snapshot] unexpected', err);
+    return {
+      success: false,
+      error: { code: 'SAL-E0500', message: err instanceof Error ? err.message : 'Unknown error' },
+    };
+  }
+}
+
+/**
+ * Load every snapshot for an entity at a chosen granularity — used by the
+ * Trends page to build a time-series.
+ */
+export async function listSnapshotsAction(input: {
+  granularity: 'WEEKLY' | 'MONTHLY';
+}): Promise<ActionResult<{ rows: PeriodSnapshotRow[] }>> {
+  try {
+    const user = await getCurrentUser();
+    const rows = await listAllPeriodSnapshots(user.entId, input.granularity);
+    return { success: true, data: { rows } };
+  } catch (err) {
+    if (err instanceof SalError) {
+      return { success: false, error: { code: err.code, message: err.message } };
+    }
+    console.error('[list-snapshots] unexpected', err);
     return {
       success: false,
       error: { code: 'SAL-E0500', message: err instanceof Error ? err.message : 'Unknown error' },

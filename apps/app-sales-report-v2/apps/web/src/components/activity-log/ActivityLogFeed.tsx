@@ -10,6 +10,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import {
   listActionLogsAction,
@@ -43,7 +44,13 @@ const CATEGORY_PILL: Record<Category, string> = {
   OTHER: 'bg-neutral-100 text-neutral-500',
 };
 
-function CategoryPill({ category }: { category: Category }) {
+function CategoryPill({
+  category,
+  label,
+}: {
+  category: Category;
+  label: string;
+}) {
   return (
     <span
       className={cn(
@@ -52,27 +59,10 @@ function CategoryPill({ category }: { category: Category }) {
       )}
     >
       <span className={cn('inline-block h-1.5 w-1.5 rounded-full', CATEGORY_DOT[category])} />
-      {CATEGORY_LABEL[category]}
+      {label}
     </span>
   );
 }
-
-const CATEGORY_LABEL: Record<Category, string> = {
-  UPLOAD: 'Upload',
-  APPROVAL: 'Approval',
-  MANUAL_INPUT: 'Manual input',
-  MASTER_DATA: 'Master data',
-  FORMULA: 'Formula',
-  REPORT: 'Report',
-  EXPORT: 'Export',
-  OTHER: 'Other',
-};
-
-const ROLE_LABEL: Record<string, string> = {
-  OPERATOR: 'Operator',
-  MANAGER: 'Manager',
-  ADMIN: 'Admin',
-};
 
 function splitDateTime(iso: string): { date: string; time: string } {
   const d = new Date(iso);
@@ -92,24 +82,6 @@ function localDayKey(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function formatDayHeader(dayKey: string): string {
-  const d = new Date(dayKey + 'T00:00:00');
-  if (Number.isNaN(d.getTime())) return dayKey;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const yesterday = new Date(today.getTime() - 86_400_000);
-  const dayDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const human = dayDate.toLocaleDateString('en-US', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-  if (dayDate.getTime() === today.getTime()) return `Today · ${human}`;
-  if (dayDate.getTime() === yesterday.getTime()) return `Yesterday · ${human}`;
-  return human;
-}
-
 interface ActivityLogFeedProps {
   initialRows: ActionLogRow[];
   initialHasMore: boolean;
@@ -123,6 +95,43 @@ export function ActivityLogFeed({
   initialTotal,
   initialNextCursor,
 }: ActivityLogFeedProps) {
+  const t = useTranslations('activityLog');
+  const tCommon = useTranslations('common');
+  const tRole = useTranslations('role');
+  const locale = useLocale();
+  const intlLocale = locale === 'ko' ? 'ko-KR' : 'en-US';
+
+  const roleLabel = (role: string): string => {
+    switch (role) {
+      case 'ADMIN':
+        return tRole('admin');
+      case 'MANAGER':
+        return tRole('manager');
+      case 'OPERATOR':
+        return tRole('operator');
+      default:
+        return role;
+    }
+  };
+
+  const formatDayHeader = (dayKey: string): string => {
+    const d = new Date(dayKey + 'T00:00:00');
+    if (Number.isNaN(d.getTime())) return dayKey;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today.getTime() - 86_400_000);
+    const dayDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const human = dayDate.toLocaleDateString(intlLocale, {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+    if (dayDate.getTime() === today.getTime()) return t('dayHeader.today', { date: human });
+    if (dayDate.getTime() === yesterday.getTime()) return t('dayHeader.yesterday', { date: human });
+    return human;
+  };
+
   const [rows, setRows] = useState<ActionLogRow[]>(initialRows);
   const [total, setTotal] = useState(initialTotal);
   const [hasMore, setHasMore] = useState(initialHasMore);
@@ -297,7 +306,7 @@ export function ActivityLogFeed({
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="user, file, action…"
+            placeholder={t('searchPlaceholder')}
             className="w-full rounded-md border border-neutral-300 bg-white py-2 pl-9 pr-3 text-sm placeholder:text-neutral-400 focus:border-neutral-500 focus:outline-none"
           />
         </div>
@@ -311,7 +320,7 @@ export function ActivityLogFeed({
             )}
           >
             <SlidersHorizontal className="h-4 w-4" />
-            Filter
+            {t('filter')}
             {activeCategories.size > 0 && (
               <span className="ml-1 rounded-full bg-accent-700 px-1.5 py-0.5 text-[10px] font-mono text-white">
                 {activeCategories.size}
@@ -321,7 +330,7 @@ export function ActivityLogFeed({
           {filterOpen && (
             <div className="absolute right-0 z-20 mt-1 w-56 rounded-md border border-neutral-200 bg-white p-2 shadow-md">
               <div className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
-                Categories
+                {t('filterCategories')}
               </div>
               <ul className="space-y-0.5">
                 {CATEGORIES.map((c) => (
@@ -333,7 +342,7 @@ export function ActivityLogFeed({
                         onChange={() => toggleCategory(c)}
                       />
                       <span className={cn('h-2 w-2 rounded-full', CATEGORY_DOT[c])} />
-                      <span className="text-neutral-700">{CATEGORY_LABEL[c]}</span>
+                      <span className="text-neutral-700">{t(`category.${c}`)}</span>
                     </label>
                   </li>
                 ))}
@@ -344,7 +353,7 @@ export function ActivityLogFeed({
                   onClick={() => setActiveCategories(new Set())}
                   className="mt-1 w-full rounded px-2 py-1 text-left text-xs text-neutral-500 hover:bg-neutral-100"
                 >
-                  Clear all
+                  {t('clearAll')}
                 </button>
               )}
             </div>
@@ -357,7 +366,7 @@ export function ActivityLogFeed({
           className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
         >
           <Download className="h-4 w-4" />
-          {exporting ? 'Exporting…' : 'Export'}
+          {exporting ? t('exporting') : t('export')}
         </button>
       </div>
 
@@ -370,11 +379,11 @@ export function ActivityLogFeed({
       {/* Feed — grouped by day */}
       {loading && displayRows.length === 0 ? (
         <div className="rounded-lg border border-neutral-200 bg-white px-6 py-8 text-center text-sm text-neutral-500">
-          Loading…
+          {tCommon('loading')}
         </div>
       ) : displayRows.length === 0 ? (
         <div className="rounded-lg border border-neutral-200 bg-white px-6 py-10 text-center text-sm text-neutral-500">
-          No actions logged yet. Actions you take (uploads, edits, exports) will appear here.
+          {t('empty')}
         </div>
       ) : (
         <div className="space-y-3">
@@ -389,7 +398,7 @@ export function ActivityLogFeed({
                   {formatDayHeader(dayKey)}
                 </h3>
                 <span className="text-[11px] text-neutral-500 tabular-nums">
-                  {dayRows.length} action{dayRows.length !== 1 ? 's' : ''}
+                  {t('dayActionCount', { count: dayRows.length })}
                 </span>
               </div>
 
@@ -401,52 +410,53 @@ export function ActivityLogFeed({
                         style={{ width: '80px' }}
                         className="px-4 py-2 text-left font-semibold"
                       >
-                        Time
+                        {t('column.time')}
                       </th>
                       <th
                         style={{ width: '128px' }}
                         className="px-3 py-2 text-left font-semibold"
                       >
-                        Category
+                        {t('column.category')}
                       </th>
                       <th
                         style={{ width: '200px' }}
                         className="px-3 py-2 text-left font-semibold"
                       >
-                        User
+                        {t('column.user')}
                       </th>
                       <th
                         style={{ width: '110px' }}
                         className="px-3 py-2 text-left font-semibold"
                       >
-                        Action
+                        {t('column.action')}
                       </th>
                       <th
                         style={{ width: '220px' }}
                         className="px-3 py-2 text-left font-semibold"
                       >
-                        Target
+                        {t('column.target')}
                       </th>
-                      <th className="px-3 py-2 text-left font-semibold">Details</th>
+                      <th className="px-3 py-2 text-left font-semibold">{t('column.details')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-100">
                     {dayRows.map((row) => {
                       const dt = splitDateTime(row.createdAt);
+                      const cat = row.category as Category;
                       return (
                         <tr key={row.actId} className="hover:bg-neutral-50/60 align-top">
                           <td className="px-4 py-3 font-mono text-xs text-neutral-500 tabular-nums whitespace-nowrap">
                             {dt.time}
                           </td>
                           <td className="px-3 py-3">
-                            <CategoryPill category={row.category as Category} />
+                            <CategoryPill category={cat} label={t(`category.${cat}`)} />
                           </td>
                           <td className="px-3 py-3">
                             <div className="font-mono text-xs text-info-500 truncate">
                               {row.username}
                             </div>
                             <div className="text-[11px] text-neutral-500">
-                              {ROLE_LABEL[row.userRole] ?? row.userRole}
+                              {roleLabel(row.userRole)}
                             </div>
                           </td>
                           <td className="px-3 py-3">
@@ -470,7 +480,7 @@ export function ActivityLogFeed({
                                 {row.summary}
                               </span>
                             ) : (
-                              <span className="text-xs text-neutral-300">—</span>
+                              <span className="text-xs text-neutral-300">{tCommon('dash')}</span>
                             )}
                           </td>
                         </tr>
@@ -486,7 +496,7 @@ export function ActivityLogFeed({
           <div className="rounded-lg border border-neutral-200 bg-neutral-50/40 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-3 text-neutral-500">
               <label className="inline-flex items-center gap-1.5">
-                <span>Rows per page</span>
+                <span>{t('pagination.rowsPerPage')}</span>
                 <select
                   value={pageSize}
                   onChange={(e) =>
@@ -505,16 +515,15 @@ export function ActivityLogFeed({
               </label>
               <span>
                 <span className="font-semibold text-neutral-900 tabular-nums">
-                  {rangeStart}–{rangeEnd}
+                  {t('pagination.range', { start: rangeStart, end: rangeEnd })}
                 </span>{' '}
-                of{' '}
+                {t('pagination.of')}{' '}
                 <span className="font-semibold text-neutral-900 tabular-nums">
                   {displayRows.length.toLocaleString()}
                 </span>
                 {displayTotal > displayRows.length && (
                   <span className="text-neutral-400">
-                    {' '}
-                    ({displayTotal.toLocaleString()} total)
+                    {t('pagination.totalSuffix', { total: displayTotal.toLocaleString() })}
                   </span>
                 )}
               </span>
@@ -522,14 +531,14 @@ export function ActivityLogFeed({
 
             <div className="flex items-center gap-1">
               <PageButton
-                ariaLabel="First page"
+                ariaLabel={t('pagination.firstPage')}
                 disabled={page === 1}
                 onClick={() => setPage(1)}
               >
                 <ChevronsLeft className="h-3.5 w-3.5" />
               </PageButton>
               <PageButton
-                ariaLabel="Previous page"
+                ariaLabel={t('pagination.prevPage')}
                 disabled={page === 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
@@ -561,14 +570,14 @@ export function ActivityLogFeed({
               </div>
 
               <PageButton
-                ariaLabel="Next page"
+                ariaLabel={t('pagination.nextPage')}
                 disabled={page === pageCount}
                 onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
               >
                 <ChevronRight className="h-3.5 w-3.5" />
               </PageButton>
               <PageButton
-                ariaLabel="Last page"
+                ariaLabel={t('pagination.lastPage')}
                 disabled={page === pageCount}
                 onClick={() => setPage(pageCount)}
               >
@@ -584,7 +593,7 @@ export function ActivityLogFeed({
                     disabled={loadingMore}
                     className="text-xs font-medium text-info-500 hover:underline disabled:opacity-50"
                   >
-                    {loadingMore ? 'Loading…' : 'Load more from server'}
+                    {loadingMore ? t('pagination.loadingMore') : t('pagination.loadMore')}
                   </button>
                 </>
               )}

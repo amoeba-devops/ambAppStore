@@ -767,7 +767,11 @@ export function generateMonthsForYear(year: number): MonthEntry[] {
   return months.map((m, i) => {
     const lastDay = new Date(Date.UTC(year, i + 1, 0)).getUTCDate();
     return {
-      monthIdx: i + 1, // 1..12 for the year
+      // 0-indexed (Jan=0..Dec=11) to match JS Date semantics and the rest of
+      // the app (archive-files.service `monthLabel`, MonthlyReportClient
+      // realLabels). Previously was 1-indexed which caused an off-by-one:
+      // selecting April stored monthIdx=4 which other lookups read as May.
+      monthIdx: i,
       year,
       label: `${m} ${year}`,
       periodLabel: `1 – ${lastDay} ${m}`,

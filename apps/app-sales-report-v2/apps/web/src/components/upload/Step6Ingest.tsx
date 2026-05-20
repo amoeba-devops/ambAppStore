@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { fmtVND } from '@/lib/format';
 import {
@@ -49,6 +50,7 @@ export function Step6Ingest({
   manualInputs,
   tiktokPlatformFeeRatePct = 24,
 }: Props) {
+  const t = useTranslations('uploadWizard.step6');
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<CommitIngestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +58,7 @@ export function Step6Ingest({
 
   const submit = () => {
     if (!selectedPeriod) {
-      setError('No period selected — go back to Step 1');
+      setError(t('errorNoPeriod'));
       return;
     }
     setError(null);
@@ -116,10 +118,9 @@ export function Step6Ingest({
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-info-50">
             <Loader2 className="h-6 w-6 text-info-500 animate-spin" />
           </div>
-          <h2 className="text-base font-semibold text-neutral-900">Integrating files…</h2>
+          <h2 className="text-base font-semibold text-neutral-900">{t('ingestingTitle')}</h2>
           <p className="text-xs text-neutral-500">
-            Parsing {totalFiles} files for period{' '}
-            <span className="font-mono">{periodLabel}</span>, computing metrics, persisting snapshot.
+            {t('ingestingBody', { totalFiles, periodLabel })}
           </p>
         </div>
       </div>
@@ -133,10 +134,11 @@ export function Step6Ingest({
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-info-50">
             <Zap className="h-6 w-6 text-info-500" />
           </div>
-          <h2 className="mt-3 text-base font-semibold text-neutral-900">Ready to ingest</h2>
+          <h2 className="mt-3 text-base font-semibold text-neutral-900">{t('readyTitle')}</h2>
           <p className="mt-1 max-w-xl mx-auto text-sm text-neutral-500">
-            Will parse {totalFiles} file{totalFiles !== 1 ? 's' : ''}, compute Shopee + TikTok metrics,
-            and save a snapshot for period <span className="font-mono">{periodLabel}</span>.
+            {totalFiles === 1
+              ? t('readyBodySingular', { totalFiles, periodLabel })
+              : t('readyBody', { totalFiles, periodLabel })}
           </p>
           <button
             type="button"
@@ -144,7 +146,7 @@ export function Step6Ingest({
             className="mt-5 inline-flex items-center gap-1.5 rounded-md bg-info-500 px-4 py-2 text-sm font-semibold text-white hover:bg-info-500/90"
           >
             <Zap className="h-4 w-4" />
-            Confirm ingest
+            {t('confirm')}
           </button>
         </div>
 
@@ -183,7 +185,7 @@ export function Step6Ingest({
   // Weekly → /reports/weekly?weekNum=N&year=Y, Monthly → /reports/monthly?monthIdx=N&year=Y
   const isMonthly = selectedPeriod?.granularity === 'MONTH';
   const reportPath = isMonthly ? '/reports/monthly' : '/reports/weekly';
-  const reportLabel = isMonthly ? 'Open Monthly Detail' : 'Open Weekly Detail';
+  const reportLabel = isMonthly ? t('openMonthly') : t('openWeekly');
   const reportQuery = selectedPeriod
     ? `?${isMonthly ? 'monthIdx' : 'weekNum'}=${selectedPeriod.periodId}&year=${selectedPeriod.year}`
     : '';
@@ -195,21 +197,22 @@ export function Step6Ingest({
           <Check className="h-6 w-6 text-success-500" strokeWidth={3} />
         </div>
         <div className="mt-3 text-[10px] uppercase tracking-wider font-semibold text-success-500">
-          {isNew ? 'Integration Complete' : 'Snapshot Updated'}
+          {isNew ? t('completeTagNew') : t('completeTagUpdate')}
         </div>
         <h2 className="mt-1 text-xl font-semibold text-neutral-900">
-          Period <span className="font-mono">{periodLabel}</span> is live
+          {t.rich('completeTitle', {
+            periodLabel,
+            mono: (chunks) => <span className="font-mono">{chunks}</span>,
+          })}
         </h2>
-        <p className="mt-2 max-w-xl mx-auto text-sm text-neutral-500">
-          Snapshot persisted to DB. Reports recomputed from your real upload.
-        </p>
+        <p className="mt-2 max-w-xl mx-auto text-sm text-neutral-500">{t('completeBody')}</p>
         <div className="mt-5 flex items-center justify-center gap-2">
           <Link
             href={`/raw-archive/${encodeURIComponent(periodLabel)}`}
             className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
           >
             <Archive className="h-4 w-4" />
-            View raw archive
+            {t('viewArchive')}
           </Link>
           <Link
             href={`${reportPath}${reportQuery}`}
@@ -222,20 +225,20 @@ export function Step6Ingest({
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatTile label="Shopee Net GMV" value={fmtVND(metrics.shopee.totalNetGmv)} />
-        <StatTile label="TikTok Net GMV" value={fmtVND(metrics.tiktok.totalNetGmv)} />
+        <StatTile label={t('tile.shopeeNetGmv')} value={fmtVND(metrics.shopee.totalNetGmv)} />
+        <StatTile label={t('tile.tiktokNetGmv')} value={fmtVND(metrics.tiktok.totalNetGmv)} />
         <StatTile
-          label="Total Net GMV"
+          label={t('tile.totalNetGmv')}
           value={fmtVND(metrics.shopee.totalNetGmv + metrics.tiktok.totalNetGmv)}
           highlight
         />
-        <StatTile label="Total CM (estimate)" value={fmtVND(Math.round(totalCm))} highlight />
+        <StatTile label={t('tile.totalCm')} value={fmtVND(Math.round(totalCm))} highlight />
       </div>
 
       <div className="rounded-lg border border-neutral-200 bg-white px-4 py-3 text-xs text-neutral-600">
-        <strong className="text-neutral-900">CM estimate</strong> excludes per-product allocation
-        (Phase B v2). Shopee includes Brand Ads / Off-Platform / Vouchers; TikTok uses rate-based
-        Platform Fee + manual Ad Spending + Livestream.
+        {t.rich('cmNote', {
+          b: (chunks) => <strong className="text-neutral-900">{chunks}</strong>,
+        })}
       </div>
     </div>
   );

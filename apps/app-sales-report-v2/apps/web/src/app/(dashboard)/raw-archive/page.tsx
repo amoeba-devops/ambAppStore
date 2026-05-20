@@ -1,24 +1,22 @@
+import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { getAllArchivePeriods, type ArchivePeriod } from '@/lib/raw-archive-mock';
+import type { ArchivePeriod } from '@/lib/raw-archive-mock';
 import { listArchivePeriods } from '@/server/services/archive-files.service';
 import { ArchiveListClient } from '@/components/raw-archive/ArchiveListClient';
 
 export default async function RawArchivePage() {
   const user = await getCurrentUser();
-  const mockPeriods = getAllArchivePeriods();
+  // Only show real DB-backed periods (ingested via the upload wizard). Mock
+  // demo seeds (W13–W18) are no longer surfaced.
   const realSummaries = await listArchivePeriods(user.entId);
-  const realPeriods = realSummaries.map(summaryToArchivePeriod);
-  // Drop mock entries that collide with a real one by periodKey
-  const realKeys = new Set(realPeriods.map((p) => p.periodKey));
-  const merged: ArchivePeriod[] = [
-    ...realPeriods,
-    ...mockPeriods.filter((m) => !realKeys.has(m.periodKey)),
-  ];
-  return <ArchiveListClient periods={merged} />;
+  const t = await getTranslations('rawArchive.downstreamLink');
+  const periods: ArchivePeriod[] = realSummaries.map((s) => summaryToArchivePeriod(s, t));
+  return <ArchiveListClient periods={periods} />;
 }
 
 function summaryToArchivePeriod(
   s: Awaited<ReturnType<typeof listArchivePeriods>>[number],
+  t: (key: 'weekly' | 'monthly', values: { label: string }) => string,
 ): ArchivePeriod {
   return {
     periodKey: s.periodKey,
@@ -54,8 +52,8 @@ function summaryToArchivePeriod(
     activityLog: [],
     downstreamReports:
       s.granularity === 'WEEKLY'
-        ? [`Weekly Report ${s.label}`]
-        : [`Monthly Report ${s.label}`],
+        ? [t('weekly', { label: s.label })]
+        : [t('monthly', { label: s.label })],
   };
 }
 

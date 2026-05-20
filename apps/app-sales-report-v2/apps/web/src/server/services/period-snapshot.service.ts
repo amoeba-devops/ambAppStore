@@ -170,3 +170,52 @@ export async function loadPeriodSnapshot(
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 void isNull;
+
+export interface PeriodSnapshotRow {
+  granularity: 'WEEKLY' | 'MONTHLY';
+  weekNum: number | null;
+  monthIdx: number | null;
+  year: number;
+  periodStart: Date;
+  periodEnd: Date;
+  metrics: PeriodSnapshotMetrics;
+}
+
+/**
+ * Fetch every saved snapshot for an entity, ordered chronologically. Used by
+ * the Trends page to build a time-series across all weeks/months that have
+ * been ingested so far. No paging — Trends UI only loads a handful per request.
+ */
+export async function listAllPeriodSnapshots(
+  entId: string,
+  granularity: 'WEEKLY' | 'MONTHLY',
+): Promise<PeriodSnapshotRow[]> {
+  const rows = await db
+    .select({
+      pspGranularity: schema.salPeriodSnapshots.pspGranularity,
+      pspWeekNum: schema.salPeriodSnapshots.pspWeekNum,
+      pspMonthIdx: schema.salPeriodSnapshots.pspMonthIdx,
+      pspYear: schema.salPeriodSnapshots.pspYear,
+      pspPeriodStart: schema.salPeriodSnapshots.pspPeriodStart,
+      pspPeriodEnd: schema.salPeriodSnapshots.pspPeriodEnd,
+      pspMetrics: schema.salPeriodSnapshots.pspMetrics,
+    })
+    .from(schema.salPeriodSnapshots)
+    .where(
+      and(
+        withEnt(schema.salPeriodSnapshots.entId, entId),
+        eq(schema.salPeriodSnapshots.pspGranularity, granularity),
+      ),
+    );
+  return rows
+    .map((r) => ({
+      granularity: r.pspGranularity as 'WEEKLY' | 'MONTHLY',
+      weekNum: r.pspWeekNum,
+      monthIdx: r.pspMonthIdx,
+      year: r.pspYear,
+      periodStart: r.pspPeriodStart instanceof Date ? r.pspPeriodStart : new Date(r.pspPeriodStart),
+      periodEnd: r.pspPeriodEnd instanceof Date ? r.pspPeriodEnd : new Date(r.pspPeriodEnd),
+      metrics: r.pspMetrics as PeriodSnapshotMetrics,
+    }))
+    .sort((a, b) => a.periodStart.getTime() - b.periodStart.getTime());
+}

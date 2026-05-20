@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, ChevronDown, RotateCcw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import type { FormulaSection as FormulaSectionType, FormulaItem } from '@/lib/formula-config-data';
 import { DataSourceMultiSelect } from './DataSourceMultiSelect';
@@ -70,8 +71,21 @@ export function FormulaSection({
   open,
   onToggleOpen,
 }: Props) {
+  const t = useTranslations('formulaConfig');
   const theme = detectTheme(section.title);
   const styles = THEME_STYLES[theme];
+
+  // Best-effort lookup — fall back to the original (English) section title if
+  // a translation hasn't been added yet, so new section IDs don't crash.
+  const tSection = useTranslations('formulaConfig.section');
+  const localizedTitle = (() => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (tSection as any)(section.id) as string;
+    } catch {
+      return section.title;
+    }
+  })();
 
   return (
     <section className="rounded-lg border border-neutral-200 bg-white overflow-hidden">
@@ -104,9 +118,11 @@ export function FormulaSection({
               {styles.badgeLabel}
             </span>
           )}
-          <h2 className="text-base font-semibold text-neutral-900">{section.title}</h2>
+          <h2 className="text-base font-semibold text-neutral-900">{localizedTitle}</h2>
         </div>
-        <span className="text-xs text-neutral-500">{section.items.length} formulas</span>
+        <span className="text-xs text-neutral-500">
+          {t('table.formulaCount', { count: section.items.length })}
+        </span>
       </button>
 
       {open && (
@@ -114,12 +130,12 @@ export function FormulaSection({
         <table className="w-full min-w-[960px] text-sm">
           <thead className="bg-neutral-50 text-[11px] uppercase tracking-wider text-neutral-500">
             <tr>
-              <th className="px-5 py-2.5 text-left font-medium w-1/4">Metric</th>
-              <th className="px-3 py-2.5 text-left font-medium w-44">Data Source</th>
-              <th className="px-3 py-2.5 text-left font-medium">Formula / Value</th>
-              <th className="px-3 py-2.5 text-left font-medium w-16">Unit</th>
-              <th className="px-3 py-2.5 text-center font-medium w-28">Edit</th>
-              <th className="px-3 py-2.5 text-center font-medium w-20">History</th>
+              <th className="px-5 py-2.5 text-left font-medium w-1/4">{t('table.metric')}</th>
+              <th className="px-3 py-2.5 text-left font-medium w-44">{t('table.dataSource')}</th>
+              <th className="px-3 py-2.5 text-left font-medium">{t('table.formulaValue')}</th>
+              <th className="px-3 py-2.5 text-left font-medium w-16">{t('table.unit')}</th>
+              <th className="px-3 py-2.5 text-center font-medium w-28">{t('table.edit')}</th>
+              <th className="px-3 py-2.5 text-center font-medium w-20">{t('table.history')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
@@ -160,6 +176,7 @@ function FormulaRow({
   onSave: () => void;
   justSaved?: boolean;
 }) {
+  const t = useTranslations('formulaConfig');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [newVersionOpen, setNewVersionOpen] = useState(false);
   // Local state — initialized from storage, bumped on each new version
@@ -211,7 +228,7 @@ function FormulaRow({
               justSaved ? 'bg-success-500' : 'bg-info-500 hover:bg-info-500/90',
             )}
           >
-            {justSaved ? 'Saved' : 'Save'}
+            {justSaved ? t('table.saved') : t('table.save')}
           </button>
           {value !== item.formula && (
             <button
@@ -220,8 +237,8 @@ function FormulaRow({
                 onChange(item.formula);
                 onSourcesChange(item.dataSources);
               }}
-              title="Reset to default (catalog seed)"
-              aria-label="Reset to default"
+              title={t('table.resetToDefault')}
+              aria-label={t('table.resetToDefault')}
               className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-neutral-300 bg-white text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700 transition-colors"
             >
               <RotateCcw className="h-3.5 w-3.5" />
@@ -254,7 +271,7 @@ function FormulaRow({
           type="button"
           onClick={() => setHistoryOpen(true)}
           className="inline-flex items-center gap-0.5 rounded-full border border-neutral-300 bg-white px-2 py-0.5 text-xs font-mono font-semibold text-neutral-700 hover:bg-neutral-50"
-          aria-label={`View version history for ${item.metric}`}
+          aria-label={t('table.viewHistoryAria', { metric: item.metric })}
         >
           {displayCount}
           <ChevronRight className="h-3 w-3 text-neutral-400" />
@@ -288,6 +305,7 @@ function FormulaInput({
   onChange: (v: string) => void;
   sources: string[];
 }) {
+  const t = useTranslations('formulaConfig.formulaInput');
   const [focused, setFocused] = useState(false);
   const [caret, setCaret] = useState(0);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -448,14 +466,15 @@ function FormulaInput({
       />
       {!focused && (
         <div className="pointer-events-none absolute inset-0 flex items-center px-3 font-mono text-sm whitespace-nowrap overflow-hidden">
-          <span className="truncate">{highlightTokens(value, rawSet, calcSet)}</span>
+          <span className="truncate">{highlightTokens(value, rawSet, calcSet, t)}</span>
         </div>
       )}
       {focused && /\[[^\]]+\]/.test(value) && (
         <div className="mt-1 text-[11px] text-neutral-500">
-          <span className="text-success-500">●</span> Values in{' '}
-          <code className="font-mono">[brackets]</code> are editable parameters / literals — change
-          to tune the formula.
+          <span className="text-success-500">●</span>{' '}
+          {t.rich('bracketHint', {
+            code: (chunks) => <code className="font-mono">{chunks}</code>,
+          })}
         </div>
       )}
 
@@ -468,7 +487,7 @@ function FormulaInput({
         >
           {sources.length === 0 ? (
             <div className="px-3 py-3 text-xs text-neutral-500">
-              Select a data source to see available fields.
+              {t('emptyAutocomplete')}
             </div>
           ) : (
             (() => {
@@ -533,10 +552,16 @@ function renderMetricName(name: string): React.ReactNode {
  *   - green : `[literal value]` or `[N parameter]` — editable by user
  * Calculated wins on overlap (intentional override semantic).
  */
+type TokenTranslator = (
+  key: 'title.calculated' | 'title.rawColumn' | 'title.unknown' | 'title.param' | 'title.literal',
+  values?: Record<string, string | number>,
+) => string;
+
 function highlightTokens(
   text: string,
   rawSet: Set<string>,
   calcSet: Set<string>,
+  t: TokenTranslator,
 ): React.ReactNode {
   if (!text) return null;
   const parts: React.ReactNode[] = [];
@@ -576,17 +601,17 @@ function highlightTokens(
     if (isSquare) {
       cls = 'text-success-500';
       title = /^-?\d+(\.\d+)?$/.test(inner)
-        ? `Editable parameter: ${inner}. Change to any number.`
-        : `Literal value: "${inner}". Edit if the underlying category/status is renamed.`;
+        ? t('title.param', { value: inner })
+        : t('title.literal', { value: inner });
     } else {
       cls = 'text-error-500';
-      title = `Unknown field: "${inner}". Add a matching data source.`;
+      title = t('title.unknown', { field: inner });
       if (calcSet.has(inner)) {
         cls = 'text-info-500';
-        title = `Calculated metric: ${inner}`;
+        title = t('title.calculated', { field: inner });
       } else if (rawSet.has(inner)) {
         cls = 'text-accent-700';
-        title = `Raw column: ${inner}`;
+        title = t('title.rawColumn', { field: inner });
       }
     }
     parts.push(

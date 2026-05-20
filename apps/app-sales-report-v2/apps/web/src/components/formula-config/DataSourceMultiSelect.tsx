@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Plus, Search } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { FORMULA_SECTIONS } from '@/lib/formula-config-data';
 
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export function DataSourceMultiSelect({ value, onChange }: Props) {
+  const t = useTranslations('formulaConfig.dataSource');
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement | null>(null);
@@ -77,7 +79,7 @@ export function DataSourceMultiSelect({ value, onChange }: Props) {
               type="button"
               onClick={() => remove(v)}
               className="shrink-0 hover:text-info-500/70"
-              aria-label={`Remove ${v}`}
+              aria-label={t('removeAria', { source: v })}
             >
               <X className="h-2.5 w-2.5" />
             </button>
@@ -89,7 +91,7 @@ export function DataSourceMultiSelect({ value, onChange }: Props) {
           className="inline-flex items-center gap-0.5 rounded-md border border-dashed border-neutral-300 bg-white px-2 py-0.5 text-xs font-medium text-neutral-500 hover:border-neutral-400 hover:text-neutral-700"
         >
           <Plus className="h-2.5 w-2.5" />
-          Add
+          {t('add')}
         </button>
       </div>
 
@@ -102,7 +104,7 @@ export function DataSourceMultiSelect({ value, onChange }: Props) {
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search…"
+                placeholder={t('searchPlaceholder')}
                 autoFocus
                 className="w-full rounded border border-neutral-300 bg-white py-1 pl-7 pr-2 text-xs placeholder:text-neutral-400 focus:border-neutral-500 focus:outline-none"
               />
@@ -110,11 +112,11 @@ export function DataSourceMultiSelect({ value, onChange }: Props) {
           </div>
 
           <div className="max-h-80 overflow-y-auto">
-            <Group label="Shopee" options={SHOPEE_OPTIONS.filter(matchesQ)} value={value} onToggle={toggle} />
-            <Group label="TikTok" options={TIKTOK_OPTIONS.filter(matchesQ)} value={value} onToggle={toggle} />
-            <Group label="Other" options={OTHER_OPTIONS.filter(matchesQ)} value={value} onToggle={toggle} />
+            <Group label={t('group.shopee')} options={SHOPEE_OPTIONS.filter(matchesQ)} value={value} onToggle={toggle} />
+            <Group label={t('group.tiktok')} options={TIKTOK_OPTIONS.filter(matchesQ)} value={value} onToggle={toggle} />
+            <Group label={t('group.other')} options={OTHER_OPTIONS.filter(matchesQ)} value={value} onToggle={toggle} />
             <Group
-              label="Calculated Fields"
+              label={t('group.calculated')}
               options={calculatedFields.filter(matchesQ)}
               value={value}
               onToggle={toggle}

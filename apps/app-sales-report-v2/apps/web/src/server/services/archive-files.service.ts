@@ -160,6 +160,48 @@ export interface ArchivedFile {
  * List all archived periods for an entity, grouped by period_start +
  * granularity. Only current revisions (`replacedAt IS NULL`).
  */
+/**
+ * Fetch the current (non-replaced) archived files for a single period — used
+ * by the Upload wizard to preload "Previously uploaded files" panel when
+ * re-ingesting an Active period.
+ */
+export async function listArchiveFilesForPeriod(input: {
+  entId: string;
+  granularity: ArchiveGranularity;
+  weekNum?: number;
+  monthIdx?: number;
+  year: number;
+}): Promise<ArchivedFile[]> {
+  const conditions = [
+    withEnt(schema.salArchiveFiles.entId, input.entId),
+    eq(schema.salArchiveFiles.arfGranularity, input.granularity),
+    eq(schema.salArchiveFiles.arfYear, input.year),
+    isNull(schema.salArchiveFiles.arfReplacedAt),
+  ];
+  if (input.granularity === 'WEEKLY' && input.weekNum != null) {
+    conditions.push(eq(schema.salArchiveFiles.arfWeekNum, input.weekNum));
+  } else if (input.monthIdx != null) {
+    conditions.push(eq(schema.salArchiveFiles.arfMonthIdx, input.monthIdx));
+  }
+  const rows = await db
+    .select()
+    .from(schema.salArchiveFiles)
+    .where(and(...conditions));
+  return rows.map((r) => ({
+    arfId: r.arfId,
+    channel: r.arfChannel as ArchiveChannel,
+    fileType: r.arfFileType as ArchiveFileType,
+    filename: r.arfFilename,
+    sizeBytes: Number(r.arfSizeBytes),
+    rowCount: r.arfRowCount,
+    uploadedAt: r.arfUploadedAt,
+    uploadedBy: r.arfUploadedBy,
+    s3Key: r.arfS3Key,
+    revision: r.arfRevision,
+    sha256: r.arfSha256,
+  }));
+}
+
 export async function listArchivePeriods(entId: string): Promise<ArchivePeriodSummary[]> {
   const rows = await db
     .select()

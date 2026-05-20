@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { CheckCircle2, Clock, RotateCcw, XCircle, RefreshCw, Lock } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import {
   approvePeriod,
@@ -31,6 +32,7 @@ export function ApprovalCard({ period }: Props) {
 // ----------------------------------------------------------------------------
 
 function DraftApprovalCard({ period }: Props) {
+  const t = useTranslations('rawArchive.approval');
   const [note, setNote] = useState('');
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -41,10 +43,11 @@ function DraftApprovalCard({ period }: Props) {
       <div className="flex items-start gap-2">
         <Clock className="h-4 w-4 text-warning-500 shrink-0 mt-0.5" />
         <div>
-          <h3 className="text-sm font-semibold text-warning-500">Pending Manager Approval</h3>
+          <h3 className="text-sm font-semibold text-warning-500">{t('draft.title')}</h3>
           <p className="mt-0.5 text-[11px] text-neutral-600 leading-relaxed">
-            This period is in <span className="font-mono font-semibold">Draft</span>. Manager
-            review required before reports can be shared externally.
+            {t.rich('draft.subtitle', {
+              mono: (chunks) => <span className="font-mono font-semibold">{chunks}</span>,
+            })}
           </p>
         </div>
       </div>
@@ -53,12 +56,15 @@ function DraftApprovalCard({ period }: Props) {
         <>
           <div>
             <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-1">
-              Note <span className="text-neutral-400 normal-case font-normal">(optional)</span>
+              {t('draft.noteLabel')}{' '}
+              <span className="text-neutral-400 normal-case font-normal">
+                {t('draft.noteOptional')}
+              </span>
             </label>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="e.g. All files validated, approving for week"
+              placeholder={t('draft.notePlaceholder')}
               rows={2}
               className="w-full resize-none rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-info-500"
             />
@@ -70,7 +76,7 @@ function DraftApprovalCard({ period }: Props) {
               className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
             >
               <XCircle className="h-3.5 w-3.5" />
-              Reject — back to Operator
+              {t('draft.reject')}
             </button>
             <button
               type="button"
@@ -78,7 +84,7 @@ function DraftApprovalCard({ period }: Props) {
               className="inline-flex items-center gap-1.5 rounded-md bg-success-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-success-500/90"
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Approve & Finalize
+              {t('draft.approve')}
             </button>
           </div>
         </>
@@ -102,8 +108,8 @@ function DraftApprovalCard({ period }: Props) {
 
       {confirming === 'approve' && (
         <ConfirmRow
-          message={`Approve ${period.label}? Reports will be marked Finalized and shared.`}
-          confirmLabel="Yes, approve"
+          message={t('draft.confirmApprove', { label: period.label })}
+          confirmLabel={t('draft.confirmYes')}
           confirmTone="success"
           onCancel={() => setConfirming(null)}
           onConfirm={() => {
@@ -122,6 +128,7 @@ function DraftApprovalCard({ period }: Props) {
 // ----------------------------------------------------------------------------
 
 function RejectedCard({ period }: Props) {
+  const t = useTranslations('rawArchive.approval');
   const rejection = period.rejection!;
   const [confirmingResubmit, setConfirmingResubmit] = useState(false);
 
@@ -130,20 +137,20 @@ function RejectedCard({ period }: Props) {
       <div className="flex items-start gap-2">
         <XCircle className="h-4 w-4 text-error-500 shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-error-500">Rejected by Manager</h3>
+          <h3 className="text-sm font-semibold text-error-500">{t('rejected.title')}</h3>
           <p className="mt-0.5 text-[11px] text-neutral-600">
             {fmtDateTime(rejection.rejectedAt)} · {rejection.rejectedBy}
           </p>
           <div className="mt-2 rounded-md border border-error-500/30 bg-white px-3 py-2 text-xs text-neutral-800">
             <span className="text-[10px] uppercase tracking-wider font-semibold text-error-500 mr-1.5">
-              Reason
+              {t('rejected.reasonLabel')}
             </span>
             {rejection.rejectedReason}
           </div>
           <p className="mt-2 text-[11px] text-neutral-600 leading-relaxed">
-            <span className="font-semibold">Operator action:</span> address the issue (re-upload
-            files, fix manual input, or adjust formula), then click Resubmit so the Manager can
-            re-review.
+            {t.rich('rejected.operatorAction', {
+              b: (chunks) => <span className="font-semibold">{chunks}</span>,
+            })}
           </p>
         </div>
       </div>
@@ -156,13 +163,13 @@ function RejectedCard({ period }: Props) {
             className="inline-flex items-center gap-1.5 rounded-md bg-info-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-info-500/90"
           >
             <RefreshCw className="h-3.5 w-3.5" />
-            Resubmit for review
+            {t('rejected.resubmit')}
           </button>
         </div>
       ) : (
         <ConfirmRow
-          message="Resubmit clears the rejection and sends this period back to Manager review."
-          confirmLabel="Yes, resubmit"
+          message={t('rejected.confirmResubmit')}
+          confirmLabel={t('rejected.confirmYes')}
           confirmTone="info"
           onCancel={() => setConfirmingResubmit(false)}
           onConfirm={() => {
@@ -180,6 +187,7 @@ function RejectedCard({ period }: Props) {
 // ----------------------------------------------------------------------------
 
 function FinalizedActionsCard({ period }: Props) {
+  const t = useTranslations('rawArchive.approval');
   const [pendingAction, setPendingAction] = useState<'unfinalize' | 'lock' | null>(null);
   const [reason, setReason] = useState('');
 
@@ -194,14 +202,13 @@ function FinalizedActionsCard({ period }: Props) {
         <div className="flex items-start gap-2">
           <CheckCircle2 className="h-4 w-4 text-info-500 shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-sm font-semibold text-info-500">Finalized</h3>
+            <h3 className="text-sm font-semibold text-info-500">{t('finalized.title')}</h3>
             <p className="mt-0.5 text-[11px] text-neutral-600 leading-relaxed">
-              Approved by{' '}
-              <span className="font-mono">{period.finalizedBy ?? '—'}</span> on{' '}
-              <span className="font-mono">
-                {period.finalizedAt ? fmtDateTime(period.finalizedAt) : '—'}
-              </span>
-              . Reports are locked for this period.
+              {t.rich('finalized.subtitle', {
+                mono: (chunks) => <span className="font-mono">{chunks}</span>,
+                by: period.finalizedBy ?? '—',
+                at: period.finalizedAt ? fmtDateTime(period.finalizedAt) : '—',
+              })}
             </p>
           </div>
         </div>
@@ -213,7 +220,7 @@ function FinalizedActionsCard({ period }: Props) {
               className="inline-flex items-center gap-1 rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
             >
               <RotateCcw className="h-3 w-3" />
-              Unfinalize
+              {t('finalized.unfinalize')}
             </button>
             <button
               type="button"
@@ -221,7 +228,7 @@ function FinalizedActionsCard({ period }: Props) {
               className="inline-flex items-center gap-1 rounded-md border border-neutral-300 bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-neutral-800"
             >
               <Lock className="h-3 w-3" />
-              Lock period
+              {t('finalized.lock')}
             </button>
           </div>
         )}
@@ -230,13 +237,12 @@ function FinalizedActionsCard({ period }: Props) {
       {pendingAction === 'unfinalize' && (
         <div className="mt-2 rounded-md border border-warning-500/30 bg-white px-3 py-2 space-y-2">
           <div className="text-[11px] text-warning-500 leading-relaxed">
-            <span className="font-semibold">Reason required.</span> Unfinalizing reopens this
-            period for edits. Action is logged with your user + reason in the audit trail.
+            {t('finalized.unfinalizeReason.header')}
           </div>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Why are you reopening this period?"
+            placeholder={t('finalized.unfinalizeReason.placeholder')}
             rows={2}
             className="w-full resize-none rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-warning-500"
           />
@@ -246,7 +252,7 @@ function FinalizedActionsCard({ period }: Props) {
               onClick={resetForm}
               className="rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               type="button"
@@ -262,7 +268,7 @@ function FinalizedActionsCard({ period }: Props) {
                   : 'bg-neutral-300 cursor-not-allowed',
               )}
             >
-              Unfinalize
+              {t('finalized.unfinalize')}
             </button>
           </div>
         </div>
@@ -271,14 +277,12 @@ function FinalizedActionsCard({ period }: Props) {
       {pendingAction === 'lock' && (
         <div className="mt-2 rounded-md border border-neutral-300 bg-white px-3 py-2 space-y-2">
           <div className="text-[11px] text-neutral-700 leading-relaxed">
-            <span className="font-semibold">Locking is permanent for daily operations.</span> No
-            more re-uploads or edits on this period. Only Admin can unlock later (with super
-            audit log). Reason optional.
+            {t('finalized.lockReason.header')}
           </div>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="e.g. Period closed for accounting"
+            placeholder={t('finalized.lockReason.placeholder')}
             rows={2}
             className="w-full resize-none rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-500"
           />
@@ -288,7 +292,7 @@ function FinalizedActionsCard({ period }: Props) {
               onClick={resetForm}
               className="rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               type="button"
@@ -299,7 +303,7 @@ function FinalizedActionsCard({ period }: Props) {
               className="inline-flex items-center gap-1 rounded-md bg-neutral-900 px-3 py-1 text-xs font-semibold text-white hover:bg-neutral-800"
             >
               <Lock className="h-3 w-3" />
-              Lock period
+              {t('finalized.lock')}
             </button>
           </div>
         </div>
@@ -323,17 +327,17 @@ function RejectForm({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const t = useTranslations('rawArchive.approval');
   const canConfirm = value.trim().length > 0;
   return (
     <div className="rounded-md border border-error-500/30 bg-white px-3 py-2 space-y-2">
       <div className="text-[11px] text-error-500 leading-relaxed">
-        <span className="font-semibold">Reason required.</span> Rejection is logged. The Operator
-        will see this note and address it before resubmitting.
+        {t('rejectForm.header')}
       </div>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="e.g. Shopee Sales file W18 is missing 2 days of data"
+        placeholder={t('rejectForm.placeholder')}
         rows={3}
         className="w-full resize-none rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-error-500"
       />
@@ -343,7 +347,7 @@ function RejectForm({
           onClick={onCancel}
           className="rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
         >
-          Cancel
+          {t('cancel')}
         </button>
         <button
           type="button"
@@ -356,7 +360,7 @@ function RejectForm({
               : 'bg-neutral-300 cursor-not-allowed',
           )}
         >
-          Reject — send back to Operator
+          {t('rejectForm.submit')}
         </button>
       </div>
     </div>
@@ -376,6 +380,7 @@ function ConfirmRow({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const t = useTranslations('rawArchive.approval');
   return (
     <div className="flex items-center justify-end gap-2 border-t border-warning-500/20 pt-2">
       <span className="text-[11px] text-neutral-600 mr-auto">{message}</span>
@@ -384,7 +389,7 @@ function ConfirmRow({
         onClick={onCancel}
         className="rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
       >
-        Cancel
+        {t('cancel')}
       </button>
       <button
         type="button"

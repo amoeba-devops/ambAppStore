@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { History as HistoryIcon, CheckCircle2, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { fmtDateTime } from '@/lib/format';
 import type { ArchiveFile, ArchiveFileVersion } from '@/lib/raw-archive-mock';
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function FileHistoryModal({ file, onClose }: Props) {
+  const t = useTranslations('rawArchive.fileHistory');
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -50,7 +52,7 @@ export function FileHistoryModal({ file, onClose }: Props) {
             </span>
             <div>
               <span className="text-[10px] uppercase tracking-wider text-neutral-400 block leading-tight">
-                File version history
+                {t('title')}
               </span>
               <h3 className="text-sm font-semibold text-neutral-900 font-mono leading-tight mt-0.5">
                 {file.filename}
@@ -60,7 +62,7 @@ export function FileHistoryModal({ file, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('close')}
             className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700"
           >
             <X className="h-3.5 w-3.5" />
@@ -70,18 +72,14 @@ export function FileHistoryModal({ file, onClose }: Props) {
         {/* Summary strip */}
         <div className="flex items-center gap-3 px-5 py-2 bg-neutral-50/60 border-b border-neutral-100 text-xs text-neutral-500">
           <span>
-            <span className="font-semibold text-neutral-900">{sortedPrior.length + 1}</span>{' '}
-            version{sortedPrior.length + 1 !== 1 ? 's' : ''}
+            {sortedPrior.length + 1 === 1
+              ? t('versionCount', { count: sortedPrior.length + 1 })
+              : t('versionCountPlural', { count: sortedPrior.length + 1 })}
           </span>
           {sortedPrior.length > 0 && (
             <>
               <span className="text-neutral-300">·</span>
-              <span>
-                Latest re-upload:{' '}
-                <span className="text-neutral-700">
-                  {fmtDateTime(file.uploadedAt)}
-                </span>
-              </span>
+              <span>{t('latestReupload', { at: fmtDateTime(file.uploadedAt) })}</span>
             </>
           )}
         </div>
@@ -116,7 +114,7 @@ export function FileHistoryModal({ file, onClose }: Props) {
           </ol>
           {sortedPrior.length === 0 && (
             <div className="mt-4 rounded-md border border-dashed border-neutral-200 bg-neutral-50/40 px-4 py-6 text-center text-xs text-neutral-500">
-              No prior versions — this file has only been uploaded once.
+              {t('noPriorVersions')}
             </div>
           )}
         </div>
@@ -141,6 +139,7 @@ function VersionEntry({
   priorRows?: number;
   priorBytes?: number;
 }) {
+  const t = useTranslations('rawArchive.fileHistory');
   const rowsDelta = priorRows != null ? rows - priorRows : null;
   const bytesDelta = priorBytes != null ? bytes - priorBytes : null;
 
@@ -163,11 +162,11 @@ function VersionEntry({
           {isActive ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-success-500/10 px-2 py-0.5 text-[10px] font-medium text-success-500">
               <CheckCircle2 className="h-2.5 w-2.5" />
-              Current
+              {t('current')}
             </span>
           ) : (
             <span className="inline-flex items-center rounded-full bg-warning-500/10 px-2 py-0.5 text-[10px] font-medium text-warning-500">
-              Replaced
+              {t('replaced')}
             </span>
           )}
           <span className="font-mono text-xs text-neutral-700">{fmtDateTime(uploadedAt)}</span>
@@ -177,7 +176,7 @@ function VersionEntry({
 
         <dl className="mt-1.5 grid grid-cols-3 gap-x-4 gap-y-1 text-[11px]">
           <div>
-            <dt className="text-neutral-400 uppercase tracking-wider text-[9px]">Rows</dt>
+            <dt className="text-neutral-400 uppercase tracking-wider text-[9px]">{t('labelRows')}</dt>
             <dd className="font-mono font-semibold text-neutral-900 tabular-nums">
               {rows.toLocaleString('en-US')}
               {rowsDelta != null && rowsDelta !== 0 && (
@@ -194,7 +193,7 @@ function VersionEntry({
             </dd>
           </div>
           <div>
-            <dt className="text-neutral-400 uppercase tracking-wider text-[9px]">Size</dt>
+            <dt className="text-neutral-400 uppercase tracking-wider text-[9px]">{t('labelSize')}</dt>
             <dd className="font-mono text-neutral-700 tabular-nums">
               {fmtBytes(bytes)}
               {bytesDelta != null && bytesDelta !== 0 && (
@@ -211,7 +210,7 @@ function VersionEntry({
             </dd>
           </div>
           <div>
-            <dt className="text-neutral-400 uppercase tracking-wider text-[9px]">SHA-256</dt>
+            <dt className="text-neutral-400 uppercase tracking-wider text-[9px]">{t('labelChecksum')}</dt>
             <dd className="font-mono text-neutral-500 truncate" title={checksum}>
               {checksum.slice(0, 12)}…
             </dd>

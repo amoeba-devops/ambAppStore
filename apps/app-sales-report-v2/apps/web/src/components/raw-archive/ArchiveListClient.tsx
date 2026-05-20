@@ -6,7 +6,6 @@ import {
   Search,
   ArrowRight,
   Download,
-  Eye,
   History,
   Lock,
   FileText,
@@ -14,12 +13,12 @@ import {
   ChevronDown,
   ChevronRight as ChevronRightIcon,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { fmtVND } from '@/lib/format';
 import type { ArchivePeriod, ArchiveFile, PeriodStatus } from '@/lib/raw-archive-mock';
 import { useEffectivePeriods } from '@/lib/raw-archive-state';
 import { downloadArchiveFile } from '@/lib/raw-archive-download';
-import { FilePreviewModal } from './FilePreviewModal';
 import { FileHistoryModal } from './FileHistoryModal';
 
 interface Props {
@@ -30,6 +29,7 @@ type GranularityFilter = 'week' | 'month';
 type PeriodKeyFilter = 'all' | string;
 
 export function ArchiveListClient({ periods: basePeriods }: Props) {
+  const t = useTranslations('rawArchive');
   const periods = useEffectivePeriods(basePeriods);
   const [granularity, setGranularity] = useState<GranularityFilter>('week');
   const [periodKeyFilter, setPeriodKeyFilter] = useState<PeriodKeyFilter>('all');
@@ -91,38 +91,39 @@ export function ArchiveListClient({ periods: basePeriods }: Props) {
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-semibold text-neutral-900">Raw archive</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Every uploaded report, archived immutably for audit. Originals are preserved exactly as
-          ingested — no edits possible.
-        </p>
+        <h1 className="text-xl font-semibold text-neutral-900">{t('pageTitle')}</h1>
+        <p className="mt-1 text-sm text-neutral-500">{t('pageSubtitle')}</p>
       </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <StatCard
-          label="Files in archive"
+          label={t('stat.files')}
           value={stats.fileCount.toLocaleString('en-US')}
-          sub={`Across ${stats.periodCount} period${stats.periodCount !== 1 ? 's' : ''}`}
-        />
-        <StatCard
-          label="Total rows ingested"
-          value={stats.rowCount.toLocaleString('en-US')}
-          sub={`Compressed footprint ${fmtBytes(stats.byteCount)}`}
-        />
-        <StatCard
-          label="Active period"
-          value={stats.activePeriod ? stats.activePeriod.label : '—'}
           sub={
-            stats.activePeriod
-              ? `${stats.activePeriod.files.length} files · re-ingestable`
-              : 'No active period'
+            stats.periodCount === 1
+              ? t('stat.filesSubSingular', { count: stats.periodCount })
+              : t('stat.filesSub', { count: stats.periodCount })
           }
         />
         <StatCard
-          label="Retention"
-          value="5 years"
-          sub="Per Vietnam tax regulation"
+          label={t('stat.rows')}
+          value={stats.rowCount.toLocaleString('en-US')}
+          sub={t('stat.rowsSub', { size: fmtBytes(stats.byteCount) })}
+        />
+        <StatCard
+          label={t('stat.activePeriod')}
+          value={stats.activePeriod ? stats.activePeriod.label : '—'}
+          sub={
+            stats.activePeriod
+              ? t('stat.activePeriodSub', { count: stats.activePeriod.files.length })
+              : t('stat.activePeriodEmpty')
+          }
+        />
+        <StatCard
+          label={t('stat.retention')}
+          value={t('stat.retentionValue')}
+          sub={t('stat.retentionSub')}
         />
       </div>
 
@@ -132,8 +133,8 @@ export function ArchiveListClient({ periods: basePeriods }: Props) {
           value={granularity}
           onChange={handleGranularityChange}
           options={[
-            { id: 'week', label: 'Weekly' },
-            { id: 'month', label: 'Monthly' },
+            { id: 'week', label: t('filter.weekly') },
+            { id: 'month', label: t('filter.monthly') },
           ]}
         />
 
@@ -142,7 +143,7 @@ export function ArchiveListClient({ periods: basePeriods }: Props) {
             <span className="h-6 w-px bg-neutral-200" aria-hidden />
             <div className="flex flex-wrap items-center gap-1">
               <PeriodFilterPill
-                label="All"
+                label={t('filter.all')}
                 active={periodKeyFilter === 'all'}
                 onClick={() => setPeriodKeyFilter('all')}
               />
@@ -164,7 +165,7 @@ export function ArchiveListClient({ periods: basePeriods }: Props) {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filename…"
+            placeholder={t('filter.searchPlaceholder')}
             className="w-full rounded-md border border-neutral-300 bg-white py-1.5 pl-8 pr-2 text-xs placeholder:text-neutral-400 focus:outline-none focus:border-info-500"
           />
         </div>
@@ -173,7 +174,7 @@ export function ArchiveListClient({ periods: basePeriods }: Props) {
       {/* Period sections */}
       {visiblePeriods.length === 0 ? (
         <div className="rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-10 text-center text-sm text-neutral-500">
-          No files match the current filters.
+          {t('empty')}
         </div>
       ) : (
         <div className="space-y-3">
@@ -207,6 +208,7 @@ function PeriodSection({
   period: ArchivePeriod;
   defaultOpen: boolean;
 }) {
+  const t = useTranslations('rawArchive');
   const [open, setOpen] = useState(defaultOpen);
   const totalRows = period.files.reduce((s, f) => s + f.rows, 0);
   return (
@@ -237,18 +239,19 @@ function PeriodSection({
         </button>
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-xs text-neutral-500 tabular-nums">
-            <span className="font-semibold text-neutral-900">{period.files.length}</span> files
+            <span className="font-semibold text-neutral-900">{period.files.length}</span>{' '}
+            {t('fileColumn.file').toLowerCase()}
             {' · '}
             <span className="font-semibold text-neutral-900">
               {totalRows.toLocaleString('en-US')}
             </span>{' '}
-            rows
+            {t('fileColumn.rows').toLowerCase()}
           </span>
           <Link
             href={`/raw-archive/${encodeURIComponent(period.periodKey)}`}
             className="inline-flex items-center gap-1 rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
           >
-            Open detail
+            {t('section.openDetail')}
             <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
@@ -260,13 +263,13 @@ function PeriodSection({
           <table className="w-full text-sm">
             <thead className="bg-neutral-50/40 text-[10px] uppercase tracking-wider text-neutral-500">
               <tr>
-                <th className="px-4 py-2 text-left font-semibold">File</th>
-                <th className="px-3 py-2 text-left font-semibold w-32">Channel</th>
-                <th className="px-3 py-2 text-left font-semibold w-24">Type</th>
-                <th className="px-3 py-2 text-right font-semibold w-20">Rows</th>
-                <th className="px-3 py-2 text-right font-semibold w-20">Size</th>
-                <th className="px-3 py-2 text-left font-semibold w-36">Uploaded</th>
-                <th className="px-3 py-2 text-left font-semibold w-28">By</th>
+                <th className="px-4 py-2 text-left font-semibold">{t('fileColumn.file')}</th>
+                <th className="px-3 py-2 text-left font-semibold w-32">{t('fileColumn.channel')}</th>
+                <th className="px-3 py-2 text-left font-semibold w-24">{t('fileColumn.type')}</th>
+                <th className="px-3 py-2 text-right font-semibold w-20">{t('fileColumn.rows')}</th>
+                <th className="px-3 py-2 text-right font-semibold w-20">{t('fileColumn.size')}</th>
+                <th className="px-3 py-2 text-left font-semibold w-36">{t('fileColumn.uploaded')}</th>
+                <th className="px-3 py-2 text-left font-semibold w-28">{t('fileColumn.by')}</th>
                 <th className="px-3 py-2 text-right font-semibold w-28"></th>
               </tr>
             </thead>
@@ -285,7 +288,22 @@ function PeriodSection({
   );
 }
 
+const MANUAL_FIELD_KEYS = [
+  'affiliateBookingFees',
+  'shopeeLivestreamFees',
+  'tiktokLivestreamFees',
+  'tiktokAdsSpending',
+] as const;
+type ManualFieldKey = (typeof MANUAL_FIELD_KEYS)[number];
+function isKnownManualField(key: string): key is ManualFieldKey {
+  return (MANUAL_FIELD_KEYS as readonly string[]).includes(key);
+}
+
 function ManualInputSection({ period }: { period: ArchivePeriod }) {
+  const t = useTranslations('rawArchive.manualSection');
+  const tManualField = useTranslations('uploadWizard.step3.field');
+  const manualFieldLabel = (key: string): string =>
+    isKnownManualField(key) ? tManualField(key) : key;
   const [open, setOpen] = useState(false);
   const entries = Object.entries(period.manualInputs);
   const total = entries.reduce((s, [, v]) => s + v, 0);
@@ -305,26 +323,26 @@ function ManualInputSection({ period }: { period: ArchivePeriod }) {
             <ChevronRightIcon className="h-3.5 w-3.5 text-neutral-400" />
           )}
           <Calculator className="h-3.5 w-3.5 text-neutral-500" />
-          <span className="text-xs font-semibold text-neutral-900">Manual Input</span>
+          <span className="text-xs font-semibold text-neutral-900">{t('title')}</span>
           <span className="text-[11px] text-neutral-500">
-            · {entries.length} fields · total{' '}
+            {t('fieldCount', { count: entries.length })}
             <span className="font-mono font-semibold text-neutral-700 tabular-nums">
               {fmtVND(total)}
             </span>
           </span>
           {canEdit ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-success-500/10 px-2 py-0.5 text-[10px] font-medium text-success-500">
-              Editable
+              {t('editable')}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-500">
               <Lock className="h-2.5 w-2.5" />
-              Locked
+              {t('locked')}
             </span>
           )}
         </div>
         <span className="text-[11px] text-neutral-400">
-          {open ? 'Hide' : 'Show'} values
+          {open ? t('hide') : t('show')}
         </span>
       </button>
 
@@ -336,7 +354,7 @@ function ManualInputSection({ period }: { period: ArchivePeriod }) {
                 key={field}
                 className="flex items-baseline justify-between gap-3 py-1 border-b border-neutral-50 last:border-0"
               >
-                <span className="text-neutral-600 truncate">{field}</span>
+                <span className="text-neutral-600 truncate">{manualFieldLabel(field)}</span>
                 <span className="font-mono font-semibold text-neutral-900 tabular-nums whitespace-nowrap">
                   {fmtVND(value)}
                 </span>
@@ -345,14 +363,16 @@ function ManualInputSection({ period }: { period: ArchivePeriod }) {
           </div>
           {canEdit && (
             <div className="mt-2 text-[11px] text-neutral-500">
-              Click{' '}
-              <Link
-                href={`/raw-archive/${encodeURIComponent(period.periodKey)}`}
-                className="font-medium text-info-500 hover:underline"
-              >
-                Open detail
-              </Link>{' '}
-              to edit these values.
+              {t.rich('editHint', {
+                link: (chunks) => (
+                  <Link
+                    href={`/raw-archive/${encodeURIComponent(period.periodKey)}`}
+                    className="font-medium text-info-500 hover:underline"
+                  >
+                    {chunks}
+                  </Link>
+                ),
+              })}
             </div>
           )}
         </div>
@@ -362,8 +382,9 @@ function ManualInputSection({ period }: { period: ArchivePeriod }) {
 }
 
 function FileRow({ file }: { file: ArchiveFile }) {
+  const t = useTranslations('rawArchive.iconBtn');
   const hasHistory = !!file.replacedVersions && file.replacedVersions.length > 0;
-  const [modal, setModal] = useState<'preview' | 'history' | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   return (
     <tr className="hover:bg-neutral-50/60">
       <td className="px-4 py-2.5 align-middle">
@@ -399,25 +420,23 @@ function FileRow({ file }: { file: ArchiveFile }) {
       <td className="px-3 py-2.5 align-middle text-right">
         <div className="inline-flex items-center gap-1">
           <IconButton
-            title="Download original file"
+            title={t('download')}
             icon={<Download className="h-3.5 w-3.5" />}
             onClick={() => downloadArchiveFile(file)}
           />
           <IconButton
-            title="Preview first 5 rows"
-            icon={<Eye className="h-3.5 w-3.5" />}
-            onClick={() => setModal('preview')}
-          />
-          <IconButton
-            title={hasHistory ? `${file.replacedVersions!.length} prior version(s)` : 'No prior versions'}
+            title={
+              hasHistory
+                ? t('priorVersions', { count: file.replacedVersions!.length })
+                : t('noPriorVersions')
+            }
             icon={<History className="h-3.5 w-3.5" />}
             tone={hasHistory ? 'warning' : 'neutral'}
-            onClick={() => setModal('history')}
+            onClick={() => setHistoryOpen(true)}
           />
         </div>
       </td>
-      {modal === 'preview' && <FilePreviewModal file={file} onClose={() => setModal(null)} />}
-      {modal === 'history' && <FileHistoryModal file={file} onClose={() => setModal(null)} />}
+      {historyOpen && <FileHistoryModal file={file} onClose={() => setHistoryOpen(false)} />}
     </tr>
   );
 }
@@ -476,11 +495,12 @@ function TypePill({ type }: { type: string }) {
 }
 
 function PeriodStatusPill({ status }: { status: PeriodStatus }) {
+  const t = useTranslations('rawArchive.status');
   if (status === 'Draft') {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success-500">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-success-500" />
-        Active
+        {t('active')}
       </span>
     );
   }
@@ -488,14 +508,14 @@ function PeriodStatusPill({ status }: { status: PeriodStatus }) {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] font-medium text-neutral-500">
         <Lock className="h-2.5 w-2.5" />
-        Locked
+        {t('locked')}
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-info-500">
       <span className="inline-block h-1.5 w-1.5 rounded-full bg-info-500" />
-      Finalized
+      {t('finalized')}
     </span>
   );
 }

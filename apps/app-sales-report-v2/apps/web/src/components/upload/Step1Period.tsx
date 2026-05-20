@@ -8,6 +8,7 @@ import {
   Lock,
   Lightbulb,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { getAvailableWeeks, getAvailableMonths } from '@/lib/weekly-report-mock';
 import { useArchiveStatusByLabel } from '@/lib/raw-archive-state';
@@ -34,17 +35,24 @@ interface Props {
   selected: SelectedPeriod | null;
   onChangeGranularity: (g: Granularity) => void;
   onChangePeriod: (p: SelectedPeriod) => void;
+  /** Real DB-backed period keys (e.g. ["W19", "W20"]) — used to filter stale overrides. */
+  realPeriodKeys?: string[];
 }
 
-export function Step1Period({ granularity, selected, onChangeGranularity, onChangePeriod }: Props) {
+export function Step1Period({
+  granularity,
+  selected,
+  onChangeGranularity,
+  onChangePeriod,
+  realPeriodKeys = [],
+}: Props) {
+  const t = useTranslations('uploadWizard.step1');
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-neutral-900">Step 1 · Select period</h2>
-          <p className="mt-1 text-sm text-neutral-500">
-            Choose the granularity, then pick the period this upload belongs to.
-          </p>
+          <h2 className="text-base font-semibold text-neutral-900">{t('title')}</h2>
+          <p className="mt-1 text-sm text-neutral-500">{t('subtitle')}</p>
         </div>
         <PeriodStatusTipsButton />
       </div>
@@ -52,21 +60,21 @@ export function Step1Period({ granularity, selected, onChangeGranularity, onChan
       {/* Granularity selection */}
       <div>
         <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-          1. Granularity
+          {t('label1')}
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <GranularityCard
             value="WEEK"
-            label="Weekly report"
-            description="Friday → Thursday (e.g. 27 Mar – 2 Apr)"
+            label={t('card.weekly')}
+            description={t('card.weeklyDesc')}
             icon={CalendarRange}
             active={granularity === 'WEEK'}
             onClick={() => onChangeGranularity('WEEK')}
           />
           <GranularityCard
             value="MONTH"
-            label="Monthly report"
-            description="Full calendar month (e.g. 01-31 Mar)"
+            label={t('card.monthly')}
+            description={t('card.monthlyDesc')}
             icon={CalendarDays}
             active={granularity === 'MONTH'}
             onClick={() => onChangeGranularity('MONTH')}
@@ -78,27 +86,80 @@ export function Step1Period({ granularity, selected, onChangeGranularity, onChan
       {granularity && (
         <div>
           <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-            2. {granularity === 'WEEK' ? 'Pick the week' : 'Pick the month'}
+            {granularity === 'WEEK' ? t('label2Week') : t('label2Month')}
           </div>
           {granularity === 'WEEK' ? (
-            <WeekPickerForUpload selected={selected} onChange={onChangePeriod} />
+            <WeekPickerForUpload
+              selected={selected}
+              onChange={onChangePeriod}
+              realPeriodKeys={realPeriodKeys}
+            />
           ) : (
-            <MonthPicker selected={selected} onChange={onChangePeriod} />
+            <MonthPicker
+              selected={selected}
+              onChange={onChangePeriod}
+              realPeriodKeys={realPeriodKeys}
+            />
           )}
         </div>
       )}
 
-      {/* Summary */}
-      {selected && (
-        <div className="rounded-md border border-info-500/30 bg-info-50/40 px-4 py-3 text-sm">
-          <div className="font-medium text-info-500">Selected period</div>
-          <div className="mt-1 font-mono text-neutral-900">
-            {selected.label} <span className="text-neutral-500">({selected.rangeLabel})</span>
+      {/* Summary + status-aware banner */}
+      {selected && (() => {
+        const status = effectiveStatus(selected.label, realPeriodKeys);
+        if (status === 'Finalized') {
+          return (
+            <div className="rounded-md border border-warning-500/40 bg-warning-500/10 px-4 py-3 text-sm">
+              <div className="flex items-start gap-2 font-medium text-warning-500">
+                <span>⚠️</span>
+                <span>{t('banner.finalizedTitle', { label: selected.label })}</span>
+              </div>
+              <div className="mt-1 text-neutral-700">{t('banner.finalizedBody')}</div>
+            </div>
+          );
+        }
+        if (status === 'Active') {
+          return (
+            <div className="rounded-md border border-info-500/30 bg-info-50/40 px-4 py-3 text-sm">
+              <div className="font-medium text-info-500">
+                {t('banner.activeTitle', { label: selected.label })}
+              </div>
+              <div className="mt-1 text-neutral-700">{t('banner.activeBody')}</div>
+            </div>
+          );
+        }
+        return (
+          <div className="rounded-md border border-info-500/30 bg-info-50/40 px-4 py-3 text-sm">
+            <div className="font-medium text-info-500">{t('banner.selectedTitle')}</div>
+            <div className="mt-1 font-mono text-neutral-900">
+              {selected.label} <span className="text-neutral-500">({selected.rangeLabel})</span>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
+}
+
+/** Resolve effective status for a selected period without reading from a hook. */
+export function effectiveStatus(
+  periodLabel: string,
+  realPeriodKeys: string[],
+): 'Open' | 'Active' | 'Finalized' | 'Locked' {
+  const inReal = realPeriodKeys.includes(periodLabel);
+  if (typeof window === 'undefined') return inReal ? 'Active' : 'Open';
+  try {
+    const raw = localStorage.getItem('raw-archive-state');
+    if (raw) {
+      const map = JSON.parse(raw);
+      const ov = map?.[periodLabel];
+      if (ov?.status === 'Finalized') return 'Finalized';
+      if (ov?.status === 'Locked') return 'Locked';
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return inReal ? 'Active' : 'Open';
 }
 
 interface GranularityCardProps {
@@ -144,12 +205,14 @@ function GranularityCard({ label, description, icon: Icon, active, onClick }: Gr
 function WeekPickerForUpload({
   selected,
   onChange,
+  realPeriodKeys,
 }: {
   selected: SelectedPeriod | null;
   onChange: (p: SelectedPeriod) => void;
+  realPeriodKeys: string[];
 }) {
   const weeks = useMemo(() => getAvailableWeeks(), []);
-  const statusByLabel = useArchiveStatusByLabel();
+  const statusByLabel = useArchiveStatusByLabel(realPeriodKeys);
   const selectedWeekNum = selected?.granularity === 'WEEK' ? selected.periodId : null;
 
   return (
@@ -175,12 +238,14 @@ function WeekPickerForUpload({
 function MonthPicker({
   selected,
   onChange,
+  realPeriodKeys,
 }: {
   selected: SelectedPeriod | null;
   onChange: (p: SelectedPeriod) => void;
+  realPeriodKeys: string[];
 }) {
   const months = getAvailableMonths();
-  const statusByLabel = useArchiveStatusByLabel();
+  const statusByLabel = useArchiveStatusByLabel(realPeriodKeys);
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8">
       {months.map((m) => {
@@ -225,7 +290,8 @@ interface PeriodPillProps {
 }
 
 function PeriodPill({ label, rangeLabel, active, status, isLocked, onClick }: PeriodPillProps) {
-  const lockedTitle = `${label} is Locked — period closed, no re-uploads allowed.`;
+  const t = useTranslations('uploadWizard.step1.pill');
+  const lockedTitle = t('lockedTitle', { label });
   return (
     <button
       type="button"
@@ -257,6 +323,7 @@ function PeriodPill({ label, rangeLabel, active, status, isLocked, onClick }: Pe
 }
 
 function PeriodStatusTipsButton() {
+  const t = useTranslations('uploadWizard.step1.tips');
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -281,8 +348,8 @@ function PeriodStatusTipsButton() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Period status tips"
-        title="Period status tips"
+        aria-label={t('title')}
+        title={t('title')}
         className={cn(
           'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors',
           open
@@ -291,41 +358,33 @@ function PeriodStatusTipsButton() {
         )}
       >
         <Lightbulb className="h-3.5 w-3.5" />
-        Tips
+        {t('button')}
       </button>
       {open && (
         <div className="absolute right-0 top-full z-30 mt-2 w-80 rounded-md border border-neutral-200 bg-white p-3 shadow-lg">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-2">
-            Period status guide
+            {t('title')}
           </div>
           <ul className="grid grid-cols-[80px_1fr] gap-x-3 gap-y-2 text-[11px] text-neutral-600">
             <span className="mt-0.5 inline-flex items-center justify-center gap-1 rounded-full border border-neutral-300 bg-white px-2 py-0.5 text-[10px] font-medium text-neutral-500">
-              Open
+              {t('open')}
             </span>
-            <span className="leading-relaxed">
-              Never ingested — ready for the first upload.
-            </span>
+            <span className="leading-relaxed">{t('openDesc')}</span>
 
             <span className="mt-0.5 inline-flex items-center justify-center gap-1 rounded-full bg-success-500/10 px-2 py-0.5 text-[10px] font-medium text-success-500">
-              Active
+              {t('active')}
             </span>
-            <span className="leading-relaxed">
-              Just ingested, awaiting Manager approval — can still re-upload / edit.
-            </span>
+            <span className="leading-relaxed">{t('activeDesc')}</span>
 
             <span className="mt-0.5 inline-flex items-center justify-center gap-1 rounded-full bg-info-500/10 px-2 py-0.5 text-[10px] font-medium text-info-500">
-              Finalized
+              {t('finalized')}
             </span>
-            <span className="leading-relaxed">
-              Approved by Manager — report data is locked. Must unfinalize before editing.
-            </span>
+            <span className="leading-relaxed">{t('finalizedDesc')}</span>
 
             <span className="mt-0.5 inline-flex items-center justify-center gap-1 rounded-full bg-neutral-200 px-2 py-0.5 text-[10px] font-medium text-neutral-500">
-              <Lock className="h-2.5 w-2.5" /> Locked
+              <Lock className="h-2.5 w-2.5" /> {t('locked')}
             </span>
-            <span className="leading-relaxed">
-              Locked manually by Manager — re-upload / edit no longer allowed.
-            </span>
+            <span className="leading-relaxed">{t('lockedDesc')}</span>
           </ul>
         </div>
       )}
@@ -336,21 +395,22 @@ function PeriodStatusTipsButton() {
 type DisplayStatus = PeriodStatus | 'Open';
 
 function StatusBadge({ status }: { status: DisplayStatus }) {
+  const t = useTranslations('uploadWizard.step1.tips');
   const map: Record<DisplayStatus, { label: string; cls: string; icon?: React.ReactNode }> = {
     Open: {
-      label: 'Open',
+      label: t('open'),
       cls: 'border border-neutral-300 bg-white text-neutral-500',
     },
     Draft: {
-      label: 'Active',
+      label: t('active'),
       cls: 'bg-success-500/10 text-success-500',
     },
     Finalized: {
-      label: 'Finalized',
+      label: t('finalized'),
       cls: 'bg-info-500/10 text-info-500',
     },
     Locked: {
-      label: 'Locked',
+      label: t('locked'),
       cls: 'bg-neutral-200 text-neutral-500',
       icon: <Lock className="h-2.5 w-2.5" />,
     },

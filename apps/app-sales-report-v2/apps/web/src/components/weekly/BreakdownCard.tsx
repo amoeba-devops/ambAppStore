@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import type { BreakdownItem, WeeklyChannel } from '@/lib/weekly-report-mock';
 import { getMetricFormula } from '@/lib/formula-lookup';
@@ -25,7 +26,9 @@ const ACCENT_STYLES: Record<BreakdownAccent, { bar: string; pct: string }> = {
   neutral: { bar: 'bg-neutral-700', pct: 'bg-neutral-100 text-neutral-700' },
 };
 
-export function BreakdownCard({ title, accent, items, krwRate, deltaLabel = 'WoW', channel = 'ALL' }: BreakdownCardProps) {
+export function BreakdownCard({ title, accent, items, krwRate, deltaLabel, channel = 'ALL' }: BreakdownCardProps) {
+  const t = useTranslations('weeklyReport');
+  const resolvedDelta = deltaLabel ?? t('table.wow');
   const safeRate = krwRate > 0 ? krwRate : 1;
   const styles = ACCENT_STYLES[accent];
   const hasMoney = items.some((it) => it.vnd != null && it.rawDisplay == null);
@@ -43,11 +46,11 @@ export function BreakdownCard({ title, accent, items, krwRate, deltaLabel = 'WoW
           hasMoney ? 'grid-cols-[1fr_auto_auto_auto_auto]' : 'grid-cols-[1fr_auto_auto_auto]',
         )}
       >
-        <span>Metric</span>
-        <span className="w-28 text-right">VND</span>
-        {hasMoney && <span className="w-20 text-right">KRW</span>}
-        <span className="w-14 text-right">% Net GMV</span>
-        <span className="w-16 text-right">{deltaLabel}</span>
+        <span>{t('table.metric')}</span>
+        <span className="w-28 text-right">{t('table.vnd')}</span>
+        {hasMoney && <span className="w-20 text-right">{t('table.krw')}</span>}
+        <span className="w-14 text-right">{t('table.pctNetGmv')}</span>
+        <span className="w-16 text-right">{resolvedDelta}</span>
       </div>
 
       <ul className="divide-y divide-neutral-100">
@@ -133,7 +136,7 @@ export function BreakdownCard({ title, accent, items, krwRate, deltaLabel = 'WoW
   );
 }
 
-function PeriodDelta({ value, invert }: { value: number | null; invert?: boolean }) {
+function PeriodDelta({ value }: { value: number | null; invert?: boolean }) {
   if (value == null) {
     return (
       <span className="text-neutral-300 inline-flex items-center justify-end">
@@ -141,12 +144,13 @@ function PeriodDelta({ value, invert }: { value: number | null; invert?: boolean
       </span>
     );
   }
+  // Direction-based color: increase = green, decrease = red, no change = grey.
+  // Ignore `invert` — per user spec the same hue rule applies to every metric.
   const positive = value > 0;
-  const isGood = invert ? !positive : positive;
   const colorBg =
     value === 0
       ? 'bg-neutral-100 text-neutral-500'
-      : isGood
+      : positive
         ? 'bg-success-50 text-success-500'
         : 'bg-error-50 text-error-500';
   const Icon = value === 0 ? Minus : positive ? ArrowUp : ArrowDown;
