@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { CarError } from '@car-v2/shared/errors';
 import { db } from '@car-v2/db/client';
 import {
@@ -253,7 +253,7 @@ function actionForTransition(transition: TripTransition): string {
 /**
  * Vehicle status follows trip status (auto):
  *   start  → IN_USE
- *   end    → AVAILABLE
+ *   end    → AVAILABLE   (+ propagate end odometer to vehicle if higher — BR-3 REQ-20260519)
  *   cancel of IN_PROGRESS → AVAILABLE
  */
 async function syncVehicleStatusForTrip(trip: CarTrip, actor: AuthContext): Promise<void> {
@@ -263,9 +263,20 @@ async function syncVehicleStatusForTrip(trip: CarTrip, actor: AuthContext): Prom
   else if (trip.trpStatus === 'COMPLETED' || trip.trpStatus === 'CANCELLED') newStatus = 'AVAILABLE';
   if (!newStatus) return;
 
+  /* BR-3 (REQ-20260519): on COMPLETED, if trp_end_odometer > vehicle's current
+   * cvh_odometer_km, bump it. GREATEST handles the case where vehicle was
+   * already updated by another flow (manual entry, OIL expense). */
+  const update: Partial<typeof carVehicles.$inferInsert> = {
+    cvhStatus: newStatus,
+    cvhUpdatedAt: new Date(),
+  };
+  if (trip.trpStatus === 'COMPLETED' && trip.trpEndOdometer != null) {
+    update.cvhOdometerKm = sql`GREATEST(${carVehicles.cvhOdometerKm}, ${trip.trpEndOdometer})` as unknown as number;
+  }
+
   await db
     .update(carVehicles)
-    .set({ cvhStatus: newStatus, cvhUpdatedAt: new Date() })
+    .set(update)
     .where(and(eq(carVehicles.cvhId, trip.trpVehicleId), eq(carVehicles.entId, actor.entId)));
 }
 

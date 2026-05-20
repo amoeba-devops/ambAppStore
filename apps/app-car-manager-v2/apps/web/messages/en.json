@@ -54,7 +54,8 @@
     "signIn": "Sign in",
     "signOut": "Sign out",
     "upload": "Upload",
-    "openInMaps": "Open in Maps"
+    "openInMaps": "Open in Maps",
+    "acknowledge": "Acknowledge"
   },
   "common": {
     "loading": "Loading…",
@@ -559,6 +560,25 @@
       "MEAL": "Meal",
       "ACCIDENT": "Accident",
       "INSPECTION": "Inspection"
+    }
+  },
+  "maintenance": {
+    "sidebarTitle": "Maintenance alerts",
+    "emptyTitle": "No alerts",
+    "emptyDesc": "All vehicles are within maintenance window.",
+    "ackedBy": "Acknowledged by {name}",
+    "toastAcked": "Alert acknowledged",
+    "type_OIL_OVERDUE": "Oil change overdue",
+    "type_OIL_DUE_SOON": "Oil change due soon",
+    "type_INSPECTION_OVERDUE": "Inspection overdue",
+    "type_INSPECTION_DUE_SOON": "Inspection due soon",
+    "descOilKm": "Currently {current} km · due at {due} km",
+    "descInspectionDate": "Inspection due: {date}",
+    "banner": {
+      "label_OIL_OVERDUE": "{plate} — oil change overdue",
+      "label_INSPECTION_OVERDUE": "{plate} — inspection overdue",
+      "viewAll": "View all",
+      "dismiss": "Dismiss"
     }
   },
   "reports": {

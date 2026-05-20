@@ -39,7 +39,12 @@ const attachmentSchema = z.object({
   size_bytes: z.number().int().min(1).max(5 * 1024 * 1024),
 });
 
-export const submitExpenseInputSchema = z.object({
+/* Schemas + type are NOT exported — Next.js 15 `'use server'` files can only
+ * export async functions. Re-exporting a Zod object throws:
+ *   `A "use server" file can only export async functions, found object.`
+ * If a client component needs the input type, declare it inline at the call
+ * site or move both to a separate non-server module. */
+const submitExpenseInputSchema = z.object({
   type: z.enum(['FUEL', 'OIL', 'MEAL', 'REPAIR', 'PARKING', 'TOLL', 'ACCIDENT', 'INSPECTION']),
   amount: z.number().positive('amount must be > 0'),
   occurred_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'occurred_at must be YYYY-MM-DD'),
@@ -48,7 +53,7 @@ export const submitExpenseInputSchema = z.object({
   attachments: z.array(attachmentSchema).max(5).default([]),
 });
 
-export type SubmitExpenseInput = z.input<typeof submitExpenseInputSchema>;
+type SubmitExpenseInput = z.input<typeof submitExpenseInputSchema>;
 
 export async function submitExpenseAction(
   input: SubmitExpenseInput,
@@ -83,36 +88,41 @@ export async function submitExpenseAction(
     const lockUntil = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const expId = randomUUID();
 
-    await db.transaction(async (tx) => {
-      await tx.insert(carExpenses).values({
-        expId,
-        entId: actor.entId,
-        expType: parsed.type,
-        expAmount: parsed.amount.toFixed(2),
-        expCurrency: 'VND',
-        expOccurredAt: parsed.occurred_at,
-        expNote: parsed.note ?? null,
-        expStatus: status,
-        expTripId: parsed.trip_id ?? null,
-        expDriverId: driver.drvId,
-        expSubmittedBy: actor.userId,
-        expSubmittedAt: now,
-        expLockedUntil: lockUntil,
-      });
-
-      if (parsed.attachments.length > 0) {
-        await tx.insert(carExpenseAttachments).values(
-          parsed.attachments.map((a) => ({
-            eatId: randomUUID(),
-            entId: actor.entId,
-            eatExpenseId: expId,
-            eatS3Key: a.s3_key,
-            eatMime: a.mime,
-            eatSizeBytes: a.size_bytes,
-          })),
-        );
-      }
+    /* neon-http driver does NOT support `db.transaction()` (HTTP can't hold a
+     * connection across roundtrips). Use `db.batch()` instead — Neon's HTTP
+     * API runs the array as an atomic server-side batch (BEGIN/COMMIT under
+     * the hood), so partial writes don't leak. */
+    const expenseInsert = db.insert(carExpenses).values({
+      expId,
+      entId: actor.entId,
+      expType: parsed.type,
+      expAmount: parsed.amount.toFixed(2),
+      expCurrency: 'VND',
+      expOccurredAt: parsed.occurred_at,
+      expNote: parsed.note ?? null,
+      expStatus: status,
+      expTripId: parsed.trip_id ?? null,
+      expDriverId: driver.drvId,
+      expSubmittedBy: actor.userId,
+      expSubmittedAt: now,
+      expLockedUntil: lockUntil,
     });
+
+    if (parsed.attachments.length > 0) {
+      const attachmentInsert = db.insert(carExpenseAttachments).values(
+        parsed.attachments.map((a) => ({
+          eatId: randomUUID(),
+          entId: actor.entId,
+          eatExpenseId: expId,
+          eatS3Key: a.s3_key,
+          eatMime: a.mime,
+          eatSizeBytes: a.size_bytes,
+        })),
+      );
+      await db.batch([expenseInsert, attachmentInsert]);
+    } else {
+      await expenseInsert;
+    }
 
     /* Audit log + admin notification. Best-effort — these failing shouldn't
      * unwind the expense (the user-visible "submitted" must mean what it
