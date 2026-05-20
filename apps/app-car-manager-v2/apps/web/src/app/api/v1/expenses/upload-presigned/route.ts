@@ -53,7 +53,16 @@ export async function POST(req: NextRequest) {
      * defensive about the key format, even though the UUID prefix means the
      * filename is mostly cosmetic for the bucket. */
     const safeName = filename.replace(/[\\/\x00-\x1f]/g, '_').slice(0, 100);
-    const key = `expenses/${actor.entId}/${actor.userId}/${randomUUID()}-${safeName}`;
+    /* Key layout: `{entId}/expenses/{userId}/{uuid}-{filename}`.
+     *
+     * Entity (company) ID is the OUTERMOST segment so future ops are simple:
+     *   - GDPR delete a company → `aws s3 rm --recursive s3://bucket/{entId}/`
+     *   - Per-tenant IAM scope → policy Resource `arn:.../{entId}/*`
+     *   - Per-tenant lifecycle / quotas without touching other tenants
+     *
+     * `expenses/` then groups by resource family, leaving room for `vehicles/`,
+     * `drivers/` etc later under the same tenant root. */
+    const key = `${actor.entId}/expenses/${actor.userId}/${randomUUID()}-${safeName}`;
 
     const cmd = new PutObjectCommand({
       Bucket: getS3Bucket(),
