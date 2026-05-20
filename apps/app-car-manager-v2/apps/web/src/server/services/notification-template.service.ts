@@ -33,7 +33,12 @@ export type NotificationEvent =
   | 'TRIP.REJECTED'
   | 'TRIP.COMPLETED'
   | 'TRIP.CANCELLED'
-  | 'TRIP.CONFLICT_OVERRIDDEN';
+  | 'TRIP.CONFLICT_OVERRIDDEN'
+  | 'EXPENSE.ACCIDENT_REPORTED'
+  | 'MAINTENANCE.OIL_OVERDUE'
+  | 'MAINTENANCE.OIL_DUE_SOON'
+  | 'MAINTENANCE.INSPECTION_OVERDUE'
+  | 'MAINTENANCE.INSPECTION_DUE_SOON';
 
 export interface TemplateContext {
   /** Trip reference like "TR-1042". */
@@ -91,6 +96,26 @@ const COPY: Record<
       subject: 'Xác nhận trùng lịch',
       body: (c) => `Chuyến ${c.ref} được lưu dù có cảnh báo trùng lịch.`,
     },
+    'EXPENSE.ACCIDENT_REPORTED': {
+      subject: 'Có sự cố tai nạn vừa được ghi nhận',
+      body: (c) => `Chi phí tai nạn ${c.ref} vừa được ghi nhận. Vui lòng kiểm tra.`,
+    },
+    'MAINTENANCE.OIL_OVERDUE': {
+      subject: 'Quá hạn thay dầu',
+      body: (c) => `Xe ${c.ref} đã quá hạn thay dầu, cần xử lý ngay.`,
+    },
+    'MAINTENANCE.OIL_DUE_SOON': {
+      subject: 'Sắp đến hạn thay dầu',
+      body: (c) => `Xe ${c.ref} sắp đến hạn thay dầu, vui lòng lên kế hoạch.`,
+    },
+    'MAINTENANCE.INSPECTION_OVERDUE': {
+      subject: 'Quá hạn đăng kiểm',
+      body: (c) => `Xe ${c.ref} đã quá hạn đăng kiểm.`,
+    },
+    'MAINTENANCE.INSPECTION_DUE_SOON': {
+      subject: 'Sắp đến hạn đăng kiểm',
+      body: (c) => `Xe ${c.ref} sắp đến hạn đăng kiểm.`,
+    },
   },
   en: {
     'TRIP.ASSIGNED': {
@@ -122,6 +147,26 @@ const COPY: Record<
       subject: 'Schedule conflict acknowledged',
       body: (c) => `Trip ${c.ref} was saved despite a schedule conflict warning.`,
     },
+    'EXPENSE.ACCIDENT_REPORTED': {
+      subject: 'New accident expense reported',
+      body: (c) => `Accident expense ${c.ref} has been recorded. Please review.`,
+    },
+    'MAINTENANCE.OIL_OVERDUE': {
+      subject: 'Oil change overdue',
+      body: (c) => `Vehicle ${c.ref} is overdue for an oil change.`,
+    },
+    'MAINTENANCE.OIL_DUE_SOON': {
+      subject: 'Oil change due soon',
+      body: (c) => `Vehicle ${c.ref} is approaching oil change interval.`,
+    },
+    'MAINTENANCE.INSPECTION_OVERDUE': {
+      subject: 'Inspection overdue',
+      body: (c) => `Vehicle ${c.ref} is overdue for inspection.`,
+    },
+    'MAINTENANCE.INSPECTION_DUE_SOON': {
+      subject: 'Inspection due soon',
+      body: (c) => `Vehicle ${c.ref} is approaching its inspection date.`,
+    },
   },
   ko: {
     'TRIP.ASSIGNED': {
@@ -152,6 +197,26 @@ const COPY: Record<
     'TRIP.CONFLICT_OVERRIDDEN': {
       subject: '일정 충돌 확인됨',
       body: (c) => `일정 충돌 경고에도 운행 ${c.ref}이(가) 저장되었습니다.`,
+    },
+    'EXPENSE.ACCIDENT_REPORTED': {
+      subject: '사고 비용이 보고되었습니다',
+      body: (c) => `사고 비용 ${c.ref}이(가) 기록되었습니다. 확인해 주세요.`,
+    },
+    'MAINTENANCE.OIL_OVERDUE': {
+      subject: '오일 교체 기한 초과',
+      body: (c) => `차량 ${c.ref}의 오일 교체 기한이 지났습니다.`,
+    },
+    'MAINTENANCE.OIL_DUE_SOON': {
+      subject: '오일 교체 임박',
+      body: (c) => `차량 ${c.ref}의 오일 교체 시기가 다가옵니다.`,
+    },
+    'MAINTENANCE.INSPECTION_OVERDUE': {
+      subject: '검사 기한 초과',
+      body: (c) => `차량 ${c.ref}의 검사 기한이 지났습니다.`,
+    },
+    'MAINTENANCE.INSPECTION_DUE_SOON': {
+      subject: '검사 기한 임박',
+      body: (c) => `차량 ${c.ref}의 검사 일정이 다가옵니다.`,
     },
   },
 };

@@ -29,6 +29,13 @@
       "when": 1779268432332,
       "tag": "0003_driver-h-passenger-phone-and-expenses",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779710400000,
+      "tag": "0004_maintenance_alerts",
+      "breakpoints": true
     }
   ]
 }

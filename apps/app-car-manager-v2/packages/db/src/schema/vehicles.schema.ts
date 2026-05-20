@@ -48,6 +48,12 @@ export const carVehicles = pgTable(
     cvhLastOilChangeAt: timestamp('cvh_last_oil_change_at', { withTimezone: true }),
     cvhOilIntervalKm: integer('cvh_oil_interval_km').notNull().default(5000),
     cvhOilIntervalMonths: smallint('cvh_oil_interval_months').notNull().default(3),
+    /* Vehicle inspection (đăng kiểm) — added in REQ-20260519 for Maintenance Alert. */
+    cvhLastInspectionAt: timestamp('cvh_last_inspection_at', { withTimezone: true }),
+    cvhNextInspectionAt: timestamp('cvh_next_inspection_at', { withTimezone: true }),
+    cvhInspectionIntervalMonths: smallint('cvh_inspection_interval_months')
+      .notNull()
+      .default(12),
     cvhHomeBase: varchar('cvh_home_base', { length: 100 }),
     cvhNotes: text('cvh_notes'),
     cvhCreatedAt: timestamp('cvh_created_at', { withTimezone: true }).defaultNow().notNull(),

@@ -54,7 +54,8 @@
     "signIn": "로그인",
     "signOut": "로그아웃",
     "upload": "업로드",
-    "openInMaps": "지도에서 열기"
+    "openInMaps": "지도에서 열기",
+    "acknowledge": "확인 완료"
   },
   "common": {
     "loading": "불러오는 중…",
@@ -559,6 +560,25 @@
       "MEAL": "식사",
       "ACCIDENT": "사고",
       "INSPECTION": "검사"
+    }
+  },
+  "maintenance": {
+    "sidebarTitle": "정비 알림",
+    "emptyTitle": "알림 없음",
+    "emptyDesc": "모든 차량이 정비 기한 내에 있습니다.",
+    "ackedBy": "{name}이(가) 확인",
+    "toastAcked": "알림 확인됨",
+    "type_OIL_OVERDUE": "오일 교체 초과",
+    "type_OIL_DUE_SOON": "오일 교체 임박",
+    "type_INSPECTION_OVERDUE": "검사 기한 초과",
+    "type_INSPECTION_DUE_SOON": "검사 기한 임박",
+    "descOilKm": "현재 {current} km · 기한 {due} km",
+    "descInspectionDate": "검사 기한: {date}",
+    "banner": {
+      "label_OIL_OVERDUE": "{plate} — 오일 교체 초과",
+      "label_INSPECTION_OVERDUE": "{plate} — 검사 기한 초과",
+      "viewAll": "전체 보기",
+      "dismiss": "닫기"
     }
   },
   "reports": {

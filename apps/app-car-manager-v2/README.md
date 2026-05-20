@@ -90,7 +90,8 @@ node --env-file=.env -e "import('@neondatabase/serverless').then(async({neon})=>
 ### 2.1 Start web server
 
 ```bash
-npm run dev:web                # → http://localhost:3001 (Next.js dev)
+npm run dev:web                # → http://localhost:3001 (Next.js dev), KHÔNG có cron tự fire
+npm run dev:full               # → web + cron loop song song, 1 terminal (xem §2.5)
 ```
 
 Cổng **3001** (cố ý — port 3000 đã bị `app-sales-report-v2` chiếm). `.env` được load qua `dotenv-cli` để Edge middleware thấy `JWT_SECRET`.
@@ -128,6 +129,39 @@ curl http://localhost:3001/api/v1/health
 ### 2.4 Đổi language UI
 
 URL sẽ tự dùng `NEXT_PUBLIC_DEFAULT_LOCALE` (mặc định `vi`). Để đổi, sửa `.env` → restart server. Roadmap: P1+ sẽ thêm language switcher trong UI.
+
+### 2.5 Run dev kèm maintenance-alert cron loop
+
+Module 2 (Expense + Maintenance) có endpoint `POST /api/v1/cron/maintenance-alert` evaluate hàng ngày trên staging/prod. Khi dev local, có 3 mode:
+
+| Command | Cron auto-fire? | Khi nào dùng |
+|---|---|---|
+| `npm run dev:web` | ❌ | **Default** — iter UI nhanh, không gọi cron |
+| `npm run dev:full` | ✅ mỗi `CRON_INTERVAL_SECONDS` (default 60s) | Khi cần test luồng cron + notification end-to-end |
+| `npm run cron:maintenance` | One-shot | Manual trigger cron 1 lần (cần dev server chạy ở terminal khác) |
+
+`dev:full` dùng `concurrently` chạy `dev:web` + `dev:cron` song song trong 1 terminal (output prefix `[web]` cyan và `[cron]` magenta). Yêu cầu `CRON_SECRET` trong `.env`:
+
+```bash
+echo 'CRON_SECRET=local-dev-cron-secret-change-me' >> .env
+
+# Default 60s
+npm run dev:full
+
+# Test nhanh 15s (Bash / WSL / macOS)
+CRON_INTERVAL_SECONDS=15 npm run dev:full
+
+# Windows PowerShell
+$env:CRON_INTERVAL_SECONDS="15"; npm run dev:full
+```
+
+`dev-cron-loop.mjs` poll `/api/v1/health` đến khi 200 trước fire đầu (tránh 404 lúc Next.js compile). Ctrl+C dừng cả 2 process.
+
+Idempotency 24h vẫn áp dụng → mỗi xe chỉ tạo 1 alert/loại trong cửa sổ 24h. Reset alert để test lại:
+
+```sql
+UPDATE car_maintenance_alerts SET mal_resolved_at = NOW() WHERE mal_resolved_at IS NULL;
+```
 
 ---
 
@@ -270,9 +304,74 @@ Dashboard → service → tab **Settings** → **Custom Domains** → add domain
 
 ---
 
-## 6. Integration với ambManagement
+## 6. Maintenance-alert cron — 3 môi trường
 
-### 6.1 Đăng ký app trên AMA
+`POST /api/v1/cron/maintenance-alert` quét toàn bộ xe theo từng tenant, tạo alert OIL/INSPECTION + fan-out notification cho Admin/Manager. Auth bằng `Authorization: Bearer $CRON_SECRET`. Idempotency 24h (1 xe + 1 type → 1 alert / 24h).
+
+### 6.1 Bảng tổng hợp
+
+| Môi trường | Cách trigger | Schedule | Trạng thái |
+|---|---|---|---|
+| **Local dev (manual)** | `npm run cron:maintenance` | On-demand | ✅ Ready |
+| **Local dev (auto-loop)** | `npm run dev:full` (xem §2.5) | `CRON_INTERVAL_SECONDS` (default 60s) | ✅ Ready |
+| **Staging Docker** (Vietnam server) | Sidecar `cron-maintenance-v2` trong [docker-compose](docker-compose.app-car-manager-v2.yml) | `0 6 * * *` ICT (06:00 hàng ngày) | ✅ Ready, auto-deploy via `deploy-staging.sh` |
+| **Render.com (optional)** | Stub trong [render.yaml](render.yaml) (đang comment) | `0 23 * * *` UTC = 06:00 ICT | ⏸️ Defer per REQ-20260519 D9 |
+
+### 6.2 Docker sidecar (staging Vietnam server)
+
+Service `cron-maintenance-v2` trong [docker-compose.app-car-manager-v2.yml](docker-compose.app-car-manager-v2.yml) dùng `alpine:3.20` + `crond`. Gọi container chính qua Docker DNS nội bộ (không qua nginx).
+
+**Deploy lần đầu**:
+
+```bash
+# 1. SSH vào staging, set CRON_SECRET trong .env
+ssh ambAppStore@stg-apps.amoeba.site
+cd ~/ambAppStore/apps/app-car-manager-v2
+openssl rand -hex 32                                                # → copy output
+echo "CRON_SECRET=<paste-secret>" >> .env
+echo "EXPENSE_LOCK_DAYS=7" >> .env
+exit
+
+# 2. Deploy (script tự pickup cron-maintenance-v2 service)
+ssh ambAppStore@stg-apps.amoeba.site \
+  "cd ~/ambAppStore && git pull origin main && bash platform/scripts/deploy-staging.sh full car-manager-v2"
+```
+
+**Verify trên staging**:
+
+```bash
+ssh ambAppStore@stg-apps.amoeba.site << 'EOF'
+cd ~/ambAppStore/apps/app-car-manager-v2
+docker compose -f docker-compose.app-car-manager-v2.yml ps cron-maintenance-v2
+docker logs cron-maintenance-v2 --tail 20            # boot log: "ready · schedule: 06:00 daily"
+docker exec cron-maintenance-v2 cat /etc/crontabs/root
+# Manual fire (không cần đợi 06:00)
+docker exec cron-maintenance-v2 /usr/local/bin/run-cron
+EOF
+```
+
+**Operational**:
+
+```bash
+docker logs -f cron-maintenance-v2                                                       # tail log
+docker exec cron-maintenance-v2 /usr/local/bin/run-cron                                  # manual fire
+docker compose -f docker-compose.app-car-manager-v2.yml restart cron-maintenance-v2      # restart riêng sidecar
+docker compose -f docker-compose.app-car-manager-v2.yml stop cron-maintenance-v2         # tạm dừng (giữ app)
+```
+
+### 6.3 Render.com cron (defer)
+
+Block `type: cron` trong [render.yaml](render.yaml) hiện đang comment per REQ-20260519 decision D9 — chỉ enable sau khi verify staging stable. Khi sẵn sàng:
+
+1. Uncomment block trong `render.yaml`
+2. Render dashboard → cron service → set env `CRON_SECRET` (cùng giá trị với web service)
+3. Push → Render deploy cron job
+
+---
+
+## 7. Integration với ambManagement
+
+### 7.1 Đăng ký app trên AMA
 
 ambManagement → Admin → Custom Apps → insert record (hoặc SQL):
 ```sql
@@ -280,11 +379,11 @@ INSERT INTO amb_entity_custom_apps (eca_code, eca_url, eca_auth_mode, eca_open_m
 VALUES ('car-manager-v2', 'https://<render-domain>', 'jwt', 'iframe', 'Company Car Management');
 ```
 
-### 6.2 Cấu hình shared JWT_SECRET
+### 7.2 Cấu hình shared JWT_SECRET
 
 Cả ambManagement (issuer) và car-manager-v2 (verifier) phải dùng **cùng 1 `JWT_SECRET`** (HS256, byte-for-byte). Thay `JWT_SECRET` trong cả 2 hệ thống đồng thời.
 
-### 6.3 JWT payload AMA phải issue
+### 7.3 JWT payload AMA phải issue
 
 ```json
 {
@@ -299,7 +398,7 @@ Cả ambManagement (issuer) và car-manager-v2 (verifier) phải dùng **cùng 1
 }
 ```
 
-### 6.4 AMA redirect / iframe URL
+### 7.4 AMA redirect / iframe URL
 
 ```
 https://<car-manager-v2-domain>/?ama_token=<JWT>
@@ -310,7 +409,7 @@ Chi tiết: [CLAUDE.md §5](CLAUDE.md).
 
 ---
 
-## 7. Repository layout
+## 8. Repository layout
 
 ```
 apps/app-car-manager-v2/
@@ -353,7 +452,7 @@ apps/app-car-manager-v2/
 
 ---
 
-## 8. Available routes (P0 scaffold)
+## 9. Available routes (P0 scaffold)
 
 | Route | Phase | Description |
 |---|---|---|
@@ -378,7 +477,7 @@ Sidebar nav active state tự derive từ `usePathname()` — click qua lại c�
 
 ---
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 
 | Triệu chứng | Nguyên nhân | Fix |
 |---|---|---|
@@ -395,13 +494,20 @@ Sidebar nav active state tự derive từ `usePathname()` — click qua lại c�
 
 ---
 
-## 10. Quick reference — npm scripts
+## 11. Quick reference — npm scripts
 
 ```bash
 # Dev workflow
-npm run dev:web              # start Next.js dev → http://localhost:3001
+npm run dev:web              # start Next.js dev → http://localhost:3001 (KHÔNG có cron auto)
+npm run dev:cron             # cron loop only (cần dev:web ở terminal khác)
+npm run dev:full             # web + cron song song, 1 terminal (xem §2.5)
 npm run dev:token            # mint dev JWT URL
 npm run dev:token -- MANAGER # role variant
+
+# Cron (Module 2 maintenance-alert)
+npm run cron:maintenance     # manual one-shot trigger (đọc CRON_SECRET + TARGET_URL từ env)
+                             # → mặc định http://localhost:3001
+                             # → override staging: TARGET_URL=https://... CRON_SECRET=... npm run cron:maintenance
 
 # Build
 npm run typecheck            # tsc --noEmit (turbo cached)
@@ -423,7 +529,7 @@ npm run clean                # rm node_modules + .turbo
 
 ---
 
-## 11. See also
+## 12. See also
 
 - [CLAUDE.md](CLAUDE.md) — ⭐ project context for Claude Code (read first)
 - [PRD.md](PRD.md) — MVP source of truth (business spec)

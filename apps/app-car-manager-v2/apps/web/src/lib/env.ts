@@ -43,6 +43,34 @@ const envSchema = z.object({
    * cascade-fail every trip mutation — broken links are the worst case.
    */
   APP_URL: z.string().min(1).optional(),
+
+  /* AWS S3 — receipt attachment upload (REQ-20260519). Allow empty string
+   * (common in shared .env templates) — `getS3Config()` treats falsy as
+   * "not configured" and returns null. */
+  AWS_REGION: z.string().optional(),
+  AWS_S3_BUCKET: z.string().optional(),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  S3_PRESIGN_EXPIRY_SECONDS: z
+    .string()
+    .regex(/^\d+$/)
+    .optional()
+    .transform((v) => (v ? Number(v) : 300)),
+  S3_MAX_UPLOAD_BYTES: z
+    .string()
+    .regex(/^\d+$/)
+    .optional()
+    .transform((v) => (v ? Number(v) : 10_485_760)),
+
+  /* Module 2 — Expense + Maintenance. */
+  EXPENSE_LOCK_DAYS: z
+    .string()
+    .regex(/^\d+$/)
+    .optional()
+    .transform((v) => (v ? Number(v) : 7)),
+
+  /* Bearer secret for /api/v1/cron/maintenance-alert. */
+  CRON_SECRET: z.string().min(8).optional(),
 });
 
 type Env = z.infer<typeof envSchema>;
@@ -94,6 +122,49 @@ export function getPushConfig():
     vapidPublic: env.WEB_PUSH_VAPID_PUBLIC,
     contact: env.WEB_PUSH_CONTACT,
   };
+}
+
+/**
+ * Returns S3 config if fully configured, else null. Caller treats null
+ * as "S3 upload disabled" — presigned attachment endpoint should 503.
+ */
+export function getS3Config():
+  | {
+      region: string;
+      bucket: string;
+      accessKeyId: string;
+      secretAccessKey: string;
+      presignExpirySeconds: number;
+      maxUploadBytes: number;
+    }
+  | null {
+  const env = loadEnv();
+  if (
+    !env.AWS_REGION ||
+    !env.AWS_S3_BUCKET ||
+    !env.AWS_ACCESS_KEY_ID ||
+    !env.AWS_SECRET_ACCESS_KEY
+  ) {
+    return null;
+  }
+  return {
+    region: env.AWS_REGION,
+    bucket: env.AWS_S3_BUCKET,
+    accessKeyId: env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+    presignExpirySeconds: env.S3_PRESIGN_EXPIRY_SECONDS as number,
+    maxUploadBytes: env.S3_MAX_UPLOAD_BYTES as number,
+  };
+}
+
+/** Module 2 — expense edit lock window in days (default 7). */
+export function getExpenseLockDays(): number {
+  return loadEnv().EXPENSE_LOCK_DAYS as number;
+}
+
+/** Bearer secret expected by /api/v1/cron/* routes. Null = cron disabled. */
+export function getCronSecret(): string | null {
+  return loadEnv().CRON_SECRET ?? null;
 }
 
 /**

@@ -6,6 +6,10 @@ import { absoluteUrl } from '@/lib/request-origin';
 const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? 'amb_session';
 const PUBLIC_PATHS = [
   '/api/v1/health',
+  /* Cron routes (REQ-20260519) — protected by Bearer CRON_SECRET inside the
+   * route handler, NOT JWT. Must bypass session-cookie middleware so Render
+   * Cron / CLI scripts can hit them. */
+  '/api/v1/cron/',
   '/session-expired',
   '/dev-login',
   '/_next',

@@ -54,7 +54,8 @@
     "signIn": "Đăng nhập",
     "signOut": "Đăng xuất",
     "upload": "Tải lên",
-    "openInMaps": "Mở Google Maps"
+    "openInMaps": "Mở Google Maps",
+    "acknowledge": "Đã xử lý"
   },
   "common": {
     "loading": "Đang tải…",
@@ -559,6 +560,25 @@
       "MEAL": "Ăn uống",
       "ACCIDENT": "Tai nạn",
       "INSPECTION": "Đăng kiểm"
+    }
+  },
+  "maintenance": {
+    "sidebarTitle": "Cảnh báo bảo dưỡng",
+    "emptyTitle": "Chưa có cảnh báo",
+    "emptyDesc": "Mọi xe đều trong hạn bảo dưỡng.",
+    "ackedBy": "Đã ghi nhận bởi {name}",
+    "toastAcked": "Đã ghi nhận cảnh báo",
+    "type_OIL_OVERDUE": "Quá hạn thay dầu",
+    "type_OIL_DUE_SOON": "Sắp đến hạn thay dầu",
+    "type_INSPECTION_OVERDUE": "Quá hạn đăng kiểm",
+    "type_INSPECTION_DUE_SOON": "Sắp đến hạn đăng kiểm",
+    "descOilKm": "Hiện tại {current} km · đến hạn {due} km",
+    "descInspectionDate": "Hạn đăng kiểm: {date}",
+    "banner": {
+      "label_OIL_OVERDUE": "{plate} — quá hạn thay dầu",
+      "label_INSPECTION_OVERDUE": "{plate} — quá hạn đăng kiểm",
+      "viewAll": "Xem chi tiết",
+      "dismiss": "Đóng"
     }
   },
   "reports": {

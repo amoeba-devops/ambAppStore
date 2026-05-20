@@ -56,6 +56,12 @@ const DELIVERY_CHANNELS: Record<string, { email: boolean; push: boolean }> = {
   'TRIP.COMPLETED': { email: false, push: true },
   'TRIP.CANCELLED': { email: true, push: true },
   /* CONFLICT_OVERRIDDEN is for the audit trail only — no user notification. */
+  /* Module 2 — REQ-20260519 §5 (Q5): all 3 channels for incidents & maintenance. */
+  'EXPENSE.ACCIDENT_REPORTED': { email: true, push: true },
+  'MAINTENANCE.OIL_OVERDUE': { email: true, push: true },
+  'MAINTENANCE.OIL_DUE_SOON': { email: false, push: true },
+  'MAINTENANCE.INSPECTION_OVERDUE': { email: true, push: true },
+  'MAINTENANCE.INSPECTION_DUE_SOON': { email: false, push: true },
 };
 
 export async function notifyUser(input: NotifyInput): Promise<void> {
