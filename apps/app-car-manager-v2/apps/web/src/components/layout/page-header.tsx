@@ -37,6 +37,12 @@ export async function PageHeader({
       className={cn(
         'sticky top-0 z-20 bg-bg/85 backdrop-blur supports-[backdrop-filter]:bg-bg/70',
         'border-b border-border',
+        /* iPhone Dynamic Island / notch in PWA standalone: without this top
+         * inset the page title gets clipped behind the status-bar cutout.
+         * Safari without notches reports `env(...)` as 0, so this is a no-op
+         * on desktop and Android. The fallback `0px` matters for older
+         * Chrome on Android where the env() value isn't supported. */
+        'pt-[env(safe-area-inset-top,0px)]',
         className,
       )}
     >

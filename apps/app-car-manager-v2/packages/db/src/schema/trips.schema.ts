@@ -48,6 +48,11 @@ export const carTrips = pgTable(
     trpStatus: tripStatusEnum('trp_status').notNull().default('PENDING_ASSIGNMENT'),
     trpPickupAddress: text('trp_pickup_address').notNull(),
     trpDropoffAddress: text('trp_dropoff_address').notNull(),
+    /* Optional contact phone for the passenger. Used by the driver's
+     * tap-to-call button (`tel:`) on `/trips/[id]`. Nullable because most
+     * existing rows pre-date this column and re-entering numbers retroactively
+     * isn't reasonable; UI hides the affordance when null. */
+    trpPassengerPhone: varchar('trp_passenger_phone', { length: 20 }),
     trpScheduledAt: timestamp('trp_scheduled_at', { withTimezone: true }).notNull(),
     trpDurationMinutes: smallint('trp_duration_minutes'),
     trpPurpose: varchar('trp_purpose', { length: 255 }),

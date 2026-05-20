@@ -6,3 +6,4 @@ export * from './trip-stopovers.schema.js';
 export * from './audit-logs.schema.js';
 export * from './notifications.schema.js';
 export * from './push-subscriptions.schema.js';
+export * from './expenses.schema.js';

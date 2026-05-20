@@ -20,8 +20,9 @@ import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getDriverByUserId, listDrivers } from '@/server/queries/drivers.queries';
-import { getTrip, listTrips } from '@/server/queries/trips.queries';
+import { getTrip, listTrips, listTripsForDriver } from '@/server/queries/trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
+import { DriverTripsList } from './_components/driver-trips-list';
 import { TripPeekDrawer } from './_components/trip-peek-drawer';
 
 const STATUS_TONE: Record<CarTripStatus, 'accent' | 'warning' | 'success' | 'info' | 'neutral' | 'danger'> = {
@@ -59,6 +60,28 @@ export default async function TripsListPage({ searchParams }: PageProps) {
   const tFilter = await getTranslations('filters');
   const tCommon = await getTranslations('common');
   const user = await getCurrentUser();
+
+  /* Driver gets a different list shape entirely (card-only, 2-tab Ongoing/
+   * Completed, no role/driver column, no "new" CTA). Branch early so the rest
+   * of this function stays the admin/manager-tuned shape. Page chrome
+   * (PageHeader + breadcrumbs) stays the same across roles so the desktop
+   * layout reads identically — only the content body differs. */
+  if (user.role === 'DRIVER') {
+    const tDriver = await getTranslations('trips.driver');
+    const driver = await getDriverByUserId(user.entId, user.userId);
+    const driverTrips = driver
+      ? await listTripsForDriver(user.entId, driver.drvId, 100)
+      : [];
+    return (
+      <>
+        <PageHeader
+          title={tDriver('title')}
+          breadcrumbs={[{ label: tCo('tenant') }, { label: tDriver('title') }]}
+        />
+        <DriverTripsList trips={driverTrips} />
+      </>
+    );
+  }
 
   /* Default filter = 'pending' — the most actionable view (chuyến chờ phân
    * công hoặc chờ tài xế xác nhận). Admin/Manager landing on /trips usually
@@ -106,10 +129,10 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         label: `${v.cvhPlateNumber} — ${v.cvhMake ?? ''} ${v.cvhModel}`.trim(),
       }));
     }
-    if (user.role === 'DRIVER' && peekTrip.trpDriverId) {
-      const actorDriver = await getDriverByUserId(user.entId, user.userId);
-      peekIsAssignedDriver = actorDriver?.drvId === peekTrip.trpDriverId;
-    }
+    /* DRIVER role early-returned above; this peek-drawer code path only
+     * runs for admin/manager, so the `isAssignedDriver` flag is always
+     * false here. Kept explicitly to make the prop contract obvious. */
+    peekIsAssignedDriver = false;
     peekIsCreator = peekTrip.trpCreatorId === user.userId;
   }
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -136,11 +159,9 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         actions={
           <>
             <Button variant="ghost" size="md" iconLeft={<Download />}>{tA('export')}</Button>
-            {user.role !== 'DRIVER' && (
-              <Button variant="accent" size="md" asChild>
-                <Link href="/trips/new"><Plus />{tA('new')}</Link>
-              </Button>
-            )}
+            <Button variant="accent" size="md" asChild>
+              <Link href="/trips/new"><Plus />{tA('new')}</Link>
+            </Button>
           </>
         }
       />
@@ -188,17 +209,13 @@ export default async function TripsListPage({ searchParams }: PageProps) {
               title={tList('emptyTitle')}
               description={
                 statusFilter === 'all'
-                  ? user.role === 'DRIVER'
-                    ? tList('emptyDriverDesc')
-                    : tList('emptyAdminDesc')
+                  ? tList('emptyAdminDesc')
                   : tList('emptyFilterDesc', { filter: statusFilter })
               }
               action={
-                user.role !== 'DRIVER' ? (
-                  <Button variant="accent" size="md" asChild>
-                    <Link href="/trips/new"><Plus />{tA('new')}</Link>
-                  </Button>
-                ) : undefined
+                <Button variant="accent" size="md" asChild>
+                  <Link href="/trips/new"><Plus />{tA('new')}</Link>
+                </Button>
               }
             />
           </Card>
@@ -338,9 +355,9 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         )}
       </div>
 
-      {user.role !== 'DRIVER' && (
-        <Fab href="/trips/new" label={tA('new')} icon={<Plus />} />
-      )}
+      {/* DRIVER role early-returned above; this Fab + drawer only render for
+       * admin/manager so no role check needed here. */}
+      <Fab href="/trips/new" label={tA('new')} icon={<Plus />} />
 
       {peekTrip && (
         <TripPeekDrawer

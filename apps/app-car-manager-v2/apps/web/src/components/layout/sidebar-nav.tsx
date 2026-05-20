@@ -6,15 +6,30 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Car,
+  ChevronsUpDown,
   ClipboardList,
   IdCard,
   Loader2,
   LogOut,
   PencilLine,
+  User as UserIcon,
   X,
   type LucideIcon,
 } from 'lucide-react';
-import { Avatar, cn, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@car-v2/ui';
+import {
+  Avatar,
+  cn,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { useAllDrafts, type DraftEntry } from '@/hooks/use-all-drafts';
 import { logoutAction } from '@/server/actions/auth/auth.actions';
@@ -53,7 +68,10 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
   const tAct   = useTranslations('actions');
   const tGroup = useTranslations();
   const pathname = usePathname();
-  const active = activeKeyFor(pathname ?? '/');
+  /* Pass role so `/` correctly maps to `today` for drivers and `dashboard`
+   * for admin/manager — otherwise the driver's first tab would never light up
+   * since `dashboard` isn't in their filtered items. */
+  const active = activeKeyFor(pathname ?? '/', role);
   const [signingOut, startSignOut] = useTransition();
 
   const { drafts, removeDraft } = useAllDrafts();
@@ -78,7 +96,10 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
     });
   };
 
-  const items = navItemsForRole(role);
+  /* `me` lives in the avatar dropdown now — filter it out of the sidebar
+   * nav lists so it doesn't appear twice. BottomTabNav still picks it up
+   * for the mobile experience since avatars aren't a persistent UI there. */
+  const items = navItemsForRole(role).filter((i) => i.key !== 'me');
   const workspace = items.filter((i) => i.group === 'workspace');
   const admin = items.filter((i) => i.group === 'admin');
 
@@ -128,40 +149,102 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
         />
       </nav>
 
-      {/* Footer: user card + sign-out */}
+      {/* Footer: avatar = user menu trigger (Me + Sign out).
+       *
+       * Same DropdownMenu in both collapsed and expanded modes — only the
+       * trigger surface changes (icon button vs. full card). Anchored to the
+       * top-right of the trigger with `side="top"` so the menu pops upward
+       * away from the page-content area. */}
       <div className="border-t border-border p-2">
-        {collapsed ? (
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={handleSignOut}
+        <DropdownMenu>
+          {collapsed ? (
+            <TooltipProvider delayDuration={400} disableHoverableContent>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label={tCo('currentUser')}
+                      className={cn(
+                        'mx-auto block h-9 w-9 rounded-full',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+                        'transition-transform duration-150 motion-reduce:transition-none hover:scale-105 active:scale-95',
+                        'data-[state=open]:ring-2 data-[state=open]:ring-ring',
+                      )}
+                    >
+                      {signingOut ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-text-muted mx-auto" />
+                      ) : (
+                        <Avatar name={tCo('currentUser')} size="sm" />
+                      )}
+                    </button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="right">{tCo('currentUser')}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label={tCo('currentUser')}
+                className={cn(
+                  'w-full flex items-center gap-2.5 px-2 py-1.5 rounded text-left',
+                  'transition-colors duration-150 motion-reduce:transition-none',
+                  'hover:bg-surface-2 active:bg-surface-2/80',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  'data-[state=open]:bg-surface-2',
+                )}
+              >
+                <Avatar name={tCo('currentUser')} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-text truncate">{tCo('currentUser')}</div>
+                  <div className="text-xs text-text-muted truncate">{tCo('currentUserRole')}</div>
+                </div>
+                {signingOut ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-text-muted shrink-0" />
+                ) : (
+                  <ChevronsUpDown className="h-3.5 w-3.5 text-text-faint shrink-0" aria-hidden />
+                )}
+              </button>
+            </DropdownMenuTrigger>
+          )}
+
+          <DropdownMenuContent
+            side={collapsed ? 'right' : 'top'}
+            align={collapsed ? 'end' : 'start'}
+            sideOffset={collapsed ? 12 : 8}
+            className="min-w-[200px]"
+          >
+            <DropdownMenuLabel>{tCo('currentUser')}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link
+                href="/settings/me"
+                className="flex items-center gap-2 w-full cursor-pointer"
+              >
+                <UserIcon aria-hidden />
+                <span>{tNav('me')}</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              tone="danger"
+              onSelect={(e) => {
+                /* Keep the menu open until the action fires + browser
+                 * navigates so the user sees the spinner. Closing immediately
+                 * + page swap leaves a "flash" of empty sidebar that feels
+                 * jumpy on slow networks. */
+                e.preventDefault();
+                handleSignOut();
+              }}
               disabled={signingOut}
-              aria-label={tAct('signOut')}
-              title={`${tCo('currentUser')} — ${tAct('signOut')}`}
-              className="h-9 w-9 rounded flex items-center justify-center hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
             >
-              {signingOut ? <Loader2 className="h-4 w-4 animate-spin text-text-muted" /> : <Avatar name={tCo('currentUser')} size="sm" />}
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-surface-2 transition-colors">
-            <Avatar name={tCo('currentUser')} size="sm" />
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-text truncate">{tCo('currentUser')}</div>
-              <div className="text-xs text-text-muted truncate">{tCo('currentUserRole')}</div>
-            </div>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              disabled={signingOut}
-              aria-label={tAct('signOut')}
-              title={tAct('signOut')}
-              className="h-7 w-7 rounded flex items-center justify-center text-text-faint hover:bg-surface hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
-            >
-              {signingOut ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5" />}
-            </button>
-          </div>
-        )}
+              {signingOut ? <Loader2 className="animate-spin" /> : <LogOut aria-hidden />}
+              <span>{tAct('signOut')}</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </aside>
   );
@@ -189,8 +272,9 @@ function NavGroup({
   onRemoveDraft,
   t,
 }: NavGroupProps) {
-  const tDrafts = useTranslations('layout.drafts');
   const tNav = useTranslations('nav');
+
+  if (items.length === 0) return null;
 
   return (
     <div>

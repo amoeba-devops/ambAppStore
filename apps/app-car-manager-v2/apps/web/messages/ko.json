@@ -11,6 +11,10 @@
   },
   "nav": {
     "dashboard": "대시보드",
+    "today": "오늘",
+    "tripsMine": "내 운행",
+    "expensesNew": "비용 기록",
+    "me": "나",
     "trips": "운행",
     "costs": "비용",
     "vehicles": "차량",
@@ -250,6 +254,16 @@
       "errUpdate": "수정할 수 없습니다",
       "draftLabelNew": "운행 예약 중",
       "draftLabelEdit": "{ref} 수정 중"
+    },
+    "driver": {
+      "title": "내 운행",
+      "tabsAria": "상태로 필터링",
+      "tabOngoing": "진행 중",
+      "tabCompleted": "완료",
+      "emptyOngoing": "운행 없음",
+      "emptyOngoingDesc": "현재 배정된 운행이 없습니다. 배정되면 여기에 표시됩니다.",
+      "emptyCompleted": "완료된 운행 없음",
+      "emptyCompletedDesc": "완료, 취소 또는 거절된 운행이 여기에 표시됩니다."
     },
     "conflict": {
       "checking": "일정 충돌 확인 중…",
@@ -574,6 +588,41 @@
     }
   },
   "settings": {
+    "me": {
+      "title": "나",
+      "subtitle": "프로필, 언어, 로그아웃",
+      "profileHint": "이름과 이메일은 amoeba management에서 동기화됩니다.",
+      "roles": {
+        "ADMIN": "관리자",
+        "MANAGER": "매니저",
+        "DRIVER": "기사"
+      },
+      "licenseTitle": "운전면허",
+      "licenseNumber": "면허 번호",
+      "licenseClass": "종류",
+      "licenseExpiry": "만료일",
+      "licenseExpired": "만료됨",
+      "licenseDaysLeft": "{n}일 남음",
+      "licensePhone": "전화",
+      "languageTitle": "언어",
+      "logoutTitle": "로그아웃",
+      "logoutDesc": "현재 세션을 종료하고 로그인 페이지로 돌아갑니다.",
+      "logoutPending": "로그아웃 중…",
+      "push": {
+        "title": "푸시 알림",
+        "description": "운행이 배정되거나 업데이트될 때 — 앱이 열려있지 않아도 알림을 받습니다.",
+        "enable": "알림 켜기",
+        "disable": "알림 끄기",
+        "enableSuccess": "알림이 켜졌습니다",
+        "disableSuccess": "알림이 꺼졌습니다",
+        "permissionDenied": "알림 권한을 거부했습니다. 기기 설정 → 알림에서 다시 활성화하세요.",
+        "denied": "OS 수준에서 알림이 차단되었습니다. 설정 → Safari → 알림에서 허용하세요.",
+        "unsupported": "이 브라우저는 푸시 알림을 지원하지 않습니다. 홈 화면에 앱을 설치하세요.",
+        "errEnable": "알림을 켤 수 없습니다",
+        "errDisable": "알림을 끌 수 없습니다",
+        "errVapidMissing": "푸시 키가 누락되었습니다. 관리자에게 문의하세요."
+      }
+    },
     "general": "일반",
     "generalDesc": "워크스페이스 식별 정보 및 기본 로케일.",
     "tenantName": "테넌트 이름",
@@ -694,6 +743,7 @@
     "tabs": {
       "today": "오늘",
       "trips": "운행",
+      "tripsMine": "내 운행",
       "expenses": "비용",
       "me": "나"
     }
@@ -724,6 +774,84 @@
       "COMPLETED": "완료",
       "REJECTED_BY_DRIVER": "거절",
       "CANCELLED": "취소"
+    },
+    "driver": {
+      "activeNow": "운행 중",
+      "activeNowDesc": "진행 중인 운행",
+      "upNext": "다음",
+      "waitingConfirm": "확인 대기 중",
+      "waitingConfirmDesc": "응답하면 배차가 진행됩니다.",
+      "readyToStart": "출발 준비됨",
+      "readyToStartIn": "{n}분 후 시작",
+      "nothingToday": "오늘 일정 없음",
+      "nothingTodayDesc": "배정된 모든 운행은 아래에서 확인하세요.",
+      "viewAllTrips": "모든 운행 보기",
+      "recordExpense": "비용 기록",
+      "recordExpenseAria": "새 비용 기록",
+      "callPassenger": "{name}에게 전화",
+      "openDetail": "운행 상세",
+      "minutesAbbr": "분",
+      "now": "지금"
+    }
+  },
+  "inbox": {
+    "title": "받은 알림",
+    "unreadCount": "읽지 않음 {n}",
+    "allRead": "모두 읽음",
+    "emptyTitle": "알림이 없습니다",
+    "emptyDesc": "배차 또는 업데이트 시 여기에 표시됩니다.",
+    "markAllRead": "모두 읽음으로 표시",
+    "markAllReadSuccess": "{n}개의 알림을 읽음으로 표시했습니다",
+    "markReadFailed": "상태를 업데이트할 수 없습니다",
+    "unreadAria": "읽지 않음"
+  },
+  "expenses": {
+    "history": {
+      "title": "내 비용",
+      "subtitle": "{count}건 · 최신순",
+      "newExpense": "새 기록",
+      "emptyTitle": "비용 기록 없음",
+      "emptyDriverDesc": "\"새 기록\"을 눌러 연료, 식대, 통행료 영수증을 제출하세요.",
+      "emptyOtherDesc": "기록된 비용이 없습니다."
+    },
+    "status": {
+      "PENDING": "대기 중",
+      "APPROVED": "승인됨",
+      "AUTO_APPROVED": "자동 승인",
+      "REJECTED": "거절됨"
+    },
+    "submit": {
+      "title": "비용 기록",
+      "subtitle": "운행 중 발생한 비용 기록",
+      "stubBanner": "테스트 모드 — 비용이 아직 시스템에 저장되지 않습니다.",
+      "typeLabel": "비용 유형",
+      "amountLabel": "금액 (VND)",
+      "amountPlaceholder": "0",
+      "dateLabel": "발생일",
+      "noteLabel": "메모 (선택)",
+      "notePlaceholder": "맥락 또는 이유…",
+      "tripLabel": "연결된 운행",
+      "tripLinked": "{ref} 운행에 연결됨",
+      "receiptLabel": "영수증 사진",
+      "receiptHint": "촬영하거나 갤러리에서 선택할 수 있습니다. 최대 5장, 각 5MB.",
+      "receiptCamera": "촬영",
+      "receiptGallery": "갤러리에서 선택",
+      "receiptConverting": "이미지 처리 중…",
+      "receiptRemoveAria": "이미지 제거",
+      "submit": "비용 제출",
+      "submitting": "제출 중…",
+      "submittedToast": "비용이 제출되었습니다",
+      "submittedToastDesc": "승인 대기 중입니다.",
+      "errSubmit": "비용을 제출할 수 없습니다",
+      "errMissing": "필수 항목 누락",
+      "errMissingDesc": "비용 유형과 금액은 필수입니다.",
+      "errAmountInvalid": "금액은 0보다 커야 합니다",
+      "errTooManyFiles": "최대 5장",
+      "errFileTooLarge": "각 이미지 최대 5MB",
+      "errCameraDenied": "카메라를 열 수 없습니다",
+      "errCameraDeniedDesc": "설정 → Safari → 카메라에서 권한을 허용한 후 다시 시도해 주세요.",
+      "errHeicFailed": "HEIC 이미지를 처리할 수 없습니다",
+      "errHeicFailedDesc": "다시 촬영하거나 갤러리에서 다른 이미지를 선택해 주세요."
     }
   },
   "address": {

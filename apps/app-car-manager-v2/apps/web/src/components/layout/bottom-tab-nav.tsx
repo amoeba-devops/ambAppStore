@@ -3,31 +3,33 @@
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CalendarClock, ClipboardList, Receipt, User, type LucideIcon } from 'lucide-react';
 import { cn } from '@car-v2/ui';
+import type { LocalRole } from '@car-v2/shared/auth';
+import { navItemsForRole, type NavKey } from './nav-items';
 
-interface TabItem {
-  key: string;
-  href: string;
-  Icon: LucideIcon;
-  matches: (path: string) => boolean;
-  labelKey: 'today' | 'trips' | 'expenses' | 'me';
+interface BottomTabNavProps {
+  role: LocalRole;
 }
 
-/* Driver-centric tab structure per PRD §6.1.4 — bottom tabs replace sidebar on
- * mobile viewports. Tabs are independent of role (server can later filter), but
- * default is the 4-tab Driver view. */
-const TABS: TabItem[] = [
-  { key: 'today',    href: '/today',    Icon: CalendarClock,  matches: (p) => p === '/today' || p === '/',                labelKey: 'today'    },
-  { key: 'trips',    href: '/trips',    Icon: ClipboardList,  matches: (p) => p.startsWith('/trips'),                     labelKey: 'trips'    },
-  { key: 'expenses', href: '/costs',    Icon: Receipt,        matches: (p) => p.startsWith('/costs') || p.startsWith('/expenses'), labelKey: 'expenses' },
-  { key: 'me',       href: '/settings', Icon: User,           matches: (p) => p.startsWith('/settings') || p.startsWith('/users') || p.startsWith('/me'), labelKey: 'me' },
-];
-
-export function BottomTabNav() {
+/* Mobile-only navigation bar.
+ *
+ * Tabs derive from `navItemsForRole(role)` so the same canonical nav source
+ * powers both the desktop sidebar and the mobile tab bar — adding a new route
+ * means editing one file, not two. We take the first 4 workspace items since
+ * the bar is a 4-column grid.
+ *
+ * Active state matches by `href`-prefix; for `/` we treat the user's role
+ * landing as active (admin → dashboard `/`, driver → today `/today`).
+ *
+ * Hidden on md+ where the sidebar takes over. */
+export function BottomTabNav({ role }: BottomTabNavProps) {
   const pathname = usePathname() ?? '/';
-  const tTabs = useTranslations('layout.tabs');
-  const tL    = useTranslations('layout');
+  const tNav = useTranslations('nav');
+  const tL   = useTranslations('layout');
+
+  const items = navItemsForRole(role)
+    .filter((item) => item.group === 'workspace')
+    .slice(0, 4);
 
   return (
     <nav
@@ -35,10 +37,10 @@ export function BottomTabNav() {
       className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-surface/95 backdrop-blur border-t border-border pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="grid grid-cols-4 h-14">
-        {TABS.map((tab) => {
-          const isActive = tab.matches(pathname);
+        {items.map((item) => {
+          const isActive = matchesTab(pathname, item.href, item.key);
           return (
-            <li key={tab.key} className="relative">
+            <li key={item.key} className="relative">
               {/* Active indicator — top accent bar */}
               <span
                 aria-hidden
@@ -48,7 +50,7 @@ export function BottomTabNav() {
                 )}
               />
               <Link
-                href={tab.href}
+                href={item.href}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium',
@@ -57,12 +59,14 @@ export function BottomTabNav() {
                   isActive ? 'text-accent' : 'text-text-muted',
                 )}
               >
-                <tab.Icon
+                <item.Icon
                   className={cn('h-[22px] w-[22px] transition-transform duration-180', isActive && 'scale-[1.05]')}
                   strokeWidth={isActive ? 2.4 : 1.8}
                   aria-hidden
                 />
-                <span className={cn('leading-none', isActive && 'font-semibold')}>{tTabs(tab.labelKey)}</span>
+                <span className={cn('leading-none', isActive && 'font-semibold')}>
+                  {tNav(navLabelKey(item.key))}
+                </span>
               </Link>
             </li>
           );
@@ -70,4 +74,34 @@ export function BottomTabNav() {
       </ul>
     </nav>
   );
+}
+
+/* Match the pathname to a tab.
+ *
+ * Special cases:
+ *   - Root `/` activates whichever item maps the role landing (dashboard for
+ *     admin/manager, today for driver). The active item carries `href === '/'`
+ *     or `href === '/today'`.
+ *   - `tripsMine` and `trips` both point to `/trips` — they don't both render
+ *     in a single user's nav (role filters one out), so a single startsWith
+ *     check is enough.
+ *   - Routes that share a prefix (`/settings/me` vs `/settings`) are resolved
+ *     by exact-or-longer match, but since the role filter keeps at most one of
+ *     them in `items`, the simple prefix check is correct in practice. */
+function matchesTab(pathname: string, href: string, key: NavKey): boolean {
+  if (pathname === href) return true;
+  if (href === '/') return pathname === '/';
+  /* `/expenses` subroutes all live under `expensesNew`'s `/expenses/new` —
+   * widen the match so the tab stays lit on subsequent flows. */
+  if (key === 'expensesNew' && pathname.startsWith('/expenses')) return true;
+  if (key === 'me' && pathname.startsWith('/settings/me')) return true;
+  if (key === 'today' && pathname === '/') return true;
+  return pathname.startsWith(href + '/') || pathname === href;
+}
+
+/* Some nav keys differ from their i18n label key (specifically `audit` reads
+ * as `auditLog` in the messages bundle for legibility). All others map 1:1. */
+function navLabelKey(key: NavKey): string {
+  if (key === 'audit') return 'auditLog';
+  return key;
 }
