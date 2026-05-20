@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { Calendar, Clock, Hourglass, Mail, Phone, User } from 'lucide-react';
 import { Badge } from '@car-v2/ui';
+import { DriverActionBar } from '@/components/layout/driver-action-bar';
 import { MapPreview } from '@/components/inputs/map-preview';
 import type { TripDetail } from '@/server/queries/trips.queries';
 import { TripActions } from '../trip-actions';
@@ -40,8 +41,7 @@ export async function DriverView({ trip, isAssignedDriver, hasMap }: DriverViewP
   const tStatus = await getTranslations('trips.status');
   const tDetail = await getTranslations('trips.detail');
 
-  /* Whether the driver currently has a state-machine action they can take.
-   * Used to emphasise the Primary Action panel visually. */
+  /* Whether the driver currently has a state-machine action they can take. */
   const driverHasPrimaryAction =
     isAssignedDriver &&
     (trip.trpStatus === 'PENDING_DRIVER_CONFIRMATION' ||
@@ -50,7 +50,10 @@ export async function DriverView({ trip, isAssignedDriver, hasMap }: DriverViewP
 
   return (
     <div className="flex-1 overflow-auto">
-      <div className="mx-auto max-w-3xl px-4 md:px-6 py-4 md:py-5 space-y-5">
+      {/* `pb-[220px]` reserves space at the bottom so the last section isn't
+       * tucked under the sticky `<DriverActionBar>` + global BottomTabNav +
+       * iPhone safe-area on mobile. Desktop has shorter chrome so `md:pb-32`. */}
+      <div className="mx-auto max-w-3xl px-4 md:px-6 py-4 md:py-5 space-y-5 pb-[220px] md:pb-32">
 
         {/* ── Status row — single inline, tight ─────────────────────── */}
         <div className="flex items-center gap-3 flex-wrap">
@@ -77,9 +80,10 @@ export async function DriverView({ trip, isAssignedDriver, hasMap }: DriverViewP
           </div>
         )}
 
-        {/* ── MAP HERO — full-width, ~50vh on mobile, taller on tablet ── */}
+        {/* ── MAP HERO — capped at 35vh on phones so route stops stay above
+         *    the fold; gives the map more room on tablet/desktop. ───────── */}
         {hasMap && (
-          <section>
+          <section className="[&_iframe]:!h-[35vh] md:[&_iframe]:!h-[50vh]">
             <MapPreview
               pickup={trip.trpPickupAddress}
               dropoff={trip.trpDropoffAddress}
@@ -88,33 +92,6 @@ export async function DriverView({ trip, isAssignedDriver, hasMap }: DriverViewP
             />
           </section>
         )}
-
-        {/* ── PRIMARY ACTION — emphasised when driver can act ───────── */}
-        <section
-          className={[
-            'rounded-2xl px-4 py-4 md:px-5 md:py-5',
-            driverHasPrimaryAction
-              ? 'bg-accent-soft border-2 border-accent shadow-sm'
-              : 'bg-surface border border-border',
-          ].join(' ')}
-        >
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="text-[10.5px] font-bold text-text-faint uppercase tracking-wider">
-              {tDetail('actionsTitle')}
-            </div>
-            <TripActions
-              tripId={trip.trpId}
-              status={trip.trpStatus}
-              role="DRIVER"
-              isAssignedDriver={isAssignedDriver}
-              isCreator={false}
-              drivers={[]}
-              vehicles={[]}
-              tripScheduledAtIso={trip.trpScheduledAt.toISOString()}
-              tripDurationMinutes={trip.trpDurationMinutes}
-            />
-          </div>
-        </section>
 
         {/* ── Route stops — vertical, easy to glance ───────────────── */}
         <section className="rounded-xl border border-border bg-surface px-4 py-4 md:px-5 md:py-5">
@@ -141,50 +118,95 @@ export async function DriverView({ trip, isAssignedDriver, hasMap }: DriverViewP
           )}
         </section>
 
-        {/* ── Passenger card with tap-to-act ────────────────────────── */}
-        <section className="rounded-xl border border-border bg-surface px-4 py-4 md:px-5 md:py-5">
-          <SectionTitle>{tDetail('passenger')}</SectionTitle>
-          <Property
-            icon={<User />}
-            label={tDetail('passenger')}
-            value={trip.passengerName ?? tDetail('passengerUnspecified')}
-          />
-          {trip.passengerEmail && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              <a
-                href={`mailto:${trip.passengerEmail}`}
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm font-medium text-text hover:bg-surface-3 transition-colors"
-              >
-                <Mail className="h-4 w-4" />
-                <span>{trip.passengerEmail}</span>
-              </a>
+        {/* ── More details — passenger / notes / driver-phone folded behind
+         *    a summary. Drivers in-cab don't need this on first read; opening
+         *    it is one tap when they want passenger contact or notes. ───── */}
+        <details className="rounded-xl border border-border bg-surface px-4 md:px-5 group">
+          <summary className="flex items-center justify-between cursor-pointer list-none py-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset rounded">
+            <span className="text-[10.5px] font-bold text-text-faint uppercase tracking-wider">
+              {tDetail('detailsTitle')}
+            </span>
+            <span className="text-xs text-text-muted group-open:rotate-180 transition-transform" aria-hidden>▾</span>
+          </summary>
+
+          <div className="pb-4 space-y-5">
+            {/* Passenger */}
+            <div>
+              <SectionTitle>{tDetail('passenger')}</SectionTitle>
+              <Property
+                icon={<User />}
+                label={tDetail('passenger')}
+                value={trip.passengerName ?? tDetail('passengerUnspecified')}
+              />
+              {(trip.passengerEmail || trip.trpPassengerPhone) && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {trip.trpPassengerPhone && (
+                    /* `tel:` opens the dialer app on phone (the priority
+                     * affordance for a driver mid-route who needs to reach
+                     * the passenger). On desktop most OSes have an associated
+                     * handler too (FaceTime, Skype). */
+                    <a
+                      href={`tel:${trip.trpPassengerPhone}`}
+                      className="inline-flex items-center gap-2 rounded-lg border border-accent bg-accent-soft px-3 py-2 text-sm font-semibold text-accent hover:bg-accent-soft/70 transition-colors min-h-[44px]"
+                      aria-label={`Call ${trip.passengerName ?? trip.trpPassengerPhone}`}
+                    >
+                      <Phone className="h-4 w-4" />
+                      <span className="font-mono tabular">{trip.trpPassengerPhone}</span>
+                    </a>
+                  )}
+                  {trip.passengerEmail && (
+                    <a
+                      href={`mailto:${trip.passengerEmail}`}
+                      className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm font-medium text-text hover:bg-surface-3 transition-colors min-h-[44px]"
+                      aria-label={`Email ${trip.passengerEmail}`}
+                    >
+                      <Mail className="h-4 w-4" />
+                      <span>{trip.passengerEmail}</span>
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
-          )}
-        </section>
 
-        {/* ── Notes (collapsible, default closed) ───────────────────── */}
-        {trip.trpNotes && (
-          <details className="rounded-xl border border-border bg-surface px-4 py-3 md:px-5 group">
-            <summary className="flex items-center justify-between cursor-pointer list-none">
-              <span className="text-[10.5px] font-bold text-text-faint uppercase tracking-wider">
-                {tDetail('notesTitle')}
-              </span>
-              <span className="text-xs text-text-muted group-open:rotate-180 transition-transform">▾</span>
-            </summary>
-            <p className="mt-3 text-sm text-text leading-relaxed whitespace-pre-wrap">{trip.trpNotes}</p>
-          </details>
-        )}
+            {/* Notes */}
+            {trip.trpNotes && (
+              <div>
+                <SectionTitle>{tDetail('notesTitle')}</SectionTitle>
+                <p className="mt-2 text-sm text-text leading-relaxed whitespace-pre-wrap">{trip.trpNotes}</p>
+              </div>
+            )}
 
-        {/* ── Driver phone reminder (only if assigned and phone present) ── */}
-        {isAssignedDriver && trip.driverPhone && (
-          <div className="text-xs text-text-faint inline-flex items-center gap-1.5 px-1">
-            <Phone className="h-3 w-3" aria-hidden />
-            <span className="font-mono tabular">{trip.driverPhone}</span>
-            <Clock className="h-3 w-3 ml-2" aria-hidden />
-            <span className="tabular">{tDetail('auditLogged')}</span>
+            {/* Driver phone + audit footer */}
+            {isAssignedDriver && trip.driverPhone && (
+              <div className="text-xs text-text-faint inline-flex items-center gap-1.5 pt-1">
+                <Phone className="h-3 w-3" aria-hidden />
+                <span className="font-mono tabular">{trip.driverPhone}</span>
+                <Clock className="h-3 w-3 ml-2" aria-hidden />
+                <span className="tabular">{tDetail('auditLogged')}</span>
+              </div>
+            )}
           </div>
-        )}
+        </details>
       </div>
+
+      {/* Sticky bottom action bar — only show when driver actually has
+       * something to do. Otherwise the bar would just be visual chrome with
+       * "No actions available". */}
+      {driverHasPrimaryAction && (
+        <DriverActionBar>
+          <TripActions
+            tripId={trip.trpId}
+            status={trip.trpStatus}
+            role="DRIVER"
+            isAssignedDriver={isAssignedDriver}
+            isCreator={false}
+            drivers={[]}
+            vehicles={[]}
+            tripScheduledAtIso={trip.trpScheduledAt.toISOString()}
+            tripDurationMinutes={trip.trpDurationMinutes}
+          />
+        </DriverActionBar>
+      )}
     </div>
   );
 }

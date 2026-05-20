@@ -15,6 +15,20 @@ interface AppShellClientProps {
   children: React.ReactNode;
 }
 
+/* Single application shell for every role.
+ *
+ * Driver vs Admin/Manager differ only in:
+ *   1. Which nav items appear in the sidebar / bottom tab (see `nav-items.ts`
+ *      — filtered by `roles` array per item).
+ *   2. Which routes the middleware lets them visit (`isDriverAllowed` in
+ *      `middleware.ts`).
+ *
+ * The chrome itself — sidebar on md+, BottomTabNav on mobile, PageHeader per
+ * page, install prompt, toaster — is identical across roles. That was an
+ * earlier (rolled-back) experiment to give drivers a distinct shell; user
+ * feedback was that a visual split breaks design-system consistency and makes
+ * the desktop driver view feel like a different app. So role-based variation
+ * lives at the *content* layer now, not the *chrome* layer. */
 export function AppShellClient({ role, children }: AppShellClientProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -52,7 +66,7 @@ export function AppShellClient({ role, children }: AppShellClientProps) {
       <div className="hidden md:contents">
         <CollapseHandle collapsed={collapsed} onClick={toggle} />
       </div>
-      <BottomTabNav />
+      <BottomTabNav role={role} />
       <InstallPrompt />
       <Toaster />
     </div>

@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import {
   ArrowRight,
   Car,
@@ -68,6 +69,15 @@ export default async function DashboardPage() {
   const tTStatus = await getTranslations('trips.status');
   const tCat     = await getTranslations('reports.categories');
   const user = await getCurrentUser();
+
+  /* This page is the Admin/Manager KPI dashboard. Driver should never see it
+   * — their landing is `/today`. Middleware already redirects driver hitting
+   * `/`, but this defense-in-depth guards against:
+   *   - someone disabling middleware locally during dev
+   *   - prefetches reaching this RSC before the redirect resolves
+   *   - the page being imported (and its queries run) from a server component
+   *     before the middleware ran (paranoia, not a real Next.js case today) */
+  if (user.role === 'DRIVER') redirect('/today');
 
   const [vehicles, todayTrips, allTrips, recentAudit] = await Promise.all([
     listVehicles(user.entId),

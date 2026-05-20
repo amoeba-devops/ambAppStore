@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { mapAmaRoleToLocal } from '@car-v2/shared/auth';
 import { verifyAmaJwt } from '@/lib/auth/verify-jwt';
 import { absoluteUrl } from '@/lib/request-origin';
 
@@ -17,6 +18,43 @@ const PUBLIC_PATHS = [
   '/offline.html',
 ];
 const IS_PROD = process.env.NODE_ENV === 'production';
+
+/* Allowlist of paths a DRIVER role can hit directly. Anything else gets
+ * deflected to `/today`.
+ *
+ * Why allowlist (not blocklist):
+ *   - New admin routes added later won't accidentally leak to drivers.
+ *   - Easier to audit at review time — the whole set fits in one screen.
+ *
+ * Notably `/` is NOT in this list: that page renders the Admin/Manager
+ * dashboard (KPI cards, fleet status, spend mix) which is irrelevant —
+ * and partly leaky — for drivers. The deflect rule then bounces driver `/`
+ * to `/today`, which is their actual home.
+ *
+ * The `/trips/:id/edit` denial is encoded as an explicit early return INSIDE
+ * the `/trips/...` branch — otherwise the broad `/trips` prefix would let it
+ * through. Same idea for `/trips/new`. */
+function isDriverAllowed(pathname: string): boolean {
+  if (pathname === '/today') return true;
+  if (pathname === '/trips') return true;
+  if (pathname.startsWith('/trips/')) {
+    if (pathname === '/trips/new') return false;
+    if (/^\/trips\/[^/]+\/edit$/.test(pathname)) return false;
+    return /^\/trips\/[^/]+$/.test(pathname);
+  }
+  /* Driver expense history (`/expenses`) + submission (`/expenses/new`). The
+   * admin approval queue at `/costs` is intentionally not in this list — that
+   * remains admin/manager-only. */
+  if (pathname === '/expenses' || pathname.startsWith('/expenses/')) return true;
+  /* Profile/preferences/logout (NOT the tenant `/settings`). */
+  if (pathname === '/settings/me' || pathname.startsWith('/settings/me/')) return true;
+  /* In-app notification stream. */
+  if (pathname === '/inbox' || pathname.startsWith('/inbox/')) return true;
+  /* Server actions + JSON endpoints are mounted under /api — leave them open
+   * since the actions themselves do their own role checks. */
+  if (pathname.startsWith('/api/')) return true;
+  return false;
+}
 
 const cookieAttrs = {
   httpOnly: true,
@@ -55,6 +93,13 @@ export async function middleware(req: NextRequest) {
   }
   try {
     const claims = await verifyAmaJwt(cookieToken);
+    /* Driver route guard — applied AFTER JWT verify so we trust the role
+     * claim. Admin / Manager continue with no extra check; the page-level
+     * `requireRole()` in each RSC still handles finer permissions for them. */
+    const localRole = mapAmaRoleToLocal(claims.role);
+    if (localRole === 'DRIVER' && !isDriverAllowed(pathname)) {
+      return NextResponse.redirect(absoluteUrl(req, '/today'));
+    }
     // MUST propagate as REQUEST headers (not response headers) so RSC's
     // `headers()` in getCurrentUser() can read x-ent-id / x-user-id / x-user-role.
     // Setting on `res.headers` would only send them to the browser, not the page.

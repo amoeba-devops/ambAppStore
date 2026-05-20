@@ -3,13 +3,17 @@
   "appSub": "Quản lý xe công ty",
   "nav": {
     "dashboard": "Tổng quan",
+    "today": "Hôm nay",
     "trips": "Chuyến đi",
+    "tripsMine": "Chuyến của tôi",
     "costs": "Chi phí",
+    "expensesNew": "Ghi nhận chi phí",
     "vehicles": "Phương tiện",
     "drivers": "Tài xế",
     "users": "Người dùng",
     "reports": "Báo cáo",
     "settings": "Cài đặt",
+    "me": "Tôi",
     "auditLog": "Nhật ký kiểm toán",
     "inbox": "Hộp thư",
     "schedule": "Lịch trình"
@@ -236,6 +240,16 @@
       "driverLabel": "Tài xế đang được giao:",
       "durationMinutes": "~{minutes} phút",
       "andNMore": "và {count} chuyến khác"
+    },
+    "driver": {
+      "title": "Chuyến của tôi",
+      "tabsAria": "Lọc theo trạng thái",
+      "tabOngoing": "Đang xử lý",
+      "tabCompleted": "Hoàn tất",
+      "emptyOngoing": "Không có chuyến nào",
+      "emptyOngoingDesc": "Bạn không có chuyến nào đang chờ. Khi điều phối phân công, chuyến sẽ hiện ở đây.",
+      "emptyCompleted": "Chưa có chuyến hoàn tất",
+      "emptyCompletedDesc": "Lịch sử chuyến đã hoàn tất, huỷ hoặc từ chối sẽ hiện ở đây."
     },
     "detail": {
       "summary": "Tóm tắt",
@@ -533,6 +547,41 @@
     }
   },
   "settings": {
+    "me": {
+      "title": "Tôi",
+      "subtitle": "Thông tin cá nhân, ngôn ngữ và đăng xuất",
+      "profileHint": "Tên và email được đồng bộ từ amoeba management.",
+      "roles": {
+        "ADMIN": "Quản trị",
+        "MANAGER": "Quản lý",
+        "DRIVER": "Tài xế"
+      },
+      "licenseTitle": "Bằng lái",
+      "licenseNumber": "Số bằng",
+      "licenseClass": "Hạng",
+      "licenseExpiry": "Ngày hết hạn",
+      "licenseExpired": "Đã hết hạn",
+      "licenseDaysLeft": "Còn {n} ngày",
+      "licensePhone": "Điện thoại",
+      "languageTitle": "Ngôn ngữ",
+      "logoutTitle": "Đăng xuất",
+      "logoutDesc": "Kết thúc phiên hiện tại và quay lại trang đăng nhập.",
+      "logoutPending": "Đang đăng xuất…",
+      "push": {
+        "title": "Thông báo đẩy",
+        "description": "Nhận thông báo khi có chuyến mới hoặc cập nhật từ điều phối — kể cả khi app không mở.",
+        "enable": "Bật thông báo",
+        "disable": "Tắt thông báo",
+        "enableSuccess": "Đã bật thông báo",
+        "disableSuccess": "Đã tắt thông báo",
+        "permissionDenied": "Bạn đã từ chối quyền thông báo. Mở Cài đặt thiết bị → Thông báo để bật lại.",
+        "denied": "Thông báo bị chặn ở cấp hệ điều hành. Mở Cài đặt → Safari → Thông báo để cho phép.",
+        "unsupported": "Trình duyệt này chưa hỗ trợ thông báo đẩy. Cài app lên màn hình chính để bật tính năng này.",
+        "errEnable": "Không bật được thông báo",
+        "errDisable": "Không tắt được thông báo",
+        "errVapidMissing": "Thiếu khoá đẩy. Liên hệ admin."
+      }
+    },
     "general": "Chung",
     "generalDesc": "Định danh workspace và mặc định ngôn ngữ.",
     "tenantName": "Tên tenant",
@@ -620,6 +669,7 @@
     "tabs": {
       "today": "Hôm nay",
       "trips": "Chuyến đi",
+      "tripsMine": "Chuyến của tôi",
       "expenses": "Chi phí",
       "me": "Tôi"
     }
@@ -650,6 +700,84 @@
       "COMPLETED": "Hoàn tất",
       "REJECTED_BY_DRIVER": "Từ chối",
       "CANCELLED": "Đã huỷ"
+    },
+    "driver": {
+      "activeNow": "Đang chạy",
+      "activeNowDesc": "Chuyến đang diễn ra",
+      "upNext": "Tiếp theo",
+      "waitingConfirm": "Chờ xác nhận của bạn",
+      "waitingConfirmDesc": "Hãy phản hồi để điều phối có thể tiếp tục.",
+      "readyToStart": "Sẵn sàng bắt đầu",
+      "readyToStartIn": "Bắt đầu trong {n} phút",
+      "nothingToday": "Hôm nay không có chuyến",
+      "nothingTodayDesc": "Bạn có thể xem tất cả chuyến được giao bên dưới.",
+      "viewAllTrips": "Xem tất cả chuyến",
+      "recordExpense": "Ghi nhận chi phí",
+      "recordExpenseAria": "Ghi nhận chi phí mới",
+      "callPassenger": "Gọi {name}",
+      "openDetail": "Chi tiết chuyến",
+      "minutesAbbr": "phút",
+      "now": "ngay bây giờ"
+    }
+  },
+  "inbox": {
+    "title": "Hộp thư",
+    "unreadCount": "{n} thông báo chưa đọc",
+    "allRead": "Đã đọc tất cả",
+    "emptyTitle": "Chưa có thông báo",
+    "emptyDesc": "Khi có chuyến mới được gán hoặc cập nhật từ điều phối, thông báo sẽ hiện ở đây.",
+    "markAllRead": "Đọc tất cả",
+    "markAllReadSuccess": "Đã đánh dấu {n} thông báo là đã đọc",
+    "markReadFailed": "Không cập nhật được trạng thái",
+    "unreadAria": "Chưa đọc"
+  },
+  "expenses": {
+    "history": {
+      "title": "Chi phí của tôi",
+      "subtitle": "{count} bản ghi · mới nhất ở trên",
+      "newExpense": "Ghi nhận mới",
+      "emptyTitle": "Chưa có chi phí",
+      "emptyDriverDesc": "Bấm \"Ghi nhận mới\" để gửi chi phí xăng, ăn uống, cầu đường…",
+      "emptyOtherDesc": "Bạn chưa có chi phí nào được ghi nhận."
+    },
+    "status": {
+      "PENDING": "Chờ duyệt",
+      "APPROVED": "Đã duyệt",
+      "AUTO_APPROVED": "Tự duyệt",
+      "REJECTED": "Từ chối"
+    },
+    "submit": {
+      "title": "Ghi nhận chi phí",
+      "subtitle": "Ghi nhận chi phí phát sinh trong chuyến",
+      "stubBanner": "Đang ở chế độ thử nghiệm — chi phí chưa được lưu vào hệ thống.",
+      "typeLabel": "Loại chi phí",
+      "amountLabel": "Số tiền (VND)",
+      "amountPlaceholder": "0",
+      "dateLabel": "Ngày phát sinh",
+      "noteLabel": "Ghi chú (tùy chọn)",
+      "notePlaceholder": "Bối cảnh hoặc lý do…",
+      "tripLabel": "Liên kết chuyến",
+      "tripLinked": "Đã liên kết với chuyến {ref}",
+      "receiptLabel": "Ảnh hoá đơn",
+      "receiptHint": "Có thể chụp hoặc chọn từ thư viện. Tối đa 5 ảnh, mỗi ảnh ≤5MB.",
+      "receiptCamera": "Chụp ảnh",
+      "receiptGallery": "Chọn từ thư viện",
+      "receiptConverting": "Đang xử lý ảnh…",
+      "receiptRemoveAria": "Xoá ảnh",
+      "submit": "Gửi chi phí",
+      "submitting": "Đang gửi…",
+      "submittedToast": "Đã gửi chi phí",
+      "submittedToastDesc": "Chi phí đang chờ duyệt.",
+      "errSubmit": "Không gửi được chi phí",
+      "errMissing": "Thiếu trường bắt buộc",
+      "errMissingDesc": "Loại chi phí và số tiền là bắt buộc.",
+      "errAmountInvalid": "Số tiền phải lớn hơn 0",
+      "errTooManyFiles": "Tối đa 5 ảnh",
+      "errFileTooLarge": "Mỗi ảnh tối đa 5MB",
+      "errCameraDenied": "Không mở được camera",
+      "errCameraDeniedDesc": "Vào Cài đặt → Safari → Camera để cho phép truy cập, rồi thử lại.",
+      "errHeicFailed": "Không xử lý được ảnh HEIC",
+      "errHeicFailedDesc": "Hãy thử chụp lại hoặc chọn ảnh khác từ thư viện."
     }
   },
   "address": {

@@ -2,6 +2,7 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { db } from '@car-v2/db/client';
 import { carNotifications } from '@car-v2/db/schema';
+import { sendPushToUser } from './push.service';
 
 interface NotifyInput {
   entId: string;
@@ -15,12 +16,19 @@ interface NotifyInput {
 }
 
 /**
- * Drop a notification row into the queue.
+ * Drop a notification row into the in-app inbox AND fan out to Web Push.
  *
- * P1 stub: only inserts a DB row. Actual delivery (in-app bell, push, email)
- * is wired in P4. UI components read unread count from car_notifications.
+ * Two delivery channels:
+ *   1. `car_notifications` INSERT — the inbox (always succeeds even if push
+ *      isn't configured)
+ *   2. Web Push fanout to all of the user's subscriptions
  *
- * Never throws — notifying failure must not break the parent mutation.
+ * Both are best-effort — failures are logged but never re-thrown. The
+ * mutation that triggered the notification has already happened and must
+ * not be unwound because a notification couldn't be delivered.
+ *
+ * Push body mirrors the inbox body. URL routing for tap-through derives from
+ * event family (TRIP.* → trip detail; EXPENSE.* → expense list).
  */
 export async function notifyUser(input: NotifyInput): Promise<void> {
   try {
@@ -38,6 +46,23 @@ export async function notifyUser(input: NotifyInput): Promise<void> {
     /* eslint-disable-next-line no-console */
     console.error('[notify] failed to queue notification', input.event, err);
   }
+
+  /* Web Push — fire-and-forget. `sendPushToUser` swallows its own errors. */
+  void sendPushToUser(input.entId, input.userId, {
+    title: input.title,
+    body: input.body,
+    url: pushUrlFor(input.event, input.entityId),
+    tag: input.event,
+  });
+}
+
+/* Map an event family to the in-app URL the user should land on when they
+ * tap the push notification. Falls back to `/today` for unknown families
+ * so the user still ends up somewhere useful. */
+function pushUrlFor(event: string, entityId: string | undefined): string {
+  if (event.startsWith('TRIP.') && entityId) return `/trips/${entityId}`;
+  if (event.startsWith('EXPENSE.')) return '/expenses';
+  return '/today';
 }
 
 export async function notifyMany(userIds: string[], input: Omit<NotifyInput, 'userId'>): Promise<void> {

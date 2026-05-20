@@ -12,12 +12,6 @@ import {
 } from 'lucide-react';
 import {
   Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Input,
   Label,
   Select,
@@ -28,6 +22,14 @@ import {
   Textarea,
   toast,
 } from '@car-v2/ui';
+import {
+  BottomSheet,
+  BottomSheetContent,
+  BottomSheetDescription,
+  BottomSheetFooter,
+  BottomSheetHeader,
+  BottomSheetTitle,
+} from '@/components/ui/bottom-sheet';
 import type { ActionResult } from '@car-v2/shared/errors';
 import type { CarTrip, CarTripStatus } from '@car-v2/db/schema';
 import {
@@ -116,39 +118,45 @@ export function TripActions({
   const noActionsAvailable =
     !canAssign && !canAccept && !canReject && !canStart && !canEnd && !canCancel;
 
+  /* Driver primary actions get `size="2xl"` (56px) so they hit the thumb zone
+   * and remain tappable through sun glare on a phone screen. Admin/Manager
+   * actions stay `md` — those are desktop-leaning flows. */
+  const primarySize = role === 'DRIVER' ? '2xl' : 'md';
+  const ghostSize   = role === 'DRIVER' ? 'lg'  : 'md';
+
   return (
     <>
       {/* Vertical stack so buttons span the rail width — primary action goes
        * first, destructive (Cancel) last, separated by a thin divider. Default
        * `align-items: stretch` on flex-col makes every Button full-width. */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 w-full">
         {canAssign && (
-          <Button variant="accent" size="md" iconLeft={<UserPlus />} onClick={() => setDialog('assign')} disabled={pending}>
+          <Button variant="accent" size={primarySize} iconLeft={<UserPlus />} onClick={() => setDialog('assign')} disabled={pending}>
             {status === 'REJECTED_BY_DRIVER' ? t('reassign') : t('assign')}
           </Button>
         )}
         {canAccept && (
-          <Button variant="accent" size="md" iconLeft={pending ? <Loader2 className="animate-spin" /> : <Check />} onClick={() => handle(t('tAccepted'), () => acceptTripAction(tripId))} disabled={pending}>
+          <Button variant="accent" size={primarySize} iconLeft={pending ? <Loader2 className="animate-spin" /> : <Check />} onClick={() => handle(t('tAccepted'), () => acceptTripAction(tripId))} disabled={pending}>
             {t('accept')}
           </Button>
         )}
         {canReject && (
-          <Button variant="danger" size="md" iconLeft={<X />} onClick={() => setDialog('reject')} disabled={pending}>
+          <Button variant="danger" size={primarySize} iconLeft={<X />} onClick={() => setDialog('reject')} disabled={pending}>
             {t('reject')}
           </Button>
         )}
         {canStart && (
-          <Button variant="accent" size="md" iconLeft={pending ? <Loader2 className="animate-spin" /> : <Play />} onClick={() => handle(t('tStarted'), () => startTripAction(tripId, {}))} disabled={pending}>
+          <Button variant="accent" size={primarySize} iconLeft={pending ? <Loader2 className="animate-spin" /> : <Play />} onClick={() => handle(t('tStarted'), () => startTripAction(tripId, {}))} disabled={pending}>
             {t('startTrip')}
           </Button>
         )}
         {canEnd && (
-          <Button variant="primary" size="md" iconLeft={pending ? <Loader2 className="animate-spin" /> : <Square />} onClick={() => handle(t('tCompleted'), () => endTripAction(tripId, {}))} disabled={pending}>
+          <Button variant="primary" size={primarySize} iconLeft={pending ? <Loader2 className="animate-spin" /> : <Square />} onClick={() => handle(t('tCompleted'), () => endTripAction(tripId, {}))} disabled={pending}>
             {t('endTrip')}
           </Button>
         )}
         {canCancel && (
-          <Button variant="ghost" size="md" iconLeft={<X />} onClick={() => setDialog('cancel')} disabled={pending}>
+          <Button variant="ghost" size={ghostSize} iconLeft={<X />} onClick={() => setDialog('cancel')} disabled={pending}>
             {t('cancelTrip')}
           </Button>
         )}
@@ -248,13 +256,13 @@ function AssignDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('assignDialogTitle')}</DialogTitle>
-          <DialogDescription>{t('assignDialogDesc')}</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
+    <BottomSheet open={open} onOpenChange={(o) => !o && onClose()}>
+      <BottomSheetContent>
+        <BottomSheetHeader>
+          <BottomSheetTitle>{t('assignDialogTitle')}</BottomSheetTitle>
+          <BottomSheetDescription>{t('assignDialogDesc')}</BottomSheetDescription>
+        </BottomSheetHeader>
+        <div className="space-y-4 mt-4">
           <div>
             <Label className="mb-1.5 block" required>{t('driverLabel')}</Label>
             <Select value={driverId} onValueChange={setDriverId}>
@@ -279,7 +287,7 @@ function AssignDialog({
           </div>
           <TripConflictBanner conflicts={conflicts} loading={conflictsLoading} compact />
         </div>
-        <DialogFooter>
+        <BottomSheetFooter className="mt-6">
           <Button variant="ghost" onClick={onClose}>{tA('cancel')}</Button>
           <Button
             variant="accent"
@@ -291,9 +299,9 @@ function AssignDialog({
           >
             {t('sendToDriver')}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </BottomSheetFooter>
+      </BottomSheetContent>
+    </BottomSheet>
   );
 }
 
@@ -315,13 +323,13 @@ function ReasonDialog({ open, onClose, title, description, confirmLabel, confirm
   const [reason, setReason] = useState('');
   const canSubmit = !required || reason.trim().length >= 3;
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        <div>
+    <BottomSheet open={open} onOpenChange={(o) => !o && onClose()}>
+      <BottomSheetContent>
+        <BottomSheetHeader>
+          <BottomSheetTitle>{title}</BottomSheetTitle>
+          <BottomSheetDescription>{description}</BottomSheetDescription>
+        </BottomSheetHeader>
+        <div className="mt-4">
           <Label className="mb-1.5 block" required={required}>{t('reasonLabel')}</Label>
           <Textarea
             value={reason}
@@ -330,7 +338,7 @@ function ReasonDialog({ open, onClose, title, description, confirmLabel, confirm
             rows={3}
           />
         </div>
-        <DialogFooter>
+        <BottomSheetFooter className="mt-6">
           <Button variant="ghost" onClick={onClose}>{tA('cancel')}</Button>
           <Button
             variant={confirmTone}
@@ -343,9 +351,9 @@ function ReasonDialog({ open, onClose, title, description, confirmLabel, confirm
           >
             {confirmLabel}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </BottomSheetFooter>
+      </BottomSheetContent>
+    </BottomSheet>
   );
 }
 

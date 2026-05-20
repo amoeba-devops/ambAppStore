@@ -3,6 +3,10 @@
   "appSub": "Company Car Management",
   "nav": {
     "dashboard": "Dashboard",
+    "today": "Today",
+    "tripsMine": "My trips",
+    "expensesNew": "Record expense",
+    "me": "Me",
     "trips": "Trips",
     "costs": "Costs",
     "vehicles": "Vehicles",
@@ -227,6 +231,16 @@
       "tUpdated": "Trip updated",
       "errCreate": "Could not create trip",
       "errUpdate": "Could not update"
+    },
+    "driver": {
+      "title": "My trips",
+      "tabsAria": "Filter by status",
+      "tabOngoing": "Ongoing",
+      "tabCompleted": "Completed",
+      "emptyOngoing": "No trips",
+      "emptyOngoingDesc": "Nothing assigned right now. Once dispatch assigns a trip, it will show up here.",
+      "emptyCompleted": "No completed trips yet",
+      "emptyCompletedDesc": "Past trips (completed, cancelled, or rejected) will appear here."
     },
     "conflict": {
       "checking": "Checking schedule conflicts…",
@@ -533,6 +547,41 @@
     }
   },
   "settings": {
+    "me": {
+      "title": "Me",
+      "subtitle": "Profile, language, and sign-out",
+      "profileHint": "Name and email are synced from amoeba management.",
+      "roles": {
+        "ADMIN": "Admin",
+        "MANAGER": "Manager",
+        "DRIVER": "Driver"
+      },
+      "licenseTitle": "Driver license",
+      "licenseNumber": "License no.",
+      "licenseClass": "Class",
+      "licenseExpiry": "Expiry date",
+      "licenseExpired": "Expired",
+      "licenseDaysLeft": "{n} days left",
+      "licensePhone": "Phone",
+      "languageTitle": "Language",
+      "logoutTitle": "Sign out",
+      "logoutDesc": "End the current session and return to the login page.",
+      "logoutPending": "Signing out…",
+      "push": {
+        "title": "Push notifications",
+        "description": "Get alerts when a new trip is assigned or updated — even when the app isn't open.",
+        "enable": "Enable notifications",
+        "disable": "Disable notifications",
+        "enableSuccess": "Notifications enabled",
+        "disableSuccess": "Notifications disabled",
+        "permissionDenied": "You denied notification permission. Open device Settings → Notifications to re-enable.",
+        "denied": "Notifications are blocked at the OS level. Open Settings → Safari → Notifications to allow.",
+        "unsupported": "This browser doesn't support push notifications yet. Install the app to the home screen to enable.",
+        "errEnable": "Couldn't enable notifications",
+        "errDisable": "Couldn't disable notifications",
+        "errVapidMissing": "Push key missing. Contact admin."
+      }
+    },
     "general": "General",
     "generalDesc": "Workspace identity and locale defaults.",
     "tenantName": "Tenant name",
@@ -620,6 +669,7 @@
     "tabs": {
       "today": "Today",
       "trips": "Trips",
+      "tripsMine": "My trips",
       "expenses": "Expenses",
       "me": "Me"
     }
@@ -650,6 +700,84 @@
       "COMPLETED": "Completed",
       "REJECTED_BY_DRIVER": "Rejected",
       "CANCELLED": "Cancelled"
+    },
+    "driver": {
+      "activeNow": "On the road",
+      "activeNowDesc": "Trip in progress",
+      "upNext": "Up next",
+      "waitingConfirm": "Waiting for you",
+      "waitingConfirmDesc": "Confirm so dispatch can move forward.",
+      "readyToStart": "Ready to start",
+      "readyToStartIn": "Starts in {n} min",
+      "nothingToday": "Nothing scheduled today",
+      "nothingTodayDesc": "Browse all your assigned trips below.",
+      "viewAllTrips": "View all trips",
+      "recordExpense": "Record expense",
+      "recordExpenseAria": "Record a new expense",
+      "callPassenger": "Call {name}",
+      "openDetail": "Trip details",
+      "minutesAbbr": "min",
+      "now": "now"
+    }
+  },
+  "inbox": {
+    "title": "Inbox",
+    "unreadCount": "{n} unread",
+    "allRead": "All caught up",
+    "emptyTitle": "No notifications",
+    "emptyDesc": "New trip assignments and updates from dispatch will appear here.",
+    "markAllRead": "Mark all read",
+    "markAllReadSuccess": "Marked {n} notifications as read",
+    "markReadFailed": "Couldn't update status",
+    "unreadAria": "Unread"
+  },
+  "expenses": {
+    "history": {
+      "title": "My expenses",
+      "subtitle": "{count} records · newest first",
+      "newExpense": "Record new",
+      "emptyTitle": "No expenses yet",
+      "emptyDriverDesc": "Tap \"Record new\" to submit fuel, meal, toll receipts.",
+      "emptyOtherDesc": "You haven't recorded any expenses."
+    },
+    "status": {
+      "PENDING": "Pending",
+      "APPROVED": "Approved",
+      "AUTO_APPROVED": "Auto-approved",
+      "REJECTED": "Rejected"
+    },
+    "submit": {
+      "title": "Record expense",
+      "subtitle": "Log a cost incurred during a trip",
+      "stubBanner": "Test mode — this expense is not yet stored in the system.",
+      "typeLabel": "Expense type",
+      "amountLabel": "Amount (VND)",
+      "amountPlaceholder": "0",
+      "dateLabel": "Date",
+      "noteLabel": "Note (optional)",
+      "notePlaceholder": "Context or reason…",
+      "tripLabel": "Linked trip",
+      "tripLinked": "Linked to trip {ref}",
+      "receiptLabel": "Receipt photo",
+      "receiptHint": "Take a photo or choose from gallery. Up to 5 images, 5MB each.",
+      "receiptCamera": "Take photo",
+      "receiptGallery": "Choose from gallery",
+      "receiptConverting": "Processing image…",
+      "receiptRemoveAria": "Remove image",
+      "submit": "Submit expense",
+      "submitting": "Submitting…",
+      "submittedToast": "Expense submitted",
+      "submittedToastDesc": "Awaiting approval.",
+      "errSubmit": "Could not submit expense",
+      "errMissing": "Missing required fields",
+      "errMissingDesc": "Expense type and amount are required.",
+      "errAmountInvalid": "Amount must be greater than 0",
+      "errTooManyFiles": "Up to 5 images",
+      "errFileTooLarge": "Each image up to 5MB",
+      "errCameraDenied": "Couldn't open the camera",
+      "errCameraDeniedDesc": "Open Settings → Safari → Camera, allow access, then try again.",
+      "errHeicFailed": "Couldn't process the HEIC photo",
+      "errHeicFailedDesc": "Try taking the photo again or pick a different image from your library."
     }
   },
   "address": {

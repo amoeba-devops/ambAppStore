@@ -24,6 +24,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getDriverByUserId } from '@/server/queries/drivers.queries';
 import { listTrips, listTripsForDriver, type TripListItem } from '@/server/queries/trips.queries';
+import { DriverTodayView } from './_components/driver-today-view';
 
 const TIME_FMT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
 
@@ -60,6 +61,23 @@ export default async function TodayPage() {
     myTrips = items;
   }
 
+  /* Driver gets the dedicated PWA-first content view (state-aware hero +
+   * sticky bottom action + expense FAB). The page chrome (PageHeader) is the
+   * same component admins use — keeping the visual identity consistent across
+   * roles per user feedback. */
+  if (user.role === 'DRIVER') {
+    return (
+      <>
+        <PageHeader
+          title={tT('title')}
+          subtitle={`${tCo('currentUser')} · ${tT('subtitleTrips', { count: myTrips.filter((t) => isToday(t.trpScheduledAt)).length })}`}
+          breadcrumbs={[{ label: tCo('tenant') }, { label: tT('title') }]}
+        />
+        <DriverTodayView trips={myTrips} />
+      </>
+    );
+  }
+
   /* Pick the "next" trip — CONFIRMED or IN_PROGRESS today or the earliest upcoming. */
   const todayTrips = myTrips.filter((t) => isToday(t.trpScheduledAt));
   const nextTrip =
@@ -87,7 +105,7 @@ export default async function TodayPage() {
             <EmptyState
               icon={<Calendar />}
               title={tT('emptyTitle')}
-              description={user.role === 'DRIVER' ? tT('emptyDriverDesc') : tT('emptyOtherDesc')}
+              description={tT('emptyOtherDesc')}
             />
           </Card>
         )}

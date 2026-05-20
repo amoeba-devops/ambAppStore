@@ -19,7 +19,9 @@ import type { CarTripStatus } from '@car-v2/db/schema';
 import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { listTrips } from '@/server/queries/trips.queries';
+import { getDriverByUserId } from '@/server/queries/drivers.queries';
+import { listTrips, listTripsForDriver } from '@/server/queries/trips.queries';
+import { DriverTripsList } from './_components/driver-trips-list';
 
 const STATUS_TONE: Record<CarTripStatus, 'accent' | 'warning' | 'success' | 'info' | 'neutral' | 'danger'> = {
   PENDING_ASSIGNMENT:          'accent',
@@ -57,6 +59,28 @@ export default async function TripsListPage({ searchParams }: PageProps) {
   const tCommon = await getTranslations('common');
   const user = await getCurrentUser();
 
+  /* Driver gets a different list shape entirely (card-only, 2-tab Ongoing/
+   * Completed, no role/driver column, no "new" CTA). Branch early so the rest
+   * of this function stays the admin/manager-tuned shape. Page chrome
+   * (PageHeader + breadcrumbs) stays the same across roles so the desktop
+   * layout reads identically — only the content body differs. */
+  if (user.role === 'DRIVER') {
+    const tDriver = await getTranslations('trips.driver');
+    const driver = await getDriverByUserId(user.entId, user.userId);
+    const driverTrips = driver
+      ? await listTripsForDriver(user.entId, driver.drvId, 100)
+      : [];
+    return (
+      <>
+        <PageHeader
+          title={tDriver('title')}
+          breadcrumbs={[{ label: tCo('tenant') }, { label: tDriver('title') }]}
+        />
+        <DriverTripsList trips={driverTrips} />
+      </>
+    );
+  }
+
   const statusFilter = (sp.status ?? 'all') as 'all' | 'pending' | 'active' | 'completed';
   const page = Math.max(1, Number(sp.page ?? 1));
 
@@ -89,11 +113,9 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         actions={
           <>
             <Button variant="ghost" size="md" iconLeft={<Download />}>{tA('export')}</Button>
-            {user.role !== 'DRIVER' && (
-              <Button variant="accent" size="md" asChild>
-                <Link href="/trips/new"><Plus />{tA('new')}</Link>
-              </Button>
-            )}
+            <Button variant="accent" size="md" asChild>
+              <Link href="/trips/new"><Plus />{tA('new')}</Link>
+            </Button>
           </>
         }
       />
@@ -138,17 +160,13 @@ export default async function TripsListPage({ searchParams }: PageProps) {
               title={tList('emptyTitle')}
               description={
                 statusFilter === 'all'
-                  ? user.role === 'DRIVER'
-                    ? tList('emptyDriverDesc')
-                    : tList('emptyAdminDesc')
+                  ? tList('emptyAdminDesc')
                   : tList('emptyFilterDesc', { filter: statusFilter })
               }
               action={
-                user.role !== 'DRIVER' ? (
-                  <Button variant="accent" size="md" asChild>
-                    <Link href="/trips/new"><Plus />{tA('new')}</Link>
-                  </Button>
-                ) : undefined
+                <Button variant="accent" size="md" asChild>
+                  <Link href="/trips/new"><Plus />{tA('new')}</Link>
+                </Button>
               }
             />
           </Card>
@@ -275,9 +293,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         )}
       </div>
 
-      {user.role !== 'DRIVER' && (
-        <Fab href="/trips/new" label={tA('new')} icon={<Plus />} />
-      )}
+      <Fab href="/trips/new" label={tA('new')} icon={<Plus />} />
     </>
   );
 }

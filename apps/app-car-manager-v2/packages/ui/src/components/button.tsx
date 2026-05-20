@@ -26,6 +26,10 @@ const buttonVariants = cva(
         md:   'h-9 px-4 text-sm [&_svg]:h-4 [&_svg]:w-4',
         lg:   'h-10 px-5 text-md [&_svg]:h-4 [&_svg]:w-4',
         xl:   'h-11 px-6 text-md [&_svg]:h-5 [&_svg]:w-5',
+        /* `2xl` is the Driver-mode primary CTA size — 56px tall so it lands
+         * within the thumb zone on phones and remains tappable through a
+         * sunlight-readability margin. Don't use elsewhere; it's loud. */
+        '2xl': 'h-14 px-6 text-md font-semibold [&_svg]:h-5 [&_svg]:w-5',
         icon: 'h-9 w-9 [&_svg]:h-4 [&_svg]:w-4',
       },
     },

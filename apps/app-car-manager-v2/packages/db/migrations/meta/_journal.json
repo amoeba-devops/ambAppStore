@@ -15,6 +15,20 @@
       "when": 1778661257404,
       "tag": "0001_serious_maginty",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779253485904,
+      "tag": "0002_driver-feature-completion",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779253836864,
+      "tag": "0003_driver-feature-h-complete",
+      "breakpoints": true
     }
   ]
 }

@@ -20,7 +20,10 @@
  * `/app-car-manager-v2/` (staging Docker).
  */
 
-const CACHE_VERSION = 'fleet-v1';
+/* Bumped to v2 when trip-detail offline cache was added (REQ-20260520 H.3).
+ * The `activate` handler nukes any previous-version cache on upgrade. */
+const CACHE_VERSION = 'fleet-v2';
+const TRIP_CACHE = CACHE_VERSION + '-trips';
 const SCOPE = new URL(self.registration.scope).pathname;
 /* Normalise scope to always end with a slash for predictable joins below. */
 const BASE = SCOPE.endsWith('/') ? SCOPE : SCOPE + '/';
@@ -50,8 +53,11 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const names = await caches.keys();
+      /* Keep both the current static cache and the trip-detail cache; nuke
+       * everything else (previous SW version's caches). */
+      const keep = new Set([CACHE_VERSION, TRIP_CACHE]);
       await Promise.all(
-        names.filter((n) => n !== CACHE_VERSION).map((n) => caches.delete(n)),
+        names.filter((n) => !keep.has(n)).map((n) => caches.delete(n)),
       );
       await self.clients.claim();
     })(),
@@ -87,6 +93,20 @@ self.addEventListener('fetch', (event) => {
     req.mode === 'navigate' ||
     (req.headers.get('accept') || '').includes('text/html');
   if (isNavigation) {
+    /* Trip detail (`/trips/<uuid>`) gets a richer strategy: still network-
+     * first, but ALSO write successful responses into a separate trip cache.
+     * If the network later fails (driver enters a parking garage / loses
+     * coverage on a route), the same URL serves from cache instead of the
+     * generic offline.html. Most drivers re-open the trip they're already
+     * working — caching the last few they touched is the sweet spot.
+     *
+     * Pattern: `/trips/{anything-with-no-slash}` (excludes `/trips`,
+     * `/trips/new`, `/trips/[id]/edit`). */
+    const isTripDetail = /^\/trips\/[^/]+\/?$/.test(url.pathname.slice(BASE.length - 1));
+    if (isTripDetail) {
+      event.respondWith(networkFirstWithCache(req, TRIP_CACHE));
+      return;
+    }
     event.respondWith(networkFirstNavigation(req));
     return;
   }
@@ -111,6 +131,94 @@ async function cacheFirst(req) {
     /* Best-effort: if this was an icon and we have anything in cache, fall
      * back to it; otherwise let the failure bubble. */
     return cached || Response.error();
+  }
+}
+
+/* Network-first WITH cache write-through. Used for trip detail pages so the
+ * driver can re-open a recently viewed trip while offline. Differs from
+ * `networkFirstNavigation` in two ways:
+ *   1. Successful responses are cloned into `cacheName` for next time
+ *   2. Cache fallback returns the same URL's cached body instead of
+ *      offline.html, so the driver actually sees the trip they expected
+ *
+ * Cache eviction: passive — old entries naturally rotate out as new trips
+ * are viewed. We could add explicit pruning (keep last N) but with ~5-10
+ * trips/driver/day and tiny HTML payloads it's not worth the complexity. */
+/* ───────────────────────── Web Push (REQ-20260520 H.6) ───────────────────── */
+
+self.addEventListener('push', (event) => {
+  /* Payload is the JSON string we sent from push.service.ts. Defensive
+   * parse — if a different sender ever pushes plain text we still show
+   * something instead of crashing the SW. */
+  let data = { title: 'Fleet', body: '', url: '/today', tag: 'fleet-default' };
+  try {
+    if (event.data) {
+      const parsed = event.data.json();
+      data = { ...data, ...parsed };
+    }
+  } catch {
+    if (event.data) data.body = event.data.text();
+  }
+
+  /* `requireInteraction: false` lets iOS PWA auto-dismiss notifications;
+   * driver scenario is "glance + tap or ignore", not "dismiss explicitly". */
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      tag: data.tag,
+      icon: BASE + 'icons/icon-192.png',
+      badge: BASE + 'icons/icon-192.png',
+      data: { url: data.url },
+      requireInteraction: false,
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/today';
+  const absolute = new URL(targetUrl, self.location.origin).href;
+
+  /* Focus an already-open window scoped to our SW first; only open a fresh
+   * one as fallback. On iPhone PWA this means tapping a push keeps the user
+   * in the installed app instead of spawning a new Safari window. */
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const client of all) {
+        if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+          await client.focus();
+          if ('navigate' in client) {
+            try {
+              await client.navigate(absolute);
+            } catch {
+              /* Some browsers disallow cross-document navigate from SW; ignore. */
+            }
+          }
+          return;
+        }
+      }
+      if (self.clients.openWindow) await self.clients.openWindow(absolute);
+    })(),
+  );
+});
+
+async function networkFirstWithCache(req, cacheName) {
+  const cache = await caches.open(cacheName);
+  try {
+    const res = await fetch(req);
+    if (res && res.ok && res.type === 'basic') {
+      /* Don't await — the response goes to the page immediately, the cache
+       * write can finish in the background. */
+      cache.put(req, res.clone()).catch(() => {});
+    }
+    return res;
+  } catch {
+    const cached = await cache.match(req);
+    if (cached) return cached;
+    /* Fall back to the generic offline page if even the trip wasn't cached. */
+    const fallback = await caches.open(CACHE_VERSION).then((c) => c.match(OFFLINE_URL));
+    return fallback || new Response('Offline', { status: 503, statusText: 'Offline' });
   }
 }
 
