@@ -53,10 +53,17 @@ export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
   const totals = useMemo(() => {
     const sum = (k: keyof ProductMetric) =>
       filtered.reduce((a, b) => a + (typeof b[k] === 'number' ? (b[k] as number) : 0), 0);
+    // Items column excludes gift rows (revenue-generating items only).
+    // Free Gift column sums only gift rows' Prime Cost (gift cost separated).
+    const sumExcludingGifts = (k: keyof ProductMetric) =>
+      filtered.reduce(
+        (a, b) => a + (!b.isGift && typeof b[k] === 'number' ? (b[k] as number) : 0),
+        0,
+      );
     const totalGmv = sum('gmv');
     return {
       pv: sum('pv'),
-      items: sum('items'),
+      items: sumExcludingGifts('items'),
       gmv: totalGmv,
       netGmv: sum('netGmv'),
       nmv: sum('nmv'),
