@@ -1,14 +1,25 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { Download, Banknote, TrendingUp, Percent, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Download, Banknote, TrendingUp, Percent, Database, Cloud } from 'lucide-react';
 import { cn } from '@v2/ui';
 import {
   getMonthlyReport,
   getProductMetricsForMonth,
-  getAvailableMonths,
+  generateMonthsForYear,
+  buildPlaceholderOverview,
+  buildPlaceholderBreakdowns,
   type WeeklyChannel,
+  type WeeklyReportData,
+  type ProductMetric,
 } from '@/lib/weekly-report-mock';
+import { snapshotToWeeklyReport, snapshotToProducts } from '@/lib/snapshot-to-report';
+import { getMetricFormula } from '@/lib/formula-lookup';
+import type { PeriodSnapshotMetrics } from '@/server/services/period-snapshot.service';
+import { loadSnapshotAction } from '@/server/actions/ingest.actions';
+import { useArchiveStatusByLabel } from '@/lib/raw-archive-state';
+import { MonthPicker } from '@/components/shared/MonthPicker';
 import { WeeklyOverviewTable } from '@/components/weekly/WeeklyOverviewTable';
 import { WeeklyProductBreakdownTable } from '@/components/weekly/WeeklyProductBreakdownTable';
 import { KpiCard } from '@/components/weekly/KpiCard';
@@ -23,28 +34,82 @@ const CHANNEL_OPTS: { key: WeeklyChannel; label: string }[] = [
 ];
 
 const DEFAULT_KRW_RATE = 17543;
+const DEFAULT_YEAR = 2026;
 
 export function MonthlyReportClient() {
-  const months = useMemo(() => getAvailableMonths(), []);
+  const searchParams = useSearchParams();
+  // Deep-link from upload wizard: ?monthIdx=N&year=Y selects that month directly.
+  const urlMonthIdx = (() => {
+    const n = Number(searchParams?.get('monthIdx'));
+    return Number.isFinite(n) && n >= 0 && n <= 11 ? n : null;
+  })();
+  const urlYear = (() => {
+    const y = Number(searchParams?.get('year'));
+    return Number.isFinite(y) && y > 2000 ? y : null;
+  })();
+  const [year, setYear] = useState(urlYear ?? DEFAULT_YEAR);
+  const months = useMemo(() => generateMonthsForYear(year), [year]);
+  const statusByLabel = useArchiveStatusByLabel();
   const [monthIdx, setMonthIdx] = useState(
-    months[months.length - 2]?.monthIdx ?? months[months.length - 1]!.monthIdx,
+    urlMonthIdx ?? months[months.length - 2]?.monthIdx ?? months[months.length - 1]!.monthIdx,
   );
   const [channel, setChannel] = useState<WeeklyChannel>('ALL');
   const [krwRate, setKrwRate] = useState(DEFAULT_KRW_RATE);
 
-  const report = useMemo(() => getMonthlyReport(monthIdx, channel), [monthIdx, channel]);
-  const products = useMemo(() => getProductMetricsForMonth(monthIdx, channel), [monthIdx, channel]);
+  // Try loading a real-data snapshot for the selected month; fall back to mock.
+  const [snapshotMetrics, setSnapshotMetrics] = useState<PeriodSnapshotMetrics | null>(null);
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const selectedMonth = months.find((m) => m.monthIdx === monthIdx);
+  useEffect(() => {
+    if (!selectedMonth) {
+      setSnapshotMetrics(null);
+      return;
+    }
+    let cancelled = false;
+    setSnapshotLoading(true);
+    loadSnapshotAction({
+      granularity: 'MONTHLY',
+      monthIdx: selectedMonth.monthIdx,
+      year: selectedMonth.year,
+    }).then((res) => {
+      if (cancelled) return;
+      setSnapshotLoading(false);
+      setSnapshotMetrics(res.success ? res.data.metrics : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedMonth]);
 
-  // Sliding 5-month window
-  const WINDOW = 5;
-  const selectedIdx = months.findIndex((m) => m.monthIdx === monthIdx);
-  const windowStart = Math.max(0, Math.min(months.length - WINDOW, selectedIdx - 2));
-  const visibleMonths = months.slice(windowStart, windowStart + WINDOW);
-
-  const canGoPrev = selectedIdx > 0;
-  const canGoNext = selectedIdx >= 0 && selectedIdx < months.length - 1;
-  const goPrev = () => canGoPrev && setMonthIdx(months[selectedIdx - 1]!.monthIdx);
-  const goNext = () => canGoNext && setMonthIdx(months[selectedIdx + 1]!.monthIdx);
+  const snapshotReport: WeeklyReportData | null = useMemo(
+    () => (snapshotMetrics ? snapshotToWeeklyReport(snapshotMetrics, channel) : null),
+    [snapshotMetrics, channel],
+  );
+  // When there's no real monthly snapshot, render placeholder overview +
+  // breakdown items (same metric labels as Weekly Report) with "—" values.
+  // Don't fall back to mock data because mock uses different metric names
+  // (e.g. "Page Views" vs "Total Page Views") that drift from the spec.
+  const mockReport = useMemo(() => getMonthlyReport(monthIdx, channel), [monthIdx, channel]);
+  const placeholderReport: WeeklyReportData = useMemo(() => {
+    const b = buildPlaceholderBreakdowns(channel);
+    return {
+      ...mockReport,
+      overview: buildPlaceholderOverview(),
+      discounts: b.discounts,
+      promo: b.promo,
+      traffic: b.traffic,
+      sales: b.sales,
+    };
+  }, [mockReport, channel]);
+  const report = snapshotReport ?? placeholderReport;
+  const isRealData = snapshotReport != null;
+  const products = useMemo<ProductMetric[]>(
+    () =>
+      snapshotMetrics
+        ? snapshotToProducts(snapshotMetrics, channel)
+        : getProductMetricsForMonth(monthIdx, channel),
+    [snapshotMetrics, monthIdx, channel],
+  );
 
   const currentMonth = months.find((m) => m.monthIdx === monthIdx);
   const currentMonthLabel = currentMonth?.label ?? 'M' + monthIdx;
@@ -84,90 +149,62 @@ export function MonthlyReportClient() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-semibold text-neutral-900">Monthly Report</h1>
-        <p className="mt-1 text-sm text-neutral-500">Month-over-month performance</p>
-      </div>
-
-      <div className="inline-flex rounded-md border border-neutral-300 bg-white p-0.5 text-sm self-start">
-        {CHANNEL_OPTS.map((opt) => (
-          <button
-            key={opt.key}
-            type="button"
-            onClick={() => setChannel(opt.key)}
-            className={cn(
-              'rounded px-3 py-1.5 font-medium transition-colors',
-              channel === opt.key
-                ? 'bg-neutral-900 text-white'
-                : 'text-neutral-700 hover:bg-neutral-50',
-            )}
-          >
-            {opt.label}
-          </button>
-        ))}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-neutral-900">Monthly Report</h1>
+          <p className="mt-1 text-sm text-neutral-500">Month-over-month performance</p>
+        </div>
+        <span
+          className={cn(
+            'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider whitespace-nowrap shrink-0',
+            snapshotLoading
+              ? 'bg-neutral-100 text-neutral-500'
+              : isRealData
+                ? 'bg-success-500/10 text-success-500'
+                : 'bg-neutral-100 text-neutral-500',
+          )}
+          title={
+            isRealData
+              ? 'Showing real ingested data from your uploaded files'
+              : 'Showing mock data — ingest files via Upload wizard to see real numbers'
+          }
+        >
+          {snapshotLoading ? (
+            <>
+              <Cloud className="h-3 w-3 animate-pulse" /> Loading…
+            </>
+          ) : isRealData ? (
+            <>
+              <Database className="h-3 w-3" /> Real data
+            </>
+          ) : (
+            <>
+              <Cloud className="h-3 w-3" /> Mock
+            </>
+          )}
+        </span>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={goPrev}
-            disabled={!canGoPrev}
-            aria-label="Previous month"
-            className={cn(
-              'inline-flex h-12 w-9 items-center justify-center rounded-xl border transition-colors',
-              canGoPrev
-                ? 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
-                : 'border-neutral-200 bg-neutral-50 text-neutral-300 cursor-not-allowed',
-            )}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-
-          {visibleMonths.map((m) => {
-            const active = m.monthIdx === monthIdx;
-            return (
-              <button
-                key={m.monthIdx}
-                type="button"
-                onClick={() => setMonthIdx(m.monthIdx)}
-                className={cn(
-                  'flex w-32 flex-col items-center rounded-xl border px-3 py-1.5 text-sm font-medium transition-colors leading-tight',
-                  active
-                    ? 'border-info-500 bg-info-50 text-info-500'
-                    : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50',
-                )}
-              >
-                <span>{m.label.charAt(0) + m.label.slice(1).toLowerCase()}</span>
-                <span
-                  className={cn(
-                    'text-[10px] font-normal',
-                    active ? 'text-info-500/80' : 'text-neutral-500',
-                  )}
-                >
-                  ({m.periodLabel})
-                </span>
-              </button>
-            );
-          })}
-
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={!canGoNext}
-            aria-label="Next month"
-            className={cn(
-              'inline-flex h-12 w-9 items-center justify-center rounded-xl border transition-colors',
-              canGoNext
-                ? 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
-                : 'border-neutral-200 bg-neutral-50 text-neutral-300 cursor-not-allowed',
-            )}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+        <div className="inline-flex rounded-md border border-neutral-300 bg-white p-0.5 text-sm">
+          {CHANNEL_OPTS.map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setChannel(opt.key)}
+              className={cn(
+                'rounded px-3 py-1.5 font-medium transition-colors',
+                channel === opt.key
+                  ? 'bg-neutral-900 text-white'
+                  : 'text-neutral-700 hover:bg-neutral-50',
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="inline-flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm">
             <span className="text-neutral-500">1 KRW =</span>
             <input
@@ -191,6 +228,21 @@ export function MonthlyReportClient() {
         </div>
       </div>
 
+      <div>
+        <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+          Pick the month
+        </div>
+        <MonthPicker
+          months={months}
+          selectedMonthIdx={monthIdx}
+          statusByLabel={statusByLabel}
+          allowClickLocked
+          year={year}
+          onYearChange={setYear}
+          onPickMonth={(m) => setMonthIdx(m.monthIdx)}
+        />
+      </div>
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_1fr] lg:items-stretch">
         <div className="flex flex-col gap-4">
           <KpiCard
@@ -202,6 +254,7 @@ export function MonthlyReportClient() {
             icon={Banknote}
             iconColor="text-info-500 bg-info-50"
             className="flex-1 justify-center"
+            formula={getMetricFormula('Net GMV', channel)}
           />
           <KpiCard
             label="Total CM"
@@ -213,6 +266,7 @@ export function MonthlyReportClient() {
             icon={TrendingUp}
             iconColor="text-success-500 bg-success-50"
             className="flex-1 justify-center"
+            formula={getMetricFormula('Total CM', channel)}
           />
           <KpiCard
             label="CM %"
@@ -224,6 +278,7 @@ export function MonthlyReportClient() {
             icon={Percent}
             iconColor="text-success-500 bg-success-50"
             className="flex-1 justify-center"
+            formula={getMetricFormula('CM %', channel)}
           />
         </div>
 
@@ -233,6 +288,7 @@ export function MonthlyReportClient() {
           currentWeekLabel={currentMonthLabel}
           krwRate={krwRate}
           deltaLabel="MoM"
+          channel={channel}
         />
       </div>
 
@@ -243,6 +299,7 @@ export function MonthlyReportClient() {
           items={report.discounts}
           krwRate={krwRate}
           deltaLabel="MoM"
+          channel={channel}
         />
         <BreakdownCard
           title="Promotional Breakdown"
@@ -250,16 +307,32 @@ export function MonthlyReportClient() {
           items={report.promo}
           krwRate={krwRate}
           deltaLabel="MoM"
+          channel={channel}
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <BreakdownCard title="Traffic" accent="pink" items={report.traffic} krwRate={krwRate} deltaLabel="MoM" />
-        <BreakdownCard title="Sales" accent="green" items={report.sales} krwRate={krwRate} deltaLabel="MoM" />
-        <BreakdownCard title="Ads" accent="neutral" items={report.ads} krwRate={krwRate} deltaLabel="MoM" />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <BreakdownCard
+          title={channel === 'TIKTOK' ? 'Traffic' : 'Traffic and Ads'}
+          accent="pink"
+          items={report.traffic}
+          krwRate={krwRate}
+          deltaLabel="MoM"
+          channel={channel}
+        />
+        <BreakdownCard
+          title="Sales"
+          accent="green"
+          items={report.sales}
+          krwRate={krwRate}
+          deltaLabel="MoM"
+          channel={channel}
+        />
       </div>
 
-      <WeeklyProductBreakdownTable products={products} krwRate={krwRate} />
+      {channel !== 'ALL' && (
+        <WeeklyProductBreakdownTable products={products} krwRate={krwRate} />
+      )}
     </div>
   );
 }

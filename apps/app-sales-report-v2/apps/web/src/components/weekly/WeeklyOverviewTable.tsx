@@ -2,7 +2,8 @@
 
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { cn } from '@v2/ui';
-import type { OverviewRow } from '@/lib/weekly-report-mock';
+import type { OverviewRow, WeeklyChannel } from '@/lib/weekly-report-mock';
+import { getMetricFormula } from '@/lib/formula-lookup';
 
 interface Props {
   rows: OverviewRow[];
@@ -10,6 +11,7 @@ interface Props {
   currentWeekLabel: string;
   krwRate: number;
   deltaLabel?: string; // "WoW" | "MoM"
+  channel?: WeeklyChannel;
 }
 
 function fmtVnd(n: number): string {
@@ -25,7 +27,7 @@ function fmtPct(ratio: number): string {
   return (ratio * 100).toFixed(2) + '%';
 }
 
-export function WeeklyOverviewTable({ rows, prevWeekLabel, currentWeekLabel, krwRate, deltaLabel = 'WoW' }: Props) {
+export function WeeklyOverviewTable({ rows, prevWeekLabel, currentWeekLabel, krwRate, deltaLabel = 'WoW', channel = 'ALL' }: Props) {
   return (
     <div className="space-y-2">
       <div className="px-1">
@@ -65,17 +67,22 @@ export function WeeklyOverviewTable({ rows, prevWeekLabel, currentWeekLabel, krw
                       ? 'pl-10 text-neutral-600'
                       : 'text-neutral-700';
                 const borderClass = isGroupStart && i > 0 ? 'border-t-2 border-t-neutral-200' : '';
+                const formula = row.formula ?? getMetricFormula(row.metric, channel);
                 return (
-                  <tr key={row.metric} className={cn('hover:bg-neutral-50/60', rowBg, borderClass)}>
+                  <tr
+                    key={row.metric}
+                    className={cn('hover:bg-neutral-50/60', rowBg, borderClass)}
+                    title={formula}
+                  >
                     <td className={cn('py-3', labelClass, row.isSubItem ? 'pl-10' : 'px-5')}>{row.metric}</td>
                     <td className={cn('px-3 py-3 text-right font-mono tabular-nums', labelClass)}>
-                      {row.isRatio ? fmtPct(row.vnd) : fmtVnd(row.vnd)}
+                      {row.placeholder ? '—' : row.isRatio ? fmtPct(row.vnd) : fmtVnd(row.vnd)}
                     </td>
                     <td className="px-3 py-3 text-right font-mono tabular-nums text-neutral-500">
-                      {row.isRatio ? '—' : fmtKrw(row.vnd, krwRate)}
+                      {row.placeholder || row.isRatio ? '—' : fmtKrw(row.vnd, krwRate)}
                     </td>
                     <td className="px-3 py-3 text-right font-mono tabular-nums text-neutral-500">
-                      {row.isRatio ? '—' : fmtPct(row.pctGmv)}
+                      {row.placeholder || row.isRatio ? '—' : fmtPct(row.pctGmv)}
                     </td>
                     <td className="px-5 py-3 text-right">
                       <Delta value={row.wowPct} invert={row.invertDelta} isRatio={row.isRatio} />

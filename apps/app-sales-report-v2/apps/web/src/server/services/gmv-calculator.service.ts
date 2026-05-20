@@ -22,10 +22,14 @@ export interface PrimeCostMaster {
   sellingPrice: number;
   /** Per-unit listing price in VND (for TikTok GMV). */
   listingPrice: number;
+  /** English product name (for Product Breakdown display). May be empty. */
+  productNameEn: string;
 }
 export type PrimeCostMap = Map<string, PrimeCostMaster>;
 
 export interface ShopeeMetricsResult {
+  /** SUM(item_sold) for kept rows. */
+  totalItemSold: number;
   /** SUM(original_price × item_sold) for kept rows. */
   totalGmv: number;
   /** SUM(selling_price × item_sold) for kept rows. */
@@ -43,14 +47,17 @@ export interface ShopeeMetricsResult {
   totalSellerVouchers: number;
   /** Sum of MAX(fixedFee + serviceFee + paymentFee) per non-cancelled order. */
   totalPlatformFee: number;
-  /** Sum of MAX(shopeeVoucher + shopeeCombo) per non-cancelled order — platform-funded discount, reference only. */
+  /** Sum of MAX(shopeeVoucher) per non-cancelled order — platform-funded discount, reference only. */
   totalPlatformDiscount: number;
   /** Distinct order counts for transparency. */
   orderCounts: { totalDistinct: number; cancelled: number; nonCancelled: number };
   /** Ads spending — only populated when Ads CSV is provided. */
   ads: {
     totalCost: number;
+    totalRevenue: number;
     shopWideCost: number;
+    shopGmvMaxCost: number;
+    shopAdsCost: number;
     productSpecificCost: number;
     campaignCount: number;
     productSpecificCount: number;
@@ -92,6 +99,8 @@ export interface ShopeeMetricsResult {
   /** Per-product GMV breakdown, sorted desc by gmv. */
   productBreakdown: Array<{
     productName: string;
+    productNameEn: string;
+    representativeSku: string;
     gmv: number;
     netGmv: number;
     nmv: number;
@@ -99,6 +108,19 @@ export interface ShopeeMetricsResult {
     primeCost: number;
     units: number;
     skuCount: number;
+    /** Page views matched from Traffic xlsx by productName. 0 when no match. */
+    pageViews: number;
+  }>;
+  /** Per-gift-product breakdown (revenue is 0; only Prime Cost + units accumulated). */
+  giftBreakdown: Array<{
+    productName: string;
+    productNameEn: string;
+    representativeSku: string;
+    primeCost: number;
+    units: number;
+    skuCount: number;
+    /** Page views matched from Traffic xlsx by productName. 0 when no match. */
+    pageViews: number;
   }>;
   /** SKUs sold but missing from prime cost master — Net GMV / Prime Cost skip these. */
   missingFromMaster: Array<{ sku: string; productName: string; units: number; gmvContribution: number }>;
@@ -190,7 +212,7 @@ export const SHOPEE_METRIC_SPECS = {
     id: 'TOTAL_PLATFORM_DISCOUNT_SHOPEE',
     name: 'Total Platform Discount — Shopee',
     expression:
-      'SUM_PER_ORDER( MAX({Mã giảm giá của Shopee} + {Giảm giá từ combo Shopee}) ) WHERE {Trạng Thái Đơn Hàng} != "Đã hủy"',
+      'SUM_PER_ORDER( MAX({Mã giảm giá của Shopee}) ) WHERE {Trạng Thái Đơn Hàng} != "Đã hủy"',
     note: 'Shopee-funded discount (reference-only display). Not deducted from CM since cost is borne by Shopee, not seller.',
   },
   EXCLUSIONS: {
@@ -221,6 +243,7 @@ export function computeShopeeMetrics(
   trafficRows?: ShopeeTrafficRow[] | null,
   affiliateRows?: ShopeeAffiliateRow[] | null,
 ): ShopeeMetricsResult {
+  let totalItemSold = 0;
   let totalGmv = 0;
   let totalNetGmv = 0;
   let totalNmv = 0;
@@ -235,7 +258,11 @@ export function computeShopeeMetrics(
   const missingByProduct = new Map<string, { sku: string; productName: string; units: number; gmvContribution: number }>();
   const productAgg = new Map<
     string,
-    { gmv: number; netGmv: number; nmv: number; sellerDiscount: number; primeCost: number; units: number; skus: Set<string> }
+    { gmv: number; netGmv: number; nmv: number; sellerDiscount: number; primeCost: number; units: number; skus: Set<string>; nameEn: string }
+  >();
+  const giftAgg = new Map<
+    string,
+    { primeCost: number; units: number; skus: Set<string>; nameEn: string }
   >();
   // Per-order accumulator (MAX dedupe) — see [[per-order-vs-per-row-metrics]]
   const orderMaxes = new Map<
@@ -295,7 +322,18 @@ export function computeShopeeMetrics(
     if (isGiftPrefix || isNmvFallback) {
       freeGift++;
       freeGiftProducts.add(row.productName);
-      if (master) primeCostFreeGift += master.primeCost * itemSold;
+      const giftPc = master ? master.primeCost * itemSold : 0;
+      if (master) primeCostFreeGift += giftPc;
+      let gAgg = giftAgg.get(row.productName);
+      if (!gAgg) {
+        gAgg = { primeCost: 0, units: 0, skus: new Set(), nameEn: master?.productNameEn ?? '' };
+        giftAgg.set(row.productName, gAgg);
+      } else if (!gAgg.nameEn && master?.productNameEn) {
+        gAgg.nameEn = master.productNameEn;
+      }
+      gAgg.primeCost += giftPc;
+      gAgg.units += itemSold;
+      gAgg.skus.add(row.varSku);
       continue;
     }
 
@@ -319,6 +357,7 @@ export function computeShopeeMetrics(
     const primeCostRow = primeCost * itemSold;
     const sellerDiscountRow = Math.max(0, netGmvRow - row.nmv);
 
+    totalItemSold += itemSold;
     totalGmv += gmv;
     totalNmv += row.nmv;
     totalNetGmv += netGmvRow;
@@ -328,8 +367,10 @@ export function computeShopeeMetrics(
 
     let agg = productAgg.get(row.productName);
     if (!agg) {
-      agg = { gmv: 0, netGmv: 0, nmv: 0, sellerDiscount: 0, primeCost: 0, units: 0, skus: new Set() };
+      agg = { gmv: 0, netGmv: 0, nmv: 0, sellerDiscount: 0, primeCost: 0, units: 0, skus: new Set(), nameEn: master?.productNameEn ?? '' };
       productAgg.set(row.productName, agg);
+    } else if (!agg.nameEn && master?.productNameEn) {
+      agg.nameEn = master.productNameEn;
     }
     agg.gmv += gmv;
     agg.netGmv += netGmvRow;
@@ -340,9 +381,20 @@ export function computeShopeeMetrics(
     agg.skus.add(row.varSku);
   }
 
+  // Per-product page views from Traffic xlsx (match by productName, NFC-normalized)
+  const pvByProduct = new Map<string, number>();
+  if (trafficRows) {
+    for (const t of trafficRows) {
+      const key = t.productName.normalize('NFC').trim();
+      pvByProduct.set(key, (pvByProduct.get(key) ?? 0) + t.pageViews);
+    }
+  }
+
   const productBreakdown = [...productAgg.entries()]
     .map(([productName, agg]) => ({
       productName,
+      productNameEn: agg.nameEn,
+      representativeSku: [...agg.skus][0] ?? '',
       gmv: agg.gmv,
       netGmv: agg.netGmv,
       nmv: agg.nmv,
@@ -350,8 +402,21 @@ export function computeShopeeMetrics(
       primeCost: agg.primeCost,
       units: agg.units,
       skuCount: agg.skus.size,
+      pageViews: pvByProduct.get(productName.normalize('NFC').trim()) ?? 0,
     }))
     .sort((a, b) => b.gmv - a.gmv);
+
+  const giftBreakdown = [...giftAgg.entries()]
+    .map(([productName, agg]) => ({
+      productName,
+      productNameEn: agg.nameEn,
+      representativeSku: [...agg.skus][0] ?? '',
+      primeCost: agg.primeCost,
+      units: agg.units,
+      skuCount: agg.skus.size,
+      pageViews: pvByProduct.get(productName.normalize('NFC').trim()) ?? 0,
+    }))
+    .sort((a, b) => b.primeCost - a.primeCost);
 
   // Per-order metrics: sum MAX values across non-cancelled orders only
   let totalSellerVouchers = 0;
@@ -367,10 +432,11 @@ export function computeShopeeMetrics(
     nonCancelledOrders++;
     totalSellerVouchers += o.shopVoucher + o.shopCombo;
     totalPlatformFee += o.fixedFee + o.serviceFee + o.paymentFee;
-    totalPlatformDiscount += o.shopeeVoucher + o.shopeeCombo;
+    totalPlatformDiscount += o.shopeeVoucher;
   }
 
   return {
+    totalItemSold,
     totalGmv,
     totalNetGmv,
     totalNmv,
@@ -391,6 +457,7 @@ export function computeShopeeMetrics(
     rowsExcluded: { cancelled, returned, freeGift },
     freeGiftProducts: [...freeGiftProducts],
     productBreakdown,
+    giftBreakdown,
     missingFromMaster: [...missingByProduct.values()].sort((a, b) => b.gmvContribution - a.gmvContribution),
   };
 }

@@ -166,20 +166,22 @@ export function UploadReportsClient() {
           <ChevronLeft className="h-4 w-4" />
           Back
         </button>
-        <button
-          type="button"
-          onClick={goNext}
-          disabled={isLast || !canContinue}
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-            isLast || !canContinue
-              ? 'cursor-not-allowed bg-neutral-300 text-white'
-              : 'bg-neutral-900 text-white hover:bg-neutral-800',
-          )}
-        >
-          {isLast ? 'Confirm ingest' : 'Continue'}
-          <ChevronRight className="h-4 w-4" />
-        </button>
+        {!isLast && (
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={!canContinue}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+              !canContinue
+                ? 'cursor-not-allowed bg-neutral-300 text-white'
+                : 'bg-neutral-900 text-white hover:bg-neutral-800',
+            )}
+          >
+            Continue
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </div>
   );

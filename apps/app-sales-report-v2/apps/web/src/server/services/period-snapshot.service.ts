@@ -17,6 +17,7 @@ export interface PeriodSnapshotMetrics {
   version: 1;
   shopee: Pick<
     ShopeeMetricsResult,
+    | 'totalItemSold'
     | 'totalGmv'
     | 'totalNetGmv'
     | 'totalNmv'
@@ -30,8 +31,13 @@ export interface PeriodSnapshotMetrics {
     | 'rowsKept'
     | 'rowsExcluded'
     | 'orderCounts'
+    | 'productBreakdown'
+    | 'giftBreakdown'
   > & {
     totalAdSpending: number;
+    totalAdRevenue: number;
+    shopGmvMaxCost: number;
+    shopAdsCost: number;
     totalBrandAds: number;
     totalOffPlatformAds: number;
     totalPageViews: number;
@@ -39,15 +45,21 @@ export interface PeriodSnapshotMetrics {
   };
   tiktok: Pick<
     TikTokMetricsResult,
+    | 'totalItemSold'
     | 'totalGmv'
     | 'totalNetGmv'
     | 'totalNmv'
     | 'totalSellerDiscount'
+    | 'totalPlatformDiscount'
+    | 'totalPlatformFee'
     | 'totalPrimeCost'
     | 'primeCostKept'
     | 'primeCostFreeGift'
     | 'rowsKept'
     | 'rowsExcluded'
+    | 'orderCounts'
+    | 'productBreakdown'
+    | 'giftBreakdown'
   > & {
     totalPageViews: number;
     totalAffiliateCommission: number;

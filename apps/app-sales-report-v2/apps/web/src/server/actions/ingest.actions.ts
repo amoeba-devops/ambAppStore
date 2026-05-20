@@ -47,6 +47,11 @@ import {
   loadPeriodSnapshot,
   type PeriodSnapshotMetrics,
 } from '@/server/services/period-snapshot.service';
+import {
+  archiveFile,
+  type ArchiveChannel,
+  type ArchiveFileType,
+} from '@/server/services/archive-files.service';
 
 export interface CommitIngestResult {
   pspId: string;
@@ -99,15 +104,15 @@ export async function commitIngestAction(
 
     // Parse Shopee files in parallel
     const [
-      shopeeSalesBuffer,
-      shopeeAdsBuffer,
-      shopeeBrandAdsBuffer,
-      shopeeOffPlatformAdsBuffer,
-      shopeeTrafficBuffer,
-      shopeeAffiliateBuffer,
-      tiktokSalesBuffer,
-      tiktokTrafficBuffer,
-      tiktokAffiliateBuffer,
+      shopeeSalesFile,
+      shopeeAdsFile,
+      shopeeBrandAdsFile,
+      shopeeOffPlatformAdsFile,
+      shopeeTrafficFile,
+      shopeeAffiliateFile,
+      tiktokSalesFile,
+      tiktokTrafficFile,
+      tiktokAffiliateFile,
       master,
     ] = await Promise.all([
       bufferFromForm(formData, 'shopee_sales'),
@@ -124,17 +129,29 @@ export async function commitIngestAction(
 
     // Shopee compute (requires sales)
     let shopee: PeriodSnapshotMetrics['shopee'] | null = null;
-    if (shopeeSalesBuffer) {
+    if (shopeeSalesFile) {
       const [salesRows, adsRows, brandRows, offPlatformRows, trafficRows, affiliateRows] =
         await Promise.all([
-          parseShopeeSales(shopeeSalesBuffer),
-          shopeeAdsBuffer ? parseShopeeAds(shopeeAdsBuffer) : Promise.resolve(null),
-          shopeeBrandAdsBuffer ? parseShopeeBrandAds(shopeeBrandAdsBuffer) : Promise.resolve(null),
-          shopeeOffPlatformAdsBuffer
-            ? parseShopeeOffPlatformAds(shopeeOffPlatformAdsBuffer)
+          parseWithContext('Shopee Sales', shopeeSalesFile, parseShopeeSales),
+          shopeeAdsFile
+            ? parseWithContext('Shopee Ads', shopeeAdsFile, parseShopeeAds)
             : Promise.resolve(null),
-          shopeeTrafficBuffer ? parseShopeeTraffic(shopeeTrafficBuffer) : Promise.resolve(null),
-          shopeeAffiliateBuffer ? parseShopeeAffiliate(shopeeAffiliateBuffer) : Promise.resolve(null),
+          shopeeBrandAdsFile
+            ? parseWithContext('Shopee Brand Ads', shopeeBrandAdsFile, parseShopeeBrandAds)
+            : Promise.resolve(null),
+          shopeeOffPlatformAdsFile
+            ? parseWithContext(
+                'Shopee Off-Platform Ads',
+                shopeeOffPlatformAdsFile,
+                parseShopeeOffPlatformAds,
+              )
+            : Promise.resolve(null),
+          shopeeTrafficFile
+            ? parseWithContext('Shopee Traffic', shopeeTrafficFile, parseShopeeTraffic)
+            : Promise.resolve(null),
+          shopeeAffiliateFile
+            ? parseWithContext('Shopee Affiliate', shopeeAffiliateFile, parseShopeeAffiliate)
+            : Promise.resolve(null),
         ]);
       const r = computeShopeeMetrics(
         salesRows,
@@ -146,6 +163,7 @@ export async function commitIngestAction(
         affiliateRows ?? undefined,
       );
       shopee = {
+        totalItemSold: r.totalItemSold,
         totalGmv: r.totalGmv,
         totalNetGmv: r.totalNetGmv,
         totalNmv: r.totalNmv,
@@ -159,7 +177,12 @@ export async function commitIngestAction(
         rowsKept: r.rowsKept,
         rowsExcluded: r.rowsExcluded,
         orderCounts: r.orderCounts,
+        productBreakdown: r.productBreakdown,
+        giftBreakdown: r.giftBreakdown,
         totalAdSpending: r.ads?.totalCost ?? 0,
+        totalAdRevenue: r.ads?.totalRevenue ?? 0,
+        shopGmvMaxCost: r.ads?.shopGmvMaxCost ?? 0,
+        shopAdsCost: r.ads?.shopAdsCost ?? 0,
         totalBrandAds: r.brandAds?.totalCost ?? 0,
         totalOffPlatformAds: r.offPlatformAds?.totalCost ?? 0,
         totalPageViews: r.traffic?.totalPageViews ?? 0,
@@ -169,28 +192,39 @@ export async function commitIngestAction(
 
     // TikTok compute (requires sales)
     let tiktok: PeriodSnapshotMetrics['tiktok'] | null = null;
-    if (tiktokSalesBuffer) {
+    if (tiktokSalesFile) {
       const [salesRows, trafficRows, affiliateRows] = await Promise.all([
-        parseTikTokSales(tiktokSalesBuffer),
-        tiktokTrafficBuffer ? parseTikTokTraffic(tiktokTrafficBuffer) : Promise.resolve(null),
-        tiktokAffiliateBuffer ? parseTikTokAffiliate(tiktokAffiliateBuffer) : Promise.resolve(null),
+        parseWithContext('TikTok Sales', tiktokSalesFile, parseTikTokSales),
+        tiktokTrafficFile
+          ? parseWithContext('TikTok Traffic', tiktokTrafficFile, parseTikTokTraffic)
+          : Promise.resolve(null),
+        tiktokAffiliateFile
+          ? parseWithContext('TikTok Affiliate', tiktokAffiliateFile, parseTikTokAffiliate)
+          : Promise.resolve(null),
       ]);
       const r = computeTikTokMetrics(
         salesRows,
         master,
         trafficRows ?? undefined,
         affiliateRows ?? undefined,
+        tiktokPlatformFeeRatePct,
       );
       tiktok = {
+        totalItemSold: r.totalItemSold,
         totalGmv: r.totalGmv,
         totalNetGmv: r.totalNetGmv,
         totalNmv: r.totalNmv,
         totalSellerDiscount: r.totalSellerDiscount,
+        totalPlatformDiscount: r.totalPlatformDiscount,
+        totalPlatformFee: r.totalPlatformFee,
         totalPrimeCost: r.totalPrimeCost,
         primeCostKept: r.primeCostKept,
         primeCostFreeGift: r.primeCostFreeGift,
         rowsKept: r.rowsKept,
         rowsExcluded: r.rowsExcluded,
+        orderCounts: r.orderCounts,
+        productBreakdown: r.productBreakdown,
+        giftBreakdown: r.giftBreakdown,
         totalPageViews: r.traffic?.totalPageViews ?? 0,
         totalAffiliateCommission: r.affiliate?.totalCommission ?? 0,
       };
@@ -215,17 +249,63 @@ export async function commitIngestAction(
       computedAt: new Date().toISOString(),
     };
 
+    const periodStart = new Date(periodStartIso);
+    const periodEnd = new Date(periodEndIso);
+
     const { pspId, isNew } = await savePeriodSnapshot({
       entId: user.entId,
       userId: user.userId,
-      periodStart: new Date(periodStartIso),
-      periodEnd: new Date(periodEndIso),
+      periodStart,
+      periodEnd,
       granularity,
       weekNum,
       monthIdx,
       year,
       metrics,
     });
+
+    // Archive raw files — persists file metadata (and S3 upload when
+    // credentials configured). Best-effort: errors are logged but don't
+    // fail the ingest, since snapshot is already saved.
+    const archivePlan: Array<{
+      file: UploadedFile | null;
+      channel: ArchiveChannel;
+      fileType: ArchiveFileType;
+    }> = [
+      { file: shopeeSalesFile, channel: 'SHOPEE', fileType: 'SALES' },
+      { file: shopeeAdsFile, channel: 'SHOPEE', fileType: 'ADS' },
+      { file: shopeeBrandAdsFile, channel: 'SHOPEE', fileType: 'BRAND_ADS' },
+      { file: shopeeOffPlatformAdsFile, channel: 'SHOPEE', fileType: 'OFF_PLATFORM_ADS' },
+      { file: shopeeTrafficFile, channel: 'SHOPEE', fileType: 'TRAFFIC' },
+      { file: shopeeAffiliateFile, channel: 'SHOPEE', fileType: 'AFFILIATE' },
+      { file: tiktokSalesFile, channel: 'TIKTOK', fileType: 'SALES' },
+      { file: tiktokTrafficFile, channel: 'TIKTOK', fileType: 'TRAFFIC' },
+      { file: tiktokAffiliateFile, channel: 'TIKTOK', fileType: 'AFFILIATE' },
+    ];
+    for (const item of archivePlan) {
+      if (!item.file) continue;
+      try {
+        await archiveFile({
+          entId: user.entId,
+          uploadedBy: user.userId,
+          periodStart,
+          periodEnd,
+          granularity,
+          weekNum: weekNum ?? null,
+          monthIdx: monthIdx ?? null,
+          year,
+          channel: item.channel,
+          fileType: item.fileType,
+          filename: item.file.filename,
+          buffer: item.file.buffer,
+        });
+      } catch (err) {
+        console.error(
+          `[archive-files] failed to archive ${item.channel}/${item.fileType}:`,
+          err instanceof Error ? err.message : err,
+        );
+      }
+    }
 
     return { success: true, data: { pspId, isNew, metrics } };
   } catch (err) {
@@ -285,10 +365,40 @@ export async function loadSnapshotAction(input: {
   }
 }
 
-async function bufferFromForm(formData: FormData, name: string): Promise<ArrayBuffer | null> {
+interface UploadedFile {
+  buffer: ArrayBuffer;
+  filename: string;
+  size: number;
+}
+
+async function bufferFromForm(formData: FormData, name: string): Promise<UploadedFile | null> {
   const f = formData.get(name);
   if (!(f instanceof File)) return null;
-  return f.arrayBuffer();
+  const buffer = await f.arrayBuffer();
+  if (buffer.byteLength === 0) return null;
+  return { buffer, filename: f.name, size: buffer.byteLength };
+}
+
+/**
+ * Wrap a parser call so any thrown error gets prefixed with the slot label +
+ * filename. Makes "Failed to unzip xlsx" debuggable without server logs.
+ */
+async function parseWithContext<T>(
+  slotLabel: string,
+  file: UploadedFile,
+  parser: (buf: ArrayBuffer) => Promise<T>,
+): Promise<T> {
+  try {
+    return await parser(file.buffer);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const ctx = `[${slotLabel}: "${file.filename}", ${file.size}B] ${msg}`;
+    if (err instanceof Error) {
+      err.message = ctx;
+      throw err;
+    }
+    throw new Error(ctx);
+  }
 }
 
 function numFromForm(formData: FormData, name: string): number | undefined {
@@ -300,6 +410,7 @@ function numFromForm(formData: FormData, name: string): number | undefined {
 
 function emptyShopeeMetrics(): PeriodSnapshotMetrics['shopee'] {
   return {
+    totalItemSold: 0,
     totalGmv: 0,
     totalNetGmv: 0,
     totalNmv: 0,
@@ -313,7 +424,12 @@ function emptyShopeeMetrics(): PeriodSnapshotMetrics['shopee'] {
     rowsKept: 0,
     rowsExcluded: { cancelled: 0, returned: 0, freeGift: 0 },
     orderCounts: { totalDistinct: 0, cancelled: 0, nonCancelled: 0 },
+    productBreakdown: [],
+    giftBreakdown: [],
     totalAdSpending: 0,
+    totalAdRevenue: 0,
+    shopGmvMaxCost: 0,
+    shopAdsCost: 0,
     totalBrandAds: 0,
     totalOffPlatformAds: 0,
     totalPageViews: 0,
@@ -323,15 +439,21 @@ function emptyShopeeMetrics(): PeriodSnapshotMetrics['shopee'] {
 
 function emptyTikTokMetrics(): PeriodSnapshotMetrics['tiktok'] {
   return {
+    totalItemSold: 0,
     totalGmv: 0,
     totalNetGmv: 0,
     totalNmv: 0,
     totalSellerDiscount: 0,
+    totalPlatformDiscount: 0,
+    totalPlatformFee: 0,
     totalPrimeCost: 0,
     primeCostKept: 0,
     primeCostFreeGift: 0,
     rowsKept: 0,
     rowsExcluded: { cancelled: 0, returned: 0, freeGift: 0 },
+    orderCounts: { totalDistinct: 0, cancelled: 0, nonCancelled: 0 },
+    productBreakdown: [],
+    giftBreakdown: [],
     totalPageViews: 0,
     totalAffiliateCommission: 0,
   };

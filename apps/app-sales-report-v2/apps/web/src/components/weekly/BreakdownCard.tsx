@@ -2,7 +2,8 @@
 
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { cn } from '@v2/ui';
-import type { BreakdownItem } from '@/lib/weekly-report-mock';
+import type { BreakdownItem, WeeklyChannel } from '@/lib/weekly-report-mock';
+import { getMetricFormula } from '@/lib/formula-lookup';
 
 export type BreakdownAccent = 'indigo' | 'orange' | 'pink' | 'green' | 'neutral';
 
@@ -13,6 +14,7 @@ interface BreakdownCardProps {
   krwRate: number;
   /** Column header for the WoW/MoM delta column. */
   deltaLabel?: string;
+  channel?: WeeklyChannel;
 }
 
 const ACCENT_STYLES: Record<BreakdownAccent, { bar: string; pct: string }> = {
@@ -23,7 +25,7 @@ const ACCENT_STYLES: Record<BreakdownAccent, { bar: string; pct: string }> = {
   neutral: { bar: 'bg-neutral-700', pct: 'bg-neutral-100 text-neutral-700' },
 };
 
-export function BreakdownCard({ title, accent, items, krwRate, deltaLabel = 'WoW' }: BreakdownCardProps) {
+export function BreakdownCard({ title, accent, items, krwRate, deltaLabel = 'WoW', channel = 'ALL' }: BreakdownCardProps) {
   const safeRate = krwRate > 0 ? krwRate : 1;
   const styles = ACCENT_STYLES[accent];
   const hasMoney = items.some((it) => it.vnd != null && it.rawDisplay == null);
@@ -57,9 +59,11 @@ export function BreakdownCard({ title, accent, items, krwRate, deltaLabel = 'WoW
             ? new Intl.NumberFormat('en-US').format(Math.round((it.vnd as number) / safeRate))
             : '—';
 
+          const formula = it.formula ?? getMetricFormula(it.label, channel);
           return (
             <li
               key={it.label}
+              title={formula}
               className={cn(
                 'grid items-center gap-3 px-5 py-3 text-sm',
                 hasMoney ? 'grid-cols-[1fr_auto_auto_auto_auto]' : 'grid-cols-[1fr_auto_auto_auto]',

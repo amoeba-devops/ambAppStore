@@ -15,6 +15,7 @@ export async function loadPrimeCostMaster(entId: string): Promise<PrimeCostMap> 
       primeCost: schema.salPrimeCosts.pcsPrimeCostVnd,
       sellingPrice: schema.salPrimeCosts.pcsSellingPriceVnd,
       listingPrice: schema.salPrimeCosts.pcsListingPriceVnd,
+      productNameEn: schema.salPrimeCosts.pcsProductNameEn,
     })
     .from(schema.salPrimeCosts)
     .where(
@@ -27,6 +28,7 @@ export async function loadPrimeCostMaster(entId: string): Promise<PrimeCostMap> 
       primeCost: Number(r.primeCost),
       sellingPrice: r.sellingPrice != null ? Number(r.sellingPrice) : 0,
       listingPrice: r.listingPrice != null ? Number(r.listingPrice) : 0,
+      productNameEn: r.productNameEn ?? '',
     });
   }
   return map;

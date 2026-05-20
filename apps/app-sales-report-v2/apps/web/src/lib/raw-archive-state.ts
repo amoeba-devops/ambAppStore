@@ -380,16 +380,35 @@ export function useEffectivePeriod(base: ArchivePeriod): EffectivePeriod {
 
 /**
  * Map from `periodLabel` (e.g. "W13", "Apr 2026") → effective PeriodStatus.
- * Used by Upload Step 1 to flag/disable Locked or Finalized periods.
+ * Used by Upload Step 1 + Week/Month pickers in Weekly/Monthly Report to flag
+ * or disable Locked/Finalized periods.
+ *
+ * Sources merged:
+ *   1. Mock seeds (`getAllArchivePeriods()`) — demo periods W13-W18, etc.
+ *   2. localStorage overrides — finalize/unfinalize actions from any page.
+ *
+ * Real ingested periods (W19, W20, …) live in `sal_archive_files` server-side
+ * but use `periodKey === label`. When a Manager finalizes a real period via
+ * Raw Archive, the override (keyed by periodKey) is stored in localStorage.
+ * Step 2 below picks up those overrides for periods NOT in the mock seeds,
+ * so the Finalized badge propagates to all pickers (Upload, Weekly, Monthly).
  */
 export function useArchiveStatusByLabel(): Map<string, PeriodStatus> {
   const { tick, mounted } = useMountedTick();
   return useMemo(() => {
     const m = new Map<string, PeriodStatus>();
     if (!mounted) return m;
+    // 1. Mock periods + their overrides
     for (const base of getAllArchivePeriods()) {
       const eff = applyOverride(base);
       m.set(eff.label, eff.status);
+    }
+    // 2. Override-only entries (real periods finalized via Raw Archive — they
+    //    aren't in mock but their periodKey/label sits in localStorage).
+    const overrides = readMap();
+    for (const [periodKey, ov] of Object.entries(overrides)) {
+      if (m.has(periodKey)) continue; // already merged in step 1
+      if (ov?.status) m.set(periodKey, ov.status);
     }
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Download, Banknote, TrendingUp, Percent, Database, Cloud } from 'lucide-react';
 import { cn } from '@v2/ui';
 import {
@@ -10,8 +11,11 @@ import {
   findCurrentWeekNum,
   type WeeklyChannel,
   type WeeklyReportData,
+  type ProductMetric,
 } from '@/lib/weekly-report-mock';
-import { snapshotToWeeklyReport } from '@/lib/snapshot-to-report';
+import { snapshotToWeeklyReport, snapshotToProducts } from '@/lib/snapshot-to-report';
+import { getMetricFormula } from '@/lib/formula-lookup';
+import type { PeriodSnapshotMetrics } from '@/server/services/period-snapshot.service';
 import { loadSnapshotAction } from '@/server/actions/ingest.actions';
 import { useArchiveStatusByLabel } from '@/lib/raw-archive-state';
 import { WeekPicker } from '@/components/shared/WeekPicker';
@@ -33,17 +37,26 @@ const DEFAULT_KRW_RATE = 17543;
 export function WeeklyReportClient() {
   const weeks = useMemo(() => getAvailableWeeks(), []);
   const statusByLabel = useArchiveStatusByLabel();
-  const [weekNum, setWeekNum] = useState(() => findCurrentWeekNum(weeks));
+  const searchParams = useSearchParams();
+  // Initial week selection — prefer ?weekNum=N from URL (deep-link after ingest),
+  // otherwise default to the current calendar week.
+  const [weekNum, setWeekNum] = useState(() => {
+    const fromUrl = Number(searchParams?.get('weekNum'));
+    if (Number.isFinite(fromUrl) && weeks.some((w) => w.weekNum === fromUrl)) {
+      return fromUrl;
+    }
+    return findCurrentWeekNum(weeks);
+  });
   const [channel, setChannel] = useState<WeeklyChannel>('ALL');
   const [krwRate, setKrwRate] = useState(DEFAULT_KRW_RATE);
 
   // Try loading a real-data snapshot for the selected week; fall back to mock.
-  const [snapshotReport, setSnapshotReport] = useState<WeeklyReportData | null>(null);
+  const [snapshotMetrics, setSnapshotMetrics] = useState<PeriodSnapshotMetrics | null>(null);
   const [snapshotLoading, setSnapshotLoading] = useState(false);
   const selectedWeek = weeks.find((w) => w.weekNum === weekNum);
   useEffect(() => {
     if (!selectedWeek) {
-      setSnapshotReport(null);
+      setSnapshotMetrics(null);
       return;
     }
     let cancelled = false;
@@ -55,21 +68,27 @@ export function WeeklyReportClient() {
     }).then((res) => {
       if (cancelled) return;
       setSnapshotLoading(false);
-      if (res.success && res.data.metrics) {
-        setSnapshotReport(snapshotToWeeklyReport(res.data.metrics, channel));
-      } else {
-        setSnapshotReport(null);
-      }
+      setSnapshotMetrics(res.success ? res.data.metrics : null);
     });
     return () => {
       cancelled = true;
     };
-  }, [selectedWeek, channel]);
+  }, [selectedWeek]);
 
+  const snapshotReport: WeeklyReportData | null = useMemo(
+    () => (snapshotMetrics ? snapshotToWeeklyReport(snapshotMetrics, channel) : null),
+    [snapshotMetrics, channel],
+  );
   const mockReport = useMemo(() => getWeeklyReport(weekNum, channel), [weekNum, channel]);
   const report = snapshotReport ?? mockReport;
   const isRealData = snapshotReport != null;
-  const products = useMemo(() => getProductMetrics(weekNum, channel), [weekNum, channel]);
+  const products = useMemo<ProductMetric[]>(
+    () =>
+      snapshotMetrics
+        ? snapshotToProducts(snapshotMetrics, channel)
+        : getProductMetrics(weekNum, channel),
+    [snapshotMetrics, weekNum, channel],
+  );
 
   const currentWeekLabel = `W${weekNum}`;
 
@@ -211,6 +230,7 @@ export function WeeklyReportClient() {
             icon={Banknote}
             iconColor="text-info-500 bg-info-50"
             className="flex-1 justify-center"
+            formula={getMetricFormula('Net GMV', channel)}
           />
           <KpiCard
             label="Total CM"
@@ -222,6 +242,7 @@ export function WeeklyReportClient() {
             icon={TrendingUp}
             iconColor="text-success-500 bg-success-50"
             className="flex-1 justify-center"
+            formula={getMetricFormula('Total CM', channel)}
           />
           <KpiCard
             label="CM %"
@@ -233,6 +254,7 @@ export function WeeklyReportClient() {
             icon={Percent}
             iconColor="text-success-500 bg-success-50"
             className="flex-1 justify-center"
+            formula={getMetricFormula('CM %', channel)}
           />
         </div>
 
@@ -241,20 +263,29 @@ export function WeeklyReportClient() {
           prevWeekLabel={report.prevWeekLabel}
           currentWeekLabel={currentWeekLabel}
           krwRate={krwRate}
+          channel={channel}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <BreakdownCard title="Discount Breakdown" accent="indigo" items={report.discounts} krwRate={krwRate} />
-        <BreakdownCard title="Promotional Breakdown" accent="orange" items={report.promo} krwRate={krwRate} />
+        <BreakdownCard title="Discount Breakdown" accent="indigo" items={report.discounts} krwRate={krwRate} channel={channel} />
+        <BreakdownCard title="Promotional Breakdown" accent="orange" items={report.promo} krwRate={krwRate} channel={channel} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <BreakdownCard title="Traffic" accent="pink" items={report.traffic} krwRate={krwRate} />
-        <BreakdownCard title="Sales" accent="green" items={report.sales} krwRate={krwRate} />
+        <BreakdownCard
+          title={channel === 'TIKTOK' ? 'Traffic' : 'Traffic and Ads'}
+          accent="pink"
+          items={report.traffic}
+          krwRate={krwRate}
+          channel={channel}
+        />
+        <BreakdownCard title="Sales" accent="green" items={report.sales} krwRate={krwRate} channel={channel} />
       </div>
 
-      <WeeklyProductBreakdownTable products={products} krwRate={krwRate} />
+      {channel !== 'ALL' && (
+        <WeeklyProductBreakdownTable products={products} krwRate={krwRate} />
+      )}
     </div>
   );
 }

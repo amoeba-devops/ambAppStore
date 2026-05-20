@@ -31,6 +31,11 @@ export interface ProductMetric {
   platformFee: number;
   primeCost: number;
   cm: number;
+  isGift?: boolean;
+  /** Aggregated bucket — products that had Page Views or ad spend but no kept sales. */
+  isOthers?: boolean;
+  /** Shop-wide ad campaigns (Shop Ads / Shop GMV Max) shown as standalone rows. */
+  isShopWideAd?: boolean;
 }
 
 // Hardcoded 5 products (matches design) — same numbers regardless of week for demo.
@@ -189,6 +194,10 @@ export interface OverviewRow {
   isGroupTotal?: boolean;
   /** Render indented (sub-item under group). */
   isSubItem?: boolean;
+  /** Formula text shown on hover tooltip. */
+  formula?: string;
+  /** When true, render all value cells as "—" (no data yet). */
+  placeholder?: boolean;
 }
 
 export interface BreakdownItem {
@@ -205,6 +214,8 @@ export interface BreakdownItem {
   summary?: boolean;
   /** Reference-only row — not counted in totals, rendered with dimmed/italic style. */
   reference?: boolean;
+  /** Formula text shown on hover tooltip. */
+  formula?: string;
 }
 
 export interface WeeklyReportData {
@@ -411,6 +422,89 @@ function buildReportFromPoints(
     ads,
     prevWeekLabel: prevLabel,
   };
+}
+
+/**
+ * 7-row overview placeholder used when no real snapshot exists. Mirrors the
+ * structure produced by `snapshotToWeeklyReport` so the dashboard renders
+ * identically across periods regardless of data availability.
+ */
+export function buildPlaceholderOverview(): OverviewRow[] {
+  const placeholderRow = (
+    metric: string,
+    extras: Partial<OverviewRow> = {},
+  ): OverviewRow => ({
+    metric,
+    vnd: 0,
+    pctGmv: 0,
+    wowPct: null,
+    placeholder: true,
+    ...extras,
+  });
+  return [
+    placeholderRow('Net GMV'),
+    placeholderRow('Total Discount Costs', { invertDelta: true }),
+    placeholderRow('Total Promotional Costs', { invertDelta: true }),
+    placeholderRow('Prime Cost', { invertDelta: true }),
+    placeholderRow('Platform Fee', { invertDelta: true }),
+    placeholderRow('Total Contribution Margin', { highlight: 'cm' }),
+    placeholderRow('CM %', { highlight: 'cmPct', isRatio: true }),
+  ];
+}
+
+/**
+ * Build placeholder breakdown items (Discount / Promo / Traffic / Sales) with
+ * the same metric labels Weekly Report produces from snapshot. All values are
+ * undefined so BreakdownCard renders "—" for VND/KRW/% Net GMV cells.
+ */
+export function buildPlaceholderBreakdowns(channel: WeeklyChannel): {
+  discounts: BreakdownItem[];
+  promo: BreakdownItem[];
+  traffic: BreakdownItem[];
+  sales: BreakdownItem[];
+} {
+  const useShopee = channel === 'ALL' || channel === 'SHOPEE';
+  const placeholder = (label: string, invertWow = true): BreakdownItem => ({
+    label,
+    wowPct: null,
+    invertWow,
+  });
+
+  const discounts: BreakdownItem[] = [
+    ...(useShopee ? [placeholder('Total Seller Voucher')] : []),
+    placeholder('Total Seller Discount'),
+    placeholder('Total Free Gift'),
+    { label: 'Total Platform Discount (Ref)', wowPct: null, reference: true },
+  ];
+
+  const promo: BreakdownItem[] = [
+    placeholder('Total AD Spend'),
+    ...(useShopee
+      ? [placeholder('Total Brand Ads'), placeholder('Total Off-Platform Ads')]
+      : []),
+    placeholder('Total Affiliate Commission'),
+    placeholder('Total Affiliate Booking Fee'),
+    placeholder('Total Livestream Fee'),
+  ];
+
+  const traffic: BreakdownItem[] = [
+    { label: 'Total Page Views', wowPct: null },
+    { label: 'Conversion Rate', wowPct: null, invertWow: true },
+    ...(useShopee
+      ? ([
+          { label: 'AD GMV', wowPct: null },
+          { label: 'AD ROAS', wowPct: null },
+        ] as BreakdownItem[])
+      : []),
+  ];
+
+  const sales: BreakdownItem[] = [
+    { label: 'Total Item Sold', wowPct: null },
+    { label: 'Total Orders', wowPct: null },
+    { label: 'AOV', wowPct: null },
+  ];
+
+  return { discounts, promo, traffic, sales };
 }
 
 function emptyReport(): WeeklyReportData {
@@ -668,7 +762,7 @@ export function getAvailableMonths(): MonthEntry[] {
   return generateMonthsForYear(2026);
 }
 
-function generateMonthsForYear(year: number): MonthEntry[] {
+export function generateMonthsForYear(year: number): MonthEntry[] {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return months.map((m, i) => {
     const lastDay = new Date(Date.UTC(year, i + 1, 0)).getUTCDate();

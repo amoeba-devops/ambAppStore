@@ -179,6 +179,15 @@ export function Step6Ingest({
     (manualInputs ? Number(manualInputs.tiktokAdsSpending) || 0 : 0) -
     (manualInputs ? Number(manualInputs.tiktokLivestreamFees) || 0 : 0);
 
+  // Deep-link the "Open …" button straight to the period that was just ingested.
+  // Weekly → /reports/weekly?weekNum=N&year=Y, Monthly → /reports/monthly?monthIdx=N&year=Y
+  const isMonthly = selectedPeriod?.granularity === 'MONTH';
+  const reportPath = isMonthly ? '/reports/monthly' : '/reports/weekly';
+  const reportLabel = isMonthly ? 'Open Monthly Detail' : 'Open Weekly Detail';
+  const reportQuery = selectedPeriod
+    ? `?${isMonthly ? 'monthIdx' : 'weekNum'}=${selectedPeriod.periodId}&year=${selectedPeriod.year}`
+    : '';
+
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-neutral-200 bg-white px-6 py-8 text-center">
@@ -203,10 +212,10 @@ export function Step6Ingest({
             View raw archive
           </Link>
           <Link
-            href="/reports/weekly"
+            href={`${reportPath}${reportQuery}`}
             className="inline-flex items-center gap-1.5 rounded-md bg-info-500 px-3 py-2 text-sm font-semibold text-white hover:bg-info-500/90"
           >
-            Open Weekly Detail
+            {reportLabel}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

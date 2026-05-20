@@ -162,8 +162,14 @@ export async function parseShopeeAds(buffer: ArrayBuffer): Promise<ShopeeAdsRow[
  */
 export function aggregateAds(rows: ShopeeAdsRow[]) {
   let totalCost = 0;
+  let totalRevenue = 0;
   let shopWideCost = 0;
   let productSpecificCost = 0;
+  // Shop-wide is split further into "Shop GMV Max" (auto-bidding campaign type)
+  // and "Shop Ads" (general shop-level campaigns). Anything else shop-wide goes
+  // into `otherShopWideCost`.
+  let shopGmvMaxCost = 0;
+  let shopAdsCost = 0;
   const perProduct = new Map<
     string,
     { productId: string; campaignName: string; cost: number; sold: number; revenue: number }
@@ -171,8 +177,11 @@ export function aggregateAds(rows: ShopeeAdsRow[]) {
 
   for (const r of rows) {
     totalCost += r.cost;
+    totalRevenue += r.revenue;
     if (r.isShopWide) {
       shopWideCost += r.cost;
+      if (r.campaignName.startsWith('Shop GMV Max')) shopGmvMaxCost += r.cost;
+      else if (r.campaignName.startsWith('Shop Ads')) shopAdsCost += r.cost;
     } else {
       productSpecificCost += r.cost;
       const prev = perProduct.get(r.productId) ?? {
@@ -190,7 +199,10 @@ export function aggregateAds(rows: ShopeeAdsRow[]) {
   }
   return {
     totalCost,
+    totalRevenue,
     shopWideCost,
+    shopGmvMaxCost,
+    shopAdsCost,
     productSpecificCost,
     campaignCount: rows.length,
     productSpecificCount: perProduct.size,
