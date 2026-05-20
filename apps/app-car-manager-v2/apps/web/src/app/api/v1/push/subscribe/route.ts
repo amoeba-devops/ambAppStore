@@ -1,86 +1,81 @@
 import { randomUUID } from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
+import { headers } from 'next/headers';
 import { z } from 'zod';
+import { sql } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carPushSubscriptions } from '@car-v2/db/schema';
 import { CarError } from '@car-v2/shared/errors';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { getPushConfig } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
 
 const requestSchema = z.object({
-  endpoint: z.string().url(),
+  endpoint: z.string().url().max(2000),
   keys: z.object({
-    p256dh: z.string().min(1),
-    auth: z.string().min(1),
+    p256dh: z.string().min(1).max(200),
+    auth: z.string().min(1).max(100),
   }),
 });
 
-/* POST /api/v1/push/subscribe
+/**
+ * Upsert a Web Push subscription for the current user.
  *
- * Registers (or refreshes) a Web Push subscription for the current user.
- *
- * Idempotency: keyed on `psb_endpoint` (globally unique per push service).
- * If the endpoint already exists for this user, we just bump `last_seen_at`;
- * if it exists for a DIFFERENT user (rare — UA reinstall in another login),
- * we delete the old row and insert fresh.
- *
- * The User-Agent header is captured for debugging which device subscribed.
- * It's never used to filter sends (we always fan out to all of a user's
- * subscriptions). */
+ * Same browser hitting subscribe twice returns the same endpoint URL — we
+ * dedupe on (psh_endpoint) which is globally unique. ON CONFLICT updates
+ * the keys + user binding (in case the same device switched accounts).
+ */
 export async function POST(req: NextRequest) {
   try {
     const actor = await getCurrentUser();
+
+    /* Hard-fail if VAPID not configured — don't pretend to subscribe when
+     * the server can't actually push anything. UI can read this 503 and
+     * disable the toggle. */
+    if (!getPushConfig()) {
+      throw new CarError('CAR-E0503', 503, 'Web Push not configured on this server');
+    }
+
     const body = await req.json();
     const parsed = requestSchema.safeParse(body);
     if (!parsed.success) {
       throw new CarError('CAR-E0001', 400, parsed.error.issues[0]?.message ?? 'Invalid input');
     }
-    const { endpoint, keys } = parsed.data;
-    const ua = req.headers.get('user-agent')?.slice(0, 255) ?? null;
+    const data = parsed.data;
 
-    /* Upsert. Drizzle's `onConflictDoUpdate` on the endpoint unique index
-     * handles the "same endpoint already registered" case. */
+    const h = await headers();
+    const userAgent = h.get('user-agent')?.slice(0, 500) ?? null;
+
     await db
       .insert(carPushSubscriptions)
       .values({
-        psbId: randomUUID(),
+        pshId: randomUUID(),
         entId: actor.entId,
-        psbUserId: actor.userId,
-        psbEndpoint: endpoint,
-        psbP256dh: keys.p256dh,
-        psbAuth: keys.auth,
-        psbUserAgent: ua,
-        psbLastSeenAt: new Date(),
+        pshUserId: actor.userId,
+        pshEndpoint: data.endpoint,
+        pshP256dh: data.keys.p256dh,
+        pshAuth: data.keys.auth,
+        pshUserAgent: userAgent,
       })
       .onConflictDoUpdate({
-        target: carPushSubscriptions.psbEndpoint,
+        target: carPushSubscriptions.pshEndpoint,
         set: {
-          /* Refresh keys (they can rotate) + user binding (in case the
-           * device was logged into a different account before). */
           entId: actor.entId,
-          psbUserId: actor.userId,
-          psbP256dh: keys.p256dh,
-          psbAuth: keys.auth,
-          psbUserAgent: ua,
-          psbLastSeenAt: new Date(),
+          pshUserId: actor.userId,
+          pshP256dh: data.keys.p256dh,
+          pshAuth: data.keys.auth,
+          pshUserAgent: userAgent,
+          pshLastUsedAt: sql`null`,
         },
       });
 
-    return NextResponse.json({
-      success: true,
-      data: { subscribed: true },
-      timestamp: new Date().toISOString(),
-    });
+    return NextResponse.json({ success: true, data: { subscribed: true }, timestamp: new Date().toISOString() });
   } catch (e) {
     const err =
       e instanceof CarError ? e : new CarError('CAR-E0500', 500, e instanceof Error ? e.message : 'Unknown error');
     return NextResponse.json(
-      {
-        success: false,
-        error: { code: err.code, message: err.message },
-        timestamp: new Date().toISOString(),
-      },
+      { success: false, error: { code: err.code, message: err.message }, timestamp: new Date().toISOString() },
       { status: err.httpStatus },
     );
   }

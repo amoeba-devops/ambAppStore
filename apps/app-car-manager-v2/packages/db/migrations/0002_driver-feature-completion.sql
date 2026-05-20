@@ -1,1 +1,0 @@
-ALTER TABLE "car_trips" ADD COLUMN "trp_passenger_phone" varchar(20);

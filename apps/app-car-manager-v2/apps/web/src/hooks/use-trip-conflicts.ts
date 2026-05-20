@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ConflictResult } from '@/server/services/trip-conflict.service';
 
 interface UseTripConflictsInput {
@@ -18,6 +18,8 @@ interface UseTripConflictsResult {
   conflicts: ConflictResult | null;
   loading: boolean;
   error: boolean;
+  /** Force re-run the conflict check immediately (skips debounce). */
+  refetch: () => void;
 }
 
 const EMPTY: ConflictResult = { vehicle: [], driver: [] };
@@ -38,6 +40,9 @@ export function useTripConflicts(input: UseTripConflictsInput): UseTripConflicts
   const [conflicts, setConflicts] = useState<ConflictResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  /* Bumping this counter forces the effect to re-run. Used by `refetch()` so
+   * the parent can ask for an immediate check after resolving a conflict. */
+  const [refreshTick, setRefreshTick] = useState(0);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -115,7 +120,11 @@ export function useTripConflicts(input: UseTripConflictsInput): UseTripConflicts
       clearTimeout(timer);
       ctrl.abort();
     };
-  }, [vehicleId, driverId, scheduledAtIso, durationMinutes, excludeTripId, enabled]);
+  }, [vehicleId, driverId, scheduledAtIso, durationMinutes, excludeTripId, enabled, refreshTick]);
 
-  return { conflicts, loading, error };
+  const refetch = useCallback(() => {
+    setRefreshTick((n) => n + 1);
+  }, []);
+
+  return { conflicts, loading, error, refetch };
 }

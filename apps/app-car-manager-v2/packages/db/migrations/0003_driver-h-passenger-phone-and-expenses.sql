@@ -41,29 +41,15 @@ CREATE TABLE "car_expenses" (
 	"exp_deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
-CREATE TABLE "car_push_subscriptions" (
-	"psb_id" char(36) PRIMARY KEY NOT NULL,
-	"ent_id" char(36) NOT NULL,
-	"psb_user_id" char(36) NOT NULL,
-	"psb_endpoint" text NOT NULL,
-	"psb_p256dh" text NOT NULL,
-	"psb_auth" text NOT NULL,
-	"psb_user_agent" varchar(255),
-	"psb_created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"psb_last_seen_at" timestamp with time zone DEFAULT now() NOT NULL
-);
---> statement-breakpoint
+ALTER TABLE "car_trips" ADD COLUMN "trp_passenger_phone" varchar(20);--> statement-breakpoint
 ALTER TABLE "car_expense_attachments" ADD CONSTRAINT "car_expense_attachments_eat_expense_id_car_expenses_exp_id_fk" FOREIGN KEY ("eat_expense_id") REFERENCES "public"."car_expenses"("exp_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "car_expenses" ADD CONSTRAINT "car_expenses_exp_trip_id_car_trips_trp_id_fk" FOREIGN KEY ("exp_trip_id") REFERENCES "public"."car_trips"("trp_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "car_expenses" ADD CONSTRAINT "car_expenses_exp_driver_id_car_drivers_drv_id_fk" FOREIGN KEY ("exp_driver_id") REFERENCES "public"."car_drivers"("drv_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "car_expenses" ADD CONSTRAINT "car_expenses_exp_submitted_by_car_users_usr_id_fk" FOREIGN KEY ("exp_submitted_by") REFERENCES "public"."car_users"("usr_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "car_expenses" ADD CONSTRAINT "car_expenses_exp_reviewed_by_car_users_usr_id_fk" FOREIGN KEY ("exp_reviewed_by") REFERENCES "public"."car_users"("usr_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "car_push_subscriptions" ADD CONSTRAINT "car_push_subscriptions_psb_user_id_car_users_usr_id_fk" FOREIGN KEY ("psb_user_id") REFERENCES "public"."car_users"("usr_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "uniq_car_approval_rules_ent_type" ON "car_approval_rules" USING btree ("ent_id","apr_type");--> statement-breakpoint
 CREATE INDEX "idx_car_expense_attachments_expense" ON "car_expense_attachments" USING btree ("eat_expense_id");--> statement-breakpoint
 CREATE INDEX "idx_car_expenses_ent_status" ON "car_expenses" USING btree ("ent_id","exp_status");--> statement-breakpoint
 CREATE INDEX "idx_car_expenses_ent_driver" ON "car_expenses" USING btree ("ent_id","exp_driver_id");--> statement-breakpoint
 CREATE INDEX "idx_car_expenses_ent_occurred" ON "car_expenses" USING btree ("ent_id","exp_occurred_at");--> statement-breakpoint
-CREATE INDEX "idx_car_expenses_trip" ON "car_expenses" USING btree ("exp_trip_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "uniq_car_push_subscriptions_endpoint" ON "car_push_subscriptions" USING btree ("psb_endpoint");--> statement-breakpoint
-CREATE INDEX "idx_car_push_subscriptions_user" ON "car_push_subscriptions" USING btree ("ent_id","psb_user_id");
+CREATE INDEX "idx_car_expenses_trip" ON "car_expenses" USING btree ("exp_trip_id");

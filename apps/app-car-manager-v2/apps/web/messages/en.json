@@ -1,6 +1,14 @@
 {
   "appName": "Fleet",
   "appSub": "Company Car Management",
+  "forms": {
+    "draft": {
+      "title": "Continue your unsaved draft?",
+      "savedRelative": "You edited this form {time}.",
+      "restore": "Restore draft",
+      "discard": "Discard"
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "today": "Today",
@@ -16,7 +24,9 @@
     "settings": "Settings",
     "auditLog": "Audit log",
     "inbox": "Inbox",
-    "schedule": "Schedule"
+    "schedule": "Schedule",
+    "pendingCountTitle": "{n} trips pending action",
+    "pendingBadgeLabel": "pending"
   },
   "actions": {
     "new": "New",
@@ -175,14 +185,25 @@
       "previous": "Previous",
       "next": "Next"
     },
+    "peek": {
+      "a11yTitle": "Trip {ref} details",
+      "a11yDescription": "Quick trip preview — press Esc or click outside to close",
+      "close": "Close",
+      "openFull": "Open full details page"
+    },
     "form": {
       "createAria": "Create new trip",
       "sectionDetails": "Trip details",
       "sectionDetailsDesc": "Who is travelling and why.",
+      "sectionRoute": "Route",
+      "sectionTime": "Time",
+      "sectionPassenger": "Passenger & purpose",
       "sectionSchedule": "Schedule & route",
       "sectionScheduleDesc": "Pickup, drop-off and timing.",
       "sectionAssignment": "Assignment",
       "sectionAssignmentDesc": "Optional — leave blank for Admin to assign later.",
+      "sectionAssignmentDescShort": "optional",
+      "addNotes": "Add notes",
       "editScheduleHint": "Editable while pending. Driver/vehicle assignment is changed from the trip page actions.",
       "passenger": "Passenger",
       "passengerPlaceholder": "Select passenger",
@@ -227,10 +248,12 @@
       "errMissingDesc": "Pickup, drop-off and time are required.",
       "errIncomplete": "Incomplete assignment",
       "errIncompleteDesc": "Pick both driver and vehicle, or neither.",
-      "tCreated": "Trip created",
-      "tUpdated": "Trip updated",
+      "tCreated": "Trip {ref} created",
+      "tUpdated": "Trip {ref} updated",
       "errCreate": "Could not create trip",
-      "errUpdate": "Could not update"
+      "errUpdate": "Could not update",
+      "draftLabelNew": "Booking a trip",
+      "draftLabelEdit": "Editing {ref}"
     },
     "driver": {
       "title": "My trips",
@@ -245,11 +268,25 @@
     "conflict": {
       "checking": "Checking schedule conflicts…",
       "title": "Schedule conflict detected",
-      "description": "Another trip is using the same vehicle or driver during this window. You can still save — the system will log this override.",
+      "description": "Another trip is using the same vehicle or driver in this window. Resolve the older trip first, or save anyway to record an override.",
       "vehicleLabel": "Vehicle already in use:",
       "driverLabel": "Driver already booked:",
       "durationMinutes": "~{minutes} min",
-      "andNMore": "and {count} more"
+      "andNMore": "and {count} more",
+      "actionEnd": "Complete",
+      "actionCancel": "Cancel trip",
+      "actionView": "Open details",
+      "confirmEnd": "Mark trip {ref} as completed?",
+      "tEndedShort": "Completed {ref}",
+      "tEndedFailed": "Could not complete trip",
+      "cancelDialogTitle": "Cancel trip {ref}",
+      "cancelDialogDesc": "This trip will move to CANCELLED and the driver will be notified.",
+      "cancelDialogConfirm": "Confirm cancel",
+      "cancelReasonLabel": "Cancellation reason",
+      "cancelReasonDefault": "Replaced by a new trip being created",
+      "cancelReasonPlaceholder": "e.g. switching to another vehicle, reschedule, …",
+      "tCancelledShort": "Cancelled {ref}",
+      "tCancelledFailed": "Could not cancel"
     },
     "detail": {
       "summary": "Summary",
@@ -378,7 +415,9 @@
       "tRemoved": "Vehicle removed",
       "errCreate": "Could not create",
       "errUpdate": "Could not update",
-      "errRemove": "Could not remove"
+      "errRemove": "Could not remove",
+      "draftLabelNew": "Adding a vehicle",
+      "draftLabelEdit": "Editing {plate}"
     },
     "detail": {
       "statOdometer": "Odometer",
@@ -455,7 +494,9 @@
       "tAdded": "Driver added",
       "tUpdated": "Driver updated",
       "errCreate": "Could not create",
-      "errUpdate": "Could not update"
+      "errUpdate": "Could not update",
+      "draftLabelNew": "Adding a driver",
+      "draftLabelEdit": "Editing {name}"
     },
     "detail": {
       "statLicense": "License",
@@ -600,7 +641,14 @@
     "notifEmail": "Email notifications",
     "notifEmailDesc": "Send to user's primary email.",
     "notifPush": "Web push (PWA)",
-    "notifPushDesc": "Browser push for installed drivers · P4.",
+    "notifPushDesc": "Browser push for installed drivers.",
+    "push": {
+      "subscribed": "Push enabled on this device.",
+      "denied": "This device blocked notifications. Re-enable in browser settings.",
+      "unsupported": "This browser does not support Web Push.",
+      "serverDisabled": "Push is not configured on the server.",
+      "error": "Could not enable push: {message}"
+    },
     "notifDigest": "Daily digest",
     "notifDigestDesc": "9:00 AM summary of pending approvals.",
     "retention": "Data retention",
@@ -651,6 +699,7 @@
     "noBase": "No base set"
   },
   "errors": {
+    "internal": "Internal server error — please try again later or contact an administrator",
     "title": "Something went wrong",
     "desc": "We hit an unexpected error while loading this page. The team has been notified.",
     "ref": "Error ref:",
@@ -666,6 +715,31 @@
     "mobileNavAria": "Mobile navigation",
     "breadcrumbAria": "Breadcrumb",
     "back": "Back",
+    "drafts": {
+      "title": "In progress",
+      "count": "{n} unfinished",
+      "savedAt": "Saved {time}",
+      "discardAria": "Discard draft",
+      "discardConfirm": "Discard draft \"{label}\"?",
+      "fallback": {
+        "trip": {
+          "new": "Booking a trip",
+          "edit": "Editing trip"
+        },
+        "vehicle": {
+          "new": "Adding a vehicle",
+          "edit": "Editing vehicle"
+        },
+        "driver": {
+          "new": "Adding a driver",
+          "edit": "Editing driver"
+        },
+        "unknown": {
+          "new": "In progress",
+          "edit": "Editing"
+        }
+      }
+    },
     "tabs": {
       "today": "Today",
       "trips": "Trips",

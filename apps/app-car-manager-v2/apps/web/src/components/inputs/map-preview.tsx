@@ -13,6 +13,12 @@ interface MapPreviewProps {
   showFullscreenLink?: boolean;
   /** Override the inner wrapper className — caller controls top margin/spacing. */
   className?: string;
+  /**
+   * Tailwind classes applied to the iframe + placeholder. Defaults to mobile-
+   * first responsive heights. Pass `h-full` (with a sized parent) for a sticky
+   * sidebar layout that fills viewport height.
+   */
+  heightClassName?: string;
 }
 
 /**
@@ -32,6 +38,7 @@ export function MapPreview({
   stopovers = [],
   showFullscreenLink = false,
   className,
+  heightClassName = 'h-[240px] md:h-[360px] lg:h-[420px]',
 }: MapPreviewProps) {
   const t = useTranslations('map');
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY;
@@ -87,18 +94,18 @@ export function MapPreview({
         )}
       </div>
       {embedSrc ? (
-        <div className="rounded-md overflow-hidden border border-border bg-surface-2">
+        <div className={`rounded-md overflow-hidden border border-border bg-surface-2 ${heightClassName}`}>
           <iframe
             src={embedSrc}
             title={t('previewTitle')}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-            className="block w-full h-[240px] md:h-[360px] lg:h-[420px]"
+            className="block w-full h-full"
             allowFullScreen
           />
         </div>
       ) : (
-        <div className="rounded-md border border-dashed border-border bg-surface-2/40 px-4 py-8 text-center text-xs text-text-faint">
+        <div className={`rounded-md border border-dashed border-border bg-surface-2/40 px-4 flex items-center justify-center text-center text-xs text-text-faint ${heightClassName}`}>
           {t('previewHint')}
         </div>
       )}

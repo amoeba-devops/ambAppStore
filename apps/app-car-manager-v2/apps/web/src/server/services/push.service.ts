@@ -1,86 +1,96 @@
 import 'server-only';
-import { and, eq } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
+import webpush from 'web-push';
 import { db } from '@car-v2/db/client';
 import { carPushSubscriptions } from '@car-v2/db/schema';
-import { ensureWebPushConfigured } from '@/lib/web-push-client';
+import { getPushConfig } from '@/lib/env';
 
-interface PushPayload {
-  title: string;
-  body?: string;
-  /* URL to navigate to when the user taps the notification. Resolved by the
-   * SW `notificationclick` handler. Relative URLs are scoped to the SW
-   * registration, which is the app root. */
-  url?: string;
-  /* Tag groups related notifications so the OS coalesces them — e.g. two
-   * trip-assignment pushes within a minute show as one. Defaults to event. */
-  tag?: string;
+/**
+ * Web Push (RFC 8030) send wrapper using `web-push` lib.
+ *
+ * Returns no-op if VAPID env not configured. Removes subscriptions that
+ * the push provider rejects with 404/410 (Gone) — those are the spec'd
+ * codes for "user uninstalled / disabled the app" and we must drop them
+ * to stop spamming dead endpoints.
+ */
+
+export interface PushSubscriptionRecord {
+  pshId: string;
+  pshEndpoint: string;
+  pshP256dh: string;
+  pshAuth: string;
 }
 
-/* Fan out a payload to every push subscription a user has across devices.
+export interface PushPayload {
+  title: string;
+  body: string;
+  /** Absolute URL the service worker opens on click. */
+  url: string;
+  /** Trip ref — set as `tag` so re-pushes coalesce in the notification tray. */
+  ref?: string;
+}
+
+let vapidConfigured = false;
+
+function ensureVapidConfigured(): boolean {
+  if (vapidConfigured) return true;
+  const cfg = getPushConfig();
+  if (!cfg) return false;
+  webpush.setVapidDetails(cfg.contact, cfg.vapidPublic, cfg.vapidPrivate);
+  vapidConfigured = true;
+  return true;
+}
+
+/**
+ * Send push to a fixed list of subscriptions. Loaded by caller because the
+ * notification service already had to query the user — passing records in
+ * saves a round-trip.
  *
- * Robustness:
- *   - Subscriptions that return 404/410 from the push service are GONE — the
- *     UA has uninstalled / revoked. We delete the row on those codes so we
- *     don't keep retrying.
- *   - Other errors (e.g. 5xx from FCM/APNs) are logged + swallowed; the
- *     caller already has the in-app notification row inserted, so a missed
- *     push is degraded UX, not data loss. */
-export async function sendPushToUser(
-  entId: string,
-  userId: string,
+ * Best-effort: never throws. Each subscription is sent independently so one
+ * 410 doesn't block the others. Dead subscriptions get deleted on the spot.
+ */
+export async function sendPushToSubscriptions(
+  subs: PushSubscriptionRecord[],
   payload: PushPayload,
 ): Promise<void> {
-  let webpush: ReturnType<typeof ensureWebPushConfigured>;
-  try {
-    webpush = ensureWebPushConfigured();
-  } catch (err) {
-    /* VAPID not configured — silent no-op so notifyUser() keeps working in
-     * envs that haven't set push up yet (e.g. local dev without VAPID). */
-    /* eslint-disable-next-line no-console */
-    console.warn('[push] not configured, skipping:', (err as Error).message);
-    return;
-  }
-
-  const subs = await db
-    .select()
-    .from(carPushSubscriptions)
-    .where(and(
-      eq(carPushSubscriptions.entId, entId),
-      eq(carPushSubscriptions.psbUserId, userId),
-    ));
-
   if (subs.length === 0) return;
+  if (!ensureVapidConfigured()) return;
 
-  const message = JSON.stringify({
+  const json = JSON.stringify({
     title: payload.title,
-    body: payload.body ?? '',
-    url: payload.url ?? '/today',
-    tag: payload.tag ?? 'fleet-default',
+    body: payload.body,
+    url: payload.url,
+    tag: payload.ref ?? 'ccms',
   });
 
-  await Promise.all(
+  const deadIds: string[] = [];
+
+  await Promise.allSettled(
     subs.map(async (sub) => {
       try {
         await webpush.sendNotification(
-          {
-            endpoint: sub.psbEndpoint,
-            keys: { p256dh: sub.psbP256dh, auth: sub.psbAuth },
-          },
-          message,
+          { endpoint: sub.pshEndpoint, keys: { p256dh: sub.pshP256dh, auth: sub.pshAuth } },
+          json,
         );
-      } catch (err: unknown) {
-        const status = (err as { statusCode?: number }).statusCode;
-        if (status === 404 || status === 410) {
-          /* Subscription is dead — drop it. */
-          await db
-            .delete(carPushSubscriptions)
-            .where(eq(carPushSubscriptions.psbId, sub.psbId))
-            .catch(() => {});
-          return;
+      } catch (e) {
+        const statusCode = (e as { statusCode?: number }).statusCode;
+        if (statusCode === 404 || statusCode === 410) {
+          /* Subscription expired or user uninstalled. Cleanup. */
+          deadIds.push(sub.pshId);
+        } else {
+          /* eslint-disable-next-line no-console */
+          console.error('[push] send failed', sub.pshEndpoint.slice(0, 60), statusCode, e);
         }
-        /* eslint-disable-next-line no-console */
-        console.error('[push] send failed', sub.psbId, err);
       }
     }),
   );
+
+  if (deadIds.length > 0) {
+    try {
+      await db.delete(carPushSubscriptions).where(inArray(carPushSubscriptions.pshId, deadIds));
+    } catch (err) {
+      /* eslint-disable-next-line no-console */
+      console.error('[push] failed to prune dead subscriptions', err);
+    }
+  }
 }

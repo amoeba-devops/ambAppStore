@@ -63,7 +63,9 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
         }
       />
 
-      <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6">
+      {/* Mobile: regular vertical scroll. Desktop (lg): no page-level scroll —
+       * EditTripForm splits into 2 cols (left form, right sticky map). */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden lg:overflow-hidden px-4 md:px-7 py-4 md:py-5 lg:py-4">
         <EditTripForm trip={trip} passengers={passengerOptions} role={user.role} />
       </div>
     </>

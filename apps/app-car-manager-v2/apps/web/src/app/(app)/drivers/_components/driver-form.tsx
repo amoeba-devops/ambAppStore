@@ -24,10 +24,24 @@ import {
   toast,
 } from '@car-v2/ui';
 import type { CarDriver, CarDriverLicenseClass, CarDriverStatus } from '@car-v2/db/schema';
+import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
+import { useFormDraft } from '@/hooks/use-form-draft';
+import { formatActionError } from '@/lib/format-action-error';
 import {
   createDriverAction,
   updateDriverAction,
 } from '@/server/actions/drivers/driver.actions';
+
+interface DriverDraftValues {
+  userId: string;
+  licenseNumber: string;
+  licenseClass: CarDriverLicenseClass;
+  licenseExpiry: string;
+  phone: string;
+  status: CarDriverStatus;
+  emergencyContact: string;
+  notes: string;
+}
 
 const LICENSE_CLASSES: CarDriverLicenseClass[] = ['A2', 'B1', 'B2', 'C', 'D', 'E', 'F'];
 const STATUSES: CarDriverStatus[] = ['AVAILABLE', 'ON_TRIP', 'OFF_DUTY', 'UNAVAILABLE'];
@@ -42,6 +56,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
   const tList   = useTranslations('drivers.list');
   const tStatus = useTranslations('drivers.status');
   const tA      = useTranslations('actions');
+  const tErr    = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const isEdit = !!driver;
@@ -54,6 +69,54 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
   const [status, setStatus] = useState<CarDriverStatus>(driver?.drvStatus ?? 'AVAILABLE');
   const [emergencyContact, setEmergencyContact] = useState(driver?.drvEmergencyContact ?? '');
   const [notes, setNotes] = useState(driver?.drvNotes ?? '');
+
+  const draftValues: DriverDraftValues = {
+    userId,
+    licenseNumber,
+    licenseClass,
+    licenseExpiry,
+    phone,
+    status,
+    emergencyContact,
+    notes,
+  };
+  const driverLabel = isEdit
+    ? {
+        primary: t('draftLabelEdit', {
+          name: driver!.user?.usrName ?? driver!.drvLicenseNumber,
+        }),
+        secondary: driver!.drvLicenseNumber
+          ? `${driver!.drvLicenseClass} · ${driver!.drvLicenseNumber}`
+          : undefined,
+      }
+    : {
+        primary: t('draftLabelNew'),
+        secondary:
+          [licenseClass, licenseNumber.trim(), phone.trim()]
+            .filter(Boolean)
+            .join(' · ') || undefined,
+      };
+  const { draft, clearDraft, dismissDraft } = useFormDraft<DriverDraftValues>({
+    key: isEdit ? `driver:edit:${driver!.drvId}` : 'driver:new',
+    values: draftValues,
+    label: driverLabel,
+    href: isEdit ? `/drivers/${driver!.drvId}/edit` : '/drivers/new',
+    entity: 'driver',
+  });
+
+  const handleRestoreDraft = () => {
+    if (!draft) return;
+    const v = draft.values;
+    setUserId(v.userId);
+    setLicenseNumber(v.licenseNumber);
+    setLicenseClass(v.licenseClass);
+    setLicenseExpiry(v.licenseExpiry);
+    setPhone(v.phone);
+    setStatus(v.status);
+    setEmergencyContact(v.emergencyContact);
+    setNotes(v.notes);
+    dismissDraft();
+  };
 
   const onSubmit = () => {
     if (!isEdit && !userId) {
@@ -80,12 +143,13 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
         : await createDriverAction({ ...basePayload, user_id: userId });
 
       if (result.success) {
+        clearDraft();
         toast.success(isEdit ? t('tUpdated') : t('tAdded'));
         router.push(`/drivers/${result.data.drvId}`);
         router.refresh();
       } else {
         toast.error(isEdit ? t('errUpdate') : t('errCreate'), {
-          description: `${result.error.code} — ${result.error.message}`,
+          description: formatActionError(result.error, tErr),
         });
       }
     });
@@ -99,6 +163,14 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
         onSubmit();
       }}
     >
+      {draft && (
+        <DraftRestoreBanner
+          savedAt={draft.savedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={clearDraft}
+        />
+      )}
+
       <Card>
         <CardHeader>
           <CardHeaderText>

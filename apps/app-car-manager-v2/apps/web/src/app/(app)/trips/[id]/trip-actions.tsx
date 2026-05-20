@@ -41,6 +41,7 @@ import {
   startTripAction,
 } from '@/server/actions/trips/trip.actions';
 import { useTripConflicts } from '@/hooks/use-trip-conflicts';
+import { formatActionError } from '@/lib/format-action-error';
 import type { ConflictResult } from '@/server/services/trip-conflict.service';
 import { TripConflictBanner } from '../_components/trip-conflict-banner';
 
@@ -90,16 +91,20 @@ export function TripActions({
   tripDurationMinutes,
 }: TripActionsProps) {
   const t  = useTranslations('trips.actions');
+  const tErr = useTranslations();
   const [pending, startTransition] = useTransition();
   const [dialog, setDialog] = useState<DialogKind>(null);
 
   const handle = async (label: string, fn: () => Promise<ActionResult<CarTrip>>) => {
+    /* Guard: any action while one is in flight is dropped — caller may have
+     * clicked twice or hit Enter while a dialog button was focused. */
+    if (pending) return;
     startTransition(async () => {
       const result = await fn();
       if (result.success) {
         toast.success(label, { description: `${t('tStatusPrefix')} ${result.data.trpStatus}` });
       } else {
-        toast.error(`${label} ${t('tFailedSuffix')}`, { description: `${result.error.code} — ${result.error.message}` });
+        toast.error(`${label} ${t('tFailedSuffix')}`, { description: formatActionError(result.error, tErr) });
       }
     });
   };
@@ -246,7 +251,7 @@ function AssignDialog({
    * dismissed without submit. */
   /* PRD R-1/R-2 R3: debounced conflict check inside dialog. Excludes current
    * trip (in case it's already half-assigned and being reassigned). */
-  const { conflicts, loading: conflictsLoading } = useTripConflicts({
+  const { conflicts, loading: conflictsLoading, refetch: refetchConflicts } = useTripConflicts({
     vehicleId: vehicleId || null,
     driverId: driverId || null,
     scheduledAtIso: tripScheduledAtIso,
@@ -285,7 +290,12 @@ function AssignDialog({
               </SelectContent>
             </Select>
           </div>
-          <TripConflictBanner conflicts={conflicts} loading={conflictsLoading} compact />
+          <TripConflictBanner
+            conflicts={conflicts}
+            loading={conflictsLoading}
+            refetch={refetchConflicts}
+            compact
+          />
         </div>
         <BottomSheetFooter className="mt-6">
           <Button variant="ghost" onClick={onClose}>{tA('cancel')}</Button>

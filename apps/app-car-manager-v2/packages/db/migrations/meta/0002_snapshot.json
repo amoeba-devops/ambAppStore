@@ -1,5 +1,5 @@
 {
-  "id": "8adb15b4-dc9a-4f5b-986b-1137f8b460b1",
+  "id": "9259de90-9cd9-48c6-9c55-85f3856a72a3",
   "prevId": "cdecc33d-e92f-440c-9f5e-56875a677e9e",
   "version": "7",
   "dialect": "postgresql",
@@ -426,6 +426,125 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.car_push_subscriptions": {
+      "name": "car_push_subscriptions",
+      "schema": "",
+      "columns": {
+        "psh_id": {
+          "name": "psh_id",
+          "type": "char(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ent_id": {
+          "name": "ent_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "psh_user_id": {
+          "name": "psh_user_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "psh_endpoint": {
+          "name": "psh_endpoint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "psh_p256dh": {
+          "name": "psh_p256dh",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "psh_auth": {
+          "name": "psh_auth",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "psh_user_agent": {
+          "name": "psh_user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "psh_created_at": {
+          "name": "psh_created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "psh_last_used_at": {
+          "name": "psh_last_used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "uniq_car_push_subscriptions_endpoint": {
+          "name": "uniq_car_push_subscriptions_endpoint",
+          "columns": [
+            {
+              "expression": "psh_endpoint",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_car_push_subscriptions_user": {
+          "name": "idx_car_push_subscriptions_user",
+          "columns": [
+            {
+              "expression": "ent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "psh_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "car_push_subscriptions_psh_user_id_car_users_usr_id_fk": {
+          "name": "car_push_subscriptions_psh_user_id_car_users_usr_id_fk",
+          "tableFrom": "car_push_subscriptions",
+          "tableTo": "car_users",
+          "columnsFrom": [
+            "psh_user_id"
+          ],
+          "columnsTo": [
+            "usr_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.car_trip_stopovers": {
       "name": "car_trip_stopovers",
       "schema": "",
@@ -577,12 +696,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "trp_passenger_phone": {
-          "name": "trp_passenger_phone",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": false
         },
         "trp_scheduled_at": {
           "name": "trp_scheduled_at",

@@ -1,6 +1,6 @@
 {
-  "id": "f4e064a5-b840-44ca-b7f8-ca1df55aa216",
-  "prevId": "8adb15b4-dc9a-4f5b-986b-1137f8b460b1",
+  "id": "96fd0f6a-8625-4c07-836c-f0b183c467f2",
+  "prevId": "9259de90-9cd9-48c6-9c55-85f3856a72a3",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -855,8 +855,8 @@
       "name": "car_push_subscriptions",
       "schema": "",
       "columns": {
-        "psb_id": {
-          "name": "psb_id",
+        "psh_id": {
+          "name": "psh_id",
           "type": "char(36)",
           "primaryKey": true,
           "notNull": true
@@ -867,49 +867,48 @@
           "primaryKey": false,
           "notNull": true
         },
-        "psb_user_id": {
-          "name": "psb_user_id",
+        "psh_user_id": {
+          "name": "psh_user_id",
           "type": "char(36)",
           "primaryKey": false,
           "notNull": true
         },
-        "psb_endpoint": {
-          "name": "psb_endpoint",
+        "psh_endpoint": {
+          "name": "psh_endpoint",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "psb_p256dh": {
-          "name": "psb_p256dh",
-          "type": "text",
+        "psh_p256dh": {
+          "name": "psh_p256dh",
+          "type": "varchar(200)",
           "primaryKey": false,
           "notNull": true
         },
-        "psb_auth": {
-          "name": "psb_auth",
-          "type": "text",
+        "psh_auth": {
+          "name": "psh_auth",
+          "type": "varchar(100)",
           "primaryKey": false,
           "notNull": true
         },
-        "psb_user_agent": {
-          "name": "psb_user_agent",
-          "type": "varchar(255)",
+        "psh_user_agent": {
+          "name": "psh_user_agent",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "psb_created_at": {
-          "name": "psb_created_at",
+        "psh_created_at": {
+          "name": "psh_created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
-        "psb_last_seen_at": {
-          "name": "psb_last_seen_at",
+        "psh_last_used_at": {
+          "name": "psh_last_used_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
+          "notNull": false
         }
       },
       "indexes": {
@@ -917,7 +916,7 @@
           "name": "uniq_car_push_subscriptions_endpoint",
           "columns": [
             {
-              "expression": "psb_endpoint",
+              "expression": "psh_endpoint",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -938,7 +937,7 @@
               "nulls": "last"
             },
             {
-              "expression": "psb_user_id",
+              "expression": "psh_user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -951,12 +950,12 @@
         }
       },
       "foreignKeys": {
-        "car_push_subscriptions_psb_user_id_car_users_usr_id_fk": {
-          "name": "car_push_subscriptions_psb_user_id_car_users_usr_id_fk",
+        "car_push_subscriptions_psh_user_id_car_users_usr_id_fk": {
+          "name": "car_push_subscriptions_psh_user_id_car_users_usr_id_fk",
           "tableFrom": "car_push_subscriptions",
           "tableTo": "car_users",
           "columnsFrom": [
-            "psb_user_id"
+            "psh_user_id"
           ],
           "columnsTo": [
             "usr_id"

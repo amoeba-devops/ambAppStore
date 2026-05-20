@@ -19,9 +19,11 @@ import type { CarTripStatus } from '@car-v2/db/schema';
 import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { getDriverByUserId } from '@/server/queries/drivers.queries';
-import { listTrips, listTripsForDriver } from '@/server/queries/trips.queries';
+import { getDriverByUserId, listDrivers } from '@/server/queries/drivers.queries';
+import { getTrip, listTrips, listTripsForDriver } from '@/server/queries/trips.queries';
+import { listVehicles } from '@/server/queries/vehicles.queries';
 import { DriverTripsList } from './_components/driver-trips-list';
+import { TripPeekDrawer } from './_components/trip-peek-drawer';
 
 const STATUS_TONE: Record<CarTripStatus, 'accent' | 'warning' | 'success' | 'info' | 'neutral' | 'danger'> = {
   PENDING_ASSIGNMENT:          'accent',
@@ -45,7 +47,7 @@ function formatWhen(iso: Date, labels: { today: string; tomorrow: string; yester
 }
 
 interface PageProps {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; page?: string; peek?: string; highlight?: string }>;
 }
 
 export default async function TripsListPage({ searchParams }: PageProps) {
@@ -81,23 +83,67 @@ export default async function TripsListPage({ searchParams }: PageProps) {
     );
   }
 
-  const statusFilter = (sp.status ?? 'all') as 'all' | 'pending' | 'active' | 'completed';
+  /* Default filter = 'pending' — the most actionable view (chuyến chờ phân
+   * công hoặc chờ tài xế xác nhận). Admin/Manager landing on /trips usually
+   * arrive to triage these. Use "All" filter explicitly when needed. */
+  const statusFilter = (sp.status ?? 'pending') as 'all' | 'pending' | 'active' | 'completed';
   const page = Math.max(1, Number(sp.page ?? 1));
+  const peekId = sp.peek;
+  /* Highlight a specific row — set after the user creates or edits a trip
+   * and gets redirected back to the list. The CSS animation runs once and
+   * fades, so refreshing the page makes it disappear naturally. */
+  const highlightId = sp.highlight;
 
-  const { items, total, pageSize } = await listTrips({
-    entId: user.entId,
-    role: user.role,
-    userId: user.userId,
-    status: statusFilter,
-    page,
-  });
+  /* Fetch list + peek-target in parallel. peek lookup is best-effort — if the
+   * id is stale or wrong tenant, the drawer just won't render (no error). */
+  const [{ items, total, pageSize }, peekTrip] = await Promise.all([
+    listTrips({
+      entId: user.entId,
+      role: user.role,
+      userId: user.userId,
+      status: statusFilter,
+      page,
+    }),
+    peekId ? getTrip(user.entId, peekId) : Promise.resolve(null),
+  ]);
+
+  /* Drawer needs the same admin context as the full detail page (driver/vehicle
+   * lookups + role flags). Compute only when we actually have a peek target
+   * and an Admin role — Manager/Driver flows in the drawer don't need lists. */
+  let peekDrivers: { id: string; label: string }[] = [];
+  let peekVehicles: { id: string; label: string }[] = [];
+  let peekIsAssignedDriver = false;
+  let peekIsCreator = false;
+  if (peekTrip) {
+    if (user.role === 'ADMIN') {
+      const [drivers, vehicles] = await Promise.all([
+        listDrivers(user.entId),
+        listVehicles(user.entId),
+      ]);
+      peekDrivers = drivers.map((d) => ({
+        id: d.drvId,
+        label: `${d.user.usrName} — ${d.drvLicenseNumber} (${d.drvLicenseClass})`,
+      }));
+      peekVehicles = vehicles.map((v) => ({
+        id: v.cvhId,
+        label: `${v.cvhPlateNumber} — ${v.cvhMake ?? ''} ${v.cvhModel}`.trim(),
+      }));
+    }
+    /* DRIVER role early-returned above; this peek-drawer code path only
+     * runs for admin/manager, so the `isAssignedDriver` flag is always
+     * false here. Kept explicitly to make the prop contract obvious. */
+    peekIsAssignedDriver = false;
+    peekIsCreator = peekTrip.trpCreatorId === user.userId;
+  }
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const showingTo = Math.min(total, page * pageSize);
   const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
 
+  /* Pending listed first since it's now the default landing view. Subtle UX
+   * hint: the most actionable tab is also where the cursor naturally rests. */
   const FILTERS: Array<{ key: 'all' | 'pending' | 'active' | 'completed'; label: string }> = [
-    { key: 'all',       label: tFilter('all') },
     { key: 'pending',   label: tFilter('pending') },
+    { key: 'all',       label: tFilter('all') },
     { key: 'active',    label: tFilter('active') },
     { key: 'completed', label: tFilter('completed') },
   ];
@@ -127,10 +173,13 @@ export default async function TripsListPage({ searchParams }: PageProps) {
             <div className="inline-flex items-center gap-1 rounded-md bg-surface-2 p-1">
               {FILTERS.map((f) => {
                 const active = statusFilter === f.key;
+                /* Default filter (pending) uses the clean /trips URL.
+                 * Other filters carry explicit ?status. */
+                const href = f.key === 'pending' ? '/trips' : `/trips?status=${f.key}`;
                 return (
                   <Link
                     key={f.key}
-                    href={f.key === 'all' ? '/trips' : `/trips?status=${f.key}`}
+                    href={href}
                     className={
                       'inline-flex items-center gap-2 h-8 px-3 rounded text-sm font-medium transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ' +
                       (active ? 'bg-surface text-text shadow-xs' : 'text-text-muted hover:text-text')
@@ -177,9 +226,13 @@ export default async function TripsListPage({ searchParams }: PageProps) {
               {items.map((trip) => (
                 <li key={trip.trpId}>
                   <Link
-                    href={`/trips/${trip.trpId}`}
+                    href={peekHref(statusFilter, page, trip.trpId)}
+                    scroll={false}
                     aria-label={tList('openAria', { ref: trip.trpRef })}
-                    className="block rounded-md border border-border bg-surface px-4 py-3.5 active:bg-surface-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+                    className={
+                      'block rounded-md border border-border bg-surface px-4 py-3.5 active:bg-surface-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg ' +
+                      (trip.trpId === highlightId ? 'ccms-row-highlight' : '')
+                    }
                   >
                     <div className="flex items-start gap-3">
                       <Avatar name={trip.passengerName ?? '?'} size="md" />
@@ -227,7 +280,10 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                 </TableHeader>
                 <TableBody>
                   {items.map((trip) => (
-                    <TableRow key={trip.trpId} className="cursor-pointer">
+                    <TableRow
+                      key={trip.trpId}
+                      className={trip.trpId === highlightId ? 'ccms-row-highlight' : ''}
+                    >
                       <TableCell className="font-mono text-xs text-text-muted tabular">{trip.trpRef}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2.5">
@@ -257,7 +313,13 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/trips/${trip.trpId}`} aria-label={tList('openAria', { ref: trip.trpRef })}>{tA('view')}</Link>
+                          <Link
+                            href={peekHref(statusFilter, page, trip.trpId)}
+                            scroll={false}
+                            aria-label={tList('openAria', { ref: trip.trpRef })}
+                          >
+                            {tA('view')}
+                          </Link>
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -293,15 +355,41 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         )}
       </div>
 
+      {/* DRIVER role early-returned above; this Fab + drawer only render for
+       * admin/manager so no role check needed here. */}
       <Fab href="/trips/new" label={tA('new')} icon={<Plus />} />
+
+      {peekTrip && (
+        <TripPeekDrawer
+          trip={peekTrip}
+          role={user.role}
+          isAssignedDriver={peekIsAssignedDriver}
+          isCreator={peekIsCreator}
+          drivers={peekDrivers}
+          vehicles={peekVehicles}
+        />
+      )}
     </>
   );
 }
 
 function pageHref(status: string, page: number): string {
   const params = new URLSearchParams();
-  if (status !== 'all') params.set('status', status);
+  /* `pending` is now the default — omit from URL for clean shareable links. */
+  if (status !== 'pending') params.set('status', status);
   if (page > 1) params.set('page', String(page));
   const qs = params.toString();
   return qs ? `/trips?${qs}` : '/trips';
+}
+
+/**
+ * Build a peek URL preserving the current list filter + page so closing the
+ * drawer drops the user back exactly where they were.
+ */
+function peekHref(status: string, page: number, tripId: string): string {
+  const params = new URLSearchParams();
+  if (status !== 'pending') params.set('status', status);
+  if (page > 1) params.set('page', String(page));
+  params.set('peek', tripId);
+  return `/trips?${params.toString()}`;
 }

@@ -28,11 +28,29 @@ import type {
   CarVehicleFuel,
   CarVehicleStatus,
 } from '@car-v2/db/schema';
+import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
+import { useFormDraft } from '@/hooks/use-form-draft';
+import { formatActionError } from '@/lib/format-action-error';
 import {
   createVehicleAction,
   deleteVehicleAction,
   updateVehicleAction,
 } from '@/server/actions/vehicles/vehicle.actions';
+
+interface VehicleDraftValues {
+  plateNumber: string;
+  model: string;
+  make: string;
+  year: string;
+  color: string;
+  fuelType: CarVehicleFuel;
+  status: CarVehicleStatus;
+  odometer: string;
+  oilIntervalKm: string;
+  oilIntervalMonths: string;
+  homeBase: string;
+  notes: string;
+}
 
 const FUEL_TYPES: CarVehicleFuel[] = ['PETROL', 'DIESEL', 'HYBRID', 'EV'];
 const STATUSES: CarVehicleStatus[] = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'RETIRED'];
@@ -47,6 +65,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
   const tStatus = useTranslations('vehicles.status');
   const tFuel   = useTranslations('vehicles.fuel');
   const tA      = useTranslations('actions');
+  const tErr    = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const isEdit = !!vehicle;
@@ -63,6 +82,59 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
   const [oilIntervalMonths, setOilIntervalMonths] = useState<string>(vehicle?.cvhOilIntervalMonths?.toString() ?? '3');
   const [homeBase, setHomeBase] = useState(vehicle?.cvhHomeBase ?? '');
   const [notes, setNotes] = useState(vehicle?.cvhNotes ?? '');
+
+  const draftValues: VehicleDraftValues = {
+    plateNumber,
+    model,
+    make,
+    year,
+    color,
+    fuelType,
+    status,
+    odometer,
+    oilIntervalKm,
+    oilIntervalMonths,
+    homeBase,
+    notes,
+  };
+  /* Primary: action verb. Secondary: identifying info user already entered. */
+  const vehicleLabel = isEdit
+    ? {
+        primary: t('draftLabelEdit', { plate: vehicle!.cvhPlateNumber }),
+        secondary: [vehicle!.cvhMake, vehicle!.cvhModel].filter(Boolean).join(' ') || undefined,
+      }
+    : {
+        primary: t('draftLabelNew'),
+        secondary:
+          [plateNumber.trim(), [make.trim(), model.trim()].filter(Boolean).join(' ')]
+            .filter(Boolean)
+            .join(' · ') || undefined,
+      };
+  const { draft, clearDraft, dismissDraft } = useFormDraft<VehicleDraftValues>({
+    key: isEdit ? `vehicle:edit:${vehicle!.cvhId}` : 'vehicle:new',
+    values: draftValues,
+    label: vehicleLabel,
+    href: isEdit ? `/vehicles/${vehicle!.cvhId}/edit` : '/vehicles/new',
+    entity: 'vehicle',
+  });
+
+  const handleRestoreDraft = () => {
+    if (!draft) return;
+    const v = draft.values;
+    setPlateNumber(v.plateNumber);
+    setModel(v.model);
+    setMake(v.make);
+    setYear(v.year);
+    setColor(v.color);
+    setFuelType(v.fuelType);
+    setStatus(v.status);
+    setOdometer(v.odometer);
+    setOilIntervalKm(v.oilIntervalKm);
+    setOilIntervalMonths(v.oilIntervalMonths);
+    setHomeBase(v.homeBase);
+    setNotes(v.notes);
+    dismissDraft();
+  };
 
   const onSubmit = () => {
     if (!plateNumber.trim() || !model.trim()) {
@@ -90,6 +162,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         : await createVehicleAction(payload);
 
       if (result.success) {
+        clearDraft();
         toast.success(isEdit ? t('tUpdated') : t('tAdded'), {
           description: result.data.cvhPlateNumber,
         });
@@ -97,7 +170,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         router.refresh();
       } else {
         toast.error(isEdit ? t('errUpdate') : t('errCreate'), {
-          description: `${result.error.code} — ${result.error.message}`,
+          description: formatActionError(result.error, tErr),
         });
       }
     });
@@ -115,7 +188,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         router.push('/vehicles');
         router.refresh();
       } else {
-        toast.error(t('errRemove'), { description: `${result.error.code} — ${result.error.message}` });
+        toast.error(t('errRemove'), { description: formatActionError(result.error, tErr) });
       }
     });
   };
@@ -128,6 +201,14 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         onSubmit();
       }}
     >
+      {draft && (
+        <DraftRestoreBanner
+          savedAt={draft.savedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={clearDraft}
+        />
+      )}
+
       <Card>
         <CardHeader>
           <CardHeaderText>
