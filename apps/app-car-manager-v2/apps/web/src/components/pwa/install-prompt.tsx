@@ -8,6 +8,22 @@ import { useDisplayMode } from './use-display-mode';
 
 const STORAGE_KEY = 'pwa.installDismissedUntil';
 
+/* Snooze durations. "Để sau" (snooze button) is the soft option — user is
+ * interested but not now. "X" (close) signals stronger rejection, so we wait
+ * longer before nagging again. iOS only has X (no install button), so the
+ * 90-day value also governs iOS dismiss. */
+const SNOOZE_DAYS = 30;
+const CLOSE_DAYS = 90;
+
+function isSnoozed(): boolean {
+  try {
+    const until = window.localStorage.getItem(STORAGE_KEY);
+    return until !== null && Number(until) > Date.now();
+  } catch {
+    return false;
+  }
+}
+
 /* Chrome / Edge `beforeinstallprompt` event shape (not in lib.dom yet). */
 interface BIPEvent extends Event {
   prompt: () => Promise<void>;
@@ -28,7 +44,10 @@ type Variant = 'hidden' | 'android' | 'ios';
  * Suppressed in iframes (AMA passthrough) because install only works from a
  * top-level browsing context anyway.
  *
- * Dismiss durations: "Để sau" (snooze) = 7 days, "X" (close) = 30 days.
+ * Dismiss durations: "Để sau" (snooze) = 30 days, "X" (close) = 90 days.
+ * Both `beforeinstallprompt` (Chrome can refire it across navigations) and
+ * the initial mount check honour the snooze window, so once dismissed the
+ * banner stays gone until the timestamp elapses.
  */
 export function InstallPrompt() {
   const t = useTranslations('pwa');
@@ -43,21 +62,20 @@ export function InstallPrompt() {
     if (window.self !== window.top) return;            // iframe
     if (displayMode === 'standalone') return;          // already installed
 
-    /* Check dismissal expiry. */
-    try {
-      const until = window.localStorage.getItem(STORAGE_KEY);
-      if (until && Number(until) > Date.now()) return;
-    } catch {
-      /* localStorage may be blocked — ignore, just always show. */
-    }
+    /* Initial snooze check. */
+    if (isSnoozed()) return;
 
     const ua = window.navigator.userAgent;
     const isIOS = /iPhone|iPad|iPod/.test(ua) && !/CriOS|FxiOS/.test(ua); // Safari only
     if (isIOS) setVariant('ios');
 
-    /* Android / desktop — wait for beforeinstallprompt. */
+    /* Android / desktop — wait for beforeinstallprompt. Chrome can refire this
+     * event across SPA navigations even after we've dismissed once, so the
+     * handler must re-check the snooze window — otherwise the banner pops back
+     * up immediately after the next route change. */
     const onBIP = (e: Event) => {
       e.preventDefault();
+      if (isSnoozed()) return;
       setDeferredPrompt(e as BIPEvent);
       setVariant('android');
     };
@@ -94,7 +112,9 @@ export function InstallPrompt() {
     if (choice.outcome === 'accepted') {
       setVariant('hidden');
     } else {
-      dismiss(7);
+      /* User dismissed the native install sheet — treat as a "Để sau" snooze
+       * rather than a hard close, since they did engage with the prompt. */
+      dismiss(SNOOZE_DAYS);
     }
   }, [deferredPrompt, dismiss]);
 
@@ -130,16 +150,16 @@ export function InstallPrompt() {
           </div>
           <button
             type="button"
-            onClick={() => dismiss(30)}
+            onClick={() => dismiss(CLOSE_DAYS)}
             aria-label={t('installDismiss')}
-            className="h-7 w-7 -mt-1 -mr-1 rounded flex items-center justify-center text-text-faint hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 w-9 -mt-1 -mr-1 rounded flex items-center justify-center text-text-faint hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
         {variant === 'android' && (
           <div className="mt-3 flex gap-2">
-            <Button variant="ghost" size="sm" className="flex-1" onClick={() => dismiss(7)}>
+            <Button variant="ghost" size="sm" className="flex-1" onClick={() => dismiss(SNOOZE_DAYS)}>
               {t('installDismiss')}
             </Button>
             <Button variant="accent" size="sm" className="flex-1" onClick={onInstall} disabled={!deferredPrompt}>

@@ -105,11 +105,11 @@ export function DriverTripsList({ trips }: DriverTripsListProps) {
                       <span className="text-text-faint"> → </span>
                       <span className="text-text">{trip.trpDropoffAddress}</span>
                     </div>
-                    <div className="mt-1.5 flex items-center gap-2 text-xs text-text-faint">
+                    <div className="mt-1.5 flex items-center gap-2 text-xs text-text-muted">
                       <span className="tabular">{formatScheduled(trip.trpScheduledAt)}</span>
                       {trip.vehiclePlate && (
                         <>
-                          <span>·</span>
+                          <span className="text-text-faint">·</span>
                           <span className="font-mono tabular">{trip.vehiclePlate}</span>
                         </>
                       )}
@@ -134,7 +134,7 @@ function TabButton({ active, onClick, label }: { active: boolean; onClick: () =>
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        'inline-flex items-center gap-2 h-9 px-4 rounded text-sm font-medium',
+        'inline-flex items-center gap-2 h-11 md:h-9 px-4 rounded text-sm font-medium',
         'transition-colors motion-reduce:transition-none',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         active ? 'bg-surface text-text shadow-xs' : 'text-text-muted hover:text-text',

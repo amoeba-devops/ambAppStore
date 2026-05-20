@@ -43,10 +43,10 @@ export function DriverNextTripCard({ trip, mode: _mode, labels }: DriverNextTrip
     <Card className="overflow-hidden">
       <div className={`px-5 py-4 flex items-center justify-between gap-3 ${heroTone.bg}`}>
         <div className="min-w-0">
-          <div className="text-[11px] font-bold uppercase tracking-[0.1em] opacity-85">
+          <div className="text-xs font-semibold uppercase tracking-wider opacity-90">
             {labels.statusLine}
           </div>
-          <div className="mt-1 text-lg font-bold font-mono tabular truncate">{trip.trpRef}</div>
+          <div className="mt-1 text-lg font-bold tabular truncate">{trip.trpRef}</div>
         </div>
         <Badge tone="solid" size="md" className="bg-white/15 text-white ring-white/20 shrink-0">
           {labels.statusBadge}
@@ -96,11 +96,11 @@ function RouteStep({ tone, label, value }: { tone: 'accent' | 'success'; label: 
     <div className="flex items-start gap-3">
       <div
         className={
-          'mt-0.5 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ' +
+          'mt-0.5 h-9 w-9 rounded-full flex items-center justify-center shrink-0 ' +
           (tone === 'accent' ? 'bg-accent-soft text-accent' : 'bg-success-soft text-success')
         }
       >
-        <MapPin className="h-4 w-4" />
+        <MapPin className="h-5 w-5" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wider">{label}</div>

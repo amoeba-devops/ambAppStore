@@ -64,7 +64,7 @@ export default async function MePage() {
         back={user.role === 'DRIVER' ? '/today' : undefined}
       />
 
-      <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4 max-w-2xl mx-auto w-full">
+      <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-5 max-w-2xl mx-auto w-full">
         <MeProfileCard
           name={profile?.name ?? user.userId.slice(0, 8)}
           email={profile?.email ?? null}

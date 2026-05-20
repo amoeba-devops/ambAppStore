@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Send } from 'lucide-react';
+import { Check, Send } from 'lucide-react';
 import { Button, Card, CardContent, Input, Label, Textarea, toast } from '@car-v2/ui';
 import { DriverActionBar } from '@/components/layout/driver-action-bar';
 import { submitExpenseAction } from '@/server/actions/expenses/expense.actions';
@@ -34,6 +34,14 @@ export function ExpenseSubmitForm({ tripId }: ExpenseSubmitFormProps) {
   const [occurredAt, setOccurredAt] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  /* Sub-stage of the submit transition. `pending` from useTransition is true
+   * the whole time; this state tells the button which phase of work it's in:
+   *   - { current, total }  → uploading file N of M to S3
+   *   - 'submitting'        → uploads done, server action in flight
+   *   - 'done'              → action resolved success (brief checkmark)
+   *   - null                → idle */
+  const [submitStage, setSubmitStage] =
+    useState<{ current: number; total: number } | 'submitting' | 'done' | null>(null);
 
   const canSubmit = type !== null && amount !== null && amount > 0 && !pending;
 
@@ -56,7 +64,11 @@ export function ExpenseSubmitForm({ tripId }: ExpenseSubmitFormProps) {
          * cost (~5×<2s on 4G) is fine. Parallel uploads would also fight
          * iOS Safari's connection limit in PWA standalone. */
         const attachments: Array<{ s3_key: string; mime: string; size_bytes: number }> = [];
-        for (const f of files) {
+        for (let i = 0; i < files.length; i++) {
+          /* Bump progress BEFORE the work so the button label shows the
+           * file we're about to upload, not the one just finished. */
+          setSubmitStage({ current: i + 1, total: files.length });
+          const f = files[i]!;
           const presigned = await requestPresigned(f);
           await uploadToS3(presigned.uploadUrl, f);
           attachments.push({ s3_key: presigned.key, mime: f.type || 'application/octet-stream', size_bytes: f.size });
@@ -64,6 +76,7 @@ export function ExpenseSubmitForm({ tripId }: ExpenseSubmitFormProps) {
 
         /* Step 2 — submit the metadata. The action persists the expense
          * row + attachment rows in a transaction. */
+        setSubmitStage('submitting');
         const result = await submitExpenseAction({
           type,
           amount,
@@ -73,12 +86,17 @@ export function ExpenseSubmitForm({ tripId }: ExpenseSubmitFormProps) {
           attachments,
         });
         if (result.success) {
+          /* Brief success affordance before navigation so the user gets a
+           * confirmation of state-change beyond just the toast. */
+          setSubmitStage('done');
           toast.success(t('submittedToast'), { description: t('submittedToastDesc') });
           router.push('/expenses');
         } else {
+          setSubmitStage(null);
           toast.error(t('errSubmit'), { description: `${result.error.code} — ${result.error.message}` });
         }
       } catch (err) {
+        setSubmitStage(null);
         const msg = err instanceof Error ? err.message : 'unknown';
         toast.error(t('errSubmit'), { description: msg });
       }
@@ -208,13 +226,27 @@ export function ExpenseSubmitForm({ tripId }: ExpenseSubmitFormProps) {
           type="submit"
           variant="accent"
           size="2xl"
-          iconLeft={<Send />}
-          loading={pending}
+          iconLeft={submitStage === 'done' ? <Check /> : <Send />}
+          loading={pending && submitStage !== 'done'}
           disabled={!canSubmit}
         >
-          {pending ? t('submitting') : t('submit')}
+          {submitButtonLabel(submitStage, pending, t)}
         </Button>
       </DriverActionBar>
     </form>
   );
+}
+
+type SubmitStage = { current: number; total: number } | 'submitting' | 'done' | null;
+type T = (key: string, vars?: Record<string, string | number>) => string;
+
+/* Single source of truth for the submit button label across the 4 phases.
+ * Kept outside the component so the JSX stays readable. */
+function submitButtonLabel(stage: SubmitStage, pending: boolean, t: T): string {
+  if (stage === 'done') return t('submittedToast');
+  if (stage === 'submitting') return t('submitting');
+  if (stage && typeof stage === 'object') {
+    return t('submitUploading', { current: stage.current, total: stage.total });
+  }
+  return pending ? t('submitting') : t('submit');
 }

@@ -128,18 +128,20 @@ export function TripPeekDrawer(props: TripPeekDrawerProps) {
           <div className="text-text">{trip.trpDropoffAddress}</div>
         </PeekRow>
 
-        {/* Driver / Vehicle */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Driver / Vehicle — single-column on phone so long Vietnamese names
+         * ("Nguyễn Văn An Hùng") have room to breathe without breaking the
+         * 2-col grid. Tablet+ stays side-by-side. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <PeekRow icon={<UserIcon />} label={tDetail('driver')} compact>
             {trip.driverName ? (
-              <div className="text-text font-medium text-sm">{trip.driverName}</div>
+              <div className="text-text font-medium text-sm truncate">{trip.driverName}</div>
             ) : (
               <div className="text-text-muted italic text-xs">{tDetail('notAssigned')}</div>
             )}
           </PeekRow>
           <PeekRow icon={<CarIcon />} label={tDetail('vehicle')} compact>
             {trip.vehiclePlate ? (
-              <div className="font-mono font-semibold text-sm tabular">{trip.vehiclePlate}</div>
+              <div className="font-mono font-semibold text-sm tabular truncate">{trip.vehiclePlate}</div>
             ) : (
               <div className="text-text-muted italic text-xs">{tDetail('notAssigned')}</div>
             )}

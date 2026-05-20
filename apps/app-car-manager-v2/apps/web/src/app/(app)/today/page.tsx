@@ -3,11 +3,9 @@ import Link from 'next/link';
 import {
   Calendar,
   Car,
-  CheckCircle2,
   ChevronRight,
   Clock,
   MapPin,
-  Receipt,
 } from 'lucide-react';
 import {
   Avatar,
@@ -190,7 +188,7 @@ function NextTripHero({
           <RouteStep tone="success" label={t('dropoff')} value={trip.trpDropoffAddress} />
           <div className="flex items-center justify-between text-sm pt-2">
             <span className="inline-flex items-center gap-2 text-text-muted">
-              <Clock className="h-3.5 w-3.5" />
+              <Clock className="h-4 w-4" />
               <span className="font-medium text-text tabular">{TIME_FMT.format(new Date(trip.trpScheduledAt))}</span>
               {trip.trpDurationMinutes && (
                 <span className="text-text-faint">· {t('durationMin', { n: trip.trpDurationMinutes })}</span>
@@ -198,7 +196,7 @@ function NextTripHero({
             </span>
             {trip.vehiclePlate && (
               <span className="inline-flex items-center gap-1.5 text-text-muted">
-                <Car className="h-3.5 w-3.5" />
+                <Car className="h-4 w-4" />
                 <span className="font-mono tabular text-text">{trip.vehiclePlate}</span>
               </span>
             )}
@@ -220,14 +218,14 @@ function RouteStep({ tone, label, value }: { tone: 'accent' | 'success'; label: 
   return (
     <div className="flex items-start gap-3">
       <div className={
-        'mt-0.5 h-7 w-7 rounded-full flex items-center justify-center shrink-0 ' +
+        'mt-0.5 h-9 w-9 rounded-full flex items-center justify-center shrink-0 ' +
         (tone === 'accent' ? 'bg-accent-soft text-accent' : 'bg-success-soft text-success')
       }>
-        <MapPin className="h-3.5 w-3.5" />
+        <MapPin className="h-5 w-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium text-text-muted">{label}</div>
-        <div className="text-sm text-text font-medium leading-snug">{value}</div>
+        <div className="text-xs font-medium text-text-muted uppercase tracking-wider">{label}</div>
+        <div className="text-md text-text font-semibold leading-snug mt-0.5">{value}</div>
       </div>
     </div>
   );
@@ -243,5 +241,3 @@ const STATUS_HERO: Record<CarTripStatus, { bg: string; text: string }> = {
   CANCELLED:                   { bg: 'bg-surface-2', text: 'text-text-muted' },
 };
 
-void CheckCircle2; // reserved for future "Completed today" widget
-void Receipt;

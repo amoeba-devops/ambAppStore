@@ -80,10 +80,11 @@ export async function DriverView({ trip, isAssignedDriver, hasMap }: DriverViewP
           </div>
         )}
 
-        {/* ── MAP HERO — capped at 35vh on phones so route stops stay above
-         *    the fold; gives the map more room on tablet/desktop. ───────── */}
+        {/* ── MAP HERO — 45vh on phones (was 35vh — felt chopped on 4.7" devices);
+         *    50vh on tablet/desktop. The route timeline below still stays above
+         *    the fold on a typical phone (640+ tall viewport). ───────── */}
         {hasMap && (
-          <section className="[&_iframe]:!h-[35vh] md:[&_iframe]:!h-[50vh]">
+          <section className="[&_iframe]:!h-[45vh] md:[&_iframe]:!h-[50vh]">
             <MapPreview
               pickup={trip.trpPickupAddress}
               dropoff={trip.trpDropoffAddress}

@@ -53,7 +53,10 @@ export function MeLanguageCard() {
         {pending && <Loader2 className="h-4 w-4 animate-spin text-text-muted" aria-hidden />}
       </CardHeader>
       <CardContent>
-        <div role="radiogroup" aria-label={tMe('languageTitle')} className="grid grid-cols-3 gap-2">
+        {/* Mobile stacks single-column with side-by-side layout (code + label
+         * on one row) so each option is a comfortable 56px-tall tap target.
+         * Desktop drops back to a 3-column grid card layout. */}
+        <div role="radiogroup" aria-label={tMe('languageTitle')} className="grid grid-cols-1 md:grid-cols-3 gap-2">
           {LOCALES.map((l) => {
             const active = l.id === locale;
             return (
@@ -65,7 +68,8 @@ export function MeLanguageCard() {
                 disabled={pending}
                 onClick={() => handle(l.id)}
                 className={cn(
-                  'rounded-lg border-2 px-3 py-3 text-sm font-semibold',
+                  'rounded-lg border-2 px-4 py-3.5 md:py-3 text-sm font-semibold',
+                  'flex flex-row md:flex-col items-center justify-between md:justify-center gap-2',
                   'transition-colors motion-reduce:transition-none',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
                   active
@@ -74,8 +78,8 @@ export function MeLanguageCard() {
                   pending && 'opacity-60',
                 )}
               >
-                <div className="text-xs font-bold uppercase tracking-wider mb-0.5">{l.id}</div>
-                <div className="text-xs font-medium">{l.label}</div>
+                <span className="text-sm font-medium md:order-2">{l.label}</span>
+                <span className="text-xs font-bold uppercase tracking-wider md:order-1 md:mb-0.5">{l.id}</span>
               </button>
             );
           })}
