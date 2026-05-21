@@ -55,6 +55,33 @@ services:
         sync: false
       - key: EXPENSE_LOCK_DAYS
         value: "7"
+      # ──────────────────────────────────────────────────────────────────────
+      # P4 Notification transport — Resend (email) + Web Push (VAPID)
+      # ──────────────────────────────────────────────────────────────────────
+      # Email — Resend transactional. Domain must be verified on resend.com
+      # with DKIM + SPF before EMAIL_FROM works. Leave blank to disable email
+      # transport (in-app bell still fires).
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_REPLY_TO
+        sync: false
+      # Web Push (RFC 8030) — VAPID identifies our server to push providers.
+      # Generate ONCE per environment with `npx web-push generate-vapid-keys`
+      # and persist. Regenerating invalidates ALL existing subscriptions —
+      # every device must re-subscribe via Settings → push toggle.
+      #
+      # PUBLIC + NEXT_PUBLIC_PUBLIC must match byte-for-byte. If they diverge
+      # the browser rejects pushManager.subscribe() silently.
+      - key: WEB_PUSH_VAPID_PRIVATE
+        sync: false
+      - key: WEB_PUSH_VAPID_PUBLIC
+        sync: false
+      - key: NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC
+        sync: false
+      - key: WEB_PUSH_CONTACT
+        value: mailto:devops@amoeba.group
 
 # ────────────────────────────────────────────────────────────────────────────
 # Optional cron service — Module 2 maintenance-alert evaluator.
