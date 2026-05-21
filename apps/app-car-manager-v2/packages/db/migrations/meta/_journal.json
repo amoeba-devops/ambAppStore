@@ -43,6 +43,13 @@
       "when": 1779724800000,
       "tag": "0005_remove_admin_approval_pending_backfill",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780012800000,
+      "tag": "0006_tenant_settings",
+      "breakpoints": true
     }
   ]
 }

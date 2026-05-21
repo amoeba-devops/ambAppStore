@@ -538,11 +538,12 @@
     "defaultLanguage": "Default language",
     "currency": "Currency",
     "timezone": "Timezone",
-    "approval": "Expense approval rules",
-    "approvalDesc": "Per category — defines who/when an expense needs review (PRD §6.2.2).",
-    "approvalThreshold": "Auto-approve threshold:",
-    "approvalRequired": "Approval required",
-    "autoApproved": "Auto-approved",
+    "viewOnlyNotice": "Only Admins can change settings — you are viewing in read-only mode.",
+    "saveStatus": {
+      "saving": "Saving…",
+      "saved": "Saved",
+      "error": "Save failed: {message}"
+    },
     "notifications": "Notifications",
     "notificationsDesc": "How the system reaches admins and drivers.",
     "notifInApp": "In-app notifications",

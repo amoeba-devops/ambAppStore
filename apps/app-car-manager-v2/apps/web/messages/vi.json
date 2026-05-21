@@ -538,11 +538,12 @@
     "defaultLanguage": "Ngôn ngữ mặc định",
     "currency": "Tiền tệ",
     "timezone": "Múi giờ",
-    "approval": "Quy tắc duyệt chi phí",
-    "approvalDesc": "Theo loại — quy định ai/khi nào cần duyệt (PRD §6.2.2).",
-    "approvalThreshold": "Ngưỡng tự duyệt:",
-    "approvalRequired": "Cần duyệt",
-    "autoApproved": "Tự duyệt",
+    "viewOnlyNotice": "Chỉ Quản trị mới có thể thay đổi cài đặt — bạn đang xem ở chế độ chỉ đọc.",
+    "saveStatus": {
+      "saving": "Đang lưu…",
+      "saved": "Đã lưu",
+      "error": "Lưu lỗi: {message}"
+    },
     "notifications": "Thông báo",
     "notificationsDesc": "Hệ thống thông báo cho admin và tài xế như thế nào.",
     "notifInApp": "Thông báo trong app",
