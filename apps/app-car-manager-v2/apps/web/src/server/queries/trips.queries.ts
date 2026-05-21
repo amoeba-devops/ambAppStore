@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, desc, eq, gte, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import {
   carDrivers,
@@ -197,43 +197,6 @@ export async function getTrip(entId: string, id: string): Promise<TripDetail | n
     vehicleModel: row.vehicle?.cvhModel ?? null,
     stopovers: stops,
   };
-}
-
-/* Dashboard widgets — today's confirmed + in-progress trips */
-export async function listTodayTrips(entId: string): Promise<TripListItem[]> {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
-
-  const rows = await db
-    .select({
-      trip: carTrips,
-      passengerName: carUsers.usrName,
-      driverName: sql<string | null>`drv_user.usr_name`,
-      vehiclePlate: carVehicles.cvhPlateNumber,
-    })
-    .from(carTrips)
-    .leftJoin(carUsers, eq(carTrips.trpPassengerId, carUsers.usrId))
-    .leftJoin(carDrivers, eq(carTrips.trpDriverId, carDrivers.drvId))
-    .leftJoin(sql`car_users AS drv_user`, sql`car_drivers.drv_user_id = drv_user.usr_id`)
-    .leftJoin(carVehicles, eq(carTrips.trpVehicleId, carVehicles.cvhId))
-    .where(
-      and(
-        eq(carTrips.entId, entId),
-        isNull(carTrips.trpDeletedAt),
-        gte(carTrips.trpScheduledAt, startOfDay),
-        lt(carTrips.trpScheduledAt, endOfDay),
-      ),
-    )
-    .orderBy(carTrips.trpScheduledAt);
-
-  return rows.map((r) => ({
-    ...r.trip,
-    passengerName: r.passengerName ?? null,
-    driverName: r.driverName ?? null,
-    vehiclePlate: r.vehiclePlate ?? null,
-  }));
 }
 
 /* Vehicle + driver detail pages need history */

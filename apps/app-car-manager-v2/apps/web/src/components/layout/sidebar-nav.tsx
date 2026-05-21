@@ -68,9 +68,10 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
   const tAct   = useTranslations('actions');
   const tGroup = useTranslations();
   const pathname = usePathname();
-  /* Pass role so `/` correctly maps to `today` for drivers and `dashboard`
-   * for admin/manager — otherwise the driver's first tab would never light up
-   * since `dashboard` isn't in their filtered items. */
+  /* Pass role so `/` correctly maps to `today` for drivers and `trips` for
+   * admin/manager. Module 3 (dashboard) was removed — the root route now
+   * just redirects; the active item shown in the sidebar reflects where the
+   * user actually lands. */
   const active = activeKeyFor(pathname ?? '/', role);
   const [signingOut, startSignOut] = useTransition();
 

@@ -20,7 +20,7 @@ export default async function NotFoundPage() {
             </p>
 
             <Button variant="accent" size="lg" className="mt-6 w-full" asChild>
-              <Link href="/"><Home />{t('backToDashboard')}</Link>
+              <Link href="/"><Home />{t('goHome')}</Link>
             </Button>
           </div>
         </CardContent>

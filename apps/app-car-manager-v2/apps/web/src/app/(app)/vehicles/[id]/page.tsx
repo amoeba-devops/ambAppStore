@@ -117,7 +117,6 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
           <TabsList>
             <TabsTrigger value="trips">{tDetail('tabTrips')}</TabsTrigger>
             <TabsTrigger value="docs">{tDetail('tabDocs')}</TabsTrigger>
-            <TabsTrigger value="costs">{tDetail('tabCosts')}</TabsTrigger>
             <TabsTrigger value="maintenance">{tDetail('tabMaintenance')}</TabsTrigger>
           </TabsList>
 
@@ -173,14 +172,6 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-text-muted">{tDetail('docsP2Note')}</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="costs">
-            <Card>
-              <CardContent>
-                <p className="text-sm text-text-muted">{tDetail('costsP2Note')} <span className="font-medium text-text">P2</span>.</p>
               </CardContent>
             </Card>
           </TabsContent>
