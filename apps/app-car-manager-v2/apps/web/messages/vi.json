@@ -774,7 +774,17 @@
     "offlineMessage": "Vui lòng kiểm tra kết nối và thử lại.",
     "offlineRetry": "Thử lại",
     "opensInBrowser": "Mở trong trình duyệt",
-    "opensInMapsApp": "Mở trong ứng dụng Maps"
+    "opensInMapsApp": "Mở trong ứng dụng Maps",
+    "push": {
+      "promptTitle": "Bật thông báo đẩy",
+      "promptDesc": "Nhận thông báo ngay khi có chuyến mới, trạng thái thay đổi, hoặc duyệt chi phí — kể cả khi đóng tab.",
+      "promptAria": "Bật thông báo đẩy",
+      "enable": "Bật ngay",
+      "later": "Để sau",
+      "retry": "Thử lại",
+      "dismissAria": "Đóng",
+      "errorRetry": "Không bật được: {message}"
+    }
   },
   "sessionExpired": {
     "title": "Phiên đã hết hạn",

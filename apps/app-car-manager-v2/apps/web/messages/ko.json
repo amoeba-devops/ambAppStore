@@ -774,7 +774,17 @@
     "offlineMessage": "연결을 확인하고 다시 시도해 주세요.",
     "offlineRetry": "다시 시도",
     "opensInBrowser": "브라우저에서 열림",
-    "opensInMapsApp": "지도 앱에서 열림"
+    "opensInMapsApp": "지도 앱에서 열림",
+    "push": {
+      "promptTitle": "푸시 알림 켜기",
+      "promptDesc": "운행이 배정되거나, 상태가 바뀌거나, 비용이 검토될 때 — 탭을 닫아도 즉시 알림을 받습니다.",
+      "promptAria": "푸시 알림 켜기",
+      "enable": "켜기",
+      "later": "나중에",
+      "retry": "다시 시도",
+      "dismissAria": "닫기",
+      "errorRetry": "켤 수 없습니다: {message}"
+    }
   },
   "sessionExpired": {
     "title": "세션이 만료되었습니다",

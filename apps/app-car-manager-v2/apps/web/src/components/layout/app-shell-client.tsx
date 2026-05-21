@@ -5,6 +5,7 @@ import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn, Toaster } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { InstallPrompt } from '@/components/pwa/install-prompt';
+import { PushPromptBanner } from '@/components/pwa/push-prompt-banner';
 import { BottomTabNav } from './bottom-tab-nav';
 import { SidebarNav } from './sidebar-nav';
 
@@ -14,6 +15,10 @@ interface AppShellClientProps {
   role: LocalRole;
   /** Server-counted pending trips in the user's visibility scope. */
   pendingTripCount: number;
+  /** VAPID public key + Next basePath for the push enable banner.
+   * Both come from NEXT_PUBLIC_* env via the server-side AppShell wrapper. */
+  vapidPublicKey: string | undefined;
+  basePath: string;
   children: React.ReactNode;
 }
 
@@ -34,7 +39,13 @@ interface AppShellClientProps {
  *
  * `pendingTripCount` is server-fed from the wrapper RSC; sidebar renders it as
  * a numeric badge on the Trips nav item. 0 → no badge. */
-export function AppShellClient({ role, pendingTripCount, children }: AppShellClientProps) {
+export function AppShellClient({
+  role,
+  pendingTripCount,
+  vapidPublicKey,
+  basePath,
+  children,
+}: AppShellClientProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -64,8 +75,12 @@ export function AppShellClient({ role, pendingTripCount, children }: AppShellCli
       <div className="hidden md:contents">
         <SidebarNav collapsed={collapsed} role={role} pendingTripCount={pendingTripCount} />
       </div>
-      {/* Main: reserve bottom space on mobile for the fixed bottom-tab bar. */}
+      {/* Main: reserve bottom space on mobile for the fixed bottom-tab bar.
+       * PushPromptBanner sits ABOVE page content (still inside <main>) so it
+       * stays in the document flow — non-modal, scrolls with the page, and
+       * doesn't fight the install prompt at the bottom for attention. */}
       <main className="flex-1 min-w-0 flex flex-col pb-[64px] md:pb-0">
+        <PushPromptBanner vapidPublicKey={vapidPublicKey} basePath={basePath} />
         {children}
       </main>
       <div className="hidden md:contents">

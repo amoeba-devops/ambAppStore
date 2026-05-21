@@ -774,7 +774,17 @@
     "offlineMessage": "Check your connection and try again.",
     "offlineRetry": "Retry",
     "opensInBrowser": "Opens in the browser",
-    "opensInMapsApp": "Opens in the Maps app"
+    "opensInMapsApp": "Opens in the Maps app",
+    "push": {
+      "promptTitle": "Turn on push notifications",
+      "promptDesc": "Get notified the moment a trip is assigned, status changes, or expenses are reviewed — even when this tab is closed.",
+      "promptAria": "Enable push notifications",
+      "enable": "Enable",
+      "later": "Later",
+      "retry": "Try again",
+      "dismissAria": "Dismiss",
+      "errorRetry": "Couldn't enable: {message}"
+    }
   },
   "sessionExpired": {
     "title": "Session expired",
