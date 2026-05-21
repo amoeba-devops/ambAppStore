@@ -46,9 +46,7 @@ function isDriverAllowed(pathname: string): boolean {
     if (/^\/trips\/[^/]+\/edit$/.test(pathname)) return false;
     return /^\/trips\/[^/]+$/.test(pathname);
   }
-  /* Driver expense history (`/expenses`) + submission (`/expenses/new`). The
-   * admin approval queue at `/costs` is intentionally not in this list — that
-   * remains admin/manager-only. */
+  /* Driver expense history (`/expenses`) + submission (`/expenses/new`). */
   if (pathname === '/expenses' || pathname.startsWith('/expenses/')) return true;
   /* Profile/preferences/logout (NOT the tenant `/settings`). */
   if (pathname === '/settings/me' || pathname.startsWith('/settings/me/')) return true;

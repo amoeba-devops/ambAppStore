@@ -19,7 +19,6 @@ export type NavKey =
   | 'today'
   | 'trips'
   | 'tripsMine'
-  | 'costs'
   | 'expensesNew'
   | 'vehicles'
   | 'drivers'
@@ -51,12 +50,10 @@ const ALL: readonly LocalRole[]    = ['ADMIN', 'MANAGER', 'DRIVER'] as const;
  * coherent across breakpoints.
  *
  * Role-specific entries:
- *   - `dashboard` (root `/`) and `costs`/`vehicles`/`drivers`/`reports`/
- *     `users`/`settings`/`audit` are Admin/Manager workflows.
+ *   - `dashboard` (root `/`) and `vehicles`/`drivers`/`reports`/`users`/
+ *     `settings`/`audit` are Admin/Manager workflows.
  *   - `today`, `tripsMine`, `expensesNew`, `me` are the four Driver
- *     destinations. They use different `href`s than the Admin counterparts —
- *     e.g. drivers go to `/expenses/new` (submit) while admins go to `/costs`
- *     (approval queue).
+ *     destinations.
  *   - `tripsMine` and `trips` both link to `/trips` but use distinct labels
  *     ("Chuyến của tôi" vs "Chuyến đi") for ownership clarity. The page
  *     itself branches the rendering by role.
@@ -73,11 +70,8 @@ export const NAV_ITEMS: NavItem[] = [
   /* Admin/Manager trips overview = full fleet. */
   { key: 'trips',       href: '/trips',         Icon: ClipboardList,   group: 'workspace', roles: STAFF  },
   /* Driver expense home — list of their submissions + status. The submit
-   * form lives at `/expenses/new` and is reached via the page's "+ New"
-   * button. Admin uses `costs` (approval queue) instead. */
+   * form lives at `/expenses/new` and is reached via the page's "+ New" button. */
   { key: 'expensesNew', href: '/expenses',      Icon: Receipt,         group: 'workspace', roles: DRIVER },
-  /* Admin/Manager expense approval queue. */
-  { key: 'costs',       href: '/costs',         Icon: Receipt,         group: 'workspace', roles: STAFF  },
   { key: 'vehicles',    href: '/vehicles',      Icon: Car,             group: 'workspace', roles: STAFF  },
   { key: 'drivers',     href: '/drivers',       Icon: IdCard,          group: 'workspace', roles: STAFF  },
   { key: 'reports',     href: '/reports',       Icon: BarChart3,       group: 'workspace', roles: STAFF  },

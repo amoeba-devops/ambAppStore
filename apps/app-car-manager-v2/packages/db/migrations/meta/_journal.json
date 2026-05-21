@@ -36,6 +36,13 @@
       "when": 1779710400000,
       "tag": "0004_maintenance_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779724800000,
+      "tag": "0005_remove_admin_approval_pending_backfill",
+      "breakpoints": true
     }
   ]
 }
