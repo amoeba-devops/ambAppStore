@@ -203,8 +203,6 @@ export async function DriverView({ trip, isAssignedDriver, hasMap }: DriverViewP
             isCreator={false}
             drivers={[]}
             vehicles={[]}
-            tripScheduledAtIso={trip.trpScheduledAt.toISOString()}
-            tripDurationMinutes={trip.trpDurationMinutes}
           />
         </DriverActionBar>
       )}

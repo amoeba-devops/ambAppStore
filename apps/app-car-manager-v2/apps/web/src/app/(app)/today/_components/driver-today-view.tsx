@@ -151,8 +151,6 @@ export async function DriverTodayView({ trips }: DriverTodayViewProps) {
             isCreator={false}
             drivers={[]}
             vehicles={[]}
-            tripScheduledAtIso={primary.trpScheduledAt.toISOString()}
-            tripDurationMinutes={primary.trpDurationMinutes}
           />
         </DriverActionBar>
       )}

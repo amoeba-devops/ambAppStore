@@ -296,8 +296,6 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
                 isCreator={isCreator}
                 drivers={driverOptions}
                 vehicles={vehicleOptions}
-                tripScheduledAtIso={trip.trpScheduledAt.toISOString()}
-                tripDurationMinutes={trip.trpDurationMinutes}
               />
             </section>
 

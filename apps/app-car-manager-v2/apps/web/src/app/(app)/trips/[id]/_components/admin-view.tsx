@@ -98,8 +98,6 @@ export async function AdminView({
               isCreator={isCreator}
               drivers={driverOptions}
               vehicles={vehicleOptions}
-              tripScheduledAtIso={trip.trpScheduledAt.toISOString()}
-              tripDurationMinutes={trip.trpDurationMinutes}
             />
           </div>
         </section>

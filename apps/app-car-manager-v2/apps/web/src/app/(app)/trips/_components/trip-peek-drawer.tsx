@@ -177,8 +177,6 @@ export function TripPeekDrawer(props: TripPeekDrawerProps) {
           isCreator={props.isCreator}
           drivers={props.drivers}
           vehicles={props.vehicles}
-          tripScheduledAtIso={trip.trpScheduledAt.toISOString()}
-          tripDurationMinutes={trip.trpDurationMinutes}
         />
         <Button
           variant="ghost"
