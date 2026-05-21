@@ -39,18 +39,7 @@ import {
   rejectTripAction,
   startTripAction,
 } from '@/server/actions/trips/trip.actions';
-import { useTripConflicts } from '@/hooks/use-trip-conflicts';
 import { formatActionError } from '@/lib/format-action-error';
-import type { ConflictResult } from '@/server/services/trip-conflict.service';
-import { TripConflictBanner } from '../_components/trip-conflict-banner';
-
-function flattenConflictIds(c: ConflictResult | null): string[] {
-  if (!c) return [];
-  const set = new Set<string>();
-  for (const x of c.vehicle) set.add(x.trpId);
-  for (const x of c.driver) set.add(x.trpId);
-  return Array.from(set);
-}
 
 interface DriverOption {
   id: string;
@@ -71,9 +60,6 @@ interface TripActionsProps {
   isCreator: boolean;
   drivers: DriverOption[];
   vehicles: VehicleOption[];
-  /* For conflict detection inside AssignDialog. */
-  tripScheduledAtIso: string;
-  tripDurationMinutes: number | null;
 }
 
 type DialogKind = 'assign' | 'reject' | 'cancel' | null;
@@ -86,8 +72,6 @@ export function TripActions({
   isCreator,
   drivers,
   vehicles,
-  tripScheduledAtIso,
-  tripDurationMinutes,
 }: TripActionsProps) {
   const t  = useTranslations('trips.actions');
   const tErr = useTranslations();
@@ -172,18 +156,14 @@ export function TripActions({
       <AssignDialog
         open={dialog === 'assign'}
         onClose={() => setDialog(null)}
-        tripId={tripId}
         drivers={drivers}
         vehicles={vehicles}
         pending={pending}
-        tripScheduledAtIso={tripScheduledAtIso}
-        tripDurationMinutes={tripDurationMinutes}
-        onSubmit={(driverId, vehicleId, acknowledged) =>
+        onSubmit={(driverId, vehicleId) =>
           handle(status === 'REJECTED_BY_DRIVER' ? t('tReassigned') : t('tAssigned'), () =>
             assignTripAction(tripId, {
               driver_id: driverId,
               vehicle_id: vehicleId,
-              acknowledged_conflicts: acknowledged.length > 0 ? acknowledged : undefined,
             }),
           )
         }
@@ -220,24 +200,18 @@ export function TripActions({
 interface AssignDialogProps {
   open: boolean;
   onClose: () => void;
-  tripId: string;
   drivers: DriverOption[];
   vehicles: VehicleOption[];
   pending: boolean;
-  tripScheduledAtIso: string;
-  tripDurationMinutes: number | null;
-  onSubmit: (driverId: string, vehicleId: string, acknowledgedConflicts: string[]) => void;
+  onSubmit: (driverId: string, vehicleId: string) => void;
 }
 
 function AssignDialog({
   open,
   onClose,
-  tripId,
   drivers,
   vehicles,
   pending,
-  tripScheduledAtIso,
-  tripDurationMinutes,
   onSubmit,
 }: AssignDialogProps) {
   const t  = useTranslations('trips.actions');
@@ -245,19 +219,6 @@ function AssignDialog({
   const [driverId, setDriverId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const canSubmit = driverId && vehicleId;
-
-  /* Reset selections each time dialog reopens — prevents stale state if admin
-   * dismissed without submit. */
-  /* PRD R-1/R-2 R3: debounced conflict check inside dialog. Excludes current
-   * trip (in case it's already half-assigned and being reassigned). */
-  const { conflicts, loading: conflictsLoading, refetch: refetchConflicts } = useTripConflicts({
-    vehicleId: vehicleId || null,
-    driverId: driverId || null,
-    scheduledAtIso: tripScheduledAtIso,
-    durationMinutes: tripDurationMinutes,
-    excludeTripId: tripId,
-    enabled: open,
-  });
 
   return (
     <BottomSheet open={open} onOpenChange={(o) => !o && onClose()}>
@@ -289,12 +250,6 @@ function AssignDialog({
               </SelectContent>
             </Select>
           </div>
-          <TripConflictBanner
-            conflicts={conflicts}
-            loading={conflictsLoading}
-            refetch={refetchConflicts}
-            compact
-          />
         </div>
         <BottomSheetFooter className="mt-6">
           <Button variant="ghost" onClick={onClose}>{tA('cancel')}</Button>
@@ -302,7 +257,7 @@ function AssignDialog({
             variant="accent"
             disabled={!canSubmit || pending}
             onClick={() => {
-              onSubmit(driverId, vehicleId, flattenConflictIds(conflicts));
+              onSubmit(driverId, vehicleId);
               onClose();
             }}
           >

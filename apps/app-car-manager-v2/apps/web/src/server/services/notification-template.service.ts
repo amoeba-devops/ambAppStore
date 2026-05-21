@@ -33,7 +33,6 @@ export type NotificationEvent =
   | 'TRIP.REJECTED'
   | 'TRIP.COMPLETED'
   | 'TRIP.CANCELLED'
-  | 'TRIP.CONFLICT_OVERRIDDEN'
   | 'EXPENSE.ACCIDENT_REPORTED'
   | 'MAINTENANCE.OIL_OVERDUE'
   | 'MAINTENANCE.OIL_DUE_SOON'
@@ -92,10 +91,6 @@ const COPY: Record<
       subject: 'Chuyến đi đã bị huỷ',
       body: (c) => `Chuyến ${c.ref} đã bị huỷ${c.reason ? `. Lý do: ${c.reason}` : ''}.`,
     },
-    'TRIP.CONFLICT_OVERRIDDEN': {
-      subject: 'Xác nhận trùng lịch',
-      body: (c) => `Chuyến ${c.ref} được lưu dù có cảnh báo trùng lịch.`,
-    },
     'EXPENSE.ACCIDENT_REPORTED': {
       subject: 'Có sự cố tai nạn vừa được ghi nhận',
       body: (c) => `Chi phí tai nạn ${c.ref} vừa được ghi nhận. Vui lòng kiểm tra.`,
@@ -143,10 +138,6 @@ const COPY: Record<
       subject: 'Trip cancelled',
       body: (c) => `Trip ${c.ref} was cancelled${c.reason ? `. Reason: ${c.reason}` : ''}.`,
     },
-    'TRIP.CONFLICT_OVERRIDDEN': {
-      subject: 'Schedule conflict acknowledged',
-      body: (c) => `Trip ${c.ref} was saved despite a schedule conflict warning.`,
-    },
     'EXPENSE.ACCIDENT_REPORTED': {
       subject: 'New accident expense reported',
       body: (c) => `Accident expense ${c.ref} has been recorded. Please review.`,
@@ -193,10 +184,6 @@ const COPY: Record<
     'TRIP.CANCELLED': {
       subject: '운행이 취소되었습니다',
       body: (c) => `운행 ${c.ref}이(가) 취소되었습니다${c.reason ? `. 사유: ${c.reason}` : ''}.`,
-    },
-    'TRIP.CONFLICT_OVERRIDDEN': {
-      subject: '일정 충돌 확인됨',
-      body: (c) => `일정 충돌 경고에도 운행 ${c.ref}이(가) 저장되었습니다.`,
     },
     'EXPENSE.ACCIDENT_REPORTED': {
       subject: '사고 비용이 보고되었습니다',

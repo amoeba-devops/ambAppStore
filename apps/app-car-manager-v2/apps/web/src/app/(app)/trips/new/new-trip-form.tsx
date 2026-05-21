@@ -22,12 +22,9 @@ import { AddressAutocomplete } from '@/components/inputs/address-autocomplete';
 import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
 import { MapPreview } from '@/components/inputs/map-preview';
 import { useFormDraft } from '@/hooks/use-form-draft';
-import { useTripConflicts } from '@/hooks/use-trip-conflicts';
 import { toMinutes, type DurationUnit } from '@/lib/duration';
 import { formatActionError } from '@/lib/format-action-error';
-import type { ConflictResult } from '@/server/services/trip-conflict.service';
 import { createTripAction } from '@/server/actions/trips/trip.actions';
-import { TripConflictBanner } from '../_components/trip-conflict-banner';
 
 interface TripDraftValues {
   passengerId: string;
@@ -41,22 +38,6 @@ interface TripDraftValues {
   driverId: string;
   vehicleId: string;
   stopovers: string[];
-}
-
-/** Inline equivalent of server-only `collectConflictIds` — pure utility. */
-function flattenConflictIds(c: ConflictResult | null): string[] {
-  if (!c) return [];
-  const set = new Set<string>();
-  for (const x of c.vehicle) set.add(x.trpId);
-  for (const x of c.driver) set.add(x.trpId);
-  return Array.from(set);
-}
-
-/** `datetime-local` input → ISO string. Empty string khi parse fail —
- *  hook sẽ skip check khi thấy chuỗi rỗng. */
-function safeIsoOrEmpty(localValue: string): string {
-  const d = new Date(localValue);
-  return Number.isNaN(d.getTime()) ? '' : d.toISOString();
 }
 
 interface SelectOption {
@@ -91,17 +72,6 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
   const [stopovers, setStopovers] = useState<string[]>([]);
   /* Per-field error flags. Set on failed submit, cleared as user types. */
   const [fieldErrors, setFieldErrors] = useState<{ pickup?: boolean; dropoff?: boolean; scheduledAt?: boolean; driver?: boolean; vehicle?: boolean }>({});
-
-  /* PRD R-1/R-2 R3 — debounced conflict check. Chỉ active khi có đủ
-   * (driver | vehicle) + scheduledAt. Banner hiện trong card Assignment. */
-  const scheduledIso = scheduledAt ? safeIsoOrEmpty(scheduledAt) : '';
-  const durationMinutes = toMinutes(durationValue, durationUnit) ?? null;
-  const { conflicts, loading: conflictsLoading, refetch: refetchConflicts } = useTripConflicts({
-    vehicleId: vehicleId || null,
-    driverId: driverId || null,
-    scheduledAtIso: scheduledIso,
-    durationMinutes,
-  });
 
   /* Auto-persist form state. Restore offer shown via banner on mount if a
    * non-stale draft exists. Cleared on successful submit (router.push fires
@@ -188,7 +158,6 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
 
     startTransition(async () => {
       const scheduledIsoSubmit = new Date(scheduledAt).toISOString();
-      const acknowledged = flattenConflictIds(conflicts);
       const result = await createTripAction({
         passenger_id: passengerId || undefined,
         pickup_address: pickup.trim(),
@@ -200,7 +169,6 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
         driver_id: driverId || undefined,
         vehicle_id: vehicleId || undefined,
         stopovers: stopovers.filter((s) => s.trim()).map((s) => s.trim()),
-        acknowledged_conflicts: acknowledged.length > 0 ? acknowledged : undefined,
       });
       if (result.success) {
         clearDraft();
@@ -404,7 +372,7 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
             />
           </FormSection>
 
-          {/* ── ASSIGNMENT (optional) — also hosts conflict banner ── */}
+          {/* ── ASSIGNMENT (optional) ── */}
           <FormSection label={t('sectionAssignment')} hint={t('sectionAssignmentDescShort')}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               <FormField label={t('driver')} error={fieldErrors.driver} inline className="min-w-0">
@@ -440,12 +408,6 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
                 </Select>
               </FormField>
             </div>
-            <TripConflictBanner
-              conflicts={conflicts}
-              loading={conflictsLoading}
-              refetch={refetchConflicts}
-              className="mt-2.5"
-            />
           </FormSection>
 
           {/* Mobile-only inline map. Desktop has its own sticky map column. */}

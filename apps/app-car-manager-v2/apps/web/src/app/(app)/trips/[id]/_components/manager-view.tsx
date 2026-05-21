@@ -244,8 +244,6 @@ export async function ManagerView({
                   isCreator={isCreator}
                   drivers={[]}
                   vehicles={[]}
-                  tripScheduledAtIso={trip.trpScheduledAt.toISOString()}
-                  tripDurationMinutes={trip.trpDurationMinutes}
                 />
               </div>
             </section>
