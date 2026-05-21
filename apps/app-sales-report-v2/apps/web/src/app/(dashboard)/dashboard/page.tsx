@@ -1,69 +1,40 @@
-import { fmtVND, fmtKRW, fmtInt, fmtPct } from '@/lib/format';
+import { getTranslations } from 'next-intl/server';
+import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { listAllPeriodSnapshots } from '@/server/services/period-snapshot.service';
+import { listActionLogsAction } from '@/server/actions/action-log.actions';
+import { DashboardClient } from '@/components/dashboard/DashboardClient';
+import { snapshotsToWeekPoints } from '@/lib/snapshot-to-trends';
 
-const MOCK_KPIS = {
-  netGmvVnd: 1_682_035_200,
-  cmVnd: 338_812_085,
-  cmRatio: 0.2014,
-  orders: 4159,
-  aovVnd: 455_956,
-  itemSold: 5187,
-  fxRate: 17.543,
-};
+export default async function DashboardPage() {
+  const user = await getCurrentUser();
+  const t = await getTranslations('dashboard');
 
-function KpiCard({
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
-      <div className="text-xs font-medium uppercase tracking-wider text-neutral-500">{label}</div>
-      <div
-        className={`mt-2 font-mono text-2xl tabular ${accent ? 'text-accent-700' : 'text-neutral-900'}`}
-      >
-        {value}
-      </div>
-      {sub && <div className="mt-1 text-xs text-neutral-500">{sub}</div>}
-    </div>
-  );
-}
+  // Fetch all weekly snapshots — DashboardClient uses the latest as the hero
+  // KPI source + the prior 7 entries for the sparkline. Empty array triggers
+  // the empty-state CTA.
+  const [snapshotRows, logsRes] = await Promise.all([
+    listAllPeriodSnapshots(user.entId, 'WEEKLY'),
+    listActionLogsAction({ limit: 8 }),
+  ]);
+  const weekPoints = snapshotsToWeekPoints(snapshotRows);
+  const recentLogs = logsRes.success ? logsRes.data.rows : [];
 
-export default function DashboardPage() {
-  const k = MOCK_KPIS;
+  const title = t('title');
+  const subtitle = user.name
+    ? t('subtitle', { name: user.name })
+    : t('subtitleNoName');
+
   return (
     <div className="space-y-6">
-      <div className="rounded-md bg-warning-50 px-4 py-2 text-xs text-warning-500">
-        Demo data — Apr 2026. Real KPIs sau khi implement F-1 Upload + F-4 Weekly Report.
+      <div>
+        <h1 className="text-xl font-semibold text-neutral-900">{title}</h1>
+        <p className="mt-1 text-sm text-neutral-500">{subtitle}</p>
       </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard
-          label="Net GMV"
-          value={fmtVND(k.netGmvVnd)}
-          sub={fmtKRW(k.netGmvVnd / k.fxRate)}
-          accent
-        />
-        <KpiCard
-          label="Contribution Margin"
-          value={fmtVND(k.cmVnd)}
-          sub={fmtPct(k.cmRatio) + ' of Net GMV'}
-        />
-        <KpiCard label="Orders" value={fmtInt(k.orders)} sub={`AOV ${fmtVND(k.aovVnd)}`} />
-        <KpiCard label="Items Sold" value={fmtInt(k.itemSold)} />
-      </div>
-
-      <div className="rounded-lg border border-neutral-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-neutral-900">Recent activity</h2>
-        <p className="mt-2 text-sm text-neutral-600">
-          Activity feed sẽ hiển thị 5 actions gần nhất sau khi F-5 Activity Logs ready.
-        </p>
-      </div>
+      <DashboardClient
+        role={user.role}
+        weekPoints={weekPoints}
+        recentLogs={recentLogs}
+      />
     </div>
   );
 }

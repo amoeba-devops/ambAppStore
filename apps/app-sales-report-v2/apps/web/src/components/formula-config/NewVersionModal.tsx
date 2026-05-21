@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { X, ChevronDown, ChevronUp, AlertTriangle, BarChart3 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { getImpactAnalysis } from '@/lib/formula-impact-mock';
 
@@ -18,6 +19,8 @@ interface Props {
 }
 
 export function NewVersionModal({ metric, oldFormula, newFormula, onCancel, onConfirm }: Props) {
+  const t = useTranslations('formulaConfig.newVersion');
+  const tCommon = useTranslations('common');
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const [effectiveDate, setEffectiveDate] = useState(today);
   const [retroactive, setRetroactive] = useState(false);
@@ -56,12 +59,12 @@ export function NewVersionModal({ metric, oldFormula, newFormula, onCancel, onCo
         {/* Header */}
         <div className="flex items-start justify-between border-b border-neutral-100 px-5 py-3">
           <h3 className="text-sm font-semibold text-neutral-900 leading-tight">
-            New Version — <span className="font-mono">{renderMetricName(metric)}</span>
+            {t('title')} — <span className="font-mono">{renderMetricName(metric)}</span>
           </h3>
           <button
             type="button"
             onClick={onCancel}
-            aria-label="Close"
+            aria-label={tCommon('close')}
             className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700 transition-colors shrink-0"
           >
             <X className="h-3 w-3" />
@@ -72,8 +75,8 @@ export function NewVersionModal({ metric, oldFormula, newFormula, onCancel, onCo
         <div className="flex-1 overflow-y-auto px-5 py-3 space-y-3">
           {/* Before / After diff */}
           <div className="rounded-md border border-neutral-200 bg-neutral-50/50 divide-y divide-neutral-200">
-            <DiffRow label="Before" formula={oldFormula} variant="removed" />
-            <DiffRow label="After" formula={newFormula} variant="added" />
+            <DiffRow label={t('diff.before')} emptyLabel={t('diff.empty')} formula={oldFormula} variant="removed" />
+            <DiffRow label={t('diff.after')} emptyLabel={t('diff.empty')} formula={newFormula} variant="added" />
           </div>
 
           {/* Impact Analysis */}
@@ -85,9 +88,9 @@ export function NewVersionModal({ metric, oldFormula, newFormula, onCancel, onCo
             >
               <span className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-neutral-500" />
-                <span className="text-sm font-semibold text-neutral-900">Impact Analysis</span>
+                <span className="text-sm font-semibold text-neutral-900">{t('impact.title')}</span>
                 <span className="text-xs font-medium text-warning-500">
-                  {totalAffected} affected
+                  {t('impact.affected', { count: totalAffected })}
                 </span>
               </span>
               {impactOpen ? (
@@ -98,9 +101,9 @@ export function NewVersionModal({ metric, oldFormula, newFormula, onCancel, onCo
             </button>
             {impactOpen && (
               <div className="px-3 py-3 space-y-3">
-                <ChipGroup label="Impacted Reports" items={impact.reports} color="info" />
-                <ChipGroup label="Impacted Report Sections" items={impact.sections} color="success" />
-                <ChipGroup label="Impacted Charts" items={impact.charts} color="accent" />
+                <ChipGroup label={t('impact.reports')} items={impact.reports} color="info" />
+                <ChipGroup label={t('impact.sections')} items={impact.sections} color="success" />
+                <ChipGroup label={t('impact.charts')} items={impact.charts} color="accent" />
               </div>
             )}
           </div>
@@ -108,7 +111,7 @@ export function NewVersionModal({ metric, oldFormula, newFormula, onCancel, onCo
           {/* Effective From */}
           <div>
             <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-1.5">
-              Effective From <span className="text-error-500">*</span>
+              {t('effectiveFrom')} <span className="text-error-500">*</span>
             </label>
             <input
               type="date"
@@ -128,8 +131,8 @@ export function NewVersionModal({ metric, oldFormula, newFormula, onCancel, onCo
               className="mt-0.5 accent-info-500"
             />
             <span className="text-sm text-neutral-700">
-              Apply retroactively{' '}
-              <span className="text-neutral-400">(overrides historical reports)</span>
+              {t('retroactive')}{' '}
+              <span className="text-neutral-400">{t('retroactiveHint')}</span>
             </span>
           </label>
 
@@ -138,15 +141,8 @@ export function NewVersionModal({ metric, oldFormula, newFormula, onCancel, onCo
               <div className="flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-warning-500" />
                 <div className="text-xs text-warning-500 leading-relaxed">
-                  <p className="font-semibold">
-                    Warning: this will recalculate <strong>all historical reports</strong> that
-                    depend on this metric.
-                  </p>
-                  <p className="mt-1">
-                    Numbers on already-downloaded reports will <strong>diverge</strong> from
-                    in-app values. This breaks audit trail. Only proceed if the previous formula
-                    was clearly wrong.
-                  </p>
+                  <p className="font-semibold">{t('retroactiveWarningTitle')}</p>
+                  <p className="mt-1">{t('retroactiveWarningBody')}</p>
                 </div>
               </div>
             </div>
@@ -155,17 +151,17 @@ export function NewVersionModal({ metric, oldFormula, newFormula, onCancel, onCo
           {/* Change Reason */}
           <div>
             <label className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-1.5">
-              Change Reason <span className="text-error-500">*</span>
+              {t('changeReason')} <span className="text-error-500">*</span>
             </label>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Describe why this formula is being changed..."
+              placeholder={t('reasonPlaceholder')}
               rows={3}
               className="w-full resize-none rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-info-500"
             />
             {reason.trim().length === 0 && (
-              <p className="mt-1 text-[11px] text-neutral-400">Required — explain the rationale.</p>
+              <p className="mt-1 text-[11px] text-neutral-400">{t('reasonRequired')}</p>
             )}
           </div>
         </div>
@@ -177,7 +173,7 @@ export function NewVersionModal({ metric, oldFormula, newFormula, onCancel, onCo
             onClick={onCancel}
             className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button
             type="button"
@@ -192,7 +188,7 @@ export function NewVersionModal({ metric, oldFormula, newFormula, onCancel, onCo
                 : 'bg-neutral-300 cursor-not-allowed',
             )}
           >
-            Create New Version
+            {t('submit')}
           </button>
         </div>
       </div>
@@ -202,10 +198,12 @@ export function NewVersionModal({ metric, oldFormula, newFormula, onCancel, onCo
 
 function DiffRow({
   label,
+  emptyLabel,
   formula,
   variant,
 }: {
   label: string;
+  emptyLabel: string;
   formula: string;
   variant: 'removed' | 'added';
 }) {
@@ -221,7 +219,7 @@ function DiffRow({
           variant === 'added' && 'text-success-500',
         )}
       >
-        {formula || <span className="italic text-neutral-300">(empty)</span>}
+        {formula || <span className="italic text-neutral-300">{emptyLabel}</span>}
       </span>
     </div>
   );

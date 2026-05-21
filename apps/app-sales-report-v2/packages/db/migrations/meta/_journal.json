@@ -36,6 +36,13 @@
       "when": 1778581505995,
       "tag": "0004_user_status_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778830268179,
+      "tag": "0005_add_period_snapshots",
+      "breakpoints": true
     }
   ]
 }

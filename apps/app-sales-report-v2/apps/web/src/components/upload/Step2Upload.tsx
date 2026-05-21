@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Upload, FileText, X, RefreshCw, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import type { SelectedPeriod } from './Step1Period';
 import { TotalGmvPreviewCard } from './TotalGmvPreviewCard';
@@ -19,32 +20,39 @@ export type ReportType =
 export interface ReportSlot {
   channel: Channel;
   type: ReportType;
-  label: string;
-  subtitle: string;
+  /** i18n key suffix under `uploadWizard.step2.slot.*` — pair Label + Subtitle keys. */
+  slotKey: 'sales' | 'ads' | 'brandAds' | 'offPlatformAds' | 'traffic' | 'affiliate';
 }
 
 const SHOPEE_REPORTS: ReportSlot[] = [
-  { channel: 'SHOPEE', type: 'SALES', label: 'Sales report', subtitle: 'Order-level transactions' },
-  { channel: 'SHOPEE', type: 'ADS', label: 'Ads report', subtitle: 'Sponsored product spend' },
-  { channel: 'SHOPEE', type: 'BRAND_ADS', label: 'Brand Ads report', subtitle: 'Awareness-objective spend' },
-  {
-    channel: 'SHOPEE',
-    type: 'OFF_PLATFORM_ADS',
-    label: 'Off Platform Ads report',
-    subtitle: 'Off-site ads spend',
-  },
-  { channel: 'SHOPEE', type: 'TRAFFIC', label: 'Traffic report', subtitle: 'Sessions, PV, conversion' },
-  { channel: 'SHOPEE', type: 'AFFILIATE', label: 'Affiliate report', subtitle: 'Commission payments' },
+  { channel: 'SHOPEE', type: 'SALES', slotKey: 'sales' },
+  { channel: 'SHOPEE', type: 'ADS', slotKey: 'ads' },
+  { channel: 'SHOPEE', type: 'BRAND_ADS', slotKey: 'brandAds' },
+  { channel: 'SHOPEE', type: 'OFF_PLATFORM_ADS', slotKey: 'offPlatformAds' },
+  { channel: 'SHOPEE', type: 'TRAFFIC', slotKey: 'traffic' },
+  { channel: 'SHOPEE', type: 'AFFILIATE', slotKey: 'affiliate' },
 ];
 
 const TIKTOK_REPORTS: ReportSlot[] = [
-  { channel: 'TIKTOK', type: 'SALES', label: 'Sales report', subtitle: 'Order-level transactions' },
-  { channel: 'TIKTOK', type: 'TRAFFIC', label: 'Traffic report', subtitle: 'Sessions, PV, conversion' },
-  { channel: 'TIKTOK', type: 'AFFILIATE', label: 'Affiliate report', subtitle: 'Commission payments' },
+  { channel: 'TIKTOK', type: 'SALES', slotKey: 'sales' },
+  { channel: 'TIKTOK', type: 'TRAFFIC', slotKey: 'traffic' },
+  { channel: 'TIKTOK', type: 'AFFILIATE', slotKey: 'affiliate' },
 ];
 
 export function slotKey(slot: { channel: Channel; type: ReportType }): string {
   return `${slot.channel}::${slot.type}`;
+}
+
+interface ExistingFileInfo {
+  arfId: string;
+  channel: 'SHOPEE' | 'TIKTOK';
+  fileType: 'SALES' | 'ADS' | 'BRAND_ADS' | 'OFF_PLATFORM_ADS' | 'TRAFFIC' | 'AFFILIATE';
+  filename: string;
+  sizeBytes: number;
+  rowCount: number | null;
+  uploadedAt: string;
+  uploadedBy: string;
+  s3Key: string | null;
 }
 
 interface Props {
@@ -52,9 +60,29 @@ interface Props {
   files: Map<string, File>;
   onFilesChange: (next: Map<string, File>) => void;
   attempted?: boolean;
+  /** When Active period is selected, list of files already archived from the previous ingest. */
+  existingFiles?: ExistingFileInfo[];
 }
 
-export function Step2Upload({ selectedPeriod, files, onFilesChange, attempted = false }: Props) {
+function fmtBytes(b: number): string {
+  if (b >= 1_000_000) return `${(b / 1_000_000).toFixed(1)} MB`;
+  if (b >= 1_000) return `${(b / 1_000).toFixed(1)} KB`;
+  return `${b} B`;
+}
+
+export function Step2Upload({
+  selectedPeriod,
+  files,
+  onFilesChange,
+  attempted = false,
+  existingFiles = [],
+}: Props) {
+  const t = useTranslations('uploadWizard.step2');
+  const tSlot = useTranslations('uploadWizard.step2.slot');
+  const slotLabel = (slot: ReportSlot) =>
+    tSlot(`${slot.slotKey}Label` as `${ReportSlot['slotKey']}Label`);
+  const slotSubtitle = (slot: ReportSlot) =>
+    tSlot(`${slot.slotKey}Subtitle` as `${ReportSlot['slotKey']}Subtitle`);
   const onSetFile = (key: string, file: File | null) => {
     const next = new Map(files);
     if (file) next.set(key, file);
@@ -80,21 +108,78 @@ export function Step2Upload({ selectedPeriod, files, onFilesChange, attempted = 
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-base font-semibold text-neutral-900">Step 2 · Upload files</h2>
-          <p className="mt-1 text-sm text-neutral-500">
-            Drop the raw export for each report type. Skip any you don&apos;t have — partial uploads are allowed.
-          </p>
+          <h2 className="text-base font-semibold text-neutral-900">{t('title')}</h2>
+          <p className="mt-1 text-sm text-neutral-500">{t('subtitle')}</p>
         </div>
         <div className="text-xs text-neutral-500">
-          <span className="font-semibold text-neutral-900">{uploadedCount}</span> / {totalSlots} files
+          {t('fileCount', { uploaded: uploadedCount, total: totalSlots })}
         </div>
       </div>
 
       {selectedPeriod && (
         <div className="rounded-md bg-info-50/40 border border-info-500/30 px-3 py-2 text-xs text-info-500">
-          Files will be tagged with{' '}
+          {t('fileTag')}{' '}
           <span className="font-mono font-semibold">{selectedPeriod.label}</span>{' '}
           <span className="text-neutral-500">({selectedPeriod.rangeLabel})</span>.
+        </div>
+      )}
+
+      {/* Previously uploaded files — shown only for Active periods (re-ingest scenario). */}
+      {existingFiles.length > 0 && (
+        <div className="rounded-md border border-info-500/30 bg-info-50/40 px-4 py-3">
+          <div className="text-xs font-semibold uppercase tracking-wider text-info-500">
+            {t('previouslyUploaded', { count: existingFiles.length })}
+          </div>
+          <p className="mt-1 text-xs text-neutral-700">
+            {t.rich('previouslyUploadedBody', {
+              b: (chunks) => <strong>{chunks}</strong>,
+            })}
+          </p>
+          <ul className="mt-3 space-y-1.5 divide-y divide-info-500/10">
+            {existingFiles.map((f) => {
+              const replaced = files.has(slotKey({ channel: f.channel, type: f.fileType }));
+              return (
+                <li
+                  key={f.arfId}
+                  className="flex items-center gap-2 pt-1.5 text-xs first:pt-0"
+                >
+                  <span
+                    className={cn(
+                      'inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-mono font-semibold text-white shrink-0',
+                      f.channel === 'SHOPEE' ? 'bg-shopee' : 'bg-neutral-900',
+                    )}
+                  >
+                    {f.channel === 'SHOPEE' ? 'S' : 'T'}
+                  </span>
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-neutral-500 w-32 shrink-0">
+                    {f.fileType.replace(/_/g, ' ')}
+                  </span>
+                  <span
+                    className={cn(
+                      'flex-1 truncate font-mono text-[11px]',
+                      replaced ? 'line-through text-neutral-400' : 'text-neutral-900',
+                    )}
+                    title={f.filename}
+                  >
+                    {f.filename}
+                  </span>
+                  <span className="text-[11px] tabular-nums text-neutral-500 shrink-0">
+                    {fmtBytes(f.sizeBytes)}
+                  </span>
+                  {f.rowCount != null && (
+                    <span className="text-[11px] tabular-nums text-neutral-500 shrink-0 w-16 text-right">
+                      {t('rowsCount', { count: f.rowCount.toLocaleString('en-US') })}
+                    </span>
+                  )}
+                  {replaced && (
+                    <span className="rounded-full bg-warning-500/10 px-2 py-0.5 text-[10px] font-medium text-warning-500 shrink-0">
+                      {t('willReplace')}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 
@@ -107,7 +192,9 @@ export function Step2Upload({ selectedPeriod, files, onFilesChange, attempted = 
             <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-error-500" />
             <div className="flex-1">
               <div className="text-sm font-semibold text-error-500">
-                {missingSlots.length} report{missingSlots.length > 1 ? 's' : ''} missing — upload required to continue
+                {missingSlots.length === 1
+                  ? t('errorMissingSingular')
+                  : t('errorMissing', { count: missingSlots.length })}
               </div>
               <ul className="mt-2 space-y-1 text-xs text-error-500">
                 {missingSlots.map((s) => (
@@ -120,7 +207,7 @@ export function Step2Upload({ selectedPeriod, files, onFilesChange, attempted = 
                     >
                       {s.channel === 'SHOPEE' ? 'S' : 'T'}
                     </span>
-                    {s.label}
+                    {slotLabel(s)}
                   </li>
                 ))}
               </ul>
@@ -131,7 +218,7 @@ export function Step2Upload({ selectedPeriod, files, onFilesChange, attempted = 
 
       {/* Shopee section */}
       <SectionGroup
-        title="Shopee"
+        title={t('shopee')}
         badgeClass="bg-shopee text-white"
         badge="S"
         count={SHOPEE_REPORTS.filter((r) => files.has(slotKey(r))).length}
@@ -154,6 +241,8 @@ export function Step2Upload({ selectedPeriod, files, onFilesChange, attempted = 
                 <FileSlot
                   key={k}
                   slot={slot}
+                  label={slotLabel(slot)}
+                  subtitle={slotSubtitle(slot)}
                   file={f}
                   onChange={(file) => onSetFile(k, file)}
                   highlight={attempted && !f}
@@ -166,7 +255,7 @@ export function Step2Upload({ selectedPeriod, files, onFilesChange, attempted = 
 
       {/* TikTok section */}
       <SectionGroup
-        title="TikTok Shop"
+        title={t('tiktok')}
         badgeClass="bg-neutral-900 text-white"
         badge="T"
         count={TIKTOK_REPORTS.filter((r) => files.has(slotKey(r))).length}
@@ -186,6 +275,8 @@ export function Step2Upload({ selectedPeriod, files, onFilesChange, attempted = 
                 <FileSlot
                   key={k}
                   slot={slot}
+                  label={slotLabel(slot)}
+                  subtitle={slotSubtitle(slot)}
                   file={f}
                   onChange={(file) => onSetFile(k, file)}
                   highlight={attempted && !f}
@@ -214,6 +305,7 @@ function SectionGroup({
   total: number;
   children: React.ReactNode;
 }) {
+  const t = useTranslations('uploadWizard.step2');
   return (
     <div>
       <div className="mb-2 flex items-center gap-2">
@@ -226,9 +318,7 @@ function SectionGroup({
           <span className="font-mono">{badge}</span>
           {title}
         </span>
-        <span className="text-xs text-neutral-500">
-          {count}/{total} selected
-        </span>
+        <span className="text-xs text-neutral-500">{t('selected', { count, total })}</span>
       </div>
       {children}
     </div>
@@ -240,27 +330,35 @@ const ACCEPT = '.csv,.xlsx,application/vnd.openxmlformats-officedocument.spreads
 
 function FileSlot({
   slot,
+  label,
+  subtitle,
   file,
   onChange,
   highlight,
 }: {
   slot: ReportSlot;
+  label: string;
+  subtitle: string;
   file: File | null;
   onChange: (f: File | null) => void;
   highlight?: boolean;
 }) {
+  const t = useTranslations('uploadWizard.step2.fileSlot');
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  // Reference slot so the unused-import lint doesn't flag it
+  void slot;
+
   const validate = (f: File): boolean => {
     if (f.size > MAX_BYTES) {
-      setError('File exceeds 100 MB limit');
+      setError(t('errorTooBig'));
       return false;
     }
     const ext = f.name.toLowerCase().match(/\.(csv|xlsx)$/);
     if (!ext) {
-      setError('Only .csv and .xlsx are accepted');
+      setError(t('errorBadExt'));
       return false;
     }
     setError(null);
@@ -299,13 +397,13 @@ function FileSlot({
     >
       <div className="mb-2 flex items-start justify-between gap-2">
         <div>
-          <div className="text-sm font-medium text-neutral-900">{slot.label}</div>
-          <div className="text-xs text-neutral-500">{slot.subtitle}</div>
+          <div className="text-sm font-medium text-neutral-900">{label}</div>
+          <div className="text-xs text-neutral-500">{subtitle}</div>
         </div>
         {highlight && (
           <span className="inline-flex items-center gap-0.5 rounded-full bg-error-50 px-2 py-0.5 text-[10px] font-medium text-error-500">
             <AlertCircle className="h-2.5 w-2.5" />
-            required
+            {t('required')}
           </span>
         )}
       </div>
@@ -333,9 +431,9 @@ function FileSlot({
         >
           <Upload className="h-5 w-5 text-neutral-400" />
           <div className="text-xs text-neutral-600">
-            {dragOver ? 'Drop here' : 'Drag & drop or click to browse'}
+            {dragOver ? t('dropHere') : t('dragDrop')}
           </div>
-          <div className="text-[10px] text-neutral-400">.csv or .xlsx — up to 100 MB</div>
+          <div className="text-[10px] text-neutral-400">{t('fileSpec')}</div>
         </div>
       )}
 
@@ -348,7 +446,7 @@ function FileSlot({
               {(file.size / 1024 / 1024).toFixed(2)} MB
               <span className="ml-2 inline-flex items-center gap-0.5 text-success-500">
                 <CheckCircle className="h-3 w-3" />
-                Ready
+                {t('ready')}
               </span>
             </div>
           </div>
@@ -356,8 +454,8 @@ function FileSlot({
             type="button"
             onClick={() => inputRef.current?.click()}
             className="rounded p-1 text-neutral-500 hover:bg-neutral-100"
-            aria-label="Replace"
-            title="Replace"
+            aria-label={t('replace')}
+            title={t('replace')}
           >
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
@@ -365,8 +463,8 @@ function FileSlot({
             type="button"
             onClick={remove}
             className="rounded p-1 text-neutral-500 hover:bg-error-50 hover:text-error-500"
-            aria-label="Remove"
-            title="Remove"
+            aria-label={t('remove')}
+            title={t('remove')}
           >
             <X className="h-3.5 w-3.5" />
           </button>

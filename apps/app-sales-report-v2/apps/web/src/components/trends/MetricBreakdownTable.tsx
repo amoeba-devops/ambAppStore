@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import {
   channelMetric,
@@ -71,16 +72,18 @@ interface Props {
   granularity?: 'WEEK' | 'MONTH';
 }
 
-const CHANNEL_OPTIONS: { key: Channel; label: string }[] = [
-  { key: 'TOTAL', label: 'Total Platform' },
-  { key: 'SHOPEE', label: 'Shopee' },
-  { key: 'TIKTOK', label: 'TikTok' },
+type ChannelOpt = { key: Channel; i18nKey: 'total' | 'shopee' | 'tiktok' };
+const CHANNEL_OPTIONS: ChannelOpt[] = [
+  { key: 'TOTAL', i18nKey: 'total' },
+  { key: 'SHOPEE', i18nKey: 'shopee' },
+  { key: 'TIKTOK', i18nKey: 'tiktok' },
 ];
 
 export function MetricBreakdownTable({ weeks, granularity = 'WEEK' }: Props) {
+  const t = useTranslations('trendingReport');
   const [channel, setChannel] = useState<Channel>('TOTAL');
-  const deltaLabel = granularity === 'WEEK' ? 'WoW' : 'MoM';
-  const title = granularity === 'WEEK' ? 'Week-over-week breakdown' : 'Month-over-month breakdown';
+  const deltaLabel = granularity === 'WEEK' ? t('card.wowSuffix') : t('card.momSuffix');
+  const title = granularity === 'WEEK' ? t('breakdown.titleWeekly') : t('breakdown.titleMonthly');
 
   return (
     <div className="rounded-lg border border-neutral-200 bg-white">
@@ -99,7 +102,7 @@ export function MetricBreakdownTable({ weeks, granularity = 'WEEK' }: Props) {
                   : 'text-neutral-700 hover:bg-neutral-50',
               )}
             >
-              {opt.label}
+              {t(`channel.${opt.i18nKey}`)}
             </button>
           ))}
         </div>
@@ -109,7 +112,7 @@ export function MetricBreakdownTable({ weeks, granularity = 'WEEK' }: Props) {
           <thead className="bg-neutral-50 text-[11px] uppercase tracking-wider text-neutral-500">
             <tr>
               <th className="sticky left-0 z-10 bg-neutral-50 px-4 py-2.5 text-left font-medium border-r border-neutral-200">
-                Metric
+                {t('breakdown.col.metric')}
               </th>
               {weeks.map((w, i) => (
                 <th key={`${w.year}-${w.weekNum}-${i}`} className="px-3 py-2.5 text-right font-medium" colSpan={2}>
@@ -128,15 +131,15 @@ export function MetricBreakdownTable({ weeks, granularity = 'WEEK' }: Props) {
             </tr>
           </thead>
           <tbody>
-            <SectionHeader label="Amount" spanCols={weeks.length * 2} />
+            <SectionHeader label={t('breakdown.section.amount')} spanCols={weeks.length * 2} />
             {AMOUNT_ROWS.map((row) => (
               <Row key={`amount-${row.metric}-${row.label}`} row={row} weeks={weeks} mode="amount" channel={channel} />
             ))}
-            <SectionHeader label="Ratio (of Net GMV)" spanCols={weeks.length * 2} />
+            <SectionHeader label={t('breakdown.section.ratio')} spanCols={weeks.length * 2} />
             {RATIO_ROWS.map((row) => (
               <Row key={`ratio-${row.metric}-${row.label}`} row={row} weeks={weeks} mode="ratio" channel={channel} />
             ))}
-            <SectionHeader label="Traffic" spanCols={weeks.length * 2} />
+            <SectionHeader label={t('breakdown.section.traffic')} spanCols={weeks.length * 2} />
             {TRAFFIC_ROWS.map((row) => (
               <Row key={`traffic-${row.metric}-${row.label}`} row={row} weeks={weeks} mode="amount" channel={channel} />
             ))}
@@ -148,9 +151,12 @@ export function MetricBreakdownTable({ weeks, granularity = 'WEEK' }: Props) {
 }
 
 function ColPair({ deltaLabel }: { deltaLabel: string }) {
+  const t = useTranslations('trendingReport.breakdown.col');
   return (
     <>
-      <th className="px-3 py-1 text-right text-[10px] font-medium text-neutral-400 normal-case">value</th>
+      <th className="px-3 py-1 text-right text-[10px] font-medium text-neutral-400 normal-case">
+        {t('value')}
+      </th>
       <th className="px-3 py-1 text-right text-[10px] font-medium text-neutral-400 normal-case">
         {deltaLabel}
       </th>

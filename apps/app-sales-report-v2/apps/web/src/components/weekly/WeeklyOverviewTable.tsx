@@ -1,8 +1,10 @@
 'use client';
 
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
-import type { OverviewRow } from '@/lib/weekly-report-mock';
+import type { OverviewRow, WeeklyChannel } from '@/lib/weekly-report-mock';
+import { getMetricFormula } from '@/lib/formula-lookup';
 
 interface Props {
   rows: OverviewRow[];
@@ -10,6 +12,7 @@ interface Props {
   currentWeekLabel: string;
   krwRate: number;
   deltaLabel?: string; // "WoW" | "MoM"
+  channel?: WeeklyChannel;
 }
 
 function fmtVnd(n: number): string {
@@ -25,12 +28,18 @@ function fmtPct(ratio: number): string {
   return (ratio * 100).toFixed(2) + '%';
 }
 
-export function WeeklyOverviewTable({ rows, prevWeekLabel, currentWeekLabel, krwRate, deltaLabel = 'WoW' }: Props) {
+export function WeeklyOverviewTable({ rows, prevWeekLabel, currentWeekLabel, krwRate, deltaLabel, channel = 'ALL' }: Props) {
+  const t = useTranslations('weeklyReport');
+  // Allow deltaLabel override (e.g. "MoM" from Monthly Report); default to "WoW" via i18n.
+  const resolvedDelta = deltaLabel ?? t('table.wow');
   return (
     <div className="space-y-2">
       <div className="px-1">
         <h3 className="text-sm font-semibold text-neutral-900">
-          Overview <span className="font-normal text-neutral-500">— {currentWeekLabel} vs {prevWeekLabel}</span>
+          {t('overview.title')}{' '}
+          <span className="font-normal text-neutral-500">
+            {t('overview.comparison', { current: currentWeekLabel, prev: prevWeekLabel })}
+          </span>
         </h3>
       </div>
       <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
@@ -38,33 +47,49 @@ export function WeeklyOverviewTable({ rows, prevWeekLabel, currentWeekLabel, krw
           <table className="w-full text-sm">
             <thead className="bg-neutral-50 text-[11px] uppercase tracking-wider text-neutral-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Metric</th>
-                <th className="px-3 py-2.5 text-right font-medium">VND</th>
-                <th className="px-3 py-2.5 text-right font-medium">KRW</th>
-                <th className="px-3 py-2.5 text-right font-medium">% Net GMV</th>
-                <th className="px-5 py-2.5 text-right font-medium">{deltaLabel}</th>
+                <th className="px-5 py-2.5 text-left font-medium">{t('table.metric')}</th>
+                <th className="px-3 py-2.5 text-right font-medium">{t('table.vnd')}</th>
+                <th className="px-3 py-2.5 text-right font-medium">{t('table.krw')}</th>
+                <th className="px-3 py-2.5 text-right font-medium">{t('table.pctNetGmv')}</th>
+                <th className="px-5 py-2.5 text-right font-medium">{resolvedDelta}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {rows.map((row) => {
+              {rows.map((row, i) => {
+                const prevGroup = i > 0 ? rows[i - 1]!.group : undefined;
+                const isGroupStart = row.group != null && row.group !== prevGroup;
                 const rowBg =
                   row.highlight === 'cm'
                     ? 'bg-success-50/60'
                     : row.highlight === 'cmPct'
                       ? 'bg-success-50/30'
-                      : '';
-                const labelClass = row.highlight ? 'font-semibold text-neutral-900' : 'text-neutral-700';
+                      : row.isGroupTotal
+                        ? 'bg-neutral-50'
+                        : '';
+                const labelClass = row.highlight
+                  ? 'font-semibold text-neutral-900'
+                  : row.isGroupTotal
+                    ? 'font-semibold text-neutral-900'
+                    : row.isSubItem
+                      ? 'pl-10 text-neutral-600'
+                      : 'text-neutral-700';
+                const borderClass = isGroupStart && i > 0 ? 'border-t-2 border-t-neutral-200' : '';
+                const formula = row.formula ?? getMetricFormula(row.metric, channel);
                 return (
-                  <tr key={row.metric} className={cn('hover:bg-neutral-50/60', rowBg)}>
-                    <td className={cn('px-5 py-3', labelClass)}>{row.metric}</td>
+                  <tr
+                    key={row.metric}
+                    className={cn('hover:bg-neutral-50/60', rowBg, borderClass)}
+                    title={formula}
+                  >
+                    <td className={cn('py-3', labelClass, row.isSubItem ? 'pl-10' : 'px-5')}>{row.metric}</td>
                     <td className={cn('px-3 py-3 text-right font-mono tabular-nums', labelClass)}>
-                      {row.isRatio ? fmtPct(row.vnd) : fmtVnd(row.vnd)}
+                      {row.placeholder ? '—' : row.isRatio ? fmtPct(row.vnd) : fmtVnd(row.vnd)}
                     </td>
                     <td className="px-3 py-3 text-right font-mono tabular-nums text-neutral-500">
-                      {row.isRatio ? '—' : fmtKrw(row.vnd, krwRate)}
+                      {row.placeholder || row.isRatio ? '—' : fmtKrw(row.vnd, krwRate)}
                     </td>
                     <td className="px-3 py-3 text-right font-mono tabular-nums text-neutral-500">
-                      {row.isRatio ? '—' : fmtPct(row.pctGmv)}
+                      {row.placeholder || row.isRatio ? '—' : fmtPct(row.pctGmv)}
                     </td>
                     <td className="px-5 py-3 text-right">
                       <Delta value={row.wowPct} invert={row.invertDelta} isRatio={row.isRatio} />
@@ -80,7 +105,7 @@ export function WeeklyOverviewTable({ rows, prevWeekLabel, currentWeekLabel, krw
   );
 }
 
-function Delta({ value, invert, isRatio }: { value: number | null; invert?: boolean; isRatio?: boolean }) {
+function Delta({ value, isRatio }: { value: number | null; invert?: boolean; isRatio?: boolean }) {
   if (value == null) {
     return (
       <span className="text-neutral-300 inline-flex items-center">
@@ -88,12 +113,12 @@ function Delta({ value, invert, isRatio }: { value: number | null; invert?: bool
       </span>
     );
   }
+  // Direction-based color (per user spec): increase = green, decrease = red.
   const positive = value > 0;
-  const isGood = invert ? !positive : positive;
   const colorBg =
     value === 0
       ? 'bg-neutral-100 text-neutral-500'
-      : isGood
+      : positive
         ? 'bg-success-50 text-success-500'
         : 'bg-error-50 text-error-500';
   const Icon = value === 0 ? Minus : positive ? ArrowUp : ArrowDown;

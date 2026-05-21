@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { Calculator, AlertCircle, ChevronDown, Loader2, Gift, AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import {
   previewTikTokMetricsAction,
@@ -22,6 +23,7 @@ const fmtVnd = (n: number) =>
 const fmtCompact = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 0 });
 
 export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFile = null }: Props) {
+  const t = useTranslations('uploadWizard.preview');
   const [pending, startTransition] = useTransition();
   const [preview, setPreview] = useState<TikTokMetricsPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,11 +58,8 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
         <div className="flex-1">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <h3 className="text-sm font-semibold text-neutral-900">TikTok metrics preview</h3>
-              <p className="text-xs text-neutral-500">
-                Sales file (OrderSKUList) + Prime Cost master. Formula differs from Shopee — uses
-                listing_price for GMV, full-or-nothing item_sold.
-              </p>
+              <h3 className="text-sm font-semibold text-neutral-900">{t('tiktok.title')}</h3>
+              <p className="text-xs text-neutral-500">{t('tiktok.subtitle')}</p>
             </div>
             <button
               type="button"
@@ -76,21 +75,19 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
               {pending ? (
                 <>
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Computing…
+                  {t('computing')}
                 </>
               ) : (
                 <>
                   <Calculator className="h-3 w-3" />
-                  {preview ? 'Recompute' : 'Compute preview'}
+                  {preview ? t('recompute') : t('compute')}
                 </>
               )}
             </button>
           </div>
 
           {!file && (
-            <p className="mt-3 text-xs text-neutral-500">
-              Upload the TikTok Sales file (OrderSKUList) to enable preview.
-            </p>
+            <p className="mt-3 text-xs text-neutral-500">{t('tiktok.uploadFirst')}</p>
           )}
 
           {error && (
@@ -116,11 +113,11 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
               </div>
 
               <div className="grid grid-cols-4 gap-2 text-center">
-                <Stat label="Rows kept" value={r.rowsKept} tone="ok" />
-                <Stat label="Cancelled" value={r.rowsExcluded.cancelled} tone="warn" />
-                <Stat label="Returned" value={r.rowsExcluded.returned} tone="warn" />
+                <Stat label={t('stat.rowsKept')} value={r.rowsKept} tone="ok" />
+                <Stat label={t('stat.cancelled')} value={r.rowsExcluded.cancelled} tone="warn" />
+                <Stat label={t('stat.returned')} value={r.rowsExcluded.returned} tone="warn" />
                 <Stat
-                  label="Free gift"
+                  label={t('stat.freeGift')}
                   value={r.rowsExcluded.freeGift}
                   tone="info"
                   icon={<Gift className="h-2.5 w-2.5" />}
@@ -131,7 +128,7 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
                 <details className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-xs">
                   <summary className="cursor-pointer font-medium text-neutral-700">
                     <Gift className="mr-1 inline h-3 w-3 text-info-500" />
-                    Free gift products ({r.freeGiftProducts.length})
+                    {t('freeGiftProducts', { count: r.freeGiftProducts.length })}
                   </summary>
                   <ul className="mt-2 space-y-1 text-neutral-600">
                     {r.freeGiftProducts.map((p) => (
@@ -147,7 +144,7 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
               {r.traffic && (
                 <div>
                   <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
-                    Traffic
+                    {t('section.traffic')}
                   </div>
                   <Card
                     label="Total Page Views"
@@ -160,14 +157,14 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
               )}
               {!r.traffic && trafficFile === null && (
                 <div className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-500">
-                  💡 Upload the TikTok Traffic xlsx (product_list) to enable Total Page Views.
+                  {t('hint.uploadTikTokTraffic')}
                 </div>
               )}
 
               {r.affiliate && (
                 <div>
                   <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
-                    Affiliate
+                    {t('section.affiliate')}
                   </div>
                   <Card
                     label="Total Affiliate Commission"
@@ -179,7 +176,7 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
               )}
               {!r.affiliate && affiliateFile === null && (
                 <div className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-500">
-                  💡 Upload the TikTok Affiliate xlsx (Creator_List) to enable Total Affiliate Commission.
+                  {t('hint.uploadTikTokAffiliate')}
                 </div>
               )}
 
@@ -187,7 +184,9 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
                 <details className="rounded-md border border-warning-500/30 bg-warning-500/5 px-3 py-2 text-xs">
                   <summary className="cursor-pointer font-medium text-warning-500">
                     <AlertTriangle className="mr-1 inline h-3 w-3" />
-                    {r.missingFromMaster.length} SKU{r.missingFromMaster.length > 1 ? 's' : ''} missing from master
+                    {r.missingFromMaster.length === 1
+                      ? t('missingFromMasterTikTokSingular')
+                      : t('missingFromMasterTikTok', { count: r.missingFromMaster.length })}
                   </summary>
                   <ul className="mt-2 space-y-1 text-neutral-700">
                     {r.missingFromMaster.slice(0, 10).map((m) => (
@@ -198,7 +197,9 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
                       </li>
                     ))}
                     {r.missingFromMaster.length > 10 && (
-                      <li className="text-[10px] text-neutral-500">… and {r.missingFromMaster.length - 10} more</li>
+                      <li className="text-[10px] text-neutral-500">
+                        {t('andMore', { count: r.missingFromMaster.length - 10 })}
+                      </li>
                     )}
                   </ul>
                 </details>
@@ -210,7 +211,7 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
                 className="flex items-center gap-1 text-[11px] font-medium text-neutral-600 hover:text-neutral-900"
               >
                 <ChevronDown className={cn('h-3 w-3 transition-transform', expanded && 'rotate-180')} />
-                {expanded ? 'Hide' : 'Show'} formula specs + per-product breakdown
+                {expanded ? t('hideFormulas') : t('showFormulas')}
               </button>
 
               {expanded && (
@@ -221,7 +222,12 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
               )}
 
               <div className="text-[10px] text-neutral-500">
-                {r.rowsKept} kept + {r.rowsExcluded.cancelled + r.rowsExcluded.returned + r.rowsExcluded.freeGift} excluded. Master: {preview.master.skuCount} SKUs.
+                {t('loadedSummaryTikTok', {
+                  kept: r.rowsKept,
+                  excluded:
+                    r.rowsExcluded.cancelled + r.rowsExcluded.returned + r.rowsExcluded.freeGift,
+                  sku: preview.master.skuCount,
+                })}
               </div>
             </div>
           )}
@@ -294,6 +300,7 @@ function Stat({
 }
 
 function FormulaSpecs({ specs }: { specs: TikTokMetricsPreview['specs'] }) {
+  const t = useTranslations('uploadWizard.preview.formulaSpecs');
   const list = [
     specs.TOTAL_GMV_TIKTOK,
     specs.TOTAL_NET_GMV_TIKTOK,
@@ -306,7 +313,7 @@ function FormulaSpecs({ specs }: { specs: TikTokMetricsPreview['specs'] }) {
   return (
     <div className="rounded-md border border-neutral-200 bg-neutral-50 p-3">
       <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
-        Formulas — TikTok (Cách A)
+        {t('tiktokTitle')}
       </div>
       <div className="space-y-2 font-mono text-[11px] text-neutral-700">
         {list.map((m) => (
@@ -319,7 +326,7 @@ function FormulaSpecs({ specs }: { specs: TikTokMetricsPreview['specs'] }) {
           </div>
         ))}
         <div className="rounded bg-white px-2 py-1.5">
-          <div className="font-sans text-[10px] font-semibold text-neutral-900">Exclusions</div>
+          <div className="font-sans text-[10px] font-semibold text-neutral-900">{t('exclusions')}</div>
           {specs.EXCLUSIONS_TIKTOK.rules.map((rule) => (
             <div key={rule.code}>{rule.code.padEnd(10)} {rule.expression}</div>
           ))}
@@ -330,23 +337,24 @@ function FormulaSpecs({ specs }: { specs: TikTokMetricsPreview['specs'] }) {
 }
 
 function ProductBreakdown({ rows }: { rows: TikTokMetricsPreview['result']['productBreakdown'] }) {
+  const t = useTranslations('uploadWizard.preview.breakdown');
   return (
     <div className="rounded-md border border-neutral-200 bg-white">
       <div className="border-b border-neutral-200 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
-        Per-product breakdown ({rows.length} products)
+        {t('title', { count: rows.length })}
       </div>
       <div className="max-h-96 overflow-y-auto">
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-neutral-50 text-[9px] uppercase tracking-wider text-neutral-500">
             <tr>
-              <th className="px-2 py-1.5 text-right">#</th>
-              <th className="px-2 py-1.5 text-left">Product</th>
-              <th className="px-2 py-1.5 text-right">Units</th>
-              <th className="px-2 py-1.5 text-right">GMV</th>
-              <th className="px-2 py-1.5 text-right">Net GMV</th>
-              <th className="px-2 py-1.5 text-right">NMV</th>
-              <th className="px-2 py-1.5 text-right">Sel.Disc</th>
-              <th className="px-2 py-1.5 text-right">PrimeCost</th>
+              <th className="px-2 py-1.5 text-right">{t('col.num')}</th>
+              <th className="px-2 py-1.5 text-left">{t('col.product')}</th>
+              <th className="px-2 py-1.5 text-right">{t('col.units')}</th>
+              <th className="px-2 py-1.5 text-right">{t('col.gmv')}</th>
+              <th className="px-2 py-1.5 text-right">{t('col.netGmv')}</th>
+              <th className="px-2 py-1.5 text-right">{t('col.nmv')}</th>
+              <th className="px-2 py-1.5 text-right">{t('col.sellerDiscount')}</th>
+              <th className="px-2 py-1.5 text-right">{t('col.primeCost')}</th>
             </tr>
           </thead>
           <tbody>

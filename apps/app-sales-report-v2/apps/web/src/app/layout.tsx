@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans, Geist_Mono } from 'next/font/google';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 import './globals.css';
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -19,10 +21,16 @@ export const metadata: Metadata = {
   description: 'Sales Performance & Prime Cost Management',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
+  const messages = await getMessages();
   return (
-    <html lang="ko" className={`${plusJakarta.variable} ${geistMono.variable}`}>
-      <body className="min-h-screen bg-neutral-100">{children}</body>
+    <html lang={locale} className={`${plusJakarta.variable} ${geistMono.variable}`}>
+      <body className="min-h-screen bg-neutral-100">
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {children}
+        </NextIntlClientProvider>
+      </body>
     </html>
   );
 }

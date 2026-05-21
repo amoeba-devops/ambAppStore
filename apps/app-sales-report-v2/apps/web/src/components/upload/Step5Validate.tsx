@@ -10,6 +10,7 @@ import {
   ChevronRight,
   RefreshCw,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import {
   validateAllFormulas,
@@ -28,6 +29,7 @@ interface Props {
 type FilterMode = 'errors' | 'warnings' | 'all';
 
 export function Step5Validate({ selectedPeriod = null }: Props) {
+  const t = useTranslations('uploadWizard.step5');
   const [values, setValues] = useState<Record<string, string>>({});
   const [sources, setSources] = useState<Record<string, string[]>>({});
   const [validatedAt, setValidatedAt] = useState<Date | null>(null);
@@ -86,11 +88,8 @@ export function Step5Validate({ selectedPeriod = null }: Props) {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-neutral-900">Step 5 · Validate</h2>
-          <p className="mt-1 text-sm text-neutral-500">
-            Static analysis of every formula: syntax, missing references, circular deps,
-            divide-by-zero risk, datatype compatibility.
-          </p>
+          <h2 className="text-base font-semibold text-neutral-900">{t('title')}</h2>
+          <p className="mt-1 text-sm text-neutral-500">{t('subtitle')}</p>
         </div>
         <button
           type="button"
@@ -98,13 +97,13 @@ export function Step5Validate({ selectedPeriod = null }: Props) {
           className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
         >
           <RefreshCw className="h-3.5 w-3.5" />
-          Re-run validation
+          {t('rerun')}
         </button>
       </div>
 
       {selectedPeriod && (
         <div className="rounded-md bg-info-50/40 border border-info-500/30 px-3 py-2 text-xs text-info-500">
-          Validating formulas applied to{' '}
+          {t('banner')}{' '}
           <span className="font-mono font-semibold">{selectedPeriod.label}</span>{' '}
           <span className="text-neutral-500">({selectedPeriod.rangeLabel})</span>.
         </div>
@@ -127,17 +126,20 @@ export function Step5Validate({ selectedPeriod = null }: Props) {
         <div className="flex-1">
           <div className={cn('text-sm font-semibold', allPass ? 'text-success-500' : 'text-error-500')}>
             {allPass
-              ? `All ${summary.totalCount} formulas valid — safe to proceed`
-              : `Validation failed — ${summary.errorCount} error${summary.errorCount > 1 ? 's' : ''} must be fixed before ingest`}
+              ? t('allValid', { total: summary.totalCount })
+              : summary.errorCount === 1
+                ? t('failedSingular')
+                : t('failed', { count: summary.errorCount })}
           </div>
           <div className="text-[11px] text-neutral-600 mt-0.5">
-            {summary.validCount}/{summary.totalCount} valid · {summary.errorCount} error
-            {summary.errorCount !== 1 && 's'} · {summary.warningCount} warning
-            {summary.warningCount !== 1 && 's'}
+            {t('summary', {
+              valid: summary.validCount,
+              total: summary.totalCount,
+              errors: summary.errorCount,
+              warnings: summary.warningCount,
+            })}
             {validatedAt && (
-              <>
-                {' · '}last run {validatedAt.toLocaleTimeString()}
-              </>
+              <>{t('lastRun', { time: validatedAt.toLocaleTimeString() })}</>
             )}
           </div>
         </div>
@@ -147,7 +149,7 @@ export function Step5Validate({ selectedPeriod = null }: Props) {
       <div className="grid grid-cols-3 gap-3">
         <StatTile
           icon={<CheckCircle2 className="h-4 w-4" />}
-          label="Valid"
+          label={t('stat.valid')}
           value={summary.validCount}
           tone="success"
           active={filter === 'all' && summary.errorCount === 0 && summary.warningCount === 0}
@@ -155,7 +157,7 @@ export function Step5Validate({ selectedPeriod = null }: Props) {
         />
         <StatTile
           icon={<AlertCircle className="h-4 w-4" />}
-          label="Errors"
+          label={t('stat.errors')}
           value={summary.errorCount}
           tone="error"
           active={filter === 'errors'}
@@ -163,7 +165,7 @@ export function Step5Validate({ selectedPeriod = null }: Props) {
         />
         <StatTile
           icon={<AlertTriangle className="h-4 w-4" />}
-          label="Warnings"
+          label={t('stat.warnings')}
           value={summary.warningCount}
           tone="warning"
           active={filter === 'warnings'}
@@ -175,10 +177,10 @@ export function Step5Validate({ selectedPeriod = null }: Props) {
       {grouped.length === 0 ? (
         <div className="rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-10 text-center text-sm text-neutral-500">
           {filter === 'errors' && summary.errorCount === 0
-            ? '🎉 No errors. All formulas pass strict validation.'
+            ? t('empty.errors')
             : filter === 'warnings' && summary.warningCount === 0
-              ? 'No warnings.'
-              : 'No results match this filter.'}
+              ? t('empty.warnings')
+              : t('empty.fallback')}
         </div>
       ) : (
         <div className="space-y-3">
@@ -187,7 +189,9 @@ export function Step5Validate({ selectedPeriod = null }: Props) {
               <div className="bg-neutral-50/60 px-4 py-2 border-b border-neutral-100 text-[10px] uppercase tracking-wider font-semibold text-neutral-500 flex items-center justify-between">
                 <span>{sectionTitle}</span>
                 <span className="text-neutral-400">
-                  {items.length} metric{items.length !== 1 && 's'}
+                  {items.length === 1
+                    ? t('metricCountSingular')
+                    : t('metricCount', { count: items.length })}
                 </span>
               </div>
               <div className="divide-y divide-neutral-100">
@@ -259,6 +263,7 @@ function ResultRow({
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const t = useTranslations('uploadWizard.step5');
   const hasError = result.issues.some((i) => i.severity === 'error');
   const hasWarning = result.issues.some((i) => i.severity === 'warning');
   const statusTone = hasError ? 'error' : hasWarning ? 'warning' : 'success';
@@ -282,9 +287,11 @@ function ResultRow({
               {renderMetricName(result.metric)}
             </div>
             <div className="text-[11px] text-neutral-500 mt-0.5">
-              {result.issues.length > 0
-                ? `${result.issues.length} issue${result.issues.length !== 1 ? 's' : ''}`
-                : 'No issues'}
+              {result.issues.length === 0
+                ? t('noIssues')
+                : result.issues.length === 1
+                  ? t('issueCountSingular')
+                  : t('issueCount', { count: result.issues.length })}
             </div>
           </div>
         </div>
@@ -316,7 +323,7 @@ function ResultRow({
               ))}
             </ul>
           ) : (
-            <p className="text-xs text-success-500">All checks passed.</p>
+            <p className="text-xs text-success-500">{t('passed')}</p>
           )}
         </div>
       )}
@@ -325,10 +332,11 @@ function ResultRow({
 }
 
 function StatusPill({ tone }: { tone: 'success' | 'warning' | 'error' }) {
+  const t = useTranslations('uploadWizard.step5.pill');
   const map = {
-    success: { label: 'Valid', cls: 'bg-success-500/10 text-success-500' },
-    warning: { label: 'Warning', cls: 'bg-warning-500/10 text-warning-500' },
-    error: { label: 'Invalid', cls: 'bg-error-500/10 text-error-500' },
+    success: { label: t('valid'), cls: 'bg-success-500/10 text-success-500' },
+    warning: { label: t('warning'), cls: 'bg-warning-500/10 text-warning-500' },
+    error: { label: t('invalid'), cls: 'bg-error-500/10 text-error-500' },
   };
   return (
     <span

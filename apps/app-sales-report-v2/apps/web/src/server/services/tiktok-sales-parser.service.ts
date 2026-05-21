@@ -21,6 +21,7 @@ export interface TikTokSaleRow {
   quantity: number;
   quantityReturn: number;
   skuOriginalPrice: number;
+  skuSubtotalBeforeDiscount: number;
   skuPlatformDiscount: number;
   skuSellerDiscount: number;
   skuSubtotalAfterDiscount: number;
@@ -40,6 +41,7 @@ const HEADER_MAP = {
   quantity: 'Quantity',
   quantityReturn: 'Sku Quantity of return',
   skuOriginalPrice: 'SKU Unit Original Price',
+  skuSubtotalBeforeDiscount: 'SKU Subtotal Before Discount',
   skuPlatformDiscount: 'SKU Platform Discount',
   skuSellerDiscount: 'SKU Seller Discount',
   skuSubtotalAfterDiscount: 'SKU Subtotal After Discount',
@@ -75,9 +77,22 @@ function findSheetXml(zip: Record<string, Uint8Array>): string | null {
 }
 
 export async function parseTikTokSales(buffer: ArrayBuffer): Promise<TikTokSaleRow[]> {
+  const bytes = new Uint8Array(buffer);
+  // xlsx files are zip archives — must start with "PK" (0x50 0x4B). If not, the
+  // user likely uploaded a CSV / text / wrong file by mistake.
+  if (bytes.length < 4 || bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
+    const head = new TextDecoder('utf-8', { fatal: false })
+      .decode(bytes.slice(0, 40))
+      .replace(/\r?\n/g, ' ')
+      .slice(0, 40);
+    throw new TikTokSalesParseError(
+      `Not an xlsx file — expected TikTok export (.xlsx). First bytes: "${head}". Re-export from TikTok Seller Center and upload again.`,
+      'READ_FAILED',
+    );
+  }
   let zip: Record<string, Uint8Array>;
   try {
-    zip = unzipSync(new Uint8Array(buffer));
+    zip = unzipSync(bytes);
   } catch (err) {
     throw new TikTokSalesParseError(
       `Failed to unzip xlsx: ${err instanceof Error ? err.message : String(err)}`,
@@ -164,6 +179,7 @@ export async function parseTikTokSales(buffer: ArrayBuffer): Promise<TikTokSaleR
       quantity: num(row.get(colByField.quantity)),
       quantityReturn: num(row.get(colByField.quantityReturn)),
       skuOriginalPrice: num(row.get(colByField.skuOriginalPrice)),
+      skuSubtotalBeforeDiscount: num(row.get(colByField.skuSubtotalBeforeDiscount)),
       skuPlatformDiscount: num(row.get(colByField.skuPlatformDiscount)),
       skuSellerDiscount: num(row.get(colByField.skuSellerDiscount)),
       skuSubtotalAfterDiscount: num(row.get(colByField.skuSubtotalAfterDiscount)),

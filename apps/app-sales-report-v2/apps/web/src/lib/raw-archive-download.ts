@@ -155,11 +155,56 @@ export function downloadPeriodBulk(period: ArchivePeriod): void {
   });
 }
 
-export function downloadArchiveFile(file: ArchiveFile): void {
+export async function downloadArchiveFile(file: ArchiveFile): Promise<void> {
   if (typeof window === 'undefined') return;
+
+  // Real files have a UUID id (from `sal_archive_files.arf_id`) AND a non-mock
+  // storage path. Try presigning first; on failure fall back to mock CSV.
+  const isLikelyRealFile = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    file.id,
+  );
+  if (isLikelyRealFile) {
+    try {
+      const { presignArchiveDownloadAction } = await import(
+        '@/server/actions/archive.actions'
+      );
+      const res = await presignArchiveDownloadAction(file.id);
+      if (res.success && res.data.url) {
+        // Anchor to real S3 signed URL — browser handles the download.
+        const a = document.createElement('a');
+        a.href = res.data.url;
+        a.download = res.data.filename ?? file.filename;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        appendActionLog({
+          username: 'dev@amoeba.group',
+          userRole: 'OPERATOR',
+          category: 'EXPORT',
+          verb: 'DOWNLOAD',
+          targetType: 'archive-file',
+          targetLabel: file.filename,
+          summary: `Downloaded archive file from S3 (${file.rows.toLocaleString('en-US')} rows, ${fmtBytes(file.bytes)})`,
+          metadata: { filename: file.filename, bytes: file.bytes, rows: file.rows, source: 's3' },
+        });
+        return;
+      }
+      if (res.success && res.data.url == null) {
+        alert(
+          `Archive file "${file.filename}" was ingested before S3 was configured. Only metadata is preserved — re-upload the file to enable download.`,
+        );
+        return;
+      }
+    } catch (err) {
+      console.error('[archive-download] presign failed, falling back to mock:', err);
+    }
+  }
+
+  // Mock fallback for legacy/demo periods
   const blob = new Blob([buildContent(file)], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-  // CSV placeholder regardless of original ext
   const downloadName = file.filename.replace(/\.(xlsx|xls)$/i, '.csv');
   const a = document.createElement('a');
   a.href = url;

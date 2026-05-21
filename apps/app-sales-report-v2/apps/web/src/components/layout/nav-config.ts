@@ -14,7 +14,8 @@ import {
 } from 'lucide-react';
 
 export interface NavItem {
-  label: string;
+  /** i18n key under `nav.item.*`. */
+  labelKey: string;
   href: string;
   icon: LucideIcon;
   roles?: readonly LocalRole[];
@@ -23,20 +24,21 @@ export interface NavItem {
 }
 
 export interface NavSection {
-  title?: string;
+  /** i18n key under `nav.section.*`. Omit for an untitled section. */
+  titleKey?: string;
   items: NavItem[];
 }
 
 export const navSections: NavSection[] = [
   {
     items: [
-      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+      { labelKey: 'dashboard', href: '/dashboard', icon: LayoutDashboard },
     ],
   },
   {
     items: [
       {
-        label: 'Upload Reports',
+        labelKey: 'uploadReports',
         href: '/upload',
         icon: Upload,
         roles: ['OPERATOR', 'ADMIN'],
@@ -44,10 +46,10 @@ export const navSections: NavSection[] = [
     ],
   },
   {
-    title: 'Data Ingest',
+    titleKey: 'dataIngest',
     items: [
       {
-        label: 'Raw archive',
+        labelKey: 'rawArchive',
         href: '/raw-archive',
         icon: Archive,
         badge: 'pending-approval',
@@ -55,10 +57,10 @@ export const navSections: NavSection[] = [
     ],
   },
   {
-    title: 'RFR Data',
+    titleKey: 'rfrData',
     items: [
       {
-        label: 'Prime Cost',
+        labelKey: 'primeCost',
         href: '/cost-master/prime-cost',
         icon: Database,
         roles: ['OPERATOR', 'ADMIN'],
@@ -66,17 +68,18 @@ export const navSections: NavSection[] = [
     ],
   },
   {
-    title: 'Reports',
+    titleKey: 'reports',
     items: [
-      { label: 'Weekly Report', href: '/reports/weekly', icon: BarChart3 },
-      { label: 'Monthly Report', href: '/reports/monthly', icon: CalendarRange },
-      { label: 'Trending Report', href: '/reports/trending', icon: TrendingUp },
+      { labelKey: 'weeklyReport', href: '/reports/weekly', icon: BarChart3 },
+      { labelKey: 'monthlyReport', href: '/reports/monthly', icon: CalendarRange },
+      { labelKey: 'trendingReport', href: '/reports/trending', icon: TrendingUp },
     ],
   },
   {
+    titleKey: 'audit',
     items: [
       {
-        label: 'Activity Log',
+        labelKey: 'activityLog',
         href: '/activity-log/action',
         icon: ScrollText,
         roles: ['MANAGER', 'ADMIN'],
@@ -84,16 +87,16 @@ export const navSections: NavSection[] = [
     ],
   },
   {
-    title: 'Settings',
+    titleKey: 'settings',
     items: [
       {
-        label: 'User Management',
+        labelKey: 'userManagement',
         href: '/settings/users',
         icon: Users,
         roles: ['ADMIN'],
       },
       {
-        label: 'Formula Config',
+        labelKey: 'formulaConfig',
         href: '/settings/formula-config',
         icon: SlidersHorizontal,
         roles: ['ADMIN'],

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { X, History as HistoryIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import type { FormulaVersion } from '@/lib/formula-version-mock';
 
@@ -22,6 +23,7 @@ export function VersionHistoryModal({
   history,
   onClose,
 }: Props) {
+  const t = useTranslations('formulaConfig.history');
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -54,7 +56,7 @@ export function VersionHistoryModal({
             </span>
             <div className="flex flex-col items-start text-left min-w-0">
               <span className="text-[10px] uppercase tracking-wider text-neutral-400 leading-tight">
-                Version History
+                {t('title')}
               </span>
               <span className="mt-0.5 text-sm font-semibold text-neutral-900 font-mono leading-tight">
                 {renderMetricName(metric)}
@@ -67,20 +69,19 @@ export function VersionHistoryModal({
             className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors shrink-0"
           >
             <X className="h-3.5 w-3.5" />
-            Close
+            {t('close')}
           </button>
         </div>
 
         {/* Summary strip */}
         <div className="flex items-center gap-6 px-6 py-2.5 bg-neutral-50/60 border-b border-neutral-100 text-xs text-neutral-500">
           <span>
-            <span className="font-semibold text-neutral-900">{history.length}</span> version
-            {history.length > 1 ? 's' : ''}
+            {history.length > 1
+              ? t('versionCountPlural', { count: history.length })
+              : t('versionCount', { count: history.length })}
           </span>
           <span className="text-neutral-300">·</span>
-          <span>
-            Latest change: <span className="text-neutral-700">{history[0]?.changedAt}</span>
-          </span>
+          <span>{t('latestChange', { at: history[0]?.changedAt ?? '—' })}</span>
         </div>
 
         {/* Table */}
@@ -92,38 +93,38 @@ export function VersionHistoryModal({
                   style={{ width: '56px' }}
                   className="pl-6 pr-3 py-3 text-left font-semibold"
                 >
-                  #
+                  {t('col.num')}
                 </th>
                 <th
                   style={{ width: '200px' }}
                   className="px-3 py-3 text-left font-semibold"
                 >
-                  Metric
+                  {t('col.metric')}
                 </th>
-                <th className="px-3 py-3 text-left font-semibold">Formula Value</th>
+                <th className="px-3 py-3 text-left font-semibold">{t('col.formula')}</th>
                 <th
                   style={{ width: '140px' }}
                   className="px-3 py-3 text-left font-semibold"
                 >
-                  Reason
+                  {t('col.reason')}
                 </th>
                 <th
                   style={{ width: '200px' }}
                   className="px-3 py-3 text-left font-semibold"
                 >
-                  Effective Period
+                  {t('col.effective')}
                 </th>
                 <th
                   style={{ width: '200px' }}
                   className="px-3 py-3 text-left font-semibold"
                 >
-                  Changed By
+                  {t('col.changedBy')}
                 </th>
                 <th
                   style={{ width: '110px' }}
                   className="pl-3 pr-6 py-3 text-left font-semibold"
                 >
-                  Status
+                  {t('col.status')}
                 </th>
               </tr>
             </thead>
@@ -167,7 +168,7 @@ export function VersionHistoryModal({
                       </div>
                       {unit && (
                         <div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-400">
-                          unit: <span className="text-neutral-600">{unit}</span>
+                          {t('unit')} <span className="text-neutral-600">{unit}</span>
                         </div>
                       )}
                     </td>
@@ -180,7 +181,7 @@ export function VersionHistoryModal({
                       {v.reason ? (
                         <span className="text-xs text-neutral-700">{v.reason}</span>
                       ) : (
-                        <span className="text-xs text-neutral-300">—</span>
+                        <span className="text-xs text-neutral-300">{t('noReason')}</span>
                       )}
                     </td>
                     <td className="px-3 py-4 align-top text-left">

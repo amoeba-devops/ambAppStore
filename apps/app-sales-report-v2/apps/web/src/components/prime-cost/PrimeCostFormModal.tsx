@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import {
   createPrimeCostAction,
   updatePrimeCostAction,
   type PrimeCostRow,
 } from '@/server/actions/prime-cost.actions';
+import { NumberInput } from '@/components/shared/NumberInput';
 
 const KRW_RATE = 17.543;
 
@@ -60,6 +62,8 @@ function parseNumeric(s: string): number | null {
 }
 
 export function PrimeCostFormModal({ open, initial, onClose, onSaved }: PrimeCostFormModalProps) {
+  const t = useTranslations('primeCost.form');
+  const tCommon = useTranslations('common');
   const [form, setForm] = useState<FormState>(EMPTY);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,11 +89,11 @@ export function PrimeCostFormModal({ open, initial, onClose, onSaved }: PrimeCos
 
     const primeCost = parseNumeric(form.primeCostVnd);
     if (primeCost == null) {
-      setError('Prime Cost is required and must be a valid number');
+      setError(t('errorPrimeCost'));
       return;
     }
     if (!form.productNameVi.trim() || !form.skuCode.trim()) {
-      setError('Product name (VI) and SKU are required');
+      setError(t('errorRequired'));
       return;
     }
 
@@ -125,13 +129,13 @@ export function PrimeCostFormModal({ open, initial, onClose, onSaved }: PrimeCos
       <div className="w-full max-w-2xl rounded-lg bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
           <h2 className="text-lg font-semibold text-neutral-900">
-            {isEdit ? 'Edit Prime Cost row' : 'Add Prime Cost row'}
+            {isEdit ? t('titleEdit') : t('titleAdd')}
           </h2>
           <button
             type="button"
             onClick={onClose}
             className="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100"
-            aria-label="Close"
+            aria-label={tCommon('close')}
           >
             <X className="h-4 w-4" />
           </button>
@@ -139,25 +143,25 @@ export function PrimeCostFormModal({ open, initial, onClose, onSaved }: PrimeCos
 
         <form onSubmit={submit} className="space-y-4 px-6 py-5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Product ID" value={form.productId} onChange={(v) => set('productId', v)} placeholder="44409304528" mono />
-            <Field label="Variation ID" value={form.variationId} onChange={(v) => set('variationId', v)} placeholder="243646783891" mono />
+            <Field label={t('labelProductId')} value={form.productId} onChange={(v) => set('productId', v)} placeholder="44409304528" mono />
+            <Field label={t('labelVariationId')} value={form.variationId} onChange={(v) => set('variationId', v)} placeholder="243646783891" mono />
 
             <Field
-              label="Product name (VI) *"
+              label={t('labelProductVi')}
               value={form.productNameVi}
               onChange={(v) => set('productNameVi', v)}
               placeholder="Khay Silicone Trữ Đông Thực Phẩm Ăn Dặm…"
               required
             />
             <Field
-              label="Product name (EN)"
+              label={t('labelProductEn')}
               value={form.productNameEn}
               onChange={(v) => set('productNameEn', v)}
               placeholder="Double Sealed Baby Food Cube Blue 10 구 - IYUM"
             />
 
             <Field
-              label="SKU *"
+              label={t('labelSku')}
               value={form.skuCode}
               onChange={(v) => set('skuCode', v)}
               placeholder="MBSD17U0019"
@@ -165,24 +169,28 @@ export function PrimeCostFormModal({ open, initial, onClose, onSaved }: PrimeCos
               mono
             />
             <Field
-              label="Prime Cost (VND) *"
+              label={t('labelPrimeCost')}
               value={form.primeCostVnd}
               onChange={(v) => set('primeCostVnd', v)}
               placeholder="197000"
               required
               type="number"
-              hint={krwPreview != null ? `≈ ${krwPreview.toLocaleString('ko-KR')} KRW (rate 17.543)` : undefined}
+              hint={
+                krwPreview != null
+                  ? t('krwHint', { value: krwPreview.toLocaleString('ko-KR') })
+                  : undefined
+              }
             />
 
             <Field
-              label="Selling Price (VND)"
+              label={t('labelSellingPrice')}
               value={form.sellingPriceVnd}
               onChange={(v) => set('sellingPriceVnd', v)}
               placeholder="479900"
               type="number"
             />
             <Field
-              label="Listing Price (VND)"
+              label={t('labelListingPrice')}
               value={form.listingPriceVnd}
               onChange={(v) => set('listingPriceVnd', v)}
               placeholder="565000"
@@ -203,14 +211,14 @@ export function PrimeCostFormModal({ open, initial, onClose, onSaved }: PrimeCos
               disabled={submitting}
               className="rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               type="submit"
               disabled={submitting}
               className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
             >
-              {submitting ? 'Saving…' : isEdit ? 'Save changes' : 'Add row'}
+              {submitting ? t('saving') : isEdit ? t('submitEdit') : t('submitAdd')}
             </button>
           </div>
         </form>
@@ -231,21 +239,32 @@ interface FieldProps {
 }
 
 function Field({ label, value, onChange, placeholder, required, type = 'text', mono, hint }: FieldProps) {
+  const inputClass = cn(
+    'w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm placeholder:text-neutral-400 focus:border-neutral-500 focus:outline-none',
+    mono && 'font-mono',
+  );
   return (
     <label className="block">
       <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-neutral-500">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        required={required}
-        step={type === 'number' ? 'any' : undefined}
-        className={cn(
-          'w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm placeholder:text-neutral-400 focus:border-neutral-500 focus:outline-none',
-          mono && 'font-mono',
-        )}
-      />
+      {type === 'number' ? (
+        <NumberInput
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          required={required}
+          step="any"
+          className={inputClass}
+        />
+      ) : (
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          required={required}
+          className={inputClass}
+        />
+      )}
       {hint && <span className="mt-1 block text-xs text-neutral-500">{hint}</span>}
     </label>
   );

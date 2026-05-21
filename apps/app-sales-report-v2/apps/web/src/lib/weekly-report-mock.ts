@@ -31,6 +31,11 @@ export interface ProductMetric {
   platformFee: number;
   primeCost: number;
   cm: number;
+  isGift?: boolean;
+  /** Aggregated bucket — products that had Page Views or ad spend but no kept sales. */
+  isOthers?: boolean;
+  /** Shop-wide ad campaigns (Shop Ads / Shop GMV Max) shown as standalone rows. */
+  isShopWideAd?: boolean;
 }
 
 // Hardcoded 5 products (matches design) — same numbers regardless of week for demo.
@@ -183,6 +188,16 @@ export interface OverviewRow {
   isRatio?: boolean;
   /** vs prev direction where positive = bad. */
   invertDelta?: boolean;
+  /** Group identifier — rows with the same group are visually clustered. */
+  group?: 'revenue' | 'discount' | 'promo' | 'prime-cost' | 'platform-fee' | 'result';
+  /** Render as group subtotal (bold, top border). */
+  isGroupTotal?: boolean;
+  /** Render indented (sub-item under group). */
+  isSubItem?: boolean;
+  /** Formula text shown on hover tooltip. */
+  formula?: string;
+  /** When true, render all value cells as "—" (no data yet). */
+  placeholder?: boolean;
 }
 
 export interface BreakdownItem {
@@ -199,6 +214,8 @@ export interface BreakdownItem {
   summary?: boolean;
   /** Reference-only row — not counted in totals, rendered with dimmed/italic style. */
   reference?: boolean;
+  /** Formula text shown on hover tooltip. */
+  formula?: string;
 }
 
 export interface WeeklyReportData {
@@ -407,6 +424,89 @@ function buildReportFromPoints(
   };
 }
 
+/**
+ * 7-row overview placeholder used when no real snapshot exists. Mirrors the
+ * structure produced by `snapshotToWeeklyReport` so the dashboard renders
+ * identically across periods regardless of data availability.
+ */
+export function buildPlaceholderOverview(): OverviewRow[] {
+  const placeholderRow = (
+    metric: string,
+    extras: Partial<OverviewRow> = {},
+  ): OverviewRow => ({
+    metric,
+    vnd: 0,
+    pctGmv: 0,
+    wowPct: null,
+    placeholder: true,
+    ...extras,
+  });
+  return [
+    placeholderRow('Net GMV'),
+    placeholderRow('Total Discount Costs', { invertDelta: true }),
+    placeholderRow('Total Promotional Costs', { invertDelta: true }),
+    placeholderRow('Prime Cost', { invertDelta: true }),
+    placeholderRow('Platform Fee', { invertDelta: true }),
+    placeholderRow('Total Contribution Margin', { highlight: 'cm' }),
+    placeholderRow('CM %', { highlight: 'cmPct', isRatio: true }),
+  ];
+}
+
+/**
+ * Build placeholder breakdown items (Discount / Promo / Traffic / Sales) with
+ * the same metric labels Weekly Report produces from snapshot. All values are
+ * undefined so BreakdownCard renders "—" for VND/KRW/% Net GMV cells.
+ */
+export function buildPlaceholderBreakdowns(channel: WeeklyChannel): {
+  discounts: BreakdownItem[];
+  promo: BreakdownItem[];
+  traffic: BreakdownItem[];
+  sales: BreakdownItem[];
+} {
+  const useShopee = channel === 'ALL' || channel === 'SHOPEE';
+  const placeholder = (label: string, invertWow = true): BreakdownItem => ({
+    label,
+    wowPct: null,
+    invertWow,
+  });
+
+  const discounts: BreakdownItem[] = [
+    ...(useShopee ? [placeholder('Total Seller Voucher')] : []),
+    placeholder('Total Seller Discount'),
+    placeholder('Total Free Gift'),
+    { label: 'Total Platform Discount (Ref)', wowPct: null, reference: true },
+  ];
+
+  const promo: BreakdownItem[] = [
+    placeholder('Total AD Spend'),
+    ...(useShopee
+      ? [placeholder('Total Brand Ads'), placeholder('Total Off-Platform Ads')]
+      : []),
+    placeholder('Total Affiliate Commission'),
+    placeholder('Total Affiliate Booking Fee'),
+    placeholder('Total Livestream Fee'),
+  ];
+
+  const traffic: BreakdownItem[] = [
+    { label: 'Total Page Views', wowPct: null },
+    { label: 'Conversion Rate', wowPct: null, invertWow: true },
+    ...(useShopee
+      ? ([
+          { label: 'AD GMV', wowPct: null },
+          { label: 'AD ROAS', wowPct: null },
+        ] as BreakdownItem[])
+      : []),
+  ];
+
+  const sales: BreakdownItem[] = [
+    { label: 'Total Item Sold', wowPct: null },
+    { label: 'Total Orders', wowPct: null },
+    { label: 'AOV', wowPct: null },
+  ];
+
+  return { discounts, promo, traffic, sales };
+}
+
 function emptyReport(): WeeklyReportData {
   return {
     netGmv: 0,
@@ -425,13 +525,26 @@ function emptyReport(): WeeklyReportData {
   };
 }
 
-export function getAvailableWeeks(): { weekNum: number; year: number; label: string; periodLabel: string }[] {
+export function getAvailableWeeks(): WeekEntry[] {
   // Generate every weekly period in the current year so Operators can upload
   // for any week — not just the ones the trends mock pre-baked.
   return generateWeeksForYear(2026);
 }
 
 const MS_PER_DAY = 86_400_000;
+
+/** Week containing today (Fri→Thu). Falls back to the latest week if today is outside the generated range. */
+export function findCurrentWeekNum(weeks: WeekEntry[]): number {
+  const now = Date.now();
+  const found = weeks.find((w) => now >= w.startMs && now < w.endMs + MS_PER_DAY);
+  return found?.weekNum ?? weeks[weeks.length - 1]!.weekNum;
+}
+
+/** Index of the week containing today, or `-1` if none. */
+export function findCurrentWeekIdx(weeks: WeekEntry[]): number {
+  const now = Date.now();
+  return weeks.findIndex((w) => now >= w.startMs && now < w.endMs + MS_PER_DAY);
+}
 
 /** Friday on/before Jan 1 of `year` — anchor for W1. */
 function firstFridayAnchor(year: number): number {
@@ -453,10 +566,21 @@ function fmtFriThu(startMs: number, endMs: number): string {
   return `${s.getUTCDate()} ${sm} – ${e.getUTCDate()} ${em}`;
 }
 
+export interface WeekEntry {
+  weekNum: number;
+  year: number;
+  label: string;
+  periodLabel: string;
+  /** UTC midnight at week start (Friday). */
+  startMs: number;
+  /** UTC midnight at week end (Thursday). */
+  endMs: number;
+}
+
 /** All Fri→Thu weeks whose Thursday falls within `year`, numbered W1..W53. */
-function generateWeeksForYear(year: number): { weekNum: number; year: number; label: string; periodLabel: string }[] {
+function generateWeeksForYear(year: number): WeekEntry[] {
   const anchor = firstFridayAnchor(year);
-  const out: { weekNum: number; year: number; label: string; periodLabel: string }[] = [];
+  const out: WeekEntry[] = [];
   for (let i = 0; i < 55; i++) {
     const startMs = anchor + i * 7 * MS_PER_DAY;
     const endMs = startMs + 6 * MS_PER_DAY;
@@ -469,6 +593,8 @@ function generateWeeksForYear(year: number): { weekNum: number; year: number; la
       year,
       label: `W${weekNum}`,
       periodLabel: fmtFriThu(startMs, endMs),
+      startMs,
+      endMs,
     });
   }
   return out;
@@ -619,31 +745,38 @@ export function getMonthlyReport(monthIdx: number, channel: WeeklyChannel): Week
   return buildReportFromPoints(cur, prev ?? null, channel, prevLabel);
 }
 
-export function getAvailableMonths(): {
+export interface MonthEntry {
   monthIdx: number;
   year: number;
   label: string;
   periodLabel: string;
-}[] {
+  /** UTC midnight 1st of month. */
+  startMs: number;
+  /** UTC midnight last day of month. */
+  endMs: number;
+}
+
+export function getAvailableMonths(): MonthEntry[] {
   // Generate all 12 calendar months of the current year so Operators can upload
   // for any month, not just the ones the trends mock pre-baked.
   return generateMonthsForYear(2026);
 }
 
-function generateMonthsForYear(year: number): {
-  monthIdx: number;
-  year: number;
-  label: string;
-  periodLabel: string;
-}[] {
+export function generateMonthsForYear(year: number): MonthEntry[] {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return months.map((m, i) => {
     const lastDay = new Date(Date.UTC(year, i + 1, 0)).getUTCDate();
     return {
-      monthIdx: i + 1, // 1..12 for the year
+      // 0-indexed (Jan=0..Dec=11) to match JS Date semantics and the rest of
+      // the app (archive-files.service `monthLabel`, MonthlyReportClient
+      // realLabels). Previously was 1-indexed which caused an off-by-one:
+      // selecting April stored monthIdx=4 which other lookups read as May.
+      monthIdx: i,
       year,
       label: `${m} ${year}`,
       periodLabel: `1 – ${lastDay} ${m}`,
+      startMs: Date.UTC(year, i, 1),
+      endMs: Date.UTC(year, i, lastDay),
     };
   });
 }

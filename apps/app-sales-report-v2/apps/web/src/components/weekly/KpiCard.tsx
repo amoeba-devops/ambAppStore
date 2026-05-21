@@ -14,6 +14,8 @@ interface KpiCardProps {
   icon?: LucideIcon;
   iconColor?: string;
   className?: string;
+  /** Formula text shown on hover tooltip. */
+  formula?: string;
 }
 
 export function KpiCard({
@@ -27,6 +29,7 @@ export function KpiCard({
   icon: Icon,
   iconColor,
   className,
+  formula,
 }: KpiCardProps) {
   const displayValue =
     kind === 'ratio'
@@ -47,6 +50,7 @@ export function KpiCard({
 
   return (
     <div
+      title={formula}
       className={cn(
         'flex flex-col rounded-lg border bg-white px-5 py-3',
         highlight ? 'border-success-500/40 bg-success-50/30' : 'border-neutral-200',

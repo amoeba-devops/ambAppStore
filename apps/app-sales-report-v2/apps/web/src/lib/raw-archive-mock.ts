@@ -41,6 +41,10 @@ export interface ArchivePeriod {
   label: string;
   rangeLabel: string;
   granularity: 'week' | 'month';
+  /** For real DB-backed periods: numeric period identifiers used to update the matching snapshot. */
+  weekNum?: number | null;
+  monthIdx?: number | null;
+  year?: number;
   status: PeriodStatus;
   ingestedAt: string;
   ingestedBy: string;

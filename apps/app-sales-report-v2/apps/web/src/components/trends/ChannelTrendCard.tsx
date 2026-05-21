@@ -1,35 +1,45 @@
 'use client';
 
 import { ArrowUp, ArrowDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { fmtCompact } from '@/lib/format';
 import { MiniLineChart } from './MiniLineChart';
 import { getMetricDef, type Channel, type ChannelSummary, type Metric } from '@/lib/trends-mock';
 
-const CHANNEL_META: Record<Channel, { name: string; badge: string; badgeClass: string; stroke: string; fill: string; dot: string }> = {
+type ChannelStyle = {
+  badge: string;
+  badgeClass: string;
+  stroke: string;
+  fill: string;
+  dot: string;
+  i18nKey: 'shopee' | 'tiktok' | 'total';
+};
+
+const CHANNEL_STYLE: Record<Channel, ChannelStyle> = {
   SHOPEE: {
-    name: 'Shopee',
     badge: 'S',
     badgeClass: 'bg-shopee text-white',
     stroke: 'stroke-shopee',
     fill: 'fill-shopee/10',
     dot: 'fill-shopee',
+    i18nKey: 'shopee',
   },
   TIKTOK: {
-    name: 'TikTok Shop',
     badge: 'T',
     badgeClass: 'bg-neutral-900 text-white',
     stroke: 'stroke-neutral-900',
     fill: 'fill-neutral-900/5',
     dot: 'fill-neutral-900',
+    i18nKey: 'tiktok',
   },
   TOTAL: {
-    name: 'Total Platform',
     badge: 'Σ',
     badgeClass: 'bg-info-500 text-white',
     stroke: 'stroke-info-500',
     fill: 'fill-info-500/10',
     dot: 'fill-info-500',
+    i18nKey: 'total',
   },
 };
 
@@ -75,14 +85,19 @@ function fmtPctLabel(pct: number | null): { text: string; positive: boolean | nu
 }
 
 export function ChannelTrendCard({ channel, metric, summary, chartData, granularity = 'WEEK' }: Props) {
-  const meta = CHANNEL_META[channel];
+  const t = useTranslations('trendingReport');
+  const style = CHANNEL_STYLE[channel];
+  const channelName = t(`channel.${style.i18nKey}`);
   const def = getMetricDef(metric);
   const wow = fmtPctLabel(summary.wowPct);
   const mom = fmtPctLabel(summary.momPct);
-  const currentLabel = granularity === 'WEEK' ? 'This week' : 'This month';
-  const avgLabel = granularity === 'WEEK' ? '4-wk avg' : '4-mo avg';
-  const primaryDeltaSuffix = granularity === 'WEEK' ? 'WoW' : 'MoM';
-  const secondaryDeltaText = granularity === 'WEEK' ? `MoM: ${mom.text}` : `WoW: ${wow.text}`;
+  const currentLabel = granularity === 'WEEK' ? t('card.thisWeek') : t('card.thisMonth');
+  const avgLabel = granularity === 'WEEK' ? t('card.fourWeekAvg') : t('card.fourMonthAvg');
+  const primaryDeltaSuffix = granularity === 'WEEK' ? t('card.wowSuffix') : t('card.momSuffix');
+  const secondaryDeltaText =
+    granularity === 'WEEK'
+      ? t('card.secondaryMom', { value: mom.text })
+      : t('card.secondaryWow', { value: wow.text });
   const secondaryDeltaPositive = granularity === 'WEEK' ? mom.positive : wow.positive;
   // Primary uses the appropriate value: WoW when weekly, MoM when monthly
   const primaryDelta = granularity === 'WEEK' ? wow : mom;
@@ -94,11 +109,11 @@ export function ChannelTrendCard({ channel, metric, summary, chartData, granular
           <span
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium',
-              meta.badgeClass,
+              style.badgeClass,
             )}
           >
-            <span className="font-mono">{meta.badge}</span>
-            {meta.name}
+            <span className="font-mono">{style.badge}</span>
+            {channelName}
           </span>
           <span className="text-xs text-neutral-500">· {def.label}</span>
         </div>
@@ -136,9 +151,9 @@ export function ChannelTrendCard({ channel, metric, summary, chartData, granular
 
       <MiniLineChart
         data={chartData}
-        stroke={meta.stroke}
-        fill={meta.fill}
-        dot={meta.dot}
+        stroke={style.stroke}
+        fill={style.fill}
+        dot={style.dot}
         formatValue={(v) => fmtTooltipValue(v, metric)}
       />
     </div>

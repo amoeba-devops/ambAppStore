@@ -379,30 +379,81 @@ export function useEffectivePeriod(base: ArchivePeriod): EffectivePeriod {
 }
 
 /**
- * Map from `periodLabel` (e.g. "W13", "Apr 2026") → effective PeriodStatus.
- * Used by Upload Step 1 to flag/disable Locked or Finalized periods.
+ * Map from `periodLabel` (e.g. "W19", "Apr 2026") → effective PeriodStatus.
+ * Used by Upload Step 1 + Week/Month pickers and Raw Archive list.
+ *
+ * Only returns entries for periods that have a localStorage override (set by
+ * approvePeriod/unfinalizePeriod/lockPeriod). Mock seeds are NOT iterated, so
+ * weeks/months with neither a DB snapshot nor an override show as "Open" in
+ * the pickers (default). Real DB-backed periods that haven't been finalized
+ * yet also show "Open" until a Manager finalizes them.
  */
-export function useArchiveStatusByLabel(): Map<string, PeriodStatus> {
+export function useArchiveStatusByLabel(
+  validPeriodKeys?: string[],
+): Map<string, PeriodStatus> {
   const { tick, mounted } = useMountedTick();
+  const keyFilter = validPeriodKeys?.join(',');
   return useMemo(() => {
     const m = new Map<string, PeriodStatus>();
     if (!mounted) return m;
-    for (const base of getAllArchivePeriods()) {
-      const eff = applyOverride(base);
-      m.set(eff.label, eff.status);
+    const overrides = readMap();
+    // When a valid-key list is given (real DB-backed periods), every real key
+    // gets an entry: explicit override if present, else 'Draft' (the "Active"
+    // badge). Keys NOT in the list don't get an entry at all → picker shows
+    // "Open" by default. This gives 3 distinct UI states across the pickers:
+    //   - In list, no override  → "Active"  (data exists, not finalized)
+    //   - In list, override     → that status (Finalized / Locked / etc.)
+    //   - Not in list           → "Open"   (no data yet)
+    if (validPeriodKeys) {
+      for (const key of validPeriodKeys) {
+        const ov = overrides[key];
+        m.set(key, ov?.status ?? 'Draft');
+      }
+    } else {
+      for (const [periodKey, ov] of Object.entries(overrides)) {
+        if (ov?.status) m.set(periodKey, ov.status);
+      }
     }
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tick, mounted]);
+  }, [tick, mounted, keyFilter]);
 }
 
-/** Count of periods currently in Draft status (pending Manager approval). */
+/**
+ * Number of real-archive periods currently pending Manager approval — i.e.
+ * not yet Finalized or Locked. Server-rendered period keys are passed in
+ * (Sidebar receives them from the dashboard layout). For each, we apply any
+ * localStorage override:
+ *   - override.status === 'Finalized' / 'Locked' → excluded from pending
+ *   - any other override OR no override → still pending (Draft/Active)
+ */
+export function usePendingApprovalCount(realPeriodKeys: string[]): number {
+  const { tick, mounted } = useMountedTick();
+  return useMemo(() => {
+    if (!mounted || realPeriodKeys.length === 0) return 0;
+    const overrides = readMap();
+    let n = 0;
+    for (const key of realPeriodKeys) {
+      const ov = overrides[key];
+      if (ov?.status === 'Finalized' || ov?.status === 'Locked') continue;
+      n++;
+    }
+    return n;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick, mounted, realPeriodKeys.join(',')]);
+}
+
+/** @deprecated Use `usePendingApprovalCount(realPeriodKeys)` instead. */
 export function useDraftCount(): number {
   const { tick, mounted } = useMountedTick();
   return useMemo(() => {
     if (!mounted) return 0;
-    const periods = getAllArchivePeriods().map(applyOverride);
-    return periods.filter((p) => p.status === 'Draft').length;
+    const overrides = readMap();
+    let n = 0;
+    for (const ov of Object.values(overrides)) {
+      if (ov?.status === 'Draft') n++;
+    }
+    return n;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick, mounted]);
 }

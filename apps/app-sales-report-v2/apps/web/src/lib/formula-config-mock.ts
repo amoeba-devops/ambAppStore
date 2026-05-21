@@ -107,18 +107,8 @@ export const FORMULA_GROUPS: FormulaGroup[] = [
         type: 'calculated',
       },
       {
-        name: 'TikTok Platform Fee (weekly)',
-        value: 'avg(last 4 weeks rate) × current week Net GMV',
-        type: 'calculated',
-      },
-      {
-        name: 'TikTok Platform Fee fallback',
-        value: '16% if <4 weeks history',
-        type: 'number',
-      },
-      {
-        name: 'TikTok Platform Fee (monthly)',
-        value: 'SUM of 7 manual components',
+        name: 'TikTok Platform Fee',
+        value: 'Total Net GMV × Platform Fee Rate (manual input)',
         type: 'calculated',
       },
     ],
