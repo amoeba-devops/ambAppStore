@@ -1,14 +1,21 @@
 import 'server-only';
-import { unzipSync, strFromU8 } from 'fflate';
+import {
+  cellNumber,
+  cellText,
+  isXlsx,
+  readXlsxGrid,
+  resolveHeaderColumns,
+  XlsxParseError,
+} from './xlsx-grid.util';
 
 /**
  * One row from a TikTok Shop Sales (OrderSKUList) xlsx export.
  *
- * ⚠️ TikTok xlsx export uses MALFORMED row XML — each header cell in row 1
- * is its own `<row r="1">` element instead of one row containing multiple
- * cells. ExcelJS reads only one cell. We use a custom regex-based XML parser
- * to handle this. Data row 2 contains COLUMN DESCRIPTIONS (skip); real data
- * starts at row 3.
+ * TikTok historically used MALFORMED row XML (each header cell its own
+ * `<row r="1">`) with row 2 = column descriptions, data from row 3. New
+ * exports use standard xlsx with shared strings, row 2 = data directly.
+ * We detect which format by checking whether row 2's Quantity cell parses
+ * as a number (data) or remains text (description).
  */
 export interface TikTokSaleRow {
   orderId: string;
@@ -26,6 +33,12 @@ export interface TikTokSaleRow {
   skuSellerDiscount: number;
   skuSubtotalAfterDiscount: number;
   orderAmount: number;
+  /**
+   * Order placement date as ISO `YYYY-MM-DD` (local-day interpretation from
+   * TikTok's "Created Time" column). Empty when the legacy export file lacks
+   * the column — calculator falls back to latest prime cost version.
+   */
+  orderDate: string;
   /** 1-based row index in source sheet, for diagnostics. */
   rowIndex: number;
 }
@@ -60,27 +73,41 @@ export class TikTokSalesParseError extends Error {
   }
 }
 
-function colLetterToIdx(letters: string): number {
-  let n = 0;
-  for (const ch of letters) n = n * 26 + (ch.charCodeAt(0) - 64);
-  return n;
-}
-
-function findSheetXml(zip: Record<string, Uint8Array>): string | null {
-  // Look for any xl/worksheets/sheet*.xml — TikTok uses sheet2.xml
-  for (const name of Object.keys(zip)) {
-    if (/^xl\/worksheets\/sheet\d+\.xml$/.test(name)) {
-      return strFromU8(zip[name]!);
-    }
+/**
+ * Parse TikTok's "Created Time" cell → ISO `YYYY-MM-DD` (local-day).
+ * TikTok exports dates as strings (typically `YYYY-MM-DD HH:mm:ss`). Excel
+ * serial numbers also handled defensively. Empty / unparseable → empty string.
+ */
+function toIsoDate(v: string | number | undefined): string {
+  if (v == null || v === '') return '';
+  if (typeof v === 'number') {
+    // Excel serial: days since 1899-12-30 (Excel's epoch). Convert to JS Date.
+    const ms = (v - 25569) * 86400 * 1000; // 25569 = days from 1970-01-01 to Excel epoch
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return '';
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
   }
-  return null;
+  const s = String(v).trim();
+  if (!s) return '';
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (dmy) {
+    const pad = (n: string) => n.padStart(2, '0');
+    return `${dmy[3]}-${pad(dmy[2]!)}-${pad(dmy[1]!)}`;
+  }
+  const d = new Date(s);
+  if (!Number.isNaN(d.getTime())) {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+  return '';
 }
 
 export async function parseTikTokSales(buffer: ArrayBuffer): Promise<TikTokSaleRow[]> {
   const bytes = new Uint8Array(buffer);
-  // xlsx files are zip archives — must start with "PK" (0x50 0x4B). If not, the
-  // user likely uploaded a CSV / text / wrong file by mistake.
-  if (bytes.length < 4 || bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
+  if (!isXlsx(bytes)) {
     const head = new TextDecoder('utf-8', { fatal: false })
       .decode(bytes.slice(0, 40))
       .replace(/\r?\n/g, ' ')
@@ -90,61 +117,25 @@ export async function parseTikTokSales(buffer: ArrayBuffer): Promise<TikTokSaleR
       'READ_FAILED',
     );
   }
-  let zip: Record<string, Uint8Array>;
+  let grid: Map<number, Map<number, string | number>>;
   try {
-    zip = unzipSync(bytes);
+    grid = readXlsxGrid(bytes);
   } catch (err) {
-    throw new TikTokSalesParseError(
-      `Failed to unzip xlsx: ${err instanceof Error ? err.message : String(err)}`,
-      'READ_FAILED',
-    );
-  }
-  const xml = findSheetXml(zip);
-  if (!xml) throw new TikTokSalesParseError('No worksheet XML found', 'NO_SHEET');
-
-  // Custom regex parser — TikTok writes each cell as its own <row r="N"> element,
-  // so we extract cells directly and group by row number.
-  const rows = new Map<number, Map<number, string | number>>();
-  const cellRegex = /<c\s+r="([A-Z]+)(\d+)"([^>]*)>(.*?)<\/c>/gs;
-  let m: RegExpExecArray | null;
-  while ((m = cellRegex.exec(xml)) !== null) {
-    const [, colLetters, rowStr, attrs, inner] = m;
-    const colIdx = colLetterToIdx(colLetters!);
-    const rowNum = Number(rowStr);
-    const typeMatch = attrs!.match(/t="([^"]+)"/);
-    const cellType = typeMatch ? typeMatch[1] : null;
-    let value: string | number;
-    if (cellType === 'inlineStr') {
-      const tMatch = inner!.match(/<t[^>]*>([\s\S]*?)<\/t>/);
-      value = tMatch ? tMatch[1]! : '';
-    } else {
-      const vMatch = inner!.match(/<v>([\s\S]*?)<\/v>/);
-      if (!vMatch) continue;
-      const raw = vMatch[1]!;
-      if (cellType === 'str' || cellType === 'b') value = raw;
-      else value = Number(raw);
+    if (err instanceof XlsxParseError) {
+      throw new TikTokSalesParseError(err.message, err.code === 'NO_SHEET' ? 'NO_SHEET' : 'READ_FAILED');
     }
-    if (!rows.has(rowNum)) rows.set(rowNum, new Map());
-    rows.get(rowNum)!.set(colIdx, value);
+    throw err;
   }
 
-  if (rows.size < 3) {
-    throw new TikTokSalesParseError('No data rows (need at least header + descriptions + 1 data)', 'EMPTY_FILE');
+  if (grid.size < 2) {
+    throw new TikTokSalesParseError('No data rows', 'EMPTY_FILE');
   }
 
-  // Resolve headers from row 1 (NFC normalize)
-  const headerRow = rows.get(1) ?? new Map();
-  const colByName = new Map<string, number>();
-  for (const [c, v] of headerRow) {
-    colByName.set(String(v).trim().normalize('NFC'), c);
+  const headerRow = grid.get(1);
+  if (!headerRow) {
+    throw new TikTokSalesParseError('Row 1 missing — cannot resolve headers', 'NO_SHEET');
   }
-  const colByField = {} as Record<FieldName, number>;
-  const missing: string[] = [];
-  for (const [field, label] of Object.entries(HEADER_MAP) as Array<[FieldName, string]>) {
-    const idx = colByName.get(label.normalize('NFC'));
-    if (idx == null) missing.push(label);
-    else colByField[field] = idx;
-  }
+  const { colByField, missing } = resolveHeaderColumns(headerRow, HEADER_MAP);
   if (missing.length > 0) {
     throw new TikTokSalesParseError(
       `Missing required columns: ${missing.join(', ')}`,
@@ -152,38 +143,56 @@ export async function parseTikTokSales(buffer: ArrayBuffer): Promise<TikTokSaleR
     );
   }
 
-  const num = (v: string | number | undefined): number => {
-    if (v == null) return 0;
-    if (typeof v === 'number') return v;
-    const n = Number(String(v).replace(/[, ]/g, ''));
-    return Number.isFinite(n) ? n : 0;
-  };
-  const text = (v: string | number | undefined): string =>
-    v == null ? '' : String(v).trim();
+  // Optional "Created Time" column — present in modern TikTok exports, absent
+  // in legacy files. -1 → calculator falls back to latest-effective version.
+  let orderDateCol = -1;
+  const createdTimeNfc = 'Created Time'.normalize('NFC');
+  for (const [c, v] of headerRow) {
+    if (typeof v === 'string' && v.trim().normalize('NFC') === createdTimeNfc) {
+      orderDateCol = c;
+      break;
+    }
+  }
+
+  // Detect format: OLD TikTok export had a column-description row 2 (text in
+  // numeric columns), data started row 3. NEW export goes straight to data on
+  // row 2. Heuristic: if row 2's Quantity is parseable as a number, treat
+  // row 2 as data; otherwise skip it.
+  let dataStart = 2;
+  const row2 = grid.get(2);
+  if (row2) {
+    const r2Qty = row2.get(colByField.quantity);
+    const isNumericQty =
+      typeof r2Qty === 'number' ||
+      (typeof r2Qty === 'string' && /^\s*-?\d/.test(r2Qty));
+    if (!isNumericQty) dataStart = 3;
+  }
 
   const out: TikTokSaleRow[] = [];
-  // Row 2 contains column DESCRIPTIONS — skip. Data starts row 3.
-  const maxRow = Math.max(...rows.keys());
-  for (let r = 3; r <= maxRow; r++) {
-    const row = rows.get(r);
+  const maxRow = Math.max(...grid.keys());
+  for (let r = dataStart; r <= maxRow; r++) {
+    const row = grid.get(r);
     if (!row) continue;
+    const orderId = cellText(row.get(colByField.orderId));
+    if (!orderId) continue; // skip blank / footer rows
     out.push({
       rowIndex: r,
-      orderId: text(row.get(colByField.orderId)),
-      orderStatus: text(row.get(colByField.orderStatus)),
-      orderSubstatus: text(row.get(colByField.orderSubstatus)),
-      cancelType: text(row.get(colByField.cancelType)),
-      sellerSku: text(row.get(colByField.sellerSku)),
-      productName: text(row.get(colByField.productName)),
-      variation: text(row.get(colByField.variation)),
-      quantity: num(row.get(colByField.quantity)),
-      quantityReturn: num(row.get(colByField.quantityReturn)),
-      skuOriginalPrice: num(row.get(colByField.skuOriginalPrice)),
-      skuSubtotalBeforeDiscount: num(row.get(colByField.skuSubtotalBeforeDiscount)),
-      skuPlatformDiscount: num(row.get(colByField.skuPlatformDiscount)),
-      skuSellerDiscount: num(row.get(colByField.skuSellerDiscount)),
-      skuSubtotalAfterDiscount: num(row.get(colByField.skuSubtotalAfterDiscount)),
-      orderAmount: num(row.get(colByField.orderAmount)),
+      orderId,
+      orderStatus: cellText(row.get(colByField.orderStatus)),
+      orderSubstatus: cellText(row.get(colByField.orderSubstatus)),
+      cancelType: cellText(row.get(colByField.cancelType)),
+      sellerSku: cellText(row.get(colByField.sellerSku)),
+      productName: cellText(row.get(colByField.productName)),
+      variation: cellText(row.get(colByField.variation)),
+      quantity: cellNumber(row.get(colByField.quantity)),
+      quantityReturn: cellNumber(row.get(colByField.quantityReturn)),
+      skuOriginalPrice: cellNumber(row.get(colByField.skuOriginalPrice)),
+      skuSubtotalBeforeDiscount: cellNumber(row.get(colByField.skuSubtotalBeforeDiscount)),
+      skuPlatformDiscount: cellNumber(row.get(colByField.skuPlatformDiscount)),
+      skuSellerDiscount: cellNumber(row.get(colByField.skuSellerDiscount)),
+      skuSubtotalAfterDiscount: cellNumber(row.get(colByField.skuSubtotalAfterDiscount)),
+      orderAmount: cellNumber(row.get(colByField.orderAmount)),
+      orderDate: orderDateCol > 0 ? toIsoDate(row.get(orderDateCol)) : '',
     });
   }
   return out;

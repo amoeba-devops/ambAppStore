@@ -1,6 +1,6 @@
 import 'server-only';
 import type { TikTokSaleRow } from './tiktok-sales-parser.service';
-import type { PrimeCostMap } from './gmv-calculator.service';
+import { findPrimeCost, type PrimeCostMap } from './gmv-calculator.service';
 import {
   aggregateTikTokTraffic,
   type TikTokTrafficRow,
@@ -225,7 +225,9 @@ export function computeTikTokMetrics(
 
     const master = primeCosts.get(row.sellerSku);
     const listingPrice = master?.listingPrice ?? 0;
-    const primeCost = master?.primeCost ?? 0;
+    // Date-aware prime cost: applies the version active at the order's
+    // createDate. Empty `row.orderDate` (legacy file) falls back to latest.
+    const primeCost = findPrimeCost(master, row.orderDate);
     const gmv = listingPrice * itemSold;
 
     if (isGift) {

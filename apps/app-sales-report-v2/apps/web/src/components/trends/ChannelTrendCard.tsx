@@ -3,7 +3,7 @@
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
-import { fmtCompact } from '@/lib/format';
+import { fmtCompact, vndToKrw } from '@/lib/format';
 import { MiniLineChart } from './MiniLineChart';
 import { getMetricDef, type Channel, type ChannelSummary, type Metric } from '@/lib/trends-mock';
 
@@ -43,15 +43,23 @@ const CHANNEL_STYLE: Record<Channel, ChannelStyle> = {
   },
 };
 
+type CurrencyMode = 'VND' | 'KRW';
+
 interface Props {
   channel: Channel;
   metric: Metric;
   summary: ChannelSummary;
   chartData: { label: string; value: number }[];
   granularity?: 'WEEK' | 'MONTH';
+  currency?: CurrencyMode;
 }
 
-function fmtMetricValue(value: number, metric: Metric): React.ReactNode {
+/** Convert a money value (always stored in VND) into the active display currency. */
+function applyCurrency(value: number, currency: CurrencyMode): number {
+  return currency === 'KRW' ? vndToKrw(value) : value;
+}
+
+function fmtMetricValue(value: number, metric: Metric, currency: CurrencyMode): React.ReactNode {
   const def = getMetricDef(metric);
   if (def.kind === 'count') {
     return new Intl.NumberFormat('en-US').format(Math.round(value));
@@ -59,15 +67,23 @@ function fmtMetricValue(value: number, metric: Metric): React.ReactNode {
   if (def.kind === 'ratio') {
     return (value * 100).toFixed(2) + '%';
   }
+  const display = applyCurrency(value, currency);
   return (
     <>
-      {fmtCompact(value, 2)}
-      <sub className="ml-0.5 text-xs text-neutral-400 font-normal align-baseline">₫</sub>
+      {fmtCompact(display, 2)}
+      <sub className="ml-0.5 text-xs text-neutral-400 font-normal align-baseline">
+        {currency === 'KRW' ? '₩' : '₫'}
+      </sub>
     </>
   );
 }
 
-function fmtTooltipValue(value: number, metric: Metric): string {
+/**
+ * Format a chart tooltip value. Money values are passed in ALREADY-converted
+ * form (chartData is pre-converted upstream so Y-axis ticks reflect the active
+ * currency) — we only attach locale + symbol here, no further conversion.
+ */
+function fmtTooltipValue(value: number, metric: Metric, currency: CurrencyMode): string {
   const def = getMetricDef(metric);
   if (def.kind === 'count') {
     return new Intl.NumberFormat('en-US').format(Math.round(value));
@@ -75,7 +91,9 @@ function fmtTooltipValue(value: number, metric: Metric): string {
   if (def.kind === 'ratio') {
     return (value * 100).toFixed(2) + '%';
   }
-  return new Intl.NumberFormat('vi-VN').format(Math.round(value));
+  const locale = currency === 'KRW' ? 'ko-KR' : 'vi-VN';
+  const symbol = currency === 'KRW' ? ' ₩' : ' ₫';
+  return new Intl.NumberFormat(locale).format(Math.round(value)) + symbol;
 }
 
 function fmtPctLabel(pct: number | null): { text: string; positive: boolean | null } {
@@ -84,7 +102,14 @@ function fmtPctLabel(pct: number | null): { text: string; positive: boolean | nu
   return { text: `${sign}${(pct * 100).toFixed(1)}%`, positive: pct > 0 ? true : pct < 0 ? false : null };
 }
 
-export function ChannelTrendCard({ channel, metric, summary, chartData, granularity = 'WEEK' }: Props) {
+export function ChannelTrendCard({
+  channel,
+  metric,
+  summary,
+  chartData,
+  granularity = 'WEEK',
+  currency = 'VND',
+}: Props) {
   const t = useTranslations('trendingReport');
   const style = CHANNEL_STYLE[channel];
   const channelName = t(`channel.${style.i18nKey}`);
@@ -94,11 +119,6 @@ export function ChannelTrendCard({ channel, metric, summary, chartData, granular
   const currentLabel = granularity === 'WEEK' ? t('card.thisWeek') : t('card.thisMonth');
   const avgLabel = granularity === 'WEEK' ? t('card.fourWeekAvg') : t('card.fourMonthAvg');
   const primaryDeltaSuffix = granularity === 'WEEK' ? t('card.wowSuffix') : t('card.momSuffix');
-  const secondaryDeltaText =
-    granularity === 'WEEK'
-      ? t('card.secondaryMom', { value: mom.text })
-      : t('card.secondaryWow', { value: wow.text });
-  const secondaryDeltaPositive = granularity === 'WEEK' ? mom.positive : wow.positive;
   // Primary uses the appropriate value: WoW when weekly, MoM when monthly
   const primaryDelta = granularity === 'WEEK' ? wow : mom;
 
@@ -120,41 +140,29 @@ export function ChannelTrendCard({ channel, metric, summary, chartData, granular
         <DeltaPill text={primaryDelta.text} positive={primaryDelta.positive} suffix={primaryDeltaSuffix} />
       </div>
 
-      <div className="flex items-end justify-between mb-4">
-        <div className="flex items-end gap-6">
-          <div>
-            <div className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">{currentLabel}</div>
-            <div className="mt-1 font-mono text-3xl font-semibold text-neutral-900 tabular-nums">
-              {fmtMetricValue(summary.current, metric)}
-            </div>
-          </div>
-          <div>
-            <div className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">{avgLabel}</div>
-            <div className="mt-1 font-mono text-lg text-neutral-500 tabular-nums">
-              {fmtMetricValue(summary.fourWeekAvg, metric)}
-            </div>
+      <div className="flex items-end gap-6 mb-4">
+        <div>
+          <div className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">{currentLabel}</div>
+          <div className="mt-1 font-mono text-3xl font-semibold text-neutral-900 tabular-nums">
+            {fmtMetricValue(summary.current, metric, currency)}
           </div>
         </div>
-        <div className="text-right">
-          <div
-            className={cn(
-              'text-xs font-medium tabular-nums',
-              secondaryDeltaPositive === true && 'text-success-500',
-              secondaryDeltaPositive === false && 'text-error-500',
-              secondaryDeltaPositive === null && 'text-neutral-500',
-            )}
-          >
-            {secondaryDeltaText}
+        <div>
+          <div className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">{avgLabel}</div>
+          <div className="mt-1 font-mono text-lg text-neutral-500 tabular-nums">
+            {fmtMetricValue(summary.fourWeekAvg, metric, currency)}
           </div>
         </div>
       </div>
 
       <MiniLineChart
-        data={chartData}
+        data={chartData.map((d) =>
+          def.kind === 'money' ? { ...d, value: applyCurrency(d.value, currency) } : d,
+        )}
         stroke={style.stroke}
         fill={style.fill}
         dot={style.dot}
-        formatValue={(v) => fmtTooltipValue(v, metric)}
+        formatValue={(v) => fmtTooltipValue(v, metric, currency)}
       />
     </div>
   );

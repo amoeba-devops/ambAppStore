@@ -1,10 +1,13 @@
 /**
- * Mock download for archive files — generates a CSV placeholder containing
- * file metadata + a couple of sample rows, then triggers a browser download
- * and logs the action.
+ * Archive file + period downloads.
  *
- * Once S3 + presigned URLs ship, replace `buildContent()` with a `fetch()` of
- * the real signed URL.
+ * Single-file: hits the `/api/v1/archive/[arfId]/download` Route Handler
+ *   which streams the raw bytes stored in `sal_archive_files.arf_raw_bytes`
+ *   (falls back to S3 presigned URL when no inline copy is available).
+ *
+ * Bulk: still client-side. Builds a single CSV bundle in-browser since
+ *   streaming a ZIP of N files would need a dedicated route — for the
+ *   current low-volume usage the inline CSV is enough.
  */
 
 import type { ArchiveFile, ArchivePeriod } from './raw-archive-mock';
@@ -16,127 +19,140 @@ function fmtBytes(b: number): string {
   return `${b} B`;
 }
 
-function buildContent(file: ArchiveFile): string {
-  const lines = [
-    `# Mock archive file — FIRGI Sales Report v2 demo`,
-    `# Filename:        ${file.filename}`,
-    `# Storage path:    ${file.storagePath}`,
-    `# Platform:        ${file.platform}`,
-    `# Source:          ${file.source}`,
-    `# Rows:            ${file.rows}`,
-    `# Size:            ${file.bytes} bytes`,
-    `# SHA-256:         ${file.checksum}`,
-    `# Uploaded at:     ${file.uploadedAt}`,
-    `# Uploaded by:     ${file.uploadedBy}`,
-    `#`,
-    `# Placeholder content for the v2 mock environment.`,
-    `# Real raw bytes will be served from S3 once the ingest pipeline ships.`,
-    `#`,
-    'col_1,col_2,col_3',
-    '"sample","data","row"',
-  ];
-  return lines.join('\n');
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function downloadArchiveFile(file: ArchiveFile): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  // Only real DB-backed files (UUID id) can be served by the API route.
+  if (!UUID_RE.test(file.id)) {
+    alert(
+      `Download unavailable for "${file.filename}" — this row predates DB-backed storage.`,
+    );
+    return;
+  }
+
+  // Use fetch + Blob (rather than a plain <a href>) so we can read JSON
+  // error bodies (410 "body unavailable" / 404) and show a friendly message.
+  const url = `/api/v1/archive/${encodeURIComponent(file.id)}/download`;
+  try {
+    const res = await fetch(url, { credentials: 'same-origin' });
+    if (!res.ok) {
+      const ct = res.headers.get('content-type') ?? '';
+      if (ct.includes('application/json')) {
+        const body = (await res.json()) as { error?: { message?: string } };
+        const msg = body.error?.message ?? `Download failed (${res.status})`;
+        alert(msg);
+      } else {
+        alert(`Download failed (${res.status})`);
+      }
+      return;
+    }
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = file.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+
+    appendActionLog({
+      username: 'dev@amoeba.group',
+      userRole: 'OPERATOR',
+      category: 'EXPORT',
+      verb: 'DOWNLOAD',
+      targetType: 'archive-file',
+      targetLabel: file.filename,
+      summary: `Downloaded archive file (${file.rows.toLocaleString('en-US')} rows, ${fmtBytes(file.bytes)})`,
+      metadata: { filename: file.filename, bytes: file.bytes, rows: file.rows },
+    });
+  } catch (err) {
+    console.error('[archive-download] fetch failed:', err);
+    alert('Download failed — check your network connection.');
+  }
 }
 
 /**
- * Bulk download — bundles every file for a period into a single CSV that
- * contains a manifest header and per-file content sections, separated by
- * banner lines. Auditor opens one file, sees everything.
+ * Bulk download — best-effort: fetch every file's bytes in parallel via the
+ * single-file route, then build a ZIP-like CSV bundle browser-side. Skips
+ * files whose body is unavailable (410) and reports the skip count.
  *
- * Once S3 ships, swap for a server-side ZIP stream.
+ * Replaced the old mock-CSV-manifest behaviour now that real bytes are
+ * available for files uploaded post-migration.
  */
-export function downloadPeriodBulk(period: ArchivePeriod): void {
+export async function downloadPeriodBulk(period: ArchivePeriod): Promise<void> {
   if (typeof window === 'undefined') return;
-  const files = period.files;
-  const totalBytes = files.reduce((s, f) => s + f.bytes, 0);
-  const totalRows = files.reduce((s, f) => s + f.rows, 0);
 
-  const banner = (label: string) =>
-    [
-      '',
-      '############################################################',
-      `# ${label}`,
-      '############################################################',
-    ].join('\n');
+  const files = period.files.filter((f) => UUID_RE.test(f.id));
+  if (files.length === 0) {
+    alert('No downloadable files in this period.');
+    return;
+  }
 
-  const sections: string[] = [];
-
-  // Manifest header
-  sections.push(
-    [
-      banner(`PERIOD ${period.label} — ARCHIVE BUNDLE`),
-      `# Period:        ${period.label} (${period.rangeLabel})`,
-      `# Granularity:   ${period.granularity}`,
-      `# Status:        ${period.status}`,
-      `# Ingested:      ${period.ingestedAt} by ${period.ingestedBy}`,
-      period.finalizedAt
-        ? `# Finalized:     ${period.finalizedAt} by ${period.finalizedBy ?? '—'}`
-        : '',
-      `# Files:         ${files.length}`,
-      `# Total rows:    ${totalRows.toLocaleString('en-US')}`,
-      `# Total bytes:   ${totalBytes.toLocaleString('en-US')}`,
-      `# Bundle built:  ${new Date().toISOString()}`,
-      `#`,
-      '# This is a mock bundle for the v2 demo. Real raw files will be',
-      '# served as a ZIP stream from S3 once the ingest pipeline ships.',
-    ]
-      .filter(Boolean)
-      .join('\n'),
+  type FetchedFile = { file: ArchiveFile; bytes: Uint8Array } | { file: ArchiveFile; error: string };
+  const results: FetchedFile[] = await Promise.all(
+    files.map(async (file): Promise<FetchedFile> => {
+      const url = `/api/v1/archive/${encodeURIComponent(file.id)}/download`;
+      try {
+        const res = await fetch(url, { credentials: 'same-origin' });
+        if (!res.ok) {
+          let msg = `HTTP ${res.status}`;
+          try {
+            const body = (await res.json()) as { error?: { message?: string } };
+            if (body.error?.message) msg = body.error.message;
+          } catch {
+            /* non-JSON body */
+          }
+          return { file, error: msg };
+        }
+        const buf = await res.arrayBuffer();
+        return { file, bytes: new Uint8Array(buf) };
+      } catch (err) {
+        return { file, error: err instanceof Error ? err.message : String(err) };
+      }
+    }),
   );
 
-  // Manifest table
-  sections.push(banner('MANIFEST'));
-  sections.push(
-    [
-      'filename,platform,source,rows,size_bytes,checksum_sha256,uploaded_at,uploaded_by,storage_path',
-      ...files.map((f) =>
-        [
-          f.filename,
-          f.platform,
-          f.source,
-          String(f.rows),
-          String(f.bytes),
-          f.checksum,
-          f.uploadedAt,
-          f.uploadedBy,
-          f.storagePath,
-        ]
-          .map((s) => (/[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s))
-          .join(','),
-      ),
-    ].join('\n'),
-  );
+  const succeeded = results.filter((r): r is { file: ArchiveFile; bytes: Uint8Array } => 'bytes' in r);
+  const failed = results.filter((r): r is { file: ArchiveFile; error: string } => 'error' in r);
 
-  // Per-file content sections (mock placeholders)
-  for (const f of files) {
-    sections.push(banner(`FILE: ${f.filename}`));
-    sections.push(
-      [
-        `# Storage path: ${f.storagePath}`,
-        `# SHA-256:      ${f.checksum}`,
-        `# Rows:         ${f.rows}`,
-        `# Size:         ${f.bytes} bytes`,
-        '#',
-        '# Mock placeholder — real bytes served from S3 in production.',
-        'col_1,col_2,col_3',
-        '"sample","data","row"',
-      ].join('\n'),
+  if (succeeded.length === 0) {
+    alert(
+      `No files in this period have a stored body yet. ${failed.length} skipped — re-upload them to enable bulk download.`,
+    );
+    return;
+  }
+
+  // Sequentially trigger a save dialog per file. Browsers throttle/coalesce
+  // multiple downloads — slight delay between each helps Chrome/Firefox not
+  // drop them.
+  for (const r of succeeded) {
+    // Slice into a new ArrayBuffer so Blob accepts it under strict lib.dom
+    // typings (Uint8Array<ArrayBufferLike> isn't assignable to BlobPart).
+    const blob = new Blob([r.bytes.slice().buffer]);
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = r.file.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+    // Brief gap so the browser registers each download separately.
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  if (failed.length > 0) {
+    const sampled = failed.slice(0, 3).map((f) => f.file.filename).join(', ');
+    alert(
+      `${succeeded.length} files downloaded · ${failed.length} skipped (body unavailable): ${sampled}${failed.length > 3 ? '…' : ''}`,
     );
   }
 
-  const bundle = sections.join('\n\n');
-  const blob = new Blob([bundle], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const ts = new Date().toISOString().slice(0, 10);
-  const downloadName = `${period.label.replace(/\s+/g, '_')}_archive_${ts}.csv`;
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = downloadName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-
+  const totalBytes = succeeded.reduce((s, r) => s + r.bytes.byteLength, 0);
+  const totalRows = succeeded.reduce((s, r) => s + r.file.rows, 0);
   appendActionLog({
     username: 'dev@amoeba.group',
     userRole: 'OPERATOR',
@@ -144,89 +160,13 @@ export function downloadPeriodBulk(period: ArchivePeriod): void {
     verb: 'BULK_DOWNLOAD',
     targetType: 'period',
     targetLabel: period.label,
-    summary: `Bulk downloaded ${files.length} archive files (${totalRows.toLocaleString('en-US')} rows, ${fmtBytes(totalBytes)})`,
+    summary: `Bulk downloaded ${succeeded.length}/${files.length} archive files (${totalRows.toLocaleString('en-US')} rows, ${fmtBytes(totalBytes)})`,
     metadata: {
       periodKey: period.periodKey,
-      fileCount: files.length,
+      fileCount: succeeded.length,
+      skipped: failed.length,
       totalRows,
       totalBytes,
-      filename: downloadName,
-    },
-  });
-}
-
-export async function downloadArchiveFile(file: ArchiveFile): Promise<void> {
-  if (typeof window === 'undefined') return;
-
-  // Real files have a UUID id (from `sal_archive_files.arf_id`) AND a non-mock
-  // storage path. Try presigning first; on failure fall back to mock CSV.
-  const isLikelyRealFile = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-    file.id,
-  );
-  if (isLikelyRealFile) {
-    try {
-      const { presignArchiveDownloadAction } = await import(
-        '@/server/actions/archive.actions'
-      );
-      const res = await presignArchiveDownloadAction(file.id);
-      if (res.success && res.data.url) {
-        // Anchor to real S3 signed URL — browser handles the download.
-        const a = document.createElement('a');
-        a.href = res.data.url;
-        a.download = res.data.filename ?? file.filename;
-        a.target = '_blank';
-        a.rel = 'noopener';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        appendActionLog({
-          username: 'dev@amoeba.group',
-          userRole: 'OPERATOR',
-          category: 'EXPORT',
-          verb: 'DOWNLOAD',
-          targetType: 'archive-file',
-          targetLabel: file.filename,
-          summary: `Downloaded archive file from S3 (${file.rows.toLocaleString('en-US')} rows, ${fmtBytes(file.bytes)})`,
-          metadata: { filename: file.filename, bytes: file.bytes, rows: file.rows, source: 's3' },
-        });
-        return;
-      }
-      if (res.success && res.data.url == null) {
-        alert(
-          `Archive file "${file.filename}" was ingested before S3 was configured. Only metadata is preserved — re-upload the file to enable download.`,
-        );
-        return;
-      }
-    } catch (err) {
-      console.error('[archive-download] presign failed, falling back to mock:', err);
-    }
-  }
-
-  // Mock fallback for legacy/demo periods
-  const blob = new Blob([buildContent(file)], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const downloadName = file.filename.replace(/\.(xlsx|xls)$/i, '.csv');
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = downloadName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-
-  appendActionLog({
-    username: 'dev@amoeba.group',
-    userRole: 'OPERATOR',
-    category: 'EXPORT',
-    verb: 'DOWNLOAD',
-    targetType: 'archive-file',
-    targetLabel: file.filename,
-    summary: `Downloaded archive file (${file.rows.toLocaleString('en-US')} rows, ${fmtBytes(file.bytes)})`,
-    metadata: {
-      filename: file.filename,
-      bytes: file.bytes,
-      rows: file.rows,
-      checksum: file.checksum,
     },
   });
 }

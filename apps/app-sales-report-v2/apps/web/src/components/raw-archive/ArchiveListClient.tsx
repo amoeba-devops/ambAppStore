@@ -17,9 +17,10 @@ import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { fmtVND } from '@/lib/format';
 import type { ArchivePeriod, ArchiveFile, PeriodStatus } from '@/lib/raw-archive-mock';
-import { useEffectivePeriods } from '@/lib/raw-archive-state';
+import { useEffectivePeriods, type EffectivePeriod } from '@/lib/raw-archive-state';
 import { downloadArchiveFile } from '@/lib/raw-archive-download';
 import { FileHistoryModal } from './FileHistoryModal';
+import { useInlineApproval } from './InlineApprovalActions';
 
 interface Props {
   periods: ArchivePeriod[];
@@ -205,12 +206,13 @@ function PeriodSection({
   period,
   defaultOpen,
 }: {
-  period: ArchivePeriod;
+  period: EffectivePeriod;
   defaultOpen: boolean;
 }) {
   const t = useTranslations('rawArchive');
   const [open, setOpen] = useState(defaultOpen);
   const totalRows = period.files.reduce((s, f) => s + f.rows, 0);
+  const approval = useInlineApproval(period);
   return (
     <div className="rounded-lg border border-neutral-200 bg-white overflow-hidden">
       {/* Section header — clickable to toggle (Open detail stays a separate Link) */}
@@ -237,7 +239,7 @@ function PeriodSection({
           <span className="text-xs text-neutral-500">· {period.rangeLabel}</span>
           <PeriodStatusPill status={period.status} />
         </button>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <span className="text-xs text-neutral-500 tabular-nums">
             <span className="font-semibold text-neutral-900">{period.files.length}</span>{' '}
             {t('fileColumn.file').toLowerCase()}
@@ -247,6 +249,7 @@ function PeriodSection({
             </span>{' '}
             {t('fileColumn.rows').toLowerCase()}
           </span>
+          {approval.buttons}
           <Link
             href={`/raw-archive/${encodeURIComponent(period.periodKey)}`}
             className="inline-flex items-center gap-1 rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
@@ -256,6 +259,8 @@ function PeriodSection({
           </Link>
         </div>
       </div>
+
+      {approval.form}
 
       {open && (
         <>

@@ -24,6 +24,12 @@ export interface ShopeeSaleRow {
   fixedFee: number; // Phí cố định
   serviceFee: number; // Phí Dịch Vụ
   paymentFee: number; // Phí thanh toán
+  /**
+   * Order placement date as ISO `YYYY-MM-DD` (local-day interpretation from
+   * Shopee's "Ngày đặt hàng" column). Empty string when the legacy export
+   * file lacks the column — calculator falls back to latest prime cost version.
+   */
+  orderDate: string;
   /** 1-based row index in the source sheet, for diagnostics. */
   rowIndex: number;
 }
@@ -82,6 +88,39 @@ const text = (v: ExcelJS.CellValue): string => {
 };
 
 /**
+ * Parse Shopee's "Ngày đặt hàng" cell into ISO `YYYY-MM-DD` (local-day).
+ * Shopee may export the column as either a real Excel date (ExcelJS returns
+ * a JS `Date`) or a string formatted `YYYY-MM-DD HH:mm` / `DD/MM/YYYY`.
+ * Returns empty string if value is missing or unparseable.
+ */
+const orderDateCell = (v: ExcelJS.CellValue): string => {
+  if (v == null || v === '') return '';
+  if (v instanceof Date) {
+    if (Number.isNaN(v.getTime())) return '';
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${v.getFullYear()}-${pad(v.getMonth() + 1)}-${pad(v.getDate())}`;
+  }
+  const s = String(typeof v === 'object' && 'text' in v ? v.text : v).trim();
+  if (!s) return '';
+  // ISO-like prefix `YYYY-MM-DD …` — strip time
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  // DD/MM/YYYY
+  const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (dmy) {
+    const pad = (n: string) => n.padStart(2, '0');
+    return `${dmy[3]}-${pad(dmy[2]!)}-${pad(dmy[1]!)}`;
+  }
+  // Last-ditch: let Date parse it
+  const d = new Date(s);
+  if (!Number.isNaN(d.getTime())) {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+  return '';
+};
+
+/**
  * Parse a Shopee Sales `.xlsx` export. Reads the first sheet (or one named
  * "orders"), resolves columns by header label so column-order changes in
  * future exports don't break us.
@@ -123,12 +162,25 @@ export async function parseShopeeSales(buffer: ArrayBuffer): Promise<ShopeeSaleR
     );
   }
 
+  // Optional "Ngày đặt hàng" column — present in modern Shopee exports, absent
+  // in legacy files. -1 → calculator falls back to latest-effective version.
+  let orderDateCol = -1;
+  const orderDateLabelNfc = 'Ngày đặt hàng'.normalize('NFC');
+  headerRow.eachCell({ includeEmpty: false }, (cell, colNum) => {
+    if (text(cell.value).normalize('NFC') === orderDateLabelNfc) orderDateCol = colNum;
+  });
+
   const rows: ShopeeSaleRow[] = [];
   for (let r = 2; r <= sheet.rowCount; r++) {
     const row = sheet.getRow(r);
+    const orderId = text(row.getCell(colByField.orderId).value);
+    // Skip blank rows — Shopee xlsx pads the sheet with empty rows after the
+    // last real order; including them inflates orderCounts (every blank row
+    // collapses into a phantom '' order key downstream).
+    if (!orderId) continue;
     rows.push({
       rowIndex: r,
-      orderId: text(row.getCell(colByField.orderId).value),
+      orderId,
       orderStatus: text(row.getCell(colByField.orderStatus).value),
       productName: text(row.getCell(colByField.productName).value),
       varSku: text(row.getCell(colByField.varSku).value),
@@ -143,6 +195,7 @@ export async function parseShopeeSales(buffer: ArrayBuffer): Promise<ShopeeSaleR
       fixedFee: num(row.getCell(colByField.fixedFee).value),
       serviceFee: num(row.getCell(colByField.serviceFee).value),
       paymentFee: num(row.getCell(colByField.paymentFee).value),
+      orderDate: orderDateCol > 0 ? orderDateCell(row.getCell(orderDateCol).value) : '',
     });
   }
   return rows;

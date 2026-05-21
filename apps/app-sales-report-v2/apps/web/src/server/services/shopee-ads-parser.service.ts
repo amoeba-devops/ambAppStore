@@ -1,10 +1,21 @@
 import 'server-only';
+import {
+  cellNumber,
+  cellText,
+  findHeaderRow,
+  isXlsx,
+  readXlsxGrid,
+  resolveHeaderColumns,
+  XlsxParseError,
+} from './xlsx-grid.util';
 
 /**
- * One campaign row from a Shopee Ads (Dịch vụ Hiển thị CPC) CSV export.
+ * One campaign row from a Shopee Ads (Dịch vụ Hiển thị CPC) export.
  * Per-product campaigns join to Sales via `productId` = "SKU sản phẩm" (col 16
  * of Sales). Shop-wide campaigns (e.g. "Shop GMV Max") have productId="-" or
  * empty and apply at platform level.
+ *
+ * Accepts both `.csv` and `.xlsx` exports from Shopee Seller Center.
  */
 export interface ShopeeAdsRow {
   /** Empty / "-" for shop-wide campaigns. */
@@ -82,13 +93,19 @@ const num = (s: string | undefined): number => {
 };
 
 /**
- * Parse a Shopee Ads (CPC Display Service) CSV export.
+ * Parse a Shopee Ads (CPC Display Service) export. Auto-detects CSV vs XLSX
+ * by ZIP magic bytes (xlsx files start with "PK").
  *
- * The file has a metadata block (6-7 lines, "Báo cáo Dịch vụ Hiển thị…",
- * username, shop name, date range, etc.), then a blank line, then the column
- * header row starting with "Thứ tự,", then data rows.
+ * Both formats share the same structure: metadata block (6-7 rows), then a
+ * blank row, then the column header row starting with "Thứ tự", then data rows.
  */
 export async function parseShopeeAds(buffer: ArrayBuffer): Promise<ShopeeAdsRow[]> {
+  const bytes = new Uint8Array(buffer);
+  if (isXlsx(bytes)) return parseShopeeAdsXlsx(bytes);
+  return parseShopeeAdsCsv(buffer);
+}
+
+function parseShopeeAdsCsv(buffer: ArrayBuffer): ShopeeAdsRow[] {
   let text: string;
   try {
     text = new TextDecoder('utf-8').decode(buffer).replace(/^﻿/, '');
@@ -152,6 +169,66 @@ export async function parseShopeeAds(buffer: ArrayBuffer): Promise<ShopeeAdsRow[
 
   if (rows.length === 0) {
     throw new ShopeeAdsParseError('No data rows in Shopee Ads CSV', 'EMPTY_FILE');
+  }
+  return rows;
+}
+
+function parseShopeeAdsXlsx(bytes: Uint8Array): ShopeeAdsRow[] {
+  let grid: Map<number, Map<number, string | number>>;
+  try {
+    grid = readXlsxGrid(bytes);
+  } catch (err) {
+    if (err instanceof XlsxParseError) {
+      throw new ShopeeAdsParseError(err.message, 'READ_FAILED');
+    }
+    throw err;
+  }
+  const headerRowNum = findHeaderRow(grid, 'Thứ tự');
+  if (headerRowNum < 0) {
+    throw new ShopeeAdsParseError(
+      'Header row "Thứ tự" not found in xlsx — not a Shopee Ads export?',
+      'NO_HEADER',
+    );
+  }
+  const { colByField, missing } = resolveHeaderColumns(grid.get(headerRowNum)!, HEADER_MAP);
+  if (missing.length > 0) {
+    throw new ShopeeAdsParseError(
+      `Missing required columns: ${missing.join(', ')}`,
+      'MISSING_COLUMN',
+    );
+  }
+
+  const rows: ShopeeAdsRow[] = [];
+  const maxRow = Math.max(...grid.keys());
+  for (let r = headerRowNum + 1; r <= maxRow; r++) {
+    const row = grid.get(r);
+    if (!row) continue;
+    // Skip footer/blank rows — real data rows have a non-empty "Thứ tự" (col 1).
+    const stt = row.get(1);
+    if (stt == null || (typeof stt === 'string' && stt.trim() === '')) continue;
+
+    const productId = cellText(row.get(colByField.productId));
+    const isShopWide = !productId || productId === '-';
+
+    rows.push({
+      productId,
+      campaignName: cellText(row.get(colByField.campaignName)),
+      status: cellText(row.get(colByField.status)),
+      serviceType: cellText(row.get(colByField.serviceType)),
+      views: cellNumber(row.get(colByField.views)),
+      clicks: cellNumber(row.get(colByField.clicks)),
+      conversions: cellNumber(row.get(colByField.conversions)),
+      productsSold: cellNumber(row.get(colByField.productsSold)),
+      revenue: cellNumber(row.get(colByField.revenue)),
+      cost: cellNumber(row.get(colByField.cost)),
+      voucherAmount: cellNumber(row.get(colByField.voucherAmount)),
+      voucheredSales: cellNumber(row.get(colByField.voucheredSales)),
+      isShopWide,
+    });
+  }
+
+  if (rows.length === 0) {
+    throw new ShopeeAdsParseError('No data rows in Shopee Ads xlsx', 'EMPTY_FILE');
   }
   return rows;
 }

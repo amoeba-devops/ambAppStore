@@ -48,6 +48,10 @@
       "ko": "한국어"
     }
   },
+  "weekPicker": {
+    "showAll": "{count}주 전체 보기",
+    "collapse": "접기"
+  },
   "common": {
     "loading": "불러오는 중…",
     "saving": "저장 중…",
@@ -62,6 +66,7 @@
     "all": "전체",
     "search": "검색",
     "actions": "작업",
+    "createdAt": "생성 일시",
     "dash": "—",
     "currentUser": "현재 사용자"
   },
@@ -220,6 +225,10 @@
     "subtitle": "주간 및 월간 성장 비교. 리포트는 잠금된 마스터 데이터 스냅샷 기준으로 계산됩니다.",
     "weekOverWeek": "주 단위 비교",
     "monthOverMonth": "월 단위 비교",
+    "currency": {
+      "vnd": "VND",
+      "krw": "KRW"
+    },
     "export": "내보내기",
     "metricLabel": "지표",
     "channel": {
@@ -756,6 +765,14 @@
       },
       "cancel": "취소"
     },
+    "inlineActions": {
+      "approve": "승인",
+      "reject": "거부",
+      "resubmit": "재제출",
+      "unfinalize": "확정 해제",
+      "lock": "잠금",
+      "reasonRequiredHint": "계속하려면 사유가 필요합니다."
+    },
     "manualEdit": {
       "header": "수동 입력 수정",
       "periodLabel": "기간 {label}",
@@ -819,13 +836,44 @@
       "krw": "KRW",
       "sellingPrice": "판매가",
       "listingPrice": "정상가",
+      "effectiveFrom": "적용 시작",
+      "versionCount": "버전 {count}개",
       "lastUpdated": "최근 수정",
       "actions": "작업"
     },
     "row": {
       "edit": "수정",
+      "versions": "버전",
       "delete": "삭제",
       "deleting": "삭제 중…"
+    },
+    "version": {
+      "add": "새 버전 추가",
+      "effectiveFrom": "적용 시작일",
+      "effectiveFromDesc": "이 날짜 이후 주문에 해당 원가가 적용됩니다. 30일 이상 미래 날짜는 불가합니다.",
+      "sourceNote": "출처 / 메모",
+      "history": {
+        "title": "원가 버전 이력",
+        "empty": "버전이 없습니다.",
+        "latestBadge": "최신"
+      },
+      "breakdown": {
+        "title": "원가 구성 (선택)",
+        "cogs": "COGS",
+        "logistic": "물류비",
+        "warehouse": "창고비 / 일",
+        "fulfillment": "이행 수수료"
+      },
+      "delete": {
+        "confirm": "{date} 적용 버전을 삭제하시겠습니까? 되돌릴 수 없습니다.",
+        "lastWarning": "유일한 버전이므로 삭제할 수 없습니다. 새 버전을 먼저 추가하세요."
+      },
+      "flag": {
+        "disabledNotice": "추가된 버전은 Draft 기간 재집계 시에만 적용됩니다. 확정된 기간은 변하지 않습니다."
+      },
+      "error": {
+        "primeCostInvalid": "Prime Cost는 0 이상의 숫자여야 합니다."
+      }
     },
     "empty": {
       "search": "검색 결과가 없습니다.",
@@ -839,6 +887,7 @@
       "title": "가져오기 결과",
       "inserted": "추가",
       "updated": "수정",
+      "versionsAdded": "버전",
       "errors": "오류",
       "rowsSkipped": "건너뛴 행",
       "rowPrefix": "행 {index}",
@@ -871,6 +920,23 @@
     "filter": "필터",
     "filterCategories": "카테고리",
     "clearAll": "전체 해제",
+    "dateFilter": {
+      "label": "날짜",
+      "presets": "빠른 선택",
+      "custom": "사용자 지정 범위",
+      "from": "시작일",
+      "to": "종료일",
+      "fromShort": "{date}부터",
+      "toShort": "{date}까지",
+      "clear": "초기화",
+      "done": "완료",
+      "preset": {
+        "today": "오늘",
+        "last7": "지난 7일",
+        "last30": "지난 30일",
+        "thisMonth": "이번 달"
+      }
+    },
     "export": "내보내기",
     "exporting": "내보내는 중…",
     "empty": "기록된 활동이 없습니다. 작업 (업로드, 수정, 내보내기) 시 여기에 나타납니다.",

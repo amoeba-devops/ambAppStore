@@ -17,14 +17,17 @@ import { listSnapshotsAction } from '@/server/actions/ingest.actions';
 import { ChannelTrendCard } from './ChannelTrendCard';
 import { MetricBreakdownTable } from './MetricBreakdownTable';
 import { MultiMetricSelect } from './MultiMetricSelect';
-import { buildCsv } from '@/lib/csv';
+import { buildCsv, downloadCsv } from '@/lib/csv';
 import { appendActionLog } from '@/lib/action-log-mock';
+
+export type CurrencyMode = 'VND' | 'KRW';
 
 export function TrendsClient() {
   const t = useTranslations('trendingReport');
   const tW = useTranslations('weeklyReport');
-  const [selectedMetrics, setSelectedMetrics] = useState<Metric[]>(['GMV']);
+  const [selectedMetrics, setSelectedMetrics] = useState<Metric[]>(['NET_GMV', 'CM']);
   const [granularity, setGranularity] = useState<Granularity>('WEEK');
+  const [currency, setCurrency] = useState<CurrencyMode>('VND');
   const [weeklyPoints, setWeeklyPoints] = useState<WeekPoint[]>([]);
   const [monthlyPoints, setMonthlyPoints] = useState<WeekPoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,16 +72,8 @@ export function TrendsClient() {
       r.ordersWow != null ? (r.ordersWow * 100).toFixed(2) : '',
     ]);
     const csv = buildCsv(header, csvRows);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
     const filename = `trends_${granularity.toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`;
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadCsv(csv, filename);
 
     appendActionLog({
       username: 'dev@amoeba.group',
@@ -130,6 +125,28 @@ export function TrendsClient() {
           <div className="inline-flex rounded-md border border-neutral-300 bg-white p-0.5 text-sm">
             <button
               type="button"
+              onClick={() => setCurrency('VND')}
+              className={cn(
+                'rounded px-3 py-1.5 font-medium',
+                currency === 'VND' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-50',
+              )}
+            >
+              {t('currency.vnd')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrency('KRW')}
+              className={cn(
+                'rounded px-3 py-1.5 font-medium',
+                currency === 'KRW' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-50',
+              )}
+            >
+              {t('currency.krw')}
+            </button>
+          </div>
+          <div className="inline-flex rounded-md border border-neutral-300 bg-white p-0.5 text-sm">
+            <button
+              type="button"
               onClick={() => setGranularity('WEEK')}
               className={cn(
                 'rounded px-3 py-1.5 font-medium',
@@ -175,18 +192,28 @@ export function TrendsClient() {
         <>
           <div className="space-y-4">
             {selectedMetrics.map((m) => (
-              <MetricRow key={m} metric={m} weeks={data} granularity={granularity} />
+              <MetricRow key={m} metric={m} weeks={data} granularity={granularity} currency={currency} />
             ))}
           </div>
 
-          <MetricBreakdownTable weeks={data} granularity={granularity} />
+          <MetricBreakdownTable weeks={data} granularity={granularity} currency={currency} />
         </>
       )}
     </div>
   );
 }
 
-function MetricRow({ metric, weeks, granularity }: { metric: Metric; weeks: WeekPoint[]; granularity: Granularity }) {
+function MetricRow({
+  metric,
+  weeks,
+  granularity,
+  currency,
+}: {
+  metric: Metric;
+  weeks: WeekPoint[];
+  granularity: Granularity;
+  currency: CurrencyMode;
+}) {
   const totalSummary = useMemo(() => computeChannelSummary(weeks, 'TOTAL', metric), [weeks, metric]);
   const shopeeSummary = useMemo(() => computeChannelSummary(weeks, 'SHOPEE', metric), [weeks, metric]);
   const tiktokSummary = useMemo(() => computeChannelSummary(weeks, 'TIKTOK', metric), [weeks, metric]);
@@ -196,9 +223,9 @@ function MetricRow({ metric, weeks, granularity }: { metric: Metric; weeks: Week
 
   return (
     <div className="grid grid-cols-3 gap-4">
-      <ChannelTrendCard channel="TOTAL" metric={metric} summary={totalSummary} chartData={totalChart} granularity={granularity} />
-      <ChannelTrendCard channel="SHOPEE" metric={metric} summary={shopeeSummary} chartData={shopeeChart} granularity={granularity} />
-      <ChannelTrendCard channel="TIKTOK" metric={metric} summary={tiktokSummary} chartData={tiktokChart} granularity={granularity} />
+      <ChannelTrendCard channel="TOTAL" metric={metric} summary={totalSummary} chartData={totalChart} granularity={granularity} currency={currency} />
+      <ChannelTrendCard channel="SHOPEE" metric={metric} summary={shopeeSummary} chartData={shopeeChart} granularity={granularity} currency={currency} />
+      <ChannelTrendCard channel="TIKTOK" metric={metric} summary={tiktokSummary} chartData={tiktokChart} granularity={granularity} currency={currency} />
     </div>
   );
 }
