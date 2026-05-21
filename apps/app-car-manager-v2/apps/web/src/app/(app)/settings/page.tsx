@@ -1,42 +1,51 @@
-﻿import { getTranslations } from 'next-intl/server';
-import { Save } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import {
-  Badge,
-  Button,
+  Alert,
+  AlertDescription,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardHeaderText,
   CardTitle,
-  Input,
   Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Switch,
 } from '@car-v2/ui';
 import { PageHeader } from '@/components/layout/page-header';
+import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { getOrSeedTenantSettings } from '@/server/services/tenant-settings.service';
+import { CurrencySelect } from './_components/currency-select';
 import { LocaleSelect } from './_components/locale-select';
+import { NotifPrefToggle } from './_components/notif-pref-toggle';
+import { PushToggle } from './_components/push-toggle';
+import { RetentionSelect } from './_components/retention-select';
+import { TenantNameInput } from './_components/tenant-name-input';
+import { TimezoneSelect } from './_components/timezone-select';
 
-const APPROVAL_RULES: Array<{ type: string; needsApproval: boolean; threshold: string }> = [
-  { type: 'Fuel',       needsApproval: false, threshold: '—' },
-  { type: 'Oil',        needsApproval: false, threshold: '—' },
-  { type: 'Parking',    needsApproval: false, threshold: '—' },
-  { type: 'Toll',       needsApproval: false, threshold: '—' },
-  { type: 'Meal',       needsApproval: false, threshold: '500,000₫ (warn)' },
-  { type: 'Repair',     needsApproval: true,  threshold: '1,000,000₫' },
-  { type: 'Accident',   needsApproval: true,  threshold: '—' },
-  { type: 'Inspection', needsApproval: false, threshold: '—' },
-];
-
+/* Admin Settings — auto-save (no Save button). Each field is a Client subtree
+ * that calls its own Server Action on change. Non-Admin roles get a read-only
+ * banner + every control disabled (the action still 403s as a backstop). */
 export default async function SettingsPage() {
-  const t    = await getTranslations('screens.settings');
-  const tA   = await getTranslations('actions');
-  const tNav = await getTranslations('nav');
-  const tCo  = await getTranslations('company');
+  const t      = await getTranslations('screens.settings');
+  const tNav   = await getTranslations('nav');
+  const tCo    = await getTranslations('company');
+  const tS     = await getTranslations('settings');
+
+  const actor = await getCurrentUser();
+  const settings = await getOrSeedTenantSettings(actor.entId, actor.userId);
+  const isAdmin = actor.role === 'ADMIN';
+
+  /* Retention options — pre-resolved here so client components stay locale-agnostic. */
+  const tripRetentionOptions = [
+    { value: '1', label: tS('ret1y') },
+    { value: '3', label: tS('ret3y') },
+    { value: '5', label: tS('ret5y') },
+    { value: '7', label: tS('ret7y') },
+  ];
+  const auditRetentionOptions = [
+    { value: '3', label: tS('ret3y') },
+    { value: '5', label: tS('ret5y') },
+    { value: '__indefinite__', label: tS('retIndefinite') },
+  ];
 
   return (
     <>
@@ -44,78 +53,43 @@ export default async function SettingsPage() {
         title={t('title')}
         subtitle={t('subtitle')}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('settings') }]}
-        actions={<Button variant="accent" size="md" iconLeft={<Save />}>{tA('save')}</Button>}
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6">
         <div className="max-w-[800px] mx-auto space-y-5">
+          {!isAdmin && (
+            <Alert variant="info">
+              <AlertDescription>{tS('viewOnlyNotice')}</AlertDescription>
+            </Alert>
+          )}
+
           {/* General */}
           <Card>
             <CardHeader>
               <CardHeaderText>
-                <CardTitle>General</CardTitle>
-                <CardDescription>Workspace identity and locale defaults.</CardDescription>
+                <CardTitle>{tS('general')}</CardTitle>
+                <CardDescription>{tS('generalDesc')}</CardDescription>
               </CardHeaderText>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="mb-1.5 block">Tenant name</Label>
-                  <Input defaultValue={tCo('tenant')} />
+                  <Label className="mb-1.5 block">{tS('tenantName')}</Label>
+                  <TenantNameInput defaultValue={settings.tnsTenantName} disabled={!isAdmin} />
                 </div>
                 <div>
-                  <Label className="mb-1.5 block">Default language</Label>
+                  <Label className="mb-1.5 block">{tS('defaultLanguage')}</Label>
                   <LocaleSelect />
                 </div>
                 <div>
-                  <Label className="mb-1.5 block">Currency</Label>
-                  <Select defaultValue="vnd">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="vnd">VND · ₫</SelectItem>
-                      <SelectItem value="krw">KRW · ₩</SelectItem>
-                      <SelectItem value="usd">USD · $</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="mb-1.5 block">{tS('currency')}</Label>
+                  <CurrencySelect defaultValue={settings.tnsCurrency} disabled={!isAdmin} />
                 </div>
                 <div>
-                  <Label className="mb-1.5 block">Timezone</Label>
-                  <Select defaultValue="vn">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="vn">Asia/Ho_Chi_Minh</SelectItem>
-                      <SelectItem value="kr">Asia/Seoul</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="mb-1.5 block">{tS('timezone')}</Label>
+                  <TimezoneSelect defaultValue={settings.tnsTimezone} disabled={!isAdmin} />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Approval rules */}
-          <Card>
-            <CardHeader>
-              <CardHeaderText>
-                <CardTitle>Expense approval rules</CardTitle>
-                <CardDescription>Per category — defines who/when an expense needs review (PRD §6.2.2).</CardDescription>
-              </CardHeaderText>
-            </CardHeader>
-            <CardContent padded={false}>
-              <ul className="divide-y divide-border">
-                {APPROVAL_RULES.map((r) => (
-                  <li key={r.type} className="flex items-center justify-between gap-4 px-5 py-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-text">{r.type}</div>
-                      <div className="text-xs text-text-faint">Auto-approve threshold: <span className="tabular">{r.threshold}</span></div>
-                    </div>
-                    {r.needsApproval ? (
-                      <Badge tone="warning" size="sm">Approval required</Badge>
-                    ) : (
-                      <Badge tone="success" size="sm">Auto-approved</Badge>
-                    )}
-                  </li>
-                ))}
-              </ul>
             </CardContent>
           </Card>
 
@@ -123,16 +97,37 @@ export default async function SettingsPage() {
           <Card>
             <CardHeader>
               <CardHeaderText>
-                <CardTitle>Notifications</CardTitle>
-                <CardDescription>How the system reaches admins and drivers.</CardDescription>
+                <CardTitle>{tS('notifications')}</CardTitle>
+                <CardDescription>{tS('notificationsDesc')}</CardDescription>
               </CardHeaderText>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <ToggleRow title="In-app notifications" description="Bell icon in the top bar." defaultChecked />
-                <ToggleRow title="Email notifications" description="Send to user's primary email." defaultChecked />
-                <ToggleRow title="Web push (PWA)" description="Browser push for installed drivers · P4." />
-                <ToggleRow title="Daily digest" description="9:00 AM summary of pending approvals." defaultChecked />
+                <NotifPrefToggle
+                  field="inapp"
+                  title={tS('notifInApp')}
+                  description={tS('notifInAppDesc')}
+                  defaultChecked={settings.tnsNotifInapp}
+                  disabled={!isAdmin}
+                />
+                <NotifPrefToggle
+                  field="email"
+                  title={tS('notifEmail')}
+                  description={tS('notifEmailDesc')}
+                  defaultChecked={settings.tnsNotifEmail}
+                  disabled={!isAdmin}
+                />
+                <PushToggle
+                  vapidPublicKey={process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC}
+                  basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''}
+                />
+                <NotifPrefToggle
+                  field="digest"
+                  title={tS('notifDigest')}
+                  description={tS('notifDigestDesc')}
+                  defaultChecked={settings.tnsNotifDigest}
+                  disabled={!isAdmin}
+                />
               </div>
             </CardContent>
           </Card>
@@ -141,53 +136,36 @@ export default async function SettingsPage() {
           <Card>
             <CardHeader>
               <CardHeaderText>
-                <CardTitle>Data retention</CardTitle>
-                <CardDescription>How long records are kept before purge.</CardDescription>
+                <CardTitle>{tS('retention')}</CardTitle>
+                <CardDescription>{tS('retentionDesc')}</CardDescription>
               </CardHeaderText>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="mb-1.5 block">Trip records</Label>
-                  <Select defaultValue="5y">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1y">1 year</SelectItem>
-                      <SelectItem value="3y">3 years</SelectItem>
-                      <SelectItem value="5y">5 years (default)</SelectItem>
-                      <SelectItem value="7y">7 years</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="mb-1.5 block">{tS('tripRecords')}</Label>
+                  <RetentionSelect
+                    field="trip"
+                    defaultValue={settings.tnsRetentionTripYears}
+                    options={tripRetentionOptions}
+                    disabled={!isAdmin}
+                  />
                 </div>
                 <div>
-                  <Label className="mb-1.5 block">Audit log</Label>
-                  <Select defaultValue="5y">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="3y">3 years</SelectItem>
-                      <SelectItem value="5y">5 years (default)</SelectItem>
-                      <SelectItem value="indefinite">Indefinite</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="mb-1.5 block">{tS('auditLog')}</Label>
+                  <RetentionSelect
+                    field="audit"
+                    defaultValue={settings.tnsRetentionAuditYears}
+                    options={auditRetentionOptions}
+                    disabled={!isAdmin}
+                  />
                 </div>
               </div>
-              <p className="mt-3 text-xs text-text-faint">Default 5 years to satisfy NFR-10 (PRD §7).</p>
+              <p className="mt-3 text-xs text-text-faint">{tS('retentionDefault')}</p>
             </CardContent>
           </Card>
         </div>
       </div>
     </>
-  );
-}
-
-function ToggleRow({ title, description, defaultChecked }: { title: string; description: string; defaultChecked?: boolean }) {
-  return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="min-w-0">
-        <div className="text-sm font-medium text-text">{title}</div>
-        <div className="text-xs text-text-muted mt-0.5">{description}</div>
-      </div>
-      <Switch defaultChecked={defaultChecked} />
-    </div>
   );
 }

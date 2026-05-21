@@ -52,7 +52,6 @@ export async function createTripAction(input: unknown): Promise<ActionResult<Car
       throw new CarError('CAR-E0001', 400, 'Provide both driver and vehicle, or neither');
     }
 
-    const ref = await nextTripRef(actor.entId);
     const tripId = randomUUID();
     const stopovers = data.stopovers ?? [];
     const gmapsUrl = buildGoogleMapsUrl({
@@ -64,27 +63,49 @@ export async function createTripAction(input: unknown): Promise<ActionResult<Car
     const initialStatus =
       data.driver_id && data.vehicle_id ? 'PENDING_DRIVER_CONFIRMATION' : 'PENDING_ASSIGNMENT';
 
-    const [created] = await db
-      .insert(carTrips)
-      .values({
-        trpId: tripId,
-        entId: actor.entId,
-        trpRef: ref,
-        trpCreatorId: actor.userId,
-        trpPassengerId: data.passenger_id ?? actor.userId,
-        trpDriverId: data.driver_id ?? null,
-        trpVehicleId: data.vehicle_id ?? null,
-        trpStatus: initialStatus,
-        trpPickupAddress: data.pickup_address,
-        trpDropoffAddress: data.dropoff_address,
-        trpScheduledAt: scheduledAt,
-        trpDurationMinutes: data.duration_minutes ?? null,
-        trpPurpose: data.purpose ?? null,
-        trpNotes: data.notes ?? null,
-        trpGoogleMapsUrl: gmapsUrl,
-      })
-      .returning();
-    if (!created) throw new CarError('CAR-E0500', 500, 'Insert returned no row');
+    /* Retry-on-conflict — `nextTripRef` uses non-atomic MAX read so two parallel
+     * creators can race to the same TR-NNNN. Postgres unique constraint catches
+     * the collision (23505); we regenerate + retry up to 3 times. After 3
+     * attempts the contention is probably structural and we surface as 500. */
+    let created: CarTrip | undefined;
+    let ref = '';
+    for (let attempt = 0; attempt < 3; attempt++) {
+      ref = await nextTripRef(actor.entId);
+      try {
+        const inserted = await db
+          .insert(carTrips)
+          .values({
+            trpId: tripId,
+            entId: actor.entId,
+            trpRef: ref,
+            trpCreatorId: actor.userId,
+            trpPassengerId: data.passenger_id ?? actor.userId,
+            trpDriverId: data.driver_id ?? null,
+            trpVehicleId: data.vehicle_id ?? null,
+            trpStatus: initialStatus,
+            trpPickupAddress: data.pickup_address,
+            trpDropoffAddress: data.dropoff_address,
+            trpScheduledAt: scheduledAt,
+            trpDurationMinutes: data.duration_minutes ?? null,
+            trpPurpose: data.purpose ?? null,
+            trpNotes: data.notes ?? null,
+            trpGoogleMapsUrl: gmapsUrl,
+          })
+          .returning();
+        created = inserted[0];
+        break;
+      } catch (err) {
+        const pgCode = (err as { code?: string }).code;
+        const constraint = (err as { constraint?: string }).constraint;
+        /* 23505 = unique_violation. Only retry if it's specifically the trp_ref
+         * race — any other unique collision is a real bug to surface. */
+        if (pgCode === '23505' && constraint === 'uniq_car_trips_ent_ref' && attempt < 2) {
+          continue;
+        }
+        throw err;
+      }
+    }
+    if (!created) throw new CarError('CAR-E0500', 500, 'Insert returned no row after retries');
 
     /* Insert stopovers (max 3 enforced by Zod). */
     if (stopovers.length > 0) {
@@ -114,6 +135,8 @@ export async function createTripAction(input: unknown): Promise<ActionResult<Car
     });
 
     /* PRD R-10 + §13.1: */
+    const tripRoute = `${created.trpPickupAddress} → ${created.trpDropoffAddress}`;
+    const tripPath = `/trips/${created.trpId}`;
     if (created.trpDriverId) {
       /* Pre-assigned → notify driver directly. */
       const driver = await db.query.carDrivers.findFirst({
@@ -125,9 +148,10 @@ export async function createTripAction(input: unknown): Promise<ActionResult<Car
           userId: driver.drvUserId,
           event: 'TRIP.ASSIGNED',
           title: `New trip ${created.trpRef}`,
-          body: `${created.trpPickupAddress} → ${created.trpDropoffAddress}`,
+          body: tripRoute,
           entityId: created.trpId,
           entityRef: created.trpRef,
+          template: { ref: created.trpRef, route: tripRoute, tripPath },
         });
       }
     } else {
@@ -151,9 +175,10 @@ export async function createTripAction(input: unknown): Promise<ActionResult<Car
               userId: a.id,
               event: 'TRIP.NEEDS_ASSIGNMENT',
               title: `${created.trpRef} needs a driver`,
-              body: `${created.trpPickupAddress} → ${created.trpDropoffAddress}`,
+              body: tripRoute,
               entityId: created.trpId,
               entityRef: created.trpRef,
+              template: { ref: created.trpRef, route: tripRoute, tripPath },
             }),
           ),
       );
@@ -251,14 +276,19 @@ export async function updateTripAction(id: string, input: unknown): Promise<Acti
 export async function assignTripAction(id: string, input: unknown): Promise<ActionResult<CarTrip>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
+    /* Admin-only at entry — state machine also gates, but explicit check
+     * keeps the API contract obvious and gives a clear 403 error. */
+    requireRole(actor.role, ['ADMIN']);
     const data = assignTripSchema.parse(input);
     const trip = await loadTrip(id, actor);
+
     const transition = trip.trpStatus === 'REJECTED_BY_DRIVER' ? 'reassign' : 'assign';
     const updated = await transitionTrip(id, transition, actor, {
       kind: transition,
       driverId: data.driver_id,
       vehicleId: data.vehicle_id,
     } as TransitionPayload);
+
     revalidatePathsForTrip(id);
     return updated;
   });
@@ -317,6 +347,9 @@ export async function endTripAction(id: string, input: unknown): Promise<ActionR
 export async function cancelTripAction(id: string, input: unknown): Promise<ActionResult<CarTrip>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
+    /* Manager may cancel own trip; Admin may cancel any. State machine
+     * enforces ownership for MANAGER role — this just blocks DRIVER. */
+    requireRole(actor.role, ['ADMIN', 'MANAGER']);
     const data = cancelTripSchema.parse(input ?? {});
     const updated = await transitionTrip(id, 'cancel', actor, {
       kind: 'cancel',

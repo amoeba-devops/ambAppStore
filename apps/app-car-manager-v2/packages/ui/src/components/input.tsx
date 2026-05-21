@@ -15,7 +15,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       return (
         <div className={cn(
           'relative flex items-center rounded border bg-surface transition-colors',
-          'has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-ring has-[input:focus-visible]:ring-offset-2 has-[input:focus-visible]:ring-offset-bg',
           error ? 'border-danger' : 'border-border has-[input:focus-visible]:border-accent',
           className,
         )}>
@@ -39,9 +38,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         ref={ref}
         type={type}
         className={cn(
-          'flex h-11 md:h-9 w-full rounded border bg-surface px-3 text-base md:text-sm',
+          'flex h-11 md:h-9 w-full rounded border bg-surface px-3 text-base md:text-sm transition-colors',
           'placeholder:text-text-faint',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+          'focus-visible:outline-none',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           'file:bg-transparent file:border-0 file:text-sm file:font-medium',
           error ? 'border-danger focus-visible:border-danger' : 'border-border focus-visible:border-accent',

@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { CarError } from '@car-v2/shared/errors';
 import { db } from '@car-v2/db/client';
 import {
@@ -253,7 +253,7 @@ function actionForTransition(transition: TripTransition): string {
 /**
  * Vehicle status follows trip status (auto):
  *   start  → IN_USE
- *   end    → AVAILABLE
+ *   end    → AVAILABLE   (+ propagate end odometer to vehicle if higher — BR-3 REQ-20260519)
  *   cancel of IN_PROGRESS → AVAILABLE
  */
 async function syncVehicleStatusForTrip(trip: CarTrip, actor: AuthContext): Promise<void> {
@@ -263,9 +263,20 @@ async function syncVehicleStatusForTrip(trip: CarTrip, actor: AuthContext): Prom
   else if (trip.trpStatus === 'COMPLETED' || trip.trpStatus === 'CANCELLED') newStatus = 'AVAILABLE';
   if (!newStatus) return;
 
+  /* BR-3 (REQ-20260519): on COMPLETED, if trp_end_odometer > vehicle's current
+   * cvh_odometer_km, bump it. GREATEST handles the case where vehicle was
+   * already updated by another flow (manual entry, OIL expense). */
+  const update: Partial<typeof carVehicles.$inferInsert> = {
+    cvhStatus: newStatus,
+    cvhUpdatedAt: new Date(),
+  };
+  if (trip.trpStatus === 'COMPLETED' && trip.trpEndOdometer != null) {
+    update.cvhOdometerKm = sql`GREATEST(${carVehicles.cvhOdometerKm}, ${trip.trpEndOdometer})` as unknown as number;
+  }
+
   await db
     .update(carVehicles)
-    .set({ cvhStatus: newStatus, cvhUpdatedAt: new Date() })
+    .set(update)
     .where(and(eq(carVehicles.cvhId, trip.trpVehicleId), eq(carVehicles.entId, actor.entId)));
 }
 
@@ -292,6 +303,10 @@ async function notifyForTransition(
   after: CarTrip,
   actor: AuthContext,
 ): Promise<void> {
+  const route = `${after.trpPickupAddress} → ${after.trpDropoffAddress}`;
+  const tripPath = `/trips/${after.trpId}`;
+  const baseTemplate = { ref: after.trpRef, route, tripPath };
+
   switch (transition) {
     case 'assign':
     case 'reassign': {
@@ -306,9 +321,10 @@ async function notifyForTransition(
         userId: driver.drvUserId,
         event: 'TRIP.ASSIGNED',
         title: `New trip ${after.trpRef}`,
-        body: `${after.trpPickupAddress} → ${after.trpDropoffAddress}`,
+        body: route,
         entityId: after.trpId,
         entityRef: after.trpRef,
+        template: baseTemplate,
       });
       return;
     }
@@ -323,6 +339,10 @@ async function notifyForTransition(
         body: transition === 'reject' ? after.trpRejectReason ?? '' : undefined,
         entityId: after.trpId,
         entityRef: after.trpRef,
+        template:
+          transition === 'reject'
+            ? { ...baseTemplate, reason: after.trpRejectReason ?? undefined }
+            : baseTemplate,
       });
       return;
     case 'end':
@@ -334,13 +354,15 @@ async function notifyForTransition(
           userId: before.trpCreatorId,
           event: 'TRIP.COMPLETED',
           title: `${after.trpRef} completed`,
-          body: `${after.trpPickupAddress} → ${after.trpDropoffAddress}`,
+          body: route,
           entityId: after.trpId,
           entityRef: after.trpRef,
+          template: baseTemplate,
         });
       }
       return;
-    case 'cancel':
+    case 'cancel': {
+      const cancelTemplate = { ...baseTemplate, reason: after.trpCancelReason ?? undefined };
       /* PRD FR-1.3 + §13.1: notify driver if trip was already confirmed/in-progress.
        * Also notify creator if Admin (not the creator) cancelled. */
       if (
@@ -359,6 +381,7 @@ async function notifyForTransition(
             body: after.trpCancelReason ?? undefined,
             entityId: after.trpId,
             entityRef: after.trpRef,
+            template: cancelTemplate,
           });
         }
       }
@@ -372,9 +395,11 @@ async function notifyForTransition(
           body: after.trpCancelReason ?? undefined,
           entityId: after.trpId,
           entityRef: after.trpRef,
+          template: cancelTemplate,
         });
       }
       return;
+    }
     default:
       /* start: no notify in P1 (driver is the one acting, manager will see on completion). */
       return;

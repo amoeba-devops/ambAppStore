@@ -26,6 +26,24 @@ const buttonVariants = cva(
         md:   'h-9 px-4 text-sm [&_svg]:h-4 [&_svg]:w-4',
         lg:   'h-10 px-5 text-md [&_svg]:h-4 [&_svg]:w-4',
         xl:   'h-11 px-6 text-md [&_svg]:h-5 [&_svg]:w-5',
+        /* `2xl` is the Driver-mode primary CTA size — 56px tall so it lands
+         * within the thumb zone on phones and remains tappable through a
+         * sunlight-readability margin. Don't use elsewhere; it's loud.
+         *
+         * Visual treatment is intentionally heavier than smaller sizes — bigger
+         * radius (12px instead of 6px), tracked-wide bold label, a soft lifted
+         * shadow that compresses on press, and a subtle scale on active. This
+         * matches the iOS "filled prominent" CTA shape so the button reads as
+         * a mobile primary action even when sitting inside a desktop chrome.
+         * Shadow tint is neutral slate so the same treatment works across
+         * variants (accent/primary/danger) without colour clashes. */
+        '2xl':
+          'h-14 px-6 text-md font-bold tracking-wide rounded-xl ' +
+          'shadow-[0_6px_16px_-4px_rgba(15,23,42,0.18)] ' +
+          'active:scale-[0.98] active:shadow-[0_2px_6px_-2px_rgba(15,23,42,0.14)] ' +
+          'transition-[transform,box-shadow,background-color] duration-150 motion-reduce:transition-none ' +
+          'disabled:shadow-none disabled:active:scale-100 ' +
+          '[&_svg]:h-5 [&_svg]:w-5',
         icon: 'h-9 w-9 [&_svg]:h-4 [&_svg]:w-4',
       },
     },

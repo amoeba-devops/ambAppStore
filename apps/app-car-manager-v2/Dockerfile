@@ -35,9 +35,23 @@ RUN npm ci --include=dev
 # Copy source after install (so deps cache survives src edits)
 COPY . .
 
-# Build-time env: basePath must be present when `next build` runs
+# Build-time env: basePath + all NEXT_PUBLIC_* vars must be present when
+# `next build` runs (Next.js inlines them into the client bundle). Runtime
+# env_file in docker-compose comes too late — bundle is already frozen.
 ARG BASE_PATH=/app-car-manager-v2
+ARG NEXT_PUBLIC_APP_CODE
+ARG NEXT_PUBLIC_DEFAULT_LOCALE
+ARG NEXT_PUBLIC_AMA_ORIGIN
+ARG NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY
+ARG NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC
+ARG NEXT_PUBLIC_BASE_PATH
 ENV BASE_PATH=${BASE_PATH}
+ENV NEXT_PUBLIC_APP_CODE=${NEXT_PUBLIC_APP_CODE}
+ENV NEXT_PUBLIC_DEFAULT_LOCALE=${NEXT_PUBLIC_DEFAULT_LOCALE}
+ENV NEXT_PUBLIC_AMA_ORIGIN=${NEXT_PUBLIC_AMA_ORIGIN}
+ENV NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY}
+ENV NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC=${NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC}
+ENV NEXT_PUBLIC_BASE_PATH=${NEXT_PUBLIC_BASE_PATH}
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 

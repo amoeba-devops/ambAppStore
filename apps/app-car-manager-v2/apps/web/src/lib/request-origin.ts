@@ -6,7 +6,13 @@ import type { NextRequest } from 'next/server';
  */
 export function getRequestOrigin(req: NextRequest): string {
   const fromEnv = process.env.APP_URL ?? process.env.RENDER_EXTERNAL_URL;
-  if (fromEnv) return fromEnv.replace(/\/$/, '');
+  if (fromEnv) {
+    /* Auto-prepend http:// when env is hostname-only (e.g. `localhost:3001`) —
+     * `new URL(path, base)` requires `base` to have a scheme or it throws.
+     * Forgiving here lets `.env` survive a typo without crashing middleware. */
+    const trimmed = fromEnv.replace(/\/$/, '');
+    return /^https?:\/\//.test(trimmed) ? trimmed : `http://${trimmed}`;
+  }
 
   const fwdProto = req.headers.get('x-forwarded-proto');
   const fwdHost = req.headers.get('x-forwarded-host') ?? req.headers.get('host');

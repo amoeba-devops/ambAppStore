@@ -12,6 +12,7 @@ export default async function NewDriverPage() {
   const tA   = await getTranslations('actions');
   const tNav = await getTranslations('nav');
   const tCo  = await getTranslations('company');
+  const tScr = await getTranslations('screens.newDriver');
   const user = await getCurrentUser();
   if (user.role !== 'ADMIN') redirect('/drivers');
 
@@ -20,12 +21,12 @@ export default async function NewDriverPage() {
   return (
     <>
       <PageHeader
-        title="Add driver"
-        subtitle="Register a new driver profile"
+        title={tScr('title')}
+        subtitle={tScr('subtitle')}
         breadcrumbs={[
           { label: tCo('tenant') },
           { label: tNav('drivers'), href: '/drivers' },
-          { label: 'New' },
+          { label: tA('new') },
         ]}
         back="/drivers"
         actions={

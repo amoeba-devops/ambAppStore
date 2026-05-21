@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { Loader2, Save } from 'lucide-react';
 import {
   Button,
@@ -23,10 +24,24 @@ import {
   toast,
 } from '@car-v2/ui';
 import type { CarDriver, CarDriverLicenseClass, CarDriverStatus } from '@car-v2/db/schema';
+import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
+import { useFormDraft } from '@/hooks/use-form-draft';
+import { formatActionError } from '@/lib/format-action-error';
 import {
   createDriverAction,
   updateDriverAction,
 } from '@/server/actions/drivers/driver.actions';
+
+interface DriverDraftValues {
+  userId: string;
+  licenseNumber: string;
+  licenseClass: CarDriverLicenseClass;
+  licenseExpiry: string;
+  phone: string;
+  status: CarDriverStatus;
+  emergencyContact: string;
+  notes: string;
+}
 
 const LICENSE_CLASSES: CarDriverLicenseClass[] = ['A2', 'B1', 'B2', 'C', 'D', 'E', 'F'];
 const STATUSES: CarDriverStatus[] = ['AVAILABLE', 'ON_TRIP', 'OFF_DUTY', 'UNAVAILABLE'];
@@ -37,6 +52,11 @@ interface DriverFormProps {
 }
 
 export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
+  const t       = useTranslations('drivers.form');
+  const tList   = useTranslations('drivers.list');
+  const tStatus = useTranslations('drivers.status');
+  const tA      = useTranslations('actions');
+  const tErr    = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const isEdit = !!driver;
@@ -50,13 +70,61 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
   const [emergencyContact, setEmergencyContact] = useState(driver?.drvEmergencyContact ?? '');
   const [notes, setNotes] = useState(driver?.drvNotes ?? '');
 
+  const draftValues: DriverDraftValues = {
+    userId,
+    licenseNumber,
+    licenseClass,
+    licenseExpiry,
+    phone,
+    status,
+    emergencyContact,
+    notes,
+  };
+  const driverLabel = isEdit
+    ? {
+        primary: t('draftLabelEdit', {
+          name: driver!.user?.usrName ?? driver!.drvLicenseNumber,
+        }),
+        secondary: driver!.drvLicenseNumber
+          ? `${driver!.drvLicenseClass} · ${driver!.drvLicenseNumber}`
+          : undefined,
+      }
+    : {
+        primary: t('draftLabelNew'),
+        secondary:
+          [licenseClass, licenseNumber.trim(), phone.trim()]
+            .filter(Boolean)
+            .join(' · ') || undefined,
+      };
+  const { draft, clearDraft, dismissDraft } = useFormDraft<DriverDraftValues>({
+    key: isEdit ? `driver:edit:${driver!.drvId}` : 'driver:new',
+    values: draftValues,
+    label: driverLabel,
+    href: isEdit ? `/drivers/${driver!.drvId}/edit` : '/drivers/new',
+    entity: 'driver',
+  });
+
+  const handleRestoreDraft = () => {
+    if (!draft) return;
+    const v = draft.values;
+    setUserId(v.userId);
+    setLicenseNumber(v.licenseNumber);
+    setLicenseClass(v.licenseClass);
+    setLicenseExpiry(v.licenseExpiry);
+    setPhone(v.phone);
+    setStatus(v.status);
+    setEmergencyContact(v.emergencyContact);
+    setNotes(v.notes);
+    dismissDraft();
+  };
+
   const onSubmit = () => {
     if (!isEdit && !userId) {
-      toast.error('Pick a user', { description: 'Drivers must be linked to an existing user account.' });
+      toast.error(t('errPickUser'), { description: t('errPickUserDesc') });
       return;
     }
     if (!licenseNumber.trim() || !licenseExpiry) {
-      toast.error('Missing required fields', { description: 'License number and expiry are required.' });
+      toast.error(t('errMissing'), { description: t('errMissingDesc') });
       return;
     }
 
@@ -75,12 +143,13 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
         : await createDriverAction({ ...basePayload, user_id: userId });
 
       if (result.success) {
-        toast.success(isEdit ? 'Driver updated' : 'Driver added');
+        clearDraft();
+        toast.success(isEdit ? t('tUpdated') : t('tAdded'));
         router.push(`/drivers/${result.data.drvId}`);
         router.refresh();
       } else {
-        toast.error(isEdit ? 'Could not update' : 'Could not create', {
-          description: `${result.error.code} — ${result.error.message}`,
+        toast.error(isEdit ? t('errUpdate') : t('errCreate'), {
+          description: formatActionError(result.error, tErr),
         });
       }
     });
@@ -94,30 +163,38 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
         onSubmit();
       }}
     >
+      {draft && (
+        <DraftRestoreBanner
+          savedAt={draft.savedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={clearDraft}
+        />
+      )}
+
       <Card>
         <CardHeader>
           <CardHeaderText>
-            <CardTitle>Account</CardTitle>
+            <CardTitle>{t('sectionAccount')}</CardTitle>
             <CardDescription>
-              {isEdit ? 'User account is fixed after creation.' : 'Pick the user this driver record belongs to.'}
+              {isEdit ? t('sectionAccountEditDesc') : t('sectionAccountNewDesc')}
             </CardDescription>
           </CardHeaderText>
         </CardHeader>
         <CardContent>
           {isEdit ? (
             <div className="rounded border border-border bg-surface-2/40 px-4 py-3 text-sm">
-              <div className="text-text-faint text-xs uppercase tracking-wide mb-0.5">User</div>
+              <div className="text-text-faint text-xs uppercase tracking-wide mb-0.5">{t('user')}</div>
               <div className="text-text font-medium">{driver?.user?.usrName ?? driver?.drvUserId}</div>
               {driver?.user?.usrEmail && <div className="text-text-muted text-xs">{driver.user.usrEmail}</div>}
             </div>
           ) : (
-            <Field label="User" required>
+            <Field label={t('user')} required>
               <Select value={userId} onValueChange={setUserId}>
-                <SelectTrigger><SelectValue placeholder="Pick a user" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('userPlaceholder')} /></SelectTrigger>
                 <SelectContent>
                   {userCandidates.length === 0 ? (
                     <div className="px-3 py-2 text-xs text-text-faint italic">
-                      Everyone is already a driver. Invite a user in /users first.
+                      {t('noCandidates')}
                     </div>
                   ) : (
                     userCandidates.map((u) => (
@@ -136,44 +213,44 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
       <Card>
         <CardHeader>
           <CardHeaderText>
-            <CardTitle>License &amp; contact</CardTitle>
+            <CardTitle>{t('sectionLicense')}</CardTitle>
           </CardHeaderText>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="License number" required>
-              <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} placeholder="B2-1234567" maxLength={50} className="font-mono" />
+            <Field label={t('licenseNumber')} required>
+              <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} placeholder={t('licenseNumberPlaceholder')} maxLength={50} className="font-mono" />
             </Field>
-            <Field label="Class" required>
+            <Field label={t('class')} required>
               <Select value={licenseClass} onValueChange={(v) => setLicenseClass(v as CarDriverLicenseClass)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {LICENSE_CLASSES.map((c) => (
-                    <SelectItem key={c} value={c}>Class {c}</SelectItem>
+                    <SelectItem key={c} value={c}>{tList('classLabel', { class: c })}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="License expiry" required hint="When the license becomes invalid.">
+            <Field label={t('expiry')} required hint={t('expiryHint')}>
               <Input type="date" value={licenseExpiry} onChange={(e) => setLicenseExpiry(e.target.value)} />
             </Field>
             {isEdit && (
-              <Field label="Status">
+              <Field label={t('status')}>
                 <Select value={status} onValueChange={(v) => setStatus(v as CarDriverStatus)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>{s.replace('_', ' ').toLowerCase().replace(/(?:^|\s)\S/g, (c) => c.toUpperCase())}</SelectItem>
+                      <SelectItem key={s} value={s}>{tStatus(s)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </Field>
             )}
-            <Field label="Phone">
-              <Input value={phone ?? ''} onChange={(e) => setPhone(e.target.value)} placeholder="+84 90 555 8819" maxLength={20} className="font-mono" />
+            <Field label={t('phone')}>
+              <Input value={phone ?? ''} onChange={(e) => setPhone(e.target.value)} placeholder={t('phonePlaceholder')} maxLength={20} className="font-mono" />
             </Field>
-            <Field label="Emergency contact">
-              <Input value={emergencyContact ?? ''} onChange={(e) => setEmergencyContact(e.target.value)} placeholder="Name + phone" maxLength={100} />
+            <Field label={t('emergencyContact')}>
+              <Input value={emergencyContact ?? ''} onChange={(e) => setEmergencyContact(e.target.value)} placeholder={t('emergencyPlaceholder')} maxLength={100} />
             </Field>
           </div>
         </CardContent>
@@ -182,22 +259,22 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
       <Card>
         <CardHeader>
           <CardHeaderText>
-            <CardTitle>Notes</CardTitle>
+            <CardTitle>{t('sectionNotes')}</CardTitle>
           </CardHeaderText>
         </CardHeader>
         <CardContent>
-          <Textarea value={notes ?? ''} onChange={(e) => setNotes(e.target.value)} placeholder="Languages, preferences, schedule constraints…" rows={3} maxLength={2000} />
+          <Textarea value={notes ?? ''} onChange={(e) => setNotes(e.target.value)} placeholder={t('notesPlaceholder')} rows={3} maxLength={2000} />
         </CardContent>
       </Card>
 
       <div className="md:flex md:justify-end md:gap-2 md:pt-2 md:static md:bg-transparent md:px-0 md:py-0 md:border-t-0
         sticky bottom-0 -mx-4 px-4 py-3 bg-bg/95 backdrop-blur border-t border-border flex gap-2">
         <Button type="button" variant="secondary" size="lg" className="flex-1 md:flex-initial" asChild>
-          <Link href={isEdit ? `/drivers/${driver.drvId}` : '/drivers'}>Cancel</Link>
+          <Link href={isEdit ? `/drivers/${driver.drvId}` : '/drivers'}>{tA('cancel')}</Link>
         </Button>
         <Button type="submit" variant="accent" size="lg" className="flex-1 md:flex-initial" disabled={pending}
           iconLeft={pending ? <Loader2 className="animate-spin" /> : <Save />}>
-          {pending ? 'Saving…' : isEdit ? 'Save changes' : 'Add driver'}
+          {pending ? t('submitSaving') : isEdit ? t('submitSave') : t('submitAdd')}
         </Button>
       </div>
     </form>

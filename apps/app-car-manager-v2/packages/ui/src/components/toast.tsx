@@ -1,10 +1,27 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { Toaster as SonnerToaster, toast } from 'sonner';
 
 export function Toaster() {
+  /* Toast position is responsive — on mobile we want it at the bottom so the
+   * driver's eyes / thumb don't have to travel to the top-right corner (which
+   * also collides with the iPhone Dynamic Island in PWA standalone). Desktop
+   * keeps the conventional top-right slot. The `offset` clears BottomTabNav
+   * (h-14) + iOS home-indicator safe area so toasts don't sit on top of the
+   * nav bar. */
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   return (
     <SonnerToaster
-      position="top-right"
+      position={isMobile ? 'bottom-center' : 'top-right'}
+      offset={isMobile ? 'calc(72px + env(safe-area-inset-bottom, 0px))' : undefined}
       richColors={false}
       closeButton
       duration={3500}

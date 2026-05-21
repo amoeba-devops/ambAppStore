@@ -24,8 +24,16 @@ services:
     build:
       context: .
       args:
-        # BASE_PATH is inlined into JS bundle at build time; rebuild on change
+        # All NEXT_PUBLIC_* vars are inlined into JS bundle at build time —
+        # they MUST be present here, not just in env_file (which is runtime-only
+        # and won't reach client-side code). Rebuild image whenever they change.
         BASE_PATH: /app-car-manager-v2
+        NEXT_PUBLIC_APP_CODE: ${NEXT_PUBLIC_APP_CODE}
+        NEXT_PUBLIC_DEFAULT_LOCALE: ${NEXT_PUBLIC_DEFAULT_LOCALE}
+        NEXT_PUBLIC_AMA_ORIGIN: ${NEXT_PUBLIC_AMA_ORIGIN}
+        NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY}
+        NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC: ${NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC}
+        NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH}
     container_name: next-car-manager-v2
     ports:
       - "3105:3001"
@@ -43,6 +51,75 @@ services:
     restart: unless-stopped
     networks:
       - amb-apps-network
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # cron-maintenance-v2 — daily maintenance-alert evaluator (REQ-20260519 D9).
+  # Self-hosted alternative to Render Cron. Schedules `crond` to POST the
+  # internal endpoint at 06:00 Asia/Ho_Chi_Minh every day.
+  #
+  # Network: hits next-car-manager-v2 via internal Docker DNS — does NOT go
+  # through nginx (less moving parts, no nginx logs noise for cron calls).
+  # Auth: Bearer CRON_SECRET (from .env). Idempotency window 24h enforced
+  # server-side, so manual triggers + scheduled fires don't double-create.
+  #
+  # Manual trigger from host:  npm run cron:maintenance
+  # Container log inspection:  docker compose logs -f cron-maintenance-v2
+  # Inside-container fire:     docker exec cron-maintenance-v2 /usr/local/bin/run-cron
+  # ──────────────────────────────────────────────────────────────────────────
+  cron-maintenance-v2:
+    image: alpine:3.20
+    container_name: cron-maintenance-v2
+    restart: unless-stopped
+    depends_on:
+      next-car-manager-v2:
+        condition: service_started
+    env_file: ./.env
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    networks:
+      - amb-apps-network
+    # Inline boot script writes a trigger with the secret baked in (avoids
+    # busybox crond's env-clearing behavior), then execs crond in foreground.
+    # `$$` escapes the docker-compose substitution; `\$$(...)` keeps shell
+    # expansion deferred to cron-fire time, not boot time.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        apk add --no-cache curl tzdata >/dev/null
+        cp /usr/share/zoneinfo/Asia/Ho_Chi_Minh /etc/localtime
+        echo "Asia/Ho_Chi_Minh" > /etc/timezone
+
+        if [ -z "$$CRON_SECRET" ]; then
+          echo "FATAL: CRON_SECRET not set in .env. Cron sidecar will exit." >&2
+          exit 1
+        fi
+
+        # Bake secret + target URL into a trigger script at boot. Busybox
+        # crond does NOT propagate env vars from its parent, so we cannot
+        # rely on the secret being visible inside the cron job — instead
+        # we write a self-contained script with secret embedded.
+        cat > /usr/local/bin/run-cron <<EOF
+        #!/bin/sh
+        echo "[cron] fire \$$(date -Iseconds)"
+        curl -fsS -X POST \\
+          -H "Authorization: Bearer $$CRON_SECRET" \\
+          -H "X-Cron-Source: docker-sidecar" \\
+          "http://next-car-manager-v2:3001/app-car-manager-v2/api/v1/cron/maintenance-alert" \\
+          && echo "[cron] OK" \\
+          || echo "[cron] FAILED exit=\$$?"
+        EOF
+        chmod +x /usr/local/bin/run-cron
+
+        # Schedule: 06:00 Asia/Ho_Chi_Minh every day. crond runs in foreground
+        # so the container's main process stays alive (Docker restart policy).
+        # Output redirected to /proc/1/fd/1 so logs flow to `docker logs`.
+        mkdir -p /etc/crontabs
+        echo "0 6 * * * /usr/local/bin/run-cron > /proc/1/fd/1 2>&1" > /etc/crontabs/root
+
+        echo "[boot] cron-maintenance-v2 ready · TZ=$$(cat /etc/timezone) · schedule: 06:00 daily"
+        exec crond -f -l 8
 
 networks:
   amb-apps-network:

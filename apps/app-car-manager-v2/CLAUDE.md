@@ -10,7 +10,7 @@ Build **Company Car Management System (CCMS)** — phân hệ Quản lý Điều
 
 | # | File | Vai trò | Khi nào đọc |
 |---|---|---|---|
-| 1 | **[PRD.md](PRD.md)** | ⭐ **SOURCE OF TRUTH cho MVP**. Consolidated SRS+PRD+Personas+Flows+Logic. Mọi quyết định scope/business logic của MVP bám file này. | Trước khi code bất kỳ feature nào |
+| 1 | **[PRD.md](PRD.md)** | ⭐ **SOURCE OF TRUTH** (MVP đã go-live 2026-05-17, hiện ở **Post-MVP / Comprehensive phase**). Consolidated SRS+PRD+Personas+Flows+Logic. Mọi quyết định scope/business logic bám file này — bao gồm các revision R3+ post-MVP. | Trước khi code bất kỳ feature nào |
 | 2 | [resources/claude-design/](resources/claude-design/) | **Design reference** (24 màn HTML/JSX prototype). Tham khảo cho **visual + interaction patterns**. **KHÔNG phải spec** — feature có trong prototype mà PRD không yêu cầu → KHÔNG implement | Khi build UI component / port screen |
 | 3 | [resources/claude-design/uploads/COMPANY CAR MANAGEMENT SYSTEM.docx](resources/claude-design/uploads/) | **SRS gốc khách hàng** (147 dòng tiếng Việt). Để hiểu context/intent gốc. **KHÔNG phải spec MVP** — PRD đã tổng hợp + mở rộng | Khi PRD ambiguous, cần hiểu intent KH |
 | 4 | [docs/analysis/REQ-20260512-prd-srs-audit.md](docs/analysis/REQ-20260512-prd-srs-audit.md) | Audit ghi nhận các divergence giữa PRD ↔ SRS ↔ Prototype + resolution | Khi gặp mâu thuẫn 3 nguồn |
@@ -23,7 +23,7 @@ Build **Company Car Management System (CCMS)** — phân hệ Quản lý Điều
 - SRS gốc yêu cầu nhưng PRD đổi → theo PRD (vd: Driver/Vehicle optional khi tạo Trip theo PRD, không phải mandatory như SRS — xem audit §B)
 - PRD thêm so với SRS → implement (vd: Parking/Toll/Inspection vào MVP, retention 5 năm — xem audit §C/D)
 
-Sau MVP go-live, có thể revisit prototype/SRS để mở rộng. Trong MVP, cố định scope = PRD.
+**MVP đã go-live (2026-05-17).** Hiện đang ở **Post-MVP / Comprehensive phase** — các divergence R2 đã bỏ (vd: schedule conflict, email/push transport) được kéo trở lại theo PRD R3+. Vẫn bám PRD làm SOT; prototype/SRS chỉ tham khảo cho intent/visual.
 
 ### 1.3 Nghiệp vụ tóm tắt
 
@@ -201,13 +201,26 @@ Cấu hình theo loại + ngưỡng auto-approve. Lưu trong `car_approval_rules
 
 | Phase | Scope | Status |
 |---|---|---|
-| **P0 Foundation** | Bootstrap Turborepo, Next.js, Drizzle+Neon, S3 client, JWT middleware, i18n 3 ngôn ngữ, port Sidebar+AppFrame+LoginScreen, deploy "hello" lên Render | ⏳ in progress |
-| **P1 Trip MVP** | Vehicle CRUD, Driver CRUD, User+Roles, NewTripForm, TripsList, TripDetail, full state machine + audit log + notification stub | pending |
-| **P2 Expense MVP** | 8 loại expense (5 PRD + 3 prototype), S3 presigned upload, approval queue, auto-approve threshold, expense lock 7 ngày | pending |
-| **P3 Reports + Dashboard** | DashboardA+B, CalendarView+Month, ReportsScreen, export Excel+PDF | pending |
-| **P4 Maintenance + Notify** | Render Cron Job (maintenance alert daily), Web Push (VAPID) + Email (Resend hoặc SES), OilOverdueAlert UI | pending |
+| **P0 Foundation** | Bootstrap Turborepo, Next.js, Drizzle+Neon, S3 client, JWT middleware, i18n 3 ngôn ngữ, port Sidebar+AppFrame+LoginScreen, deploy "hello" lên Render | ✅ done |
+| **P1 Trip MVP** | Vehicle CRUD, Driver CRUD, User+Roles, NewTripForm, TripsList, TripDetail, full state machine + audit log + notification stub (DB queue only) | ✅ done |
+| **P2 Expense MVP** | 8 loại expense (5 PRD + 3 prototype), S3 presigned upload, approval queue, auto-approve threshold, expense lock 7 ngày | ✅ done |
+| **P3 Reports + Dashboard** | DashboardA+B, CalendarView+Month, ReportsScreen, export Excel+PDF | ✅ done |
+| **P4 Comprehensive (Notify + Conflict + Maintenance)** | (1) Email transport (Resend hoặc SES) + Web Push (VAPID + service worker) wire vào `notification.service` thay stub. (2) Schedule conflict **soft-warning** cho vehicle + driver overlap (PRD R-1/R-2 R3). (3) Render Cron Job (maintenance alert daily), OilOverdueAlert UI. | 🚧 **in progress** (current) |
 | **P5 Mobile PWA** | Driver tab routes, installable PWA, offline cache cho expense (E5), camera + nén client-side | pending |
 | **P6 Hardening** | Playwright suite từ PRD §11, accessibility (NFR-8), perf (NFR-1), 5-năm retention policy | pending |
+
+### 6.1 P4 Comprehensive breakdown (current focus)
+
+**Gap A — Notification transport** (PRD FR-1.2):
+- Email: Resend (ưu tiên — DX tốt) hoặc AWS SES (giá rẻ hơn ở scale). Template VI/EN/KO theo locale của recipient.
+- Web Push: VAPID keys (env `WEB_PUSH_VAPID_PUBLIC`, `WEB_PUSH_VAPID_PRIVATE`), service worker (`apps/web/public/sw.js`), subscription endpoint mới `/api/v1/push/subscribe`, lưu subscription vào table mới `car_push_subscriptions` (per `usr_id`).
+- `notification.service.ts` mở rộng: sau khi insert `car_notifications`, fan-out qua Email + Push dựa trên `ntf_event` whitelist + user preference (sau này — MVP P4 gửi tất cả).
+
+**Gap B — Schedule conflict soft-warning** (PRD R-1, R-2 + FR-1.2 R3):
+- Service mới `trip-conflict.service.ts` (pure, no `next/*` import). Hàm `findVehicleConflicts(entId, vehicleId, start, end, excludeTripId?)` và `findDriverConflicts(entId, driverId, start, end, excludeTripId?)`.
+- Quét trên `car_trips` với status ∈ {`PENDING_DRIVER_CONFIRMATION`, `CONFIRMED`, `IN_PROGRESS`}, soft-deleted excluded.
+- Server actions `createTripAction`, `assignTripAction`, `updateTripAction` gọi service → trả về `{ conflicts: ConflictSummary[] }` cùng với `data` thay vì chặn.
+- UI: banner màu warning trên `new-trip-form`, `edit-trip-form`, và `AssignDialog` — list tối đa 3 conflict với link tới trip detail. Nếu admin save anyway → audit log `TRIP.CONFLICT_OVERRIDDEN` với payload `{ overriddenConflicts: trpIds[] }`.
 
 ## 7. Workflow yêu cầu mới
 
@@ -233,18 +246,20 @@ Theo root [CLAUDE.md](../../CLAUDE.md), khi tag `[요구사항]` / `[requirement
 - ❌ Xoá cứng (DELETE) bản ghi Trip/Expense/Vehicle/Driver — soft delete via `*_deleted_at`
 - ❌ Implement feature có trong prototype nhưng PRD không yêu cầu (xem §9 divergence table)
 - ❌ Triển khai logic theo SRS gốc nếu PRD đã override (xem §9)
+- ❌ Gọi `notifyUser()` rồi giả định email/push đã gửi — phải verify đường truyền (Resend/SES + Web Push) thật sự queue và acknowledge (P4)
+- ❌ Block save khi conflict detected — soft-warning chỉ cảnh báo, admin có quyền save anyway (PRD R-1/R-2 R3)
 
 ## 9. PRD ↔ SRS ↔ Prototype divergences
 
 Audit chính thức: [docs/analysis/REQ-20260512-prd-srs-audit.md](docs/analysis/REQ-20260512-prd-srs-audit.md).
 
-**Quy tắc giải quyết**: bám PRD cho MVP. 6 divergence dưới đây đã chốt:
+**Quy tắc giải quyết**: bám PRD. 6 divergence dưới đây đã chốt (D3 được revisit ở R3 Post-MVP):
 
 | # | Item | SRS gốc | Prototype | PRD | MVP follow | File hash check |
 |---|---|---|---|---|---|---|
 | D1 | Trip Driver field | bắt buộc | required UI | **tùy chọn** (Admin gán sau) | **PRD = tùy chọn** | `car_trips.trp_driver_id NULLABLE` |
 | D2 | Trip Vehicle field | bắt buộc | required UI | **tùy chọn** (Admin gán sau) | **PRD = tùy chọn** | `car_trips.trp_vehicle_id NULLABLE` |
-| D3 | Schedule conflict check | có (warn) | UI banner + calendar pill | **đã loại bỏ R2** | **KHÔNG implement MVP** | (defer phase 2) |
+| D3 | Schedule conflict check | có (warn, block) | UI banner + calendar pill | **R3 (2026-05-18): soft-warning, không block** | **Implement Post-MVP P4** — soft-warning mode | `trip-conflict.service.ts` + UI banner |
 | D4 | Ngôn ngữ | EN + KR | EN+KR+VI | **EN+KR+VI** | **3 ngôn ngữ** | `messages/{vi,en,ko}.json` |
 | D5 | Cost categories | 5 (Fuel/Oil/Accident/Meal/Repair) | 8 | **8** (5 SRS + 3 PRD: Parking/Toll/Inspection) | **8 trong MVP** | `car_expense_type` enum: 8 values |
 | D6 | GPS turn-by-turn navigation | không | **CÓ** (6 màn driver-trip-nav) | **Won't-have §1.3** | **KHÔNG implement** | (design-only, ignore prototype này) |

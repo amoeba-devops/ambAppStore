@@ -11,6 +11,8 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "dev:web": "npm run dev -w @car-v2/web",
+    "dev:cron": "node scripts/dev-cron-loop.mjs",
+    "dev:full": "concurrently -k -n web,cron -c cyan,magenta \"npm run dev:web\" \"npm run dev:cron\"",
     "dev:token": "node --env-file=.env scripts/dev-token.mjs",
     "lint": "turbo run lint",
     "test": "turbo run test",
@@ -24,15 +26,17 @@
     "db:seed:dev": "node scripts/db-seed.mjs dev",
     "db:seed:staging": "node scripts/db-seed.mjs staging",
     "db:studio": "npm run db:studio -w @car-v2/db",
+    "cron:maintenance": "node scripts/trigger-maintenance-cron.mjs",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
   },
   "devDependencies": {
+    "concurrently": "^9.1.2",
     "prettier": "^3.3.3",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"
   },
-  "packageManager": "npm@10.8.2",
   "engines": {
     "node": ">=20.0.0"
-  }
+  },
+  "packageManager": "npm@10.9.4"
 }

@@ -15,10 +15,10 @@ export const SelectTrigger = forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex h-11 md:h-9 w-full items-center justify-between rounded border bg-surface px-3 text-base md:text-sm',
+      'flex h-11 md:h-9 w-full items-center justify-between rounded border bg-surface px-3 text-base md:text-sm transition-colors',
       'placeholder:text-text-faint',
       '[&>span]:line-clamp-1 [&>span]:text-left',
-      'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+      'focus:outline-none focus-visible:border-accent',
       'disabled:cursor-not-allowed disabled:opacity-50',
       'data-[placeholder]:text-text-faint',
       error ? 'border-danger' : 'border-border data-[state=open]:border-accent',

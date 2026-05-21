@@ -16,6 +16,7 @@ export default async function NewTripPage() {
   const tA   = await getTranslations('actions');
   const tNav = await getTranslations('nav');
   const tCo  = await getTranslations('company');
+  const tScr = await getTranslations('screens.newTrip');
   const user = await getCurrentUser();
 
   /* Driver doesn't create trips. */
@@ -45,12 +46,12 @@ export default async function NewTripPage() {
   return (
     <>
       <PageHeader
-        title="New trip"
-        subtitle="Schedule a vehicle for a passenger"
+        title={tScr('title')}
+        subtitle={tScr('subtitle')}
         breadcrumbs={[
           { label: tCo('tenant') },
           { label: tNav('trips'), href: '/trips' },
-          { label: 'New' },
+          { label: tA('new') },
         ]}
         back="/trips"
         actions={
@@ -60,7 +61,13 @@ export default async function NewTripPage() {
         }
       />
 
-      <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6">
+      {/* Mobile: regular vertical scroll. Desktop (lg): no page-level scroll —
+       * NewTripForm splits into 2 columns where the left column scrolls
+       * internally and the map stays sticky on the right.
+       * `overflow-x-hidden` everywhere prevents any inner-content overflow
+       * from triggering a horizontal page scrollbar — datetime-local widgets
+       * + long select options were the main culprits. */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden lg:overflow-hidden px-4 md:px-7 py-4 md:py-5 lg:py-4">
         <NewTripForm
           passengers={passengerOptions}
           drivers={driverOptions}

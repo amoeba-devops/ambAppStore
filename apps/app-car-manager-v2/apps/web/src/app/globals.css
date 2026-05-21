@@ -19,9 +19,27 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  :focus-visible {
+  /* Safety net for focusable elements that don't manage their own focus style
+   * (links, custom divs with tabIndex). Form fields (input, textarea, select
+   * trigger) opt out — they show focus via their border-accent on focus-visible
+   * to avoid a double-line look (border + ring stacking). */
+  :focus-visible:not(input):not(textarea):not(select):not([role="combobox"]):not([role="listbox"]) {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-bg;
   }
+  /* Row highlight animation — flashes a yellow tint then fades. Used to draw
+   * the eye to a row the user just created/edited, after the post-submit
+   * redirect lands them back on the list. ~2.5s total so it's noticeable
+   * without being annoying. The `forwards` fill mode keeps the final
+   * (transparent) state after the animation ends. */
+  @keyframes ccms-row-highlight {
+    0%   { background-color: hsl(var(--warning-soft) / 0.85); box-shadow: inset 0 0 0 2px hsl(var(--warning) / 0.45); }
+    70%  { background-color: hsl(var(--warning-soft) / 0.55); box-shadow: inset 0 0 0 2px hsl(var(--warning) / 0.25); }
+    100% { background-color: transparent;                       box-shadow: inset 0 0 0 2px transparent; }
+  }
+  .ccms-row-highlight {
+    animation: ccms-row-highlight 2.5s ease-out forwards;
+  }
+
   ::selection {
     background: hsl(var(--accent-soft));
     color: hsl(var(--text));

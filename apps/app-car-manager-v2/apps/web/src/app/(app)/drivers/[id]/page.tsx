@@ -1,4 +1,4 @@
-﻿import { getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Calendar, ChevronLeft, Edit3, Mail, Phone } from 'lucide-react';
@@ -24,11 +24,11 @@ import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getDriver } from '@/server/queries/drivers.queries';
 import { listTripsForDriver } from '@/server/queries/trips.queries';
 
-const STATUS: Record<CarDriverStatus, { tone: 'success' | 'info' | 'neutral'; label: string }> = {
-  AVAILABLE:   { tone: 'success', label: 'Available' },
-  ON_TRIP:     { tone: 'info',    label: 'On a trip' },
-  OFF_DUTY:    { tone: 'neutral', label: 'Off duty'  },
-  UNAVAILABLE: { tone: 'neutral', label: 'Unavailable' },
+const STATUS_TONE: Record<CarDriverStatus, 'success' | 'info' | 'neutral'> = {
+  AVAILABLE:   'success',
+  ON_TRIP:     'info',
+  OFF_DUTY:    'neutral',
+  UNAVAILABLE: 'neutral',
 };
 
 const TRIP_STATUS_TONE: Record<CarTripStatus, 'info' | 'success' | 'neutral' | 'warning' | 'danger' | 'accent'> = {
@@ -40,15 +40,6 @@ const TRIP_STATUS_TONE: Record<CarTripStatus, 'info' | 'success' | 'neutral' | '
   REJECTED_BY_DRIVER: 'danger',
   CANCELLED: 'danger',
 };
-const TRIP_STATUS_LABEL: Record<CarTripStatus, string> = {
-  PENDING_ASSIGNMENT: 'Pending',
-  PENDING_DRIVER_CONFIRMATION: 'Awaiting',
-  CONFIRMED: 'Confirmed',
-  IN_PROGRESS: 'In progress',
-  COMPLETED: 'Completed',
-  REJECTED_BY_DRIVER: 'Rejected',
-  CANCELLED: 'Cancelled',
-};
 
 function daysUntil(dateStr: string): number {
   const d = new Date(dateStr).getTime() - Date.now();
@@ -57,9 +48,13 @@ function daysUntil(dateStr: string): number {
 
 export default async function DriverDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const tA   = await getTranslations('actions');
-  const tNav = await getTranslations('nav');
-  const tCo  = await getTranslations('company');
+  const tA       = await getTranslations('actions');
+  const tNav     = await getTranslations('nav');
+  const tCo      = await getTranslations('company');
+  const tStatus  = await getTranslations('drivers.status');
+  const tDetail  = await getTranslations('drivers.detail');
+  const tList    = await getTranslations('drivers.list');
+  const tTripSt  = await getTranslations('trips.status');
   const user = await getCurrentUser();
 
   const driver = await getDriver(user.entId, id);
@@ -73,8 +68,8 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
   return (
     <>
       <PageHeader
-        title={driver.user.usrName ?? 'Driver'}
-        subtitle={`Class ${driver.drvLicenseClass} · ${driver.drvLicenseNumber}`}
+        title={driver.user.usrName ?? tDetail('defaultName')}
+        subtitle={`${tList('classLabel', { class: driver.drvLicenseClass })} · ${driver.drvLicenseNumber}`}
         breadcrumbs={[
           { label: tCo('tenant') },
           { label: tNav('drivers'), href: '/drivers' },
@@ -104,7 +99,7 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 flex-wrap">
                       <h2 className="text-2xl font-bold text-text leading-tight">{driver.user.usrName}</h2>
-                      <Badge tone={STATUS[driver.drvStatus].tone}>{STATUS[driver.drvStatus].label}</Badge>
+                      <Badge tone={STATUS_TONE[driver.drvStatus]}>{tStatus(driver.drvStatus)}</Badge>
                     </div>
                     <div className="mt-2 space-y-1 text-sm">
                       {driver.drvPhone && (
@@ -121,15 +116,17 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
                       )}
                     </div>
                     <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-5">
-                      <Stat label="License" value={driver.drvLicenseNumber} />
-                      <Stat label="Class" value={driver.drvLicenseClass} />
-                      <Stat label="Expires" value={driver.drvLicenseExpiry} />
-                      <Stat label="Trips · 30d" value={String(tripsLast30)} />
+                      <Stat label={tDetail('statLicense')} value={driver.drvLicenseNumber} />
+                      <Stat label={tDetail('statClass')} value={driver.drvLicenseClass} />
+                      <Stat label={tDetail('statExpires')} value={driver.drvLicenseExpiry} />
+                      <Stat label={tDetail('statTrips30')} value={String(tripsLast30)} />
                     </div>
                     {expiryDays <= 30 && (
                       <div className="mt-3 inline-flex items-center gap-2 rounded px-3 py-2 bg-danger-soft text-danger text-xs font-medium">
                         <Calendar className="h-3.5 w-3.5" />
-                        License expires in {expiryDays} day{expiryDays === 1 ? '' : 's'}
+                        {expiryDays === 1
+                          ? tDetail('expiryAlertOne', { days: expiryDays })
+                          : tDetail('expiryAlertOther', { days: expiryDays })}
                       </div>
                     )}
                   </div>
@@ -140,21 +137,21 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
             <Card>
               <CardHeader>
                 <CardHeaderText>
-                  <CardTitle>Recent trips</CardTitle>
+                  <CardTitle>{tDetail('recentTrips')}</CardTitle>
                 </CardHeaderText>
               </CardHeader>
               <CardContent padded={false}>
                 {trips.length === 0 ? (
-                  <div className="p-8 text-center text-sm text-text-muted">No trips assigned yet.</div>
+                  <div className="p-8 text-center text-sm text-text-muted">{tDetail('noTrips')}</div>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Ref</TableHead>
-                        <TableHead>When</TableHead>
-                        <TableHead>Route</TableHead>
-                        <TableHead>Vehicle</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>{tDetail('thRef')}</TableHead>
+                        <TableHead>{tDetail('thWhen')}</TableHead>
+                        <TableHead>{tDetail('thRoute')}</TableHead>
+                        <TableHead>{tDetail('thVehicle')}</TableHead>
+                        <TableHead>{tDetail('thStatus')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -167,7 +164,7 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
                           <TableCell className="max-w-[240px] truncate">{r.trpPickupAddress} → {r.trpDropoffAddress}</TableCell>
                           <TableCell className="font-mono text-xs tabular">{r.vehiclePlate ?? '—'}</TableCell>
                           <TableCell>
-                            <Badge tone={TRIP_STATUS_TONE[r.trpStatus]} size="sm">{TRIP_STATUS_LABEL[r.trpStatus]}</Badge>
+                            <Badge tone={TRIP_STATUS_TONE[r.trpStatus]} size="sm">{tTripSt(r.trpStatus)}</Badge>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -183,14 +180,14 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
             <Card>
               <CardHeader>
                 <CardHeaderText>
-                  <CardTitle>Notes</CardTitle>
+                  <CardTitle>{tDetail('notesTitle')}</CardTitle>
                 </CardHeaderText>
               </CardHeader>
               <CardContent>
                 {driver.drvNotes ? (
                   <p className="text-sm text-text leading-relaxed">{driver.drvNotes}</p>
                 ) : (
-                  <p className="text-sm text-text-faint italic">No notes</p>
+                  <p className="text-sm text-text-faint italic">{tDetail('noNotes')}</p>
                 )}
               </CardContent>
             </Card>
@@ -199,7 +196,7 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
               <Card>
                 <CardHeader>
                   <CardHeaderText>
-                    <CardTitle>Emergency contact</CardTitle>
+                    <CardTitle>{tDetail('emergencyTitle')}</CardTitle>
                   </CardHeaderText>
                 </CardHeader>
                 <CardContent>

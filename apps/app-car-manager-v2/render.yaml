@@ -48,3 +48,67 @@ services:
         value: vi
       - key: DEMO_AUTO_LOGIN
         sync: false
+      # Module 2 (REQ-20260519) — same secret used by the optional cron job
+      # below. Generated separately, set as dashboard env var. Required for
+      # /api/v1/cron/maintenance-alert to authorize requests.
+      - key: CRON_SECRET
+        sync: false
+      - key: EXPENSE_LOCK_DAYS
+        value: "7"
+      # ──────────────────────────────────────────────────────────────────────
+      # P4 Notification transport — Resend (email) + Web Push (VAPID)
+      # ──────────────────────────────────────────────────────────────────────
+      # Email — Resend transactional. Domain must be verified on resend.com
+      # with DKIM + SPF before EMAIL_FROM works. Leave blank to disable email
+      # transport (in-app bell still fires).
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_REPLY_TO
+        sync: false
+      # Web Push (RFC 8030) — VAPID identifies our server to push providers.
+      # Generate ONCE per environment with `npx web-push generate-vapid-keys`
+      # and persist. Regenerating invalidates ALL existing subscriptions —
+      # every device must re-subscribe via Settings → push toggle.
+      #
+      # PUBLIC + NEXT_PUBLIC_PUBLIC must match byte-for-byte. If they diverge
+      # the browser rejects pushManager.subscribe() silently.
+      - key: WEB_PUSH_VAPID_PRIVATE
+        sync: false
+      - key: WEB_PUSH_VAPID_PUBLIC
+        sync: false
+      - key: NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC
+        sync: false
+      - key: WEB_PUSH_CONTACT
+        value: mailto:devops@amoeba.group
+
+# ────────────────────────────────────────────────────────────────────────────
+# Optional cron service — Module 2 maintenance-alert evaluator.
+# Decision D9 of REQ-20260519: code the endpoint + manual trigger first; defer
+# Render cron registration to a follow-up PR after staging verification.
+#
+# To activate (after verifying with the manual trigger script):
+#   1. Uncomment the block below
+#   2. Set CRON_SECRET to the SAME value as the web service
+#   3. Set TARGET_URL to the production-ready public URL
+#   4. Run `render deploy` or push to main with auto-deploy enabled
+# ────────────────────────────────────────────────────────────────────────────
+#
+#   - type: cron
+#     name: car-manager-maintenance-alert
+#     runtime: docker
+#     dockerCommand: |
+#       curl -fsS -X POST \
+#         -H "Authorization: Bearer $CRON_SECRET" \
+#         -H "X-Render-Cron: true" \
+#         "$TARGET_URL/api/v1/cron/maintenance-alert" \
+#         || (echo "maintenance-alert cron failed" && exit 1)
+#     # Daily at 06:00 ICT = 23:00 UTC previous day
+#     schedule: "0 23 * * *"
+#     plan: starter
+#     envVars:
+#       - key: CRON_SECRET
+#         sync: false
+#       - key: TARGET_URL
+#         value: https://car-manager-staging.onrender.com
