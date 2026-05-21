@@ -1,6 +1,23 @@
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { config as loadDotenv } from 'dotenv';
 import createNextIntlPlugin from 'next-intl/plugin';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/* Load the canonical Turborepo-root `.env` (apps/app-car-manager-v2/.env) BEFORE
+ * Next.js reads any env var. Necessary because:
+ *   - The repo keeps ONE .env at the Turborepo root, not at apps/web/.
+ *   - Next.js's auto-loader only scans the Next project root (apps/web/).
+ *   - The npm script wraps next dev in `dotenv-cli`, which works for `npm run
+ *     dev` but NOT for ad-hoc invocations (`next build` from apps/web, IDE
+ *     "run Next" actions, Render's buildCommand, etc.).
+ *   - NEXT_PUBLIC_* values referenced server-side from Server Components are
+ *     read here; if the env file isn't loaded, `process.env.NEXT_PUBLIC_X` is
+ *     undefined at render time and the value never reaches the RSC payload.
+ *
+ * `override: false` lets explicit shell exports (CI/Render) win over the file. */
+loadDotenv({ path: resolve(__dirname, '../../.env'), override: false });
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -13,11 +30,27 @@ const basePath = process.env.BASE_PATH || undefined;
  * BASE_PATH itself is server-only by Next convention. */
 process.env.NEXT_PUBLIC_BASE_PATH = basePath ?? '';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+/* Explicit inline of every NEXT_PUBLIC_* we depend on. Next.js's webpack
+ * DefinePlugin already auto-inlines NEXT_PUBLIC_* it sees, but it scans for
+ * `.env*` files at the Next project root (apps/web/) — our canonical .env
+ * lives one dir up, so without this block the DefinePlugin wouldn't know
+ * to ship these. Routing the read through `process.env` (already populated
+ * by the dotenv preamble above) makes the substitution deterministic.
+ *
+ * Add new NEXT_PUBLIC_* keys here when introducing them. */
+const publicEnv = {
+  NEXT_PUBLIC_APP_CODE: process.env.NEXT_PUBLIC_APP_CODE ?? 'car-manager-v2',
+  NEXT_PUBLIC_DEFAULT_LOCALE: process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'vi',
+  NEXT_PUBLIC_AMA_ORIGIN: process.env.NEXT_PUBLIC_AMA_ORIGIN ?? '',
+  NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY ?? '',
+  NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC: process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC ?? '',
+  NEXT_PUBLIC_BASE_PATH: process.env.NEXT_PUBLIC_BASE_PATH ?? '',
+};
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   basePath,
+  env: publicEnv,
   transpilePackages: ['@car-v2/db', '@car-v2/shared', '@car-v2/ui'],
   outputFileTracingRoot: __dirname,
   webpack: (config) => {
