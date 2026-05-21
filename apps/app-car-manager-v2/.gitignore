@@ -1,0 +1,50 @@
+# Node
+node_modules/
+.pnp
+.pnp.js
+.yarn/
+
+# Next.js
+.next/
+out/
+.turbo/
+build/
+dist/
+
+# Env
+.env
+.env.local
+.env.development
+.env.staging
+.env.production
+.env.*.local
+!.env.example
+
+# Logs (session conversation logs — không sync git)
+docs/log/
+
+# Misc
+.DS_Store
+Thumbs.db
+*.log
+coverage/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# Drizzle generated meta
+packages/db/.drizzle/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Prototype extraction tmp
+_extracted/
+_inspect.mjs
+
+# Resources
+resources/
+
+# Claude
+.claude/

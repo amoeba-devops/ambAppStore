@@ -1,0 +1,230 @@
+﻿import { getTranslations } from 'next-intl/server';
+import Link from 'next/link';
+import {
+  Calendar,
+  Car,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  MapPin,
+  Receipt,
+} from 'lucide-react';
+import {
+  Avatar,
+  Badge,
+  Card,
+  CardContent,
+  CardHeader,
+  CardHeaderText,
+  CardTitle,
+  EmptyState,
+} from '@car-v2/ui';
+import type { CarTripStatus } from '@car-v2/db/schema';
+import { PageHeader } from '@/components/layout/page-header';
+import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { getDriverByUserId } from '@/server/queries/drivers.queries';
+import { listTrips, listTripsForDriver, type TripListItem } from '@/server/queries/trips.queries';
+
+const TIME_FMT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+function isToday(d: Date | string): boolean {
+  const date = new Date(d);
+  const now = new Date();
+  return date.getFullYear() === now.getFullYear() &&
+         date.getMonth() === now.getMonth() &&
+         date.getDate() === now.getDate();
+}
+
+function minutesFromNow(d: Date | string): number {
+  return Math.round((new Date(d).getTime() - Date.now()) / 60_000);
+}
+
+export default async function TodayPage() {
+  const tA  = await getTranslations('actions');
+  const tCo = await getTranslations('company');
+  const user = await getCurrentUser();
+
+  let myTrips: TripListItem[] = [];
+  if (user.role === 'DRIVER') {
+    const driver = await getDriverByUserId(user.entId, user.userId);
+    if (driver) myTrips = await listTripsForDriver(user.entId, driver.drvId, 20);
+  } else {
+    /* Manager/Admin sees today's overview */
+    const { items } = await listTrips({
+      entId: user.entId,
+      role: user.role,
+      userId: user.userId,
+      status: 'all',
+    });
+    myTrips = items;
+  }
+
+  /* Pick the "next" trip — CONFIRMED or IN_PROGRESS today or the earliest upcoming. */
+  const todayTrips = myTrips.filter((t) => isToday(t.trpScheduledAt));
+  const nextTrip =
+    myTrips.find((t) => t.trpStatus === 'IN_PROGRESS') ??
+    todayTrips.find((t) => t.trpStatus === 'CONFIRMED' || t.trpStatus === 'PENDING_DRIVER_CONFIRMATION') ??
+    myTrips.find((t) =>
+      ['CONFIRMED', 'PENDING_DRIVER_CONFIRMATION', 'PENDING_ASSIGNMENT'].includes(t.trpStatus) &&
+      new Date(t.trpScheduledAt).getTime() >= Date.now(),
+    ) ??
+    null;
+
+  const laterToday = todayTrips.filter((t) => t.trpId !== nextTrip?.trpId);
+
+  return (
+    <>
+      <PageHeader
+        title="Today"
+        subtitle={`${tCo('currentUser')} · ${todayTrips.length} trip${todayTrips.length === 1 ? '' : 's'} today`}
+        breadcrumbs={[{ label: tCo('tenant') }, { label: 'Today' }]}
+      />
+
+      <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
+        {nextTrip ? <NextTripHero trip={nextTrip} /> : (
+          <Card>
+            <EmptyState
+              icon={<Calendar />}
+              title="Nothing scheduled today"
+              description={user.role === 'DRIVER' ? 'You have no trips assigned today. Enjoy the quiet.' : 'No trips on the calendar for today.'}
+            />
+          </Card>
+        )}
+
+        {laterToday.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardHeaderText>
+                <CardTitle>Later today</CardTitle>
+              </CardHeaderText>
+            </CardHeader>
+            <CardContent padded={false}>
+              <ul className="divide-y divide-border">
+                {laterToday.map((t) => (
+                  <li key={t.trpId}>
+                    <Link
+                      href={`/trips/${t.trpId}`}
+                      className="flex items-center gap-3 px-5 py-3 hover:bg-surface-2/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                    >
+                      <div className="font-mono text-xs text-text-muted tabular shrink-0">{t.trpRef}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-text truncate">{t.passengerName ?? '—'}</div>
+                        <div className="text-xs text-text-faint truncate">{t.trpPickupAddress} → {t.trpDropoffAddress}</div>
+                      </div>
+                      <div className="text-xs text-text-muted tabular shrink-0">{TIME_FMT.format(new Date(t.trpScheduledAt))}</div>
+                      <ChevronRight className="h-4 w-4 text-text-faint shrink-0" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </>
+  );
+}
+
+/* ── Hero card for the next/active trip ────────────────────────────────── */
+function NextTripHero({ trip }: { trip: TripListItem }) {
+  const minutes = minutesFromNow(trip.trpScheduledAt);
+  const subtitle =
+    trip.trpStatus === 'IN_PROGRESS' ? 'In progress now'
+      : minutes <= 0 ? 'Starting now'
+      : minutes < 60 ? `in ${minutes} min`
+      : `at ${TIME_FMT.format(new Date(trip.trpScheduledAt))}`;
+  const heroTone = STATUS_HERO[trip.trpStatus];
+
+  return (
+    <Card className="overflow-hidden">
+      <div className={`px-5 py-4 flex items-center justify-between ${heroTone.bg} ${heroTone.text}`}>
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wider opacity-80">
+            {trip.trpStatus === 'IN_PROGRESS' ? 'Active trip' : 'Next trip'} · {subtitle}
+          </div>
+          <div className="mt-1 text-lg font-bold font-mono tabular">{trip.trpRef}</div>
+        </div>
+        <Badge tone="solid" size="md" className="bg-white/15 text-white ring-white/20">
+          {STATUS_LABEL[trip.trpStatus]}
+        </Badge>
+      </div>
+
+      <CardContent>
+        <div className="flex items-center gap-3 pb-4 border-b border-border">
+          <Avatar name={trip.passengerName ?? '?'} size="lg" />
+          <div className="flex-1 min-w-0">
+            <div className="text-md font-semibold text-text truncate">{trip.passengerName ?? 'Unspecified'}</div>
+            {trip.trpPurpose && <div className="text-sm text-text-muted truncate">{trip.trpPurpose}</div>}
+          </div>
+        </div>
+
+        <div className="pt-4 space-y-3.5">
+          <RouteStep tone="accent"  label="Pickup"   value={trip.trpPickupAddress} />
+          <RouteStep tone="success" label="Drop-off" value={trip.trpDropoffAddress} />
+          <div className="flex items-center justify-between text-sm pt-2">
+            <span className="inline-flex items-center gap-2 text-text-muted">
+              <Clock className="h-3.5 w-3.5" />
+              <span className="font-medium text-text tabular">{TIME_FMT.format(new Date(trip.trpScheduledAt))}</span>
+              {trip.trpDurationMinutes && (
+                <span className="text-text-faint">· {trip.trpDurationMinutes} min</span>
+              )}
+            </span>
+            {trip.vehiclePlate && (
+              <span className="inline-flex items-center gap-1.5 text-text-muted">
+                <Car className="h-3.5 w-3.5" />
+                <span className="font-mono tabular text-text">{trip.vehiclePlate}</span>
+              </span>
+            )}
+          </div>
+        </div>
+      </CardContent>
+
+      <Link
+        href={`/trips/${trip.trpId}`}
+        className="block border-t border-border h-12 inline-flex items-center justify-center gap-2 text-accent font-semibold text-sm hover:bg-accent-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+      >
+        Open trip <ChevronRight className="h-4 w-4" />
+      </Link>
+    </Card>
+  );
+}
+
+function RouteStep({ tone, label, value }: { tone: 'accent' | 'success'; label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className={
+        'mt-0.5 h-7 w-7 rounded-full flex items-center justify-center shrink-0 ' +
+        (tone === 'accent' ? 'bg-accent-soft text-accent' : 'bg-success-soft text-success')
+      }>
+        <MapPin className="h-3.5 w-3.5" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-xs font-medium text-text-muted">{label}</div>
+        <div className="text-sm text-text font-medium leading-snug">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+const STATUS_HERO: Record<CarTripStatus, { bg: string; text: string }> = {
+  PENDING_ASSIGNMENT:          { bg: 'bg-surface-2',                                   text: 'text-text' },
+  PENDING_DRIVER_CONFIRMATION: { bg: 'bg-gradient-to-br from-warning to-info text-white', text: 'text-white' },
+  CONFIRMED:                   { bg: 'bg-gradient-to-br from-accent to-info text-white',  text: 'text-white' },
+  IN_PROGRESS:                 { bg: 'bg-gradient-to-br from-info to-accent text-white',  text: 'text-white' },
+  COMPLETED:                   { bg: 'bg-surface-2', text: 'text-text' },
+  REJECTED_BY_DRIVER:          { bg: 'bg-danger-soft', text: 'text-danger' },
+  CANCELLED:                   { bg: 'bg-surface-2', text: 'text-text-muted' },
+};
+
+const STATUS_LABEL: Record<CarTripStatus, string> = {
+  PENDING_ASSIGNMENT:          'Pending',
+  PENDING_DRIVER_CONFIRMATION: 'Awaiting',
+  CONFIRMED:                   'Confirmed',
+  IN_PROGRESS:                 'In progress',
+  COMPLETED:                   'Completed',
+  REJECTED_BY_DRIVER:          'Rejected',
+  CANCELLED:                   'Cancelled',
+};
+
+void CheckCircle2; // reserved for future "Completed today" widget
+void Receipt;

@@ -1,0 +1,50 @@
+services:
+  - type: web
+    # MUST match the service name in Render dashboard. Mismatched name causes
+    # Render to spin up a brand-new service instead of updating the existing
+    # one. Current staging service URL: https://car-manager-staging.onrender.com
+    name: car-manager-staging
+    runtime: node
+    rootDir: apps/app-car-manager-v2
+    buildCommand: npm install --include=dev && npm run build --workspace @car-v2/web
+    startCommand: npm start --workspace @car-v2/web
+    plan: starter
+    # No healthCheckPath — Render considers deploy successful as soon as the
+    # process binds to $PORT. Verify manually after deploy with:
+    #   curl https://car-manager-staging.onrender.com/api/v1/health
+    # (no /app-car-manager-v2 prefix under D2 — Render serves at root)
+    envVars:
+      # D2 topology: Render serves at ROOT (no basePath). Staging Docker
+      # serves under /app-car-manager-v2 (its own .env sets BASE_PATH).
+      # → Render URL is clean: https://car-manager-staging.onrender.com/...
+      #   instead of the redundant /app-car-manager-v2/ prefix.
+      # → BASE_PATH intentionally OMITTED here (empty string also works,
+      #   but omitting is cleaner — Next.js falls back to no basePath).
+      #
+      # Public origin override. For Render direct access, cookie domain +
+      # redirect URLs must point to the onrender hostname (NOT stg-apps),
+      # otherwise dev-login mints cookie on Render but redirects off-domain.
+      - key: APP_URL
+        value: https://car-manager-staging.onrender.com
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_S3_BUCKET
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: NEXT_PUBLIC_AMA_ORIGIN
+        sync: false
+      - key: NEXT_PUBLIC_APP_CODE
+        value: car-manager-v2
+      - key: NEXT_PUBLIC_DEFAULT_LOCALE
+        value: vi
+      - key: DEMO_AUTO_LOGIN
+        sync: false
