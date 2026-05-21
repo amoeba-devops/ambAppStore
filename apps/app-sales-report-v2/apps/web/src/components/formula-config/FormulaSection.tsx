@@ -80,7 +80,6 @@ export function FormulaSection({
   const tSection = useTranslations('formulaConfig.section');
   const localizedTitle = (() => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (tSection as any)(section.id) as string;
     } catch {
       return section.title;

@@ -168,7 +168,6 @@ export async function loadPeriodSnapshot(
   return rows[0].pspMetrics as PeriodSnapshotMetrics;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 void isNull;
 
 export interface PeriodSnapshotRow {
