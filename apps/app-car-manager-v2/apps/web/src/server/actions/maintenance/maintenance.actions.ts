@@ -28,7 +28,6 @@ export async function acknowledgeAlertAction(
     const input = acknowledgeAlertSchema.parse(raw);
     const updated = await acknowledgeAlert(input, actor);
     revalidatePath('/today');
-    revalidatePath('/costs');
     return updated;
   });
 }
@@ -41,7 +40,6 @@ export async function resetOilChangeAction(
     const input = resetOilChangeSchema.parse(raw);
     const updated = await resetOilChange(input, actor);
     revalidatePath('/today');
-    revalidatePath('/costs');
     revalidatePath(`/vehicles/${input.vehicle_id}`);
     return updated;
   });

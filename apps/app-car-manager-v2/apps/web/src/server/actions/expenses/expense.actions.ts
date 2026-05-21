@@ -9,25 +9,24 @@ import {
   carDrivers,
   carExpenseAttachments,
   carExpenses,
-  carUsers,
   type CarExpense,
 } from '@car-v2/db/schema';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { logAudit } from '@/server/services/audit-log.service';
 import { decideInitialStatus } from '@/server/services/expense-approval.service';
-import { notifyMany } from '@/server/services/notification.service';
 import { runAction } from '../_helpers';
 
 /* Real expense submission server action.
  *
  * Flow:
  *   1. Validate input (Zod)
- *   2. Resolve driver row from current user (drivers don't submit on behalf
- *      of others)
- *   3. Apply approval policy → decide initial status (AUTO_APPROVED vs PENDING)
- *   4. INSERT expense row + attachment rows (atomic via a single transaction)
- *   5. Audit log + notify entity admins if status === PENDING
+ *   2. Resolve driver row from current user
+ *   3. INSERT expense row + attachment rows (atomic via a single transaction)
+ *   4. Audit log
+ *
+ * Approval flow removed per user-flow §3.2 — every expense lands in
+ * AUTO_APPROVED. No admin notification fires.
  *
  * Lock window: `exp_locked_until` set to NOW + 7 days per PRD §6.2.3 — driver
  * can edit metadata (note, occurredAt, amount) within that window. Edit
@@ -83,7 +82,7 @@ export async function submitExpenseAction(
       throw new CarError('CAR-E0103', 403, 'Only drivers can submit expenses.');
     }
 
-    const { status } = await decideInitialStatus(actor.entId, parsed.type, parsed.amount);
+    const { status } = decideInitialStatus(actor.entId, parsed.type, parsed.amount);
     const now = new Date();
     const lockUntil = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const expId = randomUUID();
@@ -124,9 +123,10 @@ export async function submitExpenseAction(
       await expenseInsert;
     }
 
-    /* Audit log + admin notification. Best-effort — these failing shouldn't
-     * unwind the expense (the user-visible "submitted" must mean what it
-     * says). The services themselves swallow errors. */
+    /* Audit log only — admin approval flow removed, no notification fan-out
+     * needed for AUTO_APPROVED expenses. Best-effort: a failed audit insert
+     * must not unwind the expense (the user-visible "submitted" must mean
+     * what it says). The service itself swallows errors. */
     await logAudit({
       entId: actor.entId,
       userId: actor.userId,
@@ -141,30 +141,7 @@ export async function submitExpenseAction(
       },
     });
 
-    if (status === 'PENDING') {
-      const admins = await db
-        .select({ id: carUsers.usrId })
-        .from(carUsers)
-        .where(
-          and(
-            eq(carUsers.entId, actor.entId),
-            eq(carUsers.usrLocalRole, 'ADMIN'),
-            isNull(carUsers.usrDeletedAt),
-          ),
-        );
-      if (admins.length > 0) {
-        await notifyMany(admins.map((a) => a.id), {
-          entId: actor.entId,
-          event: 'EXPENSE.SUBMITTED',
-          title: `Chi phí mới chờ duyệt`,
-          body: `${parsed.type} · ${parsed.amount.toLocaleString('vi-VN')}₫`,
-          entityId: expId,
-        });
-      }
-    }
-
     revalidatePath('/expenses');
-    revalidatePath('/costs');
 
     return { id: expId, status };
   });

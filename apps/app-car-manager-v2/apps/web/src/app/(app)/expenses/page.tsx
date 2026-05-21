@@ -11,9 +11,9 @@ import { ExpensesList } from './_components/expenses-list';
 
 /* Driver expense history (`/expenses`).
  *
- * Admin/manager already have `/costs` (approval queue). Drivers needed a
- * counterpart to see what they've submitted + the current approval state
- * (PENDING / APPROVED / REJECTED / AUTO_APPROVED).
+ * Read-only list of the current driver's submitted expenses. Admin approval
+ * flow was removed per user-flow §3.2 — every expense lands AUTO_APPROVED, so
+ * the status badge effectively reads as a uniform "approved" stamp.
  *
  * Soft-edit window (7 days, `exp_locked_until`) and detail / edit views are
  * future REQs — this page is read-only for v1. */
@@ -25,8 +25,7 @@ export default async function ExpensesPage() {
   const user = await getCurrentUser();
 
   /* Look up the driver record so we filter expenses to the current actor.
-   * Non-DRIVER roles landing here see an empty state — they should use
-   * `/costs` (admin approval queue) instead. */
+   * Non-DRIVER roles landing here see an empty state. */
   const driver = user.role === 'DRIVER'
     ? await getDriverByUserId(user.entId, user.userId)
     : null;

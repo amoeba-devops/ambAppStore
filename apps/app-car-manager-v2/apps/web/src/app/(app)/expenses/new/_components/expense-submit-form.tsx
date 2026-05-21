@@ -21,9 +21,8 @@ interface ExpenseSubmitFormProps {
  *
  * Submit flow:
  *   1. Client-side validate (type + amount > 0). Everything else is optional.
- *   2. Call `submitExpenseAction` — currently a STUB (see action file).
- *   3. On success → toast + `router.push('/today')`. The stub mode banner
- *      under the form tells QA the submission won't show up in /costs yet. */
+ *   2. Call `submitExpenseAction` — lands AUTO_APPROVED (no admin review).
+ *   3. On success → toast + `router.push('/today')`. */
 export function ExpenseSubmitForm({ tripId }: ExpenseSubmitFormProps) {
   const t  = useTranslations('expenses.submit');
   const router = useRouter();
