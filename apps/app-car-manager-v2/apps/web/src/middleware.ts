@@ -30,10 +30,11 @@ const IS_PROD = process.env.NODE_ENV === 'production';
  *   - New admin routes added later won't accidentally leak to drivers.
  *   - Easier to audit at review time — the whole set fits in one screen.
  *
- * Notably `/` is NOT in this list: that page renders the Admin/Manager
- * dashboard (KPI cards, fleet status, spend mix) which is irrelevant —
- * and partly leaky — for drivers. The deflect rule then bounces driver `/`
- * to `/today`, which is their actual home.
+ * Notably `/` is NOT in this list: Module 3 removal turned the root into a
+ * role-aware redirect (driver → `/today`, staff → `/trips`). Drivers hit
+ * `/` only as a splash before the page-level redirect fires. We keep the
+ * middleware-level deflect to `/today` so drivers don't even render the
+ * redirect page.
  *
  * The `/trips/:id/edit` denial is encoded as an explicit early return INSIDE
  * the `/trips/...` branch — otherwise the broad `/trips` prefix would let it

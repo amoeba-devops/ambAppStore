@@ -18,8 +18,13 @@ interface BottomTabNavProps {
  * means editing one file, not two. We take the first 4 workspace items since
  * the bar is a 4-column grid.
  *
- * Active state matches by `href`-prefix; for `/` we treat the user's role
- * landing as active (admin → dashboard `/`, driver → today `/today`).
+ * Active state matches by `href`-prefix. `/` itself is just a redirect
+ * (Module 3 dashboard removed) — STAFF lands at `/trips`, DRIVER at `/today`
+ * — so the tab that lights up reflects the post-redirect URL, not `/`.
+ *
+ * Mobile tab inventory after Module 3 removal:
+ *   - DRIVER: today · tripsMine · expensesNew · me  (4 / 4 grid slots)
+ *   - STAFF:  trips · vehicles  · drivers     · me  (4 / 4 grid slots)
  *
  * Hidden on md+ where the sidebar takes over. */
 export function BottomTabNav({ role }: BottomTabNavProps) {
@@ -79,23 +84,23 @@ export function BottomTabNav({ role }: BottomTabNavProps) {
 /* Match the pathname to a tab.
  *
  * Special cases:
- *   - Root `/` activates whichever item maps the role landing (dashboard for
- *     admin/manager, today for driver). The active item carries `href === '/'`
- *     or `href === '/today'`.
  *   - `tripsMine` and `trips` both point to `/trips` — they don't both render
  *     in a single user's nav (role filters one out), so a single startsWith
  *     check is enough.
- *   - Routes that share a prefix (`/settings/me` vs `/settings`) are resolved
- *     by exact-or-longer match, but since the role filter keeps at most one of
- *     them in `items`, the simple prefix check is correct in practice. */
+ *   - `expensesNew` covers `/expenses` + `/expenses/new` so the tab stays lit
+ *     across the submit flow.
+ *   - `me` covers `/settings/me` subroutes (preferences, locale).
+ *   - Root `/` is briefly visible before the page-level redirect fires.
+ *     `today` lights up for DRIVER, `trips` for STAFF — driven by which
+ *     tab is in `items` (role filter already restricts it). */
 function matchesTab(pathname: string, href: string, key: NavKey): boolean {
   if (pathname === href) return true;
-  if (href === '/') return pathname === '/';
   /* `/expenses` subroutes all live under `expensesNew`'s `/expenses/new` —
    * widen the match so the tab stays lit on subsequent flows. */
   if (key === 'expensesNew' && pathname.startsWith('/expenses')) return true;
   if (key === 'me' && pathname.startsWith('/settings/me')) return true;
   if (key === 'today' && pathname === '/') return true;
+  if (key === 'trips' && pathname === '/') return true;
   return pathname.startsWith(href + '/') || pathname === href;
 }
 
