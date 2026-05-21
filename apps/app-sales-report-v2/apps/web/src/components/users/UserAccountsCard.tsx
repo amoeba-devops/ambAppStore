@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Plus } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { fmtDateTime } from '@/lib/format';
@@ -9,7 +9,6 @@ import {
   listUsersAction,
   deactivateUserAction,
   activateUserAction,
-  resetPasswordAction,
   type UserRow,
 } from '@/server/actions/user.actions';
 import {
@@ -46,7 +45,8 @@ export function UserAccountsCard({ initialRealRows, mockSeeds, currentUserId }: 
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [loading, setLoading] = useState(false);
-  const [modal, setModal] = useState<{ mode: 'add' | 'edit'; initial: UserRow | null } | null>(null);
+  // Users are sourced from AMA — Admins can only edit role/status, never add.
+  const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; msg: string } | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -135,7 +135,7 @@ export function UserAccountsCard({ initialRealRows, mockSeeds, currentUserId }: 
   const onActivate = async (row: UserRow) => {
     if (row.role === 'UNASSIGNED') {
       setFeedback({ tone: 'error', msg: t('toast.assignRoleFirst') });
-      setModal({ mode: 'edit', initial: row });
+      setEditingUser(row);
       return;
     }
     if (isMockUserId(row.usrId)) {
@@ -152,22 +152,6 @@ export function UserAccountsCard({ initialRealRows, mockSeeds, currentUserId }: 
     }
     setFeedback({ tone: 'success', msg: t('toast.activated') });
     void refresh();
-  };
-
-  const onResetPwd = async (row: UserRow) => {
-    if (!confirm(t('confirm.resetPwd', { email: row.email ?? '' }))) return;
-    if (isMockUserId(row.usrId)) {
-      setFeedback({ tone: 'success', msg: t('toast.resetMock') });
-      return;
-    }
-    setPendingId(row.usrId);
-    const res = await resetPasswordAction({ usrId: row.usrId });
-    setPendingId(null);
-    if (!res.success) {
-      setFeedback({ tone: 'error', msg: res.error.message });
-      return;
-    }
-    setFeedback({ tone: 'success', msg: t('toast.resetReal') });
   };
 
   return (
@@ -207,14 +191,6 @@ export function UserAccountsCard({ initialRealRows, mockSeeds, currentUserId }: 
             <option value="ACTIVE">{tStatus('active')}</option>
             <option value="INACTIVE">{tStatus('inactive')}</option>
           </select>
-          <button
-            type="button"
-            onClick={() => setModal({ mode: 'add', initial: null })}
-            className="inline-flex items-center gap-1 rounded-md bg-info-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-info-500/90"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            {t('addUser')}
-          </button>
         </div>
       </div>
 
@@ -310,19 +286,11 @@ export function UserAccountsCard({ initialRealRows, mockSeeds, currentUserId }: 
                       <div className="flex justify-end gap-1.5">
                         <button
                           type="button"
-                          onClick={() => setModal({ mode: 'edit', initial: row })}
+                          onClick={() => setEditingUser(row)}
                           disabled={pendingId === row.usrId}
                           className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
                         >
                           {t('action.edit')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onResetPwd(row)}
-                          disabled={pendingId === row.usrId}
-                          className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
-                        >
-                          {t('action.resetPwd')}
                         </button>
                         {isInactive ? (
                           <button
@@ -354,16 +322,13 @@ export function UserAccountsCard({ initialRealRows, mockSeeds, currentUserId }: 
       </div>
 
       <UserFormModal
-        open={!!modal}
-        mode={modal?.mode ?? 'add'}
-        initial={modal?.initial ?? null}
-        onClose={() => setModal(null)}
+        open={!!editingUser}
+        mode="edit"
+        initial={editingUser}
+        onClose={() => setEditingUser(null)}
         onSaved={() => {
-          setModal(null);
-          setFeedback({
-            tone: 'success',
-            msg: modal?.mode === 'edit' ? t('toast.updated') : t('toast.added'),
-          });
+          setEditingUser(null);
+          setFeedback({ tone: 'success', msg: t('toast.updated') });
           void refresh();
         }}
       />

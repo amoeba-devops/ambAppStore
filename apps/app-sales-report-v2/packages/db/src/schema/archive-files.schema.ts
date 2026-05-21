@@ -7,8 +7,17 @@ import {
   date,
   timestamp,
   index,
+  customType,
   pgEnum,
 } from 'drizzle-orm/pg-core';
+
+// Drizzle doesn't ship a first-class BYTEA helper for postgres-js; use the
+// `customType` escape hatch so we round-trip Buffer ↔ Postgres BYTEA cleanly.
+const bytea = customType<{ data: Buffer; default: false }>({
+  dataType() {
+    return 'bytea';
+  },
+});
 import { uploadGranularityEnum } from './upload-sessions.schema.js';
 
 /**
@@ -64,6 +73,16 @@ export const salArchiveFiles = pgTable(
     arfMimeType: varchar('arf_mime_type', { length: 255 }),
     /** Number of data rows successfully parsed from this file. */
     arfRowCount: integer('arf_row_count'),
+    /**
+     * Inline copy of the uploaded bytes — populated when S3 isn't configured
+     * (or as a redundancy when it is). Lets the download endpoint serve the
+     * file without depending on external object storage. NULL for legacy rows
+     * uploaded before this column existed.
+     *
+     * Hard-capped at 50 MB per file inside `archiveFile()` to keep DB size
+     * predictable; oversized files fall back to S3-only.
+     */
+    arfRawBytes: bytea('arf_raw_bytes'),
     /** Revision number — re-uploads bump this; revision 1 is the original. */
     arfRevision: integer('arf_revision').notNull().default(1),
     /** When this revision was replaced by a newer upload. NULL = current. */

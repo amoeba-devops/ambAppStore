@@ -33,19 +33,25 @@ interface FormulaConfigClientProps {
   showFilters?: boolean;
   /** Show the Export button. Default true. */
   showExport?: boolean;
+  /** Start with all sections collapsed instead of expanded. Default false. */
+  defaultCollapsed?: boolean;
 }
 
 export function FormulaConfigClient({
   header,
   showFilters = true,
   showExport = true,
+  defaultCollapsed = false,
 }: FormulaConfigClientProps = {}) {
   const t = useTranslations('formulaConfig');
   const [values, setValues] = useState<Record<string, string>>({});
   const [sources, setSources] = useState<Record<string, string[]>>({});
   const [savedKey, setSavedKey] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
-    FORMULA_SECTIONS.reduce((acc, s) => ({ ...acc, [s.id]: true }), {} as Record<string, boolean>),
+    FORMULA_SECTIONS.reduce(
+      (acc, s) => ({ ...acc, [s.id]: !defaultCollapsed }),
+      {} as Record<string, boolean>,
+    ),
   );
 
   // Filter state

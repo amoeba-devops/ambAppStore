@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, ChevronsUpDown, Lock } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { findCurrentWeekIdx, type WeekEntry } from '@/lib/weekly-report-mock';
 import type { PeriodStatus } from '@/lib/raw-archive-mock';
@@ -25,6 +26,7 @@ export function WeekPicker({
   statusByLabel,
   allowClickLocked = false,
 }: WeekPickerProps) {
+  const t = useTranslations('weekPicker');
   const [center, setCenter] = useState(() => {
     if (selectedWeekNum != null) {
       const idx = weeks.findIndex((w) => w.weekNum === selectedWeekNum);
@@ -127,7 +129,7 @@ export function WeekPicker({
           )}
         >
           <ChevronsUpDown className="h-3.5 w-3.5" />
-          {expanded ? 'Collapse' : `Show all ${weeks.length} weeks`}
+          {expanded ? t('collapse') : t('showAll', { count: weeks.length })}
         </button>
       </div>
     </div>

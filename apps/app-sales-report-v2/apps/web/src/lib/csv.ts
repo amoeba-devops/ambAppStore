@@ -1,5 +1,38 @@
 // Minimal CSV helpers — RFC 4180 subset: comma delimiter, double-quote escape, CRLF or LF.
 
+const UTF8_BOM_BYTES = new Uint8Array([0xef, 0xbb, 0xbf]);
+
+/**
+ * Browser-side download helper. Wraps a CSV string in a Blob with a guaranteed
+ * UTF-8 BOM byte prefix and triggers a download. Excel on Windows requires the
+ * raw byte BOM (not just a `﻿` JS character) to open multi-byte text
+ * correctly — passing the string directly to `new Blob()` worked in dev but
+ * Excel still mis-detected the encoding for some users (see screenshot
+ * 2026-05-21 — Vietnamese product names rendered as Windows-1252 mojibake).
+ *
+ * Always emits BOM, even if the input string already has one (BOM mid-stream
+ * is a zero-width char, harmless).
+ */
+export function downloadCsv(csvText: string, filename: string): void {
+  if (typeof window === 'undefined') return;
+  // Strip a leading `﻿` if present — we'll prepend the raw byte BOM
+  // explicitly. Avoids double-BOM (which Excel renders as a literal `?`).
+  const stripped = csvText.charCodeAt(0) === 0xfeff ? csvText.slice(1) : csvText;
+  const body = new TextEncoder().encode(stripped);
+  const out = new Uint8Array(UTF8_BOM_BYTES.length + body.length);
+  out.set(UTF8_BOM_BYTES, 0);
+  out.set(body, UTF8_BOM_BYTES.length);
+  const blob = new Blob([out], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export function escapeCsvField(value: string | number | null | undefined): string {
   if (value == null) return '';
   const s = typeof value === 'number' ? value.toString() : value;

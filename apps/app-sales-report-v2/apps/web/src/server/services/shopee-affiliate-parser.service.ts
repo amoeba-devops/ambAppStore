@@ -1,7 +1,16 @@
 import 'server-only';
+import {
+  cellNumber,
+  cellText,
+  findHeaderRowByLabels,
+  isXlsx,
+  readXlsxGrid,
+  resolveHeaderColumns,
+  XlsxParseError,
+} from './xlsx-grid.util';
 
 /**
- * One row from Shopee Affiliate (Seller Conversion Report) CSV export.
+ * One row from Shopee Affiliate (Seller Conversion Report) export (.csv or .xlsx).
  * One row per product-line per affiliate conversion (orders can span multiple rows
  * for multi-product orders + multi-affiliate attribution).
  *
@@ -20,14 +29,32 @@ export interface ShopeeAffiliateRow {
   chiPhi: number;
 }
 
+// CSV export uses Vietnamese headers; xlsx export may use English. Accept
+// either — resolver picks whichever appears in the actual header row.
 const HEADER_MAP = {
-  orderId: 'Mã đơn hàng',
-  status: 'Trạng thái đơn hàng',
-  productId: 'Mã sản phẩm',
-  productName: 'Tên sản phẩm',
-  quantity: 'Số lượng',
-  productCommission: 'Hoa hồng Xtra trên sản phẩm(₫)',
-  chiPhi: 'Chi phí(₫)',
+  orderId: ['Mã đơn hàng', 'Order ID'],
+  status: ['Trạng thái đơn hàng', 'Order Status', 'Status'],
+  productId: ['Mã sản phẩm', 'Product ID', 'SKU'],
+  productName: ['Tên sản phẩm', 'Product Name'],
+  quantity: ['Số lượng', 'Quantity', 'Qty'],
+  productCommission: [
+    'Hoa hồng Xtra trên sản phẩm(₫)',
+    'Hoa hồng Xtra trên sản phẩm (₫)',
+    'Product Commission',
+    'Xtra Commission',
+    'Xtra Commission (Product)',
+  ],
+  chiPhi: [
+    'Chi phí(₫)',
+    'Chi phí (₫)',
+    'Cost',
+    'Cost(₫)',
+    'Cost (₫)',
+    'Expense',
+    'Expense(₫)',
+    'Total Cost',
+    'Total Cost(₫)',
+  ],
 } as const;
 
 type FieldName = keyof typeof HEADER_MAP;
@@ -73,6 +100,12 @@ const num = (s: string | undefined): number => {
 };
 
 export async function parseShopeeAffiliate(buffer: ArrayBuffer): Promise<ShopeeAffiliateRow[]> {
+  const bytes = new Uint8Array(buffer);
+  if (isXlsx(bytes)) return parseShopeeAffiliateXlsx(bytes);
+  return parseShopeeAffiliateCsv(buffer);
+}
+
+function parseShopeeAffiliateCsv(buffer: ArrayBuffer): ShopeeAffiliateRow[] {
   let text: string;
   try {
     text = new TextDecoder('utf-8').decode(buffer).replace(/^﻿/, '');
@@ -86,13 +119,18 @@ export async function parseShopeeAffiliate(buffer: ArrayBuffer): Promise<ShopeeA
   if (lines.length < 2) {
     throw new ShopeeAffiliateParseError('No data rows', 'EMPTY_FILE');
   }
-  const headers = parseCsvLine(lines[0]!).map((h) => h.normalize('NFC'));
+  const headers = parseCsvLine(lines[0]!).map((h) => h.normalize('NFC').trim());
   const colByField = {} as Record<FieldName, number>;
   const missing: string[] = [];
-  for (const [field, label] of Object.entries(HEADER_MAP) as Array<[FieldName, string]>) {
-    const labelNfc = label.normalize('NFC');
-    const idx = headers.findIndex((h) => h.trim() === labelNfc);
-    if (idx < 0) missing.push(label);
+  for (const [field, aliases] of Object.entries(HEADER_MAP) as Array<
+    [FieldName, readonly string[]]
+  >) {
+    let idx = -1;
+    for (const alias of aliases) {
+      idx = headers.findIndex((h) => h === alias.normalize('NFC'));
+      if (idx >= 0) break;
+    }
+    if (idx < 0) missing.push(aliases[0]!);
     else colByField[field] = idx;
   }
   if (missing.length > 0) {
@@ -114,6 +152,54 @@ export async function parseShopeeAffiliate(buffer: ArrayBuffer): Promise<ShopeeA
       quantity: num(cells[colByField.quantity]),
       productCommission: num(cells[colByField.productCommission]),
       chiPhi: num(cells[colByField.chiPhi]),
+    });
+  }
+  return rows;
+}
+
+function parseShopeeAffiliateXlsx(bytes: Uint8Array): ShopeeAffiliateRow[] {
+  let grid: Map<number, Map<number, string | number>>;
+  try {
+    grid = readXlsxGrid(bytes);
+  } catch (err) {
+    if (err instanceof XlsxParseError) {
+      throw new ShopeeAffiliateParseError(err.message, 'READ_FAILED');
+    }
+    throw err;
+  }
+  // Header row can be anywhere — xlsx exports often add leading metadata cols.
+  // Scan rows by counting alias matches.
+  const allLabels: string[] = Object.values(HEADER_MAP).flatMap((a) => [...a]);
+  const headerRowNum = findHeaderRowByLabels(grid, allLabels, 4);
+  if (headerRowNum < 0) {
+    throw new ShopeeAffiliateParseError(
+      'Header row not found in xlsx — expected columns like "Mã đơn hàng" / "Order ID"',
+      'NO_HEADER',
+    );
+  }
+  const { colByField, missing } = resolveHeaderColumns(grid.get(headerRowNum)!, HEADER_MAP);
+  if (missing.length > 0) {
+    throw new ShopeeAffiliateParseError(
+      `Missing required columns: ${missing.join(', ')}`,
+      'MISSING_COLUMN',
+    );
+  }
+
+  const rows: ShopeeAffiliateRow[] = [];
+  const maxRow = Math.max(...grid.keys());
+  for (let r = headerRowNum + 1; r <= maxRow; r++) {
+    const row = grid.get(r);
+    if (!row) continue;
+    const orderId = cellText(row.get(colByField.orderId));
+    if (!orderId) continue; // skip blank / footer rows
+    rows.push({
+      orderId,
+      status: cellText(row.get(colByField.status)),
+      productId: cellText(row.get(colByField.productId)),
+      productName: cellText(row.get(colByField.productName)),
+      quantity: cellNumber(row.get(colByField.quantity)),
+      productCommission: cellNumber(row.get(colByField.productCommission)),
+      chiPhi: cellNumber(row.get(colByField.chiPhi)),
     });
   }
   return rows;

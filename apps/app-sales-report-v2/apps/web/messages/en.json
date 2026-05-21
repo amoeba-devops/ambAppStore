@@ -48,6 +48,10 @@
       "ko": "Korean"
     }
   },
+  "weekPicker": {
+    "showAll": "Show all {count} weeks",
+    "collapse": "Collapse"
+  },
   "common": {
     "loading": "Loading…",
     "saving": "Saving…",
@@ -62,6 +66,7 @@
     "all": "All",
     "search": "Search",
     "actions": "Actions",
+    "createdAt": "Created at",
     "dash": "—",
     "currentUser": "Current user"
   },
@@ -220,6 +225,10 @@
     "subtitle": "Compare growth across weeks and months. Reports are computed against locked Master Data snapshots.",
     "weekOverWeek": "Week over Week",
     "monthOverMonth": "Month over Month",
+    "currency": {
+      "vnd": "VND",
+      "krw": "KRW"
+    },
     "export": "Export",
     "metricLabel": "Metric",
     "channel": {
@@ -756,6 +765,14 @@
       },
       "cancel": "Cancel"
     },
+    "inlineActions": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "resubmit": "Resubmit",
+      "unfinalize": "Unfinalize",
+      "lock": "Lock",
+      "reasonRequiredHint": "A reason is required to continue."
+    },
     "manualEdit": {
       "header": "Edit Manual Input",
       "periodLabel": "Period {label}",
@@ -819,13 +836,44 @@
       "krw": "KRW",
       "sellingPrice": "Selling Price",
       "listingPrice": "Listing Price",
+      "effectiveFrom": "Effective From",
+      "versionCount": "{count} versions",
       "lastUpdated": "Last updated",
       "actions": "Actions"
     },
     "row": {
       "edit": "Edit",
+      "versions": "Versions",
       "delete": "Delete",
       "deleting": "Deleting…"
+    },
+    "version": {
+      "add": "Add new version",
+      "effectiveFrom": "Effective From",
+      "effectiveFromDesc": "Orders placed on/after this date will use this cost. Cannot be more than 30 days in the future.",
+      "sourceNote": "Source / Note",
+      "history": {
+        "title": "Prime cost version history",
+        "empty": "No versions yet.",
+        "latestBadge": "Latest"
+      },
+      "breakdown": {
+        "title": "Cost breakdown (optional)",
+        "cogs": "COGS",
+        "logistic": "Logistic",
+        "warehouse": "Warehouse / day",
+        "fulfillment": "Fulfillment"
+      },
+      "delete": {
+        "confirm": "Delete version effective from {date}? This cannot be undone.",
+        "lastWarning": "Cannot delete the only version. Add a replacement first."
+      },
+      "flag": {
+        "disabledNotice": "Adding a version applies to new ingests of Draft periods only. Finalized periods stay unchanged."
+      },
+      "error": {
+        "primeCostInvalid": "Prime Cost must be a non-negative number."
+      }
     },
     "empty": {
       "search": "No rows match your search.",
@@ -839,6 +887,7 @@
       "title": "Import result",
       "inserted": "Inserted",
       "updated": "Updated",
+      "versionsAdded": "Versions",
       "errors": "Errors",
       "rowsSkipped": "Rows skipped",
       "rowPrefix": "Row {index}",
@@ -871,6 +920,23 @@
     "filter": "Filter",
     "filterCategories": "Categories",
     "clearAll": "Clear all",
+    "dateFilter": {
+      "label": "Date",
+      "presets": "Quick range",
+      "custom": "Custom range",
+      "from": "From",
+      "to": "To",
+      "fromShort": "From {date}",
+      "toShort": "Until {date}",
+      "clear": "Clear",
+      "done": "Done",
+      "preset": {
+        "today": "Today",
+        "last7": "Last 7 days",
+        "last30": "Last 30 days",
+        "thisMonth": "This month"
+      }
+    },
     "export": "Export",
     "exporting": "Exporting…",
     "empty": "No actions logged yet. Actions you take (uploads, edits, exports) will appear here.",

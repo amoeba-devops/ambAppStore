@@ -9,6 +9,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  CalendarRange,
+  X,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
@@ -18,6 +20,7 @@ import {
   type ActionLogRow,
 } from '@/server/actions/action-log.actions';
 import { getMockActionLogs, subscribeMockLog } from '@/lib/action-log-mock';
+import { downloadCsv } from '@/lib/csv';
 
 const CATEGORIES = ['UPLOAD', 'APPROVAL', 'MANUAL_INPUT', 'MASTER_DATA', 'FORMULA', 'REPORT', 'EXPORT', 'OTHER'] as const;
 type Category = (typeof CATEGORIES)[number];
@@ -82,6 +85,50 @@ function localDayKey(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/** YYYY-MM-DD for today (local). */
+function todayKey(): string {
+  return localDayKey(new Date().toISOString());
+}
+
+/** YYYY-MM-DD offset N days from today (local). N can be negative. */
+function offsetDayKey(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return localDayKey(d.toISOString());
+}
+
+/** First day of the current month (local), YYYY-MM-DD. */
+function startOfMonthKey(): string {
+  const d = new Date();
+  d.setDate(1);
+  return localDayKey(d.toISOString());
+}
+
+/** Convert YYYY-MM-DD to ISO at local start-of-day. Empty input → undefined. */
+function toIsoStartOfDay(dayKey: string | null): string | undefined {
+  if (!dayKey) return undefined;
+  const d = new Date(`${dayKey}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d.toISOString();
+}
+
+/** Convert YYYY-MM-DD to ISO at local end-of-day (23:59:59.999). Empty input → undefined. */
+function toIsoEndOfDay(dayKey: string | null): string | undefined {
+  if (!dayKey) return undefined;
+  const d = new Date(`${dayKey}T23:59:59.999`);
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d.toISOString();
+}
+
+/** True when the row's local day is within [from, to] inclusive (either bound may be null). */
+function isWithinDateRange(iso: string, from: string | null, to: string | null): boolean {
+  if (!from && !to) return true;
+  const key = localDayKey(iso);
+  if (from && key < from) return false;
+  if (to && key > to) return false;
+  return true;
+}
+
 interface ActivityLogFeedProps {
   initialRows: ActionLogRow[];
   initialHasMore: boolean;
@@ -114,12 +161,18 @@ export function ActivityLogFeed({
     }
   };
 
+  // Any value that can differ between server and the user's browser (clock,
+  // localStorage mock rows) must be deferred until after mount so the first
+  // client render exactly matches the SSR output — otherwise React throws
+  // a hydration mismatch.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const formatDayHeader = (dayKey: string): string => {
     const d = new Date(dayKey + 'T00:00:00');
     if (Number.isNaN(d.getTime())) return dayKey;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const yesterday = new Date(today.getTime() - 86_400_000);
     const dayDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     const human = dayDate.toLocaleDateString(intlLocale, {
       weekday: 'long',
@@ -127,6 +180,10 @@ export function ActivityLogFeed({
       month: 'short',
       year: 'numeric',
     });
+    if (!mounted) return human;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today.getTime() - 86_400_000);
     if (dayDate.getTime() === today.getTime()) return t('dayHeader.today', { date: human });
     if (dayDate.getTime() === yesterday.getTime()) return t('dayHeader.yesterday', { date: human });
     return human;
@@ -138,7 +195,10 @@ export function ActivityLogFeed({
   const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
   const [search, setSearch] = useState('');
   const [activeCategories, setActiveCategories] = useState<Set<Category>>(new Set());
+  const [dateFrom, setDateFrom] = useState<string | null>(null);
+  const [dateTo, setDateTo] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -152,17 +212,22 @@ export function ActivityLogFeed({
   const [mockTick, setMockTick] = useState(0);
   useEffect(() => subscribeMockLog(() => setMockTick((t) => t + 1)), []);
   const mockRows = useMemo<ActionLogRow[]>(() => {
+    // Skip on SSR + first client render — localStorage is browser-only and
+    // would otherwise cause a hydration mismatch (server sees no mock rows,
+    // client immediately has them on first render).
+    if (!mounted) return [];
     const all = getMockActionLogs();
     const q = search.trim().toLowerCase();
     return all.filter((r) => {
       if (activeCategories.size > 0 && !activeCategories.has(r.category as Category)) return false;
+      if (!isWithinDateRange(r.createdAt, dateFrom, dateTo)) return false;
       if (!q) return true;
       const hay =
         `${r.username} ${r.verb} ${r.targetLabel} ${r.summary ?? ''} ${r.category}`.toLowerCase();
       return hay.includes(q);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mockTick, search, activeCategories]);
+  }, [mounted, mockTick, search, activeCategories, dateFrom, dateTo]);
 
   // Merge server rows + mock rows, dedupe by actId, sort newest first
   const displayRows = useMemo<ActionLogRow[]>(() => {
@@ -182,7 +247,7 @@ export function ActivityLogFeed({
   // Reset to page 1 when filters or list size changes
   useEffect(() => {
     setPage(1);
-  }, [search, activeCategories, pageSize, displayRows.length === 0]);
+  }, [search, activeCategories, dateFrom, dateTo, pageSize, displayRows.length === 0]);
   // Clamp current page if it exceeds new page count
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -210,11 +275,13 @@ export function ActivityLogFeed({
   const rangeEnd = Math.min(pageStartIdx + pageSize, displayRows.length);
 
   const refresh = useCallback(
-    async (q: string, cats: Category[]) => {
+    async (q: string, cats: Category[], from: string | null, to: string | null) => {
       setLoading(true);
       const res = await listActionLogsAction({
         search: q || undefined,
         categories: cats.length > 0 ? cats : undefined,
+        dateFrom: toIsoStartOfDay(from),
+        dateTo: toIsoEndOfDay(to),
         limit: 10,
       });
       setLoading(false);
@@ -239,12 +306,12 @@ export function ActivityLogFeed({
     }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      void refresh(search, categoriesArray);
+      void refresh(search, categoriesArray, dateFrom, dateTo);
     }, 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [search, categoriesArray, refresh]);
+  }, [search, categoriesArray, dateFrom, dateTo, refresh]);
 
   const loadMore = async () => {
     if (!hasMore || !nextCursor || loadingMore) return;
@@ -252,6 +319,8 @@ export function ActivityLogFeed({
     const res = await listActionLogsAction({
       search: search || undefined,
       categories: categoriesArray.length > 0 ? categoriesArray : undefined,
+      dateFrom: toIsoStartOfDay(dateFrom),
+      dateTo: toIsoEndOfDay(dateTo),
       cursor: nextCursor,
       limit: 10,
     });
@@ -270,21 +339,15 @@ export function ActivityLogFeed({
     const res = await exportActionLogsAction({
       search: search || undefined,
       categories: categoriesArray.length > 0 ? categoriesArray : undefined,
+      dateFrom: toIsoStartOfDay(dateFrom),
+      dateTo: toIsoEndOfDay(dateTo),
     });
     setExporting(false);
     if (!res.success) {
       setFeedback(res.error.message);
       return;
     }
-    const blob = new Blob([res.data.csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = res.data.filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadCsv(res.data.csv, res.data.filename);
   };
 
   const toggleCategory = (c: Category) => {
@@ -294,6 +357,46 @@ export function ActivityLogFeed({
       else next.add(c);
       return next;
     });
+  };
+
+  const fmtDayShort = (dayKey: string): string => {
+    const d = new Date(`${dayKey}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return dayKey;
+    return d.toLocaleDateString(intlLocale, { day: '2-digit', month: 'short' });
+  };
+
+  const dateActive = !!(dateFrom || dateTo);
+  const dateButtonLabel = (() => {
+    if (dateFrom && dateTo) {
+      return dateFrom === dateTo
+        ? fmtDayShort(dateFrom)
+        : `${fmtDayShort(dateFrom)} – ${fmtDayShort(dateTo)}`;
+    }
+    if (dateFrom) return t('dateFilter.fromShort', { date: fmtDayShort(dateFrom) });
+    if (dateTo) return t('dateFilter.toShort', { date: fmtDayShort(dateTo) });
+    return t('dateFilter.label');
+  })();
+
+  const applyPreset = (preset: 'today' | 'last7' | 'last30' | 'thisMonth') => {
+    const today = todayKey();
+    if (preset === 'today') {
+      setDateFrom(today);
+      setDateTo(today);
+    } else if (preset === 'last7') {
+      setDateFrom(offsetDayKey(-6));
+      setDateTo(today);
+    } else if (preset === 'last30') {
+      setDateFrom(offsetDayKey(-29));
+      setDateTo(today);
+    } else {
+      setDateFrom(startOfMonthKey());
+      setDateTo(today);
+    }
+  };
+
+  const clearDate = () => {
+    setDateFrom(null);
+    setDateTo(null);
   };
 
   return (
@@ -309,6 +412,102 @@ export function ActivityLogFeed({
             placeholder={t('searchPlaceholder')}
             className="w-full rounded-md border border-neutral-300 bg-white py-2 pl-9 pr-3 text-sm placeholder:text-neutral-400 focus:border-neutral-500 focus:outline-none"
           />
+        </div>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setDateOpen((v) => !v)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-md border bg-white px-3 py-2 text-sm font-medium',
+              dateActive
+                ? 'border-accent-700 text-accent-700'
+                : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50',
+            )}
+          >
+            <CalendarRange className="h-4 w-4" />
+            <span className="whitespace-nowrap">{dateButtonLabel}</span>
+            {dateActive && (
+              <span
+                role="button"
+                tabIndex={0}
+                aria-label={t('dateFilter.clear')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  clearDate();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    clearDate();
+                  }
+                }}
+                className="ml-0.5 rounded p-0.5 hover:bg-accent-700/10"
+              >
+                <X className="h-3 w-3" />
+              </span>
+            )}
+          </button>
+          {dateOpen && (
+            <div className="absolute right-0 z-20 mt-1 w-72 rounded-md border border-neutral-200 bg-white p-3 shadow-md space-y-3">
+              <div>
+                <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+                  {t('dateFilter.presets')}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <PresetChip label={t('dateFilter.preset.today')} onClick={() => applyPreset('today')} />
+                  <PresetChip label={t('dateFilter.preset.last7')} onClick={() => applyPreset('last7')} />
+                  <PresetChip label={t('dateFilter.preset.last30')} onClick={() => applyPreset('last30')} />
+                  <PresetChip label={t('dateFilter.preset.thisMonth')} onClick={() => applyPreset('thisMonth')} />
+                </div>
+              </div>
+              <div>
+                <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+                  {t('dateFilter.custom')}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block text-[11px] text-neutral-500">
+                    <span className="mb-0.5 block">{t('dateFilter.from')}</span>
+                    <input
+                      type="date"
+                      value={dateFrom ?? ''}
+                      max={dateTo ?? undefined}
+                      onChange={(e) => setDateFrom(e.target.value || null)}
+                      className="w-full rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-xs text-neutral-900 focus:outline-none focus:border-info-500"
+                    />
+                  </label>
+                  <label className="block text-[11px] text-neutral-500">
+                    <span className="mb-0.5 block">{t('dateFilter.to')}</span>
+                    <input
+                      type="date"
+                      value={dateTo ?? ''}
+                      min={dateFrom ?? undefined}
+                      max={todayKey()}
+                      onChange={(e) => setDateTo(e.target.value || null)}
+                      className="w-full rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-xs text-neutral-900 focus:outline-none focus:border-info-500"
+                    />
+                  </label>
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-neutral-100">
+                <button
+                  type="button"
+                  onClick={clearDate}
+                  disabled={!dateActive}
+                  className="rounded px-2 py-1 text-xs text-neutral-500 hover:bg-neutral-100 disabled:opacity-40 disabled:hover:bg-transparent"
+                >
+                  {t('dateFilter.clear')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDateOpen(false)}
+                  className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-semibold text-white hover:bg-neutral-800"
+                >
+                  {t('dateFilter.done')}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <div className="relative">
           <button
@@ -602,6 +801,18 @@ export function ActivityLogFeed({
         </div>
       )}
     </div>
+  );
+}
+
+function PresetChip({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center rounded-md border border-neutral-300 bg-white px-2 py-1 text-[11px] font-medium text-neutral-700 hover:bg-neutral-100"
+    >
+      {label}
+    </button>
   );
 }
 

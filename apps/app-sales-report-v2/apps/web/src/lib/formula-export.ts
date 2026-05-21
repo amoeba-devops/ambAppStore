@@ -6,6 +6,7 @@
 import { FORMULA_SECTIONS } from './formula-config-data';
 import { getVersionHistory, getVersionCount } from './formula-version-mock';
 import { appendActionLog } from './action-log-mock';
+import { downloadCsv } from './csv';
 
 export function exportFormulaConfig(
   format: 'json' | 'csv',
@@ -21,18 +22,19 @@ export function exportFormulaConfig(
       : `formula-config-${ts}.csv`;
 
   const content = format === 'json' ? buildJson(values, sources) : buildCsv(values, sources);
-  const blob = new Blob([content], {
-    type: format === 'json' ? 'application/json' : 'text/csv;charset=utf-8',
-  });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  if (format === 'csv') {
+    downloadCsv(content, filename);
+  } else {
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
   const totalMetrics = FORMULA_SECTIONS.reduce((s, sec) => s + sec.items.length, 0);
   appendActionLog({

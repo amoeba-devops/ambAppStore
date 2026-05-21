@@ -270,12 +270,14 @@ export function MonthlyReportClient({ realMonthKeys = [] }: MonthlyReportClientP
           <div className="inline-flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm">
             <span className="text-neutral-500">{tW('krwRate.prefix')}</span>
             <input
-              type="number"
-              value={krwRate}
-              onChange={(e) => setKrwRate(Math.max(0, Number(e.target.value) || 0))}
-              className="w-20 rounded border border-neutral-200 px-2 py-0.5 text-right font-mono tabular-nums text-neutral-900 focus:border-neutral-500 focus:outline-none"
-              min="1"
-              step="0.01"
+              type="text"
+              inputMode="numeric"
+              value={krwRate ? krwRate.toLocaleString('en-US') : ''}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/[^\d]/g, '');
+                setKrwRate(digits ? Math.max(0, Number(digits)) : 0);
+              }}
+              className="w-24 rounded border border-neutral-200 px-2 py-0.5 text-right font-mono tabular-nums text-neutral-900 focus:border-neutral-500 focus:outline-none"
             />
             <span className="text-neutral-500">{tW('krwRate.suffix')}</span>
           </div>

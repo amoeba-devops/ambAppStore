@@ -14,18 +14,56 @@ import {
 
 export type ExclusionReason = 'CANCELLED' | 'RETURNED' | 'FREE_GIFT_GIFT_PREFIX' | 'FREE_GIFT_NMV_FALLBACK';
 
+/** One row from `sal_prime_cost_versions` flattened for in-memory lookup. */
+export interface PrimeCostVersion {
+  /** ISO `YYYY-MM-DD` — version becomes active on this date (inclusive). */
+  effectiveFrom: string;
+  /** Per-unit prime cost in VND for this version. */
+  primeCost: number;
+  /** Optional cost components captured by Operator (cogs/logistic/warehouse/fulfillment/notes). */
+  breakdown: Record<string, unknown> | null;
+}
+
 /** Prime cost master keyed by SKU code — passed in from caller (DB lookup). */
 export interface PrimeCostMaster {
-  /** Per-unit prime cost in VND. */
+  /**
+   * Per-unit prime cost in VND of the LATEST effective version. Kept for UI
+   * callers that don't care about per-order pricing (e.g. master table display,
+   * preview cards). Calculators should use `findPrimeCost(master, orderDate)`
+   * to honour versioning instead of reading this field directly.
+   */
   primeCost: number;
-  /** Per-unit selling price in VND (for Shopee Net GMV). */
+  /** Per-unit selling price in VND (for Shopee Net GMV). Phase 1: not versioned. */
   sellingPrice: number;
-  /** Per-unit listing price in VND (for TikTok GMV). */
+  /** Per-unit listing price in VND (for TikTok GMV). Phase 1: not versioned. */
   listingPrice: number;
   /** English product name (for Product Breakdown display). May be empty. */
   productNameEn: string;
+  /** Versions sorted DESC by `effectiveFrom`. ≥1 row when SKU exists. */
+  versions: PrimeCostVersion[];
 }
 export type PrimeCostMap = Map<string, PrimeCostMaster>;
+
+/**
+ * Resolve the per-unit prime cost for a row given the order's createDate.
+ * - Master missing → 0 (no SKU configured)
+ * - `orderDate` empty (legacy file without "Ngày đặt hàng"/"Created Time") →
+ *   latest version (master.primeCost)
+ * - `orderDate` earlier than the oldest version → latest version (best-effort
+ *   fallback; per migration, every SKU has a sentinel 2020-01-01 version so
+ *   this branch is almost never hit)
+ * - otherwise → cost of the first version where `effectiveFrom <= orderDate`
+ *   (versions are DESC-sorted so this scans newest → oldest, picking the
+ *   latest-applicable).
+ */
+export function findPrimeCost(master: PrimeCostMaster | undefined, orderDate: string): number {
+  if (!master) return 0;
+  if (!orderDate || master.versions.length === 0) return master.primeCost;
+  for (const v of master.versions) {
+    if (v.effectiveFrom <= orderDate) return v.primeCost;
+  }
+  return master.primeCost;
+}
 
 export interface ShopeeMetricsResult {
   /** SUM(item_sold) for kept rows. */
@@ -280,6 +318,10 @@ export function computeShopeeMetrics(
   >();
 
   for (const row of rows) {
+    // Defensive: parser already skips blank rows, but guard against any
+    // future caller that passes rows with empty orderId (would otherwise
+    // create a phantom '' order key and inflate orderCounts.nonCancelled).
+    if (!row.orderId) continue;
     // Track per-order maxes for ALL rows — cancelled rows have 0 fees so they
     // don't affect the MAX; what matters is whether the order has ANY non-cancelled row.
     let orderAgg = orderMaxes.get(row.orderId);
@@ -318,11 +360,14 @@ export function computeShopeeMetrics(
     const isGiftPrefix = row.productName.startsWith('[GIFT]');
     const isNmvFallback = row.nmv === 0 && row.originalPrice > 0;
     const master = primeCosts.get(row.varSku);
+    // Date-aware prime cost: applies the version active at the order's
+    // createDate. Empty `row.orderDate` (legacy file) falls back to latest.
+    const rowPrimeCost = findPrimeCost(master, row.orderDate);
 
     if (isGiftPrefix || isNmvFallback) {
       freeGift++;
       freeGiftProducts.add(row.productName);
-      const giftPc = master ? master.primeCost * itemSold : 0;
+      const giftPc = master ? rowPrimeCost * itemSold : 0;
       if (master) primeCostFreeGift += giftPc;
       let gAgg = giftAgg.get(row.productName);
       if (!gAgg) {
@@ -352,7 +397,7 @@ export function computeShopeeMetrics(
     }
 
     const sellingPrice = master?.sellingPrice ?? 0;
-    const primeCost = master?.primeCost ?? 0;
+    const primeCost = rowPrimeCost;
     const netGmvRow = sellingPrice * itemSold;
     const primeCostRow = primeCost * itemSold;
     const sellerDiscountRow = Math.max(0, netGmvRow - row.nmv);

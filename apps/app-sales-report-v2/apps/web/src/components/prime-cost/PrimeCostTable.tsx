@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Download, Upload, Plus, Search, Trash2, Pencil } from 'lucide-react';
+import { Download, Upload, Plus, Search, Trash2, Pencil, History } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { fmtDateTime } from '@/lib/format';
+import { downloadCsv } from '@/lib/csv';
 import {
   listPrimeCostsAction,
   deletePrimeCostAction,
@@ -14,6 +15,8 @@ import {
   type ImportResult,
 } from '@/server/actions/prime-cost.actions';
 import { PrimeCostFormModal } from './PrimeCostFormModal';
+import { VersionHistoryModal } from './VersionHistoryModal';
+import { isPrimeCostVersioningEnabled } from '@/lib/feature-flags';
 
 const KRW_RATE = 17.543;
 
@@ -41,6 +44,8 @@ export function PrimeCostTable({ initialRows, initialTotal }: PrimeCostTableProp
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<PrimeCostRow | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [versionTarget, setVersionTarget] = useState<PrimeCostRow | null>(null);
+  const versioningEnabled = isPrimeCostVersioningEnabled();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; msg: string } | null>(null);
   const [downloading, setDownloading] = useState(false);
@@ -101,15 +106,7 @@ export function PrimeCostTable({ initialRows, initialTotal }: PrimeCostTableProp
       setFeedback({ tone: 'error', msg: res.error.message });
       return;
     }
-    const blob = new Blob([res.data.csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = res.data.filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadCsv(res.data.csv, res.data.filename);
     setFeedback({ tone: 'success', msg: t('downloadedCount', { count: res.data.count }) });
   };
 
@@ -235,6 +232,7 @@ export function PrimeCostTable({ initialRows, initialTotal }: PrimeCostTableProp
                 <th className="px-4 py-3 text-right font-medium">{t('column.krw')}</th>
                 <th className="px-4 py-3 text-right font-medium">{t('column.sellingPrice')}</th>
                 <th className="px-4 py-3 text-right font-medium">{t('column.listingPrice')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('column.effectiveFrom')}</th>
                 <th className="px-4 py-3 text-left font-medium">{t('column.lastUpdated')}</th>
                 <th className="px-4 py-3 text-right font-medium">{t('column.actions')}</th>
               </tr>
@@ -242,14 +240,14 @@ export function PrimeCostTable({ initialRows, initialTotal }: PrimeCostTableProp
             <tbody className="divide-y divide-neutral-100">
               {loading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-4 py-8 text-center text-sm text-neutral-500">
+                  <td colSpan={12} className="px-4 py-8 text-center text-sm text-neutral-500">
                     {tCommon('loading')}
                   </td>
                 </tr>
               )}
               {!loading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-4 py-8 text-center text-sm text-neutral-500">
+                  <td colSpan={12} className="px-4 py-8 text-center text-sm text-neutral-500">
                     {search ? t('empty.search') : t('empty.initial')}
                   </td>
                 </tr>
@@ -275,15 +273,45 @@ export function PrimeCostTable({ initialRows, initialTotal }: PrimeCostTableProp
                   <td className="px-4 py-3 text-right font-mono tabular-nums text-neutral-700">
                     {fmtVnd(row.listingPriceVnd)}
                   </td>
+                  <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">
+                    {row.effectiveFromLatest ? (
+                      <span className="text-neutral-900">
+                        {row.effectiveFromLatest}
+                        {row.versionCount > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setVersionTarget(row)}
+                            className="ml-1.5 inline-flex items-center rounded-full bg-info-50 px-1.5 py-0.5 text-[10px] font-medium text-info-500 hover:bg-info-500/15"
+                            title={t('version.history.title')}
+                          >
+                            {t('column.versionCount', { count: row.versionCount })}
+                          </button>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-neutral-400">{tCommon('dash')}</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 font-mono text-xs text-neutral-500 whitespace-nowrap">
                     {fmtDateTime(row.updatedAt)}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-1.5">
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="flex justify-end gap-1.5 whitespace-nowrap">
+                      {versioningEnabled && (
+                        <button
+                          type="button"
+                          onClick={() => setVersionTarget(row)}
+                          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-info-500 bg-white px-2 py-1 text-xs font-medium text-info-500 hover:bg-info-50"
+                          title={t('version.history.title')}
+                        >
+                          <History className="h-3 w-3" />
+                          {t('row.versions')}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => openEdit(row)}
-                        className="inline-flex items-center gap-1 rounded-md border border-neutral-300 bg-white px-2 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+                        className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-neutral-300 bg-white px-2 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
                       >
                         <Pencil className="h-3 w-3" />
                         {t('row.edit')}
@@ -292,7 +320,7 @@ export function PrimeCostTable({ initialRows, initialTotal }: PrimeCostTableProp
                         type="button"
                         onClick={() => onDelete(row)}
                         disabled={deletingId === row.pcsId}
-                        className="inline-flex items-center gap-1 rounded-md border border-error-500 bg-white px-2 py-1 text-xs font-medium text-error-500 hover:bg-error-50 disabled:opacity-50"
+                        className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-error-500 bg-white px-2 py-1 text-xs font-medium text-error-500 hover:bg-error-50 disabled:opacity-50"
                       >
                         <Trash2 className="h-3 w-3" />
                         {deletingId === row.pcsId ? t('row.deleting') : t('row.delete')}
@@ -321,6 +349,15 @@ export function PrimeCostTable({ initialRows, initialTotal }: PrimeCostTableProp
         onSaved={onSaved}
       />
 
+      <VersionHistoryModal
+        open={versionTarget != null}
+        pcsId={versionTarget?.pcsId ?? null}
+        skuLabel={versionTarget?.skuCode ?? ''}
+        productName={versionTarget?.productNameVi ?? ''}
+        onClose={() => setVersionTarget(null)}
+        onChanged={() => void refresh(search)}
+      />
+
       {importSummary && (
         <ImportResultModal summary={importSummary} onClose={() => setImportSummary(null)} />
       )}
@@ -347,9 +384,10 @@ function ImportResultModal({ summary, onClose }: { summary: ImportResult; onClos
           </button>
         </div>
         <div className="space-y-3 px-6 py-5 text-sm">
-          <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="grid grid-cols-4 gap-3 text-center">
             <Stat label={t('inserted')} value={summary.inserted} tone="success" />
             <Stat label={t('updated')} value={summary.updated} tone="info" />
+            <Stat label={t('versionsAdded')} value={summary.versionsAdded} tone="info" />
             <Stat label={t('errors')} value={summary.errors.length} tone={hasErrors ? 'error' : 'neutral'} />
           </div>
           {hasErrors && (

@@ -64,6 +64,12 @@ export async function archiveFile(input: ArchiveFileInput): Promise<{ arfId: str
     console.error('[archive-files] S3 upload failed:', err instanceof Error ? err.message : err);
   }
 
+  // Persist the raw bytes in DB as a fallback so the download endpoint works
+  // even when S3 isn't configured. Cap at 50 MB per file so accidental giant
+  // exports don't bloat Postgres.
+  const MAX_INLINE_BYTES = 50 * 1024 * 1024;
+  const rawBytes = sizeBytes <= MAX_INLINE_BYTES ? Buffer.from(bytes) : null;
+
   // Find the previous current revision for this period+channel+fileType to bump
   const prev = await db
     .select({
@@ -114,6 +120,7 @@ export async function archiveFile(input: ArchiveFileInput): Promise<{ arfId: str
     arfRevision: revision,
     arfReplacedAt: null,
     arfUploadedBy: input.uploadedBy,
+    arfRawBytes: rawBytes,
   });
 
   return { arfId };
@@ -183,8 +190,23 @@ export async function listArchiveFilesForPeriod(input: {
   } else if (input.monthIdx != null) {
     conditions.push(eq(schema.salArchiveFiles.arfMonthIdx, input.monthIdx));
   }
+  // Explicit column list (skip `arf_raw_bytes` BYTEA — never needed for
+  // listings + pulling it triggers a Node DEP0005 warning in the pg driver
+  // when the column is non-null on any row).
   const rows = await db
-    .select()
+    .select({
+      arfId: schema.salArchiveFiles.arfId,
+      arfChannel: schema.salArchiveFiles.arfChannel,
+      arfFileType: schema.salArchiveFiles.arfFileType,
+      arfFilename: schema.salArchiveFiles.arfFilename,
+      arfSizeBytes: schema.salArchiveFiles.arfSizeBytes,
+      arfRowCount: schema.salArchiveFiles.arfRowCount,
+      arfUploadedAt: schema.salArchiveFiles.arfUploadedAt,
+      arfUploadedBy: schema.salArchiveFiles.arfUploadedBy,
+      arfS3Key: schema.salArchiveFiles.arfS3Key,
+      arfRevision: schema.salArchiveFiles.arfRevision,
+      arfSha256: schema.salArchiveFiles.arfSha256,
+    })
     .from(schema.salArchiveFiles)
     .where(and(...conditions));
   return rows.map((r) => ({
@@ -203,8 +225,28 @@ export async function listArchiveFilesForPeriod(input: {
 }
 
 export async function listArchivePeriods(entId: string): Promise<ArchivePeriodSummary[]> {
+  // Skip `arf_raw_bytes` — listings only need metadata. Pulling BYTEA into the
+  // RSC tree both wastes bandwidth and triggers Node DEP0005 in the pg driver.
   const rows = await db
-    .select()
+    .select({
+      arfId: schema.salArchiveFiles.arfId,
+      arfPeriodStart: schema.salArchiveFiles.arfPeriodStart,
+      arfPeriodEnd: schema.salArchiveFiles.arfPeriodEnd,
+      arfGranularity: schema.salArchiveFiles.arfGranularity,
+      arfWeekNum: schema.salArchiveFiles.arfWeekNum,
+      arfMonthIdx: schema.salArchiveFiles.arfMonthIdx,
+      arfYear: schema.salArchiveFiles.arfYear,
+      arfChannel: schema.salArchiveFiles.arfChannel,
+      arfFileType: schema.salArchiveFiles.arfFileType,
+      arfFilename: schema.salArchiveFiles.arfFilename,
+      arfSizeBytes: schema.salArchiveFiles.arfSizeBytes,
+      arfRowCount: schema.salArchiveFiles.arfRowCount,
+      arfUploadedAt: schema.salArchiveFiles.arfUploadedAt,
+      arfUploadedBy: schema.salArchiveFiles.arfUploadedBy,
+      arfS3Key: schema.salArchiveFiles.arfS3Key,
+      arfRevision: schema.salArchiveFiles.arfRevision,
+      arfSha256: schema.salArchiveFiles.arfSha256,
+    })
     .from(schema.salArchiveFiles)
     .where(
       and(

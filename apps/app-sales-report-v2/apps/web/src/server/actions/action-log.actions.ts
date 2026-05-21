@@ -1,7 +1,7 @@
 'use server';
 
 import 'server-only';
-import { and, desc, ilike, lt, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, gte, ilike, lt, lte, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema, withEnt } from '@v2/db';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
@@ -35,6 +35,8 @@ export type ActionLogRow = {
 const listInputSchema = z.object({
   search: z.string().optional(),
   categories: z.array(z.enum(ACTION_CATEGORIES)).optional(),
+  dateFrom: z.string().datetime().optional(),
+  dateTo: z.string().datetime().optional(),
   cursor: z.string().datetime().optional(),
   limit: z.number().int().min(1).max(100).optional(),
 });
@@ -97,6 +99,12 @@ export async function listActionLogsAction(input: z.infer<typeof listInputSchema
         )}]::sal_action_category[])`,
       );
     }
+    if (parsed.dateFrom) {
+      conditions.push(gte(schema.salActionLogs.actCreatedAt, new Date(parsed.dateFrom)));
+    }
+    if (parsed.dateTo) {
+      conditions.push(lte(schema.salActionLogs.actCreatedAt, new Date(parsed.dateTo)));
+    }
     if (parsed.cursor) {
       conditions.push(lt(schema.salActionLogs.actCreatedAt, new Date(parsed.cursor)));
     }
@@ -125,7 +133,14 @@ export async function listActionLogsAction(input: z.infer<typeof listInputSchema
   });
 }
 
-export async function exportActionLogsAction(input: { search?: string; categories?: typeof ACTION_CATEGORIES[number][] } = {}) {
+export async function exportActionLogsAction(
+  input: {
+    search?: string;
+    categories?: typeof ACTION_CATEGORIES[number][];
+    dateFrom?: string;
+    dateTo?: string;
+  } = {},
+) {
   return wrap(async () => {
     const user = await getCurrentUser();
     requireRole(user.role, ['MANAGER', 'ADMIN']);
@@ -149,6 +164,12 @@ export async function exportActionLogsAction(input: { search?: string; categorie
           sql`, `,
         )}]::sal_action_category[])`,
       );
+    }
+    if (input.dateFrom) {
+      conditions.push(gte(schema.salActionLogs.actCreatedAt, new Date(input.dateFrom)));
+    }
+    if (input.dateTo) {
+      conditions.push(lte(schema.salActionLogs.actCreatedAt, new Date(input.dateTo)));
     }
 
     const rows = await db

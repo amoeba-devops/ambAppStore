@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
+import { vndToKrw } from '@/lib/format';
 import {
   channelMetric,
   getMetricDef,
@@ -12,6 +13,8 @@ import {
   type Metric,
   type WeekPoint,
 } from '@/lib/trends-mock';
+
+type CurrencyMode = 'VND' | 'KRW';
 
 type RowKind = 'regular' | 'subtotal' | 'child' | 'highlight';
 
@@ -70,6 +73,7 @@ const RATIO_ROWS: MetricRow[] = [
 interface Props {
   weeks: WeekPoint[];
   granularity?: 'WEEK' | 'MONTH';
+  currency?: CurrencyMode;
 }
 
 type ChannelOpt = { key: Channel; i18nKey: 'total' | 'shopee' | 'tiktok' };
@@ -79,7 +83,16 @@ const CHANNEL_OPTIONS: ChannelOpt[] = [
   { key: 'TIKTOK', i18nKey: 'tiktok' },
 ];
 
-export function MetricBreakdownTable({ weeks, granularity = 'WEEK' }: Props) {
+// Shared className for the sticky left "Metric" column.
+// - `sticky left-0` keeps it in view on horizontal scroll
+// - `z-20` sits above body cells (z-0) and section row backgrounds (z-10)
+// - fixed width prevents the column from shrinking when more weeks are added
+// - right border + subtle shadow give a visual seam when content scrolls under
+const STICKY_COL_BASE =
+  'sticky left-0 z-20 w-[260px] min-w-[260px] max-w-[260px] border-r border-neutral-200 ' +
+  'shadow-[2px_0_0_-1px_rgba(0,0,0,0.04)]';
+
+export function MetricBreakdownTable({ weeks, granularity = 'WEEK', currency = 'VND' }: Props) {
   const t = useTranslations('trendingReport');
   const [channel, setChannel] = useState<Channel>('TOTAL');
   const deltaLabel = granularity === 'WEEK' ? t('card.wowSuffix') : t('card.momSuffix');
@@ -111,7 +124,7 @@ export function MetricBreakdownTable({ weeks, granularity = 'WEEK' }: Props) {
         <table className="w-full min-w-[1100px] text-sm">
           <thead className="bg-neutral-50 text-[11px] uppercase tracking-wider text-neutral-500">
             <tr>
-              <th className="sticky left-0 z-10 bg-neutral-50 px-4 py-2.5 text-left font-medium border-r border-neutral-200">
+              <th className={cn(STICKY_COL_BASE, 'bg-neutral-50 px-4 py-2.5 text-left font-medium')}>
                 {t('breakdown.col.metric')}
               </th>
               {weeks.map((w, i) => (
@@ -124,7 +137,7 @@ export function MetricBreakdownTable({ weeks, granularity = 'WEEK' }: Props) {
               ))}
             </tr>
             <tr className="border-b border-neutral-200">
-              <th className="sticky left-0 z-10 bg-neutral-50 border-r border-neutral-200"></th>
+              <th className={cn(STICKY_COL_BASE, 'bg-neutral-50')}></th>
               {weeks.map((w, i) => (
                 <ColPair key={`${w.year}-${w.weekNum}-${i}-sub`} deltaLabel={deltaLabel} />
               ))}
@@ -133,15 +146,15 @@ export function MetricBreakdownTable({ weeks, granularity = 'WEEK' }: Props) {
           <tbody>
             <SectionHeader label={t('breakdown.section.amount')} spanCols={weeks.length * 2} />
             {AMOUNT_ROWS.map((row) => (
-              <Row key={`amount-${row.metric}-${row.label}`} row={row} weeks={weeks} mode="amount" channel={channel} />
+              <Row key={`amount-${row.metric}-${row.label}`} row={row} weeks={weeks} mode="amount" channel={channel} currency={currency} />
             ))}
             <SectionHeader label={t('breakdown.section.ratio')} spanCols={weeks.length * 2} />
             {RATIO_ROWS.map((row) => (
-              <Row key={`ratio-${row.metric}-${row.label}`} row={row} weeks={weeks} mode="ratio" channel={channel} />
+              <Row key={`ratio-${row.metric}-${row.label}`} row={row} weeks={weeks} mode="ratio" channel={channel} currency={currency} />
             ))}
             <SectionHeader label={t('breakdown.section.traffic')} spanCols={weeks.length * 2} />
             {TRAFFIC_ROWS.map((row) => (
-              <Row key={`traffic-${row.metric}-${row.label}`} row={row} weeks={weeks} mode="amount" channel={channel} />
+              <Row key={`traffic-${row.metric}-${row.label}`} row={row} weeks={weeks} mode="amount" channel={channel} currency={currency} />
             ))}
           </tbody>
         </table>
@@ -168,7 +181,10 @@ function SectionHeader({ label, spanCols }: { label: string; spanCols: number })
   return (
     <tr className="bg-neutral-100">
       <td
-        className="sticky left-0 z-10 bg-neutral-100 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-600 border-r border-neutral-200"
+        className={cn(
+          STICKY_COL_BASE,
+          'bg-neutral-100 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-600',
+        )}
         colSpan={1}
       >
         {label}
@@ -183,11 +199,13 @@ function Row({
   weeks,
   mode,
   channel,
+  currency,
 }: {
   row: MetricRow;
   weeks: WeekPoint[];
   mode: 'amount' | 'ratio';
   channel: Channel;
+  currency: CurrencyMode;
 }) {
   const rowBg =
     row.kind === 'highlight'
@@ -195,6 +213,14 @@ function Row({
       : row.kind === 'subtotal'
         ? 'bg-neutral-50/60'
         : '';
+  // Solid background for the sticky metric cell — transparency in `rowBg`
+  // would let scrolled content bleed through behind it.
+  const stickyBg =
+    row.kind === 'highlight'
+      ? 'bg-accent-50'
+      : row.kind === 'subtotal'
+        ? 'bg-neutral-50'
+        : 'bg-white';
   const labelClass =
     row.kind === 'subtotal'
       ? 'font-semibold text-neutral-900'
@@ -210,10 +236,15 @@ function Row({
 
   const def = getMetricDef(row.metric);
 
-  // Compute value per week (raw amount or ratio) — scoped to the selected channel
+  // Compute value per week (raw amount or ratio) — scoped to the selected channel.
+  // Amount cells convert VND→KRW when currency is KRW. Ratio cells are
+  // currency-agnostic (it cancels: KRW/KRW == VND/VND).
   const values = weeks.map((w) => {
     const raw = channelMetric(w, channel, row.metric);
-    if (mode === 'amount') return raw;
+    if (mode === 'amount') {
+      if (def.kind !== 'money') return raw;
+      return currency === 'KRW' ? vndToKrw(raw) : raw;
+    }
     const denom = channelMetric(w, channel, 'NET_GMV');
     return denom === 0 ? null : raw / denom;
   });
@@ -222,8 +253,9 @@ function Row({
     <tr className={cn('border-b border-neutral-100 hover:bg-neutral-50/40', rowBg)}>
       <td
         className={cn(
-          'sticky left-0 z-10 px-4 py-2.5 whitespace-nowrap border-r border-neutral-200',
-          rowBg || 'bg-white',
+          STICKY_COL_BASE,
+          'px-4 py-2.5 whitespace-nowrap',
+          stickyBg,
           labelClass,
         )}
       >
