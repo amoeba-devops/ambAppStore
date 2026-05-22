@@ -57,44 +57,67 @@ export function BottomTabNav({ role }: BottomTabNavProps) {
           label={tNav(navLabelKey(dashboardItem.key))}
         />
       )}
-      <ul className="grid grid-cols-4 h-14">
-        {flatItems.map((item) => {
-          const isActive = matchesTab(pathname, item.href, item.key);
-          return (
-            <li key={item.key} className="relative">
-              {/* Active indicator — top accent bar */}
-              <span
-                aria-hidden
-                className={cn(
-                  'absolute top-0 left-1/2 -translate-x-1/2 h-0.5 rounded-full transition-all duration-180 motion-reduce:transition-none',
-                  isActive ? 'w-10 bg-accent' : 'w-0 bg-transparent',
-                )}
-              />
-              <Link
-                href={item.href}
-                aria-current={isActive ? 'page' : undefined}
-                className={cn(
-                  'h-full flex flex-col items-center justify-center gap-1 text-[12px] font-medium',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
-                  'active:bg-surface-2/60 transition-colors duration-150 motion-reduce:transition-none',
-                  isActive ? 'text-accent' : 'text-text-muted',
-                )}
-              >
-                <item.Icon
-                  className={cn('h-6 w-6 transition-transform duration-180', isActive && 'scale-[1.05]')}
-                  strokeWidth={isActive ? 2.4 : 1.8}
-                  aria-hidden
-                />
-                <span className={cn('leading-none', isActive && 'font-semibold')}>
-                  {tNav(navLabelKey(item.key))}
-                </span>
-              </Link>
-            </li>
-          );
-        })}
+      {/* When the elevated Dashboard is present we carve out a fixed-width
+       * centre column (72px) so the round button (56px) gets ~8px of clear
+       * space on each side. Without that gap the inner edges of the
+       * Vehicles + Drivers tabs sat under the button's shadow / tap surface
+       * (z-50) and users mis-tapped between Drivers and Dashboard. The
+       * `minmax(0,1fr)` floor on side cells lets labels truncate gracefully
+       * instead of forcing the grid wider than the viewport. */}
+      <ul
+        className={cn(
+          'grid h-14',
+          dashboardItem
+            ? 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_72px_minmax(0,1fr)_minmax(0,1fr)]'
+            : 'grid-cols-4',
+        )}
+      >
+        {flatItems.slice(0, dashboardItem ? 2 : flatItems.length).map(renderFlatTab(pathname, tNav))}
+        {dashboardItem && <li aria-hidden />}
+        {dashboardItem && flatItems.slice(2).map(renderFlatTab(pathname, tNav))}
       </ul>
     </nav>
   );
+}
+
+/** Closure-returning render helper so the two `flatItems.slice(...)` arms
+ * stay terse without duplicating the tab JSX. Pulled out of the inline
+ * `.map` so the JSX above reads as layout rather than rendering detail. */
+function renderFlatTab(pathname: string, tNav: (key: string) => string) {
+  return function FlatTab(item: ReturnType<typeof navItemsForRole>[number]) {
+    const isActive = matchesTab(pathname, item.href, item.key);
+    return (
+      <li key={item.key} className="relative">
+        {/* Active indicator — top accent bar */}
+        <span
+          aria-hidden
+          className={cn(
+            'absolute top-0 left-1/2 -translate-x-1/2 h-0.5 rounded-full transition-all duration-180 motion-reduce:transition-none',
+            isActive ? 'w-10 bg-accent' : 'w-0 bg-transparent',
+          )}
+        />
+        <Link
+          href={item.href}
+          aria-current={isActive ? 'page' : undefined}
+          className={cn(
+            'h-full flex flex-col items-center justify-center gap-1 text-[12px] font-medium',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+            'active:bg-surface-2/60 transition-colors duration-150 motion-reduce:transition-none',
+            isActive ? 'text-accent' : 'text-text-muted',
+          )}
+        >
+          <item.Icon
+            className={cn('h-6 w-6 transition-transform duration-180', isActive && 'scale-[1.05]')}
+            strokeWidth={isActive ? 2.4 : 1.8}
+            aria-hidden
+          />
+          <span className={cn('truncate px-1 leading-none', isActive && 'font-semibold')}>
+            {tNav(navLabelKey(item.key))}
+          </span>
+        </Link>
+      </li>
+    );
+  };
 }
 
 /* Elevated centre button for the STAFF Dashboard. Positioned absolutely so it
