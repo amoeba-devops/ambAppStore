@@ -1,6 +1,7 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { OilOverdueBanner } from '@/components/maintenance/oil-overdue-banner';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { ensureCarUser } from '@/server/services/user/ensure-car-user.service';
 import { getCriticalUnresolvedAlerts } from '@/server/queries/maintenance-alerts.queries';
 
 /**
@@ -14,6 +15,17 @@ import { getCriticalUnresolvedAlerts } from '@/server/queries/maintenance-alerts
  */
 export default async function AppGroupLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
+
+  // Step 4 (D-006): Upsert car_users + audit log on first login or role change.
+  // React `cache()` dedupes if multiple RSC trees in same request call this.
+  await ensureCarUser({
+    entId: user.entId,
+    amaUserId: user.userId,
+    amaRole: user.amaRole,
+    email: user.email,
+    name: user.name,
+  });
+
   const showBanner = user.role === 'ADMIN' || user.role === 'MANAGER';
   const alerts = showBanner ? await getCriticalUnresolvedAlerts(user.entId) : [];
   const items = alerts

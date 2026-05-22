@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { AlertTriangle, Car, Download, Fuel, Gauge, MapPin, Plus, Wrench } from 'lucide-react';
+import { AlertTriangle, Car, Fuel, Gauge, MapPin, Plus, Wrench } from 'lucide-react';
 import { Badge, Button, Card, EmptyState } from '@car-v2/ui';
 import { Fab } from '@/components/layout/fab';
 import type { CarVehicle, CarVehicleStatus } from '@car-v2/db/schema';
@@ -45,12 +45,9 @@ export default async function VehiclesPage() {
         subtitle={tList('subtitle', { count: summary.total, maint: summary.maintenance })}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('vehicles') }]}
         actions={
-          <>
-            <Button variant="ghost" size="md" iconLeft={<Download />}>{tA('export')}</Button>
-            <Button variant="accent" size="md" asChild>
-              <Link href="/vehicles/new"><Plus />{tA('new')}</Link>
-            </Button>
-          </>
+          <Button variant="accent" size="md" asChild>
+            <Link href="/vehicles/new"><Plus />{tA('new')}</Link>
+          </Button>
         }
       />
 

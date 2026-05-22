@@ -11,7 +11,7 @@ import {
   MapPin,
   User as UserIcon,
 } from 'lucide-react';
-import { Badge, Button } from '@car-v2/ui';
+import { Avatar, Badge, Button } from '@car-v2/ui';
 import type { CarTripStatus } from '@car-v2/db/schema';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { MapPreview } from '@/components/inputs/map-preview';
@@ -95,8 +95,11 @@ export function TripPeekDrawer(props: TripPeekDrawerProps) {
               {tStatus(trip.trpStatus)}
             </Badge>
           </div>
-          <div className="mt-1 text-xs text-text-faint truncate">
-            {trip.passengerName ?? tDetail('passengerUnspecified')}
+          <div className="mt-1 flex items-center gap-1.5 min-w-0">
+            {trip.passengerName && <Avatar name={trip.passengerName} size="xs" />}
+            <span className="text-xs text-text-faint truncate">
+              {trip.passengerName ?? tDetail('passengerUnspecified')}
+            </span>
           </div>
         </div>
         <SheetCloseButton label={t('close')} />

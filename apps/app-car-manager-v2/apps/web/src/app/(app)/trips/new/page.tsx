@@ -22,19 +22,33 @@ export default async function NewTripPage() {
   /* Driver doesn't create trips. */
   if (user.role === 'DRIVER') redirect('/trips');
 
-  /* Fetch select options in parallel. */
+  /* Fetch select options in parallel. Ent-id isolation đã enforce trong
+   * listDrivers/listVehicles (ent_id filter); carUsers query thêm điều kiện
+   * entId ở đây để khớp pattern. */
   const [drivers, vehicles, users] = await Promise.all([
     listDrivers(user.entId),
     listVehicles(user.entId),
     db
-      .select({ id: carUsers.usrId, name: carUsers.usrName, role: carUsers.usrLocalRole })
+      .select({
+        id: carUsers.usrId,
+        name: carUsers.usrName,
+        email: carUsers.usrEmail,
+        role: carUsers.usrLocalRole,
+      })
       .from(carUsers)
       .where(and(eq(carUsers.entId, user.entId), isNull(carUsers.usrDeletedAt))),
   ]);
 
+  /* Passenger: rich payload (name + email) cho UI hiển thị Avatar + dòng phụ.
+   * Drivers vẫn được lọc ra khỏi danh sách hành khách — họ thường không tự
+   * đặt chuyến cho mình. */
   const passengerOptions = users
-    .filter((u) => u.role !== 'DRIVER') // Drivers aren't usually passengers
-    .map((u) => ({ id: u.id, label: u.name ?? u.id }));
+    .filter((u) => u.role !== 'DRIVER')
+    .map((u) => ({
+      id: u.id,
+      name: u.name ?? null,
+      email: u.email ?? null,
+    }));
   const driverOptions = drivers.map((d) => ({
     id: d.drvId,
     label: `${d.user.usrName} — ${d.drvLicenseClass}`,
@@ -42,6 +56,11 @@ export default async function NewTripPage() {
   const vehicleOptions = vehicles
     .filter((v) => v.cvhStatus !== 'RETIRED' && v.cvhStatus !== 'MAINTENANCE')
     .map((v) => ({ id: v.cvhId, label: `${v.cvhPlateNumber} — ${v.cvhModel}` }));
+
+  /* Chỉ ADMIN mới có quyền vào /users/new, /drivers/new, /vehicles/new
+   * (xem redirect ở 3 trang đó). MANAGER thấy hint thay vì button để tránh
+   * click → bị bounce ngược. */
+  const canCreateEntities = user.role === 'ADMIN';
 
   return (
     <>
@@ -73,6 +92,7 @@ export default async function NewTripPage() {
           drivers={driverOptions}
           vehicles={vehicleOptions}
           currentUserId={user.userId}
+          canCreateEntities={canCreateEntities}
         />
       </div>
     </>

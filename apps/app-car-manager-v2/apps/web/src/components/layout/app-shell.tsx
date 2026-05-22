@@ -20,7 +20,12 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
     userId: user.userId,
   });
   return (
-    <AppShellClient role={user.role} pendingTripCount={pendingTripCount}>
+    <AppShellClient
+      role={user.role}
+      userName={user.name}
+      userEmail={user.email}
+      pendingTripCount={pendingTripCount}
+    >
       {children}
     </AppShellClient>
   );

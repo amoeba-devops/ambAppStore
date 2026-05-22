@@ -5,15 +5,20 @@ import { Button, Card, CardContent, CardHeader, CardHeaderText, CardTitle, Empty
 import { DriverActionBar } from '@/components/layout/driver-action-bar';
 import { TripActions } from '@/app/(app)/trips/[id]/trip-actions';
 import type { TripListItem } from '@/server/queries/trips.queries';
+import type { DriverVehicleSummary } from '@/server/queries/vehicles.queries';
 import { DriverNextTripCard } from './driver-next-trip-card';
+import { DriverMyVehicles } from './driver-my-vehicles';
 
 const TIME_FMT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
+const DATE_FMT = new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit' });
 
 interface DriverTodayViewProps {
   /* Driver's assigned trips (any status) ordered by scheduled time. The view
    * picks the next actionable trip and routes the rest into the "Later today"
    * list. Trips outside today are ignored for the laterToday list. */
   trips: TripListItem[];
+  /** Unique vehicles từ trip history của driver — render trong "My vehicles" section. */
+  vehicles: DriverVehicleSummary[];
 }
 
 /* Driver-only `/today` screen. Optimised for the three states a driver actually
@@ -31,7 +36,7 @@ interface DriverTodayViewProps {
  * A floating "Record expense" button is always present (above the action bar
  * and the global BottomTabNav) because expense capture is the second most
  * common driver action after status updates. */
-export async function DriverTodayView({ trips }: DriverTodayViewProps) {
+export async function DriverTodayView({ trips, vehicles }: DriverTodayViewProps) {
   const tT = await getTranslations('today');
   const tD = await getTranslations('today.driver');
   const tStatus = await getTranslations('today.status');
@@ -53,6 +58,13 @@ export async function DriverTodayView({ trips }: DriverTodayViewProps) {
 
   const todayTrips = trips.filter((t) => isSameDay(new Date(t.trpScheduledAt), new Date()));
   const laterToday = primary ? todayTrips.filter((t) => t.trpId !== primary.trpId) : todayTrips;
+
+  /* "Chuyến gần đây" — trips NOT today (past or upcoming), capped at 5 cho card preview.
+   * `trips` đã được order theo scheduledAt DESC từ query, nên slice đầu = mới nhất. */
+  const recentTrips = trips
+    .filter((t) => !isSameDay(new Date(t.trpScheduledAt), new Date()))
+    .slice(0, 5);
+  const tR = await getTranslations('today.driver.recent');
 
   return (
     <>
@@ -126,6 +138,61 @@ export async function DriverTodayView({ trips }: DriverTodayViewProps) {
                       </div>
                       <div className="text-xs text-text-muted tabular shrink-0">
                         {TIME_FMT.format(new Date(t.trpScheduledAt))}
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-text-faint shrink-0" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* "Phương tiện của tôi" — vehicles từ trip history. Ẩn nếu driver
+         *  chưa có trip nào với vehicle assigned. */}
+        <DriverMyVehicles vehicles={vehicles} />
+
+        {/* "Chuyến gần đây" — trips KHÔNG phải hôm nay (5 chuyến mới nhất).
+         *  Bổ sung cho "laterToday" (chỉ hôm nay) để driver thấy lịch sử ngắn
+         *  + sắp tới. Link "Xem tất cả" dẫn về /trips (đã filter theo driver). */}
+        {recentTrips.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardHeaderText>
+                <CardTitle>{tR('title')}</CardTitle>
+              </CardHeaderText>
+              <Link
+                href="/trips"
+                className="text-xs font-medium text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1"
+              >
+                {tR('viewAll')}
+              </Link>
+            </CardHeader>
+            <CardContent padded={false}>
+              <ul className="divide-y divide-border">
+                {recentTrips.map((t) => (
+                  <li key={t.trpId}>
+                    <Link
+                      href={`/trips/${t.trpId}`}
+                      className="flex items-center gap-3 px-5 py-3 hover:bg-surface-2/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                    >
+                      <div className="font-mono text-xs text-text-muted tabular shrink-0">{t.trpRef}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-text truncate">
+                          {t.passengerName ?? '—'}
+                          {t.vehiclePlate && (
+                            <span className="ml-2 font-mono text-[11px] text-text-faint tabular">
+                              · {t.vehiclePlate}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-text-faint truncate">
+                          {t.trpPickupAddress} → {t.trpDropoffAddress}
+                        </div>
+                      </div>
+                      <div className="text-xs text-text-muted tabular shrink-0 text-right">
+                        <div>{DATE_FMT.format(new Date(t.trpScheduledAt))}</div>
+                        <div className="text-text-faint">{TIME_FMT.format(new Date(t.trpScheduledAt))}</div>
                       </div>
                       <ChevronRight className="h-4 w-4 text-text-faint shrink-0" />
                     </Link>

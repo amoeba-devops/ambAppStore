@@ -1,13 +1,12 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { Calendar, ChevronRight, Download, Filter, Plus, Search } from 'lucide-react';
+import { Calendar, ChevronRight, Download, Plus } from 'lucide-react';
 import {
   Avatar,
   Badge,
   Button,
   Card,
   EmptyState,
-  Input,
   Table,
   TableBody,
   TableCell,
@@ -15,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@car-v2/ui';
+import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import type { CarTripStatus } from '@car-v2/db/schema';
 import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
@@ -47,7 +47,14 @@ function formatWhen(iso: Date, labels: { today: string; tomorrow: string; yester
 }
 
 interface PageProps {
-  searchParams: Promise<{ status?: string; page?: string; peek?: string; highlight?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    page?: string;
+    peek?: string;
+    highlight?: string;
+    q?: string;
+    date?: string;
+  }>;
 }
 
 export default async function TripsListPage({ searchParams }: PageProps) {
@@ -87,6 +94,8 @@ export default async function TripsListPage({ searchParams }: PageProps) {
    * công hoặc chờ tài xế xác nhận). Admin/Manager landing on /trips usually
    * arrive to triage these. Use "All" filter explicitly when needed. */
   const statusFilter = (sp.status ?? 'pending') as 'all' | 'pending' | 'active' | 'completed';
+  const dateRange = (sp.date ?? 'all') as 'all' | 'today' | 'thisWeek' | 'thisMonth' | 'past';
+  const searchQ = sp.q?.trim() || undefined;
   const page = Math.max(1, Number(sp.page ?? 1));
   const peekId = sp.peek;
   /* Highlight a specific row — set after the user creates or edits a trip
@@ -102,6 +111,8 @@ export default async function TripsListPage({ searchParams }: PageProps) {
       role: user.role,
       userId: user.userId,
       status: statusFilter,
+      q: searchQ,
+      dateRange,
       page,
     }),
     peekId ? getTrip(user.entId, peekId) : Promise.resolve(null),
@@ -150,6 +161,17 @@ export default async function TripsListPage({ searchParams }: PageProps) {
 
   const dayLabels = { today: tCommon('today'), tomorrow: tCommon('tomorrow'), yesterday: tCommon('yesterday') };
 
+  /* Export URL preserves current filters (status/q/date) sao cho admin xuất
+   * đúng cái họ đang xem. Route handler trả CSV ent-scoped. */
+  const exportHref = (() => {
+    const params = new URLSearchParams();
+    if (statusFilter !== 'pending') params.set('status', statusFilter);
+    if (searchQ) params.set('q', searchQ);
+    if (dateRange !== 'all') params.set('date', dateRange);
+    const qs = params.toString();
+    return qs ? `/api/v1/trips/export?${qs}` : '/api/v1/trips/export';
+  })();
+
   return (
     <>
       <PageHeader
@@ -158,7 +180,9 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('trips') }]}
         actions={
           <>
-            <Button variant="ghost" size="md" iconLeft={<Download />}>{tA('export')}</Button>
+            <Button variant="ghost" size="md" iconLeft={<Download />} asChild>
+              <a href={exportHref} download>{tA('export')}</a>
+            </Button>
             <Button variant="accent" size="md" asChild>
               <Link href="/trips/new"><Plus />{tA('new')}</Link>
             </Button>
@@ -173,9 +197,12 @@ export default async function TripsListPage({ searchParams }: PageProps) {
             <div className="inline-flex items-center gap-1 rounded-md bg-surface-2 p-1">
               {FILTERS.map((f) => {
                 const active = statusFilter === f.key;
-                /* Default filter (pending) uses the clean /trips URL.
-                 * Other filters carry explicit ?status. */
-                const href = f.key === 'pending' ? '/trips' : `/trips?status=${f.key}`;
+                /* Khi đổi status, GIỮ các filter khác (q, date). */
+                const href = buildTripsHref({
+                  status: f.key,
+                  q: searchQ,
+                  date: dateRange,
+                });
                 return (
                   <Link
                     key={f.key}
@@ -191,14 +218,45 @@ export default async function TripsListPage({ searchParams }: PageProps) {
               })}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Input
+          <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+            {/* Debounced search — tự cập nhật URL `?q=` sau 300ms, preserve các
+             *  param khác (status, date). Server đọc qua searchParams.q. */}
+            <DebouncedSearchInput
               placeholder={tList('searchPlaceholder')}
-              iconLeft={<Search />}
               className="flex-1 md:w-72 md:flex-initial"
+              clearLabel={tA('clear')}
             />
-            <Button variant="secondary" size="md" iconLeft={<Calendar />} className="hidden md:inline-flex">{tList('thisWeek')}</Button>
-            <Button variant="ghost" size="icon" aria-label={tA('filter')}><Filter /></Button>
+            {/* Date range chips */}
+            <div className="hidden md:inline-flex items-center gap-1 rounded-md bg-surface-2 p-1">
+              {(
+                [
+                  { key: 'all' as const,       label: tFilter('all') },
+                  { key: 'today' as const,     label: tCommon('today') },
+                  { key: 'thisWeek' as const,  label: tList('thisWeek') },
+                  { key: 'thisMonth' as const, label: tList('thisMonth') },
+                ]
+              ).map((d) => {
+                const active = dateRange === d.key;
+                const href = buildTripsHref({ status: statusFilter, q: searchQ, date: d.key });
+                return (
+                  <Link
+                    key={d.key}
+                    href={href}
+                    className={
+                      'inline-flex items-center h-7 px-2.5 rounded text-xs font-medium transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ' +
+                      (active ? 'bg-surface text-text shadow-xs' : 'text-text-muted hover:text-text')
+                    }
+                  >
+                    {d.label}
+                  </Link>
+                );
+              })}
+            </div>
+            {(searchQ || dateRange !== 'all') && (
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/trips">{tA('clear')}</Link>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -226,7 +284,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
               {items.map((trip) => (
                 <li key={trip.trpId}>
                   <Link
-                    href={peekHref(statusFilter, page, trip.trpId)}
+                    href={peekHref(statusFilter, page, trip.trpId, searchQ, dateRange)}
                     scroll={false}
                     aria-label={tList('openAria', { ref: trip.trpRef })}
                     className={
@@ -314,7 +372,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" asChild>
                           <Link
-                            href={peekHref(statusFilter, page, trip.trpId)}
+                            href={peekHref(statusFilter, page, trip.trpId, searchQ, dateRange)}
                             scroll={false}
                             aria-label={tList('openAria', { ref: trip.trpRef })}
                           >
@@ -335,7 +393,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                 <div className="inline-flex items-center gap-1 self-end md:self-auto">
                   {page > 1 ? (
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={pageHref(statusFilter, page - 1)}>{tList('previous')}</Link>
+                      <Link href={pageHref(statusFilter, page - 1, searchQ, dateRange)}>{tList('previous')}</Link>
                     </Button>
                   ) : (
                     <Button variant="ghost" size="sm" disabled>{tList('previous')}</Button>
@@ -343,7 +401,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                   <span className="px-3 text-sm tabular">{page} / {totalPages}</span>
                   {page < totalPages ? (
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={pageHref(statusFilter, page + 1)}>{tList('next')}</Link>
+                      <Link href={pageHref(statusFilter, page + 1, searchQ, dateRange)}>{tList('next')}</Link>
                     </Button>
                   ) : (
                     <Button variant="ghost" size="sm" disabled>{tList('next')}</Button>
@@ -373,23 +431,32 @@ export default async function TripsListPage({ searchParams }: PageProps) {
   );
 }
 
-function pageHref(status: string, page: number): string {
+/** Build /trips URL with current filter context. Omit defaults for clean URLs. */
+function buildTripsHref(opts: {
+  status?: string;
+  q?: string;
+  date?: string;
+  page?: number;
+  peek?: string;
+}): string {
   const params = new URLSearchParams();
-  /* `pending` is now the default — omit from URL for clean shareable links. */
-  if (status !== 'pending') params.set('status', status);
-  if (page > 1) params.set('page', String(page));
+  if (opts.status && opts.status !== 'pending') params.set('status', opts.status);
+  if (opts.q) params.set('q', opts.q);
+  if (opts.date && opts.date !== 'all') params.set('date', opts.date);
+  if (opts.page && opts.page > 1) params.set('page', String(opts.page));
+  if (opts.peek) params.set('peek', opts.peek);
   const qs = params.toString();
   return qs ? `/trips?${qs}` : '/trips';
+}
+
+function pageHref(status: string, page: number, q?: string, date?: string): string {
+  return buildTripsHref({ status, page, q, date });
 }
 
 /**
  * Build a peek URL preserving the current list filter + page so closing the
  * drawer drops the user back exactly where they were.
  */
-function peekHref(status: string, page: number, tripId: string): string {
-  const params = new URLSearchParams();
-  if (status !== 'pending') params.set('status', status);
-  if (page > 1) params.set('page', String(page));
-  params.set('peek', tripId);
-  return `/trips?${params.toString()}`;
+function peekHref(status: string, page: number, tripId: string, q?: string, date?: string): string {
+  return buildTripsHref({ status, page, q, date, peek: tripId });
 }

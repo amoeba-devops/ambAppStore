@@ -1,6 +1,6 @@
 'use server';
 import { randomUUID } from 'node:crypto';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@car-v2/db/client';
 import {
@@ -205,19 +205,21 @@ export async function createTripAction(input: unknown): Promise<ActionResult<Car
         });
       }
     } else {
-      /* No driver yet → notify all Admins so someone can assign. */
-      const admins = await db
+      /* No driver yet → notify ADMIN + MANAGER (same entity) so someone can assign.
+       * Pattern aligned with maintenance-alert.service which already fan-outs
+       * both roles. Self-notify excluded. */
+      const recipients = await db
         .select({ id: carUsers.usrId })
         .from(carUsers)
         .where(
           and(
             eq(carUsers.entId, actor.entId),
-            eq(carUsers.usrLocalRole, 'ADMIN'),
+            inArray(carUsers.usrLocalRole, ['ADMIN', 'MANAGER']),
             isNull(carUsers.usrDeletedAt),
           ),
         );
       await Promise.all(
-        admins
+        recipients
           .filter((a) => a.id !== actor.userId) // don't notify yourself
           .map((a) =>
             notifyUser({

@@ -12,6 +12,10 @@ const COLLAPSE_KEY = 'ccms.sidebar.collapsed';
 
 interface AppShellClientProps {
   role: LocalRole;
+  /** Display name from AMA JWT (null if not provided). */
+  userName: string | null;
+  /** Email from AMA JWT (null if not provided). */
+  userEmail: string | null;
   /** Server-counted pending trips in the user's visibility scope. */
   pendingTripCount: number;
   children: React.ReactNode;
@@ -34,7 +38,7 @@ interface AppShellClientProps {
  *
  * `pendingTripCount` is server-fed from the wrapper RSC; sidebar renders it as
  * a numeric badge on the Trips nav item. 0 → no badge. */
-export function AppShellClient({ role, pendingTripCount, children }: AppShellClientProps) {
+export function AppShellClient({ role, userName, userEmail, pendingTripCount, children }: AppShellClientProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -62,7 +66,13 @@ export function AppShellClient({ role, pendingTripCount, children }: AppShellCli
     <div className="flex min-h-dvh bg-bg text-text">
       {/* Sidebar — hidden on mobile, replaced by BottomTabNav below. */}
       <div className="hidden md:contents">
-        <SidebarNav collapsed={collapsed} role={role} pendingTripCount={pendingTripCount} />
+        <SidebarNav
+          collapsed={collapsed}
+          role={role}
+          userName={userName}
+          userEmail={userEmail}
+          pendingTripCount={pendingTripCount}
+        />
       </div>
       {/* Main: reserve bottom space on mobile for the fixed bottom-tab bar. */}
       <main className="flex-1 min-w-0 flex flex-col pb-[64px] md:pb-0">

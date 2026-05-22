@@ -1,7 +1,7 @@
 'use server';
 
 import { randomUUID } from 'node:crypto';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from '@car-v2/db/client';
@@ -13,10 +13,10 @@ import {
   type CarExpense,
 } from '@car-v2/db/schema';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
-import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { logAudit } from '@/server/services/audit-log.service';
 import { decideInitialStatus } from '@/server/services/expense-approval.service';
-import { notifyMany } from '@/server/services/notification.service';
+import { notifyMany, notifyUser } from '@/server/services/notification.service';
 import { runAction } from '../_helpers';
 
 /* Real expense submission server action.
@@ -142,18 +142,20 @@ export async function submitExpenseAction(
     });
 
     if (status === 'PENDING') {
-      const admins = await db
+      /* Fan-out tới cả ADMIN + MANAGER trong cùng entity. Admin là approver
+       * chính (PRD §6.2.2), Manager nhận để theo dõi chi phí team mình. */
+      const recipients = await db
         .select({ id: carUsers.usrId })
         .from(carUsers)
         .where(
           and(
             eq(carUsers.entId, actor.entId),
-            eq(carUsers.usrLocalRole, 'ADMIN'),
+            inArray(carUsers.usrLocalRole, ['ADMIN', 'MANAGER']),
             isNull(carUsers.usrDeletedAt),
           ),
         );
-      if (admins.length > 0) {
-        await notifyMany(admins.map((a) => a.id), {
+      if (recipients.length > 0) {
+        await notifyMany(recipients.map((a) => a.id), {
           entId: actor.entId,
           event: 'EXPENSE.SUBMITTED',
           title: `Chi phí mới chờ duyệt`,
@@ -167,5 +169,125 @@ export async function submitExpenseAction(
     revalidatePath('/costs');
 
     return { id: expId, status };
+  });
+}
+
+/* ─── Approve / Reject ─────────────────────────────────────────────────── */
+
+const reviewInputSchema = z.object({
+  expense_id: z.string().uuid(),
+  note: z.string().max(2000).optional(),
+});
+
+type ReviewInput = z.infer<typeof reviewInputSchema>;
+
+/** Load expense theo (entId, expId), ép đúng trạng thái cho phép review. */
+async function loadReviewableExpense(actorEntId: string, expenseId: string) {
+  const row = await db.query.carExpenses.findFirst({
+    where: and(
+      eq(carExpenses.expId, expenseId),
+      eq(carExpenses.entId, actorEntId),
+      isNull(carExpenses.expDeletedAt),
+    ),
+  });
+  if (!row) throw new CarError('CAR-E2002', 404, 'Expense không tồn tại');
+  if (row.expStatus !== 'PENDING') {
+    throw new CarError('CAR-E2003', 409, 'Expense đã được xử lý');
+  }
+  return row;
+}
+
+export async function approveExpenseAction(
+  input: ReviewInput,
+): Promise<ActionResult<{ id: string; status: 'APPROVED' }>> {
+  return runAction(async () => {
+    const actor = await getCurrentUser();
+    /* PRD §6.2.2: Admin là approver chính. Manager có thể được mở rộng sau. */
+    requireRole(actor.role, ['ADMIN']);
+    const dto = reviewInputSchema.parse(input);
+    const expense = await loadReviewableExpense(actor.entId, dto.expense_id);
+
+    const now = new Date();
+    await db
+      .update(carExpenses)
+      .set({
+        expStatus: 'APPROVED',
+        expReviewedBy: actor.userId,
+        expReviewedAt: now,
+        expReviewNote: dto.note ?? null,
+        expUpdatedAt: now,
+      })
+      .where(and(eq(carExpenses.expId, expense.expId), eq(carExpenses.entId, actor.entId)));
+
+    await logAudit({
+      entId: actor.entId,
+      userId: actor.userId,
+      action: 'EXPENSE.APPROVED',
+      entity: 'Expense',
+      entityId: expense.expId,
+      after: { status: 'APPROVED', amount: expense.expAmount, type: expense.expType },
+    });
+
+    /* Notify driver who submitted. */
+    await notifyUser({
+      entId: actor.entId,
+      userId: expense.expSubmittedBy,
+      event: 'EXPENSE.APPROVED',
+      title: 'Chi phí đã được duyệt',
+      body: `${expense.expType} · ${Number(expense.expAmount).toLocaleString('vi-VN')}₫`,
+      entityId: expense.expId,
+    });
+
+    revalidatePath('/costs');
+    revalidatePath('/expenses');
+    return { id: expense.expId, status: 'APPROVED' as const };
+  });
+}
+
+export async function rejectExpenseAction(
+  input: ReviewInput,
+): Promise<ActionResult<{ id: string; status: 'REJECTED' }>> {
+  return runAction(async () => {
+    const actor = await getCurrentUser();
+    requireRole(actor.role, ['ADMIN']);
+    const dto = reviewInputSchema.parse(input);
+    if (!dto.note || dto.note.trim().length < 3) {
+      throw new CarError('CAR-E0001', 400, 'Vui lòng nhập lý do từ chối (ít nhất 3 ký tự)');
+    }
+    const expense = await loadReviewableExpense(actor.entId, dto.expense_id);
+
+    const now = new Date();
+    await db
+      .update(carExpenses)
+      .set({
+        expStatus: 'REJECTED',
+        expReviewedBy: actor.userId,
+        expReviewedAt: now,
+        expReviewNote: dto.note,
+        expUpdatedAt: now,
+      })
+      .where(and(eq(carExpenses.expId, expense.expId), eq(carExpenses.entId, actor.entId)));
+
+    await logAudit({
+      entId: actor.entId,
+      userId: actor.userId,
+      action: 'EXPENSE.REJECTED',
+      entity: 'Expense',
+      entityId: expense.expId,
+      after: { status: 'REJECTED', reason: dto.note, amount: expense.expAmount, type: expense.expType },
+    });
+
+    await notifyUser({
+      entId: actor.entId,
+      userId: expense.expSubmittedBy,
+      event: 'EXPENSE.REJECTED',
+      title: 'Chi phí bị từ chối',
+      body: dto.note,
+      entityId: expense.expId,
+    });
+
+    revalidatePath('/costs');
+    revalidatePath('/expenses');
+    return { id: expense.expId, status: 'REJECTED' as const };
   });
 }

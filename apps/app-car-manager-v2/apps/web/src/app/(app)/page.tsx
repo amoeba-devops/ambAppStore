@@ -29,16 +29,32 @@ import type { CarTripStatus, CarVehicle, CarVehicleStatus } from '@car-v2/db/sch
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listAudit } from '@/server/queries/audit.queries';
+import {
+  getSpendByCategory,
+  getSpendByWeek,
+} from '@/server/queries/reports.queries';
 import { listTrips, listTodayTrips } from '@/server/queries/trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 
-const STACKED = Array.from({ length: 8 }, (_, i) => ({
-  week: `W${i + 1}`,
-  Fuel:   1.2 + Math.sin(i / 1.4) * 0.6 + i * 0.18,
-  Repair: 0.4 + Math.cos(i / 2.1) * 0.4 + i * 0.10,
-  Meal:   0.3 + Math.sin(i / 0.9) * 0.2 + i * 0.05,
-  Oil:    0.15 + (i % 3) * 0.18,
-}));
+const DASHBOARD_WEEKS = 8;
+
+const CATEGORY_COLOR: Record<string, string> = {
+  FUEL: chartColors[0],
+  REPAIR: chartColors[1],
+  MEAL: chartColors[2],
+  OIL: chartColors[3],
+  ACCIDENT: chartColors[4],
+  PARKING: chartColors[5],
+  TOLL: chartColors[6],
+  INSPECTION: chartColors[7],
+};
+
+function formatVndShort(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B₫`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M₫`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}K₫`;
+  return `${n}₫`;
+}
 
 const VEHICLE_STATUS_TONE: Record<CarVehicleStatus, 'success' | 'info' | 'warning' | 'neutral'> = {
   AVAILABLE: 'success',
@@ -79,11 +95,13 @@ export default async function DashboardPage() {
    *     before the middleware ran (paranoia, not a real Next.js case today) */
   if (user.role === 'DRIVER') redirect('/today');
 
-  const [vehicles, todayTrips, allTrips, recentAudit] = await Promise.all([
+  const [vehicles, todayTrips, allTrips, recentAudit, categorySpend, weeklySpend] = await Promise.all([
     listVehicles(user.entId),
     listTodayTrips(user.entId),
     listTrips({ entId: user.entId, role: user.role, userId: user.userId, status: 'all' }),
-    listAudit(user.entId, { limit: 5 }),
+    listAudit(user.entId, { pageSize: 5 }),
+    getSpendByCategory(user.entId, DASHBOARD_WEEKS),
+    getSpendByWeek(user.entId, DASHBOARD_WEEKS),
   ]);
 
   const pending = allTrips.items.filter((t) =>
@@ -94,13 +112,22 @@ export default async function DashboardPage() {
     ? 0
     : Math.round((inUseVehicles / vehicles.length) * 100);
 
-  const SPEND_MIX = [
-    { key: 'Fuel',     name: tCat('Fuel'),     amount: '6.2M₫', pct: 42, color: chartColors[0] },
-    { key: 'Repair',   name: tCat('Repair'),   amount: '4.1M₫', pct: 28, color: chartColors[1] },
-    { key: 'Meal',     name: tCat('Meal'),     amount: '2.1M₫', pct: 14, color: chartColors[2] },
-    { key: 'Oil',      name: tCat('Oil'),      amount: '1.3M₫', pct:  9, color: chartColors[3] },
-    { key: 'Accident', name: tCat('Accident'), amount: '1.0M₫', pct:  7, color: chartColors[4] },
-  ];
+  // Real spend mix — sort by amount, top 5 cho dashboard donut (rộng hơn ở /reports)
+  const totalSpend = categorySpend.reduce((s, c) => s + c.amountVnd, 0);
+  const SPEND_MIX = categorySpend
+    .filter((c) => c.amountVnd > 0)
+    .sort((a, b) => b.amountVnd - a.amountVnd)
+    .slice(0, 5)
+    .map((c) => {
+      const labelKey = c.expType.charAt(0).toUpperCase() + c.expType.slice(1).toLowerCase();
+      return {
+        key: c.expType,
+        name: tCat(labelKey),
+        amount: formatVndShort(c.amountVnd),
+        pct: totalSpend > 0 ? Math.round((c.amountVnd / totalSpend) * 100) : 0,
+        color: CATEGORY_COLOR[c.expType] ?? chartColors[0],
+      };
+    });
 
   return (
     <>
@@ -178,28 +205,38 @@ export default async function DashboardPage() {
             <CardHeader>
               <CardHeaderText>
                 <CardTitle>{t('spendTitle')}</CardTitle>
-                <CardDescription>{tD('spendSampleNote')}</CardDescription>
+                <CardDescription>
+                  {SPEND_MIX.length === 0
+                    ? `${DASHBOARD_WEEKS} tuần qua`
+                    : `Top ${SPEND_MIX.length} loại · ${DASHBOARD_WEEKS} tuần qua`}
+                </CardDescription>
               </CardHeaderText>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-5">
-                <DonutChart
-                  data={SPEND_MIX.map((s) => ({ name: s.name, value: s.pct, color: s.color }))}
-                  size={160}
-                  thickness={18}
-                  centerValue="14.8M₫"
-                  centerLabel={t('spendTitle')}
-                />
-                <ul className="flex-1 space-y-1.5 text-sm">
-                  {SPEND_MIX.map((s) => (
-                    <li key={s.key} className="flex items-center gap-2.5">
-                      <span className="h-2 w-2 rounded-full" style={{ background: s.color }} aria-hidden />
-                      <span className="flex-1 text-text font-medium">{s.name}</span>
-                      <span className="text-text-muted tabular">{s.amount}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              {SPEND_MIX.length === 0 ? (
+                <div className="py-6 text-center text-sm text-text-muted">
+                  Chưa có dữ liệu chi phí trong {DASHBOARD_WEEKS} tuần qua.
+                </div>
+              ) : (
+                <div className="flex items-center gap-5">
+                  <DonutChart
+                    data={SPEND_MIX.map((s) => ({ name: s.name, value: s.pct, color: s.color }))}
+                    size={160}
+                    thickness={18}
+                    centerValue={formatVndShort(totalSpend).replace('₫', '')}
+                    centerLabel={t('spendTitle')}
+                  />
+                  <ul className="flex-1 space-y-1.5 text-sm">
+                    {SPEND_MIX.map((s) => (
+                      <li key={s.key} className="flex items-center gap-2.5">
+                        <span className="h-2 w-2 rounded-full" style={{ background: s.color }} aria-hidden />
+                        <span className="flex-1 text-text font-medium">{s.name}</span>
+                        <span className="text-text-muted tabular">{s.amount}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -252,15 +289,15 @@ export default async function DashboardPage() {
             <CardHeader>
               <CardHeaderText>
                 <CardTitle>{tD('recentActivity')}</CardTitle>
-                <CardDescription>{tD('lastEvents', { count: recentAudit.length })}</CardDescription>
+                <CardDescription>{tD('lastEvents', { count: recentAudit.items.length })}</CardDescription>
               </CardHeaderText>
             </CardHeader>
             <CardContent padded={false}>
-              {recentAudit.length === 0 ? (
+              {recentAudit.items.length === 0 ? (
                 <div className="p-6 text-center text-sm text-text-muted">{tD('noActivity')}</div>
               ) : (
                 <ul className="divide-y divide-border">
-                  {recentAudit.map((row) => (
+                  {recentAudit.items.map((row) => (
                     <li key={row.audId} className="px-5 py-3">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-[10.5px] uppercase tracking-wide text-text-muted">
@@ -280,23 +317,23 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
-        {/* Sample chart row — kept until P2/P3 wire real data */}
+        {/* Weekly spend chart — real aggregation */}
         <Card>
           <CardHeader>
             <CardHeaderText>
               <CardTitle>{tD('spendByCategory')}</CardTitle>
-              <CardDescription>{tD('spendSampleNote')}</CardDescription>
+              <CardDescription>{DASHBOARD_WEEKS} tuần qua, đơn vị triệu VND</CardDescription>
             </CardHeaderText>
           </CardHeader>
           <CardContent>
             <StackedBarChart
-              data={STACKED}
+              data={weeklySpend}
               xKey="week"
               series={[
-                { key: 'Fuel',   name: tCat('Fuel'),   color: chartColors[0] },
-                { key: 'Repair', name: tCat('Repair'), color: chartColors[1] },
-                { key: 'Meal',   name: tCat('Meal'),   color: chartColors[2] },
-                { key: 'Oil',    name: tCat('Oil'),    color: chartColors[3] },
+                { key: 'FUEL',   name: tCat('Fuel'),   color: chartColors[0] },
+                { key: 'REPAIR', name: tCat('Repair'), color: chartColors[1] },
+                { key: 'MEAL',   name: tCat('Meal'),   color: chartColors[2] },
+                { key: 'OIL',    name: tCat('Oil'),    color: chartColors[3] },
               ]}
               height={220}
               valueSuffix="M"

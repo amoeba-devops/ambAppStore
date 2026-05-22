@@ -47,6 +47,10 @@ const ENTITY_SUB_ICON: Record<DraftEntry['entity'], LucideIcon> = {
 interface SidebarNavProps {
   collapsed: boolean;
   role: LocalRole;
+  /** Real user display name from AMA JWT. Fallback to email/role if null. */
+  userName: string | null;
+  /** Email from AMA JWT. Used as secondary text and Avatar fallback. */
+  userEmail: string | null;
   /** Server-fed: pending trips in visibility scope. 0 hides the badge. */
   pendingTripCount: number;
 }
@@ -62,12 +66,21 @@ const NAV_KEY_TO_ENTITY: Partial<Record<NavKey, DraftEntry['entity']>> = {
   drivers: 'driver',
 };
 
-export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProps) {
+export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCount }: SidebarNavProps) {
   const tNav   = useTranslations('nav');
   const tCo    = useTranslations('company');
   const tAct   = useTranslations('actions');
+  const tRole  = useTranslations('settings.me.roles');
   const tGroup = useTranslations();
   const pathname = usePathname();
+
+  /* Display name fallback chain:
+   *   userName → email local part → "User"
+   * Role uses i18n (Quản trị / Quản lý / Tài xế). */
+  const displayName = userName?.trim() || userEmail?.split('@')[0] || 'User';
+  const displayRole = tRole(role);
+  /* Email shown as secondary line if available + different from display name. */
+  const showEmailLine = userEmail && userEmail !== displayName;
   /* Pass role so `/` correctly maps to `today` for drivers and `dashboard`
    * for admin/manager — otherwise the driver's first tab would never light up
    * since `dashboard` isn't in their filtered items. */
@@ -91,8 +104,9 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
 
   const handleSignOut = () => {
     startSignOut(async () => {
-      await logoutAction();
-      window.location.href = '/session-expired';
+      // D-013: dùng /api/auth/logout route để clear 3 cookies + best-effort AMA logout
+      // (logoutAction chỉ clear amb_session, không clear amb_ama_access/refresh)
+      window.location.href = '/api/auth/logout';
     });
   };
 
@@ -164,7 +178,7 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      aria-label={tCo('currentUser')}
+                      aria-label={displayName}
                       className={cn(
                         'mx-auto block h-9 w-9 rounded-full',
                         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
@@ -175,19 +189,19 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
                       {signingOut ? (
                         <Loader2 className="h-4 w-4 animate-spin text-text-muted mx-auto" />
                       ) : (
-                        <Avatar name={tCo('currentUser')} size="sm" />
+                        <Avatar name={displayName} size="sm" />
                       )}
                     </button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
-                <TooltipContent side="right">{tCo('currentUser')}</TooltipContent>
+                <TooltipContent side="right">{displayName}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           ) : (
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                aria-label={tCo('currentUser')}
+                aria-label={displayName}
                 className={cn(
                   'w-full flex items-center gap-2.5 px-2 py-1.5 rounded text-left',
                   'transition-colors duration-150 motion-reduce:transition-none',
@@ -196,10 +210,10 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
                   'data-[state=open]:bg-surface-2',
                 )}
               >
-                <Avatar name={tCo('currentUser')} size="sm" />
+                <Avatar name={displayName} size="sm" />
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-text truncate">{tCo('currentUser')}</div>
-                  <div className="text-xs text-text-muted truncate">{tCo('currentUserRole')}</div>
+                  <div className="text-sm font-medium text-text truncate">{displayName}</div>
+                  <div className="text-xs text-text-muted truncate">{displayRole}</div>
                 </div>
                 {signingOut ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-text-muted shrink-0" />
@@ -214,9 +228,17 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
             side={collapsed ? 'right' : 'top'}
             align={collapsed ? 'end' : 'start'}
             sideOffset={collapsed ? 12 : 8}
-            className="min-w-[200px]"
+            className="min-w-[220px]"
           >
-            <DropdownMenuLabel>{tCo('currentUser')}</DropdownMenuLabel>
+            <DropdownMenuLabel className="flex flex-col gap-0.5">
+              <span className="text-sm font-semibold text-text truncate">{displayName}</span>
+              {showEmailLine && (
+                <span className="text-xs font-normal text-text-muted truncate">{userEmail}</span>
+              )}
+              <span className="text-[10.5px] font-medium text-accent uppercase tracking-wide mt-0.5">
+                {displayRole}
+              </span>
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link
