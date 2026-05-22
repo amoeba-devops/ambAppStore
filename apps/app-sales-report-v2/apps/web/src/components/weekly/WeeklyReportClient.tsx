@@ -43,15 +43,6 @@ interface WeeklyReportClientProps {
 
 export function WeeklyReportClient({ realWeekKeys = [] }: WeeklyReportClientProps = {}) {
   const t = useTranslations('weeklyReport');
-  const weeks = useMemo(() => getAvailableWeeks(), []);
-  // Only allow status overrides for weeks that actually have a DB snapshot —
-  // stale overrides on long-deleted demo weeks (W18, etc.) won't surface.
-  const realLabels = useMemo(
-    () => realWeekKeys.map((k) => `W${k.weekNum}`),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [realWeekKeys.map((k) => `${k.year}::${k.weekNum}`).join(',')],
-  );
-  const statusByLabel = useArchiveStatusByLabel(realLabels);
   const searchParams = useSearchParams();
   // Latest DB-backed week — used as the default so the user lands on a
   // populated week instead of the current calendar week (often empty).
@@ -62,18 +53,40 @@ export function WeeklyReportClient({ realWeekKeys = [] }: WeeklyReportClientProp
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [realWeekKeys.map((k) => `${k.year}::${k.weekNum}`).join(',')]);
+  // Initial year selection — prefer ?year=N from URL, then latest real week's
+  // year, finally current calendar year.
+  const [year, setYear] = useState(() => {
+    const fromUrl = Number(searchParams?.get('year'));
+    if (Number.isFinite(fromUrl) && fromUrl > 2000 && fromUrl < 2100) return fromUrl;
+    if (latestRealWeek) return latestRealWeek.year;
+    return new Date().getFullYear();
+  });
+  // Weeks regenerate when year changes.
+  const weeks = useMemo(() => getAvailableWeeks(year), [year]);
+  // Year-aware status overrides: only labels of weeks whose snapshot belongs to
+  // the currently-displayed year. Without the year filter, an override on
+  // W20/2026 would bleed into W20/2027 (both have label "W20").
+  const realLabels = useMemo(
+    () => realWeekKeys.filter((k) => k.year === year).map((k) => `W${k.weekNum}`),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [year, realWeekKeys.map((k) => `${k.year}::${k.weekNum}`).join(',')],
+  );
+  const statusByLabel = useArchiveStatusByLabel(realLabels);
   // Initial week selection — prefer ?weekNum=N from URL (deep-link after ingest),
-  // then the most recent week with data, finally the current calendar week.
+  // then the most recent week with data IF year matches, finally the current
+  // calendar week within the displayed year.
   const [weekNum, setWeekNum] = useState(() => {
     const fromUrl = Number(searchParams?.get('weekNum'));
-    if (Number.isFinite(fromUrl) && weeks.some((w) => w.weekNum === fromUrl)) {
-      return fromUrl;
-    }
-    if (latestRealWeek && weeks.some((w) => w.weekNum === latestRealWeek.weekNum)) {
-      return latestRealWeek.weekNum;
-    }
+    if (Number.isFinite(fromUrl) && fromUrl > 0 && fromUrl <= 53) return fromUrl;
+    if (latestRealWeek && latestRealWeek.year === year) return latestRealWeek.weekNum;
     return findCurrentWeekNum(weeks);
   });
+  // When year changes via picker, clamp weekNum to a valid value in new year.
+  useEffect(() => {
+    if (!weeks.some((w) => w.weekNum === weekNum)) {
+      setWeekNum(weeks[0]?.weekNum ?? 1);
+    }
+  }, [weeks, weekNum]);
   const [channel, setChannel] = useState<WeeklyChannel>('ALL');
   const [krwRate, setKrwRate] = useState(DEFAULT_KRW_RATE);
 
@@ -85,15 +98,15 @@ export function WeeklyReportClient({ realWeekKeys = [] }: WeeklyReportClientProp
   const selectedWeek = weeks.find((w) => w.weekNum === weekNum);
   const prevWeek = useMemo(() => {
     if (!selectedWeek) return null;
-    // Same-year prev week first; if weekNum === 1, fall back to (year-1, last week of that year)
+    // Same-year prev week first; if weekNum === 1, generate prev year's weeks
+    // and pick its last entry (year boundary — current `weeks` only covers
+    // the displayed year so we can't filter from it).
     const sameYear = weeks.find(
       (w) => w.year === selectedWeek.year && w.weekNum === selectedWeek.weekNum - 1,
     );
     if (sameYear) return sameYear;
-    const prevYearWeeks = weeks
-      .filter((w) => w.year === selectedWeek.year - 1)
-      .sort((a, b) => b.weekNum - a.weekNum);
-    return prevYearWeeks[0] ?? null;
+    const prevYearWeeks = getAvailableWeeks(selectedWeek.year - 1);
+    return prevYearWeeks[prevYearWeeks.length - 1] ?? null;
   }, [selectedWeek, weeks]);
 
   useEffect(() => {
@@ -291,6 +304,8 @@ export function WeeklyReportClient({ realWeekKeys = [] }: WeeklyReportClientProp
           selectedWeekNum={weekNum}
           statusByLabel={statusByLabel}
           allowClickLocked
+          year={year}
+          onYearChange={setYear}
           onPickWeek={(w) => setWeekNum(w.weekNum)}
         />
       </div>

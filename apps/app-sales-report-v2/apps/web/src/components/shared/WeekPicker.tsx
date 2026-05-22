@@ -17,6 +17,10 @@ interface WeekPickerProps {
   statusByLabel?: Map<string, PeriodStatus>;
   /** When true, Locked weeks remain clickable (e.g. read-only report viewers). Defaults to false. */
   allowClickLocked?: boolean;
+  /** Year currently displayed by the grid. Required when `onYearChange` is supplied. */
+  year?: number;
+  /** When provided, renders ◄ year ► nav above the week grid. */
+  onYearChange?: (nextYear: number) => void;
 }
 
 export function WeekPicker({
@@ -25,6 +29,8 @@ export function WeekPicker({
   onPickWeek,
   statusByLabel,
   allowClickLocked = false,
+  year,
+  onYearChange,
 }: WeekPickerProps) {
   const t = useTranslations('weekPicker');
   const [center, setCenter] = useState(() => {
@@ -78,8 +84,35 @@ export function WeekPicker({
     );
   };
 
+  const hasYearNav = year != null && !!onYearChange;
+
   return (
     <div className="space-y-2">
+      {hasYearNav && (
+        <div className="flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => onYearChange!(year! - 1)}
+            aria-label={t('prevYear')}
+            title={t('prevYearTitle', { year: year! - 1 })}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-700 transition-colors hover:bg-neutral-50"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="font-mono text-sm font-semibold text-neutral-900 tabular-nums min-w-[3rem] text-center">
+            {year}
+          </span>
+          <button
+            type="button"
+            onClick={() => onYearChange!(year! + 1)}
+            aria-label={t('nextYear')}
+            title={t('nextYearTitle', { year: year! + 1 })}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-700 transition-colors hover:bg-neutral-50"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       {expanded ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
           {weeks.map(renderPill)}
@@ -180,21 +213,22 @@ function PeriodPill({ label, rangeLabel, active, status, isLocked, onClick }: Pe
 type DisplayStatus = PeriodStatus | 'Open';
 
 function StatusBadge({ status }: { status: DisplayStatus }) {
+  const tStatus = useTranslations('periodStatus');
   const map: Record<DisplayStatus, { label: string; cls: string; icon?: React.ReactNode }> = {
     Open: {
-      label: 'Open',
+      label: tStatus('open'),
       cls: 'border border-neutral-300 bg-white text-neutral-500',
     },
     Draft: {
-      label: 'Active',
+      label: tStatus('active'),
       cls: 'bg-success-500/10 text-success-500',
     },
     Finalized: {
-      label: 'Finalized',
+      label: tStatus('finalized'),
       cls: 'bg-info-500/10 text-info-500',
     },
     Locked: {
-      label: 'Locked',
+      label: tStatus('locked'),
       cls: 'bg-neutral-200 text-neutral-500',
       icon: <Lock className="h-2.5 w-2.5" />,
     },

@@ -282,7 +282,7 @@ export function TotalGmvPreviewCard({
               )}
 
               {r.missingFromMaster.length > 0 && (
-                <details className="rounded-md border border-warning-500/30 bg-warning-500/5 px-3 py-2 text-xs">
+                <details open className="rounded-md border border-warning-500/30 bg-warning-500/5 px-3 py-2 text-xs">
                   <summary className="cursor-pointer font-medium text-warning-500">
                     <AlertTriangle className="mr-1 inline h-3 w-3" />
                     {r.missingFromMaster.length === 1

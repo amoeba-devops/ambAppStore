@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CalendarRange,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   Check,
   Lock,
   Lightbulb,
@@ -30,13 +32,19 @@ export interface SelectedPeriod {
   year: number;
 }
 
+/** Pair `label` (e.g. "W20") with `year` so status overrides don't bleed across years. */
+export interface RealPeriodEntry {
+  label: string;
+  year: number;
+}
+
 interface Props {
   granularity: Granularity | null;
   selected: SelectedPeriod | null;
   onChangeGranularity: (g: Granularity) => void;
   onChangePeriod: (p: SelectedPeriod) => void;
-  /** Real DB-backed period keys (e.g. ["W19", "W20"]) — used to filter stale overrides. */
-  realPeriodKeys?: string[];
+  /** Real DB-backed period entries — used to filter stale overrides per year. */
+  realPeriodKeys?: RealPeriodEntry[];
 }
 
 export function Step1Period({
@@ -106,7 +114,7 @@ export function Step1Period({
 
       {/* Summary + status-aware banner */}
       {selected && (() => {
-        const status = effectiveStatus(selected.label, realPeriodKeys);
+        const status = effectiveStatus(selected.label, selected.year, realPeriodKeys);
         if (status === 'Finalized') {
           return (
             <div className="rounded-md border border-warning-500/40 bg-warning-500/10 px-4 py-3 text-sm">
@@ -144,9 +152,10 @@ export function Step1Period({
 /** Resolve effective status for a selected period without reading from a hook. */
 export function effectiveStatus(
   periodLabel: string,
-  realPeriodKeys: string[],
+  periodYear: number,
+  realPeriodKeys: RealPeriodEntry[],
 ): 'Open' | 'Active' | 'Finalized' | 'Locked' {
-  const inReal = realPeriodKeys.includes(periodLabel);
+  const inReal = realPeriodKeys.some((e) => e.label === periodLabel && e.year === periodYear);
   if (typeof window === 'undefined') return inReal ? 'Active' : 'Open';
   try {
     const raw = localStorage.getItem('raw-archive-state');
@@ -209,17 +218,31 @@ function WeekPickerForUpload({
 }: {
   selected: SelectedPeriod | null;
   onChange: (p: SelectedPeriod) => void;
-  realPeriodKeys: string[];
+  realPeriodKeys: RealPeriodEntry[];
 }) {
-  const weeks = useMemo(() => getAvailableWeeks(), []);
-  const statusByLabel = useArchiveStatusByLabel(realPeriodKeys);
-  const selectedWeekNum = selected?.granularity === 'WEEK' ? selected.periodId : null;
+  // Default to selected period's year (when re-opening wizard with an existing
+  // selection) else current calendar year.
+  const [year, setYear] = useState(() =>
+    selected?.granularity === 'WEEK' ? selected.year : new Date().getFullYear(),
+  );
+  const weeks = useMemo(() => getAvailableWeeks(year), [year]);
+  // Filter status overrides to display year only — W20 of year 2026 must NOT
+  // bleed status into W20 of year 2027.
+  const yearLabels = useMemo(
+    () => realPeriodKeys.filter((e) => e.year === year).map((e) => e.label),
+    [year, realPeriodKeys],
+  );
+  const statusByLabel = useArchiveStatusByLabel(yearLabels);
+  const selectedWeekNum =
+    selected?.granularity === 'WEEK' && selected.year === year ? selected.periodId : null;
 
   return (
     <WeekPicker
       weeks={weeks}
       selectedWeekNum={selectedWeekNum}
       statusByLabel={statusByLabel}
+      year={year}
+      onYearChange={setYear}
       onPickWeek={(w) =>
         onChange({
           granularity: 'WEEK',
@@ -242,12 +265,44 @@ function MonthPicker({
 }: {
   selected: SelectedPeriod | null;
   onChange: (p: SelectedPeriod) => void;
-  realPeriodKeys: string[];
+  realPeriodKeys: RealPeriodEntry[];
 }) {
-  const months = getAvailableMonths();
-  const statusByLabel = useArchiveStatusByLabel(realPeriodKeys);
+  const t = useTranslations('weekPicker');
+  const [year, setYear] = useState(() =>
+    selected?.granularity === 'MONTH' ? selected.year : new Date().getFullYear(),
+  );
+  const months = useMemo(() => getAvailableMonths(year), [year]);
+  const yearLabels = useMemo(
+    () => realPeriodKeys.filter((e) => e.year === year).map((e) => e.label),
+    [year, realPeriodKeys],
+  );
+  const statusByLabel = useArchiveStatusByLabel(yearLabels);
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8">
+    <div className="space-y-2">
+      <div className="flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={() => setYear((y) => y - 1)}
+          aria-label={t('prevYear')}
+          title={t('prevYearTitle', { year: year - 1 })}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-700 transition-colors hover:bg-neutral-50"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <span className="font-mono text-sm font-semibold text-neutral-900 tabular-nums min-w-[3rem] text-center">
+          {year}
+        </span>
+        <button
+          type="button"
+          onClick={() => setYear((y) => y + 1)}
+          aria-label={t('nextYear')}
+          title={t('nextYearTitle', { year: year + 1 })}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-700 transition-colors hover:bg-neutral-50"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8">
       {months.map((m) => {
         const active = selected?.granularity === 'MONTH' && selected.periodId === m.monthIdx;
         const displayLabel = m.label.charAt(0) + m.label.slice(1).toLowerCase();
@@ -276,6 +331,7 @@ function MonthPicker({
           />
         );
       })}
+      </div>
     </div>
   );
 }

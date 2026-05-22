@@ -50,7 +50,17 @@
   },
   "weekPicker": {
     "showAll": "{count}주 전체 보기",
-    "collapse": "접기"
+    "collapse": "접기",
+    "prevYear": "이전 연도",
+    "nextYear": "다음 연도",
+    "prevYearTitle": "{year}년으로 이동",
+    "nextYearTitle": "{year}년으로 이동"
+  },
+  "periodStatus": {
+    "open": "열림",
+    "active": "활성",
+    "finalized": "확정됨",
+    "locked": "잠금"
   },
   "common": {
     "loading": "불러오는 중…",
