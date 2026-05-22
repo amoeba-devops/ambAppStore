@@ -75,8 +75,9 @@ export async function middleware(req: NextRequest) {
 
   const incomingToken = searchParams.get('ama_token');
   if (incomingToken) {
+    let tokenClaims;
     try {
-      await verifyAmaJwt(incomingToken);
+      tokenClaims = await verifyAmaJwt(incomingToken);
     } catch {
       return new NextResponse('Invalid token', { status: 401 });
     }
@@ -86,7 +87,15 @@ export async function middleware(req: NextRequest) {
     const cleanUrl = req.nextUrl.clone();
     cleanUrl.searchParams.delete('ama_token');
     const res = NextResponse.redirect(cleanUrl);
-    res.cookies.set(SESSION_COOKIE, incomingToken, cookieAttrs);
+    /* Persist for the full JWT lifetime. Without `maxAge` Next.js writes a
+     * SESSION cookie that iOS Safari wipes the moment the user swipes the
+     * PWA away from the app switcher — every relaunch then hits the
+     * "no cookie → /session-expired → Safari" path and breaks the
+     * standalone experience. We anchor on the JWT's own `exp` so the
+     * cookie can never outlive the token jose would refuse to verify. */
+    const nowSec = Math.floor(Date.now() / 1000);
+    const maxAgeSec = Math.max(60, tokenClaims.exp - nowSec);
+    res.cookies.set(SESSION_COOKIE, incomingToken, { ...cookieAttrs, maxAge: maxAgeSec });
     return res;
   }
 
