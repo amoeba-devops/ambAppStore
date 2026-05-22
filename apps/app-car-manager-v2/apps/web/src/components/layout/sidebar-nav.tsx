@@ -100,12 +100,15 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
     });
   };
 
-  /* `me` lives in the avatar dropdown now — filter it out of the sidebar
-   * nav lists so it doesn't appear twice. BottomTabNav still picks it up
-   * for the mobile experience since avatars aren't a persistent UI there. */
-  const items = navItemsForRole(role).filter((i) => i.key !== 'me');
-  const workspace = items.filter((i) => i.group === 'workspace');
-  const admin = items.filter((i) => i.group === 'admin');
+  /* `me` is rendered as its own tail block below the two groups (with a
+   * separator above) so the sidebar nav mirrors the mobile BottomTabNav —
+   * one canonical nav surface across breakpoints. The avatar dropdown at
+   * the footer keeps its Me shortcut as a quick-access duplicate; the
+   * tail link is the discoverable primary entry. */
+  const allItems = navItemsForRole(role);
+  const workspace = allItems.filter((i) => i.group === 'workspace' && i.key !== 'me');
+  const admin = allItems.filter((i) => i.group === 'admin');
+  const meItem = allItems.find((i) => i.key === 'me');
 
   return (
     <aside
@@ -160,6 +163,24 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
           onRemoveDraft={removeDraft}
           t={(key: NavKey) => tNav(key === 'audit' ? 'auditLog' : key)}
         />
+        {meItem && (
+          /* Pull `me` out of its workspace group and pin it below the rest
+           * with a top border. Keeps the identity entry visually distinct
+           * from workflow nav, and mirrors the mobile bar where `me` is
+           * always the rightmost tab. */
+          <div className="border-t border-border pt-5">
+            <NavGroup
+              label={null}
+              items={[meItem]}
+              activeKey={active}
+              collapsed={collapsed}
+              draftsByNavKey={draftsByNavKey}
+              metricCounts={metricCounts}
+              onRemoveDraft={removeDraft}
+              t={(key: NavKey) => tNav(key === 'audit' ? 'auditLog' : key)}
+            />
+          </div>
+        )}
       </nav>
 
       {/* Footer: avatar = user menu trigger (Me + Sign out).
@@ -264,7 +285,9 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
 }
 
 interface NavGroupProps {
-  label: string;
+  /** `null` skips the section heading entirely (used by the `me` tail block
+   * which sits below a border separator and needs no extra label). */
+  label: string | null;
   items: NavItem[];
   activeKey: NavKey;
   collapsed: boolean;
@@ -291,7 +314,7 @@ function NavGroup({
 
   return (
     <div>
-      {!collapsed && (
+      {!collapsed && label && (
         <div className="text-[10.5px] font-semibold text-text-faint uppercase tracking-wider px-2 mb-1.5">
           {label}
         </div>

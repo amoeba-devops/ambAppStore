@@ -15,16 +15,23 @@ interface BottomTabNavProps {
  *
  * Tabs derive from `navItemsForRole(role)` so the same canonical nav source
  * powers both the desktop sidebar and the mobile tab bar — adding a new route
- * means editing one file, not two. We take the first 4 workspace items since
- * the bar is a 4-column grid.
+ * means editing one file, not two.
  *
- * Active state matches by `href`-prefix. `/` itself is just a redirect
- * (Module 3 dashboard removed) — STAFF lands at `/trips`, DRIVER at `/today`
- * — so the tab that lights up reflects the post-redirect URL, not `/`.
+ * Layout per role:
+ *   - DRIVER (4 workspace items): flat 4-column grid
+ *     today · tripsMine · expensesNew · me
+ *   - STAFF (5 workspace items): elevated `dashboard` button rising above the
+ *     bar centre + 4 flat columns underneath
+ *     [Dashboard ▦] over (trips · vehicles · drivers · me)
  *
- * Mobile tab inventory after Module 3 removal:
- *   - DRIVER: today · tripsMine · expensesNew · me  (4 / 4 grid slots)
- *   - STAFF:  trips · vehicles  · drivers     · me  (4 / 4 grid slots)
+ * The elevated layout solves the 5-into-4 squeeze for STAFF without
+ * truncating long labels like "Bảng điều khiển" (~95px @ 12px font).
+ * Dashboard becomes the visually dominant CTA which also matches its role
+ * as the STAFF landing page.
+ *
+ * Active state matches by `href`-prefix. `/` itself is just a redirect —
+ * STAFF lands at `/dashboard`, DRIVER at `/today` — so the tab/button that
+ * lights up reflects the post-redirect URL, not `/`.
  *
  * Hidden on md+ where the sidebar takes over. */
 export function BottomTabNav({ role }: BottomTabNavProps) {
@@ -32,17 +39,26 @@ export function BottomTabNav({ role }: BottomTabNavProps) {
   const tNav = useTranslations('nav');
   const tL   = useTranslations('layout');
 
-  const items = navItemsForRole(role)
-    .filter((item) => item.group === 'workspace')
-    .slice(0, 4);
+  const workspace = navItemsForRole(role).filter((item) => item.group === 'workspace');
+  const dashboardItem = workspace.find((i) => i.key === 'dashboard');
+  /* Flat row: everything except the elevated dashboard. We cap at 4 so a
+   * future workspace addition won't silently bleed into a 5-column row. */
+  const flatItems = workspace.filter((i) => i.key !== 'dashboard').slice(0, 4);
 
   return (
     <nav
       aria-label={tL('mobileNavAria')}
       className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-surface/95 backdrop-blur border-t border-border pb-[env(safe-area-inset-bottom)]"
     >
+      {dashboardItem && (
+        <ElevatedDashboardTab
+          item={dashboardItem}
+          isActive={matchesTab(pathname, dashboardItem.href, dashboardItem.key)}
+          label={tNav(navLabelKey(dashboardItem.key))}
+        />
+      )}
       <ul className="grid grid-cols-4 h-14">
-        {items.map((item) => {
+        {flatItems.map((item) => {
           const isActive = matchesTab(pathname, item.href, item.key);
           return (
             <li key={item.key} className="relative">
@@ -80,6 +96,50 @@ export function BottomTabNav({ role }: BottomTabNavProps) {
     </nav>
   );
 }
+
+/* Elevated centre button for the STAFF Dashboard. Positioned absolutely so it
+ * sits above the bar (≈22px protrusion) with shadow for elevation. Icon-only
+ * — the label "Bảng điều khiển" is too long to fit a single tab slot, so we
+ * trade the visible label for a screen-reader-accessible aria-label.
+ *
+ * Doesn't collide with the existing right-side Fab (create-trip) because
+ * that one anchors to `right-4` while this one anchors to the centre. */
+function ElevatedDashboardTab({
+  item,
+  isActive,
+  label,
+}: {
+  item: { href: string; Icon: NavItem['Icon'] };
+  isActive: boolean;
+  label: string;
+}) {
+  return (
+    <Link
+      href={item.href}
+      aria-label={label}
+      aria-current={isActive ? 'page' : undefined}
+      className={cn(
+        'absolute left-1/2 -translate-x-1/2 -top-5 z-50',
+        'inline-flex items-center justify-center',
+        'h-14 w-14 rounded-full shadow-lg',
+        'bg-accent text-accent-fg',
+        'transition-transform duration-150 motion-reduce:transition-none',
+        'hover:scale-105 active:scale-95',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+        /* When dashboard is the current page, a faint accent halo behind the
+         * button gives the same visual confirmation as the top-bar indicator
+         * on flat tabs. Subtle — full-opacity would compete with the shadow. */
+        isActive && 'ring-4 ring-accent/30',
+      )}
+    >
+      <item.Icon className="h-6 w-6" strokeWidth={isActive ? 2.4 : 2} aria-hidden />
+    </Link>
+  );
+}
+
+/** Helper type alias so `ElevatedDashboardTab`'s prop signature can borrow
+ * the lucide icon type without importing it directly. */
+type NavItem = ReturnType<typeof navItemsForRole>[number];
 
 /* Match the pathname to a tab.
  *
