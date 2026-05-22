@@ -1,9 +1,6 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
-import {
-  listPendingExpenses,
-  type ExpenseStatusFilter,
-} from '@/server/queries/expenses.queries';
+import { listEntityExpenses } from '@/server/queries/expenses.queries';
 import {
   buildCsv,
   fmtAmount,
@@ -13,20 +10,15 @@ import {
   fmtExpenseType,
 } from '@/server/lib/csv';
 
-/* Expense CSV export — ent-scoped (listPendingExpenses filter by entId).
- * ADMIN + MANAGER only.
- */
-export async function GET(req: NextRequest) {
+/* Expense CSV export — ent-scoped via `listEntityExpenses`. ADMIN + MANAGER
+ * only. The approval flow was removed (every expense lands AUTO_APPROVED),
+ * so the historic `?status=pending|approved|rejected` query param is gone
+ * — the export always dumps the full ledger now. */
+export async function GET() {
   const actor = await getCurrentUser();
   requireRole(actor.role, ['ADMIN', 'MANAGER']);
 
-  const sp = req.nextUrl.searchParams;
-  const statusRaw = sp.get('status') ?? 'pending';
-  const status = (['pending', 'approved', 'rejected', 'all'].includes(statusRaw)
-    ? statusRaw
-    : 'pending') as ExpenseStatusFilter;
-
-  const items = await listPendingExpenses(actor.entId, status, 1000);
+  const items = await listEntityExpenses(actor.entId, 1000);
 
   const header = [
     'Mã chi phí',
@@ -40,8 +32,6 @@ export async function GET(req: NextRequest) {
     'Xe',
     'Mã chuyến',
     'Ghi chú',
-    'Ghi chú duyệt',
-    'Thời điểm duyệt',
   ];
   const data = items.map((e) => [
     e.expId.slice(0, 8).toUpperCase(),
@@ -55,12 +45,10 @@ export async function GET(req: NextRequest) {
     e.vehiclePlate ?? '',
     e.tripRef ?? '',
     e.expNote ?? '',
-    e.expReviewNote ?? '',
-    fmtDateTime(e.expReviewedAt),
   ]);
   const csv = buildCsv(header, data);
 
-  const filename = `expenses-${status}-${new Date().toISOString().slice(0, 10)}.csv`;
+  const filename = `expenses-${new Date().toISOString().slice(0, 10)}.csv`;
   return new NextResponse(csv, {
     status: 200,
     headers: {

@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, or, sql } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import {
   carDrivers,
@@ -74,7 +74,7 @@ export async function listExpensesForDriver(
   };
 }
 
-export interface PendingExpenseListItem {
+export interface EntityExpenseListItem {
   expId: string;
   expType: CarExpense['expType'];
   expStatus: CarExpense['expStatus'];
@@ -83,54 +83,62 @@ export interface PendingExpenseListItem {
   expOccurredAt: string;
   expSubmittedAt: Date;
   expNote: string | null;
-  expReviewNote: string | null;
-  expReviewedAt: Date | null;
   tripRef: string | null;
   vehiclePlate: string | null;
   driverName: string | null;
 }
 
-export type ExpenseStatusFilter = 'pending' | 'approved' | 'rejected' | 'all';
-
 /**
- * Expenses cho admin approval queue (costs page).
- * Filter theo status, exclude soft-deleted, scope theo entId.
- * Joins: driver→user (name), trip→vehicle (plate).
+ * All expenses for the entity (admin/manager view). The PRD R3 approval
+ * flow was dropped — every row lands AUTO_APPROVED — so there's no longer
+ * a pending/approved/rejected filter to honour. `/costs` calls this to
+ * render its full ledger.
+ *
+ * Vehicle resolution prefers the new direct FK (`exp_vehicle_id`) when
+ * present, falling back to the trip's vehicle for legacy rows that were
+ * submitted before migration 0009 added the column. Either way the SELECT
+ * coalesces to a single `vehiclePlate` field so the UI doesn't have to.
+ *
+ * Driver name is nullable post-migration — Admin/Manager can record
+ * expenses without naming a driver, in which case the column is empty.
  *
  * Sort: submitted DESC (newest first).
- *
- * @param status pending = PENDING; approved = APPROVED + AUTO_APPROVED; rejected = REJECTED; all = mọi status
  */
-export async function listPendingExpenses(
+export async function listEntityExpenses(
   entId: string,
-  status: ExpenseStatusFilter = 'pending',
-  limit = 50,
-): Promise<PendingExpenseListItem[]> {
-  const statusFilter =
-    status === 'pending' ? eq(carExpenses.expStatus, 'PENDING') :
-    status === 'approved' ? inArray(carExpenses.expStatus, ['APPROVED', 'AUTO_APPROVED']) :
-    status === 'rejected' ? eq(carExpenses.expStatus, 'REJECTED') :
-    /* 'all' */ null;
-
-  const filters = [
-    eq(carExpenses.entId, entId),
-    isNull(carExpenses.expDeletedAt),
-  ];
-  if (statusFilter) filters.push(statusFilter);
+  limit = 100,
+): Promise<EntityExpenseListItem[]> {
+  /* Two left joins to vehicles: one via the direct expVehicleId, one via
+   * the trip's vehicle. Coalesce the plate so the UI gets a single string.
+   * Aliases keep the joins distinguishable in SQL. */
+  const directVehicle = carVehicles;
 
   const rows = await db
     .select({
       expense: carExpenses,
       tripRef: carTrips.trpRef,
-      vehiclePlate: carVehicles.cvhPlateNumber,
+      directPlate: directVehicle.cvhPlateNumber,
+      tripVehiclePlate: sql<string | null>`(SELECT cvh_plate_number FROM car_vehicles WHERE cvh_id = ${carTrips.trpVehicleId})`,
       driverName: carUsers.usrName,
     })
     .from(carExpenses)
     .leftJoin(carTrips, eq(carExpenses.expTripId, carTrips.trpId))
-    .leftJoin(carVehicles, eq(carTrips.trpVehicleId, carVehicles.cvhId))
+    .leftJoin(directVehicle, eq(carExpenses.expVehicleId, directVehicle.cvhId))
     .leftJoin(carDrivers, eq(carExpenses.expDriverId, carDrivers.drvId))
     .leftJoin(carUsers, eq(carDrivers.drvUserId, carUsers.usrId))
-    .where(and(...filters))
+    .where(
+      and(
+        eq(carExpenses.entId, entId),
+        isNull(carExpenses.expDeletedAt),
+        /* Filter out rejected rows so the ledger is clean — approval was
+         * removed but historical rejected rows may still exist. */
+        or(
+          eq(carExpenses.expStatus, 'AUTO_APPROVED'),
+          eq(carExpenses.expStatus, 'APPROVED'),
+          eq(carExpenses.expStatus, 'PENDING'),
+        ),
+      ),
+    )
     .orderBy(desc(carExpenses.expSubmittedAt))
     .limit(limit);
 
@@ -143,10 +151,8 @@ export async function listPendingExpenses(
     expOccurredAt: r.expense.expOccurredAt,
     expSubmittedAt: r.expense.expSubmittedAt,
     expNote: r.expense.expNote,
-    expReviewNote: r.expense.expReviewNote,
-    expReviewedAt: r.expense.expReviewedAt,
     tripRef: r.tripRef ?? null,
-    vehiclePlate: r.vehiclePlate ?? null,
+    vehiclePlate: r.directPlate ?? r.tripVehiclePlate ?? null,
     driverName: r.driverName ?? null,
   }));
 }
