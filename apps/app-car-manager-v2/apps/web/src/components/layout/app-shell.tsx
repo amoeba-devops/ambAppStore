@@ -15,10 +15,12 @@ import { AppShellClient } from './app-shell-client';
  * updates yet — refresh occurs on next route change. Caller can rely on Next.js
  * `revalidatePath('/')` from mutating actions to force a refresh when needed.
  *
- * `vapidPublicKey` + `basePath` flow through to the PushEnableButton inside
- * SidebarNav so it can decide whether to render (hidden when server can't
- * push) and which SW URL to register on enable. Both come from NEXT_PUBLIC_*
- * envs but reading them server-side here means the client never has to.
+ * `vapidPublicKey` + `basePath` flow through to the PushPromptStrip that
+ * sits above each page's content. The strip decides whether to render
+ * (hidden when the server can't push, when already subscribed, or when
+ * snoozed) and which SW URL to register on enable. Both values come from
+ * NEXT_PUBLIC_* envs but reading them server-side here means the client
+ * never has to.
  */
 export async function AppShell({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
