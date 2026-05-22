@@ -195,14 +195,14 @@ export default async function UsersPage({ searchParams }: PageProps) {
              *  thay vì 2-step (users/new → drivers/new). */}
             {actor.role === 'ADMIN' && (
               <Button asChild variant="secondary" size="md" iconLeft={<IdCard />}>
-                <a href="/drivers/new">Tạo tài xế</a>
+                <Link href="/drivers/new">Tạo tài xế</Link>
               </Button>
             )}
             {/* MANAGER cũng được mời user (driver/viewer) sau khi G1 enabled
              *  ở AMA-side OwnEntityManagerGuard. Service tự enforce role limit. */}
             {(actor.role === 'ADMIN' || actor.role === 'MANAGER') && (
               <Button asChild variant="accent" size="md" iconLeft={<Plus />}>
-                <a href="/users/new">{tList('inviteUser')}</a>
+                <Link href="/users/new">{tList('inviteUser')}</Link>
               </Button>
             )}
           </>
@@ -259,7 +259,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
               Chưa có thành viên nào trong công ty này.
               {actor.role === 'ADMIN' && (
                 <>
-                  {' '}<a href="/users/new" className="text-accent hover:underline">Thêm thành viên mới</a>.
+                  {' '}<Link href="/users/new" className="text-accent hover:underline">Thêm thành viên mới</Link>.
                 </>
               )}
             </div>
@@ -401,7 +401,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
                               />
                             )}
                             <Button asChild variant="ghost" size="sm">
-                              <a href={`/users/${u.amaUserId}/edit`}>{tA('edit')}</a>
+                              <Link href={`/users/${u.amaUserId}/edit`}>{tA('edit')}</Link>
                             </Button>
                           </div>
                         ) : u.isCrossEntity ? (
@@ -432,7 +432,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
                 <div className="inline-flex items-center gap-1 self-end md:self-auto">
                   {page > 1 ? (
                     <Button variant="ghost" size="sm" asChild>
-                      <a href={usersPageHref(page - 1, searchQ, statusFilter)}>{tList('previous')}</a>
+                      <Link href={usersPageHref(page - 1, searchQ, statusFilter)}>{tList('previous')}</Link>
                     </Button>
                   ) : (
                     <Button variant="ghost" size="sm" disabled>{tList('previous')}</Button>
@@ -440,7 +440,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
                   <span className="px-3 text-sm tabular">{page} / {totalPages}</span>
                   {page < totalPages ? (
                     <Button variant="ghost" size="sm" asChild>
-                      <a href={usersPageHref(page + 1, searchQ, statusFilter)}>{tList('next')}</a>
+                      <Link href={usersPageHref(page + 1, searchQ, statusFilter)}>{tList('next')}</Link>
                     </Button>
                   ) : (
                     <Button variant="ghost" size="sm" disabled>{tList('next')}</Button>
