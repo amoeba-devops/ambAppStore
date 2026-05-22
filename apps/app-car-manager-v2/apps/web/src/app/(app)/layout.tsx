@@ -1,7 +1,4 @@
 import { AppShell } from '@/components/layout/app-shell';
-import { OilOverdueBanner } from '@/components/maintenance/oil-overdue-banner';
-import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { getCriticalUnresolvedAlerts } from '@/server/queries/maintenance-alerts.queries';
 
 /**
  * Shared layout for all authenticated pages. The AppShell (sidebar + header
@@ -9,29 +6,12 @@ import { getCriticalUnresolvedAlerts } from '@/server/queries/maintenance-alerts
  * so switching sidebar items only re-renders the page segment and triggers
  * the segment-level loading.tsx (not the whole shell).
  *
- * CRITICAL maintenance alerts (REQ-20260519 Q7) surface as a sticky top banner
- * for Admin/Manager on every page until resolved or dismissed-per-session.
+ * The previous CRITICAL maintenance-alert sticky banner (oil/inspection
+ * overdue, REQ-20260519 Q7) has been removed from this layout — the alert
+ * UI is being redefined elsewhere. The OilOverdueBanner component and the
+ * getCriticalUnresolvedAlerts query are still in the codebase for that
+ * future placement to consume.
  */
 export default async function AppGroupLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser();
-  const showBanner = user.role === 'ADMIN' || user.role === 'MANAGER';
-  const alerts = showBanner ? await getCriticalUnresolvedAlerts(user.entId) : [];
-  const items = alerts
-    .filter(
-      (a): a is typeof a & {
-        alert: typeof a.alert & { malType: 'OIL_OVERDUE' | 'INSPECTION_OVERDUE' };
-      } => a.alert.malType === 'OIL_OVERDUE' || a.alert.malType === 'INSPECTION_OVERDUE',
-    )
-    .map((a) => ({
-      alertId: a.alert.malId,
-      vehiclePlate: a.vehiclePlate ?? '—',
-      type: a.alert.malType as 'OIL_OVERDUE' | 'INSPECTION_OVERDUE',
-    }));
-
-  return (
-    <AppShell>
-      {showBanner && items.length > 0 && <OilOverdueBanner items={items} />}
-      {children}
-    </AppShell>
-  );
+  return <AppShell>{children}</AppShell>;
 }
