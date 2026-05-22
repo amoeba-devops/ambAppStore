@@ -1,4 +1,6 @@
+import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
 import { countPendingTrips } from '@/server/queries/trips.queries';
 import { AppShellClient } from './app-shell-client';
 
@@ -13,24 +15,41 @@ import { AppShellClient } from './app-shell-client';
  * updates yet — refresh occurs on next route change. Caller can rely on Next.js
  * `revalidatePath('/')` from mutating actions to force a refresh when needed.
  *
- * `vapidPublicKey` + `basePath` flow through to PushPromptBanner so it can
- * decide whether to render (hidden when server can't push) and which SW URL
- * to register on enable. Both come from NEXT_PUBLIC_* envs but reading them
- * server-side here means the client never has to.
+ * `vapidPublicKey` + `basePath` flow through to the PushPromptStrip that
+ * sits above each page's content. The strip decides whether to render
+ * (hidden when the server can't push, when already subscribed, or when
+ * snoozed) and which SW URL to register on enable. Both values come from
+ * NEXT_PUBLIC_* envs but reading them server-side here means the client
+ * never has to.
  */
 export async function AppShell({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
-  const pendingTripCount = await countPendingTrips({
-    entId: user.entId,
-    role: user.role,
-    userId: user.userId,
-  });
+  /* Settings row may not exist yet (lazy-seeded on first /settings visit by
+   * Admin). `getTenantSettings` returns null in that case — we don't seed
+   * here to keep the layout render cheap; the JWT/i18n fallback covers it. */
+  const [pendingTripCount, settings, tCo] = await Promise.all([
+    countPendingTrips({ entId: user.entId, role: user.role, userId: user.userId }),
+    getTenantSettings(user.entId),
+    getTranslations('company'),
+  ]);
+
+  const defaultTenantName = tCo('tenantDefault');
+  /* Resolution order: DB-stored tenant name → JWT-issued entity name →
+   * i18n default. Each is checked for non-empty content so a "  " whitespace
+   * row in DB doesn't override a real JWT value. */
+  const resolvedName =
+    settings?.tnsTenantName?.trim() ||
+    user.entName?.trim() ||
+    defaultTenantName;
+
   return (
     <AppShellClient
       role={user.role}
       pendingTripCount={pendingTripCount}
       vapidPublicKey={process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC}
       basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''}
+      tenantName={resolvedName}
+      tenantDefaultName={defaultTenantName}
     >
       {children}
     </AppShellClient>

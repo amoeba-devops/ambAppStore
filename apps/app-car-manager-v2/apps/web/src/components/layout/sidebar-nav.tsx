@@ -34,6 +34,7 @@ import type { LocalRole } from '@car-v2/shared/auth';
 import { useAllDrafts, type DraftEntry } from '@/hooks/use-all-drafts';
 import { logoutAction } from '@/server/actions/auth/auth.actions';
 import { activeKeyFor, navItemsForRole, type NavKey } from './nav-items';
+import { useTenantDisplay } from './tenant-display-context';
 
 /* Entity → child icon. Helps user recognise "this is a vehicle/trip/driver
  * draft" without reading text. */
@@ -68,6 +69,9 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
   const tAct   = useTranslations('actions');
   const tGroup = useTranslations();
   const pathname = usePathname();
+  /* Live tenant display — re-renders whenever an Admin edits the name in
+   * Settings, no route reload required. Seed value comes from AppShell. */
+  const tenant = useTenantDisplay();
   /* Pass role so `/` correctly maps to `today` for drivers and `trips` for
    * admin/manager. Module 3 (dashboard) was removed — the root route now
    * just redirects; the active item shown in the sidebar reflects where the
@@ -93,7 +97,6 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
   const handleSignOut = () => {
     startSignOut(async () => {
       await logoutAction();
-      window.location.href = '/session-expired';
     });
   };
 
@@ -113,15 +116,21 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
       )}
       aria-label={tGroup('layout.sidebarAria')}
     >
-      {/* Brand */}
+      {/* Brand — initials + tenant name come from TenantDisplayProvider so
+       * Admin name edits in Settings flow here without a route reload.
+       * Push enablement is handled by PushPromptStrip above the page content,
+       * not in this brand header. */}
       <div className="h-14 px-3 flex items-center gap-2.5 border-b border-border">
-        <div className="h-8 w-8 rounded-md bg-primary text-primary-fg flex items-center justify-center font-bold text-sm shrink-0">
-          {tCo('tenantInitial')}
+        <div
+          className="h-8 w-8 rounded-md bg-primary text-primary-fg flex items-center justify-center font-bold text-sm shrink-0"
+          title={tenant.name}
+        >
+          {tenant.initials}
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
             <div className="text-sm font-semibold text-text leading-tight truncate">{tGroup('appName')}</div>
-            <div className="text-xs text-text-muted truncate">{tCo('tenant')}</div>
+            <div className="text-xs text-text-muted truncate" title={tenant.name}>{tenant.name}</div>
           </div>
         )}
       </div>

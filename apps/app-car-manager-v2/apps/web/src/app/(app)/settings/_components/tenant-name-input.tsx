@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { Check, Loader2 } from 'lucide-react';
 import { Input, toast } from '@car-v2/ui';
+import { useTenantDisplay } from '@/components/layout/tenant-display-context';
 import { updateTenantNameAction } from '@/server/actions/settings/tenant-settings.actions';
 
 interface TenantNameInputProps {
@@ -27,6 +28,11 @@ const DEBOUNCE_MS = 500;
  */
 export function TenantNameInput({ defaultValue, disabled }: TenantNameInputProps) {
   const tStatus = useTranslations('settings.saveStatus');
+  /* Push every keystroke into the shared display context so the sidebar
+   * header reflects the change in real-time. Server persistence still runs
+   * debounced — see scheduleSave below. On save failure we revert the
+   * context to `persistedRef` to keep header ↔ DB in sync. */
+  const { setName: setDisplayName } = useTenantDisplay();
   const [value, setValue] = useState(defaultValue ?? '');
   /* Last value successfully persisted to the server. We compare against this
    * inside the timer to skip no-op saves (e.g. user types then backspaces
@@ -55,6 +61,9 @@ export function TenantNameInput({ defaultValue, disabled }: TenantNameInputProps
           setSavedFlash(true);
           setTimeout(() => setSavedFlash(false), 1500);
         } else {
+          /* Roll back the optimistic header update so it doesn't diverge
+           * from what's actually persisted. */
+          setDisplayName(persistedRef.current === '' ? null : persistedRef.current);
           toast.error(tStatus('error', { message: result.error.message }));
         }
       });
@@ -67,8 +76,14 @@ export function TenantNameInput({ defaultValue, disabled }: TenantNameInputProps
       disabled={disabled}
       maxLength={120}
       onChange={(e) => {
-        setValue(e.target.value);
-        scheduleSave(e.target.value);
+        const next = e.target.value;
+        setValue(next);
+        /* Immediate header update — keeps "realtime" feel even before the
+         * debounced server save fires. The provider falls back to its
+         * defaultName when `next` is empty, so the header doesn't go blank
+         * when the admin clears the field back to "default". */
+        setDisplayName(next);
+        scheduleSave(next);
       }}
       iconRight={
         pending ? (

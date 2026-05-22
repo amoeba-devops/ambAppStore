@@ -13,6 +13,10 @@ export const amaJwtClaimsSchema = z
   .object({
     sub: z.string().uuid(),
     entityId: z.string().uuid(),
+    /* AMA-issued entity display name. Optional for forward compatibility:
+     * older tokens minted before AMA adds this claim simply don't carry it,
+     * and the app falls back to the DB-stored tenant name or a default. */
+    entityName: z.string().optional(),
     role: z.enum(['OWNER', 'MASTER', 'MANAGER', 'MEMBER']),
     email: z.string().email().optional(),
     name: z.string().optional(),
@@ -25,6 +29,7 @@ export const amaJwtClaimsSchema = z
   .transform((claims) => ({
     sub: claims.sub,
     ent_id: claims.entityId,
+    ent_name: claims.entityName,
     role: claims.role,
     email: claims.email,
     name: claims.name,
