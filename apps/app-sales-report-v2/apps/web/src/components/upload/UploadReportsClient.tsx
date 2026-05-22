@@ -43,8 +43,8 @@ function buildSteps(t: (key: '1' | '2' | '3' | '4' | '5' | '6') => string): Wiza
 }
 
 interface UploadReportsClientProps {
-  /** Real DB-backed period keys, used to filter stale status overrides in Step 1. */
-  realPeriodKeys?: string[];
+  /** Real DB-backed period entries (label + year), used to filter stale status overrides in Step 1. */
+  realPeriodKeys?: Array<{ label: string; year: number }>;
 }
 
 export function UploadReportsClient({ realPeriodKeys = [] }: UploadReportsClientProps = {}) {
@@ -75,7 +75,7 @@ export function UploadReportsClient({ realPeriodKeys = [] }: UploadReportsClient
   // Compute effective status for selected period. Drives Continue gating
   // (Finalized → blocked) and Active pre-fill behavior.
   const periodStatus = selectedPeriod
-    ? effectiveStatus(selectedPeriod.label, realPeriodKeys)
+    ? effectiveStatus(selectedPeriod.label, selectedPeriod.year, realPeriodKeys)
     : null;
 
   // Existing archive files for the selected period (Active only) — shown in

@@ -50,7 +50,17 @@
   },
   "weekPicker": {
     "showAll": "Show all {count} weeks",
-    "collapse": "Collapse"
+    "collapse": "Collapse",
+    "prevYear": "Previous year",
+    "nextYear": "Next year",
+    "prevYearTitle": "Go to {year}",
+    "nextYearTitle": "Go to {year}"
+  },
+  "periodStatus": {
+    "open": "Open",
+    "active": "Active",
+    "finalized": "Finalized",
+    "locked": "Locked"
   },
   "common": {
     "loading": "Loading…",

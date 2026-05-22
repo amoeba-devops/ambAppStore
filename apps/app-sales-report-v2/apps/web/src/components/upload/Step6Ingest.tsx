@@ -25,6 +25,10 @@ interface Props {
   selectedPeriod?: SelectedPeriod | null;
   files?: Map<string, File>;
   manualInputs?: ManualInputs;
+  /**
+   * Override the server-side rate default. When omitted, the server picks 24%
+   * for periods before 2026-05-08 and 26% from 2026-05-08 onwards.
+   */
   tiktokPlatformFeeRatePct?: number;
 }
 
@@ -48,7 +52,7 @@ export function Step6Ingest({
   selectedPeriod = null,
   files,
   manualInputs,
-  tiktokPlatformFeeRatePct = 24,
+  tiktokPlatformFeeRatePct,
 }: Props) {
   const t = useTranslations('uploadWizard.step6');
   const [pending, startTransition] = useTransition();
@@ -86,7 +90,11 @@ export function Step6Ingest({
         if (Number.isFinite(n)) fd.set(k, String(n));
       }
     }
-    fd.set('tiktokPlatformFeeRatePct', String(tiktokPlatformFeeRatePct));
+    // Only forward the rate when explicitly provided. Otherwise the server's
+    // date-based default applies (24% pre 2026-05-08, 26% from 2026-05-08+).
+    if (tiktokPlatformFeeRatePct != null) {
+      fd.set('tiktokPlatformFeeRatePct', String(tiktokPlatformFeeRatePct));
+    }
 
     startTransition(async () => {
       const res = await commitIngestAction(fd);

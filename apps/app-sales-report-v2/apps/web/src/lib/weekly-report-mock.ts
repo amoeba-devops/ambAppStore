@@ -525,10 +525,14 @@ function emptyReport(): WeeklyReportData {
   };
 }
 
-export function getAvailableWeeks(): WeekEntry[] {
-  // Generate every weekly period in the current year so Operators can upload
-  // for any week — not just the ones the trends mock pre-baked.
-  return generateWeeksForYear(2026);
+/**
+ * Generate every weekly period for the given calendar year. Friday-anchored:
+ * a week (Fri→Thu) belongs to year Y when its Thursday falls in Y. Defaults
+ * to the current calendar year — older callers pass nothing, new callers
+ * (year-aware UI) pass the user-selected year.
+ */
+export function getAvailableWeeks(year: number = new Date().getFullYear()): WeekEntry[] {
+  return generateWeeksForYear(year);
 }
 
 const MS_PER_DAY = 86_400_000;
@@ -756,10 +760,13 @@ export interface MonthEntry {
   endMs: number;
 }
 
-export function getAvailableMonths(): MonthEntry[] {
-  // Generate all 12 calendar months of the current year so Operators can upload
-  // for any month, not just the ones the trends mock pre-baked.
-  return generateMonthsForYear(2026);
+/**
+ * Generate all 12 calendar months for the given year. Defaults to current
+ * calendar year — older callers pass nothing, year-aware UI passes user-
+ * selected year.
+ */
+export function getAvailableMonths(year: number = new Date().getFullYear()): MonthEntry[] {
+  return generateMonthsForYear(year);
 }
 
 export function generateMonthsForYear(year: number): MonthEntry[] {

@@ -23,7 +23,7 @@ export interface ShopeeSaleRow {
   shopeeCombo: number; // Giảm giá từ combo Shopee (platform-funded)
   fixedFee: number; // Phí cố định
   serviceFee: number; // Phí Dịch Vụ
-  paymentFee: number; // Phí thanh toán
+  paymentFee: number; // Phí xử lý giao dịch (was "Phí thanh toán" pre-2026-05)
   /**
    * Order placement date as ISO `YYYY-MM-DD` (local-day interpretation from
    * Shopee's "Ngày đặt hàng" column). Empty string when the legacy export
@@ -34,22 +34,25 @@ export interface ShopeeSaleRow {
   rowIndex: number;
 }
 
+// Each field maps to ONE OR MORE accepted header labels. Shopee renames
+// columns occasionally (e.g. "Phí thanh toán" → "Phí xử lý giao dịch" mid-2026);
+// list new labels first, keep old aliases for backward compat with archived files.
 const HEADER_MAP = {
-  orderId: 'Mã đơn hàng',
-  orderStatus: 'Trạng Thái Đơn Hàng',
-  productName: 'Tên sản phẩm',
-  varSku: 'SKU phân loại hàng',
-  originalPrice: 'Giá gốc',
-  quantity: 'Số lượng',
-  quantityReturned: 'Số lượng sản phẩm được hoàn trả',
-  nmv: 'Tổng số tiền Người mua thanh toán',
-  shopVoucher: 'Mã giảm giá của Shop',
-  shopCombo: 'Giảm giá từ Combo của Shop',
-  shopeeVoucher: 'Mã giảm giá của Shopee',
-  shopeeCombo: 'Giảm giá từ combo Shopee',
-  fixedFee: 'Phí cố định',
-  serviceFee: 'Phí Dịch Vụ',
-  paymentFee: 'Phí thanh toán',
+  orderId: ['Mã đơn hàng'],
+  orderStatus: ['Trạng Thái Đơn Hàng'],
+  productName: ['Tên sản phẩm'],
+  varSku: ['SKU phân loại hàng'],
+  originalPrice: ['Giá gốc'],
+  quantity: ['Số lượng'],
+  quantityReturned: ['Số lượng sản phẩm được hoàn trả'],
+  nmv: ['Tổng số tiền Người mua thanh toán'],
+  shopVoucher: ['Mã giảm giá của Shop'],
+  shopCombo: ['Giảm giá từ Combo của Shop'],
+  shopeeVoucher: ['Mã giảm giá của Shopee'],
+  shopeeCombo: ['Giảm giá từ combo Shopee'],
+  fixedFee: ['Phí cố định'],
+  serviceFee: ['Phí Dịch Vụ'],
+  paymentFee: ['Phí xử lý giao dịch', 'Phí thanh toán'],
 } as const;
 
 type FieldName = keyof typeof HEADER_MAP;
@@ -140,19 +143,24 @@ export async function parseShopeeSales(buffer: ArrayBuffer): Promise<ShopeeSaleR
   if (!sheet) throw new ShopeeSalesParseError('No worksheets found', 'NO_SHEET');
   if (sheet.rowCount < 2) throw new ShopeeSalesParseError('No data rows', 'EMPTY_FILE');
 
-  // Resolve header → column-index map (NFC-normalize both sides — some
-  // Shopee exports mix NFC + NFD Unicode forms within the same row).
+  // Resolve header → column-index map. Each field accepts one or more
+  // aliases; first match wins. NFC-normalize both sides (some Shopee exports
+  // mix NFC + NFD Unicode within the same row).
   const headerRow = sheet.getRow(1);
   const colByField = {} as Record<FieldName, number>;
   const missing: string[] = [];
 
-  for (const [field, headerLabel] of Object.entries(HEADER_MAP) as Array<[FieldName, string]>) {
-    const labelNfc = headerLabel.normalize('NFC');
+  for (const [field, aliases] of Object.entries(HEADER_MAP) as Array<
+    [FieldName, readonly string[]]
+  >) {
     let col = -1;
+    const aliasesNfc = aliases.map((a) => a.normalize('NFC'));
     headerRow.eachCell({ includeEmpty: false }, (cell, colNum) => {
-      if (text(cell.value).normalize('NFC') === labelNfc) col = colNum;
+      if (col >= 0) return;
+      const cellLabel = text(cell.value).normalize('NFC');
+      if (aliasesNfc.includes(cellLabel)) col = colNum;
     });
-    if (col === -1) missing.push(headerLabel);
+    if (col === -1) missing.push(aliases[0]!);
     else colByField[field] = col;
   }
   if (missing.length > 0) {
