@@ -5,6 +5,7 @@ import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn, Toaster } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { InstallPrompt } from '@/components/pwa/install-prompt';
+import { PushConfigProvider } from '@/components/pwa/push-config-context';
 import { BottomTabNav } from './bottom-tab-nav';
 import { SidebarNav } from './sidebar-nav';
 import { TenantDisplayProvider } from './tenant-display-context';
@@ -79,31 +80,31 @@ export function AppShellClient({
 
   return (
     <TenantDisplayProvider initialName={tenantName} defaultName={tenantDefaultName}>
-      <div className="flex min-h-dvh bg-bg text-text">
-        {/* Sidebar — hidden on mobile, replaced by BottomTabNav below. The
-         * push-enable bell lives inside the sidebar brand header now (see
-         * SidebarNav), replacing the previous full-width banner above page
-         * content. */}
-        <div className="hidden md:contents">
-          <SidebarNav
-            collapsed={collapsed}
-            role={role}
-            pendingTripCount={pendingTripCount}
-            vapidPublicKey={vapidPublicKey}
-            basePath={basePath}
-          />
+      <PushConfigProvider vapidPublicKey={vapidPublicKey} basePath={basePath}>
+        <div className="flex min-h-dvh bg-bg text-text">
+          {/* Sidebar — hidden on mobile, replaced by BottomTabNav below. The
+           * push-enable bell lives inside the sidebar brand header on desktop
+           * and inside the PageHeader mobile app-bar on small screens, both
+           * driven by the same PushConfigProvider above. */}
+          <div className="hidden md:contents">
+            <SidebarNav
+              collapsed={collapsed}
+              role={role}
+              pendingTripCount={pendingTripCount}
+            />
+          </div>
+          {/* Main: reserve bottom space on mobile for the fixed bottom-tab bar. */}
+          <main className="flex-1 min-w-0 flex flex-col pb-[64px] md:pb-0">
+            {children}
+          </main>
+          <div className="hidden md:contents">
+            <CollapseHandle collapsed={collapsed} onClick={toggle} />
+          </div>
+          <BottomTabNav role={role} />
+          <InstallPrompt />
+          <Toaster />
         </div>
-        {/* Main: reserve bottom space on mobile for the fixed bottom-tab bar. */}
-        <main className="flex-1 min-w-0 flex flex-col pb-[64px] md:pb-0">
-          {children}
-        </main>
-        <div className="hidden md:contents">
-          <CollapseHandle collapsed={collapsed} onClick={toggle} />
-        </div>
-        <BottomTabNav role={role} />
-        <InstallPrompt />
-        <Toaster />
-      </div>
+      </PushConfigProvider>
     </TenantDisplayProvider>
   );
 }

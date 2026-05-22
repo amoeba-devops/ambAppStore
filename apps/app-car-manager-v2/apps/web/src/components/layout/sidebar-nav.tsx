@@ -51,11 +51,6 @@ interface SidebarNavProps {
   role: LocalRole;
   /** Server-fed: pending trips in visibility scope. 0 hides the badge. */
   pendingTripCount: number;
-  /** VAPID public key — controls whether the push-enable bell is rendered.
-   * Undefined means the server can't push, so the bell hides entirely. */
-  vapidPublicKey: string | undefined;
-  /** Next basePath for service-worker URL composition under staging. */
-  basePath: string;
 }
 
 /** Map NavKey → metric counts. Keys absent or 0 → no badge. */
@@ -69,13 +64,7 @@ const NAV_KEY_TO_ENTITY: Partial<Record<NavKey, DraftEntry['entity']>> = {
   drivers: 'driver',
 };
 
-export function SidebarNav({
-  collapsed,
-  role,
-  pendingTripCount,
-  vapidPublicKey,
-  basePath,
-}: SidebarNavProps) {
+export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProps) {
   const tNav   = useTranslations('nav');
   const tCo    = useTranslations('company');
   const tAct   = useTranslations('actions');
@@ -149,7 +138,7 @@ export function SidebarNav({
               <div className="text-sm font-semibold text-text leading-tight truncate">{tGroup('appName')}</div>
               <div className="text-xs text-text-muted truncate" title={tenant.name}>{tenant.name}</div>
             </div>
-            <PushEnableButton vapidPublicKey={vapidPublicKey} basePath={basePath} />
+            <PushEnableButton />
           </>
         )}
       </div>
