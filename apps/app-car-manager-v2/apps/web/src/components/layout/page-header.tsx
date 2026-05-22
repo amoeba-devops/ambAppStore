@@ -56,9 +56,12 @@ export async function PageHeader({
       {/* ── Mobile app bar (< md) ─────────────────────────────────────────
        * Delegated to the client component so it can read the tenant display
        * context (avatar initials + app name + tenant name). Only `mobileAction`
-       * lands in the mobile right slot — `actions` is desktop-only. Pages that
-       * need an action on mobile must pass `mobileAction` explicitly (or rely
-       * on the FAB pattern for the primary "create" action). */}
+       * lands in the mobile right slot — `actions` is desktop-only. Primary
+       * actions (Edit, Delete, etc.) live inline inside each page's primary
+       * card on mobile; the floating FAB carries any "create" CTA. Pages
+       * that truly need a per-screen header action must pass `mobileAction`
+       * explicitly — kept narrow on purpose to avoid the desktop button
+       * cluster crowding the breadcrumb trail or overlapping a sticky FAB. */}
       <MobilePageHeader
         title={title}
         breadcrumbs={breadcrumbs}

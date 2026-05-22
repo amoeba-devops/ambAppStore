@@ -106,9 +106,18 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
                 <div className="flex flex-col sm:flex-row items-start gap-5">
                   <Avatar name={driver.user.usrName ?? '?'} size="xl" />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <h2 className="text-2xl font-bold text-text leading-tight">{driver.user.usrName}</h2>
-                      <Badge tone={STATUS_TONE[driver.drvStatus]}>{tStatus(driver.drvStatus)}</Badge>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-wrap min-w-0">
+                        <h2 className="text-2xl font-bold text-text leading-tight">{driver.user.usrName}</h2>
+                        <Badge tone={STATUS_TONE[driver.drvStatus]}>{tStatus(driver.drvStatus)}</Badge>
+                      </div>
+                      {/* Inline Edit button — replaces the header's right-side
+                       * action on mobile. Sized "sm" so it doesn't dwarf the
+                       * name; desktop keeps `actions` in the header and this
+                       * mirror is harmless duplication on wide screens. */}
+                      <Button variant="secondary" size="sm" iconLeft={<Edit3 />} asChild className="shrink-0">
+                        <Link href={`/drivers/${id}/edit`}>{tA('edit')}</Link>
+                      </Button>
                     </div>
                     <div className="mt-2 space-y-1 text-sm">
                       {driver.drvPhone && (

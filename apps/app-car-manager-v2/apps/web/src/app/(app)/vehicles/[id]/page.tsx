@@ -106,9 +106,16 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
                 <Car className="h-9 w-9" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h2 className="text-2xl font-bold text-text font-mono tracking-tight">{vehicle.cvhPlateNumber}</h2>
-                  <Badge tone={STATUS_TONE[vehicle.cvhStatus]}>{tStatus(vehicle.cvhStatus)}</Badge>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 flex-wrap min-w-0">
+                    <h2 className="text-2xl font-bold text-text font-mono tracking-tight">{vehicle.cvhPlateNumber}</h2>
+                    <Badge tone={STATUS_TONE[vehicle.cvhStatus]}>{tStatus(vehicle.cvhStatus)}</Badge>
+                  </div>
+                  {/* Inline Edit — mirrors the header `actions` slot for mobile
+                   * users who no longer see the header right buttons. */}
+                  <Button variant="secondary" size="sm" iconLeft={<Edit3 />} asChild className="shrink-0">
+                    <Link href={`/vehicles/${vehicle.cvhId}/edit`}>{tA('edit')}</Link>
+                  </Button>
                 </div>
                 {vehicle.cvhNotes && <p className="mt-1 text-text-muted">{vehicle.cvhNotes}</p>}
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-5">

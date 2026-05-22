@@ -19,7 +19,7 @@ export interface DraftEntry {
   /** Storage key WITHOUT the `ccms-draft:` prefix — useful as React key. */
   key: string;
   /** "trip:edit:abc-123" → ("trip", "edit", "abc-123"). Best-effort parse. */
-  entity: 'trip' | 'vehicle' | 'driver' | 'unknown';
+  entity: 'trip' | 'vehicle' | 'driver' | 'expense' | 'unknown';
   mode: 'new' | 'edit' | 'unknown';
   /** Entity ID for edit mode, null otherwise. */
   entityId: string | null;
@@ -49,7 +49,7 @@ function readAllDrafts(maxAgeMs: number): DraftEntry[] {
           savedAt?: number;
           label?: DraftLabel;
           href?: string;
-          entity?: 'trip' | 'vehicle' | 'driver';
+          entity?: 'trip' | 'vehicle' | 'driver' | 'expense';
         };
         if (!parsed.savedAt || now - parsed.savedAt > maxAgeMs) continue;
         const [, modeRaw, idRaw] = key.split(':');
@@ -78,7 +78,7 @@ function readAllDrafts(maxAgeMs: number): DraftEntry[] {
 
 function inferEntityFromKey(key: string): DraftEntry['entity'] {
   const head = key.split(':')[0];
-  if (head === 'trip' || head === 'vehicle' || head === 'driver') return head;
+  if (head === 'trip' || head === 'vehicle' || head === 'driver' || head === 'expense') return head;
   return 'unknown';
 }
 

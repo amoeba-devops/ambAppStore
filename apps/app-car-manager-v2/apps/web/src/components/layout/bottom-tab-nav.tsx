@@ -41,9 +41,19 @@ export function BottomTabNav({ role }: BottomTabNavProps) {
 
   const workspace = navItemsForRole(role).filter((item) => item.group === 'workspace');
   const dashboardItem = workspace.find((i) => i.key === 'dashboard');
-  /* Flat row: everything except the elevated dashboard. We cap at 4 so a
-   * future workspace addition won't silently bleed into a 5-column row. */
-  const flatItems = workspace.filter((i) => i.key !== 'dashboard').slice(0, 4);
+  /* Flat row excludes both `dashboard` (rendered as the elevated centre
+   * button) AND `me` (now a persistent avatar in the top-right of the
+   * mobile header). STAFF flat = [trips, vehicles, drivers, costs];
+   * DRIVER flat = [today, tripsMine, expensesNew]. We still cap at 4 so a
+   * future workspace addition can't silently break the layout. */
+  const flatItems = workspace
+    .filter((i) => i.key !== 'dashboard' && i.key !== 'me')
+    .slice(0, 4);
+  /* Driver has no elevated centre, just 3 flat tabs — use grid-cols-3 so
+   * each tab gets ~120px on a 360px viewport instead of a 25% slice with
+   * an empty 4th cell. STAFF keeps the 5-column template with the centre
+   * spacer reserved for the elevated Dashboard. */
+  const tabCount = flatItems.length;
 
   return (
     <nav
@@ -59,17 +69,18 @@ export function BottomTabNav({ role }: BottomTabNavProps) {
       )}
       {/* When the elevated Dashboard is present we carve out a fixed-width
        * centre column (72px) so the round button (56px) gets ~8px of clear
-       * space on each side. Without that gap the inner edges of the
-       * Vehicles + Drivers tabs sat under the button's shadow / tap surface
-       * (z-50) and users mis-tapped between Drivers and Dashboard. The
-       * `minmax(0,1fr)` floor on side cells lets labels truncate gracefully
-       * instead of forcing the grid wider than the viewport. */}
+       * space on each side. `minmax(0,1fr)` on side cells lets labels
+       * truncate gracefully instead of forcing the grid wider than the
+       * viewport. Without elevated Dashboard, use a plain grid sized to
+       * `flatItems.length` (3 for DRIVER, 4 for any other no-dashboard role). */}
       <ul
         className={cn(
           'grid h-14',
           dashboardItem
             ? 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_72px_minmax(0,1fr)_minmax(0,1fr)]'
-            : 'grid-cols-4',
+            : tabCount === 3
+              ? 'grid-cols-3'
+              : 'grid-cols-4',
         )}
       >
         {flatItems.slice(0, dashboardItem ? 2 : flatItems.length).map(renderFlatTab(pathname, tNav))}
