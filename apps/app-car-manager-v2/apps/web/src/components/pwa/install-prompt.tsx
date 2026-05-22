@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle, Copy, Download, Share, Smartphone, X } from 'lucide-react';
-import { Button, cn, toast } from '@car-v2/ui';
+import { Download, Share, Smartphone, X } from 'lucide-react';
+import { Button } from '@car-v2/ui';
 import { useDisplayMode } from './use-display-mode';
 
 const STORAGE_KEY = 'pwa.installDismissedUntil';
@@ -30,17 +30,7 @@ interface BIPEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-/* Variants:
- *   android      — Chrome/Edge desktop or Android with beforeinstallprompt event
- *   ios-safari   — Real Safari on iOS (only browser on iOS that can install a
- *                  true PWA; shows Share→Add to Home Screen instructions)
- *   ios-alt      — Chrome/Firefox/etc on iOS. Apple forces all browsers on iOS
- *                  to use WebKit + bans third-party install paths, so "Add to
- *                  Home Screen" inside those browsers just bookmarks the page
- *                  inside the host browser's in-app view (with URL bar + nav
- *                  chrome visible). Banner tells the user to switch to Safari
- *                  for a true standalone PWA. */
-type Variant = 'hidden' | 'android' | 'ios-safari' | 'ios-alt';
+type Variant = 'hidden' | 'android' | 'ios';
 
 /* Bottom banner that offers installing Fleet as a PWA.
  *
@@ -76,18 +66,8 @@ export function InstallPrompt() {
     if (isSnoozed()) return;
 
     const ua = window.navigator.userAgent;
-    const isIOSDevice = /iPhone|iPad|iPod/.test(ua);
-    const isAltBrowser = /CriOS|FxiOS|EdgiOS/.test(ua);
-    if (isIOSDevice && !isAltBrowser) {
-      setVariant('ios-safari');
-    } else if (isIOSDevice && isAltBrowser) {
-      /* Chrome/Firefox/Edge on iOS — can't install a real PWA. Tell the user
-       * to switch to Safari, since "Add to Home Screen" from these browsers
-       * just bookmarks the page inside the in-app view (browser chrome stays
-       * visible on every page, which is what the user reported as the
-       * "session header/footer still showing after install" symptom). */
-      setVariant('ios-alt');
-    }
+    const isIOS = /iPhone|iPad|iPod/.test(ua) && !/CriOS|FxiOS/.test(ua); // Safari only
+    if (isIOS) setVariant('ios');
 
     /* Android / desktop — wait for beforeinstallprompt. Chrome can refire this
      * event across SPA navigations even after we've dismissed once, so the
@@ -123,32 +103,6 @@ export function InstallPrompt() {
     setVariant('hidden');
   }, []);
 
-  const copyCurrentUrl = useCallback(async () => {
-    /* iOS browsers (Chrome/Firefox/Edge) can't programmatically open Safari —
-     * Apple sandboxes that. Best we can do is copy the URL so the user can
-     * paste it into Safari themselves. Fall back to a tiny temporary input
-     * + select+copy if the Clipboard API isn't available (rare on iOS 13+). */
-    const url = window.location.href;
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-      } else {
-        const ta = document.createElement('textarea');
-        ta.value = url;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-      }
-      toast.success(t('iosAltCopySuccess'));
-    } catch {
-      toast.error(t('iosAltCopyFail'));
-    }
-  }, [t]);
-
   const onInstall = useCallback(async () => {
     if (!deferredPrompt) return;
     await deferredPrompt.prompt();
@@ -173,41 +127,18 @@ export function InstallPrompt() {
       className="fixed inset-x-0 bottom-0 z-50 px-3 pb-3"
       style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
     >
-      <div
-        className={cn(
-          'mx-auto max-w-md rounded-2xl border shadow-lg px-4 py-3.5',
-          variant === 'ios-alt'
-            ? 'border-warning/40 bg-warning-soft/30'
-            : 'border-border bg-surface',
-        )}
-      >
+      <div className="mx-auto max-w-md rounded-2xl border border-border bg-surface shadow-lg px-4 py-3.5">
         <div className="flex items-start gap-3">
-          <div
-            className={cn(
-              'h-10 w-10 rounded-lg flex items-center justify-center shrink-0',
-              variant === 'ios-alt' ? 'bg-warning/15 text-warning' : 'bg-accent-soft text-accent',
-            )}
-          >
-            {variant === 'android' ? (
-              <Download className="h-5 w-5" />
-            ) : variant === 'ios-alt' ? (
-              <AlertTriangle className="h-5 w-5" />
-            ) : (
-              <Smartphone className="h-5 w-5" />
-            )}
+          <div className="h-10 w-10 rounded-lg bg-accent-soft text-accent flex items-center justify-center shrink-0">
+            {variant === 'android' ? <Download className="h-5 w-5" /> : <Smartphone className="h-5 w-5" />}
           </div>
           <div className="flex-1 min-w-0">
             <div id="pwa-install-title" className="text-sm font-semibold text-text">
-              {variant === 'android'
-                ? t('installPrompt')
-                : variant === 'ios-alt'
-                  ? t('iosAltTitle')
-                  : t('iosInstallTitle')}
+              {variant === 'android' ? t('installPrompt') : t('iosInstallTitle')}
             </div>
-            {variant === 'android' && (
+            {variant === 'android' ? (
               <p className="mt-0.5 text-xs text-text-muted leading-relaxed">{t('installPromptSub')}</p>
-            )}
-            {variant === 'ios-safari' && (
+            ) : (
               <ol className="mt-1 text-xs text-text-muted leading-relaxed space-y-0.5">
                 <li className="flex items-center gap-1.5">
                   <Share className="h-3 w-3 shrink-0 text-text-faint" aria-hidden />
@@ -215,19 +146,6 @@ export function InstallPrompt() {
                 </li>
                 <li>{t('iosInstallStep2')}</li>
               </ol>
-            )}
-            {variant === 'ios-alt' && (
-              <>
-                <p className="mt-1 text-xs text-text leading-relaxed">{t('iosAltDesc')}</p>
-                <ol className="mt-1.5 text-xs text-text-muted leading-relaxed space-y-0.5">
-                  <li>1. {t('iosAltStep1')}</li>
-                  <li>2. {t('iosAltStep2')}</li>
-                  <li className="flex items-center gap-1.5">
-                    3. <Share className="h-3 w-3 shrink-0 text-text-faint" aria-hidden />
-                    {t('iosAltStep3')}
-                  </li>
-                </ol>
-              </>
             )}
           </div>
           <button
@@ -239,22 +157,6 @@ export function InstallPrompt() {
             <X className="h-4 w-4" />
           </button>
         </div>
-        {variant === 'ios-alt' && (
-          <div className="mt-3 flex gap-2">
-            <Button variant="ghost" size="sm" className="flex-1" onClick={() => dismiss(SNOOZE_DAYS)}>
-              {t('installDismiss')}
-            </Button>
-            <Button
-              variant="accent"
-              size="sm"
-              className="flex-1"
-              iconLeft={<Copy />}
-              onClick={copyCurrentUrl}
-            >
-              {t('iosAltCopyUrl')}
-            </Button>
-          </div>
-        )}
         {variant === 'android' && (
           <div className="mt-3 flex gap-2">
             <Button variant="ghost" size="sm" className="flex-1" onClick={() => dismiss(SNOOZE_DAYS)}>
