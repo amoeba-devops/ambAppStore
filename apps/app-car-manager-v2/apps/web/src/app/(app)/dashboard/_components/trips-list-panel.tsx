@@ -127,11 +127,17 @@ export function TripsListPanel({ trips, highlightId, onCreateClick }: TripsListP
           </ul>
         )}
         {/* Compact footer link — same visual weight as VehicleLegend's
-         * "Quản lý xe →" so both side-panel cards anchor consistently. */}
+         * "Quản lý xe →" so both side-panel cards anchor consistently.
+         *
+         * Mobile right-edge padding (`pr-16 lg:pr-0`) keeps the link's tap
+         * target clear of the floating "+ Tạo chuyến" FAB, which is anchored
+         * to `right-4` and is 56px wide — without that pad the link sat
+         * under the FAB's tap surface (z-30) and users couldn't reach it. */}
         <Link
           href="/trips"
           className={cn(
             'mt-1 inline-flex shrink-0 items-center justify-end gap-1 self-end text-xs font-medium',
+            'pr-16 lg:pr-0',
             'text-text-muted transition-colors hover:text-accent',
             'focus-visible:outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring',
           )}

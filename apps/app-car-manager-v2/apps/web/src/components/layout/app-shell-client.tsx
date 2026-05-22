@@ -118,7 +118,14 @@ export function AppShellClient({
            * edge of the sidebar to full screen width (full width on mobile
            * where the sidebar is hidden). Only renders when push is actually
            * actionable; otherwise no vertical space is consumed. */}
-          <main className="flex-1 min-w-0 flex flex-col pb-[64px] md:pb-0">
+          {/* Bottom padding reserves the band the fixed BottomTabNav covers
+           * so page content doesn't scroll underneath it. The nav is 56px
+           * (h-14) PLUS the device safe-area-inset-bottom (~34px on a
+           * notched iPhone, 0 elsewhere). Previously we hard-coded 64px,
+           * which under-reserved on notched iPhones and let the last ~26px
+           * of content scroll behind the nav's safe-area cushion. Computing
+           * the inset live keeps the reserved band exact on every device. */}
+          <main className="flex-1 min-w-0 flex flex-col md:pb-0 pb-[calc(56px+env(safe-area-inset-bottom,0px))]">
             <PushPromptStrip />
             {children}
           </main>

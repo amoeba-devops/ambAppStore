@@ -1,8 +1,7 @@
-import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { ChevronLeft } from 'lucide-react';
 import { cn } from '@car-v2/ui';
 import { Breadcrumbs, type BreadcrumbItem } from './breadcrumbs';
+import { MobilePageHeader } from './mobile-page-header';
 
 interface PageHeaderProps {
   title: React.ReactNode;
@@ -46,17 +45,19 @@ export async function PageHeader({
         className,
       )}
     >
-      {/* ── Mobile app bar (< md) ───────────────────────────────────────── */}
-      <div className="md:hidden flex items-center gap-2 h-14 px-2">
-        {back ? <BackButton href={back} ariaLabel={tL('back')} /> : <span className="w-10" aria-hidden />}
-        <div className="flex-1 min-w-0 text-center">
-          <h1 className="text-md font-semibold text-text leading-tight truncate">{title}</h1>
-          {subtitle && <p className="text-[11px] text-text-muted truncate leading-tight">{subtitle}</p>}
-        </div>
-        <div className="min-w-[40px] flex items-center justify-end">
-          {mobileAction}
-        </div>
-      </div>
+      {/* ── Mobile app bar (< md) ─────────────────────────────────────────
+       * Delegated to the client component so it can read the tenant display
+       * context (avatar initials + app name + tenant name). `mobileAction`
+       * overrides `actions` when both are passed — but if a page only sets
+       * `actions` (the common case for desktop-first detail pages), we still
+       * render it on mobile so edit/delete buttons don't silently disappear. */}
+      <MobilePageHeader
+        title={title}
+        breadcrumbs={breadcrumbs}
+        back={back}
+        rightSlot={mobileAction ?? actions}
+        backAriaLabel={tL('back')}
+      />
 
       {/* ── Desktop chrome (≥ md) ───────────────────────────────────────── */}
       <div
@@ -82,18 +83,3 @@ export async function PageHeader({
   );
 }
 
-function BackButton({ href, ariaLabel }: { href: string; ariaLabel: string }) {
-  return (
-    <Link
-      href={href}
-      aria-label={ariaLabel}
-      className={
-        'inline-flex items-center justify-center h-10 w-10 rounded-full -ml-1 text-text-muted ' +
-        'hover:bg-surface-2 hover:text-text active:bg-surface-2/80 ' +
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg'
-      }
-    >
-      <ChevronLeft className="h-5 w-5" />
-    </Link>
-  );
-}
