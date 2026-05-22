@@ -6,11 +6,8 @@ import { LogOut } from 'lucide-react';
 import { Button } from '@car-v2/ui';
 import { logoutAction } from '@/server/actions/auth/auth.actions';
 
-/* Logout affordance.
- *
- * Hard navigation (`window.location.href`) after the action so middleware
- * re-runs against the cleared cookie — a soft `router.refresh()` would still
- * trust the now-stale React tree until the next request. */
+/* Logout affordance. The server action redirects to `/session-expired` itself
+ * (with basePath prepended) so the client just awaits — no manual nav. */
 export function MeLogoutCard() {
   const tMe  = useTranslations('settings.me');
   const tAct = useTranslations('actions');
@@ -19,7 +16,6 @@ export function MeLogoutCard() {
   const handle = () => {
     startTransition(async () => {
       await logoutAction();
-      window.location.href = '/session-expired';
     });
   };
 
