@@ -97,7 +97,6 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
   const handleSignOut = () => {
     startSignOut(async () => {
       await logoutAction();
-      window.location.href = '/session-expired';
     });
   };
 
