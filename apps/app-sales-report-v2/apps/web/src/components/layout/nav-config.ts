@@ -2,92 +2,104 @@ import type { LocalRole } from '@v2/shared/auth';
 import {
   LayoutDashboard,
   Upload,
-  Pencil,
+  Archive,
   Database,
-  FileText,
   BarChart3,
+  CalendarRange,
+  TrendingUp,
   ScrollText,
+  Users,
+  SlidersHorizontal,
   type LucideIcon,
 } from 'lucide-react';
 
 export interface NavItem {
-  label: string;
+  /** i18n key under `nav.item.*`. */
+  labelKey: string;
   href: string;
   icon: LucideIcon;
   roles?: readonly LocalRole[];
+  /** Source key for the dynamic badge count rendered next to the label. */
+  badge?: 'pending-approval';
 }
 
 export interface NavSection {
-  title?: string;
+  /** i18n key under `nav.section.*`. Omit for an untitled section. */
+  titleKey?: string;
   items: NavItem[];
 }
 
 export const navSections: NavSection[] = [
   {
     items: [
-      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+      { labelKey: 'dashboard', href: '/dashboard', icon: LayoutDashboard },
     ],
   },
   {
-    title: 'Operations',
     items: [
       {
-        label: 'Upload',
+        labelKey: 'uploadReports',
         href: '/upload',
         icon: Upload,
         roles: ['OPERATOR', 'ADMIN'],
       },
+    ],
+  },
+  {
+    titleKey: 'dataIngest',
+    items: [
       {
-        label: 'Manual Input',
-        href: '/manual-input',
-        icon: Pencil,
-        roles: ['OPERATOR', 'ADMIN'],
+        labelKey: 'rawArchive',
+        href: '/raw-archive',
+        icon: Archive,
+        badge: 'pending-approval',
       },
     ],
   },
   {
-    title: 'RFR Data',
+    titleKey: 'rfrData',
     items: [
       {
-        label: 'Prime Cost',
+        labelKey: 'primeCost',
         href: '/cost-master/prime-cost',
         icon: Database,
         roles: ['OPERATOR', 'ADMIN'],
       },
-      {
-        label: 'COGS File',
-        href: '/cost-master/cogs-file',
-        icon: FileText,
-        roles: ['OPERATOR', 'ADMIN'],
-      },
     ],
   },
   {
-    title: 'Reports',
+    titleKey: 'reports',
     items: [
-      { label: 'Weekly Report', href: '/reports/weekly', icon: BarChart3 },
+      { labelKey: 'weeklyReport', href: '/reports/weekly', icon: BarChart3 },
+      { labelKey: 'monthlyReport', href: '/reports/monthly', icon: CalendarRange },
+      { labelKey: 'trendingReport', href: '/reports/trending', icon: TrendingUp },
     ],
   },
   {
-    title: 'Audit',
+    titleKey: 'audit',
     items: [
       {
-        label: 'Login History',
-        href: '/activity-log/login',
-        icon: ScrollText,
-        roles: ['MANAGER', 'ADMIN'],
-      },
-      {
-        label: 'Action History',
+        labelKey: 'activityLog',
         href: '/activity-log/action',
         icon: ScrollText,
         roles: ['MANAGER', 'ADMIN'],
       },
+    ],
+  },
+  {
+    titleKey: 'settings',
+    items: [
       {
-        label: 'Download History',
-        href: '/activity-log/download',
-        icon: ScrollText,
-        roles: ['MANAGER', 'ADMIN'],
+        labelKey: 'userManagement',
+        href: '/settings/users',
+        icon: Users,
+        roles: ['ADMIN'],
+      },
+      {
+        labelKey: 'formulaConfig',
+        href: '/settings/formula-config',
+        icon: SlidersHorizontal,
+        roles: ['ADMIN'],
       },
     ],
   },

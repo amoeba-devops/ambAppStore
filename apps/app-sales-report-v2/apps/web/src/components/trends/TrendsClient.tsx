@@ -1,0 +1,231 @@
+'use client';
+
+import { useState, useMemo, useEffect } from 'react';
+import { Download, Database, Cloud } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { cn } from '@v2/ui';
+import {
+  buildWowSummary,
+  computeChannelSummary,
+  getChartSeries,
+  type Metric,
+  type Granularity,
+  type WeekPoint,
+} from '@/lib/trends-mock';
+import { snapshotsToWeekPoints } from '@/lib/snapshot-to-trends';
+import { listSnapshotsAction } from '@/server/actions/ingest.actions';
+import { ChannelTrendCard } from './ChannelTrendCard';
+import { MetricBreakdownTable } from './MetricBreakdownTable';
+import { MultiMetricSelect } from './MultiMetricSelect';
+import { buildCsv, downloadCsv } from '@/lib/csv';
+import { appendActionLog } from '@/lib/action-log-mock';
+
+export type CurrencyMode = 'VND' | 'KRW';
+
+export function TrendsClient() {
+  const t = useTranslations('trendingReport');
+  const tW = useTranslations('weeklyReport');
+  const [selectedMetrics, setSelectedMetrics] = useState<Metric[]>(['NET_GMV', 'CM']);
+  const [granularity, setGranularity] = useState<Granularity>('WEEK');
+  const [currency, setCurrency] = useState<CurrencyMode>('VND');
+  const [weeklyPoints, setWeeklyPoints] = useState<WeekPoint[]>([]);
+  const [monthlyPoints, setMonthlyPoints] = useState<WeekPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load every weekly + monthly snapshot from DB once on mount. Real ingested
+  // data only — no more mock backfill. Empty arrays render an empty-state
+  // banner instead of fabricated numbers.
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([
+      listSnapshotsAction({ granularity: 'WEEKLY' }),
+      listSnapshotsAction({ granularity: 'MONTHLY' }),
+    ]).then(([weekRes, monthRes]) => {
+      if (cancelled) return;
+      setLoading(false);
+      setWeeklyPoints(weekRes.success ? snapshotsToWeekPoints(weekRes.data.rows) : []);
+      setMonthlyPoints(monthRes.success ? snapshotsToWeekPoints(monthRes.data.rows) : []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const data = granularity === 'WEEK' ? weeklyPoints : monthlyPoints;
+  const hasData = data.length > 0;
+
+  const wowRows = useMemo(() => buildWowSummary(data), [data]);
+
+  const onExport = () => {
+    const header = ['Week', 'Period', 'GMV', 'GMV WoW %', 'Net GMV', 'Net GMV WoW %', 'CM', 'CM WoW %', 'Orders', 'Orders WoW %'];
+    const csvRows = wowRows.map((r) => [
+      r.weekLabel,
+      r.periodLabel,
+      Math.round(r.gmv),
+      r.gmvWow != null ? (r.gmvWow * 100).toFixed(2) : '',
+      Math.round(r.netGmv),
+      r.netGmvWow != null ? (r.netGmvWow * 100).toFixed(2) : '',
+      Math.round(r.cm),
+      r.cmWow != null ? (r.cmWow * 100).toFixed(2) : '',
+      Math.round(r.orders),
+      r.ordersWow != null ? (r.ordersWow * 100).toFixed(2) : '',
+    ]);
+    const csv = buildCsv(header, csvRows);
+    const filename = `trends_${granularity.toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`;
+    downloadCsv(csv, filename);
+
+    appendActionLog({
+      username: 'dev@amoeba.group',
+      userRole: 'OPERATOR',
+      category: 'EXPORT',
+      verb: 'EXPORT',
+      targetType: 'trending-report',
+      targetLabel: `Trending Report (${granularity === 'WEEK' ? 'WoW' : 'MoM'})`,
+      summary: `Exported ${csvRows.length} ${granularity === 'WEEK' ? 'weeks' : 'months'} of trend data as CSV`,
+      metadata: { granularity, filename, rowCount: csvRows.length },
+    });
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-3">
+          <div>
+            <h1 className="text-xl font-semibold text-neutral-900">{t('title')}</h1>
+            <p className="mt-1 text-sm text-neutral-500">{t('subtitle')}</p>
+          </div>
+          <span
+            className={cn(
+              'mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider whitespace-nowrap shrink-0',
+              loading
+                ? 'bg-neutral-100 text-neutral-500'
+                : hasData
+                  ? 'bg-success-500/10 text-success-500'
+                  : 'bg-neutral-100 text-neutral-500',
+            )}
+            title={hasData ? tW('badge.realDataTooltip') : tW('badge.noDataTooltip')}
+          >
+            {loading ? (
+              <>
+                <Cloud className="h-3 w-3 animate-pulse" /> {tW('badge.loading')}
+              </>
+            ) : hasData ? (
+              <>
+                <Database className="h-3 w-3" /> {tW('badge.realData')}
+              </>
+            ) : (
+              <>
+                <Cloud className="h-3 w-3" /> {tW('badge.noData')}
+              </>
+            )}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-md border border-neutral-300 bg-white p-0.5 text-sm">
+            <button
+              type="button"
+              onClick={() => setCurrency('VND')}
+              className={cn(
+                'rounded px-3 py-1.5 font-medium',
+                currency === 'VND' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-50',
+              )}
+            >
+              {t('currency.vnd')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrency('KRW')}
+              className={cn(
+                'rounded px-3 py-1.5 font-medium',
+                currency === 'KRW' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-50',
+              )}
+            >
+              {t('currency.krw')}
+            </button>
+          </div>
+          <div className="inline-flex rounded-md border border-neutral-300 bg-white p-0.5 text-sm">
+            <button
+              type="button"
+              onClick={() => setGranularity('WEEK')}
+              className={cn(
+                'rounded px-3 py-1.5 font-medium',
+                granularity === 'WEEK' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-50',
+              )}
+            >
+              {t('weekOverWeek')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setGranularity('MONTH')}
+              className={cn(
+                'rounded px-3 py-1.5 font-medium',
+                granularity === 'MONTH' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-50',
+              )}
+            >
+              {t('monthOverMonth')}
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={onExport}
+            className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+          >
+            <Download className="h-4 w-4" />
+            {t('export')}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">{t('metricLabel')}</span>
+        <MultiMetricSelect value={selectedMetrics} onChange={setSelectedMetrics} max={5} />
+      </div>
+
+      {!loading && !hasData && (
+        <div className="rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-12 text-center text-sm text-neutral-500">
+          {tW('badge.noDataTooltip')}
+        </div>
+      )}
+
+      {hasData && (
+        <>
+          <div className="space-y-4">
+            {selectedMetrics.map((m) => (
+              <MetricRow key={m} metric={m} weeks={data} granularity={granularity} currency={currency} />
+            ))}
+          </div>
+
+          <MetricBreakdownTable weeks={data} granularity={granularity} currency={currency} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function MetricRow({
+  metric,
+  weeks,
+  granularity,
+  currency,
+}: {
+  metric: Metric;
+  weeks: WeekPoint[];
+  granularity: Granularity;
+  currency: CurrencyMode;
+}) {
+  const totalSummary = useMemo(() => computeChannelSummary(weeks, 'TOTAL', metric), [weeks, metric]);
+  const shopeeSummary = useMemo(() => computeChannelSummary(weeks, 'SHOPEE', metric), [weeks, metric]);
+  const tiktokSummary = useMemo(() => computeChannelSummary(weeks, 'TIKTOK', metric), [weeks, metric]);
+  const totalChart = useMemo(() => getChartSeries(weeks, 'TOTAL', metric), [weeks, metric]);
+  const shopeeChart = useMemo(() => getChartSeries(weeks, 'SHOPEE', metric), [weeks, metric]);
+  const tiktokChart = useMemo(() => getChartSeries(weeks, 'TIKTOK', metric), [weeks, metric]);
+
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      <ChannelTrendCard channel="TOTAL" metric={metric} summary={totalSummary} chartData={totalChart} granularity={granularity} currency={currency} />
+      <ChannelTrendCard channel="SHOPEE" metric={metric} summary={shopeeSummary} chartData={shopeeChart} granularity={granularity} currency={currency} />
+      <ChannelTrendCard channel="TIKTOK" metric={metric} summary={tiktokSummary} chartData={tiktokChart} granularity={granularity} currency={currency} />
+    </div>
+  );
+}

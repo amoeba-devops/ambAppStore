@@ -1,0 +1,50 @@
+# ============================================================================
+# app-sales-report-v2 — staging server compose (parallel to Render deploy)
+#
+# Single service (not BFF+Web split) because Next.js 15 is fullstack — one
+# Node process handles both RSC pages and /api/* route handlers.
+#
+# Why this exists alongside render.yaml:
+#   - Render serves the canonical external URL (sales-report-v2-web.onrender.com)
+#     for direct access, bypassing ambAppStore catalog UI. It also hosts the
+#     worker + 2 cron jobs (poll Neon DB directly, no nginx dependency).
+#   - This Docker container serves traffic routed through staging nginx
+#     (/app-sales-report-v2/* → here), keeping the embedded flow on the same
+#     LAN as the other apps + MySQL platform container.
+#   - Both targets share Neon Postgres and JWT_SECRET — no data divergence.
+#
+# Port mapping:
+#   - Container internal: 3001 (Next.js)
+#   - Host exposed:       3106 (3105 is taken by car-manager-v2)
+#   - nginx talks to the container via Docker DNS (next-sales-report-v2:3001),
+#     NOT via host port. Host port 3106 is for `curl` debug only.
+# ============================================================================
+
+services:
+  next-sales-report-v2:
+    build:
+      context: .
+      args:
+        # BASE_PATH is inlined into JS bundle at build time; rebuild on change
+        BASE_PATH: /app-sales-report-v2
+    container_name: next-sales-report-v2
+    ports:
+      - "3106:3001"
+    env_file: ./.env
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - HOSTNAME=0.0.0.0
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/app-sales-report-v2/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - amb-apps-network
+
+networks:
+  amb-apps-network:
+    external: true

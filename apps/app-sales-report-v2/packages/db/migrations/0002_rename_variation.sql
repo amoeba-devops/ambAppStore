@@ -1,0 +1,1 @@
+ALTER TABLE "sal_prime_costs" RENAME COLUMN "pcs_variation_code" TO "pcs_variation_id";

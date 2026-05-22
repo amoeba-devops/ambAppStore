@@ -1,5 +1,6 @@
 import { cn } from '@v2/ui';
 import type { LocalRole } from '@v2/shared/auth';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface HeaderProps {
   title: string;
@@ -30,6 +31,7 @@ export function Header({ title, subtitle, user, actions }: HeaderProps) {
 
       <div className="flex items-center gap-3">
         {actions}
+        <LanguageSwitcher />
         <div className="flex items-center gap-2">
           <span
             className={cn(

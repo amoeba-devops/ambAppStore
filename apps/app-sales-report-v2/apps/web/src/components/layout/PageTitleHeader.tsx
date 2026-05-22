@@ -1,9 +1,10 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import type { LocalRole } from '@v2/shared/auth';
 import { Header } from './Header';
-import { pageTitleForPath } from './page-title';
+import { pageTitleKeyForPath } from './page-title';
 
 export function PageTitleHeader({
   user,
@@ -16,5 +17,6 @@ export function PageTitleHeader({
   };
 }) {
   const pathname = usePathname();
-  return <Header title={pageTitleForPath(pathname)} user={user} />;
+  const t = useTranslations('pageTitle');
+  return <Header title={t(pageTitleKeyForPath(pathname))} user={user} />;
 }

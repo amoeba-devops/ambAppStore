@@ -1,6 +1,7 @@
-import { pgTable, char, varchar, timestamp, uniqueIndex, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, char, varchar, integer, timestamp, uniqueIndex, pgEnum } from 'drizzle-orm/pg-core';
 
 export const localRoleEnum = pgEnum('sal_user_local_role', ['OPERATOR', 'MANAGER', 'ADMIN']);
+export const userStatusEnum = pgEnum('sal_user_status', ['ACTIVE', 'INACTIVE']);
 
 export const salUsers = pgTable(
   'sal_users',
@@ -12,6 +13,9 @@ export const salUsers = pgTable(
     usrName: varchar('usr_name', { length: 255 }),
     usrLocalRole: localRoleEnum('usr_local_role').notNull().default('OPERATOR'),
     usrAmaRoleSnapshot: varchar('usr_ama_role_snapshot', { length: 32 }),
+    usrStatus: userStatusEnum('usr_status').notNull().default('ACTIVE'),
+    usrLoginCount: integer('usr_login_count').notNull().default(0),
+    usrMfaLastAt: timestamp('usr_mfa_last_at', { withTimezone: true }),
     usrLastLoginAt: timestamp('usr_last_login_at', { withTimezone: true }),
     usrCreatedAt: timestamp('usr_created_at', { withTimezone: true }).defaultNow().notNull(),
     usrUpdatedAt: timestamp('usr_updated_at', { withTimezone: true }),
@@ -24,3 +28,4 @@ export const salUsers = pgTable(
 
 export type SalUser = typeof salUsers.$inferSelect;
 export type SalUserInsert = typeof salUsers.$inferInsert;
+export type UserStatus = (typeof userStatusEnum.enumValues)[number];

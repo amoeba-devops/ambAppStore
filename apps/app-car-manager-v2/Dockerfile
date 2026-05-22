@@ -32,6 +32,15 @@ COPY packages/ui/package.json ./packages/ui/
 
 RUN npm ci --include=dev
 
+# Alpine (musl) build: optionalDependencies only pin the glibc SWC variant,
+# so the gnu binary lands in node_modules but fails to load at runtime
+# (`__register_atfork: symbol not found`). Pull the musl variant explicitly —
+# `next build` then finds a native SWC and skips the WASM fallback path
+# (which triggers a yarn-based lockfile patch that chokes on the corepack
+# `packageManager: npm@10.9.4` field, since the image ships yarn 1.22.22
+# and Corepack is not enabled).
+RUN npm install --no-save --no-package-lock @next/swc-linux-x64-musl@15.5.18
+
 # Copy source after install (so deps cache survives src edits)
 COPY . .
 

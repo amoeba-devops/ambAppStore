@@ -42,16 +42,29 @@ export async function middleware(req: NextRequest) {
   }
   try {
     const claims = await verifyAmaJwt(cookieToken);
-    const res = NextResponse.next();
-    res.headers.set('x-ent-id', claims.ent_id);
-    res.headers.set('x-user-id', claims.sub);
-    res.headers.set('x-user-role', claims.role);
-    return res;
+    // MUST propagate as REQUEST headers (not response headers) so RSC's
+    // `headers()` in getCurrentUser() can read x-ent-id / x-user-id / x-user-role.
+    // Setting on `res.headers` only sends them to the browser, not the RSC page.
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set('x-ent-id', claims.ent_id);
+    requestHeaders.set('x-user-id', claims.sub);
+    requestHeaders.set('x-user-role', claims.role);
+    if (claims.email) requestHeaders.set('x-user-email', claims.email);
+    if (claims.name) requestHeaders.set('x-user-name', encodeURIComponent(claims.name));
+    return NextResponse.next({ request: { headers: requestHeaders } });
   } catch {
-    return NextResponse.redirect(absoluteUrl(req, '/session-expired'));
+    // Cookie present but verify failed — most common cause: cookie minted by
+    // a sibling v2 app on the same origin with different `app_code`. Clear the
+    // bad cookie so the next request takes the clean `no cookie → /session-expired`
+    // path instead of looping.
+    const res = NextResponse.redirect(absoluteUrl(req, '/session-expired'));
+    res.cookies.delete(SESSION_COOKIE);
+    return res;
   }
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // Must include explicit '/' — the single-pattern negative lookahead form
+  // empirically does NOT match the root path in Next.js 15 with basePath enabled.
+  matcher: ['/', '/((?!_next/static|_next/image|favicon.ico).+)'],
 };
