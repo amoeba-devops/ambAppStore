@@ -1,8 +1,7 @@
-import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { ChevronLeft } from 'lucide-react';
 import { cn } from '@car-v2/ui';
 import { Breadcrumbs, type BreadcrumbItem } from './breadcrumbs';
+import { MobilePageHeader } from './mobile-page-header';
 
 interface PageHeaderProps {
   title: React.ReactNode;
@@ -14,8 +13,15 @@ interface PageHeaderProps {
    * ignores this — the breadcrumb trail already conveys hierarchy. */
   back?: string;
   /* Optional mobile-only action slot in the app-bar top-right (icon size).
-   * Keep to 1 icon button — for primary mobile actions, prefer a FAB. */
+   * Keep to 1 icon button — for primary mobile actions, prefer a FAB.
+   * We intentionally do NOT fall back to `actions`: most desktop `actions`
+   * are list-page "+ Create" buttons that already have a mobile FAB. */
   mobileAction?: React.ReactNode;
+  /* Mobile header layout. 'brand' (avatar + app + tenant) is reserved for
+   * home routes — dashboard / today. Everything else uses 'breadcrumb'
+   * (back chevron + breadcrumb tail on the LEFT) so the top bar stays
+   * lightweight and the user can scan hierarchy at a glance. */
+  mobileVariant?: 'brand' | 'breadcrumb';
   /* Tight variant trims vertical padding for detail/form pages. */
   density?: 'comfortable' | 'tight';
   className?: string;
@@ -28,6 +34,7 @@ export async function PageHeader({
   actions,
   back,
   mobileAction,
+  mobileVariant = 'breadcrumb',
   density = 'comfortable',
   className,
 }: PageHeaderProps) {
@@ -46,17 +53,20 @@ export async function PageHeader({
         className,
       )}
     >
-      {/* ── Mobile app bar (< md) ───────────────────────────────────────── */}
-      <div className="md:hidden flex items-center gap-2 h-14 px-2">
-        {back ? <BackButton href={back} ariaLabel={tL('back')} /> : <span className="w-10" aria-hidden />}
-        <div className="flex-1 min-w-0 text-center">
-          <h1 className="text-md font-semibold text-text leading-tight truncate">{title}</h1>
-          {subtitle && <p className="text-[11px] text-text-muted truncate leading-tight">{subtitle}</p>}
-        </div>
-        <div className="min-w-[40px] flex items-center justify-end">
-          {mobileAction}
-        </div>
-      </div>
+      {/* ── Mobile app bar (< md) ─────────────────────────────────────────
+       * Delegated to the client component so it can read the tenant display
+       * context (avatar initials + app name + tenant name). Only `mobileAction`
+       * lands in the mobile right slot — `actions` is desktop-only. Pages that
+       * need an action on mobile must pass `mobileAction` explicitly (or rely
+       * on the FAB pattern for the primary "create" action). */}
+      <MobilePageHeader
+        title={title}
+        breadcrumbs={breadcrumbs}
+        back={back}
+        rightSlot={mobileAction}
+        backAriaLabel={tL('back')}
+        variant={mobileVariant}
+      />
 
       {/* ── Desktop chrome (≥ md) ───────────────────────────────────────── */}
       <div
@@ -82,18 +92,3 @@ export async function PageHeader({
   );
 }
 
-function BackButton({ href, ariaLabel }: { href: string; ariaLabel: string }) {
-  return (
-    <Link
-      href={href}
-      aria-label={ariaLabel}
-      className={
-        'inline-flex items-center justify-center h-10 w-10 rounded-full -ml-1 text-text-muted ' +
-        'hover:bg-surface-2 hover:text-text active:bg-surface-2/80 ' +
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg'
-      }
-    >
-      <ChevronLeft className="h-5 w-5" />
-    </Link>
-  );
-}

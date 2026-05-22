@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { PUSH_STATE_EVENT, dispatchPushStateChanged } from './push-event';
 
 /**
  * usePushSubscription — Web Push subscription lifecycle from the browser side.
@@ -16,7 +17,21 @@ import { useCallback, useEffect, useState } from 'react';
  * The SW path is computed against the Next.js basePath at runtime — staging
  * deploys under /app-car-manager-v2 must register sw.js at
  * /app-car-manager-v2/sw.js with matching scope, else the browser rejects.
- */
+ *
+ * Cross-instance sync: each consumer (PushPromptStrip, PushToggle, …) has
+ * its own state. Without a sync mechanism the header strip kept showing
+ * "Enable" forever after a user enabled push from a different surface (e.g.
+ * `MePushCard`), because AppShellClient never unmounts in App Router and
+ * the mount-time check fires exactly once. Solved by:
+ *   1. Re-detecting on `visibilitychange` (tab regains focus)
+ *   2. Listening for the `PUSH_STATE_EVENT` window event that every
+ *      subscribe/unsubscribe success path fires — see push-event.ts.
+ *
+ * The detection itself uses `getRegistration()` (no args, defaults to the
+ * current document URL) instead of `getRegistration(scope)` because scope
+ * matching is brittle: a SW registered at `/` returns undefined when asked
+ * for the empty scope `/` (Chrome 119+ glitch), but always returns it when
+ * asked about the current page URL. */
 
 export type PushState =
   | 'unsupported'
@@ -47,7 +62,9 @@ export function usePushSubscription({
   const [state, setState] = useState<PushState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  /* Detect support + current permission/subscription on mount. */
+  /* Detect support + current permission/subscription. Runs on mount AND on
+   * (a) tab visibility regain and (b) the shared `PUSH_STATE_EVENT` so
+   * sibling instances stay in sync — see header comment. */
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (
@@ -63,16 +80,40 @@ export function usePushSubscription({
       return;
     }
 
-    void (async () => {
+    let cancelled = false;
+    const detect = async () => {
       try {
-        const reg = await navigator.serviceWorker.getRegistration(`${basePath}/`);
+        /* `getRegistration()` (no args) resolves the registration whose scope
+         * covers the current document URL — more robust than passing an
+         * explicit `${basePath}/` scope, which has returned undefined in
+         * some Chrome builds even when a matching SW is installed. */
+        const reg = await navigator.serviceWorker.getRegistration();
         const existing = await reg?.pushManager.getSubscription();
-        setState(existing ? 'subscribed' : 'idle');
+        if (!cancelled) setState((prev) => {
+          /* Don't clobber an in-flight 'subscribing' / 'error' state with a
+           * detection sweep — the user is mid-interaction and the detection
+           * result is stale by definition. Only fire transitions between
+           * the two "resting" states. */
+          if (prev === 'subscribing' || prev === 'error') return prev;
+          return existing ? 'subscribed' : 'idle';
+        });
       } catch {
-        /* Probably no registration yet — that's idle. */
-        setState('idle');
+        if (!cancelled) setState((prev) => (prev === 'subscribing' || prev === 'error' ? prev : 'idle'));
       }
-    })();
+    };
+    void detect();
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void detect();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener(PUSH_STATE_EVENT, detect);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener(PUSH_STATE_EVENT, detect);
+    };
   }, [basePath]);
 
   const subscribe = useCallback(async () => {
@@ -116,6 +157,7 @@ export function usePushSubscription({
         return;
       }
       setState('subscribed');
+      dispatchPushStateChanged();
     } catch (e) {
       setState('error');
       setErrorMessage(e instanceof Error ? e.message : 'Unknown error');
@@ -143,6 +185,7 @@ export function usePushSubscription({
         }
       }
       setState('idle');
+      dispatchPushStateChanged();
     } catch (e) {
       setState('error');
       setErrorMessage(e instanceof Error ? e.message : 'Unknown error');

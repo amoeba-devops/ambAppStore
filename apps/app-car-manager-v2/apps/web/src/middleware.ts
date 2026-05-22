@@ -12,6 +12,14 @@ const PUBLIC_PATHS = [
   '/api/v1/cron/',
   '/session-expired',
   '/dev-login',
+  /* D-010 rev: phone-login page + API. Both public — driver/manager nhập
+   * ent_code + phone tại /login → POST /api/auth/login proxy tới AMA.
+   * D-011: silent refresh endpoint must be public (middleware triggers it
+   * when JWT expired). D-013: logout clears cookies. */
+  '/login',
+  '/api/auth/login',
+  '/api/auth/refresh',
+  '/api/auth/logout',
   '/_next',
   '/favicon.ico',
   /* PWA assets — must be reachable without a session so the browser can
@@ -75,8 +83,9 @@ export async function middleware(req: NextRequest) {
 
   const incomingToken = searchParams.get('ama_token');
   if (incomingToken) {
+    let tokenClaims;
     try {
-      await verifyAmaJwt(incomingToken);
+      tokenClaims = await verifyAmaJwt(incomingToken);
     } catch {
       return new NextResponse('Invalid token', { status: 401 });
     }
@@ -86,13 +95,22 @@ export async function middleware(req: NextRequest) {
     const cleanUrl = req.nextUrl.clone();
     cleanUrl.searchParams.delete('ama_token');
     const res = NextResponse.redirect(cleanUrl);
-    res.cookies.set(SESSION_COOKIE, incomingToken, cookieAttrs);
+    /* Persist for the full JWT lifetime. Without `maxAge` Next.js writes a
+     * SESSION cookie that iOS Safari wipes the moment the user swipes the
+     * PWA away from the app switcher — every relaunch then hits the
+     * "no cookie → /session-expired → Safari" path and breaks the
+     * standalone experience. We anchor on the JWT's own `exp` so the
+     * cookie can never outlive the token jose would refuse to verify. */
+    const nowSec = Math.floor(Date.now() / 1000);
+    const maxAgeSec = Math.max(60, tokenClaims.exp - nowSec);
+    res.cookies.set(SESSION_COOKIE, incomingToken, { ...cookieAttrs, maxAge: maxAgeSec });
     return res;
   }
 
   const cookieToken = req.cookies.get(SESSION_COOKIE)?.value;
   if (!cookieToken) {
-    return NextResponse.redirect(absoluteUrl(req, '/session-expired'));
+    // D-012: redirect /login (mobile-friendly phone-login) thay vì /session-expired
+    return NextResponse.redirect(absoluteUrl(req, '/login'));
   }
   try {
     const claims = await verifyAmaJwt(cookieToken);
@@ -116,15 +134,30 @@ export async function middleware(req: NextRequest) {
     if (claims.ent_name) {
       requestHeaders.set('x-ent-name', claims.ent_name);
     }
+    // D-006 (Step 4): forward optional info for ensureCarUser upsert in RSC layout
+    if (claims.email) requestHeaders.set('x-user-email', claims.email);
+    if (claims.name) requestHeaders.set('x-user-name', encodeURIComponent(claims.name));
     return NextResponse.next({ request: { headers: requestHeaders } });
-  } catch {
-    // Cookie present but verification failed — most common cause: cookie minted
-    // by a sibling app with different `app_code` (Zod parse fails). On localhost
-    // dev, all amb apps share the same cookie name on the same origin, so this
-    // is expected. Clear the bad cookie so the next request goes through the
-    // clean `no cookie → /session-expired → re-login` flow instead of looping.
-    const res = NextResponse.redirect(absoluteUrl(req, '/session-expired'));
+  } catch (err) {
+    // D-011 Silent refresh: cookie present but JWT verify failed (expired).
+    // Try refresh path if amb_ama_refresh cookie exists; refresh route will
+    // mint new app token + update cookies, OR fail-and-redirect /login itself.
+    // For OTHER errors (invalid signature, malformed) → straight /login.
+    const hasRefresh = req.cookies.get('amb_ama_refresh');
+    const errName = err instanceof Error ? err.name : '';
+    const isExpired = errName === 'JWTExpired' || /expired/i.test(String(err));
+
+    if (hasRefresh && isExpired) {
+      const url = new URL('/api/auth/refresh', req.url);
+      url.searchParams.set('next', pathname + (req.nextUrl.search ?? ''));
+      return NextResponse.redirect(url);
+    }
+
+    // Invalid signature / malformed cookie → clear + /login.
+    const res = NextResponse.redirect(absoluteUrl(req, '/login'));
     res.cookies.delete(SESSION_COOKIE);
+    res.cookies.delete('amb_ama_access');
+    res.cookies.delete('amb_ama_refresh');
     return res;
   }
 }

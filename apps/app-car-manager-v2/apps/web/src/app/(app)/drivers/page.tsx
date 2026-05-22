@@ -1,13 +1,12 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { Calendar, ChevronRight, Download, Phone, Plus, Search } from 'lucide-react';
+import { Calendar, ChevronRight, Phone, Plus } from 'lucide-react';
 import {
   Avatar,
   Badge,
   Button,
   Card,
   EmptyState,
-  Input,
   Table,
   TableBody,
   TableCell,
@@ -15,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@car-v2/ui';
+import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import type { CarDriverStatus } from '@car-v2/db/schema';
 import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
@@ -33,14 +33,21 @@ function daysUntil(dateStr: string): number {
   return Math.ceil(d / (1000 * 60 * 60 * 24));
 }
 
-export default async function DriversPage() {
+interface PageProps {
+  searchParams: Promise<{ q?: string }>;
+}
+
+export default async function DriversPage({ searchParams }: PageProps) {
+  const sp = await searchParams;
   const tA      = await getTranslations('actions');
   const tNav    = await getTranslations('nav');
   const tCo     = await getTranslations('company');
   const tList   = await getTranslations('drivers.list');
   const tStatus = await getTranslations('drivers.status');
   const user = await getCurrentUser();
-  const drivers = await listDrivers(user.entId);
+  const searchQ = sp.q?.trim() || undefined;
+  /* listDrivers enforce ent_id; search filter cũng chỉ chạy trong tenant scope. */
+  const drivers = await listDrivers(user.entId, searchQ);
 
   const expiringSoon = drivers.filter((d) => daysUntil(d.drvLicenseExpiry) <= 30).length;
 
@@ -51,18 +58,20 @@ export default async function DriversPage() {
         subtitle={tList('subtitle', { count: drivers.length, expiring: expiringSoon })}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('drivers') }]}
         actions={
-          <>
-            <Button variant="ghost" size="md" iconLeft={<Download />}>{tA('export')}</Button>
-            <Button variant="accent" size="md" asChild>
-              <Link href="/drivers/new"><Plus />{tA('new')}</Link>
-            </Button>
-          </>
+          <Button variant="accent" size="md" asChild>
+            <Link href="/drivers/new"><Plus />{tA('new')}</Link>
+          </Button>
         }
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <Input placeholder={tList('searchPlaceholder')} iconLeft={<Search />} className="md:w-80" />
+          {/* Debounced search → URL `?q=`, server filter ent-scoped trong listDrivers. */}
+          <DebouncedSearchInput
+            placeholder={tList('searchPlaceholder')}
+            className="md:w-80"
+            clearLabel={tA('clear')}
+          />
           <div className="text-xs md:text-sm text-text-muted">
             {tList('stats', { count: drivers.length, expiring: expiringSoon })}
           </div>

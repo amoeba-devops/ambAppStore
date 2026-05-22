@@ -10,6 +10,7 @@ import {
 import {
   Avatar,
   Badge,
+  Button,
   Card,
   CardContent,
   CardHeader,
@@ -17,11 +18,13 @@ import {
   CardTitle,
   EmptyState,
 } from '@car-v2/ui';
+import { LogOut } from 'lucide-react';
 import type { CarTripStatus } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getDriverByUserId } from '@/server/queries/drivers.queries';
 import { listTrips, listTripsForDriver, type TripListItem } from '@/server/queries/trips.queries';
+import { listVehiclesForDriver, type DriverVehicleSummary } from '@/server/queries/vehicles.queries';
 import { DriverTodayView } from './_components/driver-today-view';
 
 const TIME_FMT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -45,9 +48,15 @@ export default async function TodayPage() {
   const user = await getCurrentUser();
 
   let myTrips: TripListItem[] = [];
+  let myVehicles: DriverVehicleSummary[] = [];
   if (user.role === 'DRIVER') {
     const driver = await getDriverByUserId(user.entId, user.userId);
-    if (driver) myTrips = await listTripsForDriver(user.entId, driver.drvId, 20);
+    if (driver) {
+      [myTrips, myVehicles] = await Promise.all([
+        listTripsForDriver(user.entId, driver.drvId, 20),
+        listVehiclesForDriver(user.entId, driver.drvId),
+      ]);
+    }
   } else {
     /* Manager/Admin sees today's overview */
     const { items } = await listTrips({
@@ -70,8 +79,14 @@ export default async function TodayPage() {
           title={tT('title')}
           subtitle={`${tCo('currentUser')} · ${tT('subtitleTrips', { count: myTrips.filter((t) => isToday(t.trpScheduledAt)).length })}`}
           breadcrumbs={[{ label: tCo('tenant') }, { label: tT('title') }]}
+          actions={
+            <Button asChild variant="ghost" size="md" iconLeft={<LogOut />}>
+              <a href="/api/auth/logout">Đổi tài xế</a>
+            </Button>
+          }
+          mobileVariant="brand"
         />
-        <DriverTodayView trips={myTrips} />
+        <DriverTodayView trips={myTrips} vehicles={myVehicles} />
       </>
     );
   }
@@ -95,6 +110,7 @@ export default async function TodayPage() {
         title={tT('title')}
         subtitle={`${tCo('currentUser')} · ${tT('subtitleTrips', { count: todayTrips.length })}`}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tT('title') }]}
+        mobileVariant="brand"
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">

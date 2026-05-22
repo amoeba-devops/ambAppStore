@@ -6,6 +6,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { Ban, Loader2, Plus, Save } from 'lucide-react';
 import {
+  Avatar,
   Button,
   Dialog,
   DialogContent,
@@ -32,7 +33,12 @@ import { MapPreview } from '@/components/inputs/map-preview';
 import { useFormDraft } from '@/hooks/use-form-draft';
 import { fromMinutes, toMinutes, type DurationUnit } from '@/lib/duration';
 import { formatActionError } from '@/lib/format-action-error';
-import { cancelTripAction, updateTripAction } from '@/server/actions/trips/trip.actions';
+import {
+  assignTripAction,
+  cancelTripAction,
+  updateTripAction,
+} from '@/server/actions/trips/trip.actions';
+import { updateMemberAction } from '@/server/actions/users/update-member.action';
 
 interface EditTripDraftValues {
   passengerId: string;
@@ -45,6 +51,12 @@ interface EditTripDraftValues {
   notes: string;
 }
 
+interface PassengerOption {
+  id: string;
+  name: string | null;
+  email: string | null;
+}
+
 interface SelectOption {
   id: string;
   label: string;
@@ -52,8 +64,12 @@ interface SelectOption {
 
 interface EditTripFormProps {
   trip: CarTrip;
-  passengers: SelectOption[];
+  passengers: PassengerOption[];
+  drivers: SelectOption[];
+  vehicles: SelectOption[];
   role: LocalRole;
+  /** ADMIN có quyền vào /drivers/new + /vehicles/new (xem redirect ở 2 trang đó). */
+  canCreateEntities: boolean;
 }
 
 function isoToLocalInput(iso: Date | string): string {
@@ -63,7 +79,14 @@ function isoToLocalInput(iso: Date | string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function EditTripForm({ trip, passengers, role }: EditTripFormProps) {
+export function EditTripForm({
+  trip,
+  passengers,
+  drivers,
+  vehicles,
+  role,
+  canCreateEntities,
+}: EditTripFormProps) {
   const t  = useTranslations('trips.form');
   const tA = useTranslations('actions');
   const tErr = useTranslations();
@@ -82,6 +105,16 @@ export function EditTripForm({ trip, passengers, role }: EditTripFormProps) {
   const [durationUnit, setDurationUnit] = useState<DurationUnit>(initialDuration.unit);
   const [purpose, setPurpose] = useState(trip.trpPurpose ?? '');
   const [notes, setNotes] = useState(trip.trpNotes ?? '');
+  /* Assignment state — ADMIN only (server enforces requireRole). State machine
+   * cho phép `assign` từ PENDING_ASSIGNMENT, `reassign` từ REJECTED_BY_DRIVER.
+   * Trạng thái khác → disable inputs + show hint. */
+  const [driverId, setDriverId] = useState<string>(trip.trpDriverId ?? '');
+  const [vehicleId, setVehicleId] = useState<string>(trip.trpVehicleId ?? '');
+  const canReassign =
+    role === 'ADMIN' &&
+    (trip.trpStatus === 'PENDING_ASSIGNMENT' || trip.trpStatus === 'REJECTED_BY_DRIVER');
+  const showAssignment = role === 'ADMIN';
+  const [assignFieldErrors, setAssignFieldErrors] = useState<{ driver?: boolean; vehicle?: boolean }>({});
 
   /* Draft persistence — keyed by trip ID so each trip has its own draft and
    * concurrent edits on multiple trips don't collide. */
@@ -129,8 +162,25 @@ export function EditTripForm({ trip, passengers, role }: EditTripFormProps) {
       return;
     }
 
+    /* Assignment validation — all-or-nothing như new form. State machine yêu cầu
+     * cả 2 khi assign/reassign, không cho assign 1 nửa. Chỉ check khi reassign
+     * thực sự active (ADMIN + state cho phép). */
+    const assignmentChanged =
+      canReassign &&
+      ((driverId || '') !== (trip.trpDriverId ?? '') ||
+        (vehicleId || '') !== (trip.trpVehicleId ?? ''));
+    if (assignmentChanged) {
+      if ((driverId && !vehicleId) || (!driverId && vehicleId)) {
+        setAssignFieldErrors({ driver: !driverId, vehicle: !vehicleId });
+        toast.error(t('errIncomplete'), { description: t('errIncompleteDesc') });
+        return;
+      }
+    }
+    setAssignFieldErrors({});
+
     startTransition(async () => {
-      const result = await updateTripAction(trip.trpId, {
+      /* 1) Update mutable fields (passenger, addresses, time, notes...). */
+      const updateRes = await updateTripAction(trip.trpId, {
         passenger_id: passengerLocked ? undefined : passengerId || undefined,
         pickup_address: pickup.trim(),
         dropoff_address: dropoff.trim(),
@@ -139,17 +189,33 @@ export function EditTripForm({ trip, passengers, role }: EditTripFormProps) {
         purpose: purpose.trim() || null,
         notes: notes.trim() || null,
       });
-      if (result.success) {
-        clearDraft();
-        const routeSummary = `${pickup.trim()} → ${dropoff.trim()}`;
-        toast.success(t('tUpdated', { ref: result.data.trpRef }), {
-          description: routeSummary,
-        });
-        /* Land on All-trips with this row highlighted — same UX as Create. */
-        router.push(`/trips?status=all&highlight=${trip.trpId}`);
-      } else {
-        toast.error(t('errUpdate'), { description: formatActionError(result.error, tErr) });
+      if (!updateRes.success) {
+        toast.error(t('errUpdate'), { description: formatActionError(updateRes.error, tErr) });
+        return;
       }
+
+      /* 2) Nếu admin đổi driver/vehicle → assignTripAction (state machine sẽ
+       *    transition PENDING_ASSIGNMENT/REJECTED_BY_DRIVER → PENDING_DRIVER_CONFIRMATION). */
+      if (assignmentChanged && driverId && vehicleId) {
+        const assignRes = await assignTripAction(trip.trpId, {
+          driver_id: driverId,
+          vehicle_id: vehicleId,
+        });
+        if (!assignRes.success) {
+          toast.error(t('errAssign'), { description: formatActionError(assignRes.error, tErr) });
+          /* update đã thành công — vẫn refresh để user thấy state mới. */
+          router.refresh();
+          return;
+        }
+      }
+
+      clearDraft();
+      const routeSummary = `${pickup.trim()} → ${dropoff.trim()}`;
+      toast.success(t('tUpdated', { ref: updateRes.data.trpRef }), {
+        description: routeSummary,
+      });
+      /* Land on All-trips with this row highlighted — same UX as Create. */
+      router.push(`/trips?status=all&highlight=${trip.trpId}`);
     });
   };
 
@@ -276,11 +342,18 @@ export function EditTripForm({ trip, passengers, role }: EditTripFormProps) {
                 hint={passengerLocked ? t('passengerLockHint') : undefined}
               >
                 <Select value={passengerId} onValueChange={setPassengerId} disabled={passengerLocked}>
-                  <SelectTrigger className="w-full min-w-0"><SelectValue placeholder={t('passengerPlaceholder')} /></SelectTrigger>
+                  <SelectTrigger className="w-full min-w-0 h-auto py-1.5">
+                    <SelectValue placeholder={t('passengerPlaceholder')} />
+                  </SelectTrigger>
                   <SelectContent>
-                    {passengers.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
-                    ))}
+                    {passengers.map((p) => {
+                      const displayName = p.name?.trim() || p.email?.split('@')[0] || p.id;
+                      return (
+                        <SelectItem key={p.id} value={p.id}>
+                          <PassengerOptionRow name={displayName} email={p.email} />
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </FormField>
@@ -318,6 +391,73 @@ export function EditTripForm({ trip, passengers, role }: EditTripFormProps) {
               </Button>
             )}
           </FormSection>
+
+          {/* ── ASSIGNMENT (Admin only) ──
+           *  Cho phép admin đổi driver + vehicle ngay trong edit form (thay vì
+           *  phải vào dialog "Phân công" ở trang chi tiết). State machine giới
+           *  hạn `assign`/`reassign` ở PENDING_ASSIGNMENT + REJECTED_BY_DRIVER —
+           *  trạng thái khác → input disabled + hint. */}
+          {showAssignment && (
+            <FormSection
+              label={t('sectionAssignment')}
+              hint={canReassign ? t('sectionAssignmentDescShort') : t('sectionAssignmentLockHint')}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                <FormField
+                  label={t('driver')}
+                  error={assignFieldErrors.driver}
+                  inline
+                  className="min-w-0"
+                >
+                  <AssignmentSelect
+                    value={driverId}
+                    onChange={(v) => {
+                      setDriverId(v);
+                      if (assignFieldErrors.driver && v) {
+                        setAssignFieldErrors((p) => ({ ...p, driver: false }));
+                      }
+                    }}
+                    placeholder={t('driverPlaceholder')}
+                    options={drivers}
+                    error={assignFieldErrors.driver}
+                    disabled={!canReassign}
+                    createHref="/drivers/new"
+                    createLabel={t('createNewDriver')}
+                    emptyLabel={t('driverEmpty')}
+                    emptyHint={t('driverEmptyHint')}
+                    contactAdminLabel={t('contactAdminCreate')}
+                    canCreate={canCreateEntities}
+                  />
+                </FormField>
+                <FormField
+                  label={t('vehicle')}
+                  error={assignFieldErrors.vehicle}
+                  inline
+                  className="min-w-0"
+                >
+                  <AssignmentSelect
+                    value={vehicleId}
+                    onChange={(v) => {
+                      setVehicleId(v);
+                      if (assignFieldErrors.vehicle && v) {
+                        setAssignFieldErrors((p) => ({ ...p, vehicle: false }));
+                      }
+                    }}
+                    placeholder={t('vehiclePlaceholder')}
+                    options={vehicles}
+                    error={assignFieldErrors.vehicle}
+                    disabled={!canReassign}
+                    createHref="/vehicles/new"
+                    createLabel={t('createNewVehicle')}
+                    emptyLabel={t('vehicleEmpty')}
+                    emptyHint={t('vehicleEmptyHint')}
+                    contactAdminLabel={t('contactAdminCreate')}
+                    canCreate={canCreateEntities}
+                  />
+                </FormField>
+              </div>
+            </FormSection>
+          )}
 
           {/* Mobile-only inline map. */}
           <div className="lg:hidden">
@@ -407,5 +547,105 @@ export function EditTripForm({ trip, passengers, role }: EditTripFormProps) {
         </DialogContent>
       </Dialog>
     </form>
+  );
+}
+
+/* Driver/Vehicle assignment select — duplicated từ new-trip-form vì 2 form
+ * không share component hiện tại. Logic:
+ *  - Options rỗng: panel empty state + CTA "+ Tạo mới" (admin) / hint
+ *  - Có options: Select + icon-button "+" bên phải để direct sang /new
+ *  - disabled: state machine không cho assign → input grayed out, button ẩn */
+function AssignmentSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  error,
+  disabled,
+  createHref,
+  createLabel,
+  emptyLabel,
+  emptyHint,
+  contactAdminLabel,
+  canCreate,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { id: string; label: string }[];
+  placeholder: string;
+  error?: boolean;
+  disabled?: boolean;
+  createHref: string;
+  createLabel: string;
+  emptyLabel: string;
+  emptyHint: string;
+  contactAdminLabel: string;
+  canCreate: boolean;
+}) {
+  if (options.length === 0) {
+    return (
+      <div className="flex items-center gap-2 rounded border border-dashed border-border bg-surface-2 px-3 py-2">
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium text-text">{emptyLabel}</div>
+          <div className="text-xs text-text-muted truncate">
+            {canCreate ? emptyHint : contactAdminLabel}
+          </div>
+        </div>
+        {canCreate && !disabled && (
+          <Button type="button" variant="accent" size="sm" iconLeft={<Plus />} asChild>
+            <Link href={createHref}>{createLabel}</Link>
+          </Button>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex-1 min-w-0">
+        <Select value={value} onValueChange={onChange} disabled={disabled}>
+          <SelectTrigger error={error} className="w-full min-w-0">
+            <SelectValue placeholder={placeholder} />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((o) => (
+              <SelectItem key={o.id} value={o.id}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {canCreate && !disabled && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={createLabel}
+          title={createLabel}
+          className="shrink-0"
+          asChild
+        >
+          <Link href={createHref}><Plus /></Link>
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/* Passenger Select option row — avatar + name + email subtitle.
+ * Radix copies SelectItem children vào trigger khi value được chọn, nên cùng
+ * layout sẽ render ở cả popover items + trigger đóng. Layout này đồng nhất với
+ * new-trip-form. */
+function PassengerOptionRow({ name, email }: { name: string; email: string | null }) {
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <Avatar name={name} size="xs" />
+      <div className="flex flex-col min-w-0 leading-tight text-left">
+        <span className="text-sm font-medium text-text truncate">{name}</span>
+        {email && email !== name && (
+          <span className="text-[10.5px] text-text-faint truncate">{email}</span>
+        )}
+      </div>
+    </div>
   );
 }

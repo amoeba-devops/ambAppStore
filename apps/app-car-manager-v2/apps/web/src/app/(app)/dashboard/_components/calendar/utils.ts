@@ -193,7 +193,11 @@ export function moveAnchor(anchor: Date, view: CalendarViewType, dir: -1 | 1): D
 
 export function formatHeaderTitle(anchor: Date, view: CalendarViewType, locale: Locale): string {
   if (view === 'month') return format(anchor, 'LLLL yyyy', { locale });
-  if (view === 'day' || view === 'gantt') return format(anchor, 'PPP', { locale });
+  /* `PP` is the medium length-style — Vietnamese renders it as "22 thg 5,
+   * 2026" instead of `PPP`'s long-formal "Ngày 22 Tháng 05 Năm 2026" which
+   * was overflowing the 360px PWA header. Same idea for English ("May 22,
+   * 2026") and Korean ("2026. 5. 22."). */
+  if (view === 'day' || view === 'gantt') return format(anchor, 'PP', { locale });
   const start = startOfWeek(anchor, { weekStartsOn: 1 });
   const end = endOfWeek(anchor, { weekStartsOn: 1 });
   return `${format(start, 'd MMM', { locale })} – ${format(end, 'd MMM yyyy', { locale })}`;

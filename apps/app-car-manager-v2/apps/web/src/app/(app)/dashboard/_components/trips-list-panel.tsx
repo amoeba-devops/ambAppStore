@@ -51,13 +51,16 @@ export function TripsListPanel({ trips, highlightId, onCreateClick }: TripsListP
    *   - Mobile (< lg): natural overall card height but the inner trip <ul>
    *     caps at `max-h-[360px]` (~6 rows visible) so the page doesn't grow
    *     to N×row height when the tenant has many trips.
-   *   - Desktop (lg+): fills the `flex-1` slot inside the 728px rail column;
-   *     the list takes whatever space remains after header + footer link.
-   *
-   * `min-h-0` is critical on desktop — without it, `flex-1` would honour the
-   * children's intrinsic min content height and overflow the wrapper. */
+   *   - Desktop (lg+): the calendar's intrinsic height drives the grid
+   *     row; `items-stretch` mirrors that onto this column. We add
+   *     `lg:min-h-0 lg:flex-1` here so this Card both (a) flex-fills the
+   *     space below VehicleLegend AND (b) zeroes its own min-content
+   *     contribution so a long trips list doesn't push the rail past the
+   *     calendar's natural height (which would re-stretch the calendar
+   *     and bring back the empty band below the last hour row). The
+   *     inner <ul> then drops its pixel cap and scrolls internally. */
   return (
-    <Card className="flex min-h-0 flex-col lg:h-full">
+    <Card className="flex min-h-0 flex-col lg:min-h-0 lg:flex-1">
       {/* Title-only header. The primary "+ Tạo chuyến mới" affordance lives
        * on PageHeader (desktop) / FAB (mobile); having a duplicate button
        * here would compete for the same intent and confuse users about
@@ -79,7 +82,7 @@ export function TripsListPanel({ trips, highlightId, onCreateClick }: TripsListP
             </button>
           </div>
         ) : (
-          <ul className="max-h-[360px] space-y-1 overflow-y-auto pr-1 lg:max-h-none lg:flex-1">
+          <ul className="max-h-[360px] space-y-1 overflow-y-auto pr-1 lg:max-h-none lg:flex-1 lg:min-h-0">
             {trips.map((tr) => {
               const isHighlighted = tr.trpId === highlightId;
               const href = `/dashboard?peek=${tr.trpId}`;
@@ -127,11 +130,17 @@ export function TripsListPanel({ trips, highlightId, onCreateClick }: TripsListP
           </ul>
         )}
         {/* Compact footer link — same visual weight as VehicleLegend's
-         * "Quản lý xe →" so both side-panel cards anchor consistently. */}
+         * "Quản lý xe →" so both side-panel cards anchor consistently.
+         *
+         * Mobile right-edge padding (`pr-16 lg:pr-0`) keeps the link's tap
+         * target clear of the floating "+ Tạo chuyến" FAB, which is anchored
+         * to `right-4` and is 56px wide — without that pad the link sat
+         * under the FAB's tap surface (z-30) and users couldn't reach it. */}
         <Link
           href="/trips"
           className={cn(
             'mt-1 inline-flex shrink-0 items-center justify-end gap-1 self-end text-xs font-medium',
+            'pr-16 lg:pr-0',
             'text-text-muted transition-colors hover:text-accent',
             'focus-visible:outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring',
           )}

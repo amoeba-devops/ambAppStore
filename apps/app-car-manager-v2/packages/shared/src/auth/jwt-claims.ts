@@ -9,6 +9,15 @@ import { z } from 'zod';
 const AMA_APP_CODE = 'app-car-manager-v2';
 const LOCAL_APP_CODE = 'car-manager-v2';
 
+/**
+ * Entity-scoped role from amb_hr_entity_user_roles.eur_role.
+ * AMA's actual data also uses 'ADMIN' / 'SUPER_ADMIN' / 'VIEWER' for some users
+ * (e.g. ADMIN_LEVEL system admin assigned to entities). v2 only knows 3 local
+ * roles (DRIVER/MANAGER/ADMIN) so we map the wider AMA enum:
+ *   OWNER, MASTER, ADMIN, SUPER_ADMIN → ADMIN
+ *   MANAGER → MANAGER
+ *   MEMBER, VIEWER → DRIVER (VIEWER read-only, treated as driver-tier)
+ */
 export const amaJwtClaimsSchema = z
   .object({
     sub: z.string().uuid(),
@@ -17,7 +26,9 @@ export const amaJwtClaimsSchema = z
      * older tokens minted before AMA adds this claim simply don't carry it,
      * and the app falls back to the DB-stored tenant name or a default. */
     entityName: z.string().optional(),
-    role: z.enum(['OWNER', 'MASTER', 'MANAGER', 'MEMBER']),
+    /* Wider role enum: AMA's amb_hr_entity_user_roles.eur_role có thể carry
+     * ADMIN/SUPER_ADMIN/VIEWER ngoài 4 base. Map via mapAmaRoleToLocal. */
+    role: z.enum(['OWNER', 'MASTER', 'ADMIN', 'SUPER_ADMIN', 'MANAGER', 'MEMBER', 'VIEWER']),
     email: z.string().email().optional(),
     name: z.string().optional(),
     appCode: z.union([z.literal(AMA_APP_CODE), z.literal(LOCAL_APP_CODE)]),
@@ -47,10 +58,13 @@ export function mapAmaRoleToLocal(amaRole: AmaJwtClaims['role']): LocalRole {
   switch (amaRole) {
     case 'OWNER':
     case 'MASTER':
+    case 'ADMIN':
+    case 'SUPER_ADMIN':
       return 'ADMIN';
     case 'MANAGER':
       return 'MANAGER';
     case 'MEMBER':
+    case 'VIEWER':
       return 'DRIVER';
   }
 }

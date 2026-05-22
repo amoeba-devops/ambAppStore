@@ -5,33 +5,75 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Check, Send } from 'lucide-react';
 import { Button, Card, CardContent, Input, Label, Textarea, toast } from '@car-v2/ui';
+import type { LocalRole } from '@car-v2/shared/auth';
 import { DriverActionBar } from '@/components/layout/driver-action-bar';
 import { submitExpenseAction } from '@/server/actions/expenses/expense.actions';
 import { AmountInput } from './amount-input';
 import { ExpenseTypeChipGrid, type ExpenseType } from './expense-type-chip-grid';
 import { ReceiptCameraInput } from './receipt-camera-input';
 
-interface ExpenseSubmitFormProps {
-  tripId?: string;
+export interface VehicleOption {
+  id: string;
+  plate: string;
+  label: string | null;
 }
 
-/* Single-screen expense submission form. State is local — RHF is overkill for
- * 5 fields and keeps the bundle slightly lighter on driver phones where every
- * KB of JS over 3G matters.
+export interface DriverOption {
+  id: string;
+  name: string;
+}
+
+interface ExpenseSubmitFormProps {
+  /** Pre-link to a specific trip. When set we don't render the vehicle
+   * picker — the server resolves the vehicle from the trip's record. */
+  tripId?: string;
+  /** Current user's role. Drives which extra pickers to render. */
+  role: LocalRole;
+  /** Pre-fetched vehicle list for the picker. Empty when `tripId` is set
+   * (server resolves vehicle from trip) or DRIVER without an explicit
+   * picker need. */
+  vehicles: VehicleOption[];
+  /** Drivers list — only used in ADMIN/MANAGER mode to optionally attribute
+   * the expense. Empty for DRIVER (their own record is auto-attached). */
+  drivers: DriverOption[];
+}
+
+/* Single-screen expense submission form. Used by both Driver (own expense
+ * tied to a trip / a vehicle they're using) and Admin/Manager (recording
+ * a fleet expense on behalf of a vehicle).
+ *
+ * Picker visibility:
+ *   - tripId set      → no vehicle picker (resolved from trip), no driver
+ *                       picker (auto-attached for Driver, irrelevant for staff)
+ *   - tripId unset    → vehicle picker REQUIRED
+ *     · staff role      → optional driver picker (which driver was using it)
+ *     · driver role     → no driver picker (their own record auto-attaches)
  *
  * Submit flow:
- *   1. Client-side validate (type + amount > 0). Everything else is optional.
+ *   1. Client-side validate (type + amount > 0 + vehicle when no trip).
  *   2. Call `submitExpenseAction` — lands AUTO_APPROVED (no admin review).
- *   3. On success → toast + `router.push('/today')`. */
-export function ExpenseSubmitForm({ tripId }: ExpenseSubmitFormProps) {
+ *   3. On success → toast + router.push to the right list per role. */
+export function ExpenseSubmitForm({
+  tripId,
+  role,
+  vehicles,
+  drivers,
+}: ExpenseSubmitFormProps) {
   const t  = useTranslations('expenses.submit');
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+
+  const isStaff = role === 'ADMIN' || role === 'MANAGER';
+  /* Vehicle picker visibility — hidden whenever a trip context is provided
+   * (server resolves the vehicle from the trip's vehicle_id). */
+  const needsVehiclePicker = !tripId;
 
   const [type, setType] = useState<ExpenseType | null>(null);
   const [amount, setAmount] = useState<number | null>(null);
   const [occurredAt, setOccurredAt] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState('');
+  const [vehicleId, setVehicleId] = useState<string>('');
+  const [driverId, setDriverId] = useState<string>('');
   const [files, setFiles] = useState<File[]>([]);
   /* Sub-stage of the submit transition. `pending` from useTransition is true
    * the whole time; this state tells the button which phase of work it's in:
@@ -42,7 +84,12 @@ export function ExpenseSubmitForm({ tripId }: ExpenseSubmitFormProps) {
   const [submitStage, setSubmitStage] =
     useState<{ current: number; total: number } | 'submitting' | 'done' | null>(null);
 
-  const canSubmit = type !== null && amount !== null && amount > 0 && !pending;
+  const canSubmit =
+    type !== null &&
+    amount !== null &&
+    amount > 0 &&
+    !pending &&
+    (!needsVehiclePicker || vehicleId !== '');
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +98,8 @@ export function ExpenseSubmitForm({ tripId }: ExpenseSubmitFormProps) {
         toast.error(t('errMissing'), { description: t('errMissingDesc') });
       } else if (amount <= 0) {
         toast.error(t('errAmountInvalid'));
+      } else if (needsVehiclePicker && vehicleId === '') {
+        toast.error(t('errVehicleRequired'));
       }
       return;
     }
@@ -82,6 +131,8 @@ export function ExpenseSubmitForm({ tripId }: ExpenseSubmitFormProps) {
           occurred_at: occurredAt,
           note: note.trim() || undefined,
           trip_id: tripId,
+          vehicle_id: needsVehiclePicker ? vehicleId : undefined,
+          driver_id: isStaff && driverId !== '' ? driverId : undefined,
           attachments,
         });
         if (result.success) {
@@ -89,7 +140,10 @@ export function ExpenseSubmitForm({ tripId }: ExpenseSubmitFormProps) {
            * confirmation of state-change beyond just the toast. */
           setSubmitStage('done');
           toast.success(t('submittedToast'), { description: t('submittedToastDesc') });
-          router.push('/expenses');
+          /* Staff users land back on the cost ledger; drivers on their own
+           * history. Both lists trigger revalidatePath in the action so
+           * the new row shows up immediately. */
+          router.push(isStaff ? '/costs' : '/expenses');
         } else {
           setSubmitStage(null);
           toast.error(t('errSubmit'), { description: `${result.error.code} — ${result.error.message}` });
@@ -158,6 +212,47 @@ export function ExpenseSubmitForm({ tripId }: ExpenseSubmitFormProps) {
               <Label htmlFor="exp-amount" required className="mb-2 block">{t('amountLabel')}</Label>
               <AmountInput id="exp-amount" value={amount} onChange={setAmount} placeholder={t('amountPlaceholder')} />
             </div>
+
+            {/* Vehicle picker — shown only when not linked to a trip. */}
+            {needsVehiclePicker && (
+              <div>
+                <Label htmlFor="exp-vehicle" required className="mb-2 block">{t('vehicleLabel')}</Label>
+                <select
+                  id="exp-vehicle"
+                  value={vehicleId}
+                  onChange={(e) => setVehicleId(e.target.value)}
+                  required
+                  className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">{t('vehiclePlaceholder')}</option>
+                  {vehicles.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.plate}{v.label ? ` · ${v.label}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Driver picker — staff (ADMIN/MANAGER) only and only when not
+              * tied to a trip. Optional; staff may not know which driver
+              * was using the vehicle. */}
+            {isStaff && needsVehiclePicker && drivers.length > 0 && (
+              <div>
+                <Label htmlFor="exp-driver" className="mb-2 block">{t('driverLabel')}</Label>
+                <select
+                  id="exp-driver"
+                  value={driverId}
+                  onChange={(e) => setDriverId(e.target.value)}
+                  className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">{t('driverPlaceholder')}</option>
+                  {drivers.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Date */}
             <div>
