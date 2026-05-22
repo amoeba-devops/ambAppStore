@@ -16,6 +16,7 @@ import {
 import { carDrivers } from './drivers.schema';
 import { carTrips } from './trips.schema';
 import { carUsers } from './users.schema';
+import { carVehicles } from './vehicles.schema';
 
 /**
  * car_expenses — driver-submitted expense record.
@@ -67,9 +68,16 @@ export const carExpenses = pgTable(
     /* Nullable — driver may submit a standalone expense not tied to a trip
      * (e.g. monthly toll prepay, scheduled inspection). */
     expTripId: char('exp_trip_id', { length: 36 }).references(() => carTrips.trpId),
-    expDriverId: char('exp_driver_id', { length: 36 })
-      .notNull()
-      .references(() => carDrivers.drvId),
+    /* Direct vehicle link — required when an Admin/Manager records an
+     * expense without going through a trip. PRD §2.4 frames every expense
+     * as "per vehicle"; we previously only had this relationship indirectly
+     * via `expTripId → trpVehicleId`. Driver-submitted expenses can leave
+     * this NULL when they're tied to a trip (trip carries the vehicle). */
+    expVehicleId: char('exp_vehicle_id', { length: 36 }).references(() => carVehicles.cvhId),
+    /* Nullable — Admin/Manager submitting an expense on behalf of a vehicle
+     * may not know (or care) which driver was using it. Still required for
+     * driver-submitted expenses (the action layer enforces this). */
+    expDriverId: char('exp_driver_id', { length: 36 }).references(() => carDrivers.drvId),
     expSubmittedBy: char('exp_submitted_by', { length: 36 })
       .notNull()
       .references(() => carUsers.usrId),
@@ -86,6 +94,7 @@ export const carExpenses = pgTable(
   (t) => ({
     idxEntStatus: index('idx_car_expenses_ent_status').on(t.entId, t.expStatus),
     idxEntDriver: index('idx_car_expenses_ent_driver').on(t.entId, t.expDriverId),
+    idxEntVehicle: index('idx_car_expenses_ent_vehicle').on(t.entId, t.expVehicleId),
     idxEntOccurred: index('idx_car_expenses_ent_occurred').on(t.entId, t.expOccurredAt),
     idxTrip: index('idx_car_expenses_trip').on(t.expTripId),
   }),

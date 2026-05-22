@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Plus, Receipt } from 'lucide-react';
 import { Button, Card, EmptyState } from '@car-v2/ui';
 import { Fab } from '@/components/layout/fab';
@@ -27,6 +28,15 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
   const tA   = await getTranslations('actions');
   const tE   = await getTranslations('expenses.history');
   const user = await getCurrentUser();
+
+  /* `/expenses` is the per-driver history. Admin/Manager have their own
+   * entity-wide ledger at `/costs` with a richer two-pane layout — kick
+   * them over there so this driver-shaped screen doesn't show them an
+   * empty state and a confusing "Tạo chi phí" CTA that's already on
+   * /costs. Drivers continue to land here normally. */
+  if (user.role !== 'DRIVER') {
+    redirect('/costs');
+  }
 
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.page ?? 1));

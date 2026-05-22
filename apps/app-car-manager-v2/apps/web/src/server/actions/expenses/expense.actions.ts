@@ -1,7 +1,7 @@
 'use server';
 
 import { randomUUID } from 'node:crypto';
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from '@car-v2/db/client';
@@ -9,30 +9,31 @@ import {
   carDrivers,
   carExpenseAttachments,
   carExpenses,
-  carUsers,
+  carTrips,
+  carVehicles,
   type CarExpense,
 } from '@car-v2/db/schema';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
-import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
+import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { logAudit } from '@/server/services/audit-log.service';
-import { decideInitialStatus } from '@/server/services/expense-approval.service';
-import { notifyMany, notifyUser } from '@/server/services/notification.service';
 import { runAction } from '../_helpers';
 
-/* Real expense submission server action.
+/* Expense submission server action.
  *
- * Flow:
- *   1. Validate input (Zod)
- *   2. Resolve driver row from current user
- *   3. INSERT expense row + attachment rows (atomic via a single transaction)
- *   4. Audit log
+ * Submission paths:
+ *   - DRIVER:  must have a `car_drivers` row. `vehicle_id` derived from trip
+ *              when `trip_id` is provided; otherwise required from the form
+ *              (driver explicitly picks which company car the expense is for).
+ *   - ADMIN / MANAGER: records on behalf of a vehicle. `vehicle_id` required;
+ *              `driver_id` is optional — they may not know which driver was
+ *              using the car when the expense occurred (gas-station receipt
+ *              for monthly fleet refuel, scheduled inspection invoice, etc.).
  *
- * Approval flow removed per user-flow §3.2 — every expense lands in
- * AUTO_APPROVED. No admin notification fires.
+ * All submissions land directly in AUTO_APPROVED (PRD revision: approval
+ * flow dropped). No admin queue, no notification fan-out, no review buttons.
  *
  * Lock window: `exp_locked_until` set to NOW + 7 days per PRD §6.2.3 — driver
- * can edit metadata (note, occurredAt, amount) within that window. Edit
- * action is a separate REQ. */
+ * can edit metadata (note, occurredAt, amount) within that window. */
 
 const attachmentSchema = z.object({
   s3_key: z.string().min(1),
@@ -51,6 +52,8 @@ const submitExpenseInputSchema = z.object({
   occurred_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'occurred_at must be YYYY-MM-DD'),
   note: z.string().max(2000).optional(),
   trip_id: z.string().uuid().optional(),
+  vehicle_id: z.string().uuid().optional(),
+  driver_id: z.string().uuid().optional(),
   attachments: z.array(attachmentSchema).max(5).default([]),
 });
 
@@ -63,28 +66,113 @@ export async function submitExpenseAction(
     const actor = await getCurrentUser();
     const parsed = submitExpenseInputSchema.parse(input);
 
-    /* Driver record lookup. Anyone with role DRIVER must have a row in
-     * car_drivers — that's the model constraint. If not (e.g. mis-mapped role),
-     * we fail with a clear code rather than silently inserting with a NULL
-     * driver. Admin / Manager submitting on their own behalf would hit the
-     * same path; PRD doesn't anticipate that case so 403 is fine. */
-    const driver = await db
-      .select({ drvId: carDrivers.drvId })
-      .from(carDrivers)
-      .where(
-        and(
-          eq(carDrivers.drvUserId, actor.userId),
-          eq(carDrivers.entId, actor.entId),
-          isNull(carDrivers.drvDeletedAt),
-        ),
-      )
-      .limit(1)
-      .then((rows) => rows[0]);
-    if (!driver) {
-      throw new CarError('CAR-E0103', 403, 'Only drivers can submit expenses.');
+    /* Resolve driver + vehicle FKs per role.
+     *
+     * DRIVER path: must have a `car_drivers` row (the model constraint —
+     *   anyone with role DRIVER must be a registered driver). Vehicle is
+     *   taken from the linked trip when present; otherwise we accept the
+     *   form's `vehicle_id` so a driver can submit a non-trip expense
+     *   (monthly toll prepay, parking on a personal errand routed through
+     *   a company car, etc.).
+     *
+     * ADMIN / MANAGER path: skip the driver lookup. `vehicle_id` is required
+     *   from the form (or derived from a linked trip). `driver_id` is
+     *   optional from the form — they may not know which driver was using
+     *   the car at the time. */
+    const isDriverRole = actor.role === 'DRIVER';
+
+    let driverId: string | null = null;
+    if (isDriverRole) {
+      const driver = await db
+        .select({ drvId: carDrivers.drvId })
+        .from(carDrivers)
+        .where(
+          and(
+            eq(carDrivers.drvUserId, actor.userId),
+            eq(carDrivers.entId, actor.entId),
+            isNull(carDrivers.drvDeletedAt),
+          ),
+        )
+        .limit(1)
+        .then((rows) => rows[0]);
+      if (!driver) {
+        throw new CarError('CAR-E0103', 403, 'Driver record not found for this user.');
+      }
+      driverId = driver.drvId;
+    } else if (parsed.driver_id) {
+      /* Admin/Manager passed an explicit driver — verify it belongs to the
+       * tenant before trusting the FK (otherwise a crafted UUID lets them
+       * write a row tagged with a foreign driver). */
+      const driver = await db
+        .select({ drvId: carDrivers.drvId })
+        .from(carDrivers)
+        .where(
+          and(
+            eq(carDrivers.drvId, parsed.driver_id),
+            eq(carDrivers.entId, actor.entId),
+            isNull(carDrivers.drvDeletedAt),
+          ),
+        )
+        .limit(1)
+        .then((rows) => rows[0]);
+      if (!driver) {
+        throw new CarError('CAR-E0404', 404, 'Driver not found in this tenant.');
+      }
+      driverId = driver.drvId;
     }
 
-    const { status } = decideInitialStatus(actor.entId, parsed.type, parsed.amount);
+    let vehicleId: string | null = parsed.vehicle_id ?? null;
+    /* Trip-linked expense: pull vehicle from the trip so the form doesn't
+     * have to repeat what the trip already records. Verify trip belongs to
+     * the tenant in the same query. */
+    if (parsed.trip_id) {
+      const trip = await db
+        .select({ vehicleId: carTrips.trpVehicleId })
+        .from(carTrips)
+        .where(
+          and(
+            eq(carTrips.trpId, parsed.trip_id),
+            eq(carTrips.entId, actor.entId),
+            isNull(carTrips.trpDeletedAt),
+          ),
+        )
+        .limit(1)
+        .then((rows) => rows[0]);
+      if (!trip) {
+        throw new CarError('CAR-E0404', 404, 'Trip not found in this tenant.');
+      }
+      vehicleId = vehicleId ?? trip.vehicleId;
+    } else if (vehicleId) {
+      /* Standalone vehicle expense: verify vehicle belongs to the tenant. */
+      const vehicle = await db
+        .select({ id: carVehicles.cvhId })
+        .from(carVehicles)
+        .where(
+          and(
+            eq(carVehicles.cvhId, vehicleId),
+            eq(carVehicles.entId, actor.entId),
+            isNull(carVehicles.cvhDeletedAt),
+          ),
+        )
+        .limit(1)
+        .then((rows) => rows[0]);
+      if (!vehicle) {
+        throw new CarError('CAR-E0404', 404, 'Vehicle not found in this tenant.');
+      }
+    }
+
+    /* Admin/Manager submitting outside a trip MUST identify which vehicle
+     * the expense is for — that's the whole point of "ghi nhận theo từng
+     * xe" (PRD §2.4). Drivers without a trip link also need it for the
+     * same reason. */
+    if (!vehicleId) {
+      throw new CarError('CAR-E0001', 400, 'vehicle_id is required when no trip is linked');
+    }
+
+    /* Approval flow dropped — every expense lands AUTO_APPROVED. The status
+     * field is kept on the row for historical compatibility and to let
+     * downstream charts/exports filter on "non-deleted, non-rejected". */
+    const status: CarExpense['expStatus'] = 'AUTO_APPROVED';
     const now = new Date();
     const lockUntil = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const expId = randomUUID();
@@ -103,7 +191,8 @@ export async function submitExpenseAction(
       expNote: parsed.note ?? null,
       expStatus: status,
       expTripId: parsed.trip_id ?? null,
-      expDriverId: driver.drvId,
+      expVehicleId: vehicleId,
+      expDriverId: driverId,
       expSubmittedBy: actor.userId,
       expSubmittedAt: now,
       expLockedUntil: lockUntil,
@@ -143,152 +232,21 @@ export async function submitExpenseAction(
       },
     });
 
-    if (status === 'PENDING') {
-      /* Fan-out tới cả ADMIN + MANAGER trong cùng entity. Admin là approver
-       * chính (PRD §6.2.2), Manager nhận để theo dõi chi phí team mình. */
-      const recipients = await db
-        .select({ id: carUsers.usrId })
-        .from(carUsers)
-        .where(
-          and(
-            eq(carUsers.entId, actor.entId),
-            inArray(carUsers.usrLocalRole, ['ADMIN', 'MANAGER']),
-            isNull(carUsers.usrDeletedAt),
-          ),
-        );
-      if (recipients.length > 0) {
-        await notifyMany(recipients.map((a) => a.id), {
-          entId: actor.entId,
-          event: 'EXPENSE.SUBMITTED',
-          title: `Chi phí mới chờ duyệt`,
-          body: `${parsed.type} · ${parsed.amount.toLocaleString('vi-VN')}₫`,
-          entityId: expId,
-        });
-      }
-    }
-
     revalidatePath('/expenses');
+    revalidatePath('/costs');
 
     return { id: expId, status };
   });
 }
 
-/* ─── Approve / Reject ─────────────────────────────────────────────────── */
+/* ─── Approve / Reject (REMOVED) ────────────────────────────────────────────
+ *
+ * Per PRD revision the approval flow is gone — every expense lands in
+ * AUTO_APPROVED. The approveExpenseAction / rejectExpenseAction helpers
+ * have been removed along with their UI in /costs.
+ *
+ * If approvals come back later: bring back from git history rather than
+ * re-deriving the schema interactions — the audit-log + notification fan-out
+ * had subtleties (recipients query, EXPENSE.REJECTED requiring a reason)
+ * that aren't worth re-discovering. */
 
-const reviewInputSchema = z.object({
-  expense_id: z.string().uuid(),
-  note: z.string().max(2000).optional(),
-});
-
-type ReviewInput = z.infer<typeof reviewInputSchema>;
-
-/** Load expense theo (entId, expId), ép đúng trạng thái cho phép review. */
-async function loadReviewableExpense(actorEntId: string, expenseId: string) {
-  const row = await db.query.carExpenses.findFirst({
-    where: and(
-      eq(carExpenses.expId, expenseId),
-      eq(carExpenses.entId, actorEntId),
-      isNull(carExpenses.expDeletedAt),
-    ),
-  });
-  if (!row) throw new CarError('CAR-E2002', 404, 'Expense không tồn tại');
-  if (row.expStatus !== 'PENDING') {
-    throw new CarError('CAR-E2003', 409, 'Expense đã được xử lý');
-  }
-  return row;
-}
-
-export async function approveExpenseAction(
-  input: ReviewInput,
-): Promise<ActionResult<{ id: string; status: 'APPROVED' }>> {
-  return runAction(async () => {
-    const actor = await getCurrentUser();
-    /* PRD §6.2.2: Admin là approver chính. Manager có thể được mở rộng sau. */
-    requireRole(actor.role, ['ADMIN']);
-    const dto = reviewInputSchema.parse(input);
-    const expense = await loadReviewableExpense(actor.entId, dto.expense_id);
-
-    const now = new Date();
-    await db
-      .update(carExpenses)
-      .set({
-        expStatus: 'APPROVED',
-        expReviewedBy: actor.userId,
-        expReviewedAt: now,
-        expReviewNote: dto.note ?? null,
-        expUpdatedAt: now,
-      })
-      .where(and(eq(carExpenses.expId, expense.expId), eq(carExpenses.entId, actor.entId)));
-
-    await logAudit({
-      entId: actor.entId,
-      userId: actor.userId,
-      action: 'EXPENSE.APPROVED',
-      entity: 'Expense',
-      entityId: expense.expId,
-      after: { status: 'APPROVED', amount: expense.expAmount, type: expense.expType },
-    });
-
-    /* Notify driver who submitted. */
-    await notifyUser({
-      entId: actor.entId,
-      userId: expense.expSubmittedBy,
-      event: 'EXPENSE.APPROVED',
-      title: 'Chi phí đã được duyệt',
-      body: `${expense.expType} · ${Number(expense.expAmount).toLocaleString('vi-VN')}₫`,
-      entityId: expense.expId,
-    });
-
-    revalidatePath('/costs');
-    revalidatePath('/expenses');
-    return { id: expense.expId, status: 'APPROVED' as const };
-  });
-}
-
-export async function rejectExpenseAction(
-  input: ReviewInput,
-): Promise<ActionResult<{ id: string; status: 'REJECTED' }>> {
-  return runAction(async () => {
-    const actor = await getCurrentUser();
-    requireRole(actor.role, ['ADMIN']);
-    const dto = reviewInputSchema.parse(input);
-    if (!dto.note || dto.note.trim().length < 3) {
-      throw new CarError('CAR-E0001', 400, 'Vui lòng nhập lý do từ chối (ít nhất 3 ký tự)');
-    }
-    const expense = await loadReviewableExpense(actor.entId, dto.expense_id);
-
-    const now = new Date();
-    await db
-      .update(carExpenses)
-      .set({
-        expStatus: 'REJECTED',
-        expReviewedBy: actor.userId,
-        expReviewedAt: now,
-        expReviewNote: dto.note,
-        expUpdatedAt: now,
-      })
-      .where(and(eq(carExpenses.expId, expense.expId), eq(carExpenses.entId, actor.entId)));
-
-    await logAudit({
-      entId: actor.entId,
-      userId: actor.userId,
-      action: 'EXPENSE.REJECTED',
-      entity: 'Expense',
-      entityId: expense.expId,
-      after: { status: 'REJECTED', reason: dto.note, amount: expense.expAmount, type: expense.expType },
-    });
-
-    await notifyUser({
-      entId: actor.entId,
-      userId: expense.expSubmittedBy,
-      event: 'EXPENSE.REJECTED',
-      title: 'Chi phí bị từ chối',
-      body: dto.note,
-      entityId: expense.expId,
-    });
-
-    revalidatePath('/costs');
-    revalidatePath('/expenses');
-    return { id: expense.expId, status: 'REJECTED' as const };
-  });
-}

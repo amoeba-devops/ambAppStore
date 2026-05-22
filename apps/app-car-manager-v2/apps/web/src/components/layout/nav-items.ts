@@ -19,6 +19,7 @@ export type NavKey =
   | 'trips'
   | 'tripsMine'
   | 'expensesNew'
+  | 'costs'
   | 'vehicles'
   | 'drivers'
   | 'users'
@@ -77,8 +78,15 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'expensesNew', href: '/expenses',      Icon: Receipt,         group: 'workspace', roles: DRIVER },
   { key: 'vehicles',    href: '/vehicles',      Icon: Car,             group: 'workspace', roles: STAFF  },
   { key: 'drivers',     href: '/drivers',       Icon: IdCard,          group: 'workspace', roles: STAFF  },
-  /* Profile / locale / logout — universal. Last workspace slot on mobile. */
+  /* Profile / locale / logout — universal. Sidebar pulls this out into its
+   * own tail block; mobile keeps it as the rightmost flat tab. Positioned
+   * BEFORE `costs` so the mobile `slice(0, 4)` retains `me` and drops
+   * `costs` instead — staff reach `/costs` via the sidebar on desktop and
+   * via the dashboard widget on mobile. */
   { key: 'me',          href: '/settings/me',   Icon: UserIcon,        group: 'workspace', roles: ALL    },
+  /* Operating-cost ledger (Module 2). STAFF only — drivers see their own
+   * history at `/expenses` via `expensesNew` instead. */
+  { key: 'costs',       href: '/costs',         Icon: Receipt,         group: 'workspace', roles: STAFF  },
   /* Admin-only tenant tools. */
   { key: 'users',       href: '/users',         Icon: UserCog,         group: 'admin',     roles: ADMIN  },
   { key: 'settings',    href: '/settings',      Icon: SettingsIcon,    group: 'admin',     roles: ADMIN  },
