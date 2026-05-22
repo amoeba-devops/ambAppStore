@@ -50,6 +50,13 @@
       "when": 1780012800000,
       "tag": "0006_tenant_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1780358400000,
+      "tag": "0007_tns_app_name",
+      "breakpoints": true
     }
   ]
 }

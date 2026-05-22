@@ -13,6 +13,7 @@ import {
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getOrSeedTenantSettings } from '@/server/services/tenant-settings.service';
+import { AppNameInput } from './_components/app-name-input';
 import { CurrencySelect } from './_components/currency-select';
 import { LocaleSelect } from './_components/locale-select';
 import { NotifPrefToggle } from './_components/notif-pref-toggle';
@@ -73,6 +74,10 @@ export default async function SettingsPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="mb-1.5 block">{tS('appName')}</Label>
+                  <AppNameInput defaultValue={settings.tnsAppName} disabled={!isAdmin} />
+                </div>
                 <div>
                   <Label className="mb-1.5 block">{tS('tenantName')}</Label>
                   <TenantNameInput defaultValue={settings.tnsTenantName} disabled={!isAdmin} />

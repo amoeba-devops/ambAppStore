@@ -536,6 +536,7 @@
     },
     "general": "일반",
     "generalDesc": "워크스페이스 식별 정보 및 기본 로케일.",
+    "appName": "앱 이름",
     "tenantName": "테넌트 이름",
     "defaultLanguage": "기본 언어",
     "currency": "통화",

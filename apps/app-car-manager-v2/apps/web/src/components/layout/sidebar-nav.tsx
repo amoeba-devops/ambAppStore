@@ -117,10 +117,11 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
       )}
       aria-label={tGroup('layout.sidebarAria')}
     >
-      {/* Brand — initials + tenant name come from TenantDisplayProvider so
-       * Admin name edits in Settings flow here without a route reload.
-       * Push enablement is handled by PushPromptStrip above the page content,
-       * not in this brand header. */}
+      {/* Brand — both lines come from TenantDisplayProvider so Admin edits
+       * in Settings flow here without a route reload. App name (top line)
+       * falls back to the i18n `appName` default; tenant name (bottom line)
+       * falls back through JWT → i18n. Push enablement is handled by
+       * PushPromptStrip above page content, not in this brand header. */}
       <div className="h-14 px-3 flex items-center gap-2.5 border-b border-border">
         <div
           className="h-8 w-8 rounded-md bg-primary text-primary-fg flex items-center justify-center font-bold text-sm shrink-0"
@@ -130,7 +131,9 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
-            <div className="text-sm font-semibold text-text leading-tight truncate">{tGroup('appName')}</div>
+            <div className="text-sm font-semibold text-text leading-tight truncate" title={tenant.appName}>
+              {tenant.appName}
+            </div>
             <div className="text-xs text-text-muted truncate" title={tenant.name}>{tenant.name}</div>
           </div>
         )}

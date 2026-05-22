@@ -25,8 +25,12 @@ interface AppShellClientProps {
    * TenantDisplayProvider so the sidebar header + admin settings UI share
    * a single source of truth that updates in real-time. */
   tenantName: string;
-  /** i18n default used when the admin clears the customized name. */
+  /** i18n default used when the admin clears the customized tenant name. */
   tenantDefaultName: string;
+  /** Resolved app display name (DB → i18n `appName` default). */
+  appName: string;
+  /** i18n default used when the admin clears the customized app name. */
+  appDefaultName: string;
   children: React.ReactNode;
 }
 
@@ -54,6 +58,8 @@ export function AppShellClient({
   basePath,
   tenantName,
   tenantDefaultName,
+  appName,
+  appDefaultName,
   children,
 }: AppShellClientProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -80,7 +86,12 @@ export function AppShellClient({
   };
 
   return (
-    <TenantDisplayProvider initialName={tenantName} defaultName={tenantDefaultName}>
+    <TenantDisplayProvider
+      initialName={tenantName}
+      defaultName={tenantDefaultName}
+      initialAppName={appName}
+      defaultAppName={appDefaultName}
+    >
       <PushConfigProvider vapidPublicKey={vapidPublicKey} basePath={basePath}>
         <div className="flex min-h-dvh bg-bg text-text">
           {/* Sidebar — hidden on mobile, replaced by BottomTabNav below.

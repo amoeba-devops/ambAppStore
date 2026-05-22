@@ -536,6 +536,7 @@
     },
     "general": "General",
     "generalDesc": "Workspace identity and locale defaults.",
+    "appName": "App name",
     "tenantName": "Tenant name",
     "defaultLanguage": "Default language",
     "currency": "Currency",
