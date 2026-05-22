@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { ChevronLeft } from 'lucide-react';
 import { cn } from '@car-v2/ui';
+import { PushEnableButton } from '@/components/pwa/push-enable-button';
 import { Breadcrumbs, type BreadcrumbItem } from './breadcrumbs';
 
 interface PageHeaderProps {
@@ -46,14 +47,19 @@ export async function PageHeader({
         className,
       )}
     >
-      {/* ── Mobile app bar (< md) ───────────────────────────────────────── */}
+      {/* ── Mobile app bar (< md) ─────────────────────────────────────────
+       * The push-enable bell lives in the right slot beside any page-specific
+       * mobileAction. Desktop has the same bell in the sidebar brand header,
+       * so we deliberately don't duplicate it here on md+. The bell hides
+       * itself when the server can't push, so the slot collapses cleanly. */}
       <div className="md:hidden flex items-center gap-2 h-14 px-2">
         {back ? <BackButton href={back} ariaLabel={tL('back')} /> : <span className="w-10" aria-hidden />}
         <div className="flex-1 min-w-0 text-center">
           <h1 className="text-md font-semibold text-text leading-tight truncate">{title}</h1>
           {subtitle && <p className="text-[11px] text-text-muted truncate leading-tight">{subtitle}</p>}
         </div>
-        <div className="min-w-[40px] flex items-center justify-end">
+        <div className="flex items-center justify-end gap-0.5 shrink-0">
+          <PushEnableButton />
           {mobileAction}
         </div>
       </div>

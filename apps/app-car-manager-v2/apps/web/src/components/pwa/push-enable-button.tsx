@@ -13,17 +13,18 @@ import {
   DropdownMenuTrigger,
 } from '@car-v2/ui';
 import { usePushSubscription } from '@/hooks/use-push-subscription';
-
-interface PushEnableButtonProps {
-  vapidPublicKey: string | undefined;
-  basePath: string;
-}
+import { usePushConfig } from './push-config-context';
 
 /* Compact header affordance for managing the browser's Web Push subscription.
  *
  * Renders a bell-icon button that opens a dropdown describing the current
  * state and offers the relevant action (enable / disable / open browser
  * settings). Replaces the older full-width banner above page content.
+ *
+ * Mounted in two places, both seeded by the same PushConfigProvider in
+ * AppShellClient:
+ *   - Desktop sidebar brand header (always visible on md+)
+ *   - Mobile app-bar right slot via PageHeader (always visible on < md)
  *
  * Visibility:
  *   - Hidden when the server can't push (no VAPID key in env).
@@ -34,8 +35,9 @@ interface PushEnableButtonProps {
  * Dot indicator on the bell: appears for `idle` and `error` only — i.e.
  * states where the user can act to get notifications working. Subscribed
  * users see a clean bell; denied users see BellOff (informational). */
-export function PushEnableButton({ vapidPublicKey, basePath }: PushEnableButtonProps) {
+export function PushEnableButton() {
   const t = useTranslations('pwa.push');
+  const { vapidPublicKey, basePath } = usePushConfig();
   const { state, errorMessage, subscribe, unsubscribe } = usePushSubscription({
     vapidPublicKey,
     basePath,
