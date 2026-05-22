@@ -104,6 +104,8 @@
     "tenant": "HanaTech Vietnam",
     "tenantShort": "HanaTech VN",
     "tenantInitial": "HV",
+    "tenantDefault": "My Organization",
+    "tenantDefaultInitial": "MO",
     "tenantMeta": "3 vehicles · 4 drivers",
     "currentUser": "Park Joon-ho",
     "currentUserRole": "Admin"

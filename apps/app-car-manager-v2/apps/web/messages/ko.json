@@ -104,6 +104,8 @@
     "tenant": "HanaTech Vietnam",
     "tenantShort": "HanaTech VN",
     "tenantInitial": "HV",
+    "tenantDefault": "내 조직",
+    "tenantDefaultInitial": "MO",
     "tenantMeta": "차량 3대 · 기사 4명",
     "currentUser": "박준호",
     "currentUserRole": "관리자"

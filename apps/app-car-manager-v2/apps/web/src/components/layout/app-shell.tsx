@@ -1,4 +1,6 @@
+import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
 import { countPendingTrips } from '@/server/queries/trips.queries';
 import { AppShellClient } from './app-shell-client';
 
@@ -20,17 +22,32 @@ import { AppShellClient } from './app-shell-client';
  */
 export async function AppShell({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
-  const pendingTripCount = await countPendingTrips({
-    entId: user.entId,
-    role: user.role,
-    userId: user.userId,
-  });
+  /* Settings row may not exist yet (lazy-seeded on first /settings visit by
+   * Admin). `getTenantSettings` returns null in that case — we don't seed
+   * here to keep the layout render cheap; the JWT/i18n fallback covers it. */
+  const [pendingTripCount, settings, tCo] = await Promise.all([
+    countPendingTrips({ entId: user.entId, role: user.role, userId: user.userId }),
+    getTenantSettings(user.entId),
+    getTranslations('company'),
+  ]);
+
+  const defaultTenantName = tCo('tenantDefault');
+  /* Resolution order: DB-stored tenant name → JWT-issued entity name →
+   * i18n default. Each is checked for non-empty content so a "  " whitespace
+   * row in DB doesn't override a real JWT value. */
+  const resolvedName =
+    settings?.tnsTenantName?.trim() ||
+    user.entName?.trim() ||
+    defaultTenantName;
+
   return (
     <AppShellClient
       role={user.role}
       pendingTripCount={pendingTripCount}
       vapidPublicKey={process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC}
       basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''}
+      tenantName={resolvedName}
+      tenantDefaultName={defaultTenantName}
     >
       {children}
     </AppShellClient>
