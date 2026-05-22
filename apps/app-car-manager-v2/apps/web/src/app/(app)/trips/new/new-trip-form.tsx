@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { Loader2, Plus, Save, X } from 'lucide-react';
+import { Loader2, Plus, Save, UserPlus, X } from 'lucide-react';
 import {
+  Avatar,
   Button,
   Input,
   Label,
@@ -45,14 +46,30 @@ interface SelectOption {
   label: string;
 }
 
+interface PassengerOption {
+  id: string;
+  /** Display name. Có thể null nếu user chưa cập nhật (fallback sang email/id). */
+  name: string | null;
+  email: string | null;
+}
+
 interface NewTripFormProps {
-  passengers: SelectOption[];
+  passengers: PassengerOption[];
   drivers: SelectOption[];
   vehicles: SelectOption[];
   currentUserId: string;
+  /** True nếu actor đủ quyền vào /users/new, /drivers/new, /vehicles/new
+   *  (theo redirect rules — chỉ ADMIN). MANAGER thấy hint thay vì button. */
+  canCreateEntities: boolean;
 }
 
-export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: NewTripFormProps) {
+export function NewTripForm({
+  passengers,
+  drivers,
+  vehicles,
+  currentUserId,
+  canCreateEntities,
+}: NewTripFormProps) {
   const t  = useTranslations('trips.form');
   const tA = useTranslations('actions');
   const tErr = useTranslations();
@@ -344,14 +361,33 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
           <FormSection label={t('sectionPassenger')}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               <FormField label={t('passenger')} inline className="min-w-0">
-                <Select value={passengerId} onValueChange={setPassengerId}>
-                  <SelectTrigger className="w-full min-w-0"><SelectValue placeholder={t('passengerPlaceholder')} /></SelectTrigger>
-                  <SelectContent>
-                    {passengers.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {passengers.length === 0 ? (
+                  <PassengerEmptyState
+                    canInvite={canCreateEntities}
+                    labels={{
+                      empty: t('passengerEmpty'),
+                      hint: t('passengerEmptyHint'),
+                      invite: t('passengerInvite'),
+                      contactAdmin: t('passengerContactAdmin'),
+                    }}
+                  />
+                ) : (
+                  <Select value={passengerId} onValueChange={setPassengerId}>
+                    <SelectTrigger className="w-full min-w-0 h-auto py-1.5">
+                      <SelectValue placeholder={t('passengerPlaceholder')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {passengers.map((p) => {
+                        const displayName = p.name?.trim() || p.email?.split('@')[0] || p.id;
+                        return (
+                          <SelectItem key={p.id} value={p.id}>
+                            <PassengerOptionRow name={displayName} email={p.email} />
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                )}
               </FormField>
               <FormField label={t('purpose')} inline className="min-w-0">
                 <Input
@@ -376,36 +412,40 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
           <FormSection label={t('sectionAssignment')} hint={t('sectionAssignmentDescShort')}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               <FormField label={t('driver')} error={fieldErrors.driver} inline className="min-w-0">
-                <Select
+                <AssignmentSelect
                   value={driverId}
-                  onValueChange={(v) => {
+                  onChange={(v) => {
                     setDriverId(v);
                     if (fieldErrors.driver && v) setFieldErrors((p) => ({ ...p, driver: false }));
                   }}
-                >
-                  <SelectTrigger error={fieldErrors.driver} className="w-full min-w-0"><SelectValue placeholder={t('driverPlaceholder')} /></SelectTrigger>
-                  <SelectContent>
-                    {drivers.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder={t('driverPlaceholder')}
+                  options={drivers}
+                  error={fieldErrors.driver}
+                  createHref="/drivers/new"
+                  createLabel={t('createNewDriver')}
+                  emptyLabel={t('driverEmpty')}
+                  emptyHint={t('driverEmptyHint')}
+                  contactAdminLabel={t('contactAdminCreate')}
+                  canCreate={canCreateEntities}
+                />
               </FormField>
               <FormField label={t('vehicle')} error={fieldErrors.vehicle} inline className="min-w-0">
-                <Select
+                <AssignmentSelect
                   value={vehicleId}
-                  onValueChange={(v) => {
+                  onChange={(v) => {
                     setVehicleId(v);
                     if (fieldErrors.vehicle && v) setFieldErrors((p) => ({ ...p, vehicle: false }));
                   }}
-                >
-                  <SelectTrigger error={fieldErrors.vehicle} className="w-full min-w-0"><SelectValue placeholder={t('vehiclePlaceholder')} /></SelectTrigger>
-                  <SelectContent>
-                    {vehicles.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder={t('vehiclePlaceholder')}
+                  options={vehicles}
+                  error={fieldErrors.vehicle}
+                  createHref="/vehicles/new"
+                  createLabel={t('createNewVehicle')}
+                  emptyLabel={t('vehicleEmpty')}
+                  emptyHint={t('vehicleEmptyHint')}
+                  contactAdminLabel={t('contactAdminCreate')}
+                  canCreate={canCreateEntities}
+                />
               </FormField>
             </div>
           </FormSection>
@@ -451,6 +491,133 @@ export function NewTripForm({ passengers, drivers, vehicles, currentUserId }: Ne
         </aside>
       </div>
     </form>
+  );
+}
+
+/* Passenger Select option row — avatar + name + email subtitle.
+ * Radix copies SelectItem children into the trigger when a value is selected,
+ * so the same row layout renders in both popover items AND the closed trigger.
+ * `gap-2 min-w-0` + `truncate` keeps the trigger layout sane khi tên dài. */
+function PassengerOptionRow({ name, email }: { name: string; email: string | null }) {
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <Avatar name={name} size="xs" />
+      <div className="flex flex-col min-w-0 leading-tight text-left">
+        <span className="text-sm font-medium text-text truncate">{name}</span>
+        {email && email !== name && (
+          <span className="text-[10.5px] text-text-faint truncate">{email}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* Empty state khi tenant chưa có user nào dùng làm hành khách.
+ * ADMIN: nút "Mời người dùng" → /users/new (in-app invite/sync).
+ * MANAGER: chỉ hint vì /users/new bị middleware redirect cho non-admin. */
+function PassengerEmptyState({
+  canInvite,
+  labels,
+}: {
+  canInvite: boolean;
+  labels: { empty: string; hint: string; invite: string; contactAdmin: string };
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded border border-dashed border-border bg-surface-2 px-3 py-2">
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-text">{labels.empty}</div>
+        <div className="text-xs text-text-muted truncate">
+          {canInvite ? labels.hint : labels.contactAdmin}
+        </div>
+      </div>
+      {canInvite && (
+        <Button type="button" variant="accent" size="sm" iconLeft={<UserPlus />} asChild>
+          <Link href="/users/new">{labels.invite}</Link>
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/* Reusable driver/vehicle assignment select.
+ * - Khi có options: Select bình thường + nút "+ Tạo mới" nhỏ bên phải (ADMIN).
+ * - Khi options rỗng: panel empty state với CTA "+ Tạo mới" (ADMIN) hoặc hint
+ *   liên hệ admin (MANAGER).
+ *
+ * Layout: select chiếm flex-1, action button chiếm shrink-0 với icon-only để
+ * không vỡ grid 2 cột trên mobile (tổng width chỉ khoảng 36px button extra). */
+function AssignmentSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  error,
+  createHref,
+  createLabel,
+  emptyLabel,
+  emptyHint,
+  contactAdminLabel,
+  canCreate,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: SelectOption[];
+  placeholder: string;
+  error?: boolean;
+  createHref: string;
+  createLabel: string;
+  emptyLabel: string;
+  emptyHint: string;
+  contactAdminLabel: string;
+  canCreate: boolean;
+}) {
+  if (options.length === 0) {
+    return (
+      <div className="flex items-center gap-2 rounded border border-dashed border-border bg-surface-2 px-3 py-2">
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium text-text">{emptyLabel}</div>
+          <div className="text-xs text-text-muted truncate">
+            {canCreate ? emptyHint : contactAdminLabel}
+          </div>
+        </div>
+        {canCreate && (
+          <Button type="button" variant="accent" size="sm" iconLeft={<Plus />} asChild>
+            <Link href={createHref}>{createLabel}</Link>
+          </Button>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex-1 min-w-0">
+        <Select value={value} onValueChange={onChange}>
+          <SelectTrigger error={error} className="w-full min-w-0">
+            <SelectValue placeholder={placeholder} />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((o) => (
+              <SelectItem key={o.id} value={o.id}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {canCreate && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={createLabel}
+          title={createLabel}
+          className="shrink-0"
+          asChild
+        >
+          <Link href={createHref}><Plus /></Link>
+        </Button>
+      )}
+    </div>
   );
 }
 

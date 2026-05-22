@@ -8,7 +8,9 @@ import { db } from '@car-v2/db/client';
 import { carUsers } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { listDrivers } from '@/server/queries/drivers.queries';
 import { getTrip } from '@/server/queries/trips.queries';
+import { listVehicles } from '@/server/queries/vehicles.queries';
 import { EditTripForm } from './edit-trip-form';
 
 export default async function EditTripPage({ params }: { params: Promise<{ id: string }> }) {
@@ -35,14 +37,41 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
     redirect(`/trips/${id}`);
   }
 
-  const users = await db
-    .select({ id: carUsers.usrId, name: carUsers.usrName, role: carUsers.usrLocalRole })
-    .from(carUsers)
-    .where(and(eq(carUsers.entId, user.entId), isNull(carUsers.usrDeletedAt)));
+  /* Fetch users + drivers + vehicles song song. Driver + Vehicle chỉ show cho
+   * ADMIN (assignTripAction yêu cầu ADMIN role). MANAGER thấy passenger thôi. */
+  const [users, drivers, vehicles] = await Promise.all([
+    db
+      .select({
+        id: carUsers.usrId,
+        name: carUsers.usrName,
+        email: carUsers.usrEmail,
+        role: carUsers.usrLocalRole,
+      })
+      .from(carUsers)
+      .where(and(eq(carUsers.entId, user.entId), isNull(carUsers.usrDeletedAt))),
+    user.role === 'ADMIN' ? listDrivers(user.entId) : Promise.resolve([]),
+    user.role === 'ADMIN' ? listVehicles(user.entId) : Promise.resolve([]),
+  ]);
 
+  /* Rich passenger payload (id + name + email) → form render Avatar + 2-line label.
+   * Ent_id filter ở query đảm bảo cross-tenant không leak. */
   const passengerOptions = users
     .filter((u) => u.role !== 'DRIVER')
-    .map((u) => ({ id: u.id, label: u.name ?? u.id }));
+    .map((u) => ({
+      id: u.id,
+      name: u.name ?? null,
+      email: u.email ?? null,
+    }));
+  const driverOptions = drivers.map((d) => ({
+    id: d.drvId,
+    label: `${d.user.usrName} — ${d.drvLicenseClass}`,
+  }));
+  const vehicleOptions = vehicles
+    .filter((v) => v.cvhStatus !== 'RETIRED' && v.cvhStatus !== 'MAINTENANCE')
+    .map((v) => ({ id: v.cvhId, label: `${v.cvhPlateNumber} — ${v.cvhModel}` }));
+
+  /* ADMIN có quyền vào /drivers/new, /vehicles/new (xem redirect ở 2 trang đó). */
+  const canCreateEntities = user.role === 'ADMIN';
 
   return (
     <>
@@ -66,7 +95,14 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
       {/* Mobile: regular vertical scroll. Desktop (lg): no page-level scroll —
        * EditTripForm splits into 2 cols (left form, right sticky map). */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden lg:overflow-hidden px-4 md:px-7 py-4 md:py-5 lg:py-4">
-        <EditTripForm trip={trip} passengers={passengerOptions} role={user.role} />
+        <EditTripForm
+          trip={trip}
+          passengers={passengerOptions}
+          drivers={driverOptions}
+          vehicles={vehicleOptions}
+          role={user.role}
+          canCreateEntities={canCreateEntities}
+        />
       </div>
     </>
   );

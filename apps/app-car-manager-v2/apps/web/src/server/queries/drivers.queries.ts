@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, asc, eq, isNull, notInArray, sql } from 'drizzle-orm';
+import { and, asc, eq, ilike, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carDrivers, carUsers, type CarDriver, type CarUser } from '@car-v2/db/schema';
 
@@ -7,7 +7,23 @@ export interface DriverWithUser extends CarDriver {
   user: Pick<CarUser, 'usrName' | 'usrEmail'>;
 }
 
-export async function listDrivers(entId: string): Promise<DriverWithUser[]> {
+/** List drivers trong 1 tenant, optional free-text search trên tên/email/license/phone.
+ *  Ent_id filter là bắt buộc (multi-tenancy). */
+export async function listDrivers(entId: string, q?: string): Promise<DriverWithUser[]> {
+  const filters: SQL[] = [eq(carDrivers.entId, entId), isNull(carDrivers.drvDeletedAt)];
+
+  const term = q?.trim();
+  if (term) {
+    const like = `%${term}%`;
+    const searchFilter = or(
+      ilike(carUsers.usrName, like),
+      ilike(carUsers.usrEmail, like),
+      ilike(carDrivers.drvLicenseNumber, like),
+      ilike(carDrivers.drvPhone, like),
+    );
+    if (searchFilter) filters.push(searchFilter);
+  }
+
   const rows = await db
     .select({
       driver: carDrivers,
@@ -15,7 +31,7 @@ export async function listDrivers(entId: string): Promise<DriverWithUser[]> {
     })
     .from(carDrivers)
     .innerJoin(carUsers, eq(carDrivers.drvUserId, carUsers.usrId))
-    .where(and(eq(carDrivers.entId, entId), isNull(carDrivers.drvDeletedAt)))
+    .where(and(...filters))
     .orderBy(asc(carUsers.usrName));
 
   return rows.map((r) => ({ ...r.driver, user: r.user }));

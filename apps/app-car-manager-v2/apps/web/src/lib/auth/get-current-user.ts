@@ -14,6 +14,10 @@ export interface AuthContext {
   amaRole: AmaJwtClaims['role'];
   /** Mapped local role per PRD §4 (DRIVER / MANAGER / ADMIN). */
   role: LocalRole;
+  /** Email từ JWT — optional, dùng cho ensureCarUser. */
+  email: string | null;
+  /** Tên hiển thị từ JWT — optional. */
+  name: string | null;
 }
 
 /**
@@ -32,13 +36,26 @@ export async function getCurrentUser(): Promise<AuthContext> {
     throw new CarError('CAR-E0101', 401, 'Unauthenticated');
   }
 
+  const emailRaw = h.get('x-user-email');
+  const nameRaw = h.get('x-user-name');
+
   return {
     entId,
     entName: entName ?? null,
     userId,
     amaRole: amaRoleRaw,
     role: mapAmaRoleToLocal(amaRoleRaw),
+    email: emailRaw ?? null,
+    name: nameRaw ? safeDecodeURIComponent(nameRaw) : null,
   };
+}
+
+function safeDecodeURIComponent(s: string): string {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
 }
 
 /**

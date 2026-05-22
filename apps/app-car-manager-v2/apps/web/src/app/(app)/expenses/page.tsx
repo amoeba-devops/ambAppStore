@@ -9,6 +9,10 @@ import { getDriverByUserId } from '@/server/queries/drivers.queries';
 import { listExpensesForDriver } from '@/server/queries/expenses.queries';
 import { ExpensesList } from './_components/expenses-list';
 
+interface PageProps {
+  searchParams: Promise<{ page?: string }>;
+}
+
 /* Driver expense history (`/expenses`).
  *
  * Read-only list of the current driver's submitted expenses. Admin approval
@@ -17,27 +21,35 @@ import { ExpensesList } from './_components/expenses-list';
  *
  * Soft-edit window (7 days, `exp_locked_until`) and detail / edit views are
  * future REQs — this page is read-only for v1. */
-export default async function ExpensesPage() {
+export default async function ExpensesPage({ searchParams }: PageProps) {
   const tCo  = await getTranslations('company');
   const tNav = await getTranslations('nav');
   const tA   = await getTranslations('actions');
   const tE   = await getTranslations('expenses.history');
   const user = await getCurrentUser();
 
+  const sp = await searchParams;
+  const page = Math.max(1, Number(sp.page ?? 1));
+
   /* Look up the driver record so we filter expenses to the current actor.
    * Non-DRIVER roles landing here see an empty state. */
   const driver = user.role === 'DRIVER'
     ? await getDriverByUserId(user.entId, user.userId)
     : null;
-  const items = driver
-    ? await listExpensesForDriver({ entId: user.entId, driverId: driver.drvId })
-    : [];
+  const result = driver
+    ? await listExpensesForDriver({ entId: user.entId, driverId: driver.drvId, page, pageSize: 20 })
+    : { items: [], total: 0, page: 1, pageSize: 20 };
+  const items = result.items;
+  const { total, pageSize } = result;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const showingTo = Math.min(total, page * pageSize);
 
   return (
     <>
       <PageHeader
         title={tE('title')}
-        subtitle={tE('subtitle', { count: items.length })}
+        subtitle={tE('subtitle', { count: total })}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('expensesNew') }]}
         back={user.role === 'DRIVER' ? '/today' : undefined}
         actions={
@@ -47,7 +59,7 @@ export default async function ExpensesPage() {
         }
       />
 
-      <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 max-w-3xl mx-auto w-full">
+      <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 max-w-3xl mx-auto w-full space-y-4">
         {items.length === 0 ? (
           <Card>
             <EmptyState
@@ -64,7 +76,36 @@ export default async function ExpensesPage() {
             />
           </Card>
         ) : (
-          <ExpensesList items={items} />
+          <>
+            <ExpensesList items={items} />
+            {totalPages > 1 && (
+              <div className="flex flex-col-reverse md:flex-row md:items-center md:justify-between gap-3 text-sm text-text-muted">
+                <span className="text-xs md:text-sm">
+                  {tE('showing')}{' '}
+                  <span className="font-semibold text-text tabular">{showingFrom}–{showingTo}</span>{' '}
+                  {tE('of')}{' '}
+                  <span className="font-semibold text-text tabular">{total}</span>
+                </span>
+                <div className="inline-flex items-center gap-1 self-end md:self-auto">
+                  {page > 1 ? (
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={page - 1 > 1 ? `/expenses?page=${page - 1}` : '/expenses'}>{tE('previous')}</Link>
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="sm" disabled>{tE('previous')}</Button>
+                  )}
+                  <span className="px-3 text-sm tabular">{page} / {totalPages}</span>
+                  {page < totalPages ? (
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/expenses?page=${page + 1}`}>{tE('next')}</Link>
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="sm" disabled>{tE('next')}</Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

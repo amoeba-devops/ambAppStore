@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, asc, desc, eq, gte, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, ilike, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import {
   carDrivers,
@@ -24,11 +24,17 @@ export interface TripListItem extends CarTrip {
 
 const PAGE_SIZE = 20;
 
+export type TripDateRange = 'all' | 'today' | 'thisWeek' | 'thisMonth' | 'past';
+
 interface ListInput {
   entId: string;
   role: LocalRole;
   userId: string;
   status?: CarTripStatus | 'all' | 'pending' | 'active' | 'completed';
+  /** Free-text search: ref, pickup, dropoff, purpose, passenger name. ILIKE %q%. */
+  q?: string;
+  /** Date range filter dựa trên trpScheduledAt. Mặc định 'all'. */
+  dateRange?: TripDateRange;
   page?: number;
 }
 
@@ -37,6 +43,8 @@ export async function listTrips({
   role,
   userId,
   status = 'all',
+  q,
+  dateRange = 'all',
   page = 1,
 }: ListInput): Promise<{ items: TripListItem[]; total: number; page: number; pageSize: number }> {
   /* Per PRD R-3 (REQ §3.7): Admin sees all, Manager sees own (creator OR passenger),
@@ -55,6 +63,26 @@ export async function listTrips({
   /* Status filter chips */
   const statusFilter = statusToWhere(status);
   if (statusFilter) filters.push(statusFilter);
+
+  /* Free-text search: prefix `%q%` để match anywhere. Postgres ILIKE
+   * case-insensitive. Join với carUsers (passenger) đã có ở SELECT bên dưới,
+   * nên có thể search passenger name. */
+  const term = q?.trim();
+  if (term) {
+    const like = `%${term}%`;
+    const searchFilter = or(
+      ilike(carTrips.trpRef, like),
+      ilike(carTrips.trpPickupAddress, like),
+      ilike(carTrips.trpDropoffAddress, like),
+      ilike(carTrips.trpPurpose, like),
+      ilike(carUsers.usrName, like),
+    );
+    if (searchFilter) filters.push(searchFilter);
+  }
+
+  /* Date range filter dựa trên trpScheduledAt */
+  const dateFilter = dateRangeToWhere(dateRange);
+  if (dateFilter) filters.push(dateFilter);
 
   const passengerUsers = carUsers;
   const driverUsers = sql<string | null>`drv_user.usr_name`;
@@ -76,9 +104,13 @@ export async function listTrips({
     .limit(PAGE_SIZE)
     .offset((page - 1) * PAGE_SIZE);
 
+  /* count query must include passenger join because search filter references
+   * carUsers.usrName. Trip→user is 1:1 nullable, so left join doesn't inflate
+   * the row count. */
   const countPromise = db
     .select({ count: sql<number>`count(*)::int` })
     .from(carTrips)
+    .leftJoin(passengerUsers, eq(carTrips.trpPassengerId, passengerUsers.usrId))
     .where(and(...filters));
 
   const [rows, countRows] = await Promise.all([rowsPromise, countPromise]);
@@ -212,6 +244,36 @@ function statusToWhere(status: ListInput['status']): SQL | null {
     default:
       return eq(carTrips.trpStatus, status);
   }
+}
+
+function dateRangeToWhere(range: TripDateRange): SQL | null {
+  if (range === 'all') return null;
+  const now = new Date();
+  if (range === 'today') {
+    const start = new Date(now); start.setHours(0, 0, 0, 0);
+    const end = new Date(now); end.setHours(23, 59, 59, 999);
+    return and(gte(carTrips.trpScheduledAt, start), lt(carTrips.trpScheduledAt, end)) ?? null;
+  }
+  if (range === 'thisWeek') {
+    /* Week starts Monday (vi locale convention). */
+    const start = new Date(now);
+    const dow = start.getDay(); // 0=Sun..6=Sat
+    const offsetToMon = dow === 0 ? -6 : 1 - dow;
+    start.setDate(start.getDate() + offsetToMon);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 7);
+    return and(gte(carTrips.trpScheduledAt, start), lt(carTrips.trpScheduledAt, end)) ?? null;
+  }
+  if (range === 'thisMonth') {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return and(gte(carTrips.trpScheduledAt, start), lt(carTrips.trpScheduledAt, end)) ?? null;
+  }
+  if (range === 'past') {
+    return lt(carTrips.trpScheduledAt, now);
+  }
+  return null;
 }
 
 export interface TripDetail extends TripListItem {

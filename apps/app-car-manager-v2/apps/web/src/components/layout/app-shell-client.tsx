@@ -15,6 +15,10 @@ const COLLAPSE_KEY = 'ccms.sidebar.collapsed';
 
 interface AppShellClientProps {
   role: LocalRole;
+  /** Display name from AMA JWT (null if not provided). */
+  userName: string | null;
+  /** Email from AMA JWT (null if not provided). */
+  userEmail: string | null;
   /** Server-counted pending trips in the user's visibility scope. */
   pendingTripCount: number;
   /** VAPID public key + Next basePath for the push enable banner.
@@ -53,6 +57,8 @@ interface AppShellClientProps {
  * a numeric badge on the Trips nav item. 0 → no badge. */
 export function AppShellClient({
   role,
+  userName,
+  userEmail,
   pendingTripCount,
   vapidPublicKey,
   basePath,
@@ -101,6 +107,8 @@ export function AppShellClient({
             <SidebarNav
               collapsed={collapsed}
               role={role}
+              userName={userName}
+              userEmail={userEmail}
               pendingTripCount={pendingTripCount}
             />
           </div>

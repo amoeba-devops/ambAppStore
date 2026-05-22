@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { Loader2, Save } from 'lucide-react';
+import { AlertTriangle, KeyRound, Loader2, Save } from 'lucide-react';
 import {
   Button,
   Card,
@@ -13,6 +13,12 @@ import {
   CardHeader,
   CardHeaderText,
   CardTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Input,
   Label,
   Select,
@@ -31,6 +37,18 @@ import {
   createDriverAction,
   updateDriverAction,
 } from '@/server/actions/drivers/driver.actions';
+import { updateMemberAction } from '@/server/actions/users/update-member.action';
+
+/** Mirror AMA normalize — preview only, server validate lại. */
+function normalizePreview(raw: string): string {
+  let digits = raw.replace(/\D/g, '');
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (digits.startsWith('84') && digits.length === 11) digits = '0' + digits.slice(2);
+  return digits;
+}
+function isValidVnMobile(phone: string): boolean {
+  return /^0[35789]\d{8}$/.test(phone);
+}
 
 interface DriverDraftValues {
   userId: string;
@@ -118,6 +136,64 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
     dismissDraft();
   };
 
+  const originalPhone = driver?.drvPhone ?? '';
+  const normalizedPhone = normalizePreview(phone);
+  const phoneChanged = isEdit && normalizedPhone !== originalPhone;
+  const phoneValid = !phone || isValidVnMobile(normalizedPhone);
+  const [confirmPhoneOpen, setConfirmPhoneOpen] = useState(false);
+
+  const doSubmit = () => {
+    startTransition(async () => {
+      const basePayload = {
+        license_number: licenseNumber.trim(),
+        license_class: licenseClass,
+        license_expiry: licenseExpiry,
+        emergency_contact: emergencyContact.trim() || undefined,
+        notes: notes.trim() || undefined,
+      };
+
+      /* Phone edit ở edit-mode: gọi updateMemberAction TRƯỚC để đồng bộ AMA's
+       * `usr_phone` (source of truth cho phone-login). Driver action sau sẽ
+       * tự re-sync drv_phone qua resolveUserPhone(). Nếu update AMA fail, dừng
+       * lại — không cho driver mismatch. */
+      if (isEdit && phoneChanged && driver) {
+        const memberRes = await updateMemberAction({
+          userId: driver.drvUserId,
+          phone: phone.trim(),
+        });
+        if (!memberRes.success) {
+          toast.error('Không đổi được SĐT', {
+            description: formatActionError(memberRes.error, tErr),
+          });
+          return;
+        }
+      }
+
+      const result = isEdit
+        ? await updateDriverAction(driver.drvId, { ...basePayload, status })
+        : await createDriverAction({
+            ...basePayload,
+            user_id: userId,
+            phone: phone.trim() || undefined,
+          });
+
+      if (result.success) {
+        clearDraft();
+        toast.success(isEdit ? t('tUpdated') : t('tAdded'));
+        if (phoneChanged) {
+          toast.info('Tài xế cần đăng nhập lại bằng SĐT mới');
+        }
+        setConfirmPhoneOpen(false);
+        router.push(`/drivers/${result.data.drvId}`);
+        router.refresh();
+      } else {
+        toast.error(isEdit ? t('errUpdate') : t('errCreate'), {
+          description: formatActionError(result.error, tErr),
+        });
+      }
+    });
+  };
+
   const onSubmit = () => {
     if (!isEdit && !userId) {
       toast.error(t('errPickUser'), { description: t('errPickUserDesc') });
@@ -127,32 +203,19 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
       toast.error(t('errMissing'), { description: t('errMissingDesc') });
       return;
     }
-
-    startTransition(async () => {
-      const basePayload = {
-        license_number: licenseNumber.trim(),
-        license_class: licenseClass,
-        license_expiry: licenseExpiry,
-        phone: phone.trim() || undefined,
-        emergency_contact: emergencyContact.trim() || undefined,
-        notes: notes.trim() || undefined,
-      };
-
-      const result = isEdit
-        ? await updateDriverAction(driver.drvId, { ...basePayload, status })
-        : await createDriverAction({ ...basePayload, user_id: userId });
-
-      if (result.success) {
-        clearDraft();
-        toast.success(isEdit ? t('tUpdated') : t('tAdded'));
-        router.push(`/drivers/${result.data.drvId}`);
-        router.refresh();
-      } else {
-        toast.error(isEdit ? t('errUpdate') : t('errCreate'), {
-          description: formatActionError(result.error, tErr),
-        });
-      }
-    });
+    if (phone && !phoneValid) {
+      toast.error('SĐT không hợp lệ', {
+        description: 'Yêu cầu 10 chữ số bắt đầu 03/05/07/08/09.',
+      });
+      return;
+    }
+    /* Đổi SĐT login → bắt buộc xác nhận. Banner trong form chỉ là nhắc lần 1,
+     * dialog là rào chắn lần 2 trước khi commit. */
+    if (phoneChanged) {
+      setConfirmPhoneOpen(true);
+      return;
+    }
+    doSubmit();
   };
 
   return (
@@ -246,9 +309,61 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
                 </Select>
               </Field>
             )}
-            <Field label={t('phone')}>
-              <Input value={phone ?? ''} onChange={(e) => setPhone(e.target.value)} placeholder={t('phonePlaceholder')} maxLength={20} className="font-mono" />
-            </Field>
+            {/* CRITICAL phone field — chỉ edit mode mới editable. Create mode
+             *  phone sẽ resolve từ AMA sau khi link user (server action). */}
+            {isEdit ? (
+              <Field label={t('phone')}>
+                <div className="rounded-md border-2 border-danger/40 bg-danger-soft/30 p-2.5 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <KeyRound className="h-4 w-4 text-danger shrink-0 mt-0.5" aria-hidden />
+                    <div className="text-xs text-text-muted leading-relaxed">
+                      <strong className="text-danger">SĐT đăng nhập</strong> — đổi sai
+                      = tài xế không vào app được. Lưu ý: đổi xong tài xế PHẢI đăng nhập lại.
+                    </div>
+                  </div>
+                  <Input
+                    value={phone ?? ''}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="VD: 0904567890 hoặc +84 904567890"
+                    type="tel"
+                    inputMode="tel"
+                    pattern="[+0-9\s\-]{9,15}"
+                    maxLength={20}
+                    className={
+                      'font-mono ' +
+                      (phone && !phoneValid ? 'border-danger focus-visible:border-danger' : '')
+                    }
+                  />
+                  {phone && (
+                    <div className="text-xs flex items-center justify-end gap-1.5">
+                      <span
+                        className={
+                          'font-mono tabular ' +
+                          (phoneValid ? 'text-success font-semibold' : 'text-danger')
+                        }
+                      >
+                        {phoneValid
+                          ? `→ ${normalizedPhone}${phoneChanged ? ' (THAY ĐỔI)' : ''}`
+                          : '✗ Không hợp lệ'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </Field>
+            ) : (
+              <Field
+                label={t('phone')}
+                hint="SĐT sẽ lấy từ user account sau khi link — không cần nhập tay ở đây."
+              >
+                <Input
+                  value=""
+                  readOnly
+                  disabled
+                  placeholder="(Tự lấy từ user account)"
+                  className="font-mono bg-surface-2 text-text-muted cursor-not-allowed"
+                />
+              </Field>
+            )}
             <Field label={t('emergencyContact')}>
               <Input value={emergencyContact ?? ''} onChange={(e) => setEmergencyContact(e.target.value)} placeholder={t('emergencyPlaceholder')} maxLength={100} />
             </Field>
@@ -272,11 +387,82 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
         <Button type="button" variant="secondary" size="lg" className="flex-1 md:flex-initial" asChild>
           <Link href={isEdit ? `/drivers/${driver.drvId}` : '/drivers'}>{tA('cancel')}</Link>
         </Button>
-        <Button type="submit" variant="accent" size="lg" className="flex-1 md:flex-initial" disabled={pending}
-          iconLeft={pending ? <Loader2 className="animate-spin" /> : <Save />}>
+        <Button
+          type="submit"
+          variant="accent"
+          size="lg"
+          className="flex-1 md:flex-initial"
+          disabled={pending || (Boolean(phone) && !phoneValid)}
+          iconLeft={pending ? <Loader2 className="animate-spin" /> : <Save />}
+        >
           {pending ? t('submitSaving') : isEdit ? t('submitSave') : t('submitAdd')}
         </Button>
       </div>
+
+      {/* Phone-change confirmation — driver login sẽ thay đổi, admin phải xác nhận. */}
+      <Dialog open={confirmPhoneOpen} onOpenChange={(o) => !pending && setConfirmPhoneOpen(o)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-danger">
+              <AlertTriangle className="h-5 w-5" />
+              Xác nhận đổi SĐT đăng nhập
+            </DialogTitle>
+            <DialogDescription>
+              Tài xế sẽ phải đăng nhập lại bằng SĐT mới.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="rounded-md bg-surface-2 p-3 space-y-2">
+              <div className="flex justify-between gap-2">
+                <span className="text-text-muted">Tài xế</span>
+                <span className="font-medium text-text">
+                  {driver?.user?.usrName ?? driver?.drvLicenseNumber ?? '—'}
+                </span>
+              </div>
+              <div className="flex justify-between gap-2 items-center">
+                <span className="text-text-muted">SĐT cũ</span>
+                <span className="font-mono text-text-muted line-through tabular">
+                  {originalPhone || '(chưa có)'}
+                </span>
+              </div>
+              <div className="flex justify-between gap-2 items-center">
+                <span className="text-text-muted">SĐT mới</span>
+                <span className="font-mono tabular font-bold text-danger">
+                  {normalizedPhone}
+                </span>
+              </div>
+            </div>
+            <div className="rounded-md bg-warning-soft/40 border border-warning/30 p-3 text-xs text-text leading-relaxed">
+              <strong className="text-warning-strong">Sau khi đổi:</strong>
+              <ul className="mt-1.5 list-disc list-inside space-y-0.5">
+                <li>SĐT cũ <strong>KHÔNG</strong> dùng để đăng nhập app được nữa</li>
+                <li>Tài xế phải <strong>đăng nhập lại</strong> bằng SĐT mới <code className="font-mono">{normalizedPhone}</code></li>
+                <li>Token hiện tại của tài xế còn dùng được tối đa 1 giờ</li>
+                <li>Hãy gọi báo tài xế trước khi xác nhận</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setConfirmPhoneOpen(false)}
+              disabled={pending}
+            >
+              Huỷ
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              onClick={doSubmit}
+              disabled={pending}
+              iconLeft={pending ? <Loader2 className="animate-spin" /> : <Save />}
+            >
+              {pending ? 'Đang lưu…' : 'Xác nhận đổi SĐT'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </form>
   );
 }

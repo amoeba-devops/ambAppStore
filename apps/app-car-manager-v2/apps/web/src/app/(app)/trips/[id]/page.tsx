@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   User,
 } from 'lucide-react';
-import { Badge, Button } from '@car-v2/ui';
+import { Avatar, Badge, Button } from '@car-v2/ui';
 import type { CarTripStatus } from '@car-v2/db/schema';
 import { MapPreview } from '@/components/inputs/map-preview';
 import { PageHeader } from '@/components/layout/page-header';
@@ -261,6 +261,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
                   label={tDetail('passenger')}
                   value={trip.passengerName ?? tDetail('passengerUnspecified')}
                   muted={!trip.passengerName}
+                  avatar={trip.passengerName ?? undefined}
                   lines={trip.passengerEmail ? [
                     { icon: <Mail className="h-3 w-3" />, text: trip.passengerEmail },
                   ] : []}
@@ -278,6 +279,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
                   label={tDetail('driver')}
                   value={trip.driverName ?? tDetail('notAssigned')}
                   muted={!trip.driverName}
+                  avatar={trip.driverName ?? undefined}
                   lines={trip.driverPhone ? [
                     { icon: <Phone className="h-3 w-3" />, text: trip.driverPhone, mono: true },
                   ] : []}
@@ -336,7 +338,8 @@ function SectionTitle({
 
 /** Property row in the right rail — semantic <dt>/<dd> pair with hairline-divider
  *  rhythm. Icon + uppercase label, then value (semibold) and optional sub-lines.
- *  `muted` softens the value tone for unassigned fields ("Not assigned"). */
+ *  `muted` softens the value tone for unassigned fields ("Not assigned").
+ *  `avatar`: nếu truyền vào, render Avatar trước value (Passenger/Driver rows). */
 function PropertyRow({
   icon,
   label,
@@ -344,6 +347,7 @@ function PropertyRow({
   lines = [],
   mono,
   muted,
+  avatar,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -351,6 +355,7 @@ function PropertyRow({
   lines?: { icon?: React.ReactNode; text: string; mono?: boolean }[];
   mono?: boolean;
   muted?: boolean;
+  avatar?: string;
 }) {
   return (
     <div className="py-3 first:pt-3 last:pb-3">
@@ -359,16 +364,17 @@ function PropertyRow({
         <span>{label}</span>
       </dt>
       <dd
-        className={`text-sm leading-tight ${
+        className={`flex items-center gap-2 text-sm leading-tight ${
           muted ? 'text-text-muted italic' : 'text-text font-semibold'
         } ${mono ? 'font-mono tabular' : ''}`}
       >
-        {value}
+        {avatar && <Avatar name={avatar} size="xs" />}
+        <span className="min-w-0 truncate">{value}</span>
       </dd>
       {lines.map((ln, i) => (
         <dd
           key={i}
-          className={`mt-1 inline-flex items-center gap-1.5 text-xs text-text-muted ${ln.mono ? 'font-mono tabular' : ''}`}
+          className={`mt-1 inline-flex items-center gap-1.5 text-xs text-text-muted ${ln.mono ? 'font-mono tabular' : ''} ${avatar ? 'pl-8' : ''}`}
         >
           {ln.icon}
           <span>{ln.text}</span>

@@ -50,6 +50,8 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <AppShellClient
       role={user.role}
+      userName={user.name}
+      userEmail={user.email}
       pendingTripCount={pendingTripCount}
       vapidPublicKey={process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC}
       basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''}

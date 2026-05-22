@@ -25,6 +25,8 @@
     "db:migrate:staging": "node scripts/db-migrate.mjs staging",
     "db:seed:dev": "node scripts/db-seed.mjs dev",
     "db:seed:staging": "node scripts/db-seed.mjs staging",
+    "db:heal:dev": "node scripts/db-heal-usr-id.mjs dev",
+    "db:heal:staging": "node scripts/db-heal-usr-id.mjs staging",
     "db:studio": "npm run db:studio -w @car-v2/db",
     "cron:maintenance": "node scripts/trigger-maintenance-cron.mjs",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
