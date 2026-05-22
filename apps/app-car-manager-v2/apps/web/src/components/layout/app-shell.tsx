@@ -27,10 +27,12 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   /* Settings row may not exist yet (lazy-seeded on first /settings visit by
    * Admin). `getTenantSettings` returns null in that case — we don't seed
    * here to keep the layout render cheap; the JWT/i18n fallback covers it. */
-  const [pendingTripCount, settings, tCo] = await Promise.all([
+  const [pendingTripCount, settings, tCo, tRoot] = await Promise.all([
     countPendingTrips({ entId: user.entId, role: user.role, userId: user.userId }),
     getTenantSettings(user.entId),
     getTranslations('company'),
+    /* Root namespace — `appName` is a top-level i18n key (vi: "Fleet"). */
+    getTranslations(),
   ]);
 
   const defaultTenantName = tCo('tenantDefault');
@@ -42,6 +44,9 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
     user.entName?.trim() ||
     defaultTenantName;
 
+  const defaultAppName = tRoot('appName');
+  const resolvedAppName = settings?.tnsAppName?.trim() || defaultAppName;
+
   return (
     <AppShellClient
       role={user.role}
@@ -50,6 +55,8 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''}
       tenantName={resolvedName}
       tenantDefaultName={defaultTenantName}
+      appName={resolvedAppName}
+      appDefaultName={defaultAppName}
     >
       {children}
     </AppShellClient>

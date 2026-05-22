@@ -536,6 +536,7 @@
     },
     "general": "Chung",
     "generalDesc": "Định danh workspace và mặc định ngôn ngữ.",
+    "appName": "Tên ứng dụng",
     "tenantName": "Tên tenant",
     "defaultLanguage": "Ngôn ngữ mặc định",
     "currency": "Tiền tệ",

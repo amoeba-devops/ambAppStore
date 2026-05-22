@@ -8,6 +8,11 @@ export const updateTenantNameSchema = z.object({
 });
 export type UpdateTenantNameInput = z.infer<typeof updateTenantNameSchema>;
 
+export const updateAppNameSchema = z.object({
+  app_name: z.string().trim().max(120).nullable(),
+});
+export type UpdateAppNameInput = z.infer<typeof updateAppNameSchema>;
+
 export const updateCurrencySchema = z.object({
   currency: z.enum(['VND', 'KRW', 'USD']),
 });

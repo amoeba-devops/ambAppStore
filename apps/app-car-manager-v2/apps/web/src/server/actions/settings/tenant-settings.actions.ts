@@ -5,6 +5,7 @@ import { db } from '@car-v2/db/client';
 import { carTenantSettings, type CarTenantSettings } from '@car-v2/db/schema';
 import { type ActionResult } from '@car-v2/shared/errors';
 import {
+  updateAppNameSchema,
   updateCurrencySchema,
   updateNotifPrefSchema,
   updateRetentionSchema,
@@ -81,6 +82,28 @@ export async function updateTenantNameAction(
       current.tnsTenantName,
       normalized,
       { tnsTenantName: normalized },
+    );
+  });
+}
+
+/* ─── App name ────────────────────────────────────────────────────────── */
+export async function updateAppNameAction(
+  input: unknown,
+): Promise<ActionResult<CarTenantSettings>> {
+  return runAction(async () => {
+    const actor = await getCurrentUser();
+    requireRole(actor.role, ['ADMIN']);
+    const data = updateAppNameSchema.parse(input);
+    const current = await loadCurrentRow(actor.entId, actor.userId);
+    /* Empty string → store NULL to "clear back to default". */
+    const normalized = data.app_name === '' ? null : data.app_name;
+    return persistAndAudit(
+      actor.entId,
+      actor.userId,
+      'appName',
+      current.tnsAppName,
+      normalized,
+      { tnsAppName: normalized },
     );
   });
 }
