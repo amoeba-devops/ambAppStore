@@ -6,6 +6,8 @@ import { mapAmaRoleToLocal, type AmaJwtClaims, type LocalRole } from '@car-v2/sh
 export interface AuthContext {
   /** Entity ID — multi-tenancy key. Every Drizzle query must filter by this. */
   entId: string;
+  /** AMA-issued entity display name. Optional — older tokens don't carry it. */
+  entName: string | null;
   /** AMA user ID (subject of JWT). */
   userId: string;
   /** Raw AMA role from JWT. */
@@ -24,6 +26,7 @@ export async function getCurrentUser(): Promise<AuthContext> {
   const entId = h.get('x-ent-id');
   const userId = h.get('x-user-id');
   const amaRoleRaw = h.get('x-user-role') as AmaJwtClaims['role'] | null;
+  const entName = h.get('x-ent-name');
 
   if (!entId || !userId || !amaRoleRaw) {
     throw new CarError('CAR-E0101', 401, 'Unauthenticated');
@@ -31,6 +34,7 @@ export async function getCurrentUser(): Promise<AuthContext> {
 
   return {
     entId,
+    entName: entName ?? null,
     userId,
     amaRole: amaRoleRaw,
     role: mapAmaRoleToLocal(amaRoleRaw),

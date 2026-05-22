@@ -110,6 +110,12 @@ export async function middleware(req: NextRequest) {
     requestHeaders.set('x-ent-id', claims.ent_id);
     requestHeaders.set('x-user-id', claims.sub);
     requestHeaders.set('x-user-role', claims.role);
+    /* AMA-issued entity name — optional, only present once AMA includes the
+     * `entityName` claim. RSCs use it as a fallback for the sidebar header
+     * when the tenant hasn't customized `tns_tenant_name` yet. */
+    if (claims.ent_name) {
+      requestHeaders.set('x-ent-name', claims.ent_name);
+    }
     return NextResponse.next({ request: { headers: requestHeaders } });
   } catch {
     // Cookie present but verification failed — most common cause: cookie minted

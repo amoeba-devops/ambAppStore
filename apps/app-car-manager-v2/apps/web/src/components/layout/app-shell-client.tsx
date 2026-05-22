@@ -8,6 +8,7 @@ import { InstallPrompt } from '@/components/pwa/install-prompt';
 import { PushPromptBanner } from '@/components/pwa/push-prompt-banner';
 import { BottomTabNav } from './bottom-tab-nav';
 import { SidebarNav } from './sidebar-nav';
+import { TenantDisplayProvider } from './tenant-display-context';
 
 const COLLAPSE_KEY = 'ccms.sidebar.collapsed';
 
@@ -19,6 +20,12 @@ interface AppShellClientProps {
    * Both come from NEXT_PUBLIC_* env via the server-side AppShell wrapper. */
   vapidPublicKey: string | undefined;
   basePath: string;
+  /** Resolved tenant display name (DB → JWT → i18n default). Seeds the
+   * TenantDisplayProvider so the sidebar header + admin settings UI share
+   * a single source of truth that updates in real-time. */
+  tenantName: string;
+  /** i18n default used when the admin clears the customized name. */
+  tenantDefaultName: string;
   children: React.ReactNode;
 }
 
@@ -44,6 +51,8 @@ export function AppShellClient({
   pendingTripCount,
   vapidPublicKey,
   basePath,
+  tenantName,
+  tenantDefaultName,
   children,
 }: AppShellClientProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -70,26 +79,28 @@ export function AppShellClient({
   };
 
   return (
-    <div className="flex min-h-dvh bg-bg text-text">
-      {/* Sidebar — hidden on mobile, replaced by BottomTabNav below. */}
-      <div className="hidden md:contents">
-        <SidebarNav collapsed={collapsed} role={role} pendingTripCount={pendingTripCount} />
+    <TenantDisplayProvider initialName={tenantName} defaultName={tenantDefaultName}>
+      <div className="flex min-h-dvh bg-bg text-text">
+        {/* Sidebar — hidden on mobile, replaced by BottomTabNav below. */}
+        <div className="hidden md:contents">
+          <SidebarNav collapsed={collapsed} role={role} pendingTripCount={pendingTripCount} />
+        </div>
+        {/* Main: reserve bottom space on mobile for the fixed bottom-tab bar.
+         * PushPromptBanner sits ABOVE page content (still inside <main>) so it
+         * stays in the document flow — non-modal, scrolls with the page, and
+         * doesn't fight the install prompt at the bottom for attention. */}
+        <main className="flex-1 min-w-0 flex flex-col pb-[64px] md:pb-0">
+          <PushPromptBanner vapidPublicKey={vapidPublicKey} basePath={basePath} />
+          {children}
+        </main>
+        <div className="hidden md:contents">
+          <CollapseHandle collapsed={collapsed} onClick={toggle} />
+        </div>
+        <BottomTabNav role={role} />
+        <InstallPrompt />
+        <Toaster />
       </div>
-      {/* Main: reserve bottom space on mobile for the fixed bottom-tab bar.
-       * PushPromptBanner sits ABOVE page content (still inside <main>) so it
-       * stays in the document flow — non-modal, scrolls with the page, and
-       * doesn't fight the install prompt at the bottom for attention. */}
-      <main className="flex-1 min-w-0 flex flex-col pb-[64px] md:pb-0">
-        <PushPromptBanner vapidPublicKey={vapidPublicKey} basePath={basePath} />
-        {children}
-      </main>
-      <div className="hidden md:contents">
-        <CollapseHandle collapsed={collapsed} onClick={toggle} />
-      </div>
-      <BottomTabNav role={role} />
-      <InstallPrompt />
-      <Toaster />
-    </div>
+    </TenantDisplayProvider>
   );
 }
 
