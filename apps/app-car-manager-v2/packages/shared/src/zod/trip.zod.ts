@@ -52,3 +52,9 @@ export const cancelTripSchema = z.object({
   reason: z.string().trim().max(500).optional(),
 });
 export type CancelTripInput = z.infer<typeof cancelTripSchema>;
+
+export const fetchCalendarRangeSchema = z.object({
+  range_start: z.string().datetime({ offset: true }),
+  range_end: z.string().datetime({ offset: true }),
+});
+export type FetchCalendarRangeInput = z.infer<typeof fetchCalendarRangeSchema>;

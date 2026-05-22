@@ -16,11 +16,13 @@ import {
   cancelTripSchema,
   createTripSchema,
   endTripSchema,
+  fetchCalendarRangeSchema,
   rejectTripSchema,
   startTripSchema,
   updateTripSchema,
 } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole, type AuthContext } from '@/lib/auth/get-current-user';
+import { listTripsForCalendar, type TripListItem } from '@/server/queries/trips.queries';
 import { logAudit } from '@/server/services/audit-log.service';
 import { buildGoogleMapsUrl } from '@/server/services/google-maps-url.service';
 import { notifyUser } from '@/server/services/notification.service';
@@ -268,6 +270,36 @@ export async function updateTripAction(id: string, input: unknown): Promise<Acti
     revalidatePath('/trips');
     revalidatePath(`/trips/${id}`);
     return updated;
+  });
+}
+
+/* ─── Calendar fetch ───────────────────────────────────────────────────── */
+
+/**
+ * Read-only fetch for the dashboard calendar (REQ-20260522). Wraps
+ * `listTripsForCalendar` with authentication + Zod validation so the Client
+ * Component orchestrator can re-fetch when the user navigates anchor/view
+ * without going through a route handler.
+ *
+ * Gated to ADMIN/MANAGER — DRIVER doesn't have a /dashboard surface and the
+ * query's role-based visibility filter would only return their own trips
+ * anyway. Explicit `requireRole` here surfaces a clear 403 instead of leaking
+ * an empty result.
+ */
+export async function fetchTripsForCalendarAction(
+  input: unknown,
+): Promise<ActionResult<TripListItem[]>> {
+  return runAction(async () => {
+    const actor = await getCurrentUser();
+    requireRole(actor.role, ['ADMIN', 'MANAGER']);
+    const data = fetchCalendarRangeSchema.parse(input);
+    return listTripsForCalendar({
+      entId: actor.entId,
+      role: actor.role,
+      userId: actor.userId,
+      rangeStart: new Date(data.range_start),
+      rangeEnd: new Date(data.range_end),
+    });
   });
 }
 

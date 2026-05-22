@@ -3,6 +3,7 @@ import {
   ClipboardList,
   Car,
   IdCard,
+  LayoutDashboard,
   Receipt,
   ScrollText,
   Settings as SettingsIcon,
@@ -14,6 +15,7 @@ import type { LocalRole } from '@car-v2/shared/auth';
 
 export type NavKey =
   | 'today'
+  | 'dashboard'
   | 'trips'
   | 'tripsMine'
   | 'expensesNew'
@@ -41,10 +43,9 @@ const ALL: readonly LocalRole[]    = ['ADMIN', 'MANAGER', 'DRIVER'] as const;
 
 /* Nav inventory.
  *
- * Module 3 (Dashboard + Reports) was removed — STAFF now lands at `/trips`
- * (set in app/(app)/page.tsx) and there is no KPI / charts route. The
- * workspace order below is the natural admin flow: Trips → Vehicles →
- * Drivers → Profile.
+ * Schedule Dashboard (REQ-20260522) reintroduced a calendar-centric hub at
+ * `/dashboard` — STAFF lands there (set in app/(app)/page.tsx). The natural
+ * admin flow is now: Dashboard → Trips → Vehicles → Drivers → Profile.
  *
  * Items are filtered per role via `roles`. The same items drive both the
  * desktop sidebar and the mobile BottomTabNav so the navigation surface stays
@@ -67,7 +68,9 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'today',       href: '/today',         Icon: CalendarClock,   group: 'workspace', roles: DRIVER },
   /* Driver's trips list = filtered to "mine". Different label than admin trips. */
   { key: 'tripsMine',   href: '/trips',         Icon: ClipboardList,   group: 'workspace', roles: DRIVER },
-  /* Admin/Manager trips overview = full fleet — also the STAFF landing page. */
+  /* STAFF landing — Schedule Dashboard (calendar + booking + vehicle legend). */
+  { key: 'dashboard',   href: '/dashboard',     Icon: LayoutDashboard, group: 'workspace', roles: STAFF  },
+  /* Admin/Manager trips overview = full fleet — list/table view for drill-down. */
   { key: 'trips',       href: '/trips',         Icon: ClipboardList,   group: 'workspace', roles: STAFF  },
   /* Driver expense home — list of their submissions. The submit form lives at
    * `/expenses/new` and is reached via the page's "+ New" button. */
@@ -87,10 +90,10 @@ export function navItemsForRole(role: LocalRole): NavItem[] {
 }
 
 /* Pick the active nav key for a given pathname; longest prefix wins. Falls
- * back per-role default landing — drivers go to 'today', staff to 'trips'.
+ * back per-role default landing — drivers go to 'today', staff to 'dashboard'.
  * Both roles use `/` as splash but are immediately redirected by RootRedirect. */
 export function activeKeyFor(pathname: string, role?: LocalRole): NavKey {
-  const fallback: NavKey = role === 'DRIVER' ? 'today' : 'trips';
+  const fallback: NavKey = role === 'DRIVER' ? 'today' : 'dashboard';
   if (pathname === '/') return fallback;
   let bestKey: NavKey = fallback;
   let bestLen = 0;

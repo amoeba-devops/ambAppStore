@@ -2,37 +2,53 @@
 
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
-/* Shared tenant display name across the app shell.
+/* Shared brand-header display state — both the tenant identity (initial
+ * square + secondary "Tenant" line) and the primary app-name label.
  *
- * Server side resolves the name once on render (DB → JWT → i18n default) and
- * seeds this Client provider. Settings -> Admin can then push live updates
- * here (per keystroke) so the sidebar header re-renders without waiting for
- * the debounced server save / route revalidation. */
+ * Server side resolves both names once on render and seeds this Client
+ * provider:
+ *   - tenantName: car_tenant_settings.tns_tenant_name → JWT.entityName → i18n
+ *   - appName:    car_tenant_settings.tns_app_name    → i18n `appName`
+ *
+ * Settings → Admin can then push live updates per keystroke so the sidebar
+ * brand header re-renders without waiting for the debounced server save or
+ * a route revalidation. */
 interface TenantDisplayState {
-  /** The name currently shown in the sidebar/header. */
+  /** Tenant name shown as the second line in the brand header. */
   name: string;
   /** Auto-derived 1–2 char initial label for the brand square. */
   initials: string;
-  /** Update the display name. Pass empty/null → reverts to the default label. */
+  /** Update the tenant name. Pass empty/null → reverts to the default label. */
   setName: (next: string | null) => void;
+  /** App name shown as the primary line in the brand header. */
+  appName: string;
+  /** Update the app name. Pass empty/null → reverts to the default app name. */
+  setAppName: (next: string | null) => void;
 }
 
 const TenantDisplayContext = createContext<TenantDisplayState | null>(null);
 
 interface TenantDisplayProviderProps {
-  /** Initial display name resolved server-side. */
+  /** Initial tenant name resolved server-side. */
   initialName: string;
-  /** Fallback when the user clears the name back to "default". */
+  /** Fallback when the user clears the tenant name back to "default". */
   defaultName: string;
+  /** Initial app name resolved server-side (DB → i18n). */
+  initialAppName: string;
+  /** Fallback when the user clears the app name back to "default". */
+  defaultAppName: string;
   children: ReactNode;
 }
 
 export function TenantDisplayProvider({
   initialName,
   defaultName,
+  initialAppName,
+  defaultAppName,
   children,
 }: TenantDisplayProviderProps) {
   const [name, setNameState] = useState(initialName);
+  const [appName, setAppNameState] = useState(initialAppName);
 
   const setName = useCallback(
     (next: string | null) => {
@@ -42,13 +58,23 @@ export function TenantDisplayProvider({
     [defaultName],
   );
 
+  const setAppName = useCallback(
+    (next: string | null) => {
+      const trimmed = next?.trim() ?? '';
+      setAppNameState(trimmed === '' ? defaultAppName : trimmed);
+    },
+    [defaultAppName],
+  );
+
   const value = useMemo<TenantDisplayState>(
     () => ({
       name,
       initials: deriveInitials(name),
       setName,
+      appName,
+      setAppName,
     }),
-    [name, setName],
+    [name, setName, appName, setAppName],
   );
 
   return <TenantDisplayContext.Provider value={value}>{children}</TenantDisplayContext.Provider>;
