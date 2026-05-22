@@ -126,7 +126,7 @@ export function CalendarToolbar({
   })();
 
   return (
-    <div className="flex flex-col gap-2 border-b border-border bg-surface-2 px-3 py-2">
+    <div className="flex shrink-0 flex-col gap-2 border-b border-border bg-surface-2 px-3 py-2">
       {/* ── ROW 1: nav arrows + title + view picker ──────────────────────
        * Single horizontal line on every breakpoint. Mobile uses a compact
        * dropdown for the view picker (saving ~36px of vertical) while

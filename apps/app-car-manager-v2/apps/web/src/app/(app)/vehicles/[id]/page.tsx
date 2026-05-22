@@ -87,6 +87,15 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
             </Button>
           </>
         }
+        mobileAction={
+          <Link
+            href={`/vehicles/${vehicle.cvhId}/edit`}
+            aria-label={tA('edit')}
+            className="inline-flex items-center justify-center h-10 w-10 rounded-full text-text hover:bg-surface-2 active:bg-surface-2/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Edit3 className="h-5 w-5" />
+          </Link>
+        }
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-5 space-y-5">

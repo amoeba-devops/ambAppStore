@@ -84,6 +84,7 @@ export default async function TodayPage() {
               <a href="/api/auth/logout">Đổi tài xế</a>
             </Button>
           }
+          mobileVariant="brand"
         />
         <DriverTodayView trips={myTrips} vehicles={myVehicles} />
       </>
@@ -109,6 +110,7 @@ export default async function TodayPage() {
         title={tT('title')}
         subtitle={`${tCo('currentUser')} · ${tT('subtitleTrips', { count: todayTrips.length })}`}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tT('title') }]}
+        mobileVariant="brand"
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">

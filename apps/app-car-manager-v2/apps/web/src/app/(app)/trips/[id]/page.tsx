@@ -109,6 +109,17 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
             )}
           </>
         }
+        mobileAction={
+          canEdit ? (
+            <Link
+              href={`/trips/${trip.trpId}/edit`}
+              aria-label={tA('edit')}
+              className="inline-flex items-center justify-center h-10 w-10 rounded-full text-text hover:bg-surface-2 active:bg-surface-2/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Edit3 className="h-5 w-5" />
+            </Link>
+          ) : undefined
+        }
       />
 
       {/* Document-style detail: inline sections + hairline dividers, NO nested cards.

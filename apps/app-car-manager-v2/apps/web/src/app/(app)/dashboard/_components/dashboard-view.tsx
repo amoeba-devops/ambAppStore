@@ -28,8 +28,20 @@ const SUB_VIEW_KEY = 'dashboard.calendar.subView';
 const COLOR_MODE_KEY = 'dashboard.calendar.colorMode';
 const HIGHLIGHT_CLEAR_MS = 3000;
 
+/* SSR-safe defaults. The previous `useState(loadSubView)` /
+ * `useState(loadColorMode)` initializers read localStorage during render,
+ * which produced different values on server (window === undefined → fall
+ * back to 'month'/'vehicle') vs client (whatever the user previously
+ * picked), causing hydration mismatches on every conditional-class button
+ * in the calendar toolbar. We now seed with the same default on both
+ * sides and adopt the persisted value in a post-mount effect — at worst
+ * the user sees a one-frame flicker of the default view before their
+ * saved preference snaps in. */
+const DEFAULT_VIEW: CalendarViewType = 'month';
+const DEFAULT_COLOR_MODE: CalendarColorMode = 'vehicle';
+
 function loadSubView(): CalendarViewType {
-  if (typeof window === 'undefined') return 'month';
+  if (typeof window === 'undefined') return DEFAULT_VIEW;
   const v = window.localStorage.getItem(SUB_VIEW_KEY);
   if (v === 'month' || v === 'week' || v === 'day' || v === 'gantt') return v;
   /* No saved preference yet — Month grid (7 cols × 6 rows) is unusable on a
@@ -41,9 +53,9 @@ function loadSubView(): CalendarViewType {
 }
 
 function loadColorMode(): CalendarColorMode {
-  if (typeof window === 'undefined') return 'vehicle';
+  if (typeof window === 'undefined') return DEFAULT_COLOR_MODE;
   const v = window.localStorage.getItem(COLOR_MODE_KEY);
-  return v === 'status' ? 'status' : 'vehicle';
+  return v === 'status' ? 'status' : DEFAULT_COLOR_MODE;
 }
 
 interface DashboardViewProps {
@@ -67,8 +79,12 @@ export function DashboardView({
   const router = useRouter();
   const t = useTranslations('dashboard.calendar');
   const [anchor, setAnchor] = useState<Date>(() => new Date());
-  const [view, setView] = useState<CalendarViewType>(loadSubView);
-  const [colorMode, setColorMode] = useState<CalendarColorMode>(loadColorMode);
+  /* Seed with SSR-safe defaults; the post-mount effect below adopts the
+   * persisted localStorage value. Keeps server + client first paint
+   * identical → no hydration mismatch on the toolbar's view picker /
+   * color-mode segmented control. */
+  const [view, setView] = useState<CalendarViewType>(DEFAULT_VIEW);
+  const [colorMode, setColorMode] = useState<CalendarColorMode>(DEFAULT_COLOR_MODE);
   const [trips, setTrips] = useState<TripListItem[]>(initialTrips);
   const [isFetching, startFetch] = useTransition();
   /* When the user picks a custom date range via the toolbar's range popover,
@@ -82,6 +98,19 @@ export function DashboardView({
   useEffect(() => {
     if (typeof window === 'undefined') return;
     setTouchDevice(window.matchMedia('(pointer: coarse)').matches);
+  }, []);
+
+  /* Post-mount: pull persisted view + color-mode out of localStorage and
+   * adopt them. Done in an effect (not as the useState initializer) so
+   * SSR + client first paint render with the same default values — the
+   * hydration check passes, and the persisted preference snaps in one
+   * frame later. The matching save-effects below run once with the
+   * default before this load fires, briefly overwriting the persisted
+   * value, but the very next render (triggered by the setState here)
+   * re-saves the correct value, so localStorage ends consistent. */
+  useEffect(() => {
+    setView(loadSubView());
+    setColorMode(loadColorMode());
   }, []);
 
   useEffect(() => {
@@ -254,8 +283,20 @@ export function DashboardView({
     setView('month');
   }, []);
 
+  /* Card height strategy (desktop, lg+):
+   *   `lg:h-[900px]` is the IDEAL target — matches the time-grid's
+   *   intrinsic (toolbar ~80 + 17 hours × 44 + day header ≈ 900px) so
+   *   that view fits without scroll, and other views fit-or-internally-
+   *   scroll inside the same pinned card.
+   *   `lg:max-h-[var(--ccms-dash-h,calc(100dvh-180px))]` caps that to
+   *   whatever vertical space is actually available below the page
+   *   chrome. The CSS variable is set by DashboardShell's ResizeObserver
+   *   from the page wrapper's real clientHeight, so it automatically
+   *   accounts for the PushPromptStrip appearing or disappearing in
+   *   <main>. Fallback `calc(100dvh-180px)` covers SSR / first paint
+   *   before the effect runs. */
   return (
-    <div className="overflow-hidden rounded-md border border-border bg-surface">
+    <div className="overflow-hidden rounded-md border border-border bg-surface lg:flex lg:flex-col lg:h-[900px] lg:max-h-[var(--ccms-dash-h,calc(100dvh-180px))]">
       <CalendarToolbar
         anchor={anchor}
         view={view}
@@ -269,13 +310,20 @@ export function DashboardView({
         onCustomRange={handleCustomRange}
         onClearFilter={handleClearFilter}
       />
-      {/* Calendar viewport. Mobile fits within remaining viewport space
-       * (subtract page header + breadcrumbs + tab nav + toolbar + buffer);
-       * desktop locks at 680px so switching sub-views never reflows the page.
-       * Inner content scrolls both axes inside this box. */}
+      {/* Calendar viewport.
+       *   - Mobile: fits within remaining viewport space (subtract page
+       *     header + breadcrumbs + tab nav + toolbar + buffer). Inner
+       *     content scrolls both axes inside this box.
+       *   - Desktop: `flex-1` fills the remaining height of the fixed-
+       *     dimension calendar card (set above on the wrapper). Because
+       *     the CARD height is pinned (not the viewport itself), the
+       *     toolbar above stays anchored exactly where it is on every
+       *     view switch — no reflow, no jump. The viewport absorbs the
+       *     view-to-view content-size delta (gantt ~180px vs time-grid
+       *     ~806px) internally via `overflow-auto`. */}
       <div
         className={cn(
-          'h-[calc(100dvh-260px)] min-h-[420px] overflow-auto md:h-[680px]',
+          'h-[calc(100dvh-260px)] min-h-[420px] overflow-auto lg:h-auto lg:flex-1 lg:min-h-0 lg:overflow-auto',
           isFetching ? 'opacity-60 transition-opacity' : 'transition-opacity',
         )}
       >

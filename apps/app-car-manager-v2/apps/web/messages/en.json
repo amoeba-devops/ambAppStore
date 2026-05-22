@@ -103,9 +103,9 @@
     "placeholder": "Search trips, drivers, costs…"
   },
   "company": {
-    "tenant": "HanaTech Vietnam",
-    "tenantShort": "HanaTech VN",
-    "tenantInitial": "HV",
+    "tenant": "Organization",
+    "tenantShort": "Org",
+    "tenantInitial": "OG",
     "tenantDefault": "My Organization",
     "tenantDefaultInitial": "MO",
     "tenantMeta": "3 vehicles · 4 drivers",

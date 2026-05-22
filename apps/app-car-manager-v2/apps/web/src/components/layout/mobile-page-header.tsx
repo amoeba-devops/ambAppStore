@@ -10,32 +10,38 @@ interface MobilePageHeaderProps {
   title: React.ReactNode;
   breadcrumbs?: BreadcrumbItem[];
   back?: string;
-  /** Right-side action slot. Caller-provided `mobileAction` wins; otherwise we
-   * fall back to the desktop `actions` so edit/delete buttons don't vanish on
-   * narrow screens. Single icon button is the right shape — wrap multiple in
-   * a kebab menu before passing. */
+  /** Right-side action slot — appears only when caller passes `mobileAction`
+   * on `<PageHeader>`. We do NOT fall back to the desktop `actions` slot,
+   * since most list-page actions (e.g. "+ Create") are mirrored as a FAB on
+   * mobile and would otherwise crowd the top bar. */
   rightSlot?: React.ReactNode;
   backAriaLabel: string;
+  /** 'brand' = avatar + app name + tenant. Reserved for home routes
+   * (dashboard / today). 'breadcrumb' (default) = back chevron + crumb trail,
+   * which is what every other route uses to keep the top bar lightweight. */
+  variant?: 'brand' | 'breadcrumb';
 }
 
 /**
  * Mobile-only top bar (rendered inside the server `<PageHeader>` for `< md`).
  *
- * Layout — single 56px row, all sections truncate, never wraps:
+ * Two layouts:
  *
- *   ┌──────────────────────────────────────────────────────────────┐
- *   │ [←] [HV]  Fleet              Settings › Me      [⋮ action]  │
- *   │           HanaTech Vietnam                                    │
- *   └──────────────────────────────────────────────────────────────┘
+ *  brand (home only):
+ *    ┌──────────────────────────────────────────────────────────────┐
+ *    │ [HV]  Fleet                                                  │
+ *    │       Acme Vietnam                                           │
+ *    └──────────────────────────────────────────────────────────────┘
  *
- * Left identity block uses `useTenantDisplay()` so the same avatar + app +
- * tenant labels the desktop sidebar already shows are mirrored here on
- * mobile (which has no sidebar). Right side is a compact breadcrumb tail
- * (last two items) — falls back to the page `title` when no breadcrumbs
- * were passed. Long strings truncate with ellipsis; we never wrap.
+ *  breadcrumb (default — every non-home page):
+ *    ┌──────────────────────────────────────────────────────────────┐
+ *    │ [←]  Vehicles › 30A-12345                       [⋮ action]  │
+ *    └──────────────────────────────────────────────────────────────┘
  *
- * Back chevron is the small affordance to the left of the avatar — kept
- * outside the avatar so the avatar itself can stay a static brand mark.
+ * Brand variant deliberately drops the breadcrumb + right action so the
+ * top of the PWA home stays calm. Sub-pages get back chevron + crumb tail
+ * so the user can read "where am I" on the LEFT, where the eye naturally
+ * lands when arriving from a navigation tap.
  */
 export function MobilePageHeader({
   title,
@@ -43,9 +49,11 @@ export function MobilePageHeader({
   back,
   rightSlot,
   backAriaLabel,
+  variant = 'breadcrumb',
 }: MobilePageHeaderProps) {
-  const tenant = useTenantDisplay();
-
+  if (variant === 'brand') {
+    return <BrandHeader />;
+  }
   return (
     <div className="md:hidden flex items-center gap-2 h-14 px-3">
       {back && (
@@ -53,37 +61,16 @@ export function MobilePageHeader({
           href={back}
           aria-label={backAriaLabel}
           className={cn(
-            'shrink-0 inline-flex items-center justify-center -ml-1 h-9 w-9 rounded-full',
-            'text-text-muted hover:bg-surface-2 hover:text-text active:bg-surface-2/80',
+            'shrink-0 inline-flex items-center justify-center -ml-1 h-10 w-10 rounded-full',
+            'text-text hover:bg-surface-2 active:bg-surface-2/80',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           )}
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ChevronLeft className="h-6 w-6" />
         </Link>
       )}
 
-      {/* Brand identity — avatar + app name + tenant name, truncate, no wrap. */}
-      <div className="flex items-center gap-2 shrink min-w-0">
-        <div
-          className="h-9 w-9 rounded-md bg-primary text-primary-fg flex items-center justify-center font-bold text-xs shrink-0"
-          title={tenant.name}
-        >
-          {tenant.initials}
-        </div>
-        <div className="min-w-0">
-          <div className="text-[13px] font-semibold text-text leading-tight truncate" title={tenant.appName}>
-            {tenant.appName}
-          </div>
-          <div className="text-[10.5px] text-text-muted leading-tight truncate" title={tenant.name}>
-            {tenant.name}
-          </div>
-        </div>
-      </div>
-
-      {/* Breadcrumb tail (or title fallback) — right-aligned, truncate intermediate
-       * items, last item bold. We cap to the last 2 entries so a five-level
-       * breadcrumb chain doesn't crush both ends of the bar. */}
-      <div className="flex-1 min-w-0 flex items-center justify-end overflow-hidden">
+      <div className="flex-1 min-w-0 flex items-center overflow-hidden">
         <CompactCrumbs items={breadcrumbs} fallback={title} />
       </div>
 
@@ -96,6 +83,37 @@ export function MobilePageHeader({
   );
 }
 
+/** Brand variant — used only on dashboard/today home pages. */
+function BrandHeader() {
+  const tenant = useTenantDisplay();
+  return (
+    <div className="md:hidden flex items-center gap-2 h-14 px-3">
+      <div className="flex items-center gap-2 min-w-0">
+        <div
+          className="h-9 w-9 rounded-md bg-primary text-primary-fg flex items-center justify-center font-bold text-xs shrink-0"
+          title={tenant.name}
+        >
+          {tenant.initials}
+        </div>
+        <div className="min-w-0">
+          <div
+            className="text-[13px] font-semibold text-text leading-tight truncate"
+            title={tenant.appName}
+          >
+            {tenant.appName}
+          </div>
+          <div
+            className="text-[10.5px] text-text-muted leading-tight truncate"
+            title={tenant.name}
+          >
+            {tenant.name}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CompactCrumbs({
   items,
   fallback,
@@ -103,25 +121,25 @@ function CompactCrumbs({
   items: BreadcrumbItem[] | undefined;
   fallback: React.ReactNode;
 }) {
-  if (!items || items.length === 0) {
-    /* No breadcrumbs supplied — surface the page title instead so the bar
-     * still conveys "what page is this". Single line, truncate. */
-    return (
-      <span className="text-[13px] font-semibold text-text truncate">{fallback}</span>
-    );
+  /* Strip the leading tenant-root crumb. Every page prepends `{ label: tenant }`
+   * to convey "you're inside <Org>" — on mobile that prefix is filler since the
+   * brand block already lives at the home, and on sub-pages the back chevron
+   * conveys "you came from somewhere". We surface only the meaningful tail. */
+  const meaningful = (items ?? []).filter((c, i) => !(i === 0 && !c.href));
+  if (meaningful.length === 0) {
+    return <span className="text-[15px] font-semibold text-text truncate">{fallback}</span>;
   }
 
-  /* Take the last two breadcrumb entries. Intermediate ancestors get an
-   * ellipsis prefix so the user can tell hierarchy was elided. */
-  const tail = items.slice(-2);
-  const elided = items.length > tail.length;
+  /* Cap to the last 2 to keep the bar compact on long trails. */
+  const tail = meaningful.slice(-2);
+  const elided = meaningful.length > tail.length;
 
   return (
-    <div className="inline-flex items-center gap-1 text-[11px] text-text-muted min-w-0">
+    <div className="inline-flex items-center gap-1 text-[13px] text-text-muted min-w-0">
       {elided && (
         <>
           <span className="text-text-faint">…</span>
-          <ChevronRight className="h-3 w-3 text-text-faint shrink-0" aria-hidden />
+          <ChevronRight className="h-3.5 w-3.5 text-text-faint shrink-0" aria-hidden />
         </>
       )}
       {tail.map((item, i) => {
@@ -134,13 +152,15 @@ function CompactCrumbs({
               </Link>
             ) : (
               <span
-                className={cn('truncate', isLast && 'font-semibold text-text')}
+                className={cn('truncate', isLast && 'font-semibold text-text text-[15px]')}
                 aria-current={isLast ? 'page' : undefined}
               >
                 {item.label}
               </span>
             )}
-            {!isLast && <ChevronRight className="h-3 w-3 text-text-faint shrink-0" aria-hidden />}
+            {!isLast && (
+              <ChevronRight className="h-3.5 w-3.5 text-text-faint shrink-0" aria-hidden />
+            )}
           </span>
         );
       })}

@@ -69,6 +69,43 @@ export function DashboardShell({
   const searchParams = useSearchParams();
   const [dialog, setDialog] = useState<DialogState>({ open: false, mode: 'create' });
 
+  /* Dynamic available-height for the calendar card. PushPromptStrip can
+   * appear/disappear inside <main> (when the user enables Web Push or
+   * snoozes the prompt), which changes the page wrapper's clientHeight.
+   * A hardcoded `calc(100dvh - 180px)` doesn't track that — it under-
+   * subtracts when the strip is up and the dashboard overflows the
+   * viewport. ResizeObserver on both the page wrapper AND <main> fires
+   * on strip show/hide AND on viewport resize, so the variable always
+   * reflects the real available band. The calendar card consumes it via
+   * `lg:max-h-[var(--ccms-dash-h,calc(100dvh-180px))]` — fallback to the
+   * static calc keeps SSR / first paint correct. */
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [availableHeight, setAvailableHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const gridEl = gridRef.current;
+    const pageWrapper = gridEl?.parentElement;
+    if (!gridEl || !pageWrapper) return;
+
+    const recompute = () => {
+      const style = getComputedStyle(pageWrapper);
+      const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+      const usable = pageWrapper.clientHeight - padY;
+      if (usable > 0) setAvailableHeight(usable);
+    };
+
+    const observer = new ResizeObserver(recompute);
+    observer.observe(pageWrapper);
+    /* <main> hosts PushPromptStrip — observing it fires the recompute
+     * when the strip mounts/unmounts (its presence changes <main>'s
+     * scrollHeight even when window size is unchanged). */
+    const mainEl = pageWrapper.closest('main');
+    if (mainEl) observer.observe(mainEl);
+
+    recompute();
+    return () => observer.disconnect();
+  }, []);
+
   const calendarVehicles = vehicles.map((v) => ({ id: v.id, plate: v.plate }));
 
   const stripCreateParam = () => {
@@ -116,8 +153,16 @@ export function DashboardShell({
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px]">
-        <section className="min-w-0">
+      <div
+        ref={gridRef}
+        className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px] lg:items-stretch"
+        style={
+          availableHeight
+            ? ({ '--ccms-dash-h': `${availableHeight}px` } as React.CSSProperties)
+            : undefined
+        }
+      >
+        <section className="min-w-0 lg:flex lg:flex-col">
           <DashboardView
             initialTrips={initialTrips}
             vehicles={calendarVehicles}
@@ -129,15 +174,25 @@ export function DashboardShell({
           />
         </section>
         {/* Right rail behaviour by breakpoint:
-         *   - Mobile / tablet (< lg): natural height, stacks below the
-         *     calendar; TripsListPanel caps its inner list so the whole
-         *     page doesn't grow huge.
-         *   - Desktop (lg+): locked to 728px to match the calendar card
-         *     exactly, sticky so it follows when the surrounding page
-         *     scrolls (e.g. when a long peek drawer or footer appears). */}
-        <aside className="flex flex-col gap-3 lg:sticky lg:top-4 lg:h-[728px] lg:self-start">
-          <VehicleLegend vehicles={vehicles} />
-          <div className="min-h-0 lg:flex-1">
+         *   - Mobile / tablet (< lg): natural flex-col stacking with gap.
+         *     TripsListPanel caps its inner list so the page doesn't grow
+         *     to N×row height when the tenant has many trips.
+         *   - Desktop (lg+): the aside is `block relative` and the inner
+         *     wrapper is positioned absolutely. This pulls the rail content
+         *     OUT OF FLOW so the aside contributes ZERO intrinsic height
+         *     to the grid row calculation — otherwise `items-stretch`
+         *     would size the row to the rail's max-content (VehicleLegend
+         *     + full trips list), which both stretches the calendar
+         *     (empty band below the last hour row) AND lets the trips
+         *     list extend past the calendar's bottom. With aside=0
+         *     intrinsic, the grid row matches the calendar's natural
+         *     height, the aside is stretched to that same height via
+         *     items-stretch, and the absolute wrapper fills it with
+         *     VehicleLegend on top + TripsListPanel flex-growing
+         *     internally. Trips overflow scrolls inside the panel. */}
+        <aside className="flex flex-col gap-3 lg:block lg:relative">
+          <div className="contents lg:absolute lg:inset-0 lg:flex lg:flex-col lg:gap-3">
+            <VehicleLegend vehicles={vehicles} />
             <TripsListPanel
               trips={recentTrips}
               highlightId={highlightId}

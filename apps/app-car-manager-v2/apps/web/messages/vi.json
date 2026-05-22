@@ -103,9 +103,9 @@
     "placeholder": "Tìm chuyến, tài xế, chi phí…"
   },
   "company": {
-    "tenant": "HanaTech Vietnam",
-    "tenantShort": "HanaTech VN",
-    "tenantInitial": "HV",
+    "tenant": "Tổ chức",
+    "tenantShort": "Tổ chức",
+    "tenantInitial": "TC",
     "tenantDefault": "Tổ chức của tôi",
     "tenantDefaultInitial": "TC",
     "tenantMeta": "3 xe · 4 tài xế",

@@ -122,7 +122,15 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         subtitle={tD('subtitle', { count: calendarTrips.length, role: user.role })}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('dashboard') }]}
         actions={<DashboardCreateButton />}
+        mobileVariant="brand"
       />
+      {/* Calendar drives the row height via its natural intrinsic size
+       * (time-grid: 17 hours × HOUR_HEIGHT + header ≈ 780px); the right
+       * rail mirrors that via `lg:items-stretch` on the grid. We keep the
+       * page wrapper `overflow-auto` so if the calendar ever exceeds the
+       * viewport (small screens, big future calendar variants) the page
+       * scrolls — but in normal cases the dashboard fits and adds no
+       * extra scroll height. */}
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-5">
         <DashboardShell
           initialTrips={calendarTrips}

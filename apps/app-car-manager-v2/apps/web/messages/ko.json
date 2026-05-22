@@ -103,9 +103,9 @@
     "placeholder": "운행·기사·비용 검색…"
   },
   "company": {
-    "tenant": "HanaTech Vietnam",
-    "tenantShort": "HanaTech VN",
-    "tenantInitial": "HV",
+    "tenant": "조직",
+    "tenantShort": "조직",
+    "tenantInitial": "조",
     "tenantDefault": "내 조직",
     "tenantDefaultInitial": "MO",
     "tenantMeta": "차량 3대 · 기사 4명",
