@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Check, Send } from 'lucide-react';
 import { Button, Card, CardContent, Input, Label, Textarea, toast } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
-import { DriverActionBar } from '@/components/layout/driver-action-bar';
+import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
+import { useFormDraft } from '@/hooks/use-form-draft';
 import { submitExpenseAction } from '@/server/actions/expenses/expense.actions';
 import { AmountInput } from './amount-input';
 import { ExpenseTypeChipGrid, type ExpenseType } from './expense-type-chip-grid';
@@ -60,6 +62,7 @@ export function ExpenseSubmitForm({
   drivers,
 }: ExpenseSubmitFormProps) {
   const t  = useTranslations('expenses.submit');
+  const tA = useTranslations('actions');
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -67,6 +70,12 @@ export function ExpenseSubmitForm({
   /* Vehicle picker visibility — hidden whenever a trip context is provided
    * (server resolves the vehicle from the trip's vehicle_id). */
   const needsVehiclePicker = !tripId;
+  const tDrafts = useTranslations('costs.types');
+
+  /* Storage key embeds the trip context so a trip-linked draft doesn't
+   * collide with a free-form one — same browser switching between the
+   * two should each see its own unfinished form. */
+  const draftKey = tripId ? `expense:new:trip:${tripId}` : 'expense:new';
 
   const [type, setType] = useState<ExpenseType | null>(null);
   const [amount, setAmount] = useState<number | null>(null);
@@ -74,7 +83,51 @@ export function ExpenseSubmitForm({
   const [note, setNote] = useState('');
   const [vehicleId, setVehicleId] = useState<string>('');
   const [driverId, setDriverId] = useState<string>('');
+  /* Receipts (File objects) deliberately NOT persisted — File can't be
+   * structured-cloned into localStorage, and a half-uploaded photo isn't
+   * a meaningful resume target. Re-pick on resume. */
   const [files, setFiles] = useState<File[]>([]);
+
+  /* Draft cache — auto-save on change, surface in sidebar `Chi phí` (STAFF) /
+   * `Ghi nhận chi phí` (Driver), restore via banner on next visit. Receipts
+   * are intentionally excluded (see comment above). */
+  const draftValues = useMemo(
+    () => ({ type, amount, occurredAt, note, vehicleId, driverId }),
+    [type, amount, occurredAt, note, vehicleId, driverId],
+  );
+  /* Sidebar label: primary = action verb, secondary = type + vehicle + amount
+   * so the row reads as a self-explanatory chip ("FUEL · 51A-xxx · 500k₫").
+   * We snapshot inputs the user has typed so they can recognise the draft. */
+  const draftSecondary = useMemo(() => {
+    if (!type && !amount) return undefined;
+    const parts: string[] = [];
+    if (type) parts.push(tDrafts(type));
+    const plate = vehicles.find((v) => v.id === vehicleId)?.plate;
+    if (plate) parts.push(plate);
+    if (amount !== null && amount > 0) {
+      parts.push(`${amount.toLocaleString('vi-VN')}₫`);
+    }
+    return parts.length > 0 ? parts.join(' · ') : undefined;
+  }, [type, amount, vehicleId, vehicles, tDrafts]);
+  const { draft, clearDraft, dismissDraft } = useFormDraft({
+    key: draftKey,
+    values: draftValues,
+    label: { primary: t('draftLabelNew'), secondary: draftSecondary },
+    href: tripId ? `/expenses/new?tripId=${tripId}` : '/expenses/new',
+    entity: 'expense',
+  });
+
+  const handleRestoreDraft = () => {
+    if (!draft) return;
+    const v = draft.values;
+    setType(v.type);
+    setAmount(v.amount);
+    setOccurredAt(v.occurredAt);
+    setNote(v.note);
+    setVehicleId(v.vehicleId);
+    setDriverId(v.driverId);
+    dismissDraft();
+  };
   /* Sub-stage of the submit transition. `pending` from useTransition is true
    * the whole time; this state tells the button which phase of work it's in:
    *   - { current, total }  → uploading file N of M to S3
@@ -139,6 +192,9 @@ export function ExpenseSubmitForm({
           /* Brief success affordance before navigation so the user gets a
            * confirmation of state-change beyond just the toast. */
           setSubmitStage('done');
+          /* Clear the localStorage draft + sidebar entry — submission is
+           * permanent now, the half-typed snapshot has no value. */
+          clearDraft();
           toast.success(t('submittedToast'), { description: t('submittedToastDesc') });
           /* Staff users land back on the cost ledger; drivers on their own
            * history. Both lists trigger revalidatePath in the action so
@@ -188,14 +244,30 @@ export function ExpenseSubmitForm({
   return (
     <form
       onSubmit={onSubmit}
-      /* `pb-[220px]` mirrors the trip detail driver view — keep the last
-       * Textarea above the sticky <DriverActionBar>. */
-      className="mx-auto max-w-2xl space-y-5 pb-[220px] md:pb-32"
+      /* No extra bottom padding needed — the action row below is now an
+       * inline `sticky bottom-0` sibling (not a `fixed` overlay) so it
+       * occupies real flow height and the last field stays above it by
+       * default. AppShellClient already pads `<main>` to clear the
+       * BottomTabNav, so the visual band the sticky bar parks above is
+       * just the tab nav, nothing else. */
+      className="mx-auto max-w-2xl space-y-5"
     >
       {tripId && (
         <div className="text-xs text-text-muted bg-surface-2 rounded-md px-3 py-2">
           {t('tripLinked', { ref: tripId.slice(0, 8) })}
         </div>
+      )}
+
+      {/* Draft restore — only shown when localStorage carries an unfinished
+       * version of THIS form (key includes tripId so trip-linked drafts
+       * don't leak into standalone, and vice versa). Receipts aren't part
+       * of the snapshot; user re-picks if they want photos. */}
+      {draft && (
+        <DraftRestoreBanner
+          savedAt={draft.savedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={clearDraft}
+        />
       )}
 
       <Card>
@@ -315,18 +387,33 @@ export function ExpenseSubmitForm({
         </CardContent>
       </Card>
 
-      <DriverActionBar>
+      {/* Action row — matches the hybrid sticky/inline pattern used by the
+       * Vehicle / Trip / Driver forms so the submit button reads the same
+       * way across every form in the app:
+       *   - Mobile: sticky bottom with backdrop blur, full-width buttons
+       *     in the thumb zone. Negative margin breaks out of the form's
+       *     px-4 padding so the bar spans the viewport edges.
+       *   - Desktop (≥ md): static, right-aligned, fixed-width buttons.
+       * Previously this form used `<DriverActionBar>` (fixed overlay,
+       * size="2xl" full-width) which felt out of place on desktop and
+       * inconsistent with the other admin forms. */}
+      <div className="md:flex md:justify-end md:gap-2 md:pt-2 md:static md:bg-transparent md:px-0 md:py-0 md:border-t-0
+        sticky bottom-0 -mx-4 px-4 py-3 bg-bg/95 backdrop-blur border-t border-border flex gap-2">
+        <Button type="button" variant="secondary" size="lg" className="flex-1 md:flex-initial" asChild>
+          <Link href={isStaff ? '/costs' : '/today'}>{tA('cancel')}</Link>
+        </Button>
         <Button
           type="submit"
           variant="accent"
-          size="2xl"
+          size="lg"
+          className="flex-1 md:flex-initial md:min-w-[180px]"
           iconLeft={submitStage === 'done' ? <Check /> : <Send />}
           loading={pending && submitStage !== 'done'}
           disabled={!canSubmit}
         >
           {submitButtonLabel(submitStage, pending, t)}
         </Button>
-      </DriverActionBar>
+      </div>
     </form>
   );
 }

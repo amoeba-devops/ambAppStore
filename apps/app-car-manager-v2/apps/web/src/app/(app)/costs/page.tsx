@@ -1,8 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Download, Fuel, Plus, Receipt, Wrench } from 'lucide-react';
-import { Button, chartColors } from '@car-v2/ui';
+import { Download, FileText, Fuel, Plus, Receipt, User, Wrench } from 'lucide-react';
+import { Button, chartColors, cn } from '@car-v2/ui';
+import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import {
@@ -93,13 +94,9 @@ export default async function CostsPage({ searchParams }: PageProps) {
             </Button>
           </div>
         }
-        mobileAction={
-          <Button variant="accent" size="sm" iconLeft={<Plus />} asChild>
-            <Link href="/expenses/new" aria-label={t('recordExpense')}>
-              <span className="sr-only md:not-sr-only">{t('recordExpense')}</span>
-            </Link>
-          </Button>
-        }
+        /* No mobileAction — the "+ Ghi nhận chi phí" CTA is rendered as the
+         * floating action button at the bottom of the viewport instead.
+         * Keeps the mobile header free for breadcrumbs + Me avatar. */
       />
 
       <div className="flex-1 overflow-hidden flex flex-col md:grid md:grid-cols-[420px_1fr]">
@@ -123,40 +120,58 @@ export default async function CostsPage({ searchParams }: PageProps) {
                 const vehicle = e.vehiclePlate ?? '—';
                 const driver = e.driverName ?? '—';
                 const isSelected = selected?.expId === e.expId;
-                const href = `/costs?${new URLSearchParams({ selected: e.expId }).toString()}`;
-                return (
-                  <li key={e.expId}>
-                    <Link
-                      href={href}
-                      scroll={false}
-                      className={
-                        'block w-full text-left px-4 md:px-5 py-3.5 md:py-3 active:bg-surface-2 md:hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors ' +
-                        (isSelected ? 'md:bg-surface md:border-l-2 md:border-l-accent' : 'md:border-l-2 md:border-l-transparent')
-                      }
+                /* Two link targets per row — desktop opens the inline
+                 * right-rail panel via `?selected=…` (no full reload, the
+                 * page re-renders the panel server-side), mobile pushes
+                 * the full-screen `/expenses/[id]` detail page since the
+                 * right rail is hidden on `< md`. Render both and gate
+                 * with `md:hidden` / `hidden md:block` so the user only
+                 * ever sees + taps one. */
+                const desktopHref = `/costs?${new URLSearchParams({ selected: e.expId }).toString()}`;
+                const mobileHref = `/expenses/${e.expId}`;
+                /* Shared row body, extracted so both anchors stay in sync. */
+                const rowBody = (
+                  <div className="flex items-start gap-3">
+                    <span
+                      className="h-9 w-9 md:h-8 md:w-8 rounded-md flex items-center justify-center text-white shrink-0"
+                      style={{ background: EXPENSE_TYPE_COLOR[e.expType] }}
                     >
-                      <div className="flex items-start gap-3">
-                        <span
-                          className="h-9 w-9 md:h-8 md:w-8 rounded-md flex items-center justify-center text-white shrink-0"
-                          style={{ background: EXPENSE_TYPE_COLOR[e.expType] }}
-                        >
-                          {e.expType === 'FUEL' ? <Fuel className="h-4 w-4" /> :
-                           e.expType === 'REPAIR' ? <Wrench className="h-4 w-4" /> :
-                           <Receipt className="h-4 w-4" />}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="text-sm font-semibold text-text truncate">
-                              {tType(e.expType)} · {vehicle}
-                            </div>
-                            <div className="text-sm font-bold text-text tabular shrink-0">
-                              {formatVnd(e.expAmount)}
-                            </div>
-                          </div>
-                          <div className="text-xs text-text-faint truncate mt-0.5">
-                            {driver} · {formatRelative(e.expSubmittedAt)}
-                          </div>
+                      {e.expType === 'FUEL' ? <Fuel className="h-4 w-4" /> :
+                       e.expType === 'REPAIR' ? <Wrench className="h-4 w-4" /> :
+                       <Receipt className="h-4 w-4" />}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-sm font-semibold text-text truncate">
+                          {tType(e.expType)} · {vehicle}
+                        </div>
+                        <div className="text-sm font-bold text-text tabular shrink-0">
+                          {formatVnd(e.expAmount)}
                         </div>
                       </div>
+                      <div className="text-xs text-text-faint truncate mt-0.5 flex items-center gap-1.5">
+                        <SourceBadge role={e.submitterRole} label={t(e.submitterRole === 'DRIVER' ? 'sourceDriver' : 'sourceStaff')} />
+                        <span>·</span>
+                        <span className="truncate">{driver}</span>
+                        <span>·</span>
+                        <span className="whitespace-nowrap">{formatRelative(e.expSubmittedAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+                const rowClass = cn(
+                  'block w-full text-left px-4 md:px-5 py-3.5 md:py-3 active:bg-surface-2 md:hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors',
+                  isSelected ? 'md:bg-surface md:border-l-2 md:border-l-accent' : 'md:border-l-2 md:border-l-transparent',
+                );
+                return (
+                  <li key={e.expId}>
+                    {/* Mobile: full-page detail. */}
+                    <Link href={mobileHref} className={cn(rowClass, 'md:hidden')}>
+                      {rowBody}
+                    </Link>
+                    {/* Desktop: select-in-place, panel updates beside. */}
+                    <Link href={desktopHref} scroll={false} className={cn(rowClass, 'hidden md:block')}>
+                      {rowBody}
                     </Link>
                   </li>
                 );
@@ -167,6 +182,12 @@ export default async function CostsPage({ searchParams }: PageProps) {
 
         <section className="hidden md:block overflow-y-auto p-6 bg-bg">
           {selected ? (
+            /* Pre-format the dynamic values on the server — Next 15's
+             * server→client boundary refuses raw functions, so we pass
+             * already-rendered strings. The detail panel is a snapshot
+             * (read-only), so "rendered once at request time" is fine —
+             * a "2 phút trước" that ages to "3 phút trước" on slow
+             * navigation isn't worth the cost of a live timer. */
             <ExpenseReviewPanel
               expense={selected}
               labels={{
@@ -175,6 +196,9 @@ export default async function CostsPage({ searchParams }: PageProps) {
                 fLinkedTrip: t('fLinkedTrip'),
                 fVehicle: t('fVehicle'),
                 fDriver: t('fDriver'),
+                fSource: t('fSource'),
+                sourceDriver: t('sourceDriver'),
+                sourceStaff: t('sourceStaff'),
                 submittedBy: t('submittedBy'),
                 receiptTitle: t('receiptTitle'),
                 receipt2: t('receipt2'),
@@ -182,8 +206,8 @@ export default async function CostsPage({ searchParams }: PageProps) {
                 typeLabel: tType(selected.expType),
               }}
               typeLabel={tType(selected.expType)}
-              formatVnd={formatVnd}
-              formatRelative={formatRelative}
+              amountFormatted={formatVnd(selected.expAmount)}
+              submittedAtFormatted={formatRelative(selected.expSubmittedAt)}
             />
           ) : (
             <div className="max-w-md mx-auto mt-12 text-center text-sm text-text-muted">
@@ -193,6 +217,41 @@ export default async function CostsPage({ searchParams }: PageProps) {
           )}
         </section>
       </div>
+
+      {/* PWA-style FAB for the primary action — bottom-right, mobile-only.
+       * Desktop carries the same CTA in the PageHeader actions; this is
+       * the touch-friendly mirror that's reachable without a header tap. */}
+      <Fab href="/expenses/new" label={t('recordExpense')} icon={<Plus />} />
     </>
+  );
+}
+
+/* Inline pill that tags each expense row with its source — driver
+ * field-submit vs admin/manager back-office entry. Visual difference is
+ * deliberately quiet (no border, muted background) so it sits in the
+ * row's secondary metadata line without competing with the type icon
+ * or amount. */
+function SourceBadge({
+  role,
+  label,
+}: {
+  role: 'ADMIN' | 'MANAGER' | 'DRIVER' | null;
+  label: string;
+}) {
+  const isDriver = role === 'DRIVER';
+  const Icon = isDriver ? User : FileText;
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-0.5 rounded px-1 py-px text-[10px] font-semibold uppercase tracking-wide shrink-0',
+        isDriver
+          ? 'bg-accent-soft text-accent'
+          : 'bg-surface-2 text-text-muted',
+      )}
+      title={label}
+    >
+      <Icon className="h-2.5 w-2.5" aria-hidden />
+      <span>{label}</span>
+    </span>
   );
 }

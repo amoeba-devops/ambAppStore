@@ -131,7 +131,11 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
           {/* ─── MAIN — primary content (route, map, notes, activity) ─── */}
           <main className="min-w-0 px-4 md:px-7 py-5 md:py-6">
 
-            {/* Status strip — inline hero row, hairline below */}
+            {/* Status strip — inline hero row, hairline below. Inline Edit
+             * button sits at the trailing edge on mobile (replacing the
+             * header `actions` Edit that we no longer render on `< md`).
+             * Conditional on `canEdit` so the button is hidden for trips
+             * in a non-editable state (in-progress, completed, etc.). */}
             <div className="flex items-center gap-3 md:gap-4 flex-wrap pb-5 md:pb-6 border-b border-border">
               <Badge tone={STATUS_TONE[trip.trpStatus]} size="md" className="px-3 py-1 text-[13px] font-semibold">
                 {statusLabel}
@@ -145,6 +149,11 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
                   <Hourglass className="h-3 w-3" aria-hidden />
                   {tDetail('durationApprox', { minutes: trip.trpDurationMinutes })}
                 </div>
+              )}
+              {canEdit && (
+                <Button variant="secondary" size="sm" iconLeft={<Edit3 />} asChild className="ml-auto shrink-0">
+                  <Link href={`/trips/${trip.trpId}/edit`}>{tA('edit')}</Link>
+                </Button>
               )}
             </div>
 

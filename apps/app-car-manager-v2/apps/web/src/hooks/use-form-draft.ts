@@ -35,7 +35,7 @@ interface UseFormDraftOptions<T> {
   /** Optional URL to navigate to when the user clicks this draft in the sidebar. */
   href?: string;
   /** Entity category — drives the sidebar icon + grouping. */
-  entity?: 'trip' | 'vehicle' | 'driver';
+  entity?: 'trip' | 'vehicle' | 'driver' | 'expense';
   /**
    * Disable save on first mount until caller has hydrated initial state.
    * Otherwise the empty initial state would overwrite a real draft.
@@ -55,7 +55,7 @@ export interface DraftLabel {
 export interface DraftMetadata {
   label?: DraftLabel;
   href?: string;
-  entity?: 'trip' | 'vehicle' | 'driver';
+  entity?: 'trip' | 'vehicle' | 'driver' | 'expense';
 }
 
 interface DraftSnapshot<T> {

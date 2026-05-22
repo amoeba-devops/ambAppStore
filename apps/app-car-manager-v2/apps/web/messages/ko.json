@@ -596,6 +596,9 @@
     "fLinkedTrip": "연결된 운행",
     "fVehicle": "차량",
     "fDriver": "기사",
+    "fSource": "출처",
+    "sourceDriver": "기사 제출",
+    "sourceStaff": "차량 청구서",
     "submittedBy": "제출자",
     "receiptTitle": "영수증",
     "receiptNote": "첨부 파일은 S3에 저장됩니다 (NFR-11). 클릭하여 확대.",
@@ -792,6 +795,10 @@
           "new": "기사 추가 중",
           "edit": "기사 수정 중"
         },
+        "expense": {
+          "new": "비용 기록 중",
+          "edit": "비용 수정 중"
+        },
         "unknown": {
           "new": "진행 중",
           "edit": "수정 중"
@@ -893,6 +900,15 @@
       "AUTO_APPROVED": "자동 승인",
       "REJECTED": "거절됨"
     },
+    "detail": {
+      "occurredAt": "발생일",
+      "submittedAt": "제출 시각",
+      "noteLabel": "메모",
+      "attachmentsTitle": "영수증 ({count})",
+      "noAttachments": "첨부된 영수증이 없습니다.",
+      "lockRemaining": "{days}일 동안 수정 가능합니다.",
+      "lockExpired": "수정 기한 만료 (7일 소프트 락)."
+    },
     "submit": {
       "title": "비용 기록",
       "subtitle": "운행 중 발생한 비용 기록",
@@ -925,6 +941,7 @@
       "submitUploading": "사진 업로드 중 {current}/{total}…",
       "submittedToast": "비용이 제출되었습니다",
       "submittedToastDesc": "승인 대기 중입니다.",
+      "draftLabelNew": "비용 기록 중",
       "errSubmit": "비용을 제출할 수 없습니다",
       "errMissing": "필수 항목 누락",
       "errMissingDesc": "비용 유형과 금액은 필수입니다.",

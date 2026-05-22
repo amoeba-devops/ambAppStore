@@ -596,6 +596,9 @@
     "fLinkedTrip": "Linked trip",
     "fVehicle": "Vehicle",
     "fDriver": "Driver",
+    "fSource": "Source",
+    "sourceDriver": "Driver-submitted",
+    "sourceStaff": "Fleet invoice",
     "submittedBy": "Submitted by",
     "receiptTitle": "Receipt",
     "receiptNote": "Attachments stored in S3 (NFR-11). Click to enlarge.",
@@ -792,6 +795,10 @@
           "new": "Adding a driver",
           "edit": "Editing driver"
         },
+        "expense": {
+          "new": "Recording expense",
+          "edit": "Editing expense"
+        },
         "unknown": {
           "new": "In progress",
           "edit": "Editing"
@@ -893,6 +900,15 @@
       "AUTO_APPROVED": "Auto-approved",
       "REJECTED": "Rejected"
     },
+    "detail": {
+      "occurredAt": "Occurred at",
+      "submittedAt": "Submitted at",
+      "noteLabel": "Note",
+      "attachmentsTitle": "Receipts ({count})",
+      "noAttachments": "No receipts attached.",
+      "lockRemaining": "Editable for {days} more days.",
+      "lockExpired": "Edit window expired (7-day soft lock)."
+    },
     "submit": {
       "title": "Record expense",
       "subtitle": "Log a cost incurred during a trip",
@@ -925,6 +941,7 @@
       "submitUploading": "Uploading photo {current}/{total}…",
       "submittedToast": "Expense submitted",
       "submittedToastDesc": "Awaiting approval.",
+      "draftLabelNew": "Recording expense",
       "errSubmit": "Could not submit expense",
       "errMissing": "Missing required fields",
       "errMissingDesc": "Expense type and amount are required.",

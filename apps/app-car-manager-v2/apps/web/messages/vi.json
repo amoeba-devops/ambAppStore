@@ -596,6 +596,9 @@
     "fLinkedTrip": "Chuyến liên quan",
     "fVehicle": "Xe",
     "fDriver": "Tài xế",
+    "fSource": "Nguồn",
+    "sourceDriver": "Tài xế gửi",
+    "sourceStaff": "Hoá đơn fleet",
     "submittedBy": "Gửi bởi",
     "receiptTitle": "Biên lai",
     "receiptNote": "Tệp đính kèm lưu trên S3 (NFR-11). Bấm để phóng to.",
@@ -792,6 +795,10 @@
           "new": "Đang thêm tài xế",
           "edit": "Đang sửa tài xế"
         },
+        "expense": {
+          "new": "Đang ghi chi phí",
+          "edit": "Đang sửa chi phí"
+        },
         "unknown": {
           "new": "Đang dang dở",
           "edit": "Đang sửa"
@@ -893,6 +900,15 @@
       "AUTO_APPROVED": "Tự duyệt",
       "REJECTED": "Từ chối"
     },
+    "detail": {
+      "occurredAt": "Ngày phát sinh",
+      "submittedAt": "Thời điểm ghi nhận",
+      "noteLabel": "Ghi chú",
+      "attachmentsTitle": "Biên lai ({count})",
+      "noAttachments": "Chưa có biên lai đính kèm.",
+      "lockRemaining": "Có thể chỉnh sửa trong {days} ngày tới.",
+      "lockExpired": "Đã quá hạn chỉnh sửa (sau 7 ngày)."
+    },
     "submit": {
       "title": "Ghi nhận chi phí",
       "subtitle": "Ghi nhận chi phí phát sinh trong chuyến",
@@ -925,6 +941,7 @@
       "submitUploading": "Đang tải ảnh {current}/{total}…",
       "submittedToast": "Đã gửi chi phí",
       "submittedToastDesc": "Chi phí đang chờ duyệt.",
+      "draftLabelNew": "Đang ghi chi phí",
       "errSubmit": "Không gửi được chi phí",
       "errMissing": "Thiếu trường bắt buộc",
       "errMissingDesc": "Loại chi phí và số tiền là bắt buộc.",

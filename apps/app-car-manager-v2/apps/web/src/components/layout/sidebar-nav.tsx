@@ -12,6 +12,7 @@ import {
   Loader2,
   LogOut,
   PencilLine,
+  Receipt,
   User as UserIcon,
   X,
   type LucideIcon,
@@ -35,12 +36,13 @@ import { useAllDrafts, type DraftEntry } from '@/hooks/use-all-drafts';
 import { activeKeyFor, navItemsForRole, type NavKey } from './nav-items';
 import { useTenantDisplay } from './tenant-display-context';
 
-/* Entity → child icon. Helps user recognise "this is a vehicle/trip/driver
- * draft" without reading text. */
+/* Entity → child icon. Helps user recognise "this is a vehicle/trip/driver/
+ * expense draft" without reading text. */
 const ENTITY_SUB_ICON: Record<DraftEntry['entity'], LucideIcon> = {
   trip: ClipboardList,
   vehicle: Car,
   driver: IdCard,
+  expense: Receipt,
   unknown: PencilLine,
 };
 
@@ -64,6 +66,7 @@ const NAV_KEY_TO_ENTITY: Partial<Record<NavKey, DraftEntry['entity']>> = {
   trips: 'trip',
   vehicles: 'vehicle',
   drivers: 'driver',
+  costs: 'expense',
 };
 
 export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCount }: SidebarNavProps) {
@@ -503,6 +506,11 @@ function DraftSubItem({
 
 /** Best-effort URL when the form didn't pass `href` explicitly. */
 function buildFallbackHref(draft: DraftEntry): string {
+  /* Expense drafts only have a "new" form (no edit page yet) and the form
+   * lives under `/expenses/new` regardless of who's recording it. The
+   * landing page redirects non-driver to /costs first, so this URL works
+   * for both Driver (lands directly) and Admin/Manager (single redirect). */
+  if (draft.entity === 'expense') return '/expenses/new';
   const segment =
     draft.entity === 'trip' ? 'trips' :
     draft.entity === 'vehicle' ? 'vehicles' :
