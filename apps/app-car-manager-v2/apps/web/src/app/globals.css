@@ -40,6 +40,24 @@
     animation: ccms-row-highlight 2.5s ease-out forwards;
   }
 
+  /* Calendar event chip / list row highlight — smaller pulsing outline.
+   * Used by /dashboard after create/edit to draw the user's eye to the
+   * newly-touched trip across calendar + side panel. URL ?highlight=<id>
+   * is cleaned up after ~3s so the animation only runs once. */
+  @keyframes ccms-event-highlight-pulse {
+    0%   { box-shadow: 0 0 0 0 hsl(var(--accent) / 0.7); }
+    70%  { box-shadow: 0 0 0 8px hsl(var(--accent) / 0); }
+    100% { box-shadow: 0 0 0 0 hsl(var(--accent) / 0); }
+  }
+  .ccms-event-highlight {
+    position: relative;
+    z-index: 5;
+    outline: 2px solid hsl(var(--accent));
+    outline-offset: 1px;
+    border-radius: 4px;
+    animation: ccms-event-highlight-pulse 1s ease-out 3;
+  }
+
   ::selection {
     background: hsl(var(--accent-soft));
     color: hsl(var(--text));
