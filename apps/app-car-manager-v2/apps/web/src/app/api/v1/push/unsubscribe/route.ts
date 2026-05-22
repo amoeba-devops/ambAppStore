@@ -38,11 +38,22 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: { unsubscribed: true }, timestamp: new Date().toISOString() });
   } catch (e) {
-    const err =
-      e instanceof CarError ? e : new CarError('CAR-E0500', 500, e instanceof Error ? e.message : 'Unknown error');
+    if (e instanceof CarError) {
+      return NextResponse.json(
+        { success: false, error: { code: e.code, message: e.message }, timestamp: new Date().toISOString() },
+        { status: e.httpStatus },
+      );
+    }
+    /* See subscribe route — never forward raw driver errors to the UI. */
+    /* eslint-disable-next-line no-console */
+    console.error('[push.unsubscribe] unexpected error', e);
     return NextResponse.json(
-      { success: false, error: { code: err.code, message: err.message }, timestamp: new Date().toISOString() },
-      { status: err.httpStatus },
+      {
+        success: false,
+        error: { code: 'CAR-E0500', message: 'Failed to disable push notifications. Please try again.' },
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 },
     );
   }
 }
