@@ -12,6 +12,7 @@ import {
   CardTitle,
   toast,
 } from '@car-v2/ui';
+import { dispatchPushStateChanged } from '@/hooks/push-event';
 
 type SubState = 'unknown' | 'unsupported' | 'subscribed' | 'unsubscribed' | 'denied';
 
@@ -83,6 +84,10 @@ export function MePushCard() {
           throw new Error(`subscribe API ${res.status}`);
         }
         setState('subscribed');
+        /* Notify sibling consumers (PushPromptStrip header banner, PushToggle
+         * in admin Settings/Notifications) so they refresh state without
+         * waiting for a full remount. */
+        dispatchPushStateChanged();
         toast.success(tMe('enableSuccess'));
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'unknown';
@@ -108,6 +113,7 @@ export function MePushCard() {
           await sub.unsubscribe();
         }
         setState('unsubscribed');
+        dispatchPushStateChanged();
         toast.success(tMe('disableSuccess'));
       } catch (err) {
         toast.error(tMe('errDisable'), {
