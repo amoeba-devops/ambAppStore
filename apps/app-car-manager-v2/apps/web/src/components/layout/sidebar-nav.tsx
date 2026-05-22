@@ -32,6 +32,7 @@ import {
 } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { useAllDrafts, type DraftEntry } from '@/hooks/use-all-drafts';
+import { PushEnableButton } from '@/components/pwa/push-enable-button';
 import { logoutAction } from '@/server/actions/auth/auth.actions';
 import { activeKeyFor, navItemsForRole, type NavKey } from './nav-items';
 import { useTenantDisplay } from './tenant-display-context';
@@ -50,6 +51,11 @@ interface SidebarNavProps {
   role: LocalRole;
   /** Server-fed: pending trips in visibility scope. 0 hides the badge. */
   pendingTripCount: number;
+  /** VAPID public key — controls whether the push-enable bell is rendered.
+   * Undefined means the server can't push, so the bell hides entirely. */
+  vapidPublicKey: string | undefined;
+  /** Next basePath for service-worker URL composition under staging. */
+  basePath: string;
 }
 
 /** Map NavKey → metric counts. Keys absent or 0 → no badge. */
@@ -63,7 +69,13 @@ const NAV_KEY_TO_ENTITY: Partial<Record<NavKey, DraftEntry['entity']>> = {
   drivers: 'driver',
 };
 
-export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProps) {
+export function SidebarNav({
+  collapsed,
+  role,
+  pendingTripCount,
+  vapidPublicKey,
+  basePath,
+}: SidebarNavProps) {
   const tNav   = useTranslations('nav');
   const tCo    = useTranslations('company');
   const tAct   = useTranslations('actions');
@@ -118,7 +130,12 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
       aria-label={tGroup('layout.sidebarAria')}
     >
       {/* Brand — initials + tenant name come from TenantDisplayProvider so
-       * Admin name edits in Settings flow here without a route reload. */}
+       * Admin name edits in Settings flow here without a route reload.
+       * PushEnableButton is the right-aligned bell that opens the push-
+       * subscription dropdown; it lives here so it's always visible on
+       * desktop, replacing the older full-width banner. Hidden in collapsed
+       * mode to keep the 64px rail clean — use /settings to manage push
+       * there. */}
       <div className="h-14 px-3 flex items-center gap-2.5 border-b border-border">
         <div
           className="h-8 w-8 rounded-md bg-primary text-primary-fg flex items-center justify-center font-bold text-sm shrink-0"
@@ -127,10 +144,13 @@ export function SidebarNav({ collapsed, role, pendingTripCount }: SidebarNavProp
           {tenant.initials}
         </div>
         {!collapsed && (
-          <div className="overflow-hidden">
-            <div className="text-sm font-semibold text-text leading-tight truncate">{tGroup('appName')}</div>
-            <div className="text-xs text-text-muted truncate" title={tenant.name}>{tenant.name}</div>
-          </div>
+          <>
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <div className="text-sm font-semibold text-text leading-tight truncate">{tGroup('appName')}</div>
+              <div className="text-xs text-text-muted truncate" title={tenant.name}>{tenant.name}</div>
+            </div>
+            <PushEnableButton vapidPublicKey={vapidPublicKey} basePath={basePath} />
+          </>
         )}
       </div>
 
