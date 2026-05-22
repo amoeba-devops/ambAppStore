@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import {
@@ -9,6 +9,7 @@ import {
   Car as CarIcon,
   Clock,
   MapPin,
+  PencilLine,
   User as UserIcon,
 } from 'lucide-react';
 import { Badge, Button } from '@car-v2/ui';
@@ -45,6 +46,13 @@ interface TripPeekDrawerProps {
   isCreator: boolean;
   drivers: DriverOption[];
   vehicles: VehicleOption[];
+  /**
+   * Optional callback for an inline "Edit" button. When provided, the drawer
+   * shows the button and clicking it closes the drawer + invokes the callback
+   * (so the parent can open a TripFormDialog). When omitted, the drawer falls
+   * back to the legacy navigate-to-edit-page flow (used on `/trips`).
+   */
+  onEdit?: (trip: TripDetail) => void;
 }
 
 /**
@@ -66,15 +74,29 @@ export function TripPeekDrawer(props: TripPeekDrawerProps) {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
-  /* Close = drop the `peek` param. Preserve everything else (status, page).
-   * Use `replace` to avoid bloating history with intermediate states. */
-  const handleClose = (open: boolean) => {
-    if (open) return;
+  /* Close = drop the `peek` param. Preserve everything else (status, page,
+   * highlight). Use `replace` to avoid bloating history with intermediate
+   * states. Path-aware so the drawer works whether mounted on `/trips` or
+   * `/dashboard` — we close back to the same surface. */
+  const basePath = pathname ?? '/trips';
+  const closeUrlBase = (() => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete('peek');
     const qs = params.toString();
-    router.replace(qs ? `/trips?${qs}` : '/trips', { scroll: false });
+    return qs ? `${basePath}?${qs}` : basePath;
+  });
+  const handleClose = (open: boolean) => {
+    if (open) return;
+    router.replace(closeUrlBase(), { scroll: false });
+  };
+  const handleEditClick = () => {
+    if (!props.onEdit) return;
+    /* Strip ?peek first so the closing animation doesn't fight the dialog
+     * opening — parent decides whether to push a ?highlight after save. */
+    router.replace(closeUrlBase(), { scroll: false });
+    props.onEdit(trip);
   };
 
   return (
@@ -178,6 +200,17 @@ export function TripPeekDrawer(props: TripPeekDrawerProps) {
           drivers={props.drivers}
           vehicles={props.vehicles}
         />
+        {props.onEdit && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full"
+            iconLeft={<PencilLine />}
+            onClick={handleEditClick}
+          >
+            {t('edit')}
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"

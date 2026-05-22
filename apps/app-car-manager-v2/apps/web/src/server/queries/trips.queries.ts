@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, desc, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import {
   carDrivers,
@@ -10,8 +10,11 @@ import {
   type CarTrip,
   type CarTripStatus,
 } from '@car-v2/db/schema';
+import { CarError } from '@car-v2/shared/errors';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { getDriverByUserId } from './drivers.queries';
+
+const CALENDAR_RANGE_CAP = 500;
 
 export interface TripListItem extends CarTrip {
   passengerName: string | null;
@@ -129,6 +132,70 @@ export async function countPendingTrips(args: {
     .from(carTrips)
     .where(and(...filters));
   return Number(rows[0]?.count ?? 0);
+}
+
+/**
+ * Trip rows whose `trp_scheduled_at` falls within `[rangeStart, rangeEnd)`.
+ *
+ * - No pagination — calendar UI needs the whole range at once.
+ * - Hard cap at 500 rows; over that we throw `CAR-E0413` so the UI can prompt
+ *   the user to narrow the range (CLAUDE.md §4.4 error code convention).
+ * - Visibility filter clones `listTrips` (Admin all, Manager own+passenger,
+ *   Driver assigned-to) so REQ §3.1 holds.
+ */
+export async function listTripsForCalendar(args: {
+  entId: string;
+  role: LocalRole;
+  userId: string;
+  rangeStart: Date;
+  rangeEnd: Date;
+}): Promise<TripListItem[]> {
+  const { entId, role, userId, rangeStart, rangeEnd } = args;
+  const filters: SQL[] = [
+    eq(carTrips.entId, entId),
+    isNull(carTrips.trpDeletedAt),
+    gte(carTrips.trpScheduledAt, rangeStart),
+    lt(carTrips.trpScheduledAt, rangeEnd),
+  ];
+
+  if (role === 'MANAGER') {
+    const visibility = or(eq(carTrips.trpCreatorId, userId), eq(carTrips.trpPassengerId, userId));
+    if (visibility) filters.push(visibility);
+  } else if (role === 'DRIVER') {
+    const driver = await getDriverByUserId(entId, userId);
+    if (!driver) return [];
+    filters.push(eq(carTrips.trpDriverId, driver.drvId));
+  }
+
+  const passengerUsers = carUsers;
+  const driverUsers = sql<string | null>`drv_user.usr_name`;
+
+  const rows = await db
+    .select({
+      trip: carTrips,
+      passengerName: passengerUsers.usrName,
+      driverName: driverUsers,
+      vehiclePlate: carVehicles.cvhPlateNumber,
+    })
+    .from(carTrips)
+    .leftJoin(passengerUsers, eq(carTrips.trpPassengerId, passengerUsers.usrId))
+    .leftJoin(carDrivers, eq(carTrips.trpDriverId, carDrivers.drvId))
+    .leftJoin(sql`car_users AS drv_user`, sql`car_drivers.drv_user_id = drv_user.usr_id`)
+    .leftJoin(carVehicles, eq(carTrips.trpVehicleId, carVehicles.cvhId))
+    .where(and(...filters))
+    .orderBy(asc(carTrips.trpScheduledAt))
+    .limit(CALENDAR_RANGE_CAP + 1);
+
+  if (rows.length > CALENDAR_RANGE_CAP) {
+    throw new CarError('CAR-E0413', 413, 'Calendar range exceeds 500 trips — narrow the range');
+  }
+
+  return rows.map((r) => ({
+    ...r.trip,
+    passengerName: r.passengerName ?? null,
+    driverName: r.driverName ?? null,
+    vehiclePlate: r.vehiclePlate ?? null,
+  }));
 }
 
 function statusToWhere(status: ListInput['status']): SQL | null {
