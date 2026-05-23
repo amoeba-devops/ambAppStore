@@ -6,7 +6,12 @@ import { Camera, ImagePlus, Loader2, Plus, X } from 'lucide-react';
 import { cn } from '@car-v2/ui';
 
 const MAX_FILES = 5;
-const MAX_BYTES = 5 * 1024 * 1024;
+/* 10MB matches the server S3_MAX_UPLOAD_BYTES default. Previously 5MB —
+ * which rejected a HEIC-from-iPhone-15-Pro after conversion when the JPEG
+ * landed at ~6MB (HEIC compresses better than JPEG so the transcode often
+ * grows the file). Aligning client + server caps removes a UX cliff where
+ * the client said "OK" then the server said "Invalid input". */
+const MAX_BYTES = 10 * 1024 * 1024;
 
 /* HEIC / HEIF MIME types that iPhone produces by default for camera photos.
  * Browsers will surface either the official IANA names or empty-string when
