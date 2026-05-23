@@ -56,9 +56,10 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
   const trip = await getTrip(user.entId, id);
   if (!trip) notFound();
 
+  const isStaff = user.role === 'ADMIN' || user.role === 'MANAGER';
   const [drivers, vehicles, auditRows] = await Promise.all([
-    user.role === 'ADMIN' ? listDrivers(user.entId) : Promise.resolve([]),
-    user.role === 'ADMIN' ? listVehicles(user.entId) : Promise.resolve([]),
+    isStaff ? listDrivers(user.entId) : Promise.resolve([]),
+    isStaff ? listVehicles(user.entId) : Promise.resolve([]),
     listAuditForEntity(user.entId, 'Trip', id),
   ]);
 
@@ -68,12 +69,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
     const actorDriver = await getDriverByUserId(user.entId, user.userId);
     isAssignedDriver = actorDriver?.drvId === trip.trpDriverId;
   }
-  const isCreator = trip.trpCreatorId === user.userId;
-
-  const canEdit =
-    (user.role === 'ADMIN' && trip.trpStatus !== 'COMPLETED') ||
-    (user.role === 'MANAGER' && isCreator &&
-     (trip.trpStatus === 'PENDING_ASSIGNMENT' || trip.trpStatus === 'PENDING_DRIVER_CONFIRMATION'));
+  const canEdit = isStaff && trip.trpStatus !== 'COMPLETED';
 
   const driverOptions = drivers.map((d) => ({
     id: d.drvId,
@@ -306,7 +302,6 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
                 status={trip.trpStatus}
                 role={user.role}
                 isAssignedDriver={isAssignedDriver}
-                isCreator={isCreator}
                 drivers={driverOptions}
                 vehicles={vehicleOptions}
               />

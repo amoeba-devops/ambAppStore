@@ -25,7 +25,7 @@ export default async function NewDriverPage({ searchParams }: PageProps) {
   const tCo  = await getTranslations('company');
   const tScr = await getTranslations('screens.newDriver');
   const user = await getCurrentUser();
-  if (user.role !== 'ADMIN') redirect('/drivers');
+  if (user.role !== 'ADMIN' && user.role !== 'MANAGER') redirect('/drivers');
 
   const mode = sp.mode === 'existing' ? 'existing' : 'inline';
   const candidates = mode === 'existing' ? await listDriverCandidates(user.entId) : [];

@@ -13,7 +13,7 @@ export default async function NewVehiclePage() {
   const tCo  = await getTranslations('company');
   const tScr = await getTranslations('screens.newVehicle');
   const user = await getCurrentUser();
-  if (user.role !== 'ADMIN') redirect('/vehicles');
+  if (user.role !== 'ADMIN' && user.role !== 'MANAGER') redirect('/vehicles');
 
   return (
     <>

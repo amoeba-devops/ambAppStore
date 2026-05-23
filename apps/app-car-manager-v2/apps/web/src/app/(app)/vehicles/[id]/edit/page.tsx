@@ -14,7 +14,7 @@ export default async function EditVehiclePage({ params }: { params: Promise<{ id
   const tNav = await getTranslations('nav');
   const tCo  = await getTranslations('company');
   const user = await getCurrentUser();
-  if (user.role !== 'ADMIN') redirect(`/vehicles/${id}`);
+  if (user.role !== 'ADMIN' && user.role !== 'MANAGER') redirect(`/vehicles/${id}`);
 
   const vehicle = await getVehicle(user.entId, id);
   if (!vehicle) notFound();

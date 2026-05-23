@@ -200,7 +200,6 @@ export async function DriverView({ trip, isAssignedDriver, hasMap }: DriverViewP
             status={trip.trpStatus}
             role="DRIVER"
             isAssignedDriver={isAssignedDriver}
-            isCreator={false}
             drivers={[]}
             vehicles={[]}
           />

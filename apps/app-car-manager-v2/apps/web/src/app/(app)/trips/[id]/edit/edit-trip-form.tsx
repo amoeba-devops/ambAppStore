@@ -105,15 +105,16 @@ export function EditTripForm({
   const [durationUnit, setDurationUnit] = useState<DurationUnit>(initialDuration.unit);
   const [purpose, setPurpose] = useState(trip.trpPurpose ?? '');
   const [notes, setNotes] = useState(trip.trpNotes ?? '');
-  /* Assignment state — ADMIN only (server enforces requireRole). State machine
+  /* Assignment state — Staff only (server enforces requireRole). State machine
    * cho phép `assign` từ PENDING_ASSIGNMENT, `reassign` từ REJECTED_BY_DRIVER.
    * Trạng thái khác → disable inputs + show hint. */
   const [driverId, setDriverId] = useState<string>(trip.trpDriverId ?? '');
   const [vehicleId, setVehicleId] = useState<string>(trip.trpVehicleId ?? '');
+  const isStaff = role === 'ADMIN' || role === 'MANAGER';
   const canReassign =
-    role === 'ADMIN' &&
+    isStaff &&
     (trip.trpStatus === 'PENDING_ASSIGNMENT' || trip.trpStatus === 'REJECTED_BY_DRIVER');
-  const showAssignment = role === 'ADMIN';
+  const showAssignment = isStaff;
   const [assignFieldErrors, setAssignFieldErrors] = useState<{ driver?: boolean; vehicle?: boolean }>({});
 
   /* Draft persistence — keyed by trip ID so each trip has its own draft and

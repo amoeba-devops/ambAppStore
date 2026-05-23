@@ -323,8 +323,8 @@ export async function resetOilChange(
   input: ResetOilChangeInput,
   actor: AuthContext,
 ): Promise<CarVehicle> {
-  if (actor.role !== 'ADMIN') {
-    throw new CarError('CAR-E0102', 403, 'Only ADMIN can reset oil change');
+  if (actor.role !== 'ADMIN' && actor.role !== 'MANAGER') {
+    throw new CarError('CAR-E0102', 403, 'Only Staff can reset oil change');
   }
   const vehicle = await db.query.carVehicles.findFirst({
     where: and(

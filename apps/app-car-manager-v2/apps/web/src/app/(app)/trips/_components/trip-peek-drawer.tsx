@@ -43,7 +43,6 @@ interface TripPeekDrawerProps {
   trip: TripDetail;
   role: LocalRole;
   isAssignedDriver: boolean;
-  isCreator: boolean;
   drivers: DriverOption[];
   vehicles: VehicleOption[];
   /**
@@ -199,7 +198,6 @@ export function TripPeekDrawer(props: TripPeekDrawerProps) {
           status={trip.trpStatus}
           role={props.role}
           isAssignedDriver={props.isAssignedDriver}
-          isCreator={props.isCreator}
           drivers={props.drivers}
           vehicles={props.vehicles}
         />
