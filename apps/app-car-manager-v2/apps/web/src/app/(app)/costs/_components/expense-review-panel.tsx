@@ -1,11 +1,18 @@
 'use client';
 
-import { FileText, Receipt, User } from 'lucide-react';
+import { FileText, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardHeaderText, CardTitle, cn } from '@car-v2/ui';
 import type { EntityExpenseListItem } from '@/server/queries/expenses.queries';
+import {
+  AttachmentGallery,
+  type AttachmentItem,
+} from '../../expenses/[id]/_components/attachment-gallery';
 
 interface ExpenseDetailPanelProps {
   expense: EntityExpenseListItem;
+  /** Pre-signed receipt attachments. Empty array → gallery renders its
+   * own "no receipts" empty state. Parent server page signs each URL. */
+  attachments: AttachmentItem[];
   labels: {
     fAmount: string;
     fType: string;
@@ -17,9 +24,6 @@ interface ExpenseDetailPanelProps {
     sourceStaff: string;
     submittedBy: string;
     receiptTitle: string;
-    receipt2: string;
-    receiptNote: string;
-    typeLabel: string;
   };
   typeLabel: string;
   /* Pre-formatted strings instead of formatter functions — Next.js 15
@@ -39,6 +43,7 @@ interface ExpenseDetailPanelProps {
  * added later. */
 export function ExpenseReviewPanel({
   expense,
+  attachments,
   labels,
   typeLabel,
   amountFormatted,
@@ -97,6 +102,9 @@ export function ExpenseReviewPanel({
         </CardContent>
       </Card>
 
+      {/* Receipts — same client gallery as the mobile /expenses/[id]
+       * detail so desktop and mobile share one visual language. Tap a
+       * thumbnail → fullscreen lightbox with prev/next + download. */}
       <Card>
         <CardHeader>
           <CardHeaderText>
@@ -104,15 +112,7 @@ export function ExpenseReviewPanel({
           </CardHeaderText>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="aspect-[3/4] rounded border border-border bg-surface-2 flex items-center justify-center text-text-faint text-xs">
-              <Receipt className="h-6 w-6" />
-            </div>
-            <div className="aspect-[3/4] rounded border border-border bg-surface-2 flex items-center justify-center text-text-faint text-xs">
-              {labels.receipt2}
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-text-faint">{labels.receiptNote}</p>
+          <AttachmentGallery attachments={attachments} />
         </CardContent>
       </Card>
     </div>

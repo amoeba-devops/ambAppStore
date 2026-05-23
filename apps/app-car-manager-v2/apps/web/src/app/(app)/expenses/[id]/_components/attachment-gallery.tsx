@@ -85,6 +85,22 @@ export function AttachmentGallery({ attachments }: AttachmentGalleryProps) {
     };
   }, [lightboxIndex, close, next, prev]);
 
+  /* Per-id load-failure set. Tracks `<img>` elements that 4xx'd (e.g. S3
+   * returned 403 because the IAM user signing the URL lacks
+   * `s3:GetObject`). Failed thumbs degrade to the same "ImageOff"
+   * placeholder as missing-signedUrl rows so the user sees clearly that
+   * the receipt is recorded but unreadable — vs. a blank broken-image
+   * icon that looks like a transient network glitch. */
+  const [failedIds, setFailedIds] = useState<Set<string>>(() => new Set());
+  const markFailed = useCallback((id: string) => {
+    setFailedIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
+
   if (attachments.length === 0) {
     return <p className="text-sm text-text-faint italic">{t('noAttachments')}</p>;
   }
@@ -96,7 +112,7 @@ export function AttachmentGallery({ attachments }: AttachmentGalleryProps) {
       {/* Thumbnail grid */}
       <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
         {attachments.map((a, i) => {
-          const showImage = isImageMime(a.eatMime) && a.signedUrl;
+          const showImage = isImageMime(a.eatMime) && a.signedUrl && !failedIds.has(a.eatId);
           return (
             <li key={a.eatId}>
               <button
@@ -117,6 +133,7 @@ export function AttachmentGallery({ attachments }: AttachmentGalleryProps) {
                     alt={t('lightboxImageAlt', { index: i + 1 })}
                     loading="lazy"
                     decoding="async"
+                    onError={() => markFailed(a.eatId)}
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -213,15 +230,16 @@ export function AttachmentGallery({ attachments }: AttachmentGalleryProps) {
             className="flex-1 flex items-center justify-center px-3 sm:px-12 overflow-hidden select-none"
             onClick={(e) => e.stopPropagation()}
           >
-            {current.signedUrl && isImageMime(current.eatMime) ? (
+            {current.signedUrl && isImageMime(current.eatMime) && !failedIds.has(current.eatId) ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={current.signedUrl}
                 alt={t('lightboxImageAlt', { index: lightboxIndex + 1 })}
+                onError={() => markFailed(current.eatId)}
                 className="max-h-full max-w-full object-contain rounded-md"
                 draggable={false}
               />
-            ) : current.signedUrl ? (
+            ) : current.signedUrl && !failedIds.has(current.eatId) ? (
               /* Non-image (PDF). Lightbox can't render usefully — direct the
                * user to open it in a new tab where the OS PDF viewer takes
                * over. */
