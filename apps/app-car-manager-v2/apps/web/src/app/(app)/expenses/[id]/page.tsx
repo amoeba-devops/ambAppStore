@@ -22,7 +22,9 @@ import {
 } from '@car-v2/ui';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { getSignedGetUrl } from '@/lib/s3-client';
 import { getExpenseDetail } from '@/server/queries/expenses.queries';
+import { AttachmentGallery, type AttachmentItem } from './_components/attachment-gallery';
 
 type ExpenseType =
   | 'FUEL'
@@ -78,12 +80,6 @@ function daysUntilLock(lockedUntil: Date): number {
   return Math.ceil((new Date(lockedUntil).getTime() - Date.now()) / 86_400_000);
 }
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 interface PageProps {
   params: Promise<{ id: string }>;
 }
@@ -114,6 +110,22 @@ export default async function ExpenseDetailPage({ params }: PageProps) {
 
   const expense = await getExpenseDetail(user.entId, id);
   if (!expense) notFound();
+
+  /* Pre-sign GET URLs for every attachment so the client gallery can render
+   * inline previews without needing its own auth roundtrip. 15-min TTL covers
+   * a user keeping the page open while flipping between receipts in the
+   * lightbox; refresh on page reload picks up new URLs.
+   *
+   * Promise.all in parallel — typical expense has 1-5 attachments, signing
+   * is in-process and fast, no benefit to sequential. */
+  const signedAttachments: AttachmentItem[] = await Promise.all(
+    expense.attachments.map(async (a) => ({
+      eatId: a.eatId,
+      eatMime: a.eatMime,
+      eatSizeBytes: a.eatSizeBytes,
+      signedUrl: await getSignedGetUrl(a.eatS3Key, 900),
+    })),
+  );
 
   /* Role-aware back target: staff bounces to the cost ledger (where they
    * came from), drivers bounce to their personal history. */
@@ -220,43 +232,24 @@ export default async function ExpenseDetailPage({ params }: PageProps) {
           </CardContent>
         </Card>
 
-        {/* Attachments — count + per-row metadata. Image previews are a
-         * follow-up REQ; current build just enumerates what was uploaded
-         * so the user knows the receipts are on file. */}
+        {/* Receipts gallery — inline thumbnail grid that opens a fullscreen
+         * lightbox on tap. Signed URLs are pre-generated server-side (see
+         * `signedAttachments` above). The gallery handles its own empty
+         * state so this card stays the same shape whether the expense has
+         * attachments or not. */}
         <Card>
           <CardHeader>
             <CardHeaderText>
               <CardTitle>
                 <span className="inline-flex items-center gap-2">
                   <Paperclip className="h-4 w-4 text-text-muted" aria-hidden />
-                  {tE('attachmentsTitle', { count: expense.attachments.length })}
+                  {tE('attachmentsTitle', { count: signedAttachments.length })}
                 </span>
               </CardTitle>
             </CardHeaderText>
           </CardHeader>
           <CardContent>
-            {expense.attachments.length === 0 ? (
-              <p className="text-sm text-text-faint italic">{tE('noAttachments')}</p>
-            ) : (
-              <ul className="space-y-2">
-                {expense.attachments.map((a) => (
-                  <li
-                    key={a.eatId}
-                    className="flex items-center gap-3 rounded-md border border-border bg-surface-2/60 px-3 py-2.5"
-                  >
-                    <div className="h-9 w-9 rounded bg-accent-soft text-accent flex items-center justify-center shrink-0">
-                      <Receipt className="h-4 w-4" aria-hidden />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-text truncate">
-                        {a.eatMime.replace(/^image\//, '').toUpperCase()} · {formatFileSize(a.eatSizeBytes)}
-                      </div>
-                      <div className="text-xs text-text-faint truncate">{a.eatS3Key}</div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <AttachmentGallery attachments={signedAttachments} />
           </CardContent>
         </Card>
 

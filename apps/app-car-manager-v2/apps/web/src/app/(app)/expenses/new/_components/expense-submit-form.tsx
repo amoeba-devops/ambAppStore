@@ -137,6 +137,21 @@ export function ExpenseSubmitForm({
   const [submitStage, setSubmitStage] =
     useState<{ current: number; total: number } | 'submitting' | 'done' | null>(null);
 
+  /* Derive per-thumb upload state for `ReceiptCameraInput`.
+   *
+   * The submit transition is 1-based (`{ current: 1, total: 3 }` = first
+   * file uploading); the camera input wants a 0-based pointer. During
+   * `'submitting'`/`'done'`, all S3 PUTs are finished, so the pointer
+   * advances past the last file so every thumb renders as ✓ done — visual
+   * confirmation that the receipts landed while the action settles. */
+  const uploadProgress = (() => {
+    if (submitStage === null) return null;
+    if (typeof submitStage === 'object') {
+      return { currentIndex: submitStage.current - 1, total: submitStage.total };
+    }
+    return { currentIndex: files.length, total: files.length };
+  })();
+
   const canSubmit =
     type !== null &&
     amount !== null &&
@@ -172,7 +187,10 @@ export function ExpenseSubmitForm({
           const f = files[i]!;
           const presigned = await requestPresigned(f);
           await uploadToS3(presigned.uploadUrl, f);
-          attachments.push({ s3_key: presigned.key, mime: f.type || 'application/octet-stream', size_bytes: f.size });
+          /* Persist the same MIME we used for the presign + S3 PUT so the
+           * stored attachment row matches the actual object's Content-Type
+           * — keeps the later `<img src>` render in `/expenses/[id]` honest. */
+          attachments.push({ s3_key: presigned.key, mime: resolveMime(f), size_bytes: f.size });
         }
 
         /* Step 2 — submit the metadata. The action persists the expense
@@ -212,13 +230,25 @@ export function ExpenseSubmitForm({
     });
   };
 
+  /* Resolve a MIME for the upload. `f.type` is empty surprisingly often —
+   * some Android pickers, screenshot paste, older WebViews. The file input is
+   * gated by `accept="image/*,image/heic,image/heif"` so anything reaching
+   * here is an image; default to `image/jpeg` rather than the previous
+   * `application/octet-stream` so:
+   *   1. The server's content-type regex accepts it cleanly
+   *   2. Later `<img src>` views render the receipt instead of trying to
+   *      download an opaque binary blob. */
+  function resolveMime(f: File): string {
+    return f.type || 'image/jpeg';
+  }
+
   async function requestPresigned(f: File): Promise<{ uploadUrl: string; key: string }> {
     const res = await fetch('/api/v1/expenses/upload-presigned', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         filename: f.name,
-        content_type: f.type || 'application/octet-stream',
+        content_type: resolveMime(f),
         size_bytes: f.size,
       }),
     });
@@ -231,11 +261,13 @@ export function ExpenseSubmitForm({
 
   async function uploadToS3(url: string, f: File): Promise<void> {
     /* Direct PUT to S3. Don't set credentials or extra headers — the
-     * presigned URL already encodes the content-type expected. Setting a
-     * different header causes a signature mismatch. */
+     * presigned URL already encodes the content-type expected. The header
+     * value MUST match what we sent to the presign route, so reuse
+     * resolveMime() rather than re-deriving from `f.type` (would diverge
+     * if f.type is empty). */
     const res = await fetch(url, {
       method: 'PUT',
-      headers: { 'content-type': f.type || 'application/octet-stream' },
+      headers: { 'content-type': resolveMime(f) },
       body: f,
     });
     if (!res.ok) throw new Error(`S3 upload failed: ${res.status}`);
@@ -357,6 +389,7 @@ export function ExpenseSubmitForm({
               <ReceiptCameraInput
                 files={files}
                 onChange={setFiles}
+                uploadProgress={uploadProgress}
                 onError={(key) => {
                   switch (key) {
                     case 'tooManyFiles':

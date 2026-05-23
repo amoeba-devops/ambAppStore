@@ -35,10 +35,17 @@ import { runAction } from '../_helpers';
  * Lock window: `exp_locked_until` set to NOW + 7 days per PRD §6.2.3 — driver
  * can edit metadata (note, occurredAt, amount) within that window. */
 
+/* Attachment cap aligned with `S3_MAX_UPLOAD_BYTES` (default 10MB) — the
+ * presign route + client receipt input both gate at that ceiling. Previously
+ * 5MB here, which meant a 6-9MB file would upload successfully to S3 then
+ * fail Zod validation on the action, orphaning the S3 object and surfacing
+ * `CAR-E0001` to the user mid-submit. Mime cap stays at 64 chars (typical
+ * MIMEs are <30; the headroom accounts for parameterised types like
+ * `image/svg+xml; charset=utf-8`). */
 const attachmentSchema = z.object({
   s3_key: z.string().min(1),
   mime: z.string().min(1).max(64),
-  size_bytes: z.number().int().min(1).max(5 * 1024 * 1024),
+  size_bytes: z.number().int().min(1).max(10 * 1024 * 1024),
 });
 
 /* Schemas + type are NOT exported — Next.js 15 `'use server'` files can only

@@ -2,11 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Camera, ImagePlus, Loader2, Plus, X } from 'lucide-react';
+import { Camera, Check, ImagePlus, Loader2, Plus, X } from 'lucide-react';
 import { cn } from '@car-v2/ui';
 
 const MAX_FILES = 5;
-const MAX_BYTES = 5 * 1024 * 1024;
+/* 10MB matches the server S3_MAX_UPLOAD_BYTES default. Previously 5MB —
+ * which rejected a HEIC-from-iPhone-15-Pro after conversion when the JPEG
+ * landed at ~6MB (HEIC compresses better than JPEG so the transcode often
+ * grows the file). Aligning client + server caps removes a UX cliff where
+ * the client said "OK" then the server said "Invalid input". */
+const MAX_BYTES = 10 * 1024 * 1024;
 
 /* HEIC / HEIF MIME types that iPhone produces by default for camera photos.
  * Browsers will surface either the official IANA names or empty-string when
@@ -28,6 +33,23 @@ interface ReceiptCameraInputProps {
   files: File[];
   onChange: (files: File[]) => void;
   onError?: (key: ReceiptInputError) => void;
+  /**
+   * Upload progress overlay state. When set, each thumb derives its visual
+   * state from `currentIndex` (0-based):
+   *   - i <  currentIndex → "done" (green check badge)
+   *   - i === currentIndex && currentIndex < total → "uploading" (dim + spinner)
+   *   - i >  currentIndex → "queued" (50% opacity)
+   *   - currentIndex >= total (passed only when all uploads done) → all "done"
+   * Also disables Remove + Add-more buttons since they have no abort path.
+   * Pass `null`/omit for the idle/before-submit state.
+   *
+   * Previously the form only signalled progress via the submit button label
+   * at the bottom of the screen — the thumbs themselves stayed plain and
+   * looked frozen ("white state") during the 1-5s upload, which led users
+   * to assume the app had hung. The per-thumb overlay puts the feedback
+   * right where the user's eyes already are.
+   */
+  uploadProgress?: { currentIndex: number; total: number } | null;
 }
 
 /* Camera-first receipt attachment input.
@@ -49,7 +71,7 @@ interface ReceiptCameraInputProps {
  * user denies once or cancels the picker without choosing a file, we surface a
  * gentle "did the permission prompt show?" hint after the second consecutive
  * empty result — see `tapWithoutFileRef`. */
-export function ReceiptCameraInput({ files, onChange, onError }: ReceiptCameraInputProps) {
+export function ReceiptCameraInput({ files, onChange, onError, uploadProgress }: ReceiptCameraInputProps) {
   const t = useTranslations('expenses.submit');
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -165,7 +187,12 @@ export function ReceiptCameraInput({ files, onChange, onError }: ReceiptCameraIn
     onChange(files.filter((_, i) => i !== idx));
   };
 
-  const disabled = files.length >= MAX_FILES || converting;
+  /* `uploading` locks the whole control: no remove, no add-more, no gallery
+   * pick. The submit transition manages its own cancellation by aborting the
+   * server action, but the receipts are already on-disk via S3 PUT — letting
+   * the user remove a row mid-upload would create an orphan. */
+  const uploading = uploadProgress != null;
+  const disabled = files.length >= MAX_FILES || converting || uploading;
 
   return (
     <div>
@@ -254,33 +281,99 @@ export function ReceiptCameraInput({ files, onChange, onError }: ReceiptCameraIn
           <ul className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {files.map((f, i) => {
               const url = previewUrlsRef.current.get(f);
+              /* Per-file upload state, derived from the parent's
+               * `uploadProgress`. See prop doc for the exact mapping. */
+              const state: 'idle' | 'done' | 'uploading' | 'queued' = !uploading
+                ? 'idle'
+                : i < uploadProgress.currentIndex
+                  ? 'done'
+                  : i === uploadProgress.currentIndex && uploadProgress.currentIndex < uploadProgress.total
+                    ? 'uploading'
+                    : 'queued';
               return (
                 <li
                   key={`${f.name}-${i}`}
-                  className="relative aspect-square rounded-lg overflow-hidden border border-border bg-surface-2 group"
+                  className={cn(
+                    'relative aspect-square rounded-lg overflow-hidden border bg-surface-2 group',
+                    'transition-[border-color,box-shadow,opacity] duration-200 motion-reduce:transition-none',
+                    state === 'idle' && 'border-border',
+                    /* "done" — green accent ring confirms the receipt landed
+                     * in S3 (the metadata insert may still be pending in
+                     * `submitting` phase). */
+                    state === 'done' && 'border-success/70 ring-1 ring-success/30',
+                    state === 'uploading' && 'border-accent/70 ring-2 ring-accent/40',
+                    /* "queued" — faded so the user reads the row left→right
+                     * as a progress bar of thumbnails. */
+                    state === 'queued' && 'border-border opacity-50',
+                  )}
                 >
                   {url && (
                     /* Native <img> — blob URLs aren't a fit for next/image. */
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={url} alt={f.name} className="h-full w-full object-cover" />
+                    <img
+                      src={url}
+                      alt={f.name}
+                      className={cn(
+                        'h-full w-full object-cover transition-[filter] duration-200 motion-reduce:transition-none',
+                        state === 'uploading' && 'brightness-[0.55]',
+                      )}
+                    />
                   )}
-                  <button
-                    type="button"
-                    aria-label={t('receiptRemoveAria')}
-                    onClick={() => remove(i)}
-                    className={cn(
-                      'absolute top-1.5 right-1.5 h-9 w-9 rounded-full bg-bg/85 text-text shadow-sm',
-                      'backdrop-blur flex items-center justify-center',
-                      'hover:bg-bg active:scale-95',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                    )}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+
+                  {/* Uploading overlay — spinner + "current/total" so the
+                   * user has BOTH a visual signal (the spin) AND a
+                   * positional signal ("we're on photo 2 of 3"). Sits
+                   * over the dimmed image so it always reads. */}
+                  {state === 'uploading' && uploadProgress && (
+                    <div
+                      className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-white"
+                      role="status"
+                      aria-live="polite"
+                      aria-label={t('uploadStateUploading')}
+                    >
+                      <Loader2 className="h-8 w-8 animate-spin" strokeWidth={2.4} />
+                      <span className="text-[11px] font-bold tabular drop-shadow">
+                        {uploadProgress.currentIndex + 1}/{uploadProgress.total}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Done badge — small green check anchored top-left so it
+                   * never clashes with the (now-hidden) remove button slot
+                   * at top-right. */}
+                  {state === 'done' && (
+                    <div
+                      className="absolute top-1.5 left-1.5 h-6 w-6 rounded-full bg-success text-success-fg flex items-center justify-center shadow-sm"
+                      aria-label={t('uploadStateDone')}
+                    >
+                      <Check className="h-4 w-4" strokeWidth={3} />
+                    </div>
+                  )}
+
+                  {/* Remove button — hidden during upload. Removing a file
+                   * after its S3 PUT succeeded would orphan the object
+                   * (we'd still submit the row without it), and removing
+                   * one mid-PUT would cancel-then-strand. The flow is
+                   * atomic by design once submit is pressed. */}
+                  {!uploading && (
+                    <button
+                      type="button"
+                      aria-label={t('receiptRemoveAria')}
+                      onClick={() => remove(i)}
+                      className={cn(
+                        'absolute top-1.5 right-1.5 h-9 w-9 rounded-full bg-bg/85 text-text shadow-sm',
+                        'backdrop-blur flex items-center justify-center',
+                        'hover:bg-bg active:scale-95',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      )}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </li>
               );
             })}
-            {files.length < MAX_FILES && (
+            {files.length < MAX_FILES && !uploading && (
               <li>
                 <button
                   type="button"

@@ -6,10 +6,13 @@ import { Button, chartColors, cn } from '@car-v2/ui';
 import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { getSignedGetUrl } from '@/lib/s3-client';
 import {
+  getExpenseDetail,
   listEntityExpenses,
   type EntityExpenseListItem,
 } from '@/server/queries/expenses.queries';
+import type { AttachmentItem } from '../expenses/[id]/_components/attachment-gallery';
 import { ExpenseReviewPanel } from './_components/expense-review-panel';
 
 type ExpenseType = EntityExpenseListItem['expType'];
@@ -77,6 +80,25 @@ export default async function CostsPage({ searchParams }: PageProps) {
 
   const items = await listEntityExpenses(actor.entId);
   const selected = items.find((e) => e.expId === sp.selected) ?? items[0] ?? null;
+
+  /* When a row is selected, load full attachments + sign GET URLs so the
+   * right-panel can show real receipts instead of the placeholder boxes
+   * the panel originally rendered. Single detail fetch per page render
+   * (only the visible selection); list rail itself doesn't need this. */
+  let selectedAttachments: AttachmentItem[] = [];
+  if (selected) {
+    const detail = await getExpenseDetail(actor.entId, selected.expId);
+    if (detail) {
+      selectedAttachments = await Promise.all(
+        detail.attachments.map(async (a) => ({
+          eatId: a.eatId,
+          eatMime: a.eatMime,
+          eatSizeBytes: a.eatSizeBytes,
+          signedUrl: await getSignedGetUrl(a.eatS3Key, 900),
+        })),
+      );
+    }
+  }
 
   return (
     <>
@@ -190,6 +212,7 @@ export default async function CostsPage({ searchParams }: PageProps) {
              * navigation isn't worth the cost of a live timer. */
             <ExpenseReviewPanel
               expense={selected}
+              attachments={selectedAttachments}
               labels={{
                 fAmount: t('fAmount'),
                 fType: t('fType'),
@@ -201,9 +224,6 @@ export default async function CostsPage({ searchParams }: PageProps) {
                 sourceStaff: t('sourceStaff'),
                 submittedBy: t('submittedBy'),
                 receiptTitle: t('receiptTitle'),
-                receipt2: t('receipt2'),
-                receiptNote: t('receiptNote'),
-                typeLabel: tType(selected.expType),
               }}
               typeLabel={tType(selected.expType)}
               amountFormatted={formatVnd(selected.expAmount)}
