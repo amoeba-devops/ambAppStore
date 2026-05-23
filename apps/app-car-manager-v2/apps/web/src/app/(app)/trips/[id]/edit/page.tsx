@@ -26,19 +26,11 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
   const trip = await getTrip(user.entId, id);
   if (!trip) notFound();
 
-  /* Edit window: pre-confirm only for Manager; Admin allowed unless COMPLETED. */
-  if (user.role === 'MANAGER') {
-    if (trip.trpCreatorId !== user.userId) redirect(`/trips/${id}`);
-    if (trip.trpStatus !== 'PENDING_ASSIGNMENT' && trip.trpStatus !== 'PENDING_DRIVER_CONFIRMATION') {
-      redirect(`/trips/${id}`);
-    }
-  }
-  if (user.role === 'ADMIN' && trip.trpStatus === 'COMPLETED') {
+  /* Edit window: Staff (Admin/Manager) allowed unless COMPLETED. */
+  if (trip.trpStatus === 'COMPLETED') {
     redirect(`/trips/${id}`);
   }
 
-  /* Fetch users + drivers + vehicles song song. Driver + Vehicle chỉ show cho
-   * ADMIN (assignTripAction yêu cầu ADMIN role). MANAGER thấy passenger thôi. */
   const [users, drivers, vehicles] = await Promise.all([
     db
       .select({
@@ -49,8 +41,8 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
       })
       .from(carUsers)
       .where(and(eq(carUsers.entId, user.entId), isNull(carUsers.usrDeletedAt))),
-    user.role === 'ADMIN' ? listDrivers(user.entId) : Promise.resolve([]),
-    user.role === 'ADMIN' ? listVehicles(user.entId) : Promise.resolve([]),
+    listDrivers(user.entId),
+    listVehicles(user.entId),
   ]);
 
   /* Rich passenger payload (id + name + email) → form render Avatar + 2-line label.
@@ -70,8 +62,8 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
     .filter((v) => v.cvhStatus !== 'RETIRED' && v.cvhStatus !== 'MAINTENANCE')
     .map((v) => ({ id: v.cvhId, label: `${v.cvhPlateNumber} — ${v.cvhModel}` }));
 
-  /* ADMIN có quyền vào /drivers/new, /vehicles/new (xem redirect ở 2 trang đó). */
-  const canCreateEntities = user.role === 'ADMIN';
+  /* Staff (Admin/Manager) có quyền vào /drivers/new, /vehicles/new. */
+  const canCreateEntities = user.role === 'ADMIN' || user.role === 'MANAGER';
 
   return (
     <>

@@ -20,7 +20,6 @@ interface ManagerViewProps {
   trip: TripDetail;
   auditRows: AuditRow[];
   isAssignedDriver: boolean;
-  isCreator: boolean;
   hasMap: boolean;
 }
 
@@ -37,7 +36,6 @@ export async function ManagerView({
   trip,
   auditRows,
   isAssignedDriver,
-  isCreator,
   hasMap,
 }: ManagerViewProps) {
   const tStatus = await getTranslations('trips.status');
@@ -227,27 +225,23 @@ export async function ManagerView({
           </div>
         </section>
 
-        {/* Cancel (only if Manager is creator and trip is cancellable). Quiet,
-         *  bottom-of-page placement — Manager's primary role is oversight, not
-         *  action; the cancel button is a courtesy, not a focal point. */}
-        {isCreator &&
-          (trip.trpStatus === 'PENDING_ASSIGNMENT' ||
-            trip.trpStatus === 'PENDING_DRIVER_CONFIRMATION') && (
-            <section className="rounded-2xl border border-border bg-surface px-5 py-4">
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <SectionTitle className="!mb-0">{tDetail('actionsTitle')}</SectionTitle>
-                <TripActions
-                  tripId={trip.trpId}
-                  status={trip.trpStatus}
-                  role="MANAGER"
-                  isAssignedDriver={isAssignedDriver}
-                  isCreator={isCreator}
-                  drivers={[]}
-                  vehicles={[]}
-                />
-              </div>
-            </section>
-          )}
+        {/* Manager actions (cancel etc.) — bottom-of-page placement. */}
+        {(trip.trpStatus === 'PENDING_ASSIGNMENT' ||
+          trip.trpStatus === 'PENDING_DRIVER_CONFIRMATION') && (
+          <section className="rounded-2xl border border-border bg-surface px-5 py-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <SectionTitle className="!mb-0">{tDetail('actionsTitle')}</SectionTitle>
+              <TripActions
+                tripId={trip.trpId}
+                status={trip.trpStatus}
+                role="MANAGER"
+                isAssignedDriver={isAssignedDriver}
+                drivers={[]}
+                vehicles={[]}
+              />
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

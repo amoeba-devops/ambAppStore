@@ -16,7 +16,7 @@ import { runAction } from '../_helpers';
 export async function createVehicleAction(input: unknown): Promise<ActionResult<CarVehicle>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
-    requireRole(actor.role, ['ADMIN']);
+    requireRole(actor.role, ['ADMIN', 'MANAGER']);
     const data = createVehicleSchema.parse(input);
 
     const [created] = await db
@@ -57,7 +57,7 @@ export async function createVehicleAction(input: unknown): Promise<ActionResult<
 export async function updateVehicleAction(id: string, input: unknown): Promise<ActionResult<CarVehicle>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
-    requireRole(actor.role, ['ADMIN']);
+    requireRole(actor.role, ['ADMIN', 'MANAGER']);
     const data = updateVehicleSchema.parse(input);
 
     const existing = await db.query.carVehicles.findFirst({
@@ -106,7 +106,7 @@ export async function updateVehicleAction(id: string, input: unknown): Promise<A
 export async function deleteVehicleAction(id: string): Promise<ActionResult<{ id: string }>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
-    requireRole(actor.role, ['ADMIN']);
+    requireRole(actor.role, ['ADMIN', 'MANAGER']);
 
     const existing = await db.query.carVehicles.findFirst({
       where: and(eq(carVehicles.cvhId, id), eq(carVehicles.entId, actor.entId)),

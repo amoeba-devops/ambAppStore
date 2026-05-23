@@ -28,7 +28,7 @@ async function resolveUserPhone(entId: string, userId: string): Promise<string |
 export async function createDriverAction(input: unknown): Promise<ActionResult<CarDriver>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
-    requireRole(actor.role, ['ADMIN']);
+    requireRole(actor.role, ['ADMIN', 'MANAGER']);
     const data = createDriverSchema.parse(input);
 
     // Verify the user exists in this tenant.
@@ -75,7 +75,7 @@ export async function createDriverAction(input: unknown): Promise<ActionResult<C
 export async function updateDriverAction(id: string, input: unknown): Promise<ActionResult<CarDriver>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
-    requireRole(actor.role, ['ADMIN']);
+    requireRole(actor.role, ['ADMIN', 'MANAGER']);
     const data = updateDriverSchema.parse(input);
 
     const existing = await db.query.carDrivers.findFirst({
@@ -165,7 +165,7 @@ export async function createDriverWithUserAction(
 ): Promise<ActionResult<CarDriver>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
-    requireRole(actor.role, ['ADMIN']);
+    requireRole(actor.role, ['ADMIN', 'MANAGER']);
     const dto = createDriverWithUserSchema.parse(input);
 
     const cookieStore = await cookies();

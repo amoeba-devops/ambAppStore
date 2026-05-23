@@ -98,20 +98,19 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     ? {
         trip: peekTrip,
         drivers:
-          user.role === 'ADMIN'
+          user.role === 'ADMIN' || user.role === 'MANAGER'
             ? drivers.map((d) => ({
                 id: d.drvId,
                 label: `${d.user.usrName} — ${d.drvLicenseNumber} (${d.drvLicenseClass})`,
               }))
             : [],
         vehicles:
-          user.role === 'ADMIN'
+          user.role === 'ADMIN' || user.role === 'MANAGER'
             ? vehiclesRaw.map((v) => ({
                 id: v.cvhId,
                 label: `${v.cvhPlateNumber} — ${v.cvhMake ?? ''} ${v.cvhModel}`.trim(),
               }))
             : [],
-        isCreator: peekTrip.trpCreatorId === user.userId,
       }
     : null;
 

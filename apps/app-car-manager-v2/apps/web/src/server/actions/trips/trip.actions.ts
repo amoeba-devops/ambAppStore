@@ -42,10 +42,6 @@ export async function createTripAction(input: unknown): Promise<ActionResult<Car
     if (Number.isNaN(scheduledAt.getTime())) {
       throw new CarError('CAR-E0001', 400, 'Invalid scheduled_at');
     }
-    // Managers cannot schedule in the past (Admin override OK).
-    if (actor.role === 'MANAGER' && scheduledAt.getTime() < Date.now() - 60_000) {
-      throw new CarError('CAR-E0001', 400, 'Cannot schedule a trip in the past');
-    }
 
     if (data.driver_id && !data.vehicle_id) {
       throw new CarError('CAR-E0001', 400, 'Provide both driver and vehicle, or neither');
@@ -210,31 +206,16 @@ export async function updateTripAction(id: string, input: unknown): Promise<Acti
     });
     if (!existing) throw new CarError('CAR-E1004', 404, 'Trip not found');
 
-    /* Manager may edit only own trip pre-confirm. Admin may edit if not COMPLETED. */
-    if (actor.role === 'MANAGER') {
-      if (existing.trpCreatorId !== actor.userId) {
-        throw new CarError('CAR-E1005', 403, 'Not your trip');
-      }
-      if (
-        existing.trpStatus !== 'PENDING_ASSIGNMENT' &&
-        existing.trpStatus !== 'PENDING_DRIVER_CONFIRMATION'
-      ) {
-        throw new CarError('CAR-E1006', 409, 'Trip already confirmed — only Admin can edit now');
-      }
-    } else if (actor.role === 'ADMIN') {
-      if (existing.trpStatus === 'COMPLETED') {
-        throw new CarError('CAR-E1006', 409, 'Completed trip cannot be edited');
-      }
-    } else {
+    /* Staff (Admin/Manager) may edit any trip not yet completed. */
+    if (actor.role !== 'ADMIN' && actor.role !== 'MANAGER') {
       throw new CarError('CAR-E1005', 403, 'Driver cannot edit trip details');
+    }
+    if (existing.trpStatus === 'COMPLETED') {
+      throw new CarError('CAR-E1006', 409, 'Completed trip cannot be edited');
     }
 
     const patch: Partial<typeof carTrips.$inferInsert> = { trpUpdatedAt: new Date() };
-    /* PRD FR-1.3: Manager cannot change passenger after creation. Admin may. */
     if (data.passenger_id !== undefined) {
-      if (actor.role === 'MANAGER' && data.passenger_id !== existing.trpPassengerId) {
-        throw new CarError('CAR-E1005', 403, 'Manager cannot change passenger after creation');
-      }
       patch.trpPassengerId = data.passenger_id;
     }
     if (data.pickup_address !== undefined) patch.trpPickupAddress = data.pickup_address;
@@ -310,9 +291,7 @@ export async function fetchTripsForCalendarAction(
 export async function assignTripAction(id: string, input: unknown): Promise<ActionResult<CarTrip>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
-    /* Admin-only at entry — state machine also gates, but explicit check
-     * keeps the API contract obvious and gives a clear 403 error. */
-    requireRole(actor.role, ['ADMIN']);
+    requireRole(actor.role, ['ADMIN', 'MANAGER']);
     const data = assignTripSchema.parse(input);
     const trip = await loadTrip(id, actor);
 

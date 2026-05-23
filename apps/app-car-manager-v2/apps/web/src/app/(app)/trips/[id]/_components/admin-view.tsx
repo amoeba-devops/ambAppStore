@@ -19,7 +19,6 @@ interface AdminViewProps {
   trip: TripDetail;
   auditRows: AuditRow[];
   isAssignedDriver: boolean;
-  isCreator: boolean;
   driverOptions: { id: string; label: string }[];
   vehicleOptions: { id: string; label: string }[];
   hasMap: boolean;
@@ -40,7 +39,6 @@ export async function AdminView({
   trip,
   auditRows,
   isAssignedDriver,
-  isCreator,
   driverOptions,
   vehicleOptions,
   hasMap,
@@ -95,7 +93,6 @@ export async function AdminView({
               status={trip.trpStatus}
               role="ADMIN"
               isAssignedDriver={isAssignedDriver}
-              isCreator={isCreator}
               drivers={driverOptions}
               vehicles={vehicleOptions}
             />
