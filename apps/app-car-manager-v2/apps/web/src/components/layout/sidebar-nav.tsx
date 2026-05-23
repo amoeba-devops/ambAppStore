@@ -118,7 +118,10 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
     startSignOut(async () => {
       // D-013: dùng /api/auth/logout route để clear 3 cookies + best-effort AMA logout
       // (logoutAction chỉ clear amb_session, không clear amb_ama_access/refresh).
-      window.location.href = '/api/auth/logout';
+      // basePath prefix required — staging mounts app under /app-car-manager-v2,
+      // raw '/api/auth/logout' hits the nginx parent and returns PLT-E9999.
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+      window.location.href = `${basePath}/api/auth/logout`;
     });
   };
 
