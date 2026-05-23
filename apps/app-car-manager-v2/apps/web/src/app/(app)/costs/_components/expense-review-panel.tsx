@@ -1,7 +1,7 @@
 'use client';
 
-import { Receipt } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardHeaderText, CardTitle } from '@car-v2/ui';
+import { FileText, Receipt, User } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardHeaderText, CardTitle, cn } from '@car-v2/ui';
 import type { EntityExpenseListItem } from '@/server/queries/expenses.queries';
 
 interface ExpenseDetailPanelProps {
@@ -12,6 +12,9 @@ interface ExpenseDetailPanelProps {
     fLinkedTrip: string;
     fVehicle: string;
     fDriver: string;
+    fSource: string;
+    sourceDriver: string;
+    sourceStaff: string;
     submittedBy: string;
     receiptTitle: string;
     receipt2: string;
@@ -19,8 +22,13 @@ interface ExpenseDetailPanelProps {
     typeLabel: string;
   };
   typeLabel: string;
-  formatVnd: (v: string) => string;
-  formatRelative: (d: Date | string) => string;
+  /* Pre-formatted strings instead of formatter functions — Next.js 15
+   * Server Components can't pass plain functions to Client Components
+   * (no implicit serialisation; would throw "Functions cannot be passed
+   * directly to Client Components"). The parent server page calls its
+   * `formatVnd` / `formatRelative` helpers once and hands us the result. */
+  amountFormatted: string;
+  submittedAtFormatted: string;
 }
 
 /* Read-only expense detail. The approval flow (approve / reject buttons +
@@ -33,15 +41,21 @@ export function ExpenseReviewPanel({
   expense,
   labels,
   typeLabel,
-  formatVnd,
-  formatRelative,
+  amountFormatted,
+  submittedAtFormatted,
 }: ExpenseDetailPanelProps) {
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="font-mono text-xs text-text-muted tabular">
-            EXP-{expense.expId.slice(0, 8).toUpperCase()}
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <div className="font-mono text-xs text-text-muted tabular">
+              EXP-{expense.expId.slice(0, 8).toUpperCase()}
+            </div>
+            <SourcePill
+              role={expense.submitterRole}
+              label={expense.submitterRole === 'DRIVER' ? labels.sourceDriver : labels.sourceStaff}
+            />
           </div>
           <h2 className="text-xl font-semibold text-text mt-0.5">
             {typeLabel} · {expense.vehiclePlate ?? '—'}
@@ -49,15 +63,15 @@ export function ExpenseReviewPanel({
           <p className="mt-1 text-sm text-text-muted">
             {labels.submittedBy}{' '}
             <span className="font-medium text-text">
-              {expense.driverName ?? '—'}
+              {expense.submitterName ?? expense.driverName ?? '—'}
             </span>{' '}
-            · {formatRelative(expense.expSubmittedAt)}
+            · {submittedAtFormatted}
           </p>
         </div>
-        <div className="text-right">
+        <div className="text-right shrink-0">
           <div className="text-xs text-text-muted">{labels.fAmount}</div>
           <div className="text-3xl font-bold text-text tabular leading-none mt-1">
-            {formatVnd(expense.expAmount)}
+            {amountFormatted}
           </div>
         </div>
       </div>
@@ -69,6 +83,10 @@ export function ExpenseReviewPanel({
             <DField label={labels.fLinkedTrip} value={expense.tripRef ?? '—'} />
             <DField label={labels.fVehicle} value={expense.vehiclePlate ?? '—'} mono />
             <DField label={labels.fDriver} value={expense.driverName ?? '—'} />
+            <DField
+              label={labels.fSource}
+              value={expense.submitterRole === 'DRIVER' ? labels.sourceDriver : labels.sourceStaff}
+            />
           </dl>
           {expense.expNote && (
             <div className="mt-4 pt-4 border-t border-border">
@@ -107,5 +125,33 @@ function DField({ label, value, mono }: { label: string; value: React.ReactNode;
       <dt className="text-xs font-medium text-text-muted mb-1">{label}</dt>
       <dd className={mono ? 'font-mono tabular text-text font-medium' : 'text-text font-medium'}>{value}</dd>
     </div>
+  );
+}
+
+/* Slightly more prominent source pill for the detail panel header — matches
+ * the inline badge in the /costs list rail but sized for the top-of-card
+ * EXP-XXXX line. Driver-submitted rows get the accent tone; admin / manager
+ * entries (back-office invoice) get a neutral surface tone. */
+function SourcePill({
+  role,
+  label,
+}: {
+  role: EntityExpenseListItem['submitterRole'];
+  label: string;
+}) {
+  const isDriver = role === 'DRIVER';
+  const Icon = isDriver ? User : FileText;
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide',
+        isDriver
+          ? 'bg-accent-soft text-accent'
+          : 'bg-surface-2 text-text-muted',
+      )}
+    >
+      <Icon className="h-3 w-3" aria-hidden />
+      <span>{label}</span>
+    </span>
   );
 }

@@ -202,11 +202,13 @@ export async function transitionTrip(
   return updated;
 }
 
-function assertCanPerform(transition: TripTransition, trip: CarTrip, actor: AuthContext): void {
+function assertCanPerform(transition: TripTransition, _trip: CarTrip, actor: AuthContext): void {
   switch (transition) {
     case 'assign':
     case 'reassign':
-      if (actor.role !== 'ADMIN') throw new CarError('CAR-E1005', 403, 'Only ADMIN can assign');
+      if (actor.role !== 'ADMIN' && actor.role !== 'MANAGER') {
+        throw new CarError('CAR-E1005', 403, 'Only Staff can assign');
+      }
       return;
     case 'accept':
     case 'reject':
@@ -217,22 +219,12 @@ function assertCanPerform(transition: TripTransition, trip: CarTrip, actor: Auth
       return;
     case 'start':
     case 'end': {
-      /* PRD §12: Driver is the primary actor; Admin may override (e.g. when
-       * driver phone died or is unreachable). Manager cannot start/end. */
-      if (actor.role === 'ADMIN' || actor.role === 'DRIVER') return;
-      throw new CarError('CAR-E1005', 403, 'Only the assigned driver (or Admin) can do this');
+      /* Driver is the primary actor; Staff (Admin/Manager) may override. */
+      if (actor.role === 'ADMIN' || actor.role === 'MANAGER' || actor.role === 'DRIVER') return;
+      throw new CarError('CAR-E1005', 403, 'Only the assigned driver (or Staff) can do this');
     }
     case 'cancel': {
-      if (actor.role === 'ADMIN') return;
-      // Manager can cancel only own pre-confirm trip
-      if (
-        actor.role === 'MANAGER' &&
-        trip.trpCreatorId === actor.userId &&
-        (trip.trpStatus === 'PENDING_ASSIGNMENT' ||
-          trip.trpStatus === 'PENDING_DRIVER_CONFIRMATION')
-      ) {
-        return;
-      }
+      if (actor.role === 'ADMIN' || actor.role === 'MANAGER') return;
       throw new CarError('CAR-E1005', 403, 'Not allowed to cancel');
     }
   }

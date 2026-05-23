@@ -61,13 +61,28 @@ export function TripsListPanel({ trips, highlightId, onCreateClick }: TripsListP
    *     inner <ul> then drops its pixel cap and scrolls internally. */
   return (
     <Card className="flex min-h-0 flex-col lg:min-h-0 lg:flex-1">
-      {/* Title-only header. The primary "+ Tạo chuyến mới" affordance lives
-       * on PageHeader (desktop) / FAB (mobile); having a duplicate button
-       * here would compete for the same intent and confuse users about
-       * which to use. The empty-state CTA below ("Tạo chuyến đầu tiên")
-       * still gives first-run tenants a contextual jumping-off point. */}
+      {/* "Xem tất cả →" moved out of the footer and pinned to the right
+       * edge of this header — matches the VehicleLegend convention so
+       * every dashboard section's "see full page" link sits in the same
+       * top-right spot. Frees the footer of competing affordances and
+       * means the link doesn't have to dodge the floating "+ Tạo chuyến"
+       * FAB on mobile anymore.
+       *
+       * The primary "+ Tạo chuyến mới" CTA still lives on PageHeader
+       * (desktop) / FAB (mobile) — no duplicate here. */}
       <CardHeader className="shrink-0">
         <CardTitle>{t('title')}</CardTitle>
+        <Link
+          href="/trips"
+          className={cn(
+            'shrink-0 inline-flex items-center gap-1 text-xs font-medium',
+            'text-text-muted transition-colors hover:text-accent',
+            'focus-visible:outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring',
+          )}
+        >
+          {t('viewAll')}
+          <ArrowRight className="h-3 w-3" />
+        </Link>
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col gap-1">
         {trips.length === 0 ? (
@@ -129,25 +144,6 @@ export function TripsListPanel({ trips, highlightId, onCreateClick }: TripsListP
             })}
           </ul>
         )}
-        {/* Compact footer link — same visual weight as VehicleLegend's
-         * "Quản lý xe →" so both side-panel cards anchor consistently.
-         *
-         * Mobile right-edge padding (`pr-16 lg:pr-0`) keeps the link's tap
-         * target clear of the floating "+ Tạo chuyến" FAB, which is anchored
-         * to `right-4` and is 56px wide — without that pad the link sat
-         * under the FAB's tap surface (z-30) and users couldn't reach it. */}
-        <Link
-          href="/trips"
-          className={cn(
-            'mt-1 inline-flex shrink-0 items-center justify-end gap-1 self-end text-xs font-medium',
-            'pr-16 lg:pr-0',
-            'text-text-muted transition-colors hover:text-accent',
-            'focus-visible:outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring',
-          )}
-        >
-          {t('viewAll')}
-          <ArrowRight className="h-3 w-3" />
-        </Link>
       </CardContent>
     </Card>
   );

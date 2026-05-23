@@ -56,8 +56,6 @@ interface TripActionsProps {
   role: 'ADMIN' | 'MANAGER' | 'DRIVER';
   /* Whether the current actor is the assigned driver (drv_user_id === user_id) */
   isAssignedDriver: boolean;
-  /* Whether the current actor is the trip creator (used by Manager cancel) */
-  isCreator: boolean;
   drivers: DriverOption[];
   vehicles: VehicleOption[];
 }
@@ -69,7 +67,6 @@ export function TripActions({
   status,
   role,
   isAssignedDriver,
-  isCreator,
   drivers,
   vehicles,
 }: TripActionsProps) {
@@ -93,15 +90,13 @@ export function TripActions({
   };
 
   /* Decide which transition buttons are relevant given current status + actor. */
-  const canAssign = role === 'ADMIN' && (status === 'PENDING_ASSIGNMENT' || status === 'REJECTED_BY_DRIVER');
+  const isStaff = role === 'ADMIN' || role === 'MANAGER';
+  const canAssign = isStaff && (status === 'PENDING_ASSIGNMENT' || status === 'REJECTED_BY_DRIVER');
   const canAccept = isAssignedDriver && status === 'PENDING_DRIVER_CONFIRMATION';
   const canReject = isAssignedDriver && status === 'PENDING_DRIVER_CONFIRMATION';
   const canStart  = isAssignedDriver && status === 'CONFIRMED';
   const canEnd    = isAssignedDriver && status === 'IN_PROGRESS';
-  const canCancel =
-    role === 'ADMIN'
-      ? status !== 'COMPLETED' && status !== 'CANCELLED'
-      : role === 'MANAGER' && isCreator && (status === 'PENDING_ASSIGNMENT' || status === 'PENDING_DRIVER_CONFIRMATION');
+  const canCancel = isStaff && status !== 'COMPLETED' && status !== 'CANCELLED';
 
   const noActionsAvailable =
     !canAssign && !canAccept && !canReject && !canStart && !canEnd && !canCancel;

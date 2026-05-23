@@ -14,7 +14,7 @@ export default async function EditDriverPage({ params }: { params: Promise<{ id:
   const tNav = await getTranslations('nav');
   const tCo  = await getTranslations('company');
   const user = await getCurrentUser();
-  if (user.role !== 'ADMIN') redirect(`/drivers/${id}`);
+  if (user.role !== 'ADMIN' && user.role !== 'MANAGER') redirect(`/drivers/${id}`);
 
   const driver = await getDriver(user.entId, id);
   if (!driver) notFound();

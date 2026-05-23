@@ -215,7 +215,6 @@ export async function DriverTodayView({ trips, vehicles }: DriverTodayViewProps)
             status={primary.trpStatus}
             role="DRIVER"
             isAssignedDriver
-            isCreator={false}
             drivers={[]}
             vehicles={[]}
           />

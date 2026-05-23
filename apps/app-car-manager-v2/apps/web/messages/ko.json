@@ -25,7 +25,9 @@
     "schedule": "일정",
     "dashboard": "대시보드",
     "pendingCountTitle": "{n}건의 운행이 대기 중",
-    "pendingBadgeLabel": "pending"
+    "pendingBadgeLabel": "pending",
+    "todayCountTitle": "오늘 기록된 비용 {n}건",
+    "todayBadgeLabel": "오늘"
   },
   "actions": {
     "new": "신규",
@@ -596,6 +598,9 @@
     "fLinkedTrip": "연결된 운행",
     "fVehicle": "차량",
     "fDriver": "기사",
+    "fSource": "출처",
+    "sourceDriver": "기사 제출",
+    "sourceStaff": "차량 청구서",
     "submittedBy": "제출자",
     "receiptTitle": "영수증",
     "receiptNote": "첨부 파일은 S3에 저장됩니다 (NFR-11). 클릭하여 확대.",
@@ -792,6 +797,10 @@
           "new": "기사 추가 중",
           "edit": "기사 수정 중"
         },
+        "expense": {
+          "new": "비용 기록 중",
+          "edit": "비용 수정 중"
+        },
         "unknown": {
           "new": "진행 중",
           "edit": "수정 중"
@@ -893,6 +902,15 @@
       "AUTO_APPROVED": "자동 승인",
       "REJECTED": "거절됨"
     },
+    "detail": {
+      "occurredAt": "발생일",
+      "submittedAt": "제출 시각",
+      "noteLabel": "메모",
+      "attachmentsTitle": "영수증 ({count})",
+      "noAttachments": "첨부된 영수증이 없습니다.",
+      "lockRemaining": "{days}일 동안 수정 가능합니다.",
+      "lockExpired": "수정 기한 만료 (7일 소프트 락)."
+    },
     "submit": {
       "title": "비용 기록",
       "subtitle": "운행 중 발생한 비용 기록",
@@ -925,6 +943,7 @@
       "submitUploading": "사진 업로드 중 {current}/{total}…",
       "submittedToast": "비용이 제출되었습니다",
       "submittedToastDesc": "승인 대기 중입니다.",
+      "draftLabelNew": "비용 기록 중",
       "errSubmit": "비용을 제출할 수 없습니다",
       "errMissing": "필수 항목 누락",
       "errMissingDesc": "비용 유형과 금액은 필수입니다.",
@@ -986,5 +1005,25 @@
     "signInAs": "다음 역할로 로그인",
     "demoNotePrefix": "활성화 이유:",
     "demoNoteSuffix": ". 프로덕션에서 비활성화."
+  },
+  "login": {
+    "title": "로그인",
+    "subtitle": "회사 차량 관리 시스템",
+    "entCodeLabel": "회사 코드",
+    "entCodePlaceholder": "예: VN01",
+    "phoneLabel": "전화번호",
+    "phonePlaceholder": "예: 0901234567 또는 +84 904567890",
+    "phoneHint": "+84 또는 공백 포함 가능 — 시스템이 자동 정리합니다.",
+    "submit": "로그인",
+    "openAma": "AMA 관리 페이지 열기",
+    "devTitle": "Dev 모드",
+    "devLoginAs": "Dev 로그인",
+    "languageLabel": "언어",
+    "errMissing": "회사 코드와 전화번호를 모두 입력하세요.",
+    "errInvalid": "잘못된 회사 코드이거나 등록되지 않은 전화번호입니다. 확인: (1) 회사 코드는 대문자(예: VN01); (2) 관리자가 등록한 전화번호와 일치; (3) 계정이 정지되지 않음. 그래도 실패하면 관리자에게 문의.",
+    "errRateLimit": "시도가 너무 많습니다. 1분 후 다시 시도하세요.",
+    "errNotInstalled": "이 회사에 앱이 활성화되지 않았습니다. 관리자에게 문의하세요.",
+    "errServer": "시스템 오류. 잠시 후 다시 시도하세요.",
+    "errFallback": "로그인 실패. 다시 시도하세요."
   }
 }

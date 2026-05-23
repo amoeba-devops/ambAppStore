@@ -12,6 +12,7 @@ import {
   Loader2,
   LogOut,
   PencilLine,
+  Receipt,
   User as UserIcon,
   X,
   type LucideIcon,
@@ -35,12 +36,13 @@ import { useAllDrafts, type DraftEntry } from '@/hooks/use-all-drafts';
 import { activeKeyFor, navItemsForRole, type NavKey } from './nav-items';
 import { useTenantDisplay } from './tenant-display-context';
 
-/* Entity → child icon. Helps user recognise "this is a vehicle/trip/driver
- * draft" without reading text. */
+/* Entity → child icon. Helps user recognise "this is a vehicle/trip/driver/
+ * expense draft" without reading text. */
 const ENTITY_SUB_ICON: Record<DraftEntry['entity'], LucideIcon> = {
   trip: ClipboardList,
   vehicle: Car,
   driver: IdCard,
+  expense: Receipt,
   unknown: PencilLine,
 };
 
@@ -53,6 +55,10 @@ interface SidebarNavProps {
   userEmail: string | null;
   /** Server-fed: pending trips in visibility scope. 0 hides the badge. */
   pendingTripCount: number;
+  /** Server-fed: expenses submitted today (Asia/Ho_Chi_Minh). 0 hides the
+   * "N hôm nay" badge on the Chi phí nav item. STAFF only — passed as 0
+   * for DRIVER (the costs nav item isn't in their role anyway). */
+  todayExpenseCount: number;
 }
 
 /** Map NavKey → metric counts. Keys absent or 0 → no badge. */
@@ -64,9 +70,10 @@ const NAV_KEY_TO_ENTITY: Partial<Record<NavKey, DraftEntry['entity']>> = {
   trips: 'trip',
   vehicles: 'vehicle',
   drivers: 'driver',
+  costs: 'expense',
 };
 
-export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCount }: SidebarNavProps) {
+export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCount, todayExpenseCount }: SidebarNavProps) {
   const tNav   = useTranslations('nav');
   const tCo    = useTranslations('company');
   const tAct   = useTranslations('actions');
@@ -99,10 +106,12 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
     if (matching.length > 0) draftsByNavKey.set(navKey, matching);
   }
 
-  /* Server-fed metric counts per nav key. Currently just trips; vehicles/drivers
-   * could opt in later (e.g. "vehicles in maintenance"). */
+  /* Server-fed metric counts per nav key. Trips = pending awaiting action;
+   * Costs = today's submitted total. Vehicles / drivers could opt in later
+   * (e.g. "vehicles in maintenance"). */
   const metricCounts: MetricCounts = {
     trips: pendingTripCount,
+    costs: todayExpenseCount,
   };
 
   const handleSignOut = () => {
@@ -366,9 +375,10 @@ function NavGroup({
                 {!collapsed && (
                   <>
                     <span className="flex-1 truncate text-left">{t(item.key)}</span>
-                    {/* Only the operational metric (pending) shows a parent badge —
-                     * draft work is already represented as sub-items below, so a
-                     * count there would be redundant noise. */}
+                    {/* Operational metric badge — `trips` shows pending count
+                     * (chờ), `costs` shows today's submitted count (hôm nay).
+                     * Label + tooltip pick per-key so each badge reads in
+                     * context instead of using a single generic word. */}
                     {metricCount > 0 ? (
                       <span
                         className={cn(
@@ -377,11 +387,17 @@ function NavGroup({
                             ? 'bg-primary-fg/15 text-primary-fg'
                             : 'bg-info-soft text-info',
                         )}
-                        title={tNav('pendingCountTitle', { n: metricCount })}
+                        title={
+                          item.key === 'costs'
+                            ? tNav('todayCountTitle', { n: metricCount })
+                            : tNav('pendingCountTitle', { n: metricCount })
+                        }
                       >
                         <span>{metricCount}</span>
                         <span className="text-[9px] font-medium uppercase tracking-wide opacity-90">
-                          {tNav('pendingBadgeLabel')}
+                          {item.key === 'costs'
+                            ? tNav('todayBadgeLabel')
+                            : tNav('pendingBadgeLabel')}
                         </span>
                       </span>
                     ) : item.staticBadge ? (
@@ -503,6 +519,11 @@ function DraftSubItem({
 
 /** Best-effort URL when the form didn't pass `href` explicitly. */
 function buildFallbackHref(draft: DraftEntry): string {
+  /* Expense drafts only have a "new" form (no edit page yet) and the form
+   * lives under `/expenses/new` regardless of who's recording it. The
+   * landing page redirects non-driver to /costs first, so this URL works
+   * for both Driver (lands directly) and Admin/Manager (single redirect). */
+  if (draft.entity === 'expense') return '/expenses/new';
   const segment =
     draft.entity === 'trip' ? 'trips' :
     draft.entity === 'vehicle' ? 'vehicles' :

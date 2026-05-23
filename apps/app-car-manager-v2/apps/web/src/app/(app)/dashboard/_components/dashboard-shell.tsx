@@ -15,7 +15,6 @@ interface PeekContext {
   trip: TripDetail;
   drivers: Array<{ id: string; label: string }>;
   vehicles: Array<{ id: string; label: string }>;
-  isCreator: boolean;
 }
 
 interface DashboardShellProps {
@@ -220,7 +219,6 @@ export function DashboardShell({
           trip={peek.trip}
           role={currentUser.role}
           isAssignedDriver={false}
-          isCreator={peek.isCreator}
           drivers={peek.drivers}
           vehicles={peek.vehicles}
           onEdit={openEdit}

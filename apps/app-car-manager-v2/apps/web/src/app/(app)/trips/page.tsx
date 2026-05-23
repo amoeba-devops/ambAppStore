@@ -123,10 +123,9 @@ export default async function TripsListPage({ searchParams }: PageProps) {
    * and an Admin role — Manager/Driver flows in the drawer don't need lists. */
   let peekDrivers: { id: string; label: string }[] = [];
   let peekVehicles: { id: string; label: string }[] = [];
-  let peekIsAssignedDriver = false;
-  let peekIsCreator = false;
+  const peekIsAssignedDriver = false;
   if (peekTrip) {
-    if (user.role === 'ADMIN') {
+    if (user.role === 'ADMIN' || user.role === 'MANAGER') {
       const [drivers, vehicles] = await Promise.all([
         listDrivers(user.entId),
         listVehicles(user.entId),
@@ -140,11 +139,6 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         label: `${v.cvhPlateNumber} — ${v.cvhMake ?? ''} ${v.cvhModel}`.trim(),
       }));
     }
-    /* DRIVER role early-returned above; this peek-drawer code path only
-     * runs for admin/manager, so the `isAssignedDriver` flag is always
-     * false here. Kept explicitly to make the prop contract obvious. */
-    peekIsAssignedDriver = false;
-    peekIsCreator = peekTrip.trpCreatorId === user.userId;
   }
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const showingTo = Math.min(total, page * pageSize);
@@ -422,7 +416,6 @@ export default async function TripsListPage({ searchParams }: PageProps) {
           trip={peekTrip}
           role={user.role}
           isAssignedDriver={peekIsAssignedDriver}
-          isCreator={peekIsCreator}
           drivers={peekDrivers}
           vehicles={peekVehicles}
         />

@@ -31,8 +31,24 @@ export function VehicleLegend({ vehicles }: VehicleLegendProps) {
 
   return (
     <Card>
+      {/* "Quản lý xe →" moved out of the footer and pinned to the right
+       * edge of this header. CardHeader is already `justify-between` so
+       * we just hang the link next to the title — keeps the footer free
+       * for the per-row content and matches the dashboard convention
+       * where every section's "go to full page" action lives top-right. */}
       <CardHeader>
         <CardTitle>{t('title')}</CardTitle>
+        <Link
+          href="/vehicles"
+          className={cn(
+            'shrink-0 inline-flex items-center gap-1 text-xs font-medium',
+            'text-text-muted transition-colors hover:text-accent',
+            'focus-visible:outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring',
+          )}
+        >
+          {t('manageLink')}
+          <ArrowRight className="h-3 w-3" />
+        </Link>
       </CardHeader>
       <CardContent className="space-y-2">
         {vehicles.length === 0 ? (
@@ -59,19 +75,6 @@ export function VehicleLegend({ vehicles }: VehicleLegendProps) {
             );
           })
         )}
-        {/* Footer link — same compact arrow-link pattern as TripsListPanel's
-         * "Xem tất cả →" so both right-rail cards anchor consistently. */}
-        <Link
-          href="/vehicles"
-          className={cn(
-            'mt-1 inline-flex items-center justify-end gap-1 self-end text-xs font-medium',
-            'text-text-muted transition-colors hover:text-accent',
-            'focus-visible:outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring',
-          )}
-        >
-          {t('manageLink')}
-          <ArrowRight className="h-3 w-3" />
-        </Link>
       </CardContent>
     </Card>
   );

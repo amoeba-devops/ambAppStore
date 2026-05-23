@@ -10,6 +10,7 @@ import { PushPromptStrip } from '@/components/pwa/push-prompt-strip';
 import { BottomTabNav } from './bottom-tab-nav';
 import { SidebarNav } from './sidebar-nav';
 import { TenantDisplayProvider } from './tenant-display-context';
+import { UserDisplayProvider } from './user-display-context';
 
 const COLLAPSE_KEY = 'ccms.sidebar.collapsed';
 
@@ -21,6 +22,10 @@ interface AppShellClientProps {
   userEmail: string | null;
   /** Server-counted pending trips in the user's visibility scope. */
   pendingTripCount: number;
+  /** Server-counted expenses submitted today (Asia/Ho_Chi_Minh). STAFF
+   * sidebar + mobile bottom-tab render a small badge on the Chi phí entry
+   * when this is > 0. 0 for DRIVER (badge is STAFF-only). */
+  todayExpenseCount: number;
   /** VAPID public key + Next basePath for the push enable banner.
    * Both come from NEXT_PUBLIC_* env via the server-side AppShell wrapper. */
   vapidPublicKey: string | undefined;
@@ -60,6 +65,7 @@ export function AppShellClient({
   userName,
   userEmail,
   pendingTripCount,
+  todayExpenseCount,
   vapidPublicKey,
   basePath,
   tenantName,
@@ -98,6 +104,7 @@ export function AppShellClient({
       initialAppName={appName}
       defaultAppName={appDefaultName}
     >
+      <UserDisplayProvider userName={userName} userEmail={userEmail}>
       <PushConfigProvider vapidPublicKey={vapidPublicKey} basePath={basePath}>
         <div className="flex min-h-dvh bg-bg text-text">
           {/* Sidebar — hidden on mobile, replaced by BottomTabNav below.
@@ -110,6 +117,7 @@ export function AppShellClient({
               userName={userName}
               userEmail={userEmail}
               pendingTripCount={pendingTripCount}
+              todayExpenseCount={todayExpenseCount}
             />
           </div>
           {/* Main: reserve bottom space on mobile for the fixed bottom-tab
@@ -132,11 +140,16 @@ export function AppShellClient({
           <div className="hidden md:contents">
             <CollapseHandle collapsed={collapsed} onClick={toggle} />
           </div>
-          <BottomTabNav role={role} />
+          <BottomTabNav
+            role={role}
+            pendingTripCount={pendingTripCount}
+            todayExpenseCount={todayExpenseCount}
+          />
           <InstallPrompt />
           <Toaster />
         </div>
       </PushConfigProvider>
+      </UserDisplayProvider>
     </TenantDisplayProvider>
   );
 }

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { Receipt } from 'lucide-react';
 import { Badge, Card } from '@car-v2/ui';
@@ -11,8 +12,8 @@ interface ExpensesListProps {
 /* Read-only expense list for the driver.
  *
  * Each row shows: type icon, amount, occurred date, optional trip ref, status
- * pill. No "tap to expand" yet — detail/edit page is a future REQ. The card
- * styling matches the trip list for visual consistency.
+ * pill. Tapping a row navigates to `/expenses/[id]` for full detail —
+ * receipts, lock window, attachments, etc.
  *
  * Server component — receives data from the page RSC and renders. The
  * approval-status pill colour is the only signal that needs interpretation;
@@ -28,8 +29,12 @@ export async function ExpensesList({ items }: ExpensesListProps) {
         const date = formatDate(exp.expOccurredAt);
         return (
           <li key={exp.expId}>
-            <Card className="p-4">
-              <div className="flex items-start gap-3">
+            <Link
+              href={`/expenses/${exp.expId}`}
+              className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Card className="p-4 transition-colors active:bg-surface-2 md:hover:bg-surface-2">
+                <div className="flex items-start gap-3">
                 <div className="h-9 w-9 rounded-full bg-surface-2 text-text-muted flex items-center justify-center shrink-0" aria-hidden>
                   <Receipt className="h-4 w-4" />
                 </div>
@@ -64,7 +69,8 @@ export async function ExpensesList({ items }: ExpensesListProps) {
                   )}
                 </div>
               </div>
-            </Card>
+              </Card>
+            </Link>
           </li>
         );
       })}

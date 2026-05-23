@@ -56,9 +56,10 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
   const trip = await getTrip(user.entId, id);
   if (!trip) notFound();
 
+  const isStaff = user.role === 'ADMIN' || user.role === 'MANAGER';
   const [drivers, vehicles, auditRows] = await Promise.all([
-    user.role === 'ADMIN' ? listDrivers(user.entId) : Promise.resolve([]),
-    user.role === 'ADMIN' ? listVehicles(user.entId) : Promise.resolve([]),
+    isStaff ? listDrivers(user.entId) : Promise.resolve([]),
+    isStaff ? listVehicles(user.entId) : Promise.resolve([]),
     listAuditForEntity(user.entId, 'Trip', id),
   ]);
 
@@ -68,12 +69,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
     const actorDriver = await getDriverByUserId(user.entId, user.userId);
     isAssignedDriver = actorDriver?.drvId === trip.trpDriverId;
   }
-  const isCreator = trip.trpCreatorId === user.userId;
-
-  const canEdit =
-    (user.role === 'ADMIN' && trip.trpStatus !== 'COMPLETED') ||
-    (user.role === 'MANAGER' && isCreator &&
-     (trip.trpStatus === 'PENDING_ASSIGNMENT' || trip.trpStatus === 'PENDING_DRIVER_CONFIRMATION'));
+  const canEdit = isStaff && trip.trpStatus !== 'COMPLETED';
 
   const driverOptions = drivers.map((d) => ({
     id: d.drvId,
@@ -131,7 +127,11 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
           {/* ─── MAIN — primary content (route, map, notes, activity) ─── */}
           <main className="min-w-0 px-4 md:px-7 py-5 md:py-6">
 
-            {/* Status strip — inline hero row, hairline below */}
+            {/* Status strip — inline hero row, hairline below. Inline Edit
+             * button sits at the trailing edge on mobile (replacing the
+             * header `actions` Edit that we no longer render on `< md`).
+             * Conditional on `canEdit` so the button is hidden for trips
+             * in a non-editable state (in-progress, completed, etc.). */}
             <div className="flex items-center gap-3 md:gap-4 flex-wrap pb-5 md:pb-6 border-b border-border">
               <Badge tone={STATUS_TONE[trip.trpStatus]} size="md" className="px-3 py-1 text-[13px] font-semibold">
                 {statusLabel}
@@ -145,6 +145,11 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
                   <Hourglass className="h-3 w-3" aria-hidden />
                   {tDetail('durationApprox', { minutes: trip.trpDurationMinutes })}
                 </div>
+              )}
+              {canEdit && (
+                <Button variant="secondary" size="sm" iconLeft={<Edit3 />} asChild className="ml-auto shrink-0">
+                  <Link href={`/trips/${trip.trpId}/edit`}>{tA('edit')}</Link>
+                </Button>
               )}
             </div>
 
@@ -306,7 +311,6 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
                 status={trip.trpStatus}
                 role={user.role}
                 isAssignedDriver={isAssignedDriver}
-                isCreator={isCreator}
                 drivers={driverOptions}
                 vehicles={vehicleOptions}
               />

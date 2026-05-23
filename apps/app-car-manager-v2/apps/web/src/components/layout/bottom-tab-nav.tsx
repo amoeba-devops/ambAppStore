@@ -9,6 +9,12 @@ import { navItemsForRole, type NavKey } from './nav-items';
 
 interface BottomTabNavProps {
   role: LocalRole;
+  /** Server-fed pending trips in the user's visibility scope. Drives the
+   * red dot/numeric badge on the Trips tab. 0 hides the badge. */
+  pendingTripCount: number;
+  /** Server-fed expenses submitted today (Asia/Ho_Chi_Minh). Drives the
+   * badge on the Chi phí tab (STAFF only — DRIVER doesn't have that tab). */
+  todayExpenseCount: number;
 }
 
 /* Mobile-only navigation bar.
@@ -34,16 +40,33 @@ interface BottomTabNavProps {
  * lights up reflects the post-redirect URL, not `/`.
  *
  * Hidden on md+ where the sidebar takes over. */
-export function BottomTabNav({ role }: BottomTabNavProps) {
+export function BottomTabNav({ role, pendingTripCount, todayExpenseCount }: BottomTabNavProps) {
   const pathname = usePathname() ?? '/';
   const tNav = useTranslations('nav');
   const tL   = useTranslations('layout');
+  /* Per-key badge counts. Keys absent or 0 → no badge. STAFF gets both
+   * trips + costs; DRIVER's `tripsMine` would also benefit from a pending
+   * count later but the current query is staff-scoped so we leave it. */
+  const tabCounts: Partial<Record<NavKey, number>> = {
+    trips: pendingTripCount,
+    costs: todayExpenseCount,
+  };
 
   const workspace = navItemsForRole(role).filter((item) => item.group === 'workspace');
   const dashboardItem = workspace.find((i) => i.key === 'dashboard');
-  /* Flat row: everything except the elevated dashboard. We cap at 4 so a
-   * future workspace addition won't silently bleed into a 5-column row. */
-  const flatItems = workspace.filter((i) => i.key !== 'dashboard').slice(0, 4);
+  /* Flat row excludes both `dashboard` (rendered as the elevated centre
+   * button) AND `me` (now a persistent avatar in the top-right of the
+   * mobile header). STAFF flat = [trips, vehicles, drivers, costs];
+   * DRIVER flat = [today, tripsMine, expensesNew]. We still cap at 4 so a
+   * future workspace addition can't silently break the layout. */
+  const flatItems = workspace
+    .filter((i) => i.key !== 'dashboard' && i.key !== 'me')
+    .slice(0, 4);
+  /* Driver has no elevated centre, just 3 flat tabs — use grid-cols-3 so
+   * each tab gets ~120px on a 360px viewport instead of a 25% slice with
+   * an empty 4th cell. STAFF keeps the 5-column template with the centre
+   * spacer reserved for the elevated Dashboard. */
+  const tabCount = flatItems.length;
 
   return (
     <nav
@@ -59,22 +82,23 @@ export function BottomTabNav({ role }: BottomTabNavProps) {
       )}
       {/* When the elevated Dashboard is present we carve out a fixed-width
        * centre column (72px) so the round button (56px) gets ~8px of clear
-       * space on each side. Without that gap the inner edges of the
-       * Vehicles + Drivers tabs sat under the button's shadow / tap surface
-       * (z-50) and users mis-tapped between Drivers and Dashboard. The
-       * `minmax(0,1fr)` floor on side cells lets labels truncate gracefully
-       * instead of forcing the grid wider than the viewport. */}
+       * space on each side. `minmax(0,1fr)` on side cells lets labels
+       * truncate gracefully instead of forcing the grid wider than the
+       * viewport. Without elevated Dashboard, use a plain grid sized to
+       * `flatItems.length` (3 for DRIVER, 4 for any other no-dashboard role). */}
       <ul
         className={cn(
           'grid h-14',
           dashboardItem
             ? 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_72px_minmax(0,1fr)_minmax(0,1fr)]'
-            : 'grid-cols-4',
+            : tabCount === 3
+              ? 'grid-cols-3'
+              : 'grid-cols-4',
         )}
       >
-        {flatItems.slice(0, dashboardItem ? 2 : flatItems.length).map(renderFlatTab(pathname, tNav))}
+        {flatItems.slice(0, dashboardItem ? 2 : flatItems.length).map(renderFlatTab(pathname, tNav, tabCounts))}
         {dashboardItem && <li aria-hidden />}
-        {dashboardItem && flatItems.slice(2).map(renderFlatTab(pathname, tNav))}
+        {dashboardItem && flatItems.slice(2).map(renderFlatTab(pathname, tNav, tabCounts))}
       </ul>
     </nav>
   );
@@ -83,9 +107,14 @@ export function BottomTabNav({ role }: BottomTabNavProps) {
 /** Closure-returning render helper so the two `flatItems.slice(...)` arms
  * stay terse without duplicating the tab JSX. Pulled out of the inline
  * `.map` so the JSX above reads as layout rather than rendering detail. */
-function renderFlatTab(pathname: string, tNav: (key: string) => string) {
+function renderFlatTab(
+  pathname: string,
+  tNav: (key: string) => string,
+  tabCounts: Partial<Record<NavKey, number>>,
+) {
   return function FlatTab(item: ReturnType<typeof navItemsForRole>[number]) {
     const isActive = matchesTab(pathname, item.href, item.key);
+    const count = tabCounts[item.key] ?? 0;
     return (
       <li key={item.key} className="relative">
         {/* Active indicator — top accent bar */}
@@ -106,11 +135,31 @@ function renderFlatTab(pathname: string, tNav: (key: string) => string) {
             isActive ? 'text-accent' : 'text-text-muted',
           )}
         >
-          <item.Icon
-            className={cn('h-6 w-6 transition-transform duration-180', isActive && 'scale-[1.05]')}
-            strokeWidth={isActive ? 2.4 : 1.8}
-            aria-hidden
-          />
+          {/* Icon with optional count badge in the top-right corner. The
+           * badge is a small pill (9px tall, ~14px min width) sitting just
+           * off the icon's upper-right — far enough from the tab label
+           * underneath that it doesn't crowd, close enough to the icon
+           * that it reads as "X new on this tab". Caps at "9+" to keep
+           * the pill from blowing up the icon's own footprint. */}
+          <span className="relative inline-flex">
+            <item.Icon
+              className={cn('h-6 w-6 transition-transform duration-180', isActive && 'scale-[1.05]')}
+              strokeWidth={isActive ? 2.4 : 1.8}
+              aria-hidden
+            />
+            {count > 0 && (
+              <span
+                className={cn(
+                  'absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full',
+                  'inline-flex items-center justify-center text-[9px] font-bold tabular leading-none',
+                  'bg-danger text-danger-fg ring-2 ring-surface',
+                )}
+                aria-label={`${count}`}
+              >
+                {count > 9 ? '9+' : count}
+              </span>
+            )}
+          </span>
           <span className={cn('truncate px-1 leading-none', isActive && 'font-semibold')}>
             {tNav(navLabelKey(item.key))}
           </span>

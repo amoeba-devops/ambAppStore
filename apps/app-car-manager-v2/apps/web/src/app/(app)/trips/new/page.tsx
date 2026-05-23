@@ -57,10 +57,8 @@ export default async function NewTripPage() {
     .filter((v) => v.cvhStatus !== 'RETIRED' && v.cvhStatus !== 'MAINTENANCE')
     .map((v) => ({ id: v.cvhId, label: `${v.cvhPlateNumber} — ${v.cvhModel}` }));
 
-  /* Chỉ ADMIN mới có quyền vào /users/new, /drivers/new, /vehicles/new
-   * (xem redirect ở 3 trang đó). MANAGER thấy hint thay vì button để tránh
-   * click → bị bounce ngược. */
-  const canCreateEntities = user.role === 'ADMIN';
+  /* Staff (Admin/Manager) có quyền vào /drivers/new, /vehicles/new. */
+  const canCreateEntities = user.role === 'ADMIN' || user.role === 'MANAGER';
 
   return (
     <>

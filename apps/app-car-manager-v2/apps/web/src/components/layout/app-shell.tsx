@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { countTodayExpenses } from '@/server/queries/expenses.queries';
 import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
 import { countPendingTrips } from '@/server/queries/trips.queries';
 import { AppShellClient } from './app-shell-client';
@@ -27,8 +28,13 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   /* Settings row may not exist yet (lazy-seeded on first /settings visit by
    * Admin). `getTenantSettings` returns null in that case — we don't seed
    * here to keep the layout render cheap; the JWT/i18n fallback covers it. */
-  const [pendingTripCount, settings, tCo, tRoot] = await Promise.all([
+  /* Today expense badge only matters for STAFF (sidebar/bottom-tab "Chi phí"
+   * entry is STAFF-only). Skip the query entirely for DRIVER to save a
+   * round-trip on every page render. */
+  const wantsTodayCost = user.role === 'ADMIN' || user.role === 'MANAGER';
+  const [pendingTripCount, todayExpenseCount, settings, tCo, tRoot] = await Promise.all([
     countPendingTrips({ entId: user.entId, role: user.role, userId: user.userId }),
+    wantsTodayCost ? countTodayExpenses(user.entId) : Promise.resolve(0),
     getTenantSettings(user.entId),
     getTranslations('company'),
     /* Root namespace — `appName` is a top-level i18n key (vi: "Fleet"). */
@@ -53,6 +59,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       userName={user.name}
       userEmail={user.email}
       pendingTripCount={pendingTripCount}
+      todayExpenseCount={todayExpenseCount}
       vapidPublicKey={process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC}
       basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''}
       tenantName={resolvedName}
