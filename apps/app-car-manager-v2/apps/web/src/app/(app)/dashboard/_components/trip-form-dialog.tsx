@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Plus, X } from 'lucide-react';
 import {
   Button,
+  cn,
   Dialog,
   DialogContent,
   DialogFooter,
@@ -239,14 +240,27 @@ export function TripFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={attemptClose}>
-      {/* Wider on desktop so the form + sticky map preview sit side-by-side.
-       * Mobile falls back to the default DialogContent width (centered with
-       * a small inset) and the map stacks below the route section.
+      {/* Mobile (< md): full-screen sheet — covers the whole viewport with
+       *   sticky header (title) and sticky footer (Cancel + Submit) so the
+       *   submit button stays in the thumb zone even on long forms. The
+       *   intermediate form grid scrolls between them via `flex-1 overflow-y-auto`.
+       *
+       * Desktop (>= md): centered modal as before, max 3xl/5xl wide, with
+       *   the sticky right-rail map preview.
+       *
        * `onPointerDownOutside` + `onEscapeKeyDown` defer to the close path so
        * the discard-confirm runs for these too, not just the X / Cancel. */}
       <DialogContent
         size="xl"
-        className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto md:max-w-3xl lg:max-w-5xl"
+        className={cn(
+          /* Layout: stack header / scrollable grid / footer with flex. */
+          'flex flex-col gap-0 p-0',
+          /* Mobile: full-screen, edge-to-edge, no rounded corners. */
+          'inset-0 left-0 top-0 translate-x-0 translate-y-0 w-screen h-[100dvh] max-h-[100dvh] max-w-none rounded-none border-0',
+          /* Desktop: centered modal, original sizing + spacing. */
+          'md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:h-auto md:max-h-[90vh] md:w-[calc(100vw-1rem)] md:max-w-3xl md:rounded-lg md:border md:gap-4',
+          'lg:max-w-5xl',
+        )}
         onPointerDownOutside={(e) => {
           if (dirty) {
             e.preventDefault();
@@ -259,12 +273,21 @@ export function TripFormDialog({
             attemptClose(false);
           }
         }}
+        /* Mobile keyboard would pop up immediately and cover the dialog
+         * if Radix auto-focused the first input. The form has 7+ fields;
+         * the user knows which one they want to start with — let them
+         * tap, not us. Desktop suffers no harm since keyboards there
+         * don't overlay viewport. */
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogHeader>
+        {/* Sticky title bar on mobile so the user always knows which form
+         * they're in while scrolling a long screen. Desktop drops the
+         * sticky + border so it reads as a normal dialog title. */}
+        <DialogHeader className="sticky top-0 z-10 shrink-0 border-b border-border bg-surface px-4 py-3 md:static md:border-0 md:bg-transparent md:px-6 md:py-4">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,400px)]">
+        <div className="flex-1 overflow-y-auto px-4 py-4 md:overflow-visible md:px-6 md:py-0 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,400px)]">
           {/* ── LEFT: form fields ─────────────────────────────────────── */}
           <div className="space-y-3 min-w-0">
             {passengers.length > 0 && (
@@ -446,17 +469,28 @@ export function TripFormDialog({
           </aside>
         </div>
 
-        <DialogFooter>
+        {/* Sticky bottom action bar on mobile — keeps Cancel + Submit in
+         * the thumb zone (with safe-area inset for iOS home-indicator) so
+         * the user doesn't have to scroll the form to find them. Buttons
+         * split full-width on mobile, right-align on desktop. */}
+        <DialogFooter className={cn(
+          'sticky bottom-0 z-10 shrink-0 gap-2 border-t border-border bg-surface px-4 py-3',
+          'pb-[max(env(safe-area-inset-bottom),12px)]',
+          /* Mobile: stack vertically, Submit on top, Cancel underneath. */
+          'flex flex-col-reverse',
+          /* Desktop: revert to inline row, right-align, drop sticky/border. */
+          'md:static md:flex-row md:justify-end md:border-0 md:bg-transparent md:px-6 md:py-4',
+        )}>
           <Link
             href={fullFormHref}
-            className="self-start text-[11px] text-text-muted hover:text-text sm:mr-auto sm:self-center"
+            className="self-start text-[11px] text-text-muted hover:text-text md:mr-auto md:self-center"
           >
             {fullFormLabel}
           </Link>
-          <Button type="button" variant="ghost" size="md" onClick={() => attemptClose(false)} disabled={pending}>
+          <Button type="button" variant="ghost" size="md" onClick={() => attemptClose(false)} disabled={pending} className="md:w-auto">
             {t('cancel')}
           </Button>
-          <Button type="button" variant="accent" size="md" onClick={onSubmit} disabled={pending}>
+          <Button type="button" variant="accent" size="md" onClick={onSubmit} disabled={pending} className="md:w-auto">
             {pending ? '…' : submitLabel}
           </Button>
         </DialogFooter>

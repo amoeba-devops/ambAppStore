@@ -265,3 +265,28 @@ export async function getExpenseDetail(
     })),
   };
 }
+
+/**
+ * Count expenses submitted today (Asia/Ho_Chi_Minh midnight cutoff).
+ *
+ * The Render host runs in Singapore (UTC+8), the dev DB at Neon ap-southeast-1
+ * (UTC+8), and the user base is in Vietnam (UTC+7). Computing the day boundary
+ * locally on the Node host would shift by an hour on most days. Push the
+ * truncation into Postgres via `now() AT TIME ZONE 'Asia/Ho_Chi_Minh'` so the
+ * answer is correct regardless of where the app code runs.
+ *
+ * Counts both driver-submitted AND admin/manager-recorded rows (no source
+ * filter). Soft-deleted rows excluded. Returns 0 for empty tenants. */
+export async function countTodayExpenses(entId: string): Promise<number> {
+  const rows = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(carExpenses)
+    .where(
+      and(
+        eq(carExpenses.entId, entId),
+        isNull(carExpenses.expDeletedAt),
+        sql`${carExpenses.expSubmittedAt} >= date_trunc('day', now() AT TIME ZONE 'Asia/Ho_Chi_Minh') AT TIME ZONE 'Asia/Ho_Chi_Minh'`,
+      ),
+    );
+  return rows[0]?.n ?? 0;
+}

@@ -25,7 +25,9 @@
     "schedule": "Schedule",
     "dashboard": "Dashboard",
     "pendingCountTitle": "{n} trips pending action",
-    "pendingBadgeLabel": "pending"
+    "pendingBadgeLabel": "pending",
+    "todayCountTitle": "{n} expenses recorded today",
+    "todayBadgeLabel": "today"
   },
   "actions": {
     "new": "New",
@@ -1003,5 +1005,25 @@
     "signInAs": "Sign in as",
     "demoNotePrefix": "Active because",
     "demoNoteSuffix": ". Disable in production."
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Company car management",
+    "entCodeLabel": "Company code",
+    "entCodePlaceholder": "e.g. VN01",
+    "phoneLabel": "Phone number",
+    "phonePlaceholder": "e.g. 0901234567 or +84 904567890",
+    "phoneHint": "You can include +84 or spaces — the system normalizes input.",
+    "submit": "Sign in",
+    "openAma": "Open AMA management",
+    "devTitle": "Dev mode",
+    "devLoginAs": "Dev sign-in",
+    "languageLabel": "Language",
+    "errMissing": "Please enter both company code and phone number.",
+    "errInvalid": "Wrong company code or phone is not registered. Check: (1) company code must be uppercase (e.g. VN01); (2) phone matches what the admin registered; (3) the account isn't suspended. Contact admin if it still fails.",
+    "errRateLimit": "Too many attempts. Please wait 1 minute.",
+    "errNotInstalled": "The app has not been activated for this company. Contact your administrator.",
+    "errServer": "System error. Please try again in a few minutes.",
+    "errFallback": "Sign-in failed. Please try again."
   }
 }
