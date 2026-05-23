@@ -9,6 +9,12 @@ import { navItemsForRole, type NavKey } from './nav-items';
 
 interface BottomTabNavProps {
   role: LocalRole;
+  /** Server-fed pending trips in the user's visibility scope. Drives the
+   * red dot/numeric badge on the Trips tab. 0 hides the badge. */
+  pendingTripCount: number;
+  /** Server-fed expenses submitted today (Asia/Ho_Chi_Minh). Drives the
+   * badge on the Chi phí tab (STAFF only — DRIVER doesn't have that tab). */
+  todayExpenseCount: number;
 }
 
 /* Mobile-only navigation bar.
@@ -34,10 +40,17 @@ interface BottomTabNavProps {
  * lights up reflects the post-redirect URL, not `/`.
  *
  * Hidden on md+ where the sidebar takes over. */
-export function BottomTabNav({ role }: BottomTabNavProps) {
+export function BottomTabNav({ role, pendingTripCount, todayExpenseCount }: BottomTabNavProps) {
   const pathname = usePathname() ?? '/';
   const tNav = useTranslations('nav');
   const tL   = useTranslations('layout');
+  /* Per-key badge counts. Keys absent or 0 → no badge. STAFF gets both
+   * trips + costs; DRIVER's `tripsMine` would also benefit from a pending
+   * count later but the current query is staff-scoped so we leave it. */
+  const tabCounts: Partial<Record<NavKey, number>> = {
+    trips: pendingTripCount,
+    costs: todayExpenseCount,
+  };
 
   const workspace = navItemsForRole(role).filter((item) => item.group === 'workspace');
   const dashboardItem = workspace.find((i) => i.key === 'dashboard');
@@ -83,9 +96,9 @@ export function BottomTabNav({ role }: BottomTabNavProps) {
               : 'grid-cols-4',
         )}
       >
-        {flatItems.slice(0, dashboardItem ? 2 : flatItems.length).map(renderFlatTab(pathname, tNav))}
+        {flatItems.slice(0, dashboardItem ? 2 : flatItems.length).map(renderFlatTab(pathname, tNav, tabCounts))}
         {dashboardItem && <li aria-hidden />}
-        {dashboardItem && flatItems.slice(2).map(renderFlatTab(pathname, tNav))}
+        {dashboardItem && flatItems.slice(2).map(renderFlatTab(pathname, tNav, tabCounts))}
       </ul>
     </nav>
   );
@@ -94,9 +107,14 @@ export function BottomTabNav({ role }: BottomTabNavProps) {
 /** Closure-returning render helper so the two `flatItems.slice(...)` arms
  * stay terse without duplicating the tab JSX. Pulled out of the inline
  * `.map` so the JSX above reads as layout rather than rendering detail. */
-function renderFlatTab(pathname: string, tNav: (key: string) => string) {
+function renderFlatTab(
+  pathname: string,
+  tNav: (key: string) => string,
+  tabCounts: Partial<Record<NavKey, number>>,
+) {
   return function FlatTab(item: ReturnType<typeof navItemsForRole>[number]) {
     const isActive = matchesTab(pathname, item.href, item.key);
+    const count = tabCounts[item.key] ?? 0;
     return (
       <li key={item.key} className="relative">
         {/* Active indicator — top accent bar */}
@@ -117,11 +135,31 @@ function renderFlatTab(pathname: string, tNav: (key: string) => string) {
             isActive ? 'text-accent' : 'text-text-muted',
           )}
         >
-          <item.Icon
-            className={cn('h-6 w-6 transition-transform duration-180', isActive && 'scale-[1.05]')}
-            strokeWidth={isActive ? 2.4 : 1.8}
-            aria-hidden
-          />
+          {/* Icon with optional count badge in the top-right corner. The
+           * badge is a small pill (9px tall, ~14px min width) sitting just
+           * off the icon's upper-right — far enough from the tab label
+           * underneath that it doesn't crowd, close enough to the icon
+           * that it reads as "X new on this tab". Caps at "9+" to keep
+           * the pill from blowing up the icon's own footprint. */}
+          <span className="relative inline-flex">
+            <item.Icon
+              className={cn('h-6 w-6 transition-transform duration-180', isActive && 'scale-[1.05]')}
+              strokeWidth={isActive ? 2.4 : 1.8}
+              aria-hidden
+            />
+            {count > 0 && (
+              <span
+                className={cn(
+                  'absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full',
+                  'inline-flex items-center justify-center text-[9px] font-bold tabular leading-none',
+                  'bg-danger text-danger-fg ring-2 ring-surface',
+                )}
+                aria-label={`${count}`}
+              >
+                {count > 9 ? '9+' : count}
+              </span>
+            )}
+          </span>
           <span className={cn('truncate px-1 leading-none', isActive && 'font-semibold')}>
             {tNav(navLabelKey(item.key))}
           </span>

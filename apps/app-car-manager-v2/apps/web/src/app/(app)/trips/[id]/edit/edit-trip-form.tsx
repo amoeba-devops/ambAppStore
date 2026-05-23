@@ -511,7 +511,12 @@ export function EditTripForm({
        * area but stays inside <form> so submitting reason still uses the form
        * context — though we call cancelTripAction directly, not via submit. */}
       <Dialog open={cancelDialogOpen} onOpenChange={(o) => !o && !cancelling && setCancelDialogOpen(false)}>
-        <DialogContent>
+        <DialogContent
+          /* Don't auto-focus the textarea — on mobile the keyboard would
+           * pop up and cover most of the dialog including the Submit
+           * button. Let the user tap to focus. */
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>{tActionsNs('cancelDialogTitle')}</DialogTitle>
             <DialogDescription>{tActionsNs('cancelDialogDesc')}</DialogDescription>
