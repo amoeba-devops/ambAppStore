@@ -1,5 +1,6 @@
 import 'server-only';
-import { S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 let cached: S3Client | null = null;
 
@@ -27,4 +28,24 @@ export function getS3Bucket(): string {
   const bucket = process.env.AWS_S3_BUCKET;
   if (!bucket) throw new Error('AWS_S3_BUCKET is required for receipt uploads.');
   return bucket;
+}
+
+/* Sign a short-lived GET URL for a receipt object.
+ *
+ * Used by RSC detail pages to surface images inline without exposing the
+ * bucket or burning a route handler per attachment. Default TTL 15 min — long
+ * enough that a user keeping the page open won't see broken images, short
+ * enough that a leaked URL has limited replay value. Caller can override (eg.
+ * a printable PDF view that needs a longer window).
+ *
+ * Returns null if the S3 client isn't configured — caller can degrade to the
+ * old "metadata only" rendering instead of a hard crash on dev branches
+ * without AWS creds. */
+export async function getSignedGetUrl(key: string, expiresIn = 900): Promise<string | null> {
+  try {
+    const cmd = new GetObjectCommand({ Bucket: getS3Bucket(), Key: key });
+    return await getSignedUrl(getS3Client(), cmd, { expiresIn });
+  } catch {
+    return null;
+  }
 }

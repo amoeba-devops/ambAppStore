@@ -137,6 +137,21 @@ export function ExpenseSubmitForm({
   const [submitStage, setSubmitStage] =
     useState<{ current: number; total: number } | 'submitting' | 'done' | null>(null);
 
+  /* Derive per-thumb upload state for `ReceiptCameraInput`.
+   *
+   * The submit transition is 1-based (`{ current: 1, total: 3 }` = first
+   * file uploading); the camera input wants a 0-based pointer. During
+   * `'submitting'`/`'done'`, all S3 PUTs are finished, so the pointer
+   * advances past the last file so every thumb renders as ✓ done — visual
+   * confirmation that the receipts landed while the action settles. */
+  const uploadProgress = (() => {
+    if (submitStage === null) return null;
+    if (typeof submitStage === 'object') {
+      return { currentIndex: submitStage.current - 1, total: submitStage.total };
+    }
+    return { currentIndex: files.length, total: files.length };
+  })();
+
   const canSubmit =
     type !== null &&
     amount !== null &&
@@ -374,6 +389,7 @@ export function ExpenseSubmitForm({
               <ReceiptCameraInput
                 files={files}
                 onChange={setFiles}
+                uploadProgress={uploadProgress}
                 onError={(key) => {
                   switch (key) {
                     case 'tooManyFiles':
