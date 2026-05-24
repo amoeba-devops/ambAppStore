@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quản lý — Dashboard — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand">
+        <span class="header__brand-mark">A</span>
+        <span>Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi">VI</a><a href="#" data-lang="ko">KO</a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Quản lý</div>
+        <a class="sidebar__link" href="00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="01-dashboard.html">Dashboard</a>
+        <a class="sidebar__link" href="02-dat-xe.html">Đặt xe</a>
+        <a class="sidebar__link" href="03-theo-doi-chuyen-di.html">Theo dõi chuyến đi</a>
+        <a class="sidebar__link" href="04-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="05-so-chi-phi.html">Sổ chi phí</a>
+        <a class="sidebar__link" href="06-bao-cao-ca-nhan.html">Báo cáo cá nhân</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">Trang chủ</a> · Quản lý · Dashboard</div>
+        <h1>Dashboard — Tổng quan đội xe</h1>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>URL</dt><dd><code>/dashboard</code> — trang chủ tự động khi đăng nhập vai trò Quản lý</dd>
+            <dt>Phạm vi dữ liệu</dt><dd><strong>Chỉ các chuyến của bạn</strong> (chuyến do bạn tạo HOẶC bạn là hành khách)</dd>
+          </dl>
+        </div>
+
+        <figure>
+          <img src="../../assets/img/screenshots/vi/manager/01-dashboard.png" alt="Dashboard Quản lý (desktop)">
+          <figcaption>Dashboard Quản lý (desktop) — calendar tháng (giữa) + danh sách Phương tiện (phải trên) + Chuyến đi liên quan (phải dưới)</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/screenshots/vi/manager/01-dashboard-mobile.png" alt="Dashboard Quản lý (mobile)">
+          <figcaption>Cùng dashboard nhìn trên điện thoại — bố cục cuộn dọc, ưu tiên chuyến hôm nay</figcaption>
+        </figure>
+
+        <h2>3 khu vực chính</h2>
+
+        <h3>1. Lịch chuyến đi</h3>
+        <p>Hiển thị tất cả chuyến trong tháng <strong>thuộc về bạn</strong> (do bạn tạo hoặc bạn là hành khách). Có 3 chế độ xem ở thanh trên cùng:</p>
+        <ul>
+          <li><strong>Theo xe</strong> — gom chuyến theo từng biển số</li>
+          <li><strong>Theo trạng thái</strong> — gom chuyến theo PENDING / CONFIRMED / IN_PROGRESS / COMPLETED</li>
+          <li>4 chế độ thời gian: <strong>Tháng / Tuần / Ngày / Theo xe</strong></li>
+        </ul>
+        <p>Bấm vào chuyến trong lịch để mở chi tiết.</p>
+
+        <h3>2. Danh sách Phương tiện (panel phải trên)</h3>
+        <p>Liệt kê các xe trong đội kèm trạng thái hiện tại (Sẵn sàng / Đang chạy / Bảo trì / Đã thanh lý). Bấm tên xe để xem thông tin chi tiết (xe của tổ chức, đọc-only).</p>
+
+        <h3>3. Chuyến đi liên quan (panel phải dưới)</h3>
+        <p>Top chuyến gần đây của bạn theo thời gian khởi hành, kèm trạng thái. Bấm "Xem tất cả" để mở trang <code>/trips</code>.</p>
+
+        <h2>Nút "Tạo chuyến mới"</h2>
+        <p>Nút lớn màu xanh ở góc trên phải dashboard — bấm để mở form đặt xe (xem trang tiếp <a href="02-dat-xe.html">Đặt xe</a>).</p>
+
+        <h2>Khác Admin ở điểm gì?</h2>
+        <ul>
+          <li><strong>Phạm vi dữ liệu hẹp</strong> — Admin thấy <em>mọi</em> chuyến trong công ty; bạn chỉ thấy chuyến của riêng bạn</li>
+          <li><strong>Sidebar ngắn hơn</strong> — không có nhóm "Quản trị" (Người dùng / Cài đặt / Nhật ký kiểm toán)</li>
+          <li><strong>Số chuyến trên header</strong> hiển thị "X chuyến trong tháng · vai trò MANAGER"</li>
+        </ul>
+
+        <nav class="pager">
+          <a class="pager__prev" href="00-tong-quan.html"><span>← Trước</span><strong>Tổng quan</strong></a>
+          <a class="pager__next" href="02-dat-xe.html"><span>Tiếp theo →</span><strong>Đặt xe</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">Cập nhật 24-05-2026 · Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

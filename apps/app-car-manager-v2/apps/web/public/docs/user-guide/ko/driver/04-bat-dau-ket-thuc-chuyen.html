@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>운행 시작/종료 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand">
+        <span class="header__brand-mark">A</span>
+        <span>Amoeba Car Manager v2 <span class="header__brand-sub">· 사용 안내서</span></span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="안내서 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" class="is-active" data-lang="vi">VI</a>
+          <a href="#" data-lang="ko">KO</a>
+        </span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">소개</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">화면 탐색</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림함</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">용어집</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">기사</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-cai-pwa.html">PWA 설치</a>
+        <a class="sidebar__link" href="02-today-screen.html">오늘 화면</a>
+        <a class="sidebar__link" href="03-xac-nhan-chuyen.html">운행 확인</a>
+        <a class="sidebar__link" href="04-bat-dau-ket-thuc-chuyen.html">운행 시작/종료</a>
+        <a class="sidebar__link" href="05-ghi-chi-phi.html">비용 기록</a>
+        <a class="sidebar__link" href="06-canh-bao-bao-duong.html">정비 알림</a>
+        <a class="sidebar__link" href="07-ngoai-tuyen.html">오프라인 동작</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">홈</a> · 기사 · Bắt đầu / kết thúc
+        </div>
+        <h1>운행 시작 및 종료</h1>
+
+        <div class="callout callout--info" style="margin-bottom:24px">
+          <div class="callout__icon">🌐</div>
+          <div class="callout__body">
+            <p><strong>한국어 번역 진행 중</strong> — 이 페이지의 본문 일부는 아직 베트남어입니다.
+            제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다.
+            급한 경우 <a href="../../vi/driver/04-bat-dau-ket-thuc-chuyen.html">베트남어 원문</a>을 참고하세요.</p>
+          </div>
+        </div>
+        
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>사전 단계</dt><dd>운행 phải ở trạng thái "Đã xác nhận" (xem <a href="03-xac-nhan-chuyen.html">운행 확인</a>)</dd>
+            <dt>소요 시간</dt><dd>~10 giây mỗi lần</dd>
+            <dt>자동 기록</dt><dd>Thời điểm + số 주행거리계 + người thao tác</dd>
+          </dl>
+        </div>
+
+        <p>Hai thao tác này tạo nên <strong>khung thời gian thực</strong> cho 운행 — dữ liệu được dùng cho báo cáo
+        km, tính phí, và tự động đồng bộ km với chu kỳ bảo dưỡng.</p>
+
+        <h2>Bắt đầu 운행 (xuất phát)</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>Trước khi rời chỗ đậu xe, mở app, vào chi tiết 운행 đã xác nhận.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p>Cuộn xuống dưới cùng, bấm nút <strong>"▶ Bắt đầu 운행"</strong> (màu xanh, full width).</p>
+            <figure>
+              <img src="../../assets/img/screenshots/ko/driver/04-trip-start.png" alt="Nút Bắt đầu 운행">
+              <figcaption>운행 TR-2002 — trạng thái "Đã xác nhận", nút "Bắt đầu 운행" sẵn sàng</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Hệ thống ghi nhận: thời điểm bắt đầu = thời điểm bạn bấm nút. Trạng thái 운행 chuyển sang <strong>"Đang đi"</strong>.
+            Banner xanh trên Hôm nay sẽ thay thế bằng 운행 này.</p>
+          </div>
+        </div>
+
+        <h2>Kết thúc 운행 (đến nơi)</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>Sau khi đỗ xe tại 도착지, mở app, vào chi tiết 운행 đang chạy (banner xanh trên Hôm nay).</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p>Bấm nút <strong>"⏹ Kết thúc 운행"</strong> (xanh dương) ở dưới cùng.</p>
+            <figure>
+              <img src="../../assets/img/screenshots/ko/driver/04-trip-end.png" alt="Nút Kết thúc 운행">
+              <figcaption>운행 TR-1042 — đang chạy, nút "Kết thúc 운행" để chốt</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Trạng thái 운행 chuyển sang <strong>"Đã hoàn tất"</strong>. Thời điểm kết thúc được ghi nhận.</p>
+          </div>
+        </div>
+
+        <h2>주행거리 (주행거리계) được cập nhật khi nào?</h2>
+        <p>Hiện tại hệ thống đang dùng 주행거리 trên hồ sơ xe — tự động cộng dồn theo 운행. Trong các phiên bản tới, bạn sẽ được yêu cầu nhập 주행거리 hiển thị trên đồng hồ xe tại 2 thời điểm:</p>
+        <ul>
+          <li><strong>Bắt đầu</strong>: ghi 주행거리 ban đầu (để tính tổng km 운행)</li>
+          <li><strong>Kết thúc</strong>: ghi 주행거리 kết thúc (để cộng vào 주행거리계 xe)</li>
+        </ul>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">⚠️</div>
+          <div class="callout__body">
+            <p><strong>Đừng quên bấm Kết thúc.</strong> Nếu để 운행 ở trạng thái "Đang đi" qua đêm, Admin sẽ nhận 알림
+            và phải chốt 운행 tay — gây sai lệch giờ làm việc của bạn trong báo cáo.</p>
+          </div>
+        </div>
+
+        <h2>Lỡ tay bấm sai?</h2>
+        <table>
+          <thead><tr><th>Tình huống</th><th>Cách xử lý</th></tr></thead>
+          <tbody>
+            <tr><td>Bấm "Bắt đầu" nhưng chưa xuất phát</td><td>Liên hệ Admin để 취소 + tạo lại — bạn không tự sửa được</td></tr>
+            <tr><td>Quên bấm "Kết thúc", đã về nhà</td><td>Vẫn bấm "Kết thúc" được; thời điểm sẽ là lúc bạn bấm, không phải lúc đến nơi thực sự — 메모 vào trường "메모" để Admin biết</td></tr>
+            <tr><td>Bấm "Kết thúc" rồi mới phát hiện đi tiếp</td><td>Tạo 운행 mới hoặc liên hệ Admin — không thể "khởi động lại" 운행 đã hoàn tất</td></tr>
+          </tbody>
+        </table>
+
+        <nav class="pager">
+          <a class="pager__prev" href="03-xac-nhan-chuyen.html">
+            <span>← 이전</span>
+            <strong>운행 확인</strong>
+          </a>
+          <a class="pager__next" href="05-ghi-chi-phi.html">
+            <span>다음 →</span>
+            <strong>비용 기록</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        최종 업데이트 2026-05-24 ·
+        Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

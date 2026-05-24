@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Xác nhận chuyến — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand">
+        <span class="header__brand-mark">A</span>
+        <span>Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" class="is-active" data-lang="vi">VI</a>
+          <a href="#" data-lang="ko">KO</a>
+        </span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Tài xế</div>
+        <a class="sidebar__link" href="00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="01-cai-pwa.html">Cài đặt PWA</a>
+        <a class="sidebar__link" href="02-today-screen.html">Màn hình Hôm nay</a>
+        <a class="sidebar__link" href="03-xac-nhan-chuyen.html">Xác nhận chuyến</a>
+        <a class="sidebar__link" href="04-bat-dau-ket-thuc-chuyen.html">Bắt đầu / kết thúc chuyến</a>
+        <a class="sidebar__link" href="05-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="06-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="07-ngoai-tuyen.html">Hành vi ngoại tuyến</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">Trang chủ</a> · Tài xế · Xác nhận chuyến
+        </div>
+        <h1>Xác nhận / Từ chối chuyến mới</h1>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>Khi nào</dt><dd>Khi Admin gán bạn vào chuyến mới — bạn nhận thông báo đẩy + email</dd>
+            <dt>Thời hạn</dt><dd>Không có thời hạn cứng, nhưng phản hồi sớm giúp Admin gán lại nếu bạn bận</dd>
+            <dt>Hậu quả</dt><dd>Xác nhận → chuyến "khoá" lại cho bạn · Từ chối → Admin nhận thông báo và gán người khác</dd>
+          </dl>
+        </div>
+
+        <h2>Cách xác nhận</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>Mở app từ thông báo đẩy, hoặc vào tab <strong>Chuyến của tôi</strong> → chuyến có nhãn <strong>"Chờ tài xế xác nhận"</strong>.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p>Bấm vào chuyến để mở chi tiết. Xem kỹ:</p>
+            <ul>
+              <li><strong>Điểm đón</strong> và <strong>Điểm đến</strong> — có map kèm</li>
+              <li><strong>Giờ khởi hành</strong> + <strong>thời lượng dự kiến</strong></li>
+              <li><strong>Hành khách</strong> + <strong>Mục đích chuyến</strong></li>
+              <li><strong>Xe</strong> được gán (biển số, model)</li>
+            </ul>
+            <figure>
+              <img src="../../assets/img/screenshots/vi/driver/03-trip-pending-confirm.png" alt="Màn hình chi tiết chuyến chờ xác nhận">
+              <figcaption>Chuyến TR-2001 — đầy đủ thông tin + 2 nút "Chấp nhận" / "Từ chối" cố định dưới đáy</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Bấm nút <strong>"✓ Chấp nhận"</strong> (xanh) nếu bạn nhận chuyến.
+            Bấm <strong>"✗ Từ chối"</strong> (đỏ) nếu không nhận được — hệ thống sẽ yêu cầu nhập <strong>lý do</strong>.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">4</div>
+          <div class="step__body">
+            <p>Sau khi xác nhận, trạng thái chuyến đổi sang <strong>"Đã xác nhận"</strong> — Admin và hành khách nhận thông báo. Chuyến giờ xuất hiện trong banner ĐANG CHẠY hoặc khu vực "Trong ngày" trên Hôm nay.</p>
+          </div>
+        </div>
+
+        <h2>Khi nào nên từ chối?</h2>
+        <table>
+          <thead><tr><th>Tình huống</th><th>Có nên từ chối?</th></tr></thead>
+          <tbody>
+            <tr><td>Trùng lịch nghỉ phép / khám sức khoẻ định kỳ</td><td>✅ Nên — ghi rõ lý do</td></tr>
+            <tr><td>Xe được gán đang hỏng, không khởi động được</td><td>✅ Nên — báo Admin gán lại xe khác</td></tr>
+            <tr><td>Không quen tuyến đường, ngại đi</td><td>❌ Không — báo Admin hoặc dùng GPS</td></tr>
+            <tr><td>Giờ khởi hành quá sớm/muộn so với ca</td><td>✅ Nên — Admin sẽ điều chỉnh hoặc gán người khác</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">⚠️</div>
+          <div class="callout__body">
+            <p><strong>Lý do từ chối được ghi vào nhật ký kiểm toán</strong> và Admin sẽ thấy. Hãy ghi <strong>cụ thể, lịch sự</strong> — không viết "không biết" hoặc "ko nhận".</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="02-today-screen.html">
+            <span>← Trước</span>
+            <strong>Màn hình Hôm nay</strong>
+          </a>
+          <a class="pager__next" href="04-bat-dau-ket-thuc-chuyen.html">
+            <span>Tiếp theo →</span>
+            <strong>Bắt đầu / kết thúc chuyến</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        Cập nhật 24-05-2026 ·
+        Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Login form — coordinates relative to 1440x900 desktop viewport.
+# Form card is centered around x≈720, y≈430.
+caption: "Form đăng nhập — nhập Mã công ty (1) và Số điện thoại (2), bấm Đăng nhập (3)"
+
+annotations:
+  # 1 — Mã công ty input
+  - { type: number, at: [510, 437], label: '1', color: '#3182F6', radius: 16 }
+  - { type: box,    rect: [546, 442, 348, 32], color: '#3182F6', width: 2 }
+
+  # 2 — Số điện thoại input
+  - { type: number, at: [510, 525], label: '2', color: '#3182F6', radius: 16 }
+  - { type: box,    rect: [546, 525, 348, 32], color: '#3182F6', width: 2 }
+
+  # 3 — Đăng nhập button
+  - { type: number, at: [510, 620], label: '3', color: '#FF3B30', radius: 16 }
+  - { type: arrow,  from: [528, 620], to: [605, 620], color: '#FF3B30', width: 3 }

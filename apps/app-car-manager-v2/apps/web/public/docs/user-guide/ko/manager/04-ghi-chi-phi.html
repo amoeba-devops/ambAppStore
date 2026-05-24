@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>비용 기록 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand">
+        <span class="header__brand-mark">A</span>
+        <span>Amoeba Car Manager v2 <span class="header__brand-sub">· 사용 안내서</span></span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="안내서 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi">VI</a><a href="#" data-lang="ko">KO</a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">소개</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">화면 탐색</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림함</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">용어집</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">매니저</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-dashboard.html">대시보드</a>
+        <a class="sidebar__link" href="02-dat-xe.html">차량 예약</a>
+        <a class="sidebar__link" href="03-theo-doi-chuyen-di.html">운행 추적</a>
+        <a class="sidebar__link" href="04-ghi-chi-phi.html">비용 기록</a>
+        <a class="sidebar__link" href="05-so-chi-phi.html">비용 장부</a>
+        <a class="sidebar__link" href="06-bao-cao-ca-nhan.html">개인 보고서</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">홈</a> · 매니저 · Ghi chi phí</div>
+        <h1>발생 비용 기록</h1>
+
+        <div class="callout callout--info" style="margin-bottom:24px">
+          <div class="callout__icon">🌐</div>
+          <div class="callout__body">
+            <p><strong>한국어 번역 진행 중</strong> — 이 페이지의 본문 일부는 아직 베트남어입니다.
+            제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다.
+            급한 경우 <a href="../../vi/manager/04-ghi-chi-phi.html">베트남어 원문</a>을 참고하세요.</p>
+          </div>
+        </div>
+        
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>URL</dt><dd><code>/expenses/new</code> (vào trực tiếp hoặc từ <code>/costs</code> → "+ Ghi nhận chi phí")</dd>
+            <dt>승인</dt><dd><strong>Không cần 승인</strong> — phiên bản hiện tại tự động ghi nhận mọi khoản (PRD R3 đã bỏ luồng duyệt phân cấp)</dd>
+            <dt>기한</dt><dd>Ghi trong vòng 7 ngày từ ngày chi tiêu</dd>
+          </dl>
+        </div>
+
+        <p>Quản lý cũng cần ghi chi phí khi <strong>tự đi công tác</strong> bằng xe công ty (đỗ xe, phí đường, ăn uống công tác…) hoặc khi <strong>ứng tiền cho 기사</strong>.</p>
+
+        <h2>8 loại chi phí</h2>
+        <p>Giống hệt như 기사 — tham khảo bảng đầy đủ ở <a href="../driver/05-ghi-chi-phi.html#8-loại-chi-phí">trang Ghi chi phí cho 기사</a>. Tóm tắt:</p>
+
+        <table>
+          <thead><tr><th>Loại</th><th>Khi nào dùng</th></tr></thead>
+          <tbody>
+            <tr><td>🔵 FUEL — Xăng</td><td>Đổ xăng cho xe</td></tr>
+            <tr><td>🔵 OIL — Dầu</td><td>오일 교환 định kỳ</td></tr>
+            <tr><td>🟡 MEAL — Ăn uống</td><td>Cơm khi đi công tác</td></tr>
+            <tr><td>⚪ REPAIR — Sửa chữa</td><td>Sửa xe, thay phụ tùng</td></tr>
+            <tr><td>⚪ PARKING — Đỗ xe</td><td>Phí gửi xe</td></tr>
+            <tr><td>⚪ TOLL — Phí đường</td><td>BOT, cao tốc</td></tr>
+            <tr><td>🔴 ACCIDENT — Tai nạn</td><td>Hư hại do va chạm (bắt buộc ảnh)</td></tr>
+            <tr><td>🟢 INSPECTION — 정기검사</td><td>Phí 정기검사 định kỳ</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Form ghi chi phí</h2>
+
+        <figure>
+          <img src="../../assets/img/screenshots/ko/manager/04-expense-new.png" alt="Form ghi chi phí trên desktop">
+          <figcaption>Form ghi chi phí — lưới 8 loại + số tiền + ngày + xe + 기사 + 메모 + ảnh</figcaption>
+        </figure>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body"><p>Chọn <strong>Loại chi phí</strong> bằng cách bấm 1 trong 8 ô.</p></div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body"><p>Nhập <strong>Số tiền</strong> (VND, hệ thống tự định dạng với dấu phân cách).</p></div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body"><p>Chọn <strong>Ngày chi tiêu</strong> (mặc định = hôm nay).</p></div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">4</div>
+          <div class="step__body"><p>Chọn <strong>Xe</strong> — Quản lý có thể chọn bất kỳ xe nào trong đội.</p></div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">5</div>
+          <div class="step__body">
+            <p>(Đặc biệt cho Quản lý) Chọn <strong>기사</strong> — bạn có thể ghi nhận chi phí <em>thay cho 기사 khác</em>.
+            기사 sẽ thấy khoản này trong sổ chi phí của họ.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">6</div>
+          <div class="step__body"><p>Upload <strong>Ảnh chứng từ</strong> (tối đa 5 ảnh, mỗi ảnh ≤ 5MB).</p></div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">7</div>
+          <div class="step__body"><p>Bấm <strong>"Ghi nhận"</strong>. Khoản chi phí được ghi vào sổ ngay, không cần ai duyệt.</p></div>
+        </div>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">ℹ️</div>
+          <div class="callout__body">
+            <p><strong>Khác 기사 ở điểm gì?</strong> Quản lý chọn được <em>bất kỳ 기사 nào</em> trong dropdown — không bị giới hạn vào chính mình. Dùng tính năng này khi bạn ứng tiền cho 기사.</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="03-theo-doi-chuyen-di.html"><span>← 이전</span><strong>운행 추적</strong></a>
+          <a class="pager__next" href="05-so-chi-phi.html"><span>다음 →</span><strong>비용 장부</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">최종 업데이트 2026-05-24 · 피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

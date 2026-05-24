@@ -124,7 +124,7 @@ export default async function LoginPage({
           </div>
 
           {demoEnabled && (
-            <div className="mt-6 pt-5 border-t border-border">
+            <div data-testid="dev-mode-section" className="mt-6 pt-5 border-t border-border">
               <div className="text-[10.5px] font-semibold text-text-faint uppercase tracking-wider mb-3">
                 {t('devTitle')}
               </div>

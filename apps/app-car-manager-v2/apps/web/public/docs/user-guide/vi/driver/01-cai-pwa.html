@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cài đặt PWA — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand">
+        <span class="header__brand-mark">A</span>
+        <span>Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" class="is-active" data-lang="vi">VI</a>
+          <a href="#" data-lang="ko">KO</a>
+        </span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Tài xế</div>
+        <a class="sidebar__link" href="00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="01-cai-pwa.html">Cài đặt PWA</a>
+        <a class="sidebar__link" href="02-today-screen.html">Màn hình Hôm nay</a>
+        <a class="sidebar__link" href="03-xac-nhan-chuyen.html">Xác nhận chuyến</a>
+        <a class="sidebar__link" href="04-bat-dau-ket-thuc-chuyen.html">Bắt đầu / kết thúc chuyến</a>
+        <a class="sidebar__link" href="05-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="06-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="07-ngoai-tuyen.html">Hành vi ngoại tuyến</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">Trang chủ</a> · Tài xế · Cài đặt PWA
+        </div>
+        <h1>Cài đặt PWA về điện thoại</h1>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>Đối tượng</dt><dd>Tài xế (chỉ làm 1 lần)</dd>
+            <dt>Thời gian</dt><dd>~30 giây</dd>
+            <dt>Lợi ích</dt><dd>Mở app từ Màn hình chính, không cần qua trình duyệt; nhận thông báo đẩy</dd>
+          </dl>
+        </div>
+
+        <p>PWA (Progressive Web App) cho phép cài Amoeba Car Manager lên điện thoại như một <strong>app native</strong>:
+        có icon riêng trên Màn hình chính, chạy toàn màn hình, nhận thông báo đẩy. Không qua kho ứng dụng — không tốn dung lượng đáng kể.</p>
+
+        <h2>Cách 1 — iPhone (Safari)</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>Mở <strong>Safari</strong> (không phải Chrome/Firefox — bắt buộc Safari trên iPhone).</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p>Vào <code>https://apps.amoeba.site/app-car-manager-v2</code> và đăng nhập như bình thường.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Bấm nút <strong>Chia sẻ</strong> (icon hình vuông + mũi tên hướng lên) ở thanh dưới của Safari.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">4</div>
+          <div class="step__body">
+            <p>Cuộn xuống chọn <strong>"Thêm vào Màn hình chính"</strong> → Bấm <strong>Thêm</strong> ở góc trên phải.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">5</div>
+          <div class="step__body">
+            <p>Icon Amoeba Car xuất hiện trên Màn hình chính. Bấm vào để mở — app chạy toàn màn hình, không có thanh địa chỉ.</p>
+          </div>
+        </div>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">⚠️</div>
+          <div class="callout__body">
+            <p><strong>Thông báo đẩy trên iPhone</strong> chỉ hoạt động <em>sau khi đã cài PWA</em>. Nếu vào qua Safari thông thường, bạn sẽ không nhận được thông báo.</p>
+          </div>
+        </div>
+
+        <h2>Cách 2 — Android (Chrome)</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>Mở <strong>Chrome</strong> trên Android.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p>Vào URL của app và đăng nhập.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Chrome sẽ tự động hiển thị banner <strong>"Cài đặt Amoeba Car"</strong> ở đáy màn hình. Bấm <strong>Cài đặt</strong>.</p>
+            <p>Hoặc bấm menu (3 chấm trên cùng bên phải) → <strong>"Thêm vào Màn hình chính"</strong>.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">4</div>
+          <div class="step__body">
+            <p>Icon xuất hiện trên Màn hình chính. Bấm để mở.</p>
+          </div>
+        </div>
+
+        <h2>Hủy cài đặt</h2>
+        <p>Trên iPhone: bấm và giữ icon → Xoá App. Trên Android: bấm và giữ icon → Gỡ cài đặt. Dữ liệu trong app sẽ mất, nhưng dữ liệu trên hệ thống vẫn còn — đăng nhập lại là có hết.</p>
+
+        <nav class="pager">
+          <a class="pager__prev" href="00-tong-quan.html">
+            <span>← Trước</span>
+            <strong>Tổng quan</strong>
+          </a>
+          <a class="pager__next" href="02-today-screen.html">
+            <span>Tiếp theo →</span>
+            <strong>Màn hình Hôm nay</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        Cập nhật 24-05-2026 ·
+        Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>오늘 화면 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand">
+        <span class="header__brand-mark">A</span>
+        <span>Amoeba Car Manager v2 <span class="header__brand-sub">· 사용 안내서</span></span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="안내서 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" class="is-active" data-lang="vi">VI</a>
+          <a href="#" data-lang="ko">KO</a>
+        </span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">소개</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">화면 탐색</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림함</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">용어집</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">기사</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-cai-pwa.html">PWA 설치</a>
+        <a class="sidebar__link" href="02-today-screen.html">오늘 화면</a>
+        <a class="sidebar__link" href="03-xac-nhan-chuyen.html">운행 확인</a>
+        <a class="sidebar__link" href="04-bat-dau-ket-thuc-chuyen.html">운행 시작/종료</a>
+        <a class="sidebar__link" href="05-ghi-chi-phi.html">비용 기록</a>
+        <a class="sidebar__link" href="06-canh-bao-bao-duong.html">정비 알림</a>
+        <a class="sidebar__link" href="07-ngoai-tuyen.html">오프라인 동작</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">홈</a> · 기사 · Hôm nay
+        </div>
+        <h1>"오늘" 화면</h1>
+
+        <div class="callout callout--info" style="margin-bottom:24px">
+          <div class="callout__icon">🌐</div>
+          <div class="callout__body">
+            <p><strong>한국어 번역 진행 중</strong> — 이 페이지의 본문 일부는 아직 베트남어입니다.
+            제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다.
+            급한 경우 <a href="../../vi/driver/02-today-screen.html">베트남어 원문</a>을 참고하세요.</p>
+          </div>
+        </div>
+        
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>대상</dt><dd>기사</dd>
+            <dt>URL</dt><dd><code>/today</code> — là trang mặc định khi đăng nhập với vai trò 기사</dd>
+            <dt>업데이트</dt><dd>Tự động khi có 운행 mới được gán hoặc đổi trạng thái</dd>
+          </dl>
+        </div>
+
+        <p>"Hôm nay" là trang chính của bạn. Mở app là thấy ngay 운행 nào đang chạy, 운행 nào kế tiếp, và xe được gán cho bạn.</p>
+
+        <h2>Bố cục</h2>
+
+        <figure>
+          <img src="../../assets/img/screenshots/ko/driver/02-today-overview.png" alt="Màn hình Hôm nay">
+          <figcaption>Màn hình Hôm nay — banner trạng thái + chi tiết 운행 đang chạy + danh sách 운행 trong ngày</figcaption>
+        </figure>
+
+        <h3>Khu vực ĐANG CHẠY (banner xanh)</h3>
+        <p>Nếu bạn có 운행 đang ở trạng thái <code>IN_PROGRESS</code>, banner xanh trên cùng hiển thị:</p>
+        <ul>
+          <li>Mã 운행 (VD: <code>TR-1042</code>)</li>
+          <li>Tên 승객 + 목적 운행</li>
+          <li>출발지 / 도착지</li>
+          <li>Giờ 출발, thời lượng, 번호판 xe</li>
+          <li>Link "Chi tiết 운행 →" — bấm để xem đầy đủ + thao tác kết thúc</li>
+        </ul>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">ℹ️</div>
+          <div class="callout__body">
+            <p><strong>Ưu tiên hiển thị</strong>: IN_PROGRESS (đang chạy) → PENDING_DRIVER_CONFIRMATION (chờ xác nhận) → CONFIRMED (sắp chạy). Hệ thống tự chọn 운행 phù hợp nhất.</p>
+          </div>
+        </div>
+
+        <h3>Khu vực "Trong ngày"</h3>
+        <p>Các 운행 khác cùng ngày, sắp xếp theo giờ 출발. Bấm vào để xem chi tiết.</p>
+
+        <h3>Khu vực "Xe của tôi"</h3>
+        <p>Các xe bạn được Admin chỉ định lái thường xuyên. Bấm vào để xem thông tin xe (번호판, model, 주행거리, lịch bảo dưỡng).</p>
+
+        <h3>"내 운행" 탭 — 전체 이력 보기</h3>
+        <p>하단의 <strong>내 운행</strong> 탭을 누르면 본인에게 배정된 모든 운행(예정/진행 중/완료)을 시간순으로 볼 수 있습니다.</p>
+        <figure>
+          <img src="../../assets/img/screenshots/ko/driver/02-trips-list.png" alt="내 운행 목록">
+          <figcaption>"내 운행" 탭 — 운행 번호, 상태, 시간이 표시된 카드 목록</figcaption>
+        </figure>
+
+        <h3>Thanh điều hướng đáy màn hình</h3>
+        <p>4 tab cố định ở dưới cùng:</p>
+        <table>
+          <thead><tr><th>Tab</th><th>Đường dẫn</th><th>Khi nào dùng</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Hôm nay</strong></td><td>/today</td><td>Trang chính, luôn ở đây trước</td></tr>
+            <tr><td><strong>운행 của tôi</strong></td><td>/trips</td><td>Xem toàn bộ 운행 đã/đang/sẽ chạy</td></tr>
+            <tr><td><strong>Chi phí</strong></td><td>/expenses</td><td>Ghi mới + xem lịch sử chi phí</td></tr>
+            <tr><td><strong>Cá nhân</strong></td><td>/settings/me</td><td>Đổi ngôn ngữ, đăng xuất, xem bằng lái</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Khi nào hệ thống "đẩy" bạn đến đây?</h2>
+        <ul>
+          <li>Đăng nhập lần đầu trong ngày</li>
+          <li>Bấm vào notification push từ điện thoại (nếu nội dung liên quan tới 운행 hôm nay)</li>
+          <li>Mở PWA từ icon Màn hình chính</li>
+        </ul>
+
+        <nav class="pager">
+          <a class="pager__prev" href="01-cai-pwa.html">
+            <span>← 이전</span>
+            <strong>PWA 설치</strong>
+          </a>
+          <a class="pager__next" href="03-xac-nhan-chuyen.html">
+            <span>다음 →</span>
+            <strong>운행 확인</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        최종 업데이트 2026-05-24 ·
+        Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

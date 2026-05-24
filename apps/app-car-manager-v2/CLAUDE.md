@@ -14,6 +14,7 @@ Build **Company Car Management System (CCMS)** — phân hệ Quản lý Điều
 | 2 | [resources/claude-design/](resources/claude-design/) | **Design reference** (24 màn HTML/JSX prototype). Tham khảo cho **visual + interaction patterns**. **KHÔNG phải spec** — feature có trong prototype mà PRD không yêu cầu → KHÔNG implement | Khi build UI component / port screen |
 | 3 | [resources/claude-design/uploads/COMPANY CAR MANAGEMENT SYSTEM.docx](resources/claude-design/uploads/) | **SRS gốc khách hàng** (147 dòng tiếng Việt). Để hiểu context/intent gốc. **KHÔNG phải spec MVP** — PRD đã tổng hợp + mở rộng | Khi PRD ambiguous, cần hiểu intent KH |
 | 4 | [docs/analysis/REQ-20260512-prd-srs-audit.md](docs/analysis/REQ-20260512-prd-srs-audit.md) | Audit ghi nhận các divergence giữa PRD ↔ SRS ↔ Prototype + resolution | Khi gặp mâu thuẫn 3 nguồn |
+| 5 | [apps/web/public/docs/user-guide/index.html](apps/web/public/docs/user-guide/index.html) | **User guide HTML** (vi + ko, 66 trang, 80 ảnh) — end-user docs, không phải dev docs | Khi cần tham khảo UX flow chính thức |
 
 ### 1.2 Nguyên tắc khi 3 nguồn mâu thuẫn
 

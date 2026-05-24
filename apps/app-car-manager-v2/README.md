@@ -3,7 +3,7 @@
 > Hệ thống Quản lý Xe Công ty — Điều xe + Kiểm soát chi phí.
 > Standalone Turborepo · Next.js 15 fullstack · Neon Postgres · S3 · Render.com.
 
-**Documentation entry**: [CLAUDE.md](CLAUDE.md) (project context, ⭐ đọc trước) · [PRD.md](PRD.md) (business spec MVP).
+**Documentation entry**: [CLAUDE.md](CLAUDE.md) (project context, ⭐ đọc trước) · [PRD.md](PRD.md) (business spec MVP) · [User Guide HTML (vi + ko)](apps/web/public/docs/user-guide/index.html) (33 trang × 2 ngôn ngữ, 80 screenshot — phục vụ end-user, không phải dev).
 
 ---
 
@@ -526,6 +526,40 @@ npm run db:studio            # web UI inspect DB (uses active DATABASE_URL)
 # Cleanup
 npm run clean                # rm node_modules + .turbo
 ```
+
+---
+
+## 11.5 User Guide HTML (vi + ko)
+
+End-user-facing HTML documentation lives at `apps/web/public/docs/user-guide/`
+and is served by Next.js as static assets (URL: `/docs/user-guide/`).
+
+```powershell
+# from apps/app-car-manager-v2/
+.\scripts\user-guide.ps1            # start dev + open browser (default: view)
+.\scripts\user-guide.ps1 status     # show what's up
+.\scripts\user-guide.ps1 shots      # re-run all Playwright shots (80 PNGs)
+.\scripts\user-guide.ps1 shots vi   # only vi desktop+mobile
+.\scripts\user-guide.ps1 shots ko   # only ko desktop+mobile
+.\scripts\user-guide.ps1 build      # regenerate KO skeleton + heading translator + search index
+.\scripts\user-guide.ps1 seed       # chain db-seed + seed-user-guide
+.\scripts\user-guide.ps1 stop       # kill dev server
+.\scripts\user-guide.ps1 help       # all subcommands
+```
+
+**Content**: 33 trang × 2 ngôn ngữ (66 trang) · 80 screenshot · search box client-side
+(no server, ~25 KB JSON index per locale) · print-friendly CSS · 4 role landings.
+
+**Updating** when UI changes:
+1. `.\scripts\user-guide.ps1 seed` — ensure DB has demo data
+2. `.\scripts\user-guide.ps1 shots` — re-shoot all 80 PNGs (~5 min)
+3. Review diff in `apps/web/public/docs/user-guide/assets/img/screenshots/`
+4. If page text changed, edit `vi/` HTML manually
+5. `.\scripts\user-guide.ps1 build` — regenerate KO from VI + search index
+6. Commit
+
+See [docs/plan/PLAN-20260524-user-guide-html-vietnamese.md](docs/plan/PLAN-20260524-user-guide-html-vietnamese.md)
+and [docs/implementation/RPT-20260524-user-guide-html-vietnamese.md](docs/implementation/RPT-20260524-user-guide-html-vietnamese.md) for full delivery context.
 
 ---
 

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quản lý — Ghi chi phí — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand">
+        <span class="header__brand-mark">A</span>
+        <span>Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi">VI</a><a href="#" data-lang="ko">KO</a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Quản lý</div>
+        <a class="sidebar__link" href="00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="01-dashboard.html">Dashboard</a>
+        <a class="sidebar__link" href="02-dat-xe.html">Đặt xe</a>
+        <a class="sidebar__link" href="03-theo-doi-chuyen-di.html">Theo dõi chuyến đi</a>
+        <a class="sidebar__link" href="04-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="05-so-chi-phi.html">Sổ chi phí</a>
+        <a class="sidebar__link" href="06-bao-cao-ca-nhan.html">Báo cáo cá nhân</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">Trang chủ</a> · Quản lý · Ghi chi phí</div>
+        <h1>Ghi chi phí phát sinh</h1>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>URL</dt><dd><code>/expenses/new</code> (vào trực tiếp hoặc từ <code>/costs</code> → "+ Ghi nhận chi phí")</dd>
+            <dt>Phê duyệt</dt><dd><strong>Không cần phê duyệt</strong> — phiên bản hiện tại tự động ghi nhận mọi khoản (PRD R3 đã bỏ luồng duyệt phân cấp)</dd>
+            <dt>Thời hạn</dt><dd>Ghi trong vòng 7 ngày từ ngày chi tiêu</dd>
+          </dl>
+        </div>
+
+        <p>Quản lý cũng cần ghi chi phí khi <strong>tự đi công tác</strong> bằng xe công ty (đỗ xe, phí đường, ăn uống công tác…) hoặc khi <strong>ứng tiền cho tài xế</strong>.</p>
+
+        <h2>8 loại chi phí</h2>
+        <p>Giống hệt như Tài xế — tham khảo bảng đầy đủ ở <a href="../driver/05-ghi-chi-phi.html#8-loại-chi-phí">trang Ghi chi phí cho Tài xế</a>. Tóm tắt:</p>
+
+        <table>
+          <thead><tr><th>Loại</th><th>Khi nào dùng</th></tr></thead>
+          <tbody>
+            <tr><td>🔵 FUEL — Xăng</td><td>Đổ xăng cho xe</td></tr>
+            <tr><td>🔵 OIL — Dầu</td><td>Thay dầu định kỳ</td></tr>
+            <tr><td>🟡 MEAL — Ăn uống</td><td>Cơm khi đi công tác</td></tr>
+            <tr><td>⚪ REPAIR — Sửa chữa</td><td>Sửa xe, thay phụ tùng</td></tr>
+            <tr><td>⚪ PARKING — Đỗ xe</td><td>Phí gửi xe</td></tr>
+            <tr><td>⚪ TOLL — Phí đường</td><td>BOT, cao tốc</td></tr>
+            <tr><td>🔴 ACCIDENT — Tai nạn</td><td>Hư hại do va chạm (bắt buộc ảnh)</td></tr>
+            <tr><td>🟢 INSPECTION — Đăng kiểm</td><td>Phí đăng kiểm định kỳ</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Form ghi chi phí</h2>
+
+        <figure>
+          <img src="../../assets/img/screenshots/vi/manager/04-expense-new.png" alt="Form ghi chi phí trên desktop">
+          <figcaption>Form ghi chi phí — lưới 8 loại + số tiền + ngày + xe + tài xế + ghi chú + ảnh</figcaption>
+        </figure>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body"><p>Chọn <strong>Loại chi phí</strong> bằng cách bấm 1 trong 8 ô.</p></div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body"><p>Nhập <strong>Số tiền</strong> (VND, hệ thống tự định dạng với dấu phân cách).</p></div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body"><p>Chọn <strong>Ngày chi tiêu</strong> (mặc định = hôm nay).</p></div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">4</div>
+          <div class="step__body"><p>Chọn <strong>Xe</strong> — Quản lý có thể chọn bất kỳ xe nào trong đội.</p></div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">5</div>
+          <div class="step__body">
+            <p>(Đặc biệt cho Quản lý) Chọn <strong>Tài xế</strong> — bạn có thể ghi nhận chi phí <em>thay cho tài xế khác</em>.
+            Tài xế sẽ thấy khoản này trong sổ chi phí của họ.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">6</div>
+          <div class="step__body"><p>Upload <strong>Ảnh chứng từ</strong> (tối đa 5 ảnh, mỗi ảnh ≤ 5MB).</p></div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">7</div>
+          <div class="step__body"><p>Bấm <strong>"Ghi nhận"</strong>. Khoản chi phí được ghi vào sổ ngay, không cần ai duyệt.</p></div>
+        </div>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">ℹ️</div>
+          <div class="callout__body">
+            <p><strong>Khác Tài xế ở điểm gì?</strong> Quản lý chọn được <em>bất kỳ tài xế nào</em> trong dropdown — không bị giới hạn vào chính mình. Dùng tính năng này khi bạn ứng tiền cho tài xế.</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="03-theo-doi-chuyen-di.html"><span>← Trước</span><strong>Theo dõi chuyến đi</strong></a>
+          <a class="pager__next" href="05-so-chi-phi.html"><span>Tiếp theo →</span><strong>Sổ chi phí</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">Cập nhật 24-05-2026 · Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

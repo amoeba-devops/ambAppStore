@@ -1,0 +1,18 @@
+# Dashboard overview — 1440x900 desktop. Three main zones:
+#   1 - Sidebar (workspace + admin nav)
+#   2 - Top bar (breadcrumb + create button)
+#   3 - Trip list side panel (right)
+caption: "Bố cục web: sidebar (1) — top bar (2) — danh sách chuyến (3)"
+
+annotations:
+  # 1 — Sidebar (full height)
+  - { type: box,    rect: [0, 0, 240, 900], color: '#3182F6', width: 3 }
+  - { type: number, at: [20, 22], label: '1', color: '#3182F6', radius: 16 }
+
+  # 2 — Top bar (breadcrumb + create button) — content area only
+  - { type: box,    rect: [248, 8, 1184, 56], color: '#FF3B30', width: 3 }
+  - { type: number, at: [270, 30], label: '2', color: '#FF3B30', radius: 16 }
+
+  # 3 — Right side trip panel
+  - { type: box,    rect: [1100, 280, 320, 600], color: '#FF9500', width: 3 }
+  - { type: number, at: [1122, 302], label: '3', color: '#FF9500', radius: 16 }

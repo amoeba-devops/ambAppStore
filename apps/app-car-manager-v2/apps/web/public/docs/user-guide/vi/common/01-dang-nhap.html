@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đăng nhập — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand">
+        <span class="header__brand-mark">A</span>
+        <span>Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" class="is-active" data-lang="vi">VI</a>
+          <a href="#" data-lang="ko">KO</a>
+        </span>
+      </div>
+    </header>
+
+    <!-- SIDEBAR (BEGIN) -->
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Quản trị viên</div>
+        <a class="sidebar__link" href="../admin/00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="../admin/01-dashboard.html">Dashboard</a>
+        <a class="sidebar__link" href="../admin/02-quan-ly-xe.html">Quản lý xe</a>
+        <a class="sidebar__link" href="../admin/03-quan-ly-tai-xe.html">Quản lý tài xế</a>
+        <a class="sidebar__link" href="../admin/04-quan-ly-nguoi-dung.html">Người dùng</a>
+        <a class="sidebar__link" href="../admin/05-quan-ly-chuyen-di.html">Chuyến đi</a>
+        <a class="sidebar__link" href="../admin/06-quan-ly-chi-phi.html">Quản lý chi phí</a>
+        <a class="sidebar__link" href="../admin/07-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="../admin/08-bao-cao.html">Báo cáo</a>
+        <a class="sidebar__link" href="../admin/09-cau-hinh-he-thong.html">Cấu hình hệ thống</a>
+        <a class="sidebar__link" href="../admin/10-audit-log.html">Audit log</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Quản lý</div>
+        <a class="sidebar__link" href="../manager/00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="../manager/01-dashboard.html">Dashboard</a>
+        <a class="sidebar__link" href="../manager/02-dat-xe.html">Đặt xe</a>
+        <a class="sidebar__link" href="../manager/03-theo-doi-chuyen-di.html">Theo dõi chuyến đi</a>
+        <a class="sidebar__link" href="../manager/04-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="../manager/05-so-chi-phi.html">Sổ chi phí</a>
+        <a class="sidebar__link" href="../manager/06-bao-cao-ca-nhan.html">Báo cáo cá nhân</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Tài xế</div>
+        <a class="sidebar__link" href="../driver/00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="../driver/01-cai-pwa.html">Cài đặt PWA</a>
+        <a class="sidebar__link" href="../driver/02-today-screen.html">Màn hình Hôm nay</a>
+        <a class="sidebar__link" href="../driver/03-xac-nhan-chuyen.html">Xác nhận chuyến</a>
+        <a class="sidebar__link" href="../driver/04-bat-dau-ket-thuc-chuyen.html">Bắt đầu / kết thúc chuyến</a>
+        <a class="sidebar__link" href="../driver/05-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="../driver/06-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="../driver/07-ngoai-tuyen.html">Hành vi ngoại tuyến</a>
+      </div>
+    </aside>
+    <!-- SIDEBAR (END) -->
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">Trang chủ</a> · Chung · Đăng nhập
+        </div>
+        <h1>Đăng nhập hệ thống</h1>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>Đối tượng</dt><dd>Mọi vai trò</dd>
+            <dt>Điều kiện trước</dt><dd>Tài khoản Amoeba (ama.amoeba.site) đã được Admin doanh nghiệp cấp quyền dùng app</dd>
+            <dt>Thời gian</dt><dd>~30 giây</dd>
+          </dl>
+        </div>
+
+        <h2>Cách 1 — Đăng nhập một lần qua Amoeba (Khuyến nghị)</h2>
+
+        <p>
+          Đây là cách chuẩn cho người dùng thực tế. Bạn chỉ cần đăng nhập một lần vào
+          <a href="https://ama.amoeba.site" target="_blank">ama.amoeba.site</a>, sau đó truy cập
+          app mà không cần nhập lại mật khẩu.
+        </p>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>Mở trình duyệt và truy cập <code>https://ama.amoeba.site</code>. Nhập email & mật khẩu Amoeba của bạn.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p>Trên trang chủ Amoeba, tìm khu vực <strong>"Ứng dụng của tôi"</strong> và click vào biểu tượng <strong>Car Manager</strong>.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Hệ thống sẽ tự động đưa bạn vào trang chủ Car Manager theo đúng vai trò của bạn:</p>
+            <ul>
+              <li><strong>Admin / Quản lý</strong> → trang Dashboard</li>
+              <li><strong>Tài xế</strong> → trang Hôm nay</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">ℹ️</div>
+          <div class="callout__body">
+            <p><strong>Phiên đăng nhập kéo dài 8 giờ.</strong> Sau thời gian này hệ thống sẽ tự động đăng xuất và yêu cầu vào lại từ Amoeba.</p>
+          </div>
+        </div>
+
+        <h2>Cách 2 — Trang đăng nhập trực tiếp</h2>
+
+        <p>
+          Nếu bạn truy cập trực tiếp URL của app mà chưa có phiên Amoeba hợp lệ, hệ thống sẽ hiện
+          màn hình đăng nhập của riêng app:
+        </p>
+
+        <figure>
+          <img src="../../assets/img/screenshots/vi/common/01-login-form.png" alt="Form đăng nhập (desktop)">
+          <figcaption>Form đăng nhập trên web — nhập mã doanh nghiệp và số điện thoại để xác minh</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/screenshots/vi/common/01-login-form-mobile.png" alt="Form đăng nhập (điện thoại)">
+          <figcaption>Cùng form trên điện thoại (PWA) — bố cục thẳng đứng, nút lớn dễ chạm</figcaption>
+        </figure>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>Nhập <strong>Mã doanh nghiệp</strong> (chữ in hoa, do Admin doanh nghiệp cung cấp).</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p>Nhập <strong>Số điện thoại</strong> đã đăng ký với Amoeba (định dạng quốc tế: <code>+84 90 123 4567</code>).</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Bấm <strong>Đăng nhập</strong>. Hệ thống sẽ xác minh và đưa bạn về trang chủ theo vai trò.</p>
+          </div>
+        </div>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">⚠️</div>
+          <div class="callout__body">
+            <p>Nếu không nhớ Mã doanh nghiệp hoặc Số điện thoại không khớp, liên hệ <strong>Admin doanh nghiệp của bạn</strong> để xác minh — không phải đội ngũ phát triển.</p>
+          </div>
+        </div>
+
+        <h2>Sự cố thường gặp</h2>
+        <table>
+          <thead>
+            <tr><th>Triệu chứng</th><th>Nguyên nhân</th><th>Cách khắc phục</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Click vào icon Amoeba nhưng app báo "Phiên hết hạn"</td>
+              <td>Phiên Amoeba đã hết 8 giờ</td>
+              <td>Đăng nhập lại Amoeba rồi click app lần nữa</td>
+            </tr>
+            <tr>
+              <td>Vào app thấy thông báo "Bạn chưa được cấp quyền"</td>
+              <td>Admin doanh nghiệp chưa kích hoạt app cho user</td>
+              <td>Liên hệ Admin để cấp quyền</td>
+            </tr>
+            <tr>
+              <td>Trang đăng nhập trực tiếp báo "Không tìm thấy doanh nghiệp"</td>
+              <td>Sai Mã doanh nghiệp</td>
+              <td>Kiểm tra lại với Admin doanh nghiệp</td>
+            </tr>
+            <tr>
+              <td>Đăng nhập thành công nhưng sidebar trống</td>
+              <td>Vai trò AMA chưa được ánh xạ sang vai trò app</td>
+              <td>Liên hệ <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <nav class="pager">
+          <a class="pager__prev" href="00-gioi-thieu.html">
+            <span>← Trước</span>
+            <strong>Giới thiệu</strong>
+          </a>
+          <a class="pager__next" href="02-dieu-huong.html">
+            <span>Tiếp theo →</span>
+            <strong>Điều hướng</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        Cập nhật 24-05-2026 ·
+        Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>
