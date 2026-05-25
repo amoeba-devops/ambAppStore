@@ -62,7 +62,11 @@
     "title": "사용자",
     "headings": [
       "Danh sách người dùng",
-      "Mời user mới",
+      "새 멤버 온보딩 (메시지로 정보 전송)",
+      "1단계 — 회사 코드 확인",
+      "2단계 — 멤버에게 메시지 전송",
+      "3단계 — 멤버 자체 로그인",
+      "4단계 — 기사 프로필 추가 (기사인 경우)",
       "Mapping vai trò AMA → vai trò app",
       "Đổi vai trò app"
     ],
@@ -171,6 +175,9 @@
     "headings": [
       "방법 1 — Amoeba 싱글 사인온 (권장)",
       "방법 2 — 직접 로그인 페이지",
+      "최초 온보딩 — 관리자로부터 정보 받는 절차",
+      "관리자가 보내드릴 메시지 템플릿",
+      "로그인 성공 후",
       "자주 발생하는 문제"
     ],
     "snippet": "대상 모든 역할 사전 조건 회사 관리자가 앱 사용 권한을 부여한 Amoeba 계정 (ama.amoeba.site) 소요 시간 약 30초 방법 1 — Amoeba 싱글 사인온 (권장) 일반 사용자를 위한 표준 방식입니다. ama.amoeba.site 에 한 번 로그인하면 비밀번호 재입력 없이 앱에 접근할 수 있습니다. 1 브라우저에서 https://ama.amoeba.site 를 열고 Amoeba 이메일·비밀번호로 로그인합니다. 2 Amoeba 홈에서 \"내 앱\" 영역의 Car Manager 아이콘을 클릭합니다. 3 시스템이 역할에 맞는 홈 화면으로 자동 이동시킵니다: 관리자 / 매니저 → 대시보드 기사 → 오늘 화면 ℹ️ 세션 유효 시간은 8시간입니다. 이후에는 자동 로그아웃되며 Amoeba에서 다시 로그인해"
@@ -484,7 +491,11 @@
     "title": "Admin — Người dùng",
     "headings": [
       "Danh sách người dùng",
-      "Mời user mới",
+      "Onboarding thành viên mới (gửi thông tin qua tin nhắn)",
+      "Bước 1 — Lấy mã doanh nghiệp của bạn",
+      "Bước 2 — Gửi tin nhắn cho thành viên",
+      "Bước 3 — Thành viên tự đăng nhập",
+      "Bước 4 — Bổ sung hồ sơ tài xế (nếu là tài xế)",
       "Mapping vai trò AMA → vai trò app",
       "Đổi vai trò app"
     ],
@@ -593,6 +604,9 @@
     "headings": [
       "Cách 1 — Đăng nhập một lần qua Amoeba (Khuyến nghị)",
       "Cách 2 — Trang đăng nhập trực tiếp",
+      "Onboarding lần đầu — quy trình nhận thông tin từ Admin",
+      "Tin nhắn mẫu Admin gửi cho bạn",
+      "Sau khi đăng nhập thành công",
       "Sự cố thường gặp"
     ],
     "snippet": "Đối tượng Mọi vai trò Điều kiện trước Tài khoản Amoeba (ama.amoeba.site) đã được Admin doanh nghiệp cấp quyền dùng app Thời gian ~30 giây Cách 1 — Đăng nhập một lần qua Amoeba (Khuyến nghị) Đây là cách chuẩn cho người dùng thực tế. Bạn chỉ cần đăng nhập một lần vào ama.amoeba.site , sau đó truy cập app mà không cần nhập lại mật khẩu. 1 Mở trình duyệt và truy cập https://ama.amoeba.site . Nhập emai"

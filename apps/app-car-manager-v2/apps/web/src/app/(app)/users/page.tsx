@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { IdCard, Plus } from 'lucide-react';
+import { IdCard } from 'lucide-react';
 import {
   Avatar,
   Badge,
@@ -198,13 +198,11 @@ export default async function UsersPage({ searchParams }: PageProps) {
                 <Link href="/drivers/new">Tạo tài xế</Link>
               </Button>
             )}
-            {/* MANAGER cũng được mời user (driver/viewer) sau khi G1 enabled
-             *  ở AMA-side OwnEntityManagerGuard. Service tự enforce role limit. */}
-            {(actor.role === 'ADMIN' || actor.role === 'MANAGER') && (
-              <Button asChild variant="accent" size="md" iconLeft={<Plus />}>
-                <Link href="/users/new">{tList('inviteUser')}</Link>
-              </Button>
-            )}
+            {/* Invite-user button retired (REQ-20260525). New driver onboarding
+             * flow: admin sends the ent_code via personal message (SMS/Zalo/Telegram),
+             * driver enters ent_code + phone on /login self-service. See user guide
+             * "Đăng nhập" for the messaging template. The empty-state CTA still
+             * points to /users/new for admins who really need the legacy form. */}
           </>
         }
       />
