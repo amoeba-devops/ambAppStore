@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { countTodayExpenses } from '@/server/queries/expenses.queries';
+import { countUnreadNotifications } from '@/server/queries/notifications.queries';
 import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
 import { countPendingTrips } from '@/server/queries/trips.queries';
 import { AppShellClient } from './app-shell-client';
@@ -32,9 +33,12 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
    * entry is STAFF-only). Skip the query entirely for DRIVER to save a
    * round-trip on every page render. */
   const wantsTodayCost = user.role === 'ADMIN' || user.role === 'MANAGER';
-  const [pendingTripCount, todayExpenseCount, settings, tCo, tRoot] = await Promise.all([
+  const [pendingTripCount, todayExpenseCount, unreadNotificationCount, settings, tCo, tRoot] = await Promise.all([
     countPendingTrips({ entId: user.entId, role: user.role, userId: user.userId }),
     wantsTodayCost ? countTodayExpenses(user.entId) : Promise.resolve(0),
+    /* In-app inbox badge — all roles see it. Index on (ntfUserId, ntfReadAt)
+     * keeps this lookup index-only even at high volume. */
+    countUnreadNotifications(user.entId, user.userId),
     getTenantSettings(user.entId),
     getTranslations('company'),
     /* Root namespace — `appName` is a top-level i18n key (vi: "Fleet"). */
@@ -60,6 +64,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       userEmail={user.email}
       pendingTripCount={pendingTripCount}
       todayExpenseCount={todayExpenseCount}
+      unreadNotificationCount={unreadNotificationCount}
       vapidPublicKey={process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC}
       basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''}
       tenantName={resolvedName}

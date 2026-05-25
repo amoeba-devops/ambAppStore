@@ -26,6 +26,9 @@ interface AppShellClientProps {
    * sidebar + mobile bottom-tab render a small badge on the Chi phí entry
    * when this is > 0. 0 for DRIVER (badge is STAFF-only). */
   todayExpenseCount: number;
+  /** Server-counted unread inbox notifications for this user. Drives the
+   * red badge on the header notification bell (desktop + mobile). */
+  unreadNotificationCount: number;
   /** VAPID public key + Next basePath for the push enable banner.
    * Both come from NEXT_PUBLIC_* env via the server-side AppShell wrapper. */
   vapidPublicKey: string | undefined;
@@ -66,6 +69,7 @@ export function AppShellClient({
   userEmail,
   pendingTripCount,
   todayExpenseCount,
+  unreadNotificationCount,
   vapidPublicKey,
   basePath,
   tenantName,
@@ -104,7 +108,7 @@ export function AppShellClient({
       initialAppName={appName}
       defaultAppName={appDefaultName}
     >
-      <UserDisplayProvider userName={userName} userEmail={userEmail}>
+      <UserDisplayProvider userName={userName} userEmail={userEmail} unreadNotifications={unreadNotificationCount}>
       <PushConfigProvider vapidPublicKey={vapidPublicKey} basePath={basePath}>
         <div className="flex min-h-dvh bg-bg text-text">
           {/* Sidebar — hidden on mobile, replaced by BottomTabNav below.
