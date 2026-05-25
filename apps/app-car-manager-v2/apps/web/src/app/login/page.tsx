@@ -1,5 +1,5 @@
-import { getTranslations } from 'next-intl/server';
-import { LogIn, Building2, Phone, ExternalLink } from 'lucide-react';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { LogIn, Building2, Phone, ExternalLink, BookOpen } from 'lucide-react';
 import { Button, Card, CardContent } from '@car-v2/ui';
 import { LoginLanguageSwitcher } from './_components/login-language-switcher';
 
@@ -25,6 +25,17 @@ export default async function LoginPage({
   const demoEnabled = process.env.DEMO_AUTO_LOGIN === 'true';
   const amaWebUrl = process.env.NEXT_PUBLIC_AMA_WEB_URL ?? 'https://ama.amoeba.site';
   const t = await getTranslations('login');
+  const tNav = await getTranslations('nav');
+  const locale = await getLocale();
+
+  /* User-guide URL — basePath + locale-specific landing. The login page is
+   * the one place a user might land BEFORE they know what the app is about,
+   * so a "what is this?" entry point matters more here than anywhere else
+   * in the shell. EN viewers fall back to the VI doc (KO/VI are the only
+   * published locales). */
+  const guideBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+  const guideLocale = locale === 'ko' ? 'ko' : 'vi';
+  const userGuideHref = `${guideBasePath}/docs/user-guide/${guideLocale}/index.html`;
 
   return (
     <div className="min-h-dvh flex items-center justify-center bg-bg p-4">
@@ -111,7 +122,12 @@ export default async function LoginPage({
             </Button>
           </form>
 
-          <div className="mt-5 pt-4 border-t border-border">
+          {/* Footer links — pre-login affordances for users who landed here
+           * without an existing session. "Open AMA" sends them to the SSO
+           * portal; "User Guide" opens the static docs site so a brand-new
+           * visitor can read what the app is and how onboarding works
+           * BEFORE they have credentials to log in. */}
+          <div className="mt-5 pt-4 border-t border-border space-y-2.5">
             <a
               href={amaWebUrl}
               target="_blank"
@@ -120,6 +136,16 @@ export default async function LoginPage({
             >
               <ExternalLink className="h-3.5 w-3.5" />
               {t('openAma')}
+            </a>
+            <a
+              href={userGuideHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={tNav('userGuideAria')}
+              className="flex items-center justify-center gap-2 text-sm text-text-muted hover:text-text hover:underline"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              {tNav('userGuide')}
             </a>
           </div>
 
