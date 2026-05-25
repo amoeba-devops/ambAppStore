@@ -207,12 +207,13 @@ code {
  * render 🇻🇳 / 🇰🇷 regional-indicator pairs without an emoji font). The
  * 18×12px box matches the 13px line height of the surrounding label. */
 .lang-switch a .lang-flag {
-  width: 18px;
-  height: 12px;
+  width: 22px;
+  height: 14px;
   display: inline-block;
   flex-shrink: 0;
   border-radius: 2px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
 .lang-switch a .lang-flag svg {
   display: block;
