@@ -135,12 +135,25 @@ code {
   color: var(--c-text-muted);
 }
 
-/* Mobile brand label is hidden on desktop — paired with the desktop brand
- * text span via display toggle in the mobile media query. Keeps the full
- * product name visible on wide screens while a short "Hướng dẫn" / "사용
- * 안내서" replaces it on phones where the long name would dominate the
- * header bar. */
+/* Brand text spans (both desktop full name and mobile short label) are
+ * always hidden — the .header__brand-mark avatar square already carries
+ * the identity. Removes header clutter on every viewport and lets search +
+ * lang switch fill the bar. The link itself still works (anchors home);
+ * give it a tooltip via title attribute on the page for hover hint. */
+.header__brand-desktop,
 .header__brand-mobile { display: none; }
+
+/* Make the standalone avatar slightly larger + add a subtle hover ring
+ * so it reads as an interactive logo button rather than a flat tile. */
+.header__brand-mark {
+  transition: box-shadow 120ms, transform 120ms;
+}
+.header__brand:hover .header__brand-mark {
+  box-shadow: 0 0 0 3px var(--c-accent-soft);
+}
+.header__brand:active .header__brand-mark {
+  transform: scale(0.97);
+}
 
 .header__tools {
   display: flex;
@@ -189,8 +202,25 @@ code {
   box-shadow: 0 1px 3px rgba(49, 130, 246, 0.3);
 }
 
-/* Show full language name on desktop, hide on mobile (replaced by code) */
-.lang-switch a .lang-flag { font-size: 14px; line-height: 1; }
+/* Flag visual — inline SVG (not emoji) so the actual flag shows on every
+ * platform regardless of font support (Windows Chrome notably refuses to
+ * render 🇻🇳 / 🇰🇷 regional-indicator pairs without an emoji font). The
+ * 18×12px box matches the 13px line height of the surrounding label. */
+.lang-switch a .lang-flag {
+  width: 18px;
+  height: 12px;
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+.lang-switch a .lang-flag svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+/* Show full language name on desktop, code-only on mobile (paired with flag). */
 .lang-switch a .lang-name { display: inline; }
 .lang-switch a .lang-code { display: none; }
 @media (max-width: 700px) {
@@ -613,26 +643,16 @@ code {
     padding: 0 10px;
     gap: 6px;
   }
-  /* Swap desktop brand text for a short mobile label. The full product name
-   * is too long for a 390px viewport once search + lang switch eat ~200px,
-   * so we replace it with just "Hướng dẫn" / "사용 안내서" — the logo
-   * square already conveys the "Amoeba Car" identity. */
-  .header__brand-desktop { display: none; }
-  .header__brand-mobile {
-    display: inline;
-    font-weight: 700;
-    font-size: 15px;
-    color: var(--c-text);
-  }
+  /* Brand text is hidden site-wide (top-level rule) — on mobile we just
+   * tweak the avatar size so it stays a comfortable tap target without
+   * dominating the bar. */
   .header__brand {
-    font-size: 14px;
     min-width: 0;
-    overflow: hidden;
-    gap: 8px;
   }
   .header__brand-mark {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
   }
   .main {
     padding: 20px 16px 60px;
