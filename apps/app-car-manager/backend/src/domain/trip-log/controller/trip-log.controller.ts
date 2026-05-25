@@ -9,10 +9,13 @@ import {
   ParseUUIDPipe,
   UseInterceptors,
   UploadedFile,
+  Res,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { TripLogService } from '../service/trip-log.service';
 import { ImportOrchestratorService } from '../service/import-orchestrator.service';
+import { ExcelExportService } from '../service/excel-export.service';
 import { TripLogMapper } from '../mapper/trip-log.mapper';
 import { CreateTripLogRequest } from '../dto/request/create-trip-log.request';
 import { UpdateTripLogRequest, SubmitTripLogRequest } from '../dto/request/trip-log.request';
@@ -30,6 +33,7 @@ export class TripLogController {
   constructor(
     private readonly tripLogService: TripLogService,
     private readonly importOrchestrator: ImportOrchestratorService,
+    private readonly excelExportService: ExcelExportService,
   ) {}
 
   @Auth()
@@ -58,6 +62,24 @@ export class TripLogController {
       req,
     );
     return successResponse(TripLogMapper.toResponse(tripLog));
+  }
+
+  @Auth()
+  @Get('export')
+  @ApiOperation({ summary: '운행일지 Excel 다운로드' })
+  async exportExcel(
+    @CurrentUser() user: AmaJwtPayload,
+    @Res({ passthrough: false }) res: Response,
+    @Query('vehicle_id') vehicleId?: string,
+    @Query('status') status?: string,
+  ) {
+    const tripLogs = await this.tripLogService.findAll(user.ent_id, { vehicleId, status });
+    const buffer = await this.excelExportService.buildTripLogWorkbook(tripLogs);
+    const filename = `trip-logs-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', String(buffer.length));
+    res.send(buffer);
   }
 
   @Auth()

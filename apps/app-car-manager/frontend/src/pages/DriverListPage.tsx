@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 
-import { useDrivers } from '@/hooks/useDrivers';
+import { useDrivers, useDeleteDriver } from '@/hooks/useDrivers';
+import { useToastStore } from '@/stores/toast.store';
 import { PageHeader } from '@/components/common/PageHeader';
 import { FilterBar, type FilterItem } from '@/components/common/FilterBar';
-import { DriverFormModal } from '@/components/driver/DriverFormModal';
+import { DriverFormModal, type DriverFormInitial } from '@/components/driver/DriverFormModal';
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-700',
@@ -17,7 +18,10 @@ export function DriverListPage() {
   const { t } = useTranslation('car');
   const [statusFilter, setStatusFilter] = useState('');
   const [showDriverForm, setShowDriverForm] = useState(false);
+  const [editingDriver, setEditingDriver] = useState<DriverFormInitial | null>(null);
   const { data, isLoading } = useDrivers(statusFilter ? { status: statusFilter } : undefined);
+  const deleteMut = useDeleteDriver();
+  const showToast = useToastStore((s) => s.showToast);
 
   const drivers = data?.data || [];
 
@@ -27,6 +31,33 @@ export function DriverListPage() {
     { key: 'ON_LEAVE', label: t('driver.statusOnLeave') },
     { key: 'INACTIVE', label: t('driver.statusInactive') },
   ];
+
+  const handleEdit = (d: Record<string, unknown>) => {
+    setEditingDriver({
+      driverId: d.driverId as string,
+      amaUserId: d.amaUserId as string,
+      driverName: (d.driverName as string) ?? null,
+      driverEmail: (d.driverEmail as string) ?? null,
+      role: d.role as string,
+      note: (d.note as string) ?? null,
+    });
+  };
+
+  const handleDelete = async (d: Record<string, unknown>) => {
+    const name = (d.driverName as string) || (d.amaUserId as string);
+    if (!window.confirm(t('driver.confirmDelete', { name }))) return;
+    try {
+      await deleteMut.mutateAsync(d.driverId as string);
+      showToast(t('driver.deleted'), 'success');
+    } catch (err) {
+      showToast(`${t('driver.deleteFailed')}: ${(err as Error).message}`, 'error');
+    }
+  };
+
+  const handleCloseForm = () => {
+    setShowDriverForm(false);
+    setEditingDriver(null);
+  };
 
   return (
     <div>
@@ -71,6 +102,7 @@ export function DriverListPage() {
                   <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t('driver.role')}</th>
                   <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t('driver.assignedVehicle')}</th>
                   <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t('driver.status')}</th>
+                  <th className="px-3.5 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -91,6 +123,29 @@ export function DriverListPage() {
                         {d.status as string}
                       </span>
                     </td>
+                    <td className="px-3.5 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(d)}
+                          title={t('common.edit')}
+                          aria-label={t('common.edit')}
+                          className="rounded p-1.5 text-gray-500 transition-colors hover:bg-orange-50 hover:text-orange-600"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(d)}
+                          disabled={deleteMut.isPending}
+                          title={t('common.delete')}
+                          aria-label={t('common.delete')}
+                          className="rounded p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -100,8 +155,9 @@ export function DriverListPage() {
       </div>
 
       <DriverFormModal
-        open={showDriverForm}
-        onClose={() => setShowDriverForm(false)}
+        open={showDriverForm || !!editingDriver}
+        onClose={handleCloseForm}
+        driver={editingDriver ?? undefined}
       />
     </div>
   );

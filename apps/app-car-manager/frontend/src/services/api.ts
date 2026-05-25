@@ -76,6 +76,8 @@ export const tripLogApi = {
     apiClient.patch(`/v1/trip-logs/${id}`, data).then((r) => r.data),
   submit: (id: string, data: { status: string }) =>
     apiClient.patch(`/v1/trip-logs/${id}/submit`, data).then((r) => r.data),
+  exportExcel: (params?: { vehicle_id?: string; status?: string }) =>
+    apiClient.get('/v1/trip-logs/export', { params, responseType: 'blob' }),
 };
 
 // --- Maintenance ---

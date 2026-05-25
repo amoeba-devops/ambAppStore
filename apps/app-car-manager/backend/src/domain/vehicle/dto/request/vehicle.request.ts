@@ -90,6 +90,38 @@ export class CreateVehicleRequest {
 export class UpdateVehicleRequest {
   @IsOptional()
   @IsString()
+  @MaxLength(20)
+  plate_number?: string;
+
+  @IsOptional()
+  @IsEnum(VehicleType)
+  type?: VehicleType;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  make?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  model?: string;
+
+  @IsOptional()
+  @IsInt()
+  year?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  vin?: string;
+
+  @IsOptional()
+  @IsEnum(FuelType)
+  fuel_type?: FuelType;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(30)
   color?: string;
 
