@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ghi chi phí — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — Trang chủ hướng dẫn" aria-label="Amoeba Car Manager v2 — Trang chủ hướng dẫn">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span><span class="header__brand-mobile">Hướng dẫn</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" class="is-active" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a>
+          <a href="#" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="5" fill="#fff"/><path d="M15,5 a5,5 0 0,1 0,10 a2.5,2.5 0 0,0 0,-5 a2.5,2.5 0 0,1 0,-5" fill="#003478"/><path d="M15,5 a5,5 0 0,0 0,10 a2.5,2.5 0 0,1 0,-5 a2.5,2.5 0 0,0 0,-5" fill="#C60C30"/></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a>
+        </span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Tài xế</div>
+        <a class="sidebar__link" href="00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="01-cai-pwa.html">Cài đặt PWA</a>
+        <a class="sidebar__link" href="02-today-screen.html">Màn hình Hôm nay</a>
+        <a class="sidebar__link" href="03-xac-nhan-chuyen.html">Xác nhận chuyến</a>
+        <a class="sidebar__link" href="04-bat-dau-ket-thuc-chuyen.html">Bắt đầu / kết thúc chuyến</a>
+        <a class="sidebar__link" href="05-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="06-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="07-ngoai-tuyen.html">Hành vi ngoại tuyến</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">Trang chủ</a> · Tài xế · Ghi chi phí
+        </div>
+        <h1>Ghi chi phí phát sinh</h1>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>Khi nào</dt><dd>Ngay sau khi chi tiêu (trong vòng 7 ngày)</dd>
+            <dt>Cần</dt><dd>Ảnh hoá đơn (chụp bằng camera trong app)</dd>
+            <dt>Phê duyệt</dt><dd>Tùy loại: tự động duyệt nếu dưới ngưỡng, ngược lại Admin duyệt tay</dd>
+          </dl>
+        </div>
+
+        <h2>8 loại chi phí</h2>
+
+        <table>
+          <thead>
+            <tr><th>Loại</th><th>Ví dụ</th><th>Có cần Admin duyệt?</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>🔵 <strong>Xăng (FUEL)</strong></td><td>Đổ xăng đầy bình</td><td>Tự động duyệt</td></tr>
+            <tr><td>🔵 <strong>Dầu (OIL)</strong></td><td>Thay dầu định kỳ</td><td>Tự động duyệt</td></tr>
+            <tr><td>🟡 <strong>Ăn uống (MEAL)</strong></td><td>Cơm ca chiều</td><td>Tự duyệt; cảnh báo nếu > 500K</td></tr>
+            <tr><td>⚪ <strong>Sửa chữa (REPAIR)</strong></td><td>Thay lốp, sửa điện</td><td>Admin duyệt nếu ≥ 1.000.000₫; ngược lại tự duyệt</td></tr>
+            <tr><td>⚪ <strong>Đỗ xe (PARKING)</strong></td><td>Phí gửi xe ở Vincom</td><td>Tự động duyệt</td></tr>
+            <tr><td>⚪ <strong>Phí đường (TOLL)</strong></td><td>BOT cao tốc</td><td>Tự động duyệt</td></tr>
+            <tr><td>🔴 <strong>Tai nạn (ACCIDENT)</strong></td><td>Va quệt nhẹ phải sơn lại</td><td><strong>Bắt buộc Admin duyệt</strong> + bắt buộc ảnh</td></tr>
+            <tr><td>🟢 <strong>Đăng kiểm (INSPECTION)</strong></td><td>Phí đăng kiểm định kỳ</td><td>Tự động duyệt</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Cách ghi chi phí</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>Mở tab <strong>Chi phí</strong> ở thanh điều hướng đáy. Bấm nút <strong>"+"</strong> tròn ở góc dưới phải.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p>Chọn <strong>Loại chi phí</strong> bằng cách bấm vào một trong 8 ô icon (radio grid). Chỉ chọn được 1 loại.</p>
+            <figure>
+              <img src="../../assets/img/screenshots/vi/driver/05-expense-new-empty.png" alt="Form ghi chi phí — lưới 8 loại">
+              <figcaption>Form ghi chi phí — lưới 8 loại + ô số tiền + ngày + ảnh chứng từ</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Nhập <strong>số tiền</strong> (đơn vị VND, không cần gõ dấu phân cách — hệ thống tự định dạng).</p>
+            <figure>
+              <img src="../../assets/img/screenshots/vi/driver/05-expense-new-fuel-selected.png" alt="Đã chọn FUEL — viền xanh">
+              <figcaption>Đã chọn <strong>Xăng (FUEL)</strong> — viền chuyển xanh đậm; các ô khác mờ đi</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">4</div>
+          <div class="step__body">
+            <p>Chọn <strong>Ngày</strong> chi tiêu (mặc định là hôm nay, có thể chọn lùi tối đa 7 ngày).</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">5</div>
+          <div class="step__body">
+            <p>Bấm <strong>"Chọn xe"</strong> để chọn xe liên quan (51K-238.91, …). Nếu đang trong chuyến → tự gắn vào chuyến đó.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">6</div>
+          <div class="step__body">
+            <p>Bấm <strong>"📷 Chụp / chọn ảnh"</strong> — chụp hoá đơn hoặc chọn ảnh từ thư viện.
+            Hỗ trợ tối đa <strong>5 ảnh</strong>, mỗi ảnh ≤ 5MB (PNG/JPG/GIF/WebP).</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">7</div>
+          <div class="step__body">
+            <p>(Tùy chọn) Nhập <strong>ghi chú</strong> nếu cần giải thích thêm (ví dụ: "Hết xăng giữa đường, đổ tạm 200k").</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">8</div>
+          <div class="step__body">
+            <p>Bấm <strong>"Ghi nhận"</strong>. Hệ thống upload ảnh, lưu DB. Khi xong sẽ hiện ✓ "Đã ghi nhận".</p>
+          </div>
+        </div>
+
+        <h2>Xem lại chi phí đã nộp</h2>
+
+        <figure>
+          <img src="../../assets/img/screenshots/vi/driver/05-expense-list.png" alt="Danh sách chi phí của Tài xế">
+          <figcaption>Tab "Chi phí" — danh sách khoản chi của riêng bạn với nhãn trạng thái</figcaption>
+        </figure>
+
+        <p>Tab <strong>Chi phí</strong> hiển thị toàn bộ chi phí của riêng bạn (không thấy của đồng nghiệp). Mỗi dòng có:</p>
+        <ul>
+          <li><strong>Loại</strong> + icon</li>
+          <li><strong>Số tiền</strong> (VND)</li>
+          <li><strong>Ngày</strong> + mã chuyến (nếu gắn)</li>
+          <li><strong>Nhãn trạng thái</strong>:
+            <ul>
+              <li><span style="color:var(--c-warning)">Chờ duyệt</span> — đang chờ Admin</li>
+              <li><span style="color:var(--c-success)">Đã duyệt</span> — Admin đã chấp nhận</li>
+              <li><span style="color:var(--c-accent)">Tự duyệt</span> — qua ngưỡng tự động</li>
+              <li><span style="color:var(--c-danger)">Bị từ chối</span> — bấm xem để biết lý do</li>
+            </ul>
+          </li>
+        </ul>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">⚠️</div>
+          <div class="callout__body">
+            <p><strong>Sau 7 ngày từ lúc nộp, bản ghi tự khóa.</strong> Bạn không tự sửa được nữa — phải nhờ Admin. Hãy ghi đầy đủ và chính xác ngay từ đầu.</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="04-bat-dau-ket-thuc-chuyen.html">
+            <span>← Trước</span>
+            <strong>Bắt đầu / kết thúc</strong>
+          </a>
+          <a class="pager__next" href="06-canh-bao-bao-duong.html">
+            <span>Tiếp theo →</span>
+            <strong>Cảnh báo bảo dưỡng</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        Cập nhật 24-05-2026 ·
+        Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

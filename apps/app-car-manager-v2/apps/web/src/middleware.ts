@@ -22,6 +22,9 @@ const PUBLIC_PATHS = [
   '/api/auth/logout',
   '/_next',
   '/favicon.ico',
+  /* Static user-guide site lives under apps/web/public/docs/ — must be reachable
+   * without a session so prospective / unauthenticated users can read the docs. */
+  '/docs/',
   /* PWA assets — must be reachable without a session so the browser can
    * install + bootstrap the SW before the user authenticates. */
   '/manifest.webmanifest',

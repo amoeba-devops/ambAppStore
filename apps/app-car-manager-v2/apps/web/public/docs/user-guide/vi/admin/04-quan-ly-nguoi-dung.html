@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — Người dùng — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — Trang chủ hướng dẫn" aria-label="Amoeba Car Manager v2 — Trang chủ hướng dẫn">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span><span class="header__brand-mobile">Hướng dẫn</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="5" fill="#fff"/><path d="M15,5 a5,5 0 0,1 0,10 a2.5,2.5 0 0,0 0,-5 a2.5,2.5 0 0,1 0,-5" fill="#003478"/><path d="M15,5 a5,5 0 0,0 0,10 a2.5,2.5 0 0,1 0,-5 a2.5,2.5 0 0,0 0,-5" fill="#C60C30"/></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Quản trị viên</div>
+        <a class="sidebar__link" href="00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="01-dashboard.html">Dashboard</a>
+        <a class="sidebar__link" href="02-quan-ly-xe.html">Quản lý xe</a>
+        <a class="sidebar__link" href="03-quan-ly-tai-xe.html">Quản lý tài xế</a>
+        <a class="sidebar__link" href="04-quan-ly-nguoi-dung.html">Người dùng</a>
+        <a class="sidebar__link" href="05-quan-ly-chuyen-di.html">Chuyến đi</a>
+        <a class="sidebar__link" href="06-quan-ly-chi-phi.html">Quản lý chi phí</a>
+        <a class="sidebar__link" href="07-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="08-bao-cao.html">Báo cáo</a>
+        <a class="sidebar__link" href="09-cau-hinh-he-thong.html">Cấu hình hệ thống</a>
+        <a class="sidebar__link" href="10-audit-log.html">Audit log</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">Trang chủ</a> · Quản trị viên · Người dùng</div>
+        <h1>Quản lý người dùng</h1>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>URL</dt><dd><code>/users</code> · <code>/users/new</code> (mời) · <code>/users/[id]/edit</code></dd>
+            <dt>Quan trọng</dt><dd>Tài khoản user thuộc về <strong>AMA</strong> (ama.amoeba.site) — bạn chỉ "mời" và "cấp quyền dùng app", không tạo tài khoản từ đầu</dd>
+          </dl>
+        </div>
+
+        <h2>Danh sách người dùng</h2>
+        <figure>
+          <img src="../../assets/img/screenshots/vi/admin/04-users-list.png" alt="Danh sách user">
+          <figcaption>Danh sách user — tab Tất cả / Đang hoạt động / Không hoạt động / Tạm dừng + search</figcaption>
+        </figure>
+
+        <p>Mỗi dòng user hiển thị:</p>
+        <ul>
+          <li><strong>Avatar + Tên + nhãn trạng thái</strong> (nếu Inactive/Suspended)</li>
+          <li><strong>Số điện thoại</strong> (bấm gọi)</li>
+          <li><strong>Vai trò trong app</strong>: ADMIN / MANAGER / DRIVER (hoặc "—" nếu chưa từng login)</li>
+          <li><strong>Vai trò AMA</strong>: OWNER / MASTER / MANAGER / MEMBER / VIEWER (monospace)</li>
+          <li><strong>Lần hoạt động cuối</strong></li>
+        </ul>
+
+        <h2>Mời user mới</h2>
+        <figure>
+          <img src="../../assets/img/screenshots/vi/admin/04-user-invite.png" alt="Form mời user">
+          <figcaption>Form mời user — nhập SĐT + chọn vai trò → hệ thống tạo invite link</figcaption>
+        </figure>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body"><p>Bấm <strong>"+ Mời thành viên"</strong> ở góc trên phải <code>/users</code>.</p></div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body"><p>Điền:</p>
+            <ul>
+              <li><strong>Tên</strong></li>
+              <li><strong>Số điện thoại</strong> (VN 10 số, bắt buộc) — sẽ là username cho AMA</li>
+              <li><strong>Vai trò AMA</strong>: MASTER / MANAGER / MEMBER / VIEWER (Manager chỉ chọn được MEMBER/VIEWER)</li>
+              <li><strong>Phòng ban</strong> (tùy chọn)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Bấm <strong>"Tạo mời"</strong>. Hệ thống sinh <strong>invite link</strong> + hướng dẫn SMS — gửi cho user.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">4</div>
+          <div class="step__body">
+            <p>User vào link → tạo tài khoản AMA → login app → tự động được cấp vai trò bạn đã chọn.</p>
+          </div>
+        </div>
+
+        <h2>Mapping vai trò AMA → vai trò app</h2>
+        <table>
+          <thead><tr><th>AMA role</th><th>App role</th><th>Ghi chú</th></tr></thead>
+          <tbody>
+            <tr><td>OWNER, MASTER</td><td><strong>ADMIN</strong></td><td>Toàn quyền hệ thống</td></tr>
+            <tr><td>MANAGER</td><td><strong>MANAGER</strong></td><td>Đặt xe + xem báo cáo riêng</td></tr>
+            <tr><td>MEMBER, VIEWER</td><td><strong>DRIVER</strong></td><td>Tự động — nếu user là tài xế, bạn cần thêm hồ sơ ở <a href="03-quan-ly-tai-xe.html">/drivers/new</a></td></tr>
+          </tbody>
+        </table>
+
+        <h2>Đổi vai trò app</h2>
+        <p>Vào <code>/users/[id]/edit</code> → đổi <strong>Vai trò app</strong>. Lưu ý: AMA role là nguồn cuối — đồng bộ lại mỗi lần user login.</p>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">⚠️</div>
+          <div class="callout__body">
+            <p><strong>Đổi vai trò</strong> được audit log — sẽ thấy entry <code>ROLE_CHANGE</code> với người thay đổi + thời điểm. Cẩn thận khi nâng/hạ quyền.</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="03-quan-ly-tai-xe.html"><span>← Trước</span><strong>Quản lý tài xế</strong></a>
+          <a class="pager__next" href="05-quan-ly-chuyen-di.html"><span>Tiếp theo →</span><strong>Chuyến đi</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">Cập nhật 24-05-2026 · Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

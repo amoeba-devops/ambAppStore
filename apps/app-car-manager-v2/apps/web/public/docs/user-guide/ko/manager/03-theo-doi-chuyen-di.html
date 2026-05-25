@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>운행 추적 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — 사용 안내서 홈" aria-label="Amoeba Car Manager v2 — 사용 안내서 홈">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 사용 안내서</span></span><span class="header__brand-mobile">사용 안내서</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="안내서 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="5" fill="#fff"/><path d="M15,5 a5,5 0 0,1 0,10 a2.5,2.5 0 0,0 0,-5 a2.5,2.5 0 0,1 0,-5" fill="#003478"/><path d="M15,5 a5,5 0 0,0 0,10 a2.5,2.5 0 0,1 0,-5 a2.5,2.5 0 0,0 0,-5" fill="#C60C30"/></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">소개</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">화면 탐색</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림함</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">용어집</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">매니저</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-dashboard.html">대시보드</a>
+        <a class="sidebar__link" href="02-dat-xe.html">차량 예약</a>
+        <a class="sidebar__link" href="03-theo-doi-chuyen-di.html">운행 추적</a>
+        <a class="sidebar__link" href="04-ghi-chi-phi.html">비용 기록</a>
+        <a class="sidebar__link" href="05-so-chi-phi.html">비용 장부</a>
+        <a class="sidebar__link" href="06-bao-cao-ca-nhan.html">개인 보고서</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">홈</a> · 매니저 · Theo dõi 운행</div>
+        <h1>운행 추적</h1>
+
+        <div class="callout callout--info" style="margin-bottom:24px">
+          <div class="callout__icon">🌐</div>
+          <div class="callout__body">
+            <p><strong>한국어 번역 진행 중</strong> — 이 페이지의 본문 일부는 아직 베트남어입니다.
+            제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다.
+            급한 경우 <a href="../../vi/manager/03-theo-doi-chuyen-di.html">베트남어 원문</a>을 참고하세요.</p>
+          </div>
+        </div>
+        
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>URL</dt><dd><code>/trips</code> (danh sách) và <code>/trips/[id]</code> (chi tiết)</dd>
+            <dt>범위</dt><dd>Chỉ 운행 do bạn tạo hoặc bạn là 승객</dd>
+          </dl>
+        </div>
+
+        <h2>Danh sách 운행 của tôi</h2>
+        <figure>
+          <img src="../../assets/img/screenshots/ko/manager/03-trips-list.png" alt="Danh sách 운행">
+          <figcaption>Danh sách 운행 của Quản lý — gom theo trạng thái, có bộ lọc</figcaption>
+        </figure>
+
+        <p>Trang <code>/trips</code> hiển thị toàn bộ 운행 của bạn theo thứ tự 출발 시각 mới nhất. Mỗi dòng có:</p>
+        <ul>
+          <li><strong>Mã 운행</strong> (TR-3001…)</li>
+          <li><strong>Tuyến</strong> (출발지 → 도착지)</li>
+          <li><strong>Ngày + giờ 출발</strong></li>
+          <li><strong>Xe + 기사</strong> (nếu đã gán)</li>
+          <li><strong>Nhãn trạng thái</strong> (Chờ phân công / Chờ 기사 / Đã xác nhận / Đang đi / Hoàn tất / 취소)</li>
+        </ul>
+
+        <p>Bộ lọc trên cùng cho phép lọc theo:</p>
+        <ul>
+          <li><strong>Trạng thái</strong> (đa chọn)</li>
+          <li><strong>Khoảng ngày</strong></li>
+          <li><strong>Xe / 기사</strong></li>
+          <li><strong>Từ khoá</strong> (tìm theo địa chỉ hoặc 목적)</li>
+        </ul>
+
+        <h2>Chi tiết 운행</h2>
+        <figure>
+          <img src="../../assets/img/screenshots/ko/manager/03-trip-detail-own.png" alt="Chi tiết 운행 do Manager tạo">
+          <figcaption>Chi tiết TR-3001 — bản đồ + thông tin + nút hành động (Quản lý có thể 취소)</figcaption>
+        </figure>
+
+        <p>Trang chi tiết hiển thị:</p>
+        <ul>
+          <li><strong>Bản đồ tuyến đường</strong> (Google Embed)</li>
+          <li><strong>Thông tin cơ bản</strong> — pickup, dropoff, thời gian, 목적, 메모</li>
+          <li><strong>경유지</strong> (nếu có)</li>
+          <li><strong>Người + xe</strong> — passenger, driver, vehicle, plate</li>
+          <li><strong>Lịch sử trạng thái</strong> — ai đã tạo / gán / xác nhận / bắt đầu / kết thúc</li>
+          <li><strong>Nút hành động</strong> dưới cùng (xem dưới)</li>
+        </ul>
+
+        <h2>Hành động bạn được làm</h2>
+        <table>
+          <thead><tr><th>Trạng thái 운행</th><th>Hành động</th></tr></thead>
+          <tbody>
+            <tr><td>Chờ phân công · Chờ 기사 · Đã xác nhận (chưa chạy)</td><td>✅ <strong>취소 운행</strong> (cần ghi lý do)</td></tr>
+            <tr><td>Đang đi · Hoàn tất · Đã 취소 · Bị từ chối</td><td>❌ Chỉ xem, không sửa được</td></tr>
+            <tr><td>Bất kỳ trạng thái nào</td><td>📝 <strong>Cập nhật 메모</strong> (không sửa data chính)</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Đặc biệt: 운행 bạn là 승객</h2>
+        <p>Nếu một Admin/Quản lý khác đặt 운행 cho bạn (TR-3002), bạn vẫn thấy 운행 đó trong danh sách. Nhưng bạn <strong>không có quyền 취소</strong> — chỉ người tạo 운행 hoặc Admin mới 취소 được.</p>
+
+        <figure>
+          <img src="../../assets/img/screenshots/ko/manager/03-trip-detail-passenger-mobile.png" alt="운행 상세 (모바일) — 매니저가 승객인 경우">
+          <figcaption>같은 운행을 모바일에서 본 화면 — 매니저는 전체 정보는 볼 수 있지만 취소 버튼은 없음</figcaption>
+        </figure>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">📱</div>
+          <div class="callout__body">
+            <p><strong>Trên điện thoại</strong>, danh sách hiển thị dạng card cuộn dọc, nút "취소 운행" nằm cuối trang chi tiết.</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="02-dat-xe.html"><span>← 이전</span><strong>차량 예약</strong></a>
+          <a class="pager__next" href="04-ghi-chi-phi.html"><span>다음 →</span><strong>비용 기록</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">최종 업데이트 2026-05-24 · 피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

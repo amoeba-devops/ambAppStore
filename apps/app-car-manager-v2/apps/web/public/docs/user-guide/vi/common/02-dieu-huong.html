@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Điều hướng — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — Trang chủ hướng dẫn" aria-label="Amoeba Car Manager v2 — Trang chủ hướng dẫn">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span><span class="header__brand-mobile">Hướng dẫn</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" class="is-active" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a>
+          <a href="#" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="5" fill="#fff"/><path d="M15,5 a5,5 0 0,1 0,10 a2.5,2.5 0 0,0 0,-5 a2.5,2.5 0 0,1 0,-5" fill="#003478"/><path d="M15,5 a5,5 0 0,0 0,10 a2.5,2.5 0 0,1 0,-5 a2.5,2.5 0 0,0 0,-5" fill="#C60C30"/></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a>
+        </span>
+      </div>
+    </header>
+
+    <!-- SIDEBAR (BEGIN) -->
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Quản trị viên</div>
+        <a class="sidebar__link" href="../admin/00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="../admin/01-dashboard.html">Dashboard</a>
+        <a class="sidebar__link" href="../admin/02-quan-ly-xe.html">Quản lý xe</a>
+        <a class="sidebar__link" href="../admin/03-quan-ly-tai-xe.html">Quản lý tài xế</a>
+        <a class="sidebar__link" href="../admin/04-quan-ly-nguoi-dung.html">Người dùng</a>
+        <a class="sidebar__link" href="../admin/05-quan-ly-chuyen-di.html">Chuyến đi</a>
+        <a class="sidebar__link" href="../admin/06-quan-ly-chi-phi.html">Quản lý chi phí</a>
+        <a class="sidebar__link" href="../admin/07-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="../admin/08-bao-cao.html">Báo cáo</a>
+        <a class="sidebar__link" href="../admin/09-cau-hinh-he-thong.html">Cấu hình hệ thống</a>
+        <a class="sidebar__link" href="../admin/10-audit-log.html">Audit log</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Quản lý</div>
+        <a class="sidebar__link" href="../manager/00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="../manager/01-dashboard.html">Dashboard</a>
+        <a class="sidebar__link" href="../manager/02-dat-xe.html">Đặt xe</a>
+        <a class="sidebar__link" href="../manager/03-theo-doi-chuyen-di.html">Theo dõi chuyến đi</a>
+        <a class="sidebar__link" href="../manager/04-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="../manager/05-so-chi-phi.html">Sổ chi phí</a>
+        <a class="sidebar__link" href="../manager/06-bao-cao-ca-nhan.html">Báo cáo cá nhân</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Tài xế</div>
+        <a class="sidebar__link" href="../driver/00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="../driver/01-cai-pwa.html">Cài đặt PWA</a>
+        <a class="sidebar__link" href="../driver/02-today-screen.html">Màn hình Hôm nay</a>
+        <a class="sidebar__link" href="../driver/03-xac-nhan-chuyen.html">Xác nhận chuyến</a>
+        <a class="sidebar__link" href="../driver/04-bat-dau-ket-thuc-chuyen.html">Bắt đầu / kết thúc chuyến</a>
+        <a class="sidebar__link" href="../driver/05-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="../driver/06-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="../driver/07-ngoai-tuyen.html">Hành vi ngoại tuyến</a>
+      </div>
+    </aside>
+    <!-- SIDEBAR (END) -->
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">Trang chủ</a> · Chung · Điều hướng
+        </div>
+        <h1>Điều hướng trong app</h1>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>Đối tượng</dt><dd>Mọi vai trò</dd>
+            <dt>Thời gian đọc</dt><dd>~5 phút</dd>
+            <dt>Mức độ</dt><dd>Cơ bản — đọc trước khi dùng các tính năng</dd>
+          </dl>
+        </div>
+
+        <p>App có hai bố cục chính: <strong>web (máy tính)</strong> cho Admin/Quản lý và
+        <strong>PWA mobile</strong> cho Tài xế. Cả hai chia sẻ chung dữ liệu và đồng bộ thời gian thực.</p>
+
+        <h2>1. Bố cục web</h2>
+
+        <figure>
+          <img src="../../assets/img/screenshots/vi/common/02-dashboard-overview.png" alt="Dashboard tổng quan">
+          <figcaption>Bố cục web mặc định — thanh điều hướng bên trái (1), thanh trên cùng (2), nội dung chính (3)</figcaption>
+        </figure>
+
+        <h3>1.1 Thanh điều hướng bên trái (sidebar)</h3>
+        <p>Sidebar hiển thị các mục theo vai trò của bạn. Các nhóm chính:</p>
+
+        <ul>
+          <li><strong>Không gian làm việc</strong> — Dashboard, Chuyến đi, Phương tiện, Tài xế, Chi phí</li>
+          <li><strong>Quản trị</strong> (chỉ Admin) — Người dùng, Cài đặt, Nhật ký kiểm toán</li>
+          <li><strong>Cá nhân</strong> — Hồ sơ "Tôi", đăng xuất</li>
+        </ul>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">ℹ️</div>
+          <div class="callout__body">
+            <p>Khi bạn ở <strong>Tài xế</strong>, sidebar sẽ ngắn hơn (chỉ Hôm nay, Chuyến của tôi, Chi phí của tôi, Tôi) — không thấy các mục quản trị.</p>
+          </div>
+        </div>
+
+        <h3>1.2 Thanh trên cùng (top bar)</h3>
+        <p>Phần đầu trang hiển thị:</p>
+        <ul>
+          <li><strong>Tổ chức · Tên trang hiện tại</strong> — breadcrumb điều hướng</li>
+          <li><strong>Nút hành động chính</strong> (góc phải) — ví dụ "+ Tạo chuyến mới" trên trang Dashboard</li>
+        </ul>
+
+        <h3>1.3 Vùng nội dung chính</h3>
+        <p>Mọi nội dung công việc xuất hiện tại đây: bảng dữ liệu, form, lịch, biểu đồ. Cuộn theo chiều dọc nếu nội dung dài.</p>
+
+        <h2>2. Điều hướng nhanh — vai trò quyết định trang chủ</h2>
+
+        <p>Khi bạn vào URL gốc của app, hệ thống tự động chuyển hướng dựa trên vai trò:</p>
+
+        <table>
+          <thead>
+            <tr><th>Vai trò</th><th>Trang chủ tự động</th><th>Vì sao</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Quản trị viên</td><td><code>/dashboard</code></td><td>Cần xem tổng quan toàn bộ hoạt động</td></tr>
+            <tr><td>Quản lý / Giám đốc</td><td><code>/dashboard</code></td><td>Cần đặt xe và theo dõi đội xe</td></tr>
+            <tr><td>Tài xế</td><td><code>/today</code></td><td>Cần xem chuyến hôm nay ngay lập tức</td></tr>
+          </tbody>
+        </table>
+
+        <h2>3. Bố cục di động (Tài xế)</h2>
+        <p>Trên điện thoại, app tự chuyển sang bố cục tối ưu cho ngón tay:</p>
+        <ul>
+          <li><strong>Không có sidebar</strong> — thay bằng thanh tab ở dưới cùng (Hôm nay · Chuyến · Chi phí · Tôi)</li>
+          <li><strong>Nút lớn, khoảng cách rộng</strong> để thao tác trong xe</li>
+          <li><strong>Có thể cài đặt thành ứng dụng</strong> trên màn hình chính (PWA) — xem trang <a href="../driver/01-cai-pwa.html">Cài đặt PWA</a></li>
+        </ul>
+
+        <h2>4. Các phím tắt hữu ích (web)</h2>
+        <table>
+          <thead><tr><th>Phím</th><th>Tác dụng</th></tr></thead>
+          <tbody>
+            <tr><td><code>Esc</code></td><td>Đóng modal đang mở</td></tr>
+            <tr><td><code>Tab</code></td><td>Chuyển ô nhập kế tiếp trong form</td></tr>
+            <tr><td><code>Enter</code></td><td>Submit form (khi đang ở trong ô input)</td></tr>
+          </tbody>
+        </table>
+
+        <nav class="pager">
+          <a class="pager__prev" href="01-dang-nhap.html">
+            <span>← Trước</span>
+            <strong>Đăng nhập</strong>
+          </a>
+          <a class="pager__next" href="03-ngon-ngu.html">
+            <span>Tiếp theo →</span>
+            <strong>Đổi ngôn ngữ</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        Cập nhật 24-05-2026 ·
+        Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

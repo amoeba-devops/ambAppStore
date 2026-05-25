@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — Quản lý xe — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — Trang chủ hướng dẫn" aria-label="Amoeba Car Manager v2 — Trang chủ hướng dẫn">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span><span class="header__brand-mobile">Hướng dẫn</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="5" fill="#fff"/><path d="M15,5 a5,5 0 0,1 0,10 a2.5,2.5 0 0,0 0,-5 a2.5,2.5 0 0,1 0,-5" fill="#003478"/><path d="M15,5 a5,5 0 0,0 0,10 a2.5,2.5 0 0,1 0,-5 a2.5,2.5 0 0,0 0,-5" fill="#C60C30"/></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Quản trị viên</div>
+        <a class="sidebar__link" href="00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="01-dashboard.html">Dashboard</a>
+        <a class="sidebar__link" href="02-quan-ly-xe.html">Quản lý xe</a>
+        <a class="sidebar__link" href="03-quan-ly-tai-xe.html">Quản lý tài xế</a>
+        <a class="sidebar__link" href="04-quan-ly-nguoi-dung.html">Người dùng</a>
+        <a class="sidebar__link" href="05-quan-ly-chuyen-di.html">Chuyến đi</a>
+        <a class="sidebar__link" href="06-quan-ly-chi-phi.html">Quản lý chi phí</a>
+        <a class="sidebar__link" href="07-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="08-bao-cao.html">Báo cáo</a>
+        <a class="sidebar__link" href="09-cau-hinh-he-thong.html">Cấu hình hệ thống</a>
+        <a class="sidebar__link" href="10-audit-log.html">Audit log</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">Trang chủ</a> · Quản trị viên · Quản lý xe</div>
+        <h1>Quản lý xe (Vehicles)</h1>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>URL</dt><dd><code>/vehicles</code> (danh sách) · <code>/vehicles/new</code> (thêm) · <code>/vehicles/[id]</code> (chi tiết)</dd>
+            <dt>Quyền</dt><dd>Admin + Manager: tạo + sửa. Driver: không truy cập.</dd>
+            <dt>Soft delete</dt><dd>Không có nút Xoá — đổi trạng thái sang <code>RETIRED</code> để "rút khỏi đội"</dd>
+          </dl>
+        </div>
+
+        <h2>Danh sách xe</h2>
+
+        <figure>
+          <img src="../../assets/img/screenshots/vi/admin/02-vehicles-list.png" alt="Danh sách xe">
+          <figcaption>Đội xe — KPI 4 ô (Tổng / Sẵn sàng / Đang dùng / Bảo trì) + card grid 3 cột</figcaption>
+        </figure>
+
+        <p>Mỗi card xe hiển thị:</p>
+        <ul>
+          <li><strong>Biển số</strong> (font-mono) + <strong>nhãn trạng thái</strong></li>
+          <li><strong>Model + năm + màu</strong></li>
+          <li><strong>Số km hiện tại</strong></li>
+          <li><strong>Thay dầu sau</strong> (km còn lại đến chu kỳ tiếp theo) — đỏ nếu đã quá hạn</li>
+          <li><strong>Nơi đỗ</strong> (home base)</li>
+          <li><strong>Banner cảnh báo</strong> nếu <code>Quá hạn thay dầu</code> hoặc <code>Đang bảo trì</code></li>
+        </ul>
+
+        <h2>Thêm xe mới</h2>
+
+        <figure>
+          <img src="../../assets/img/screenshots/vi/admin/02-vehicle-form.png" alt="Form thêm xe">
+          <figcaption>Form thêm xe — auto-save draft mỗi 5 giây, không sợ mất khi reload</figcaption>
+        </figure>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body"><p>Bấm <strong>"+ Tạo mới"</strong> ở góc trên phải.</p></div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body"><p>Điền các ô bắt buộc:</p>
+            <ul>
+              <li><strong>Biển số</strong> — định dạng VN (vd <code>51K-238.91</code>) — phải duy nhất trong đội</li>
+              <li><strong>Model</strong>, <strong>Hãng</strong>, <strong>Năm sản xuất</strong>, <strong>Màu sắc</strong></li>
+              <li><strong>Loại nhiên liệu</strong>: PETROL / DIESEL / HYBRID / EV</li>
+              <li><strong>Số km hiện tại</strong> (odometer) — đọc từ đồng hồ xe</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body"><p>Cấu hình bảo dưỡng (tùy chọn, mặc định OK):</p>
+            <ul>
+              <li><strong>Chu kỳ thay dầu (km)</strong> — mặc định 5.000 km</li>
+              <li><strong>Chu kỳ thay dầu (tháng)</strong> — mặc định 3 tháng</li>
+              <li><strong>Lần thay dầu gần nhất</strong> — ngày + số km lúc thay</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">4</div>
+          <div class="step__body"><p>Bấm <strong>"Lưu"</strong>. Xe xuất hiện trong danh sách với trạng thái <code>AVAILABLE</code>.</p></div>
+        </div>
+
+        <h2>Chi tiết xe — 3 tab</h2>
+
+        <figure>
+          <img src="../../assets/img/screenshots/vi/admin/02-vehicle-detail.png" alt="Chi tiết xe">
+          <figcaption>Chi tiết xe — Hero card + 3 tab (Trips, Docs, Maintenance)</figcaption>
+        </figure>
+
+        <table>
+          <thead><tr><th>Tab</th><th>Nội dung</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Chuyến đi</strong></td><td>Danh sách 10 chuyến gần nhất của xe này — bấm để xem chi tiết</td></tr>
+            <tr><td><strong>Tài liệu</strong></td><td>(P5) Upload đăng ký xe, bảo hiểm, giấy đăng kiểm — hiện đang chuẩn bị</td></tr>
+            <tr><td><strong>Bảo dưỡng</strong></td><td>(P4) Lịch sử thay dầu + đăng kiểm — xem chi tiết ở trang <a href="07-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a></td></tr>
+          </tbody>
+        </table>
+
+        <h2>Đổi trạng thái xe</h2>
+        <table>
+          <thead><tr><th>Trạng thái</th><th>Khi nào dùng</th></tr></thead>
+          <tbody>
+            <tr><td><code>AVAILABLE</code></td><td>Sẵn sàng cho chuyến</td></tr>
+            <tr><td><code>IN_USE</code></td><td>Đang trong chuyến — hệ thống tự đổi khi tài xế bấm "Bắt đầu"</td></tr>
+            <tr><td><code>MAINTENANCE</code></td><td>Đang bảo dưỡng — không cho phép gán chuyến mới</td></tr>
+            <tr><td><code>RETIRED</code></td><td>Đã thanh lý — vẫn lưu lịch sử nhưng ẩn khỏi dropdown chọn xe</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">⚠️</div>
+          <div class="callout__body">
+            <p><strong>Đổi sang MAINTENANCE</strong> sẽ kiểm tra trước: nếu xe đang trong chuyến IN_PROGRESS, hệ thống chặn (tránh hủy chuyến đột ngột).</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="01-dashboard.html"><span>← Trước</span><strong>Dashboard</strong></a>
+          <a class="pager__next" href="03-quan-ly-tai-xe.html"><span>Tiếp theo →</span><strong>Quản lý tài xế</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">Cập nhật 24-05-2026 · Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

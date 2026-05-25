@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thuật ngữ — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — Trang chủ hướng dẫn" aria-label="Amoeba Car Manager v2 — Trang chủ hướng dẫn">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span><span class="header__brand-mobile">Hướng dẫn</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" class="is-active" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a>
+          <a href="#" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="5" fill="#fff"/><path d="M15,5 a5,5 0 0,1 0,10 a2.5,2.5 0 0,0 0,-5 a2.5,2.5 0 0,1 0,-5" fill="#003478"/><path d="M15,5 a5,5 0 0,0 0,10 a2.5,2.5 0 0,1 0,-5 a2.5,2.5 0 0,0 0,-5" fill="#C60C30"/></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a>
+        </span>
+      </div>
+    </header>
+
+    <!-- SIDEBAR (BEGIN) -->
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Quản trị viên</div>
+        <a class="sidebar__link" href="../admin/00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="../admin/01-dashboard.html">Dashboard</a>
+        <a class="sidebar__link" href="../admin/02-quan-ly-xe.html">Quản lý xe</a>
+        <a class="sidebar__link" href="../admin/03-quan-ly-tai-xe.html">Quản lý tài xế</a>
+        <a class="sidebar__link" href="../admin/04-quan-ly-nguoi-dung.html">Người dùng</a>
+        <a class="sidebar__link" href="../admin/05-quan-ly-chuyen-di.html">Chuyến đi</a>
+        <a class="sidebar__link" href="../admin/06-quan-ly-chi-phi.html">Quản lý chi phí</a>
+        <a class="sidebar__link" href="../admin/07-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="../admin/08-bao-cao.html">Báo cáo</a>
+        <a class="sidebar__link" href="../admin/09-cau-hinh-he-thong.html">Cấu hình hệ thống</a>
+        <a class="sidebar__link" href="../admin/10-audit-log.html">Audit log</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Quản lý</div>
+        <a class="sidebar__link" href="../manager/00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="../manager/01-dashboard.html">Dashboard</a>
+        <a class="sidebar__link" href="../manager/02-dat-xe.html">Đặt xe</a>
+        <a class="sidebar__link" href="../manager/03-theo-doi-chuyen-di.html">Theo dõi chuyến đi</a>
+        <a class="sidebar__link" href="../manager/04-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="../manager/05-so-chi-phi.html">Sổ chi phí</a>
+        <a class="sidebar__link" href="../manager/06-bao-cao-ca-nhan.html">Báo cáo cá nhân</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Tài xế</div>
+        <a class="sidebar__link" href="../driver/00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="../driver/01-cai-pwa.html">Cài đặt PWA</a>
+        <a class="sidebar__link" href="../driver/02-today-screen.html">Màn hình Hôm nay</a>
+        <a class="sidebar__link" href="../driver/03-xac-nhan-chuyen.html">Xác nhận chuyến</a>
+        <a class="sidebar__link" href="../driver/04-bat-dau-ket-thuc-chuyen.html">Bắt đầu / kết thúc chuyến</a>
+        <a class="sidebar__link" href="../driver/05-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="../driver/06-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="../driver/07-ngoai-tuyen.html">Hành vi ngoại tuyến</a>
+      </div>
+    </aside>
+    <!-- SIDEBAR (END) -->
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">Trang chủ</a> · Chung · Thuật ngữ
+        </div>
+        <h1>Bảng thuật ngữ</h1>
+
+        <p>Bảng các thuật ngữ thường gặp trong hệ thống, sắp xếp theo bảng chữ cái.</p>
+
+        <h2>A — H</h2>
+        <table>
+          <tbody>
+            <tr><td><strong>AMA</strong></td><td>Amoeba Management — nền tảng quản lý tài khoản & tổ chức của Amoeba, cung cấp SSO cho mọi app trong hệ sinh thái.</td></tr>
+            <tr><td><strong>Audit log</strong></td><td>Nhật ký kiểm toán — ghi lại mọi thay đổi dữ liệu, không thể sửa/xoá, lưu trữ 5 năm.</td></tr>
+            <tr><td><strong>Auto-approve</strong></td><td>Tự động duyệt — khoản chi phí dưới ngưỡng cấu hình được duyệt tự động không cần Admin can thiệp.</td></tr>
+            <tr><td><strong>Báo dưỡng</strong></td><td>Bảo dưỡng định kỳ — thay dầu, kiểm tra phanh, lốp… Hệ thống tự cảnh báo dựa trên số km và thời gian.</td></tr>
+            <tr><td><strong>BFF</strong></td><td>Backend-For-Frontend — server riêng cho ứng dụng frontend, đóng vai trò proxy + xử lý nghiệp vụ.</td></tr>
+            <tr><td><strong>Chuyến đi (Trip)</strong></td><td>Một lần sử dụng xe có điểm đón, điểm đến, thời gian — đối tượng dữ liệu chính.</td></tr>
+            <tr><td><strong>Điểm ghé (Stopover)</strong></td><td>Điểm dừng trung gian giữa điểm đón và điểm đến trong một chuyến.</td></tr>
+            <tr><td><strong>Doanh nghiệp (Entity)</strong></td><td>Tổ chức/công ty đăng ký sử dụng app — mỗi doanh nghiệp có dữ liệu hoàn toàn cô lập (multi-tenancy).</td></tr>
+          </tbody>
+        </table>
+
+        <h2>I — Q</h2>
+        <table>
+          <tbody>
+            <tr><td><strong>Lock 7 ngày</strong></td><td>Sau khi nộp chi phí 7 ngày, không thể tự sửa nữa — chỉ Admin mới sửa được.</td></tr>
+            <tr><td><strong>Maintenance Alert</strong></td><td>Cảnh báo bảo dưỡng — thông báo tự động khi xe đến hạn thay dầu/đăng kiểm.</td></tr>
+            <tr><td><strong>Multi-tenancy</strong></td><td>Cơ chế chia sẻ hạ tầng nhưng cô lập dữ liệu — doanh nghiệp A không thấy dữ liệu doanh nghiệp B.</td></tr>
+            <tr><td><strong>Odometer (Số công-tơ-mét)</strong></td><td>Số km tổng cộng của xe, hiển thị trên đồng hồ — dùng để tính chu kỳ bảo dưỡng.</td></tr>
+            <tr><td><strong>PWA</strong></td><td>Progressive Web App — ứng dụng web có thể cài thành app trên màn hình điện thoại.</td></tr>
+          </tbody>
+        </table>
+
+        <h2>R — Z</h2>
+        <table>
+          <tbody>
+            <tr><td><strong>SSO</strong></td><td>Single Sign-On — đăng nhập một lần ở AMA, dùng được mọi app.</td></tr>
+            <tr><td><strong>State machine (Máy trạng thái)</strong></td><td>Mô hình quản lý vòng đời — Chuyến đi đi qua 7 trạng thái cố định theo thứ tự cho trước.</td></tr>
+            <tr><td><strong>Soft delete (Xoá mềm)</strong></td><td>Xoá nhưng vẫn lưu lại trong DB — có thể khôi phục. Không có chức năng xoá cứng trong app.</td></tr>
+            <tr><td><strong>Soft-warning (Cảnh báo mềm)</strong></td><td>Cảnh báo mà không chặn thao tác — Admin có quyền tiếp tục dù có xung đột.</td></tr>
+            <tr><td><strong>Vai trò (Role)</strong></td><td>Admin / Quản lý / Tài xế — quyết định trang nào bạn thấy và thao tác nào bạn được làm.</td></tr>
+            <tr><td><strong>Web Push</strong></td><td>Thông báo đẩy qua trình duyệt — hiện pop-up dù đang không mở app.</td></tr>
+          </tbody>
+        </table>
+
+        <nav class="pager">
+          <a class="pager__prev" href="04-thong-bao.html">
+            <span>← Trước</span>
+            <strong>Thông báo</strong>
+          </a>
+          <a class="pager__next" href="../admin/00-tong-quan.html">
+            <span>Tiếp theo →</span>
+            <strong>Hướng dẫn Quản trị viên</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        Cập nhật 24-05-2026 ·
+        Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

@@ -1,5 +1,6 @@
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { eq, and, isNull } from 'drizzle-orm';
+import { BookOpen, ExternalLink } from 'lucide-react';
 import { db } from '@car-v2/db/client';
 import { carUsers } from '@car-v2/db/schema';
 import { Card, CardContent } from '@car-v2/ui';
@@ -21,6 +22,14 @@ export default async function MePage() {
   const tNav = await getTranslations('nav');
   const tMe  = await getTranslations('settings.me');
   const user = await getCurrentUser();
+  const locale = await getLocale();
+
+  /* User-guide URL: basePath + /docs/user-guide/{locale}/index.html. The guide
+   * is published only in vi + ko — en users get the vi version since the doc
+   * site has its own VI/KO switcher in the header. */
+  const guideBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+  const guideLocale = locale === 'ko' ? 'ko' : 'vi';
+  const userGuideHref = `${guideBasePath}/docs/user-guide/${guideLocale}/index.html`;
 
   /* Pull profile from the local mirror table (sync'd from AMA on first
    * passthrough). Inline query — single call site, no need for a query helper. */
@@ -84,6 +93,30 @@ export default async function MePage() {
         <MeLanguageCard />
 
         <MePushCard />
+
+        {/* User guide entry — primary surface on mobile where there's no
+         * sidebar avatar menu. Plain <a> (not <Link>) because the target is
+         * static HTML under /public/docs/, outside the Next.js route table. */}
+        <Card>
+          <CardContent>
+            <a
+              href={userGuideHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={tNav('userGuideAria')}
+              className="group flex items-center gap-3 -m-2 p-3 rounded-md hover:bg-surface-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="h-9 w-9 rounded-md bg-accent-soft text-accent inline-flex items-center justify-center shrink-0">
+                <BookOpen className="h-4 w-4" aria-hidden />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-sm font-medium text-text">{tNav('userGuide')}</span>
+                <span className="block text-xs text-text-muted truncate">{tNav('userGuideHint')}</span>
+              </span>
+              <ExternalLink className="h-3.5 w-3.5 text-text-faint shrink-0 group-hover:text-text-muted" aria-hidden />
+            </a>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardContent>

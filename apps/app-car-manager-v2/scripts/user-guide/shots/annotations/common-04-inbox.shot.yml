@@ -1,0 +1,16 @@
+# Inbox list — each row is a card with icon + title + body + age + unread dot.
+# First card top edge at y≈140, each card height ≈115.
+caption: "Hộp thư: tiêu đề + số chưa đọc (1) — chấm xanh = chưa đọc (2) — bấm 'Đọc tất cả' (3)"
+
+annotations:
+  # 1 — Title + unread count
+  - { type: number, at: [280, 80], label: '1', color: '#3182F6', radius: 16 }
+  - { type: box,    rect: [266, 60, 220, 56], color: '#3182F6', width: 2 }
+
+  # 2 — Unread dot on first card
+  - { type: number, at: [1190, 160], label: '2', color: '#FF3B30', radius: 14 }
+  - { type: arrow,  from: [1175, 160], to: [1163, 160], color: '#FF3B30', width: 3 }
+
+  # 3 — "Đọc tất cả" button
+  - { type: number, at: [1290, 65], label: '3', color: '#FF9500', radius: 14 }
+  - { type: arrow,  from: [1305, 65], to: [1350, 65], color: '#FF9500', width: 3 }

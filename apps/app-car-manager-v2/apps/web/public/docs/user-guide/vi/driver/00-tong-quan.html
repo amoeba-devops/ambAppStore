@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tổng quan vai trò Tài xế — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — Trang chủ hướng dẫn" aria-label="Amoeba Car Manager v2 — Trang chủ hướng dẫn">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span><span class="header__brand-mobile">Hướng dẫn</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" class="is-active" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a>
+          <a href="#" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="5" fill="#fff"/><path d="M15,5 a5,5 0 0,1 0,10 a2.5,2.5 0 0,0 0,-5 a2.5,2.5 0 0,1 0,-5" fill="#003478"/><path d="M15,5 a5,5 0 0,0 0,10 a2.5,2.5 0 0,1 0,-5 a2.5,2.5 0 0,0 0,-5" fill="#C60C30"/></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a>
+        </span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Tài xế</div>
+        <a class="sidebar__link" href="00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="01-cai-pwa.html">Cài đặt PWA</a>
+        <a class="sidebar__link" href="02-today-screen.html">Màn hình Hôm nay</a>
+        <a class="sidebar__link" href="03-xac-nhan-chuyen.html">Xác nhận chuyến</a>
+        <a class="sidebar__link" href="04-bat-dau-ket-thuc-chuyen.html">Bắt đầu / kết thúc chuyến</a>
+        <a class="sidebar__link" href="05-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="06-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="07-ngoai-tuyen.html">Hành vi ngoại tuyến</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">Trang chủ</a> · Tài xế · Tổng quan
+        </div>
+        <h1>Tài xế — Tổng quan</h1>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>Đối tượng</dt><dd>Tài xế công ty (mapped từ AMA <code>MEMBER</code>)</dd>
+            <dt>Thiết bị</dt><dd><strong>Điện thoại (PWA)</strong> — tối ưu cho dùng trong xe, ngoài hiện trường</dd>
+            <dt>Thời gian đọc</dt><dd>~3 phút</dd>
+          </dl>
+        </div>
+
+        <p>Là tài xế, công việc hàng ngày của bạn xoay quanh <strong>chuyến đi</strong> và <strong>chi phí phát sinh</strong>.
+        Hệ thống được thiết kế để bạn thao tác nhanh trên điện thoại trong vài giây giữa các chuyến.</p>
+
+        <h2>Bạn làm gì với hệ thống?</h2>
+
+        <table>
+          <thead>
+            <tr><th>Việc</th><th>Khi nào</th><th>Trang</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Xem chuyến hôm nay</td><td>Đầu ca / mỗi khi mở app</td><td><a href="02-today-screen.html">Hôm nay</a></td></tr>
+            <tr><td>Xác nhận hoặc từ chối chuyến mới được gán</td><td>Khi nhận thông báo</td><td><a href="03-xac-nhan-chuyen.html">Xác nhận chuyến</a></td></tr>
+            <tr><td>Bấm "Bắt đầu" khi xuất phát, "Kết thúc" khi tới nơi</td><td>Trước/sau mỗi chuyến</td><td><a href="04-bat-dau-ket-thuc-chuyen.html">Bắt đầu/kết thúc</a></td></tr>
+            <tr><td>Ghi chi phí (xăng, dầu, đỗ, phí đường…)</td><td>Ngay sau khi chi tiêu (≤ 7 ngày)</td><td><a href="05-ghi-chi-phi.html">Ghi chi phí</a></td></tr>
+            <tr><td>Xem cảnh báo bảo dưỡng xe của bạn</td><td>Khi có thông báo "Hết hạn thay dầu"</td><td><a href="06-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a></td></tr>
+          </tbody>
+        </table>
+
+        <h2>Quy trình một chuyến đi điển hình</h2>
+
+        <pre style="background:var(--c-surface);border:1px solid var(--c-border);padding:16px;border-radius:8px;font-family:var(--font-mono);font-size:13px;line-height:1.7;overflow-x:auto"><code>1. Admin tạo chuyến + gán bạn  →  bạn nhận thông báo đẩy
+2. Bạn mở app  →  xem chi tiết chuyến  →  Bấm "Chấp nhận"
+3. Đến giờ khởi hành  →  Bấm "Bắt đầu chuyến"  (ghi số km hiện tại)
+4. Trong chuyến  →  Nếu đổ xăng/đỗ xe  →  Vào "Chi phí" ghi ngay
+5. Đến nơi  →  Bấm "Kết thúc chuyến"  (ghi số km mới)
+6. Chuyến đi tự chuyển trạng thái "Đã hoàn tất"</code></pre>
+
+        <h2>Bạn KHÔNG cần làm gì?</h2>
+        <ul>
+          <li><strong>Không nhập tên khách hàng</strong> — Admin đã gán sẵn khi tạo chuyến</li>
+          <li><strong>Không tự chọn xe</strong> — Admin gán xe cụ thể (51K-238.91, …)</li>
+          <li><strong>Không phê duyệt chi phí của ai</strong> — đó là việc của Admin</li>
+          <li><strong>Không truy cập danh sách xe / tài xế / báo cáo</strong> — sidebar của bạn chỉ có Hôm nay, Chuyến của tôi, Chi phí, Cá nhân</li>
+        </ul>
+
+        <h2>Trang "Cá nhân"</h2>
+        <p>Truy cập bằng cách bấm tab <strong>Cá nhân</strong> ở thanh đáy — xem thông tin hồ sơ, bằng lái, đổi ngôn ngữ, mở hướng dẫn sử dụng và đăng xuất.</p>
+        <figure>
+          <img src="../../assets/img/screenshots/vi/driver/00-settings-me.png" alt="Trang cá nhân Tài xế">
+          <figcaption>Trang "Cá nhân" của Tài xế — hồ sơ + bằng lái + ngôn ngữ + thông báo đẩy + đăng xuất</figcaption>
+        </figure>
+
+        <h2>Mẹo dùng hiệu quả</h2>
+        <div class="callout callout--info">
+          <div class="callout__icon">💡</div>
+          <div class="callout__body">
+            <p><strong>Cài PWA về Màn hình chính</strong> — App sẽ chạy độc lập như app native, không cần mở trình duyệt. Xem hướng dẫn ở trang <a href="01-cai-pwa.html">Cài đặt PWA</a>.</p>
+          </div>
+        </div>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">⚠️</div>
+          <div class="callout__body">
+            <p><strong>Ghi chi phí trong vòng 7 ngày.</strong> Sau 7 ngày, hệ thống tự khóa bản ghi — chỉ Admin mới sửa được. Ghi sớm để tránh phiền phức.</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="../common/99-thuat-ngu.html">
+            <span>← Trước</span>
+            <strong>Thuật ngữ</strong>
+          </a>
+          <a class="pager__next" href="01-cai-pwa.html">
+            <span>Tiếp theo →</span>
+            <strong>Cài đặt PWA</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        Cập nhật 24-05-2026 ·
+        Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

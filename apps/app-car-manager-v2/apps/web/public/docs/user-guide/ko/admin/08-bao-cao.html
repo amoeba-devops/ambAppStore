@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>보고서 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — 사용 안내서 홈" aria-label="Amoeba Car Manager v2 — 사용 안내서 홈">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 사용 안내서</span></span><span class="header__brand-mobile">사용 안내서</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="안내서 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="5" fill="#fff"/><path d="M15,5 a5,5 0 0,1 0,10 a2.5,2.5 0 0,0 0,-5 a2.5,2.5 0 0,1 0,-5" fill="#003478"/><path d="M15,5 a5,5 0 0,0 0,10 a2.5,2.5 0 0,1 0,-5 a2.5,2.5 0 0,0 0,-5" fill="#C60C30"/></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">소개</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">화면 탐색</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림함</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">용어집</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">관리자</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-dashboard.html">대시보드</a>
+        <a class="sidebar__link" href="02-quan-ly-xe.html">차량 관리</a>
+        <a class="sidebar__link" href="03-quan-ly-tai-xe.html">기사 관리</a>
+        <a class="sidebar__link" href="04-quan-ly-nguoi-dung.html">사용자</a>
+        <a class="sidebar__link" href="05-quan-ly-chuyen-di.html">운행</a>
+        <a class="sidebar__link" href="06-quan-ly-chi-phi.html">비용 관리</a>
+        <a class="sidebar__link" href="07-canh-bao-bao-duong.html">정비 알림</a>
+        <a class="sidebar__link" href="08-bao-cao.html">보고서</a>
+        <a class="sidebar__link" href="09-cau-hinh-he-thong.html">시스템 설정</a>
+        <a class="sidebar__link" href="10-audit-log.html">감사 로그</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">홈</a> · 관리자 · Báo cáo</div>
+        <h1>보고서 & 분석</h1>
+
+        <div class="callout callout--info" style="margin-bottom:24px">
+          <div class="callout__icon">🌐</div>
+          <div class="callout__body">
+            <p><strong>한국어 번역 진행 중</strong> — 이 페이지의 본문 일부는 아직 베트남어입니다.
+            제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다.
+            급한 경우 <a href="../../vi/admin/08-bao-cao.html">베트남어 원문</a>을 참고하세요.</p>
+          </div>
+        </div>
+        
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>URL</dt><dd><code>/reports</code></dd>
+            <dt>대상</dt><dd>Admin only (Manager dùng /costs để tạo báo cáo cá nhân)</dd>
+          </dl>
+        </div>
+
+        <h2>4 nhóm KPI + biểu đồ</h2>
+
+        <figure>
+          <img src="../../assets/img/screenshots/ko/admin/08-reports.png" alt="Trang báo cáo Admin">
+          <figcaption>Trang báo cáo — 4 KPI card trên cùng + 3 biểu đồ (donut + bar + line)</figcaption>
+        </figure>
+
+        <h3>1. KPI tổng (4 card)</h3>
+        <ul>
+          <li><strong>Tổng số 운행</strong> trong kỳ + delta % so kỳ trước</li>
+          <li><strong>Tổng chi phí</strong> + delta</li>
+          <li><strong>Chi phí TB/운행</strong> + delta</li>
+          <li><strong>Tỉ lệ sử dụng đội xe</strong> (Fleet Utilization %)</li>
+        </ul>
+
+        <h3>2. Spend Mix (donut chart)</h3>
+        <p>Phần trăm 8 loại chi phí (FUEL/REPAIR/MEAL/OIL/ACCIDENT/PARKING/TOLL/INSPECTION) trong tổng chi.</p>
+
+        <h3>3. Weekly Spend (stacked bar chart)</h3>
+        <p>12 tuần gần nhất, 4 loại chính (Fuel/Repair/Meal/Oil) chồng lên — dễ nhận xu hướng.</p>
+
+        <h3>4. Fleet Utilization (line chart)</h3>
+        <p>% thời gian sử dụng từng xe theo tuần — xe nào quá tải / xe nào nhàn rỗi.</p>
+
+        <h2>Bộ lọc kỳ báo cáo</h2>
+        <ul>
+          <li><strong>Tháng này</strong> (mặc định)</li>
+          <li><strong>Tháng trước</strong></li>
+          <li><strong>Quý này / Quý trước</strong></li>
+          <li><strong>Năm nay / Năm trước</strong></li>
+          <li><strong>Tùy chỉnh</strong> — từ ngày → đến ngày</li>
+        </ul>
+
+        <h2>Xuất file</h2>
+        <ul>
+          <li><strong>Xuất Excel</strong> — file <code>.xlsx</code> nhiều sheet (KPI, Spend Mix, Weekly, Utilization)</li>
+          <li><strong>Xuất PDF</strong> — report A4 với biểu đồ embedded</li>
+        </ul>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">🚧</div>
+          <div class="callout__body">
+            <p><strong>Một số tính năng đang hoàn thiện:</strong> period selector + Export PDF/Excel hiện là stub. Đang được implement ở P5. Trong khi đó, xuất CSV qua <a href="06-quan-ly-chi-phi.html">/costs</a> để có dữ liệu tạm thời.</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="07-canh-bao-bao-duong.html"><span>← 이전</span><strong>정비 알림</strong></a>
+          <a class="pager__next" href="09-cau-hinh-he-thong.html"><span>다음 →</span><strong>시스템 설정</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">최종 업데이트 2026-05-24 · 피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

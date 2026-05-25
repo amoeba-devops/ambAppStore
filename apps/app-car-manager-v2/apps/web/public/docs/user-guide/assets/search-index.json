@@ -1,0 +1,854 @@
+[
+  {
+    "url": "index.html",
+    "locale": "vi",
+    "section": "Trang chủ chung",
+    "title": "Hướng dẫn sử dụng",
+    "headings": [],
+    "snippet": "Amoeba Car Manager v2 — Hệ thống quản lý điều xe & chi phí nội bộ 33 trang · 40+ ảnh minh hoạ · 2 ngôn ngữ 🇻🇳 Tiếng Việt 🇰🇷 한국어 Cập nhật / 최종 업데이트: 24-05-2026 · Phản hồi / 피드백: dev@amoeba.group Tip: bấm / để tìm kiếm · 검색은 / 키"
+  },
+  {
+    "url": "ko/admin/00-tong-quan.html",
+    "locale": "ko",
+    "section": "Quản trị viên",
+    "title": "관리자 — 개요",
+    "headings": [
+      "11개 기능 그룹",
+      "걱정하지 않아도 되는 것"
+    ],
+    "snippet": "대상 회사 관리자 — AMA OWNER 또는 MASTER 에서 매핑 기기 웹 (데스크톱) — 복잡한 CRUD 작업용 권한 전권 — 제한된 작업 없음 관리자로서 시스템 전체를 운영합니다. 매니저/기사 기능 외에도 관리자 전용 4개 페이지 그룹이 추가됩니다: 사용자 , 정비 알림 , 설정 , 감사 로그 . 11개 기능 그룹 그룹 목적 대시보드 전사 차량팀 개요 — 캘린더 + KPI 차량 관리 차량 등록, 수정, 추적 — 오일 교환 주기, 정기검사 기사 관리 기사 프로필 + 운전면허 + 만료일 사용자 멤버 초대 + 앱 역할 변경 운행 생성 + 기사/차량 배정 + 운행 취소 비용 관리 전사 비용 장부 + CSV 내보내기 정비 알림 오일/정기검사 알림 모니터링 + 해결 보고서 총 KPI, 비용 종류별 도넛 차트, 가"
+  },
+  {
+    "url": "ko/admin/01-dashboard.html",
+    "locale": "ko",
+    "section": "Quản trị viên",
+    "title": "대시보드",
+    "headings": [
+      "Khác với Manager dashboard",
+      "3 chế độ xem calendar",
+      "Hành động trên dashboard"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. URL /dashboard — landing mặc định cho Admin 범위 Tất cả 운행 trong tổ chức — không lọc theo người tạo Dashboard Admin — calendar tổng + panel xe + panel 운행 (mọi 운행, mọi 기사) Khác với Manager dashboard Admin Quản lý Số 운행 hiển thị Tất cả Chỉ 운행 của mình Sidebar Đầy đủ 11 mục 5 mục (Workspace) "
+  },
+  {
+    "url": "ko/admin/02-quan-ly-xe.html",
+    "locale": "ko",
+    "section": "Quản trị viên",
+    "title": "차량 관리",
+    "headings": [
+      "Danh sách xe",
+      "Thêm xe mới",
+      "Chi tiết xe — 3 tab",
+      "Đổi trạng thái xe"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. URL /vehicles (danh sách) · /vehicles/new (thêm) · /vehicles/[id] (chi tiết) 권한 Admin + Manager: tạo + sửa. Driver: không truy cập. 소프트 삭제 Không có nút Xoá — đổi trạng thái sang RETIRED để \"rút khỏi đội\" Danh sách xe Đội xe — KPI 4 ô (Tổng / Sẵn sàng / Đang dùng / Bảo trì) + card grid 3 "
+  },
+  {
+    "url": "ko/admin/03-quan-ly-tai-xe.html",
+    "locale": "ko",
+    "section": "Quản trị viên",
+    "title": "기사 관리",
+    "headings": [
+      "Danh sách 기사",
+      "Thêm 기사 mới",
+      "Cập nhật khi bằng lái sắp hết hạn"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. URL /drivers (list) · /drivers/new (thêm) · /drivers/[id]/edit (sửa) 운전면허 Hệ thống tự 알림 nếu bằng sắp hết hạn (≤ 30 ngày = đỏ, ≤ 90 ngày = vàng) Danh sách 기사 Danh sách 기사 — bảng desktop / card mobile, có search + đếm \"X sắp hết hạn\" Mỗi dòng 기사 hiển thị: Avatar + Tên + Email Số điện thoạ"
+  },
+  {
+    "url": "ko/admin/04-quan-ly-nguoi-dung.html",
+    "locale": "ko",
+    "section": "Quản trị viên",
+    "title": "사용자",
+    "headings": [
+      "Danh sách người dùng",
+      "Mời user mới",
+      "Mapping vai trò AMA → vai trò app",
+      "Đổi vai trò app"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. URL /users · /users/new (mời) · /users/[id]/edit 중요 Tài khoản user thuộc về AMA (ama.amoeba.site) — bạn chỉ \"mời\" và \"cấp quyền dùng app\", không tạo tài khoản từ đầu Danh sách người dùng Danh sách user — tab Tất cả / Đang hoạt động / Không hoạt động / Tạm dừng + search Mỗi dòng user hiển"
+  },
+  {
+    "url": "ko/admin/05-quan-ly-chuyen-di.html",
+    "locale": "ko",
+    "section": "Quản trị viên",
+    "title": "운행",
+    "headings": [
+      "Tạo 운행 mới",
+      "Gán 기사 + xe cho 운행 PENDING_ASSIGNMENT",
+      "Theo dõi 운행 đang chạy",
+      "취소 운행",
+      "Re-assign khi 기사 từ chối",
+      "Soft-warning xung đột lịch"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. URL /trips · /trips/new · /trips/[id] 관리자 권한 Gán driver/vehicle cho 운행 chờ phân công · Re-assign nếu 기사 từ chối · 취소 bất kỳ 운행 nào Tạo 운행 mới Giống Manager — xem chi tiết ở Đặt xe (Quản lý) . Form bắt buộc: 출발지, 도착지, 출발 시각. Khác với Manager : Admin có thể chọn bất kỳ user nào làm 승객, khô"
+  },
+  {
+    "url": "ko/admin/06-quan-ly-chi-phi.html",
+    "locale": "ko",
+    "section": "Quản trị viên",
+    "title": "비용 관리",
+    "headings": [
+      "Sổ chi phí tổng",
+      "Bộ lọc nâng cao",
+      "Sửa chi phí của user khác",
+      "Xuất CSV cho kế toán"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. URL /costs 범위 Toàn bộ chi phí trong tổ chức — bất kể ai nộp 권한 Đọc · Xuất CSV · Tạo mới · Sửa của user khác (Manager không có) 📜 Phiên bản cũ có \"승인 phân cấp\" — Admin/Manager duyệt chi phí trên ngưỡng. PRD revision 3 đã gỡ bỏ luồng duyệt : mọi chi phí giờ tự động ghi nhận. Admin chỉ kiể"
+  },
+  {
+    "url": "ko/admin/07-canh-bao-bao-duong.html",
+    "locale": "ko",
+    "section": "Quản trị viên",
+    "title": "정비 알림",
+    "headings": [
+      "4 loại 알림",
+      "Quy trình xử lý",
+      "Cấu hình chu kỳ bảo dưỡng"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. 트리거 Cron tự động chạy hàng ngày 06:00 ICT — quét tất cả xe 표시 위치 Hộp thư /inbox + banner trên card xe trong /vehicles 처리 책임 Admin (đặt lịch + ghi chi phí OIL/INSPECTION khi xong) 4 loại 알림 Mã Trigger Mức độ OIL_DUE_SOON Xe đã chạy ≥ 80% 엔진오일 교환 주기 (mặc định 4.000 km / 2.4 tháng) WARNING "
+  },
+  {
+    "url": "ko/admin/08-bao-cao.html",
+    "locale": "ko",
+    "section": "Quản trị viên",
+    "title": "보고서",
+    "headings": [
+      "4 nhóm KPI + biểu đồ",
+      "1. KPI tổng (4 card)",
+      "2. Spend Mix (donut chart)",
+      "3. Weekly Spend (stacked bar chart)",
+      "4. Fleet Utilization (line chart)",
+      "Bộ lọc kỳ báo cáo",
+      "Xuất file"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. URL /reports 대상 Admin only (Manager dùng /costs để tạo báo cáo cá nhân) 4 nhóm KPI + biểu đồ Trang báo cáo — 4 KPI card trên cùng + 3 biểu đồ (donut + bar + line) 1. KPI tổng (4 card) Tổng số 운행 trong kỳ + delta % so kỳ trước Tổng chi phí + delta Chi phí TB/운행 + delta Tỉ lệ sử dụng đội x"
+  },
+  {
+    "url": "ko/admin/09-cau-hinh-he-thong.html",
+    "locale": "ko",
+    "section": "Quản trị viên",
+    "title": "시스템 설정",
+    "headings": [
+      "Card 1 — Tổng quát (General)",
+      "Card 2 — Thông báo (Notifications)",
+      "Card 3 — Lưu trữ dữ liệu (Data Retention)"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. URL /settings 대상 Chỉ Admin được sửa. Manager xem read-only. Lưu Tự động (auto-save) mỗi thay đổi — không có nút Save Trang cấu hình — 3 card (Tổng quát, Thông báo, Lưu trữ) Card 1 — Tổng quát (General) Trường Mô tả Mặc định Tên app Tên hiển thị trên sidebar (vd \"Amoeba Car\") \"Fleet\" (i18"
+  },
+  {
+    "url": "ko/admin/10-audit-log.html",
+    "locale": "ko",
+    "section": "Quản trị viên",
+    "title": "감사 로그",
+    "headings": [
+      "Các cột hiển thị",
+      "Màu badge theo loại hành động",
+      "Bộ lọc",
+      "Xuất CSV",
+      "Các mã event thường gặp"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. URL /audit 권한 Chỉ Admin xem được 특성 Append-only — không thể sửa hoặc xoá. Lưu 5 năm (cấu hình ở /settings ). Audit log ghi lại mọi thao tác làm thay đổi dữ liệu : ai tạo/sửa/xoá trip nào, ai đổi vai trò user, ai sửa cấu hình hệ thống. Đây là nguồn duy nhất để truy vết khi có vấn đề. Audi"
+  },
+  {
+    "url": "ko/common/00-gioi-thieu.html",
+    "locale": "ko",
+    "section": "Phần Chung",
+    "title": "소개",
+    "headings": [
+      "3가지 사용자 역할",
+      "9가지 기능 그룹",
+      "시스템 내 정보 흐름",
+      "다음 단계"
+    ],
+    "snippet": "대상 모든 역할 (관리자, 매니저, 기사) 읽는 시간 약 3분 버전 v2 — MVP 2026-05-17 출시 Amoeba Car Manager v2 는 Amoeba App Store 플랫폼 위에서 운영되는 기업 내부 차량 배차 및 비용 관리 시스템입니다. 세 가지 핵심 업무 흐름을 지원합니다: 차량 배차 , 비용 추적 , 자동 정비 알림 . 3가지 사용자 역할 역할 특징 주 사용 기기 관리자 시스템 전권 — 설정, 비용 검토, 차량 배정, 보고서 조회, 감사 로그 확인 웹 브라우저 매니저 / 디렉터 본인 또는 팀의 차량 예약, 이력 추적, 본인 운행 취소 웹 + 모바일 기사 운행 일정 확인, 운행 상태 업데이트, 발생 비용 기록 모바일 (PWA) 9가지 기능 그룹 시스템은 9개의 기능 모듈로 구성되어 있습니"
+  },
+  {
+    "url": "ko/common/01-dang-nhap.html",
+    "locale": "ko",
+    "section": "Phần Chung",
+    "title": "로그인",
+    "headings": [
+      "방법 1 — Amoeba 싱글 사인온 (권장)",
+      "방법 2 — 직접 로그인 페이지",
+      "자주 발생하는 문제"
+    ],
+    "snippet": "대상 모든 역할 사전 조건 회사 관리자가 앱 사용 권한을 부여한 Amoeba 계정 (ama.amoeba.site) 소요 시간 약 30초 방법 1 — Amoeba 싱글 사인온 (권장) 일반 사용자를 위한 표준 방식입니다. ama.amoeba.site 에 한 번 로그인하면 비밀번호 재입력 없이 앱에 접근할 수 있습니다. 1 브라우저에서 https://ama.amoeba.site 를 열고 Amoeba 이메일·비밀번호로 로그인합니다. 2 Amoeba 홈에서 \"내 앱\" 영역의 Car Manager 아이콘을 클릭합니다. 3 시스템이 역할에 맞는 홈 화면으로 자동 이동시킵니다: 관리자 / 매니저 → 대시보드 기사 → 오늘 화면 ℹ️ 세션 유효 시간은 8시간입니다. 이후에는 자동 로그아웃되며 Amoeba에서 다시 로그인해"
+  },
+  {
+    "url": "ko/common/02-dieu-huong.html",
+    "locale": "ko",
+    "section": "Phần Chung",
+    "title": "화면 탐색",
+    "headings": [
+      "1. 웹 레이아웃",
+      "1.1 왼쪽 사이드바",
+      "1.2 상단 바",
+      "1.3 본문 영역",
+      "2. 빠른 이동 — 역할이 홈 화면을 결정",
+      "3. 모바일 레이아웃 (기사)",
+      "4. 유용한 단축키 (웹)"
+    ],
+    "snippet": "대상 모든 역할 읽는 시간 약 5분 난이도 기본 — 다른 기능을 사용하기 전에 읽으세요 앱은 두 가지 주요 레이아웃을 제공합니다: 관리자·매니저용 웹(데스크톱) , 그리고 기사용 PWA 모바일 . 두 레이아웃은 동일한 데이터를 공유하며 실시간 동기화됩니다. 1. 웹 레이아웃 기본 웹 레이아웃 — 왼쪽 사이드바 (1), 상단 바 (2), 본문 영역 (3) 1.1 왼쪽 사이드바 사이드바는 역할에 따라 메뉴가 표시됩니다. 주요 그룹: 워크스페이스 — 대시보드, 운행, 차량, 기사, 비용 관리 (관리자만) — 사용자, 설정, 감사 로그 개인 — 프로필 \"나\", 로그아웃 ℹ️ 기사 역할 일 때는 사이드바가 더 짧습니다 (오늘 · 내 운행 · 내 비용 · 나) — 관리 항목은 보이지 않습니다. 1.2 상단 바 페이지 "
+  },
+  {
+    "url": "ko/common/03-ngon-ngu.html",
+    "locale": "ko",
+    "section": "Phần Chung",
+    "title": "언어 변경",
+    "headings": [
+      "변경 방법",
+      "참고 사항"
+    ],
+    "snippet": "대상 모든 역할 소요 시간 약 20초 범위 본인 UI에만 적용 — 다른 사람에게는 영향 없음 시스템은 3가지 언어 를 지원합니다: 베트남어(기본), 영어, 한국어. 선택값은 본인 기기·브라우저에 저장되며 다음 로그인에도 자동 적용됩니다. 변경 방법 1 왼쪽 사이드바에서 나 항목 (또는 사이드바 하단의 프로필 아바타)을 클릭합니다. 2 \"나\" 페이지에서 언어 카드를 찾습니다. 언어 카드 — 3개 라디오 버튼 (VI / EN / KO) 3 원하는 언어를 클릭합니다 ( Tiếng Việt , English , 한국어 ). 4 페이지가 자동으로 새로고침되며 전체 UI가 선택한 언어로 표시됩니다. ℹ️ 이 안내서 는 베트남어와 한국어 모두 제공됩니다 — 우측 상단의 VI / KO 버튼으로 문서 언어를 변경할 수 있습"
+  },
+  {
+    "url": "ko/common/04-thong-bao.html",
+    "locale": "ko",
+    "section": "Phần Chung",
+    "title": "알림함",
+    "headings": [
+      "1. 알림함 열기",
+      "2. 알림 종류",
+      "3. 읽음 처리",
+      "4. 알림 채널"
+    ],
+    "snippet": "대상 모든 역할 읽는 시간 약 3분 관련 페이지 /inbox 시스템은 관련 이벤트 발생 시 자동으로 알림을 보냅니다: 새 운행 배정, 비용 승인, 정비 알림 등. 모든 알림은 알림함 한 곳에 모입니다. 1. 알림함 열기 1 상단 바의 벨 아이콘을 클릭합니다 — 작은 빨간 숫자가 읽지 않은 알림 수입니다. 2 또는 사이드바의 알림함 메뉴(관리자)를 클릭합니다. 웹 알림함 — 최신 알림이 위에. 파란 점 = 읽지 않음 모바일에서 본 동일 알림함 — 세로 스크롤 카드, 터치로 상세 열기 2. 알림 종류 종류 발송 시점 수신자 운행 배정 관리자가 새 운행 배정 기사 운행 확인됨 기사가 본인 운행을 확인 운행 작성자 운행 거절됨 기사가 운행 거절 관리자 비용 승인됨 관리자가 제출한 비용을 승인 제출자 비용 거절됨 관"
+  },
+  {
+    "url": "ko/common/99-thuat-ngu.html",
+    "locale": "ko",
+    "section": "Phần Chung",
+    "title": "용어집",
+    "headings": [
+      "A — H",
+      "I — Q",
+      "R — Z"
+    ],
+    "snippet": "시스템에서 자주 등장하는 용어 목록 (가나다순). A — H AMA Amoeba Management — Amoeba의 계정·조직 관리 플랫폼. 생태계 모든 앱에 SSO 제공. 감사 로그 Audit log — 모든 데이터 변경을 기록, 수정/삭제 불가, 5년 보관. 자동 승인 Auto-approve — 설정된 임계값 이하의 비용을 관리자 개입 없이 자동 승인. 정비 정기 점검 — 오일 교환, 브레이크·타이어 점검 등. 주행거리와 기간 기준 자동 알림. BFF Backend-For-Frontend — 프론트엔드 전용 서버, 프록시 + 비즈니스 로직 처리. 운행 (Trip) 차량 1회 사용 — 출발지, 도착지, 시각 포함. 핵심 데이터 엔티티. 경유지 (Stopover) 출발지와 도착지 사이의 중간 정류지점. 조"
+  },
+  {
+    "url": "ko/driver/00-tong-quan.html",
+    "locale": "ko",
+    "section": "Tài xế",
+    "title": "기사 — 개요",
+    "headings": [
+      "시스템에서 무엇을 하나요?",
+      "일반적인 운행 흐름",
+      "무엇은 하지 않나요?",
+      "\"나\" 페이지",
+      "효율적 사용 팁"
+    ],
+    "snippet": "대상 회사 소속 기사 (AMA MEMBER 에서 매핑) 기기 스마트폰 (PWA) — 차 안, 현장에서 사용에 최적화 읽는 시간 약 3분 기사로서 일상 업무는 운행 과 발생 비용 을 중심으로 돌아갑니다. 시스템은 운행 사이의 짧은 시간에 휴대폰으로 빠르게 조작할 수 있도록 설계되었습니다. 시스템에서 무엇을 하나요? 작업 시기 페이지 오늘 운행 확인 교대 시작 시 / 앱 열 때마다 오늘 새 배정 운행 확인 또는 거절 알림 수신 시 운행 확인 출발 시 \"시작\", 도착 시 \"종료\" 클릭 각 운행 전후 시작/종료 비용 기록 (주유, 오일, 주차, 통행료…) 지출 직후 (7일 이내) 비용 기록 본인 차량의 정비 알림 확인 \"오일 만료\" 알림 수신 시 정비 알림 일반적인 운행 흐름 1. 관리자가 운행 생성 + 기사 배정"
+  },
+  {
+    "url": "ko/driver/01-cai-pwa.html",
+    "locale": "ko",
+    "section": "Tài xế",
+    "title": "PWA 설치",
+    "headings": [
+      "Cách 1 — iPhone (Safari)",
+      "Cách 2 — Android (Chrome)",
+      "취소 cài đặt"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. 대상 기사 (chỉ làm 1 lần) 소요 시간 ~30 giây 장점 Mở app từ Màn hình chính, không cần qua trình duyệt; nhận thông báo đẩy PWA (Progressive Web App) cho phép cài Amoeba Car Manager lên điện thoại như một app native : có icon riêng trên Màn hình chính, chạy toàn màn hình, nhận thông báo đẩy. Không q"
+  },
+  {
+    "url": "ko/driver/02-today-screen.html",
+    "locale": "ko",
+    "section": "Tài xế",
+    "title": "오늘 화면",
+    "headings": [
+      "Bố cục",
+      "Khu vực ĐANG CHẠY (banner xanh)",
+      "Khu vực \"Trong ngày\"",
+      "Khu vực \"Xe của tôi\"",
+      "\"내 운행\" 탭 — 전체 이력 보기",
+      "Thanh điều hướng đáy màn hình",
+      "Khi nào hệ thống \"đẩy\" bạn đến đây?"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. 대상 기사 URL /today — là trang mặc định khi đăng nhập với vai trò 기사 업데이트 Tự động khi có 운행 mới được gán hoặc đổi trạng thái \"Hôm nay\" là trang chính của bạn. Mở app là thấy ngay 운행 nào đang chạy, 운행 nào kế tiếp, và xe được gán cho bạn. Bố cục Màn hình Hôm nay — banner trạng thái + chi tiết"
+  },
+  {
+    "url": "ko/driver/03-xac-nhan-chuyen.html",
+    "locale": "ko",
+    "section": "Tài xế",
+    "title": "운행 확인",
+    "headings": [
+      "Cách xác nhận",
+      "Khi nào nên từ chối?"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. 시기 Khi Admin gán bạn vào 운행 mới — bạn nhận thông báo đẩy + email 기한 Không có thời hạn cứng, nhưng phản hồi sớm giúp Admin gán lại nếu bạn bận 결과 Xác nhận → 운행 \"khoá\" lại cho bạn · Từ chối → Admin nhận thông báo và gán người khác Cách xác nhận 1 Mở app từ thông báo đẩy, hoặc vào tab 운행 củ"
+  },
+  {
+    "url": "ko/driver/04-bat-dau-ket-thuc-chuyen.html",
+    "locale": "ko",
+    "section": "Tài xế",
+    "title": "운행 시작/종료",
+    "headings": [
+      "Bắt đầu 운행 (xuất phát)",
+      "Kết thúc 운행 (đến nơi)",
+      "주행거리 (주행거리계) được cập nhật khi nào?",
+      "Lỡ tay bấm sai?"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. 사전 단계 운행 phải ở trạng thái \"Đã xác nhận\" (xem 운행 확인 ) 소요 시간 ~10 giây mỗi lần 자동 기록 Thời điểm + số 주행거리계 + người thao tác Hai thao tác này tạo nên khung thời gian thực cho 운행 — dữ liệu được dùng cho báo cáo km, tính phí, và tự động đồng bộ km với chu kỳ bảo dưỡng. Bắt đầu 운행 (xuất phát) 1"
+  },
+  {
+    "url": "ko/driver/05-ghi-chi-phi.html",
+    "locale": "ko",
+    "section": "Tài xế",
+    "title": "비용 기록",
+    "headings": [
+      "8 loại chi phí",
+      "Cách ghi chi phí",
+      "Xem lại chi phí đã nộp"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. 시기 Ngay sau khi chi tiêu (trong vòng 7 ngày) 준비물 Ảnh hoá đơn (chụp bằng camera trong app) 승인 Tùy loại: tự động duyệt nếu dưới ngưỡng, ngược lại Admin duyệt tay 8 loại chi phí Loại Ví dụ Có cần Admin duyệt? 🔵 Xăng (FUEL) Đổ xăng đầy bình Tự động duyệt 🔵 Dầu (OIL) 오일 교환 định kỳ Tự động d"
+  },
+  {
+    "url": "ko/driver/06-canh-bao-bao-duong.html",
+    "locale": "ko",
+    "section": "Tài xế",
+    "title": "정비 알림",
+    "headings": [
+      "Mở hộp thư",
+      "Hai loại 알림",
+      "Sau khi xe được 오일 교환 / 정기검사"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. 시기 Xe bạn lái đến 80% 엔진오일 교환 주기, hoặc gần đến hạn 정기검사 Ai xử lý Admin / Quản lý là người đặt lịch bảo dưỡng — bạn chỉ cần đọc và phối hợp Cấp độ WARNING (sắp đến hạn) · CRITICAL (đã quá hạn) Hệ thống tự động kiểm tra hàng ngày các xe trong đội — nếu phát hiện xe sắp/quá hạn 오일 교환 hoặc 정"
+  },
+  {
+    "url": "ko/driver/07-ngoai-tuyen.html",
+    "locale": "ko",
+    "section": "Tài xế",
+    "title": "오프라인 동작",
+    "headings": [
+      "Hiện tại (chưa có chế độ ngoại tuyến)",
+      "Mẹo xử lý khi mất sóng (hiện tại)",
+      "Kế hoạch chế độ ngoại tuyến (P5+)"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. 🚧 Tính năng đang chuẩn bị — Chế độ ngoại tuyến đầy đủ (xem 운행 + ghi chi phí khi không có mạng) sẽ được triển khai ở phiên bản tiếp theo. Trang này mô tả hành vi hiện tại + kế hoạch sắp tới. Hiện tại (chưa có chế độ ngoại tuyến) App là một PWA — khi mất mạng, bạn vẫn có thể mở app (icon "
+  },
+  {
+    "url": "ko/index.html",
+    "locale": "ko",
+    "section": "Trang chủ",
+    "title": "사용 안내서",
+    "headings": [
+      "관리자",
+      "매니저 / 디렉터",
+      "기사"
+    ],
+    "snippet": "각자에게 맞는 가이드를 보여 드립니다. ⚙️ 관리자 시스템 설정, 비용 관리, 운행 배정, 보고서 및 감사 로그 열람. 데스크톱에서 사용합니다. 📋 매니저 / 디렉터 본인 또는 팀의 차량 예약, 운행 이력 추적, 비용 기록. 웹과 모바일 모두 사용. 🚗 기사 운행 확인, 출발/도착 처리, 주유·주차·정비 비용 기록. 모바일(PWA) 최적화. 또는 시스템 소개부터 보기 → 최종 업데이트: 2026-05-24 · 피드백: dev@amoeba.group"
+  },
+  {
+    "url": "ko/manager/00-tong-quan.html",
+    "locale": "ko",
+    "section": "Quản lý",
+    "title": "매니저 — 개요",
+    "headings": [
+      "시스템에서 무엇을 하나요?",
+      "무엇은 하지 않나요?",
+      "관리자, 기사와의 차이점"
+    ],
+    "snippet": "대상 매니저, 디렉터, 부서장 — AMA MANAGER 에서 매핑 기기 웹과 모바일 모두 — 데스크톱에서 예약, 모바일에서 추적 읽는 시간 약 3분 매니저로서 본인은 서비스 이용자 (회의/출장 차량 예약)이자 감독자 (부서 차량팀과 비용 모니터링)입니다. 시스템에서 무엇을 하나요? 작업 페이지 차량팀 + 본인 오늘 운행 개요 확인 대시보드 새 차량 예약 (본인 또는 동료용) 차량 예약 운행 진행 상황 추적 + 필요 시 취소 운행 추적 발생 비용 기록 (주유, 주차…) 비용 기록 조직 비용 장부 + CSV 내보내기 비용 장부 개인 보고서 보기 (본인의 운행 + 주행거리 + 비용) 보고서 무엇은 하지 않나요? 사용자 관리 불가 — 초대/역할 변경은 관리자 권한 시스템 설정 불가 — 승인 규칙, 통화 형식은 관리"
+  },
+  {
+    "url": "ko/manager/01-dashboard.html",
+    "locale": "ko",
+    "section": "Quản lý",
+    "title": "대시보드",
+    "headings": [
+      "3 khu vực chính",
+      "1. Lịch 운행",
+      "2. Danh sách 차량 (panel phải trên)",
+      "3. 운행 liên quan (panel phải dưới)",
+      "Nút \"Tạo 운행 mới\"",
+      "Khác Admin ở điểm gì?"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. URL /dashboard — trang chủ tự động khi đăng nhập vai trò Quản lý Phạm vi dữ liệu Chỉ các 운행 của bạn (운행 do bạn tạo HOẶC bạn là 승객) 매니저 대시보드 (데스크톱) — 월간 캘린더 + 차량 목록 + 관련 운행 같은 대시보드를 모바일에서 본 화면 — 세로 스크롤 + 오늘의 운행 우선 표시 3 khu vực chính 1. Lịch 운행 Hiển thị tất cả 운행 trong tháng thuộc về bạn ("
+  },
+  {
+    "url": "ko/manager/02-dat-xe.html",
+    "locale": "ko",
+    "section": "Quản lý",
+    "title": "차량 예약",
+    "headings": [
+      "Mở form",
+      "Các ô cần điền",
+      "Trạng thái 운행 sau khi tạo"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. URL /trips/new 필수 출발지, 도착지, 출발 시각 선택 승객 (mặc định = bạn), 기사, Xe, 목적, 경유지, 메모 자동 저장 Hệ thống lưu nháp mỗi 5 giây — không sợ mất nếu reload Mở form Có 3 cách: Bấm nút lớn \"+ Tạo 운행 mới\" ở góc trên phải Dashboard Vào sidebar → 운행 → nút \"+ Tạo mới\" Truy cập trực tiếp /trips/new Form tạo 운행 "
+  },
+  {
+    "url": "ko/manager/03-theo-doi-chuyen-di.html",
+    "locale": "ko",
+    "section": "Quản lý",
+    "title": "운행 추적",
+    "headings": [
+      "Danh sách 운행 của tôi",
+      "Chi tiết 운행",
+      "Hành động bạn được làm",
+      "Đặc biệt: 운행 bạn là 승객"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. URL /trips (danh sách) và /trips/[id] (chi tiết) 범위 Chỉ 운행 do bạn tạo hoặc bạn là 승객 Danh sách 운행 của tôi Danh sách 운행 của Quản lý — gom theo trạng thái, có bộ lọc Trang /trips hiển thị toàn bộ 운행 của bạn theo thứ tự 출발 시각 mới nhất. Mỗi dòng có: Mã 운행 (TR-3001…) Tuyến (출발지 → 도착지) Ngày + "
+  },
+  {
+    "url": "ko/manager/04-ghi-chi-phi.html",
+    "locale": "ko",
+    "section": "Quản lý",
+    "title": "비용 기록",
+    "headings": [
+      "8 loại chi phí",
+      "Form ghi chi phí"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. URL /expenses/new (vào trực tiếp hoặc từ /costs → \"+ Ghi nhận chi phí\") 승인 Không cần 승인 — phiên bản hiện tại tự động ghi nhận mọi khoản (PRD R3 đã bỏ luồng duyệt phân cấp) 기한 Ghi trong vòng 7 ngày từ ngày chi tiêu Quản lý cũng cần ghi chi phí khi tự đi công tác bằng xe công ty (đỗ xe, ph"
+  },
+  {
+    "url": "ko/manager/05-so-chi-phi.html",
+    "locale": "ko",
+    "section": "Quản lý",
+    "title": "비용 장부",
+    "headings": [
+      "Sổ chi phí trông thế nào",
+      "Bộ lọc + xuất dữ liệu",
+      "Tạo chi phí mới từ đây",
+      "Khác 기사 ở đâu?"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. URL /costs 범위 Toàn bộ chi phí của tổ chức (không phải chỉ của bạn) 권한 Đọc + Xuất CSV + Tạo chi phí mới — KHÔNG duyệt ℹ️ Phiên bản trước có \"승인 phân cấp\" — Manager duyệt chi phí của 기사 dưới quyền. Tính năng đó đã được gỡ bỏ ở phiên bản hiện tại (PRD revision 3). Mọi chi phí giờ tự động đư"
+  },
+  {
+    "url": "ko/manager/06-bao-cao-ca-nhan.html",
+    "locale": "ko",
+    "section": "Quản lý",
+    "title": "개인 보고서",
+    "headings": [
+      "Cách 1 — Báo cáo 운행 đã thực hiện",
+      "Cách 2 — Báo cáo chi phí cá nhân",
+      "Báo cáo nâng cao"
+    ],
+    "snippet": "🌐 한국어 번역 진행 중 — 이 페이지의 본문 일부는 아직 베트남어입니다. 제목·사이드바·이미지는 한국어로 제공되며, 본문 번역은 점진적으로 업데이트됩니다. 급한 경우 베트남어 원문 을 참고하세요. 목적 Tổng kết hoạt động đi lại của riêng bạn theo tháng/quý 생성 방법 Lọc dữ liệu trên Dashboard + Sổ chi phí, xuất CSV Hiện chưa có trang \"Báo cáo\" riêng cho Quản lý — báo cáo cá nhân được tạo bằng cách lọc dữ liệu trên các trang có sẵn rồi xuất ra file Excel. Cách 1 — Báo cáo 운행 đã thực hiện"
+  },
+  {
+    "url": "vi/admin/00-tong-quan.html",
+    "locale": "vi",
+    "section": "Quản trị viên",
+    "title": "Admin — Tổng quan",
+    "headings": [
+      "11 nhóm chức năng",
+      "Bạn KHÔNG cần lo"
+    ],
+    "snippet": "Đối tượng Admin doanh nghiệp — mapped từ AMA OWNER hoặc MASTER Thiết bị Web (máy tính) — các thao tác CRUD phức tạp Quyền Toàn quyền — không có thao tác nào bị giới hạn Là Quản trị viên, bạn vận hành toàn bộ hệ thống. Ngoài các tính năng của Quản lý/Tài xế, bạn có thêm 4 nhóm trang độc quyền: Người dùng , Cảnh báo bảo dưỡng , Cấu hình , Audit log . 11 nhóm chức năng Nhóm Mục đích Dashboard Tổng qu"
+  },
+  {
+    "url": "vi/admin/01-dashboard.html",
+    "locale": "vi",
+    "section": "Quản trị viên",
+    "title": "Admin — Dashboard",
+    "headings": [
+      "Khác với Manager dashboard",
+      "3 chế độ xem calendar",
+      "Hành động trên dashboard"
+    ],
+    "snippet": "URL /dashboard — landing mặc định cho Admin Phạm vi Tất cả chuyến trong tổ chức — không lọc theo người tạo Dashboard Admin — calendar tổng + panel xe + panel chuyến (mọi chuyến, mọi tài xế) Khác với Manager dashboard Admin Quản lý Số chuyến hiển thị Tất cả Chỉ chuyến của mình Sidebar Đầy đủ 11 mục 5 mục (Workspace) — không có nhóm Quản trị Subtitle \"X chuyến trong tháng · vai trò ADMIN\" \"X chuyến "
+  },
+  {
+    "url": "vi/admin/02-quan-ly-xe.html",
+    "locale": "vi",
+    "section": "Quản trị viên",
+    "title": "Admin — Quản lý xe",
+    "headings": [
+      "Danh sách xe",
+      "Thêm xe mới",
+      "Chi tiết xe — 3 tab",
+      "Đổi trạng thái xe"
+    ],
+    "snippet": "URL /vehicles (danh sách) · /vehicles/new (thêm) · /vehicles/[id] (chi tiết) Quyền Admin + Manager: tạo + sửa. Driver: không truy cập. Soft delete Không có nút Xoá — đổi trạng thái sang RETIRED để \"rút khỏi đội\" Danh sách xe Đội xe — KPI 4 ô (Tổng / Sẵn sàng / Đang dùng / Bảo trì) + card grid 3 cột Mỗi card xe hiển thị: Biển số (font-mono) + nhãn trạng thái Model + năm + màu Số km hiện tại Thay dầ"
+  },
+  {
+    "url": "vi/admin/03-quan-ly-tai-xe.html",
+    "locale": "vi",
+    "section": "Quản trị viên",
+    "title": "Admin — Quản lý tài xế",
+    "headings": [
+      "Danh sách tài xế",
+      "Thêm tài xế mới",
+      "Cập nhật khi bằng lái sắp hết hạn"
+    ],
+    "snippet": "URL /drivers (list) · /drivers/new (thêm) · /drivers/[id]/edit (sửa) Bằng lái Hệ thống tự cảnh báo nếu bằng sắp hết hạn (≤ 30 ngày = đỏ, ≤ 90 ngày = vàng) Danh sách tài xế Danh sách tài xế — bảng desktop / card mobile, có search + đếm \"X sắp hết hạn\" Mỗi dòng tài xế hiển thị: Avatar + Tên + Email Số điện thoại (bấm vào để gọi trên di động) Số bằng lái + hạng (B2, C, D…) Trạng thái (Sẵn sàng / Đang"
+  },
+  {
+    "url": "vi/admin/04-quan-ly-nguoi-dung.html",
+    "locale": "vi",
+    "section": "Quản trị viên",
+    "title": "Admin — Người dùng",
+    "headings": [
+      "Danh sách người dùng",
+      "Mời user mới",
+      "Mapping vai trò AMA → vai trò app",
+      "Đổi vai trò app"
+    ],
+    "snippet": "URL /users · /users/new (mời) · /users/[id]/edit Quan trọng Tài khoản user thuộc về AMA (ama.amoeba.site) — bạn chỉ \"mời\" và \"cấp quyền dùng app\", không tạo tài khoản từ đầu Danh sách người dùng Danh sách user — tab Tất cả / Đang hoạt động / Không hoạt động / Tạm dừng + search Mỗi dòng user hiển thị: Avatar + Tên + nhãn trạng thái (nếu Inactive/Suspended) Số điện thoại (bấm gọi) Vai trò trong app "
+  },
+  {
+    "url": "vi/admin/05-quan-ly-chuyen-di.html",
+    "locale": "vi",
+    "section": "Quản trị viên",
+    "title": "Admin — Quản lý chuyến đi",
+    "headings": [
+      "Tạo chuyến mới",
+      "Gán tài xế + xe cho chuyến PENDING_ASSIGNMENT",
+      "Theo dõi chuyến đang chạy",
+      "Hủy chuyến",
+      "Re-assign khi tài xế từ chối",
+      "Soft-warning xung đột lịch"
+    ],
+    "snippet": "URL /trips · /trips/new · /trips/[id] Đặc quyền Admin Gán driver/vehicle cho chuyến chờ phân công · Re-assign nếu tài xế từ chối · Hủy bất kỳ chuyến nào Tạo chuyến mới Giống Manager — xem chi tiết ở Đặt xe (Quản lý) . Form bắt buộc: điểm đón, điểm đến, thời gian khởi hành. Khác với Manager : Admin có thể chọn bất kỳ user nào làm hành khách, không bị giới hạn vào chính mình. Gán tài xế + xe cho chu"
+  },
+  {
+    "url": "vi/admin/06-quan-ly-chi-phi.html",
+    "locale": "vi",
+    "section": "Quản trị viên",
+    "title": "Admin — Quản lý chi phí",
+    "headings": [
+      "Sổ chi phí tổng",
+      "Bộ lọc nâng cao",
+      "Sửa chi phí của user khác",
+      "Xuất CSV cho kế toán"
+    ],
+    "snippet": "URL /costs Phạm vi Toàn bộ chi phí trong tổ chức — bất kể ai nộp Quyền Đọc · Xuất CSV · Tạo mới · Sửa của user khác (Manager không có) 📜 Phiên bản cũ có \"Phê duyệt phân cấp\" — Admin/Manager duyệt chi phí trên ngưỡng. PRD revision 3 đã gỡ bỏ luồng duyệt : mọi chi phí giờ tự động ghi nhận. Admin chỉ kiểm tra + sửa nếu sai . Sổ chi phí tổng Sổ chi phí — danh sách bên trái + chi tiết bên phải (ảnh ch"
+  },
+  {
+    "url": "vi/admin/07-canh-bao-bao-duong.html",
+    "locale": "vi",
+    "section": "Quản trị viên",
+    "title": "Admin — Cảnh báo bảo dưỡng",
+    "headings": [
+      "4 loại cảnh báo",
+      "Quy trình xử lý",
+      "Cấu hình chu kỳ bảo dưỡng"
+    ],
+    "snippet": "Trigger Cron tự động chạy hàng ngày 06:00 ICT — quét tất cả xe Xuất hiện ở Hộp thư /inbox + banner trên card xe trong /vehicles Trách nhiệm xử lý Admin (đặt lịch + ghi chi phí OIL/INSPECTION khi xong) 4 loại cảnh báo Mã Trigger Mức độ OIL_DUE_SOON Xe đã chạy ≥ 80% chu kỳ thay dầu (mặc định 4.000 km / 2.4 tháng) WARNING OIL_OVERDUE Xe đã vượt chu kỳ thay dầu CRITICAL INSPECTION_DUE_SOON Còn ≤ 30 ng"
+  },
+  {
+    "url": "vi/admin/08-bao-cao.html",
+    "locale": "vi",
+    "section": "Quản trị viên",
+    "title": "Admin — Báo cáo",
+    "headings": [
+      "4 nhóm KPI + biểu đồ",
+      "1. KPI tổng (4 card)",
+      "2. Spend Mix (donut chart)",
+      "3. Weekly Spend (stacked bar chart)",
+      "4. Fleet Utilization (line chart)",
+      "Bộ lọc kỳ báo cáo",
+      "Xuất file"
+    ],
+    "snippet": "URL /reports Đối tượng Admin only (Manager dùng /costs để tạo báo cáo cá nhân) 4 nhóm KPI + biểu đồ Trang báo cáo — 4 KPI card trên cùng + 3 biểu đồ (donut + bar + line) 1. KPI tổng (4 card) Tổng số chuyến trong kỳ + delta % so kỳ trước Tổng chi phí + delta Chi phí TB/chuyến + delta Tỉ lệ sử dụng đội xe (Fleet Utilization %) 2. Spend Mix (donut chart) Phần trăm 8 loại chi phí (FUEL/REPAIR/MEAL/OIL"
+  },
+  {
+    "url": "vi/admin/09-cau-hinh-he-thong.html",
+    "locale": "vi",
+    "section": "Quản trị viên",
+    "title": "Admin — Cấu hình hệ thống",
+    "headings": [
+      "Card 1 — Tổng quát (General)",
+      "Card 2 — Thông báo (Notifications)",
+      "Card 3 — Lưu trữ dữ liệu (Data Retention)"
+    ],
+    "snippet": "URL /settings Đối tượng Chỉ Admin được sửa. Manager xem read-only. Lưu Tự động (auto-save) mỗi thay đổi — không có nút Save Trang cấu hình — 3 card (Tổng quát, Thông báo, Lưu trữ) Card 1 — Tổng quát (General) Trường Mô tả Mặc định Tên app Tên hiển thị trên sidebar (vd \"Amoeba Car\") \"Fleet\" (i18n) Tên tổ chức Tên doanh nghiệp hiển thị dưới brand Lấy từ AMA Ngôn ngữ mặc định Áp dụng cho user chưa cà"
+  },
+  {
+    "url": "vi/admin/10-audit-log.html",
+    "locale": "vi",
+    "section": "Quản trị viên",
+    "title": "Admin — Audit log",
+    "headings": [
+      "Các cột hiển thị",
+      "Màu badge theo loại hành động",
+      "Bộ lọc",
+      "Xuất CSV",
+      "Các mã event thường gặp"
+    ],
+    "snippet": "URL /audit Quyền Chỉ Admin xem được Đặc tính Append-only — không thể sửa hoặc xoá. Lưu 5 năm (cấu hình ở /settings ). Audit log ghi lại mọi thao tác làm thay đổi dữ liệu : ai tạo/sửa/xoá trip nào, ai đổi vai trò user, ai sửa cấu hình hệ thống. Đây là nguồn duy nhất để truy vết khi có vấn đề. Audit log — bảng theo thứ tự thời gian, search + filter actor, xuất CSV Các cột hiển thị Cột Mô tả Thời điể"
+  },
+  {
+    "url": "vi/common/00-gioi-thieu.html",
+    "locale": "vi",
+    "section": "Phần Chung",
+    "title": "Giới thiệu",
+    "headings": [
+      "Ba vai trò người dùng",
+      "Chín nhóm chức năng",
+      "Cách thông tin chảy qua hệ thống",
+      "Bước tiếp theo"
+    ],
+    "snippet": "Đối tượng Mọi vai trò (Admin, Quản lý, Tài xế) Thời gian đọc ~3 phút Phiên bản v2 — MVP go-live 17/05/2026 Amoeba Car Manager v2 là hệ thống quản lý điều xe & kiểm soát chi phí nội bộ của doanh nghiệp, được phát triển trên nền tảng Amoeba App Store . Hệ thống hỗ trợ ba luồng nghiệp vụ chính: điều xe , theo dõi chi phí , và cảnh báo bảo dưỡng tự động . Ba vai trò người dùng Vai trò Đặc điểm Thiết b"
+  },
+  {
+    "url": "vi/common/01-dang-nhap.html",
+    "locale": "vi",
+    "section": "Phần Chung",
+    "title": "Đăng nhập",
+    "headings": [
+      "Cách 1 — Đăng nhập một lần qua Amoeba (Khuyến nghị)",
+      "Cách 2 — Trang đăng nhập trực tiếp",
+      "Sự cố thường gặp"
+    ],
+    "snippet": "Đối tượng Mọi vai trò Điều kiện trước Tài khoản Amoeba (ama.amoeba.site) đã được Admin doanh nghiệp cấp quyền dùng app Thời gian ~30 giây Cách 1 — Đăng nhập một lần qua Amoeba (Khuyến nghị) Đây là cách chuẩn cho người dùng thực tế. Bạn chỉ cần đăng nhập một lần vào ama.amoeba.site , sau đó truy cập app mà không cần nhập lại mật khẩu. 1 Mở trình duyệt và truy cập https://ama.amoeba.site . Nhập emai"
+  },
+  {
+    "url": "vi/common/02-dieu-huong.html",
+    "locale": "vi",
+    "section": "Phần Chung",
+    "title": "Điều hướng",
+    "headings": [
+      "1. Bố cục web",
+      "1.1 Thanh điều hướng bên trái (sidebar)",
+      "1.2 Thanh trên cùng (top bar)",
+      "1.3 Vùng nội dung chính",
+      "2. Điều hướng nhanh — vai trò quyết định trang chủ",
+      "3. Bố cục di động (Tài xế)",
+      "4. Các phím tắt hữu ích (web)"
+    ],
+    "snippet": "Đối tượng Mọi vai trò Thời gian đọc ~5 phút Mức độ Cơ bản — đọc trước khi dùng các tính năng App có hai bố cục chính: web (máy tính) cho Admin/Quản lý và PWA mobile cho Tài xế. Cả hai chia sẻ chung dữ liệu và đồng bộ thời gian thực. 1. Bố cục web Bố cục web mặc định — thanh điều hướng bên trái (1), thanh trên cùng (2), nội dung chính (3) 1.1 Thanh điều hướng bên trái (sidebar) Sidebar hiển thị các"
+  },
+  {
+    "url": "vi/common/03-ngon-ngu.html",
+    "locale": "vi",
+    "section": "Phần Chung",
+    "title": "Đổi ngôn ngữ",
+    "headings": [
+      "Cách đổi ngôn ngữ",
+      "Một số ghi chú"
+    ],
+    "snippet": "Đối tượng Mọi vai trò Thời gian ~20 giây Phạm vi Chỉ ảnh hưởng tới giao diện của riêng bạn, không ảnh hưởng người khác Hệ thống hỗ trợ 3 ngôn ngữ : Tiếng Việt (mặc định), Tiếng Anh và Tiếng Hàn. Lựa chọn được lưu trên thiết bị/trình duyệt của bạn và tự động áp dụng cho các lần đăng nhập sau. Cách đổi ngôn ngữ 1 Trong sidebar bên trái, bấm vào mục Tôi (hoặc ảnh đại diện ở góc dưới sidebar). 2 Trong"
+  },
+  {
+    "url": "vi/common/04-thong-bao.html",
+    "locale": "vi",
+    "section": "Phần Chung",
+    "title": "Thông báo",
+    "headings": [
+      "1. Mở Hộp thư",
+      "2. Các loại thông báo",
+      "3. Đánh dấu đã đọc",
+      "4. Kênh nhận thông báo"
+    ],
+    "snippet": "Đối tượng Mọi vai trò Thời gian đọc ~3 phút Trang liên quan /inbox Hệ thống tự động gửi thông báo cho bạn khi có sự kiện liên quan: được gán chuyến mới, chi phí được duyệt, cảnh báo bảo dưỡng… Tất cả gom về một nơi tại trang Hộp thư . 1. Mở Hộp thư 1 Bấm biểu tượng chuông ở thanh trên cùng — số nhỏ màu đỏ là số thông báo chưa đọc. 2 Hoặc vào mục Hộp thư trong sidebar (Admin). Hộp thư trên web — da"
+  },
+  {
+    "url": "vi/common/99-thuat-ngu.html",
+    "locale": "vi",
+    "section": "Phần Chung",
+    "title": "Thuật ngữ",
+    "headings": [
+      "A — H",
+      "I — Q",
+      "R — Z"
+    ],
+    "snippet": "Bảng các thuật ngữ thường gặp trong hệ thống, sắp xếp theo bảng chữ cái. A — H AMA Amoeba Management — nền tảng quản lý tài khoản & tổ chức của Amoeba, cung cấp SSO cho mọi app trong hệ sinh thái. Audit log Nhật ký kiểm toán — ghi lại mọi thay đổi dữ liệu, không thể sửa/xoá, lưu trữ 5 năm. Auto-approve Tự động duyệt — khoản chi phí dưới ngưỡng cấu hình được duyệt tự động không cần Admin can thiệp."
+  },
+  {
+    "url": "vi/driver/00-tong-quan.html",
+    "locale": "vi",
+    "section": "Tài xế",
+    "title": "Tổng quan vai trò Tài xế",
+    "headings": [
+      "Bạn làm gì với hệ thống?",
+      "Quy trình một chuyến đi điển hình",
+      "Bạn KHÔNG cần làm gì?",
+      "Trang \"Cá nhân\"",
+      "Mẹo dùng hiệu quả"
+    ],
+    "snippet": "Đối tượng Tài xế công ty (mapped từ AMA MEMBER ) Thiết bị Điện thoại (PWA) — tối ưu cho dùng trong xe, ngoài hiện trường Thời gian đọc ~3 phút Là tài xế, công việc hàng ngày của bạn xoay quanh chuyến đi và chi phí phát sinh . Hệ thống được thiết kế để bạn thao tác nhanh trên điện thoại trong vài giây giữa các chuyến. Bạn làm gì với hệ thống? Việc Khi nào Trang Xem chuyến hôm nay Đầu ca / mỗi khi m"
+  },
+  {
+    "url": "vi/driver/01-cai-pwa.html",
+    "locale": "vi",
+    "section": "Tài xế",
+    "title": "Cài đặt PWA",
+    "headings": [
+      "Cách 1 — iPhone (Safari)",
+      "Cách 2 — Android (Chrome)",
+      "Hủy cài đặt"
+    ],
+    "snippet": "Đối tượng Tài xế (chỉ làm 1 lần) Thời gian ~30 giây Lợi ích Mở app từ Màn hình chính, không cần qua trình duyệt; nhận thông báo đẩy PWA (Progressive Web App) cho phép cài Amoeba Car Manager lên điện thoại như một app native : có icon riêng trên Màn hình chính, chạy toàn màn hình, nhận thông báo đẩy. Không qua kho ứng dụng — không tốn dung lượng đáng kể. Cách 1 — iPhone (Safari) 1 Mở Safari (không "
+  },
+  {
+    "url": "vi/driver/02-today-screen.html",
+    "locale": "vi",
+    "section": "Tài xế",
+    "title": "Màn hình Hôm nay",
+    "headings": [
+      "Bố cục",
+      "Khu vực ĐANG CHẠY (banner xanh)",
+      "Khu vực \"Trong ngày\"",
+      "Khu vực \"Xe của tôi\"",
+      "Tab \"Chuyến của tôi\" — xem toàn bộ lịch sử",
+      "Thanh điều hướng đáy màn hình",
+      "Khi nào hệ thống \"đẩy\" bạn đến đây?"
+    ],
+    "snippet": "Đối tượng Tài xế URL /today — là trang mặc định khi đăng nhập với vai trò Tài xế Cập nhật Tự động khi có chuyến mới được gán hoặc đổi trạng thái \"Hôm nay\" là trang chính của bạn. Mở app là thấy ngay chuyến nào đang chạy, chuyến nào kế tiếp, và xe được gán cho bạn. Bố cục Màn hình Hôm nay — banner trạng thái + chi tiết chuyến đang chạy + danh sách chuyến trong ngày Khu vực ĐANG CHẠY (banner xanh) N"
+  },
+  {
+    "url": "vi/driver/03-xac-nhan-chuyen.html",
+    "locale": "vi",
+    "section": "Tài xế",
+    "title": "Xác nhận chuyến",
+    "headings": [
+      "Cách xác nhận",
+      "Khi nào nên từ chối?"
+    ],
+    "snippet": "Khi nào Khi Admin gán bạn vào chuyến mới — bạn nhận thông báo đẩy + email Thời hạn Không có thời hạn cứng, nhưng phản hồi sớm giúp Admin gán lại nếu bạn bận Hậu quả Xác nhận → chuyến \"khoá\" lại cho bạn · Từ chối → Admin nhận thông báo và gán người khác Cách xác nhận 1 Mở app từ thông báo đẩy, hoặc vào tab Chuyến của tôi → chuyến có nhãn \"Chờ tài xế xác nhận\" . 2 Bấm vào chuyến để mở chi tiết. Xem "
+  },
+  {
+    "url": "vi/driver/04-bat-dau-ket-thuc-chuyen.html",
+    "locale": "vi",
+    "section": "Tài xế",
+    "title": "Bắt đầu / kết thúc chuyến",
+    "headings": [
+      "Bắt đầu chuyến (xuất phát)",
+      "Kết thúc chuyến (đến nơi)",
+      "Số km (odometer) được cập nhật khi nào?",
+      "Lỡ tay bấm sai?"
+    ],
+    "snippet": "Trước đó Chuyến phải ở trạng thái \"Đã xác nhận\" (xem Xác nhận chuyến ) Thời gian ~10 giây mỗi lần Tự động ghi nhận Thời điểm + số odometer + người thao tác Hai thao tác này tạo nên khung thời gian thực cho chuyến đi — dữ liệu được dùng cho báo cáo km, tính phí, và tự động đồng bộ km với chu kỳ bảo dưỡng. Bắt đầu chuyến (xuất phát) 1 Trước khi rời chỗ đậu xe, mở app, vào chi tiết chuyến đã xác nhận"
+  },
+  {
+    "url": "vi/driver/05-ghi-chi-phi.html",
+    "locale": "vi",
+    "section": "Tài xế",
+    "title": "Ghi chi phí",
+    "headings": [
+      "8 loại chi phí",
+      "Cách ghi chi phí",
+      "Xem lại chi phí đã nộp"
+    ],
+    "snippet": "Khi nào Ngay sau khi chi tiêu (trong vòng 7 ngày) Cần Ảnh hoá đơn (chụp bằng camera trong app) Phê duyệt Tùy loại: tự động duyệt nếu dưới ngưỡng, ngược lại Admin duyệt tay 8 loại chi phí Loại Ví dụ Có cần Admin duyệt? 🔵 Xăng (FUEL) Đổ xăng đầy bình Tự động duyệt 🔵 Dầu (OIL) Thay dầu định kỳ Tự động duyệt 🟡 Ăn uống (MEAL) Cơm ca chiều Tự duyệt; cảnh báo nếu > 500K ⚪ Sửa chữa (REPAIR) Thay lốp, s"
+  },
+  {
+    "url": "vi/driver/06-canh-bao-bao-duong.html",
+    "locale": "vi",
+    "section": "Tài xế",
+    "title": "Cảnh báo bảo dưỡng",
+    "headings": [
+      "Mở hộp thư",
+      "Hai loại cảnh báo",
+      "Sau khi xe được thay dầu / đăng kiểm"
+    ],
+    "snippet": "Khi nào Xe bạn lái đến 80% chu kỳ thay dầu, hoặc gần đến hạn đăng kiểm Ai xử lý Admin / Quản lý là người đặt lịch bảo dưỡng — bạn chỉ cần đọc và phối hợp Cấp độ WARNING (sắp đến hạn) · CRITICAL (đã quá hạn) Hệ thống tự động kiểm tra hàng ngày các xe trong đội — nếu phát hiện xe sắp/quá hạn thay dầu hoặc đăng kiểm, sẽ gửi cảnh báo tới Admin/Quản lý. Bạn nhận thông báo nếu xe đó là xe bạn lái thường"
+  },
+  {
+    "url": "vi/driver/07-ngoai-tuyen.html",
+    "locale": "vi",
+    "section": "Tài xế",
+    "title": "Hành vi ngoại tuyến",
+    "headings": [
+      "Hiện tại (chưa có chế độ ngoại tuyến)",
+      "Mẹo xử lý khi mất sóng (hiện tại)",
+      "Kế hoạch chế độ ngoại tuyến (P5+)"
+    ],
+    "snippet": "🚧 Tính năng đang chuẩn bị — Chế độ ngoại tuyến đầy đủ (xem chuyến + ghi chi phí khi không có mạng) sẽ được triển khai ở phiên bản tiếp theo. Trang này mô tả hành vi hiện tại + kế hoạch sắp tới. Hiện tại (chưa có chế độ ngoại tuyến) App là một PWA — khi mất mạng, bạn vẫn có thể mở app (icon vẫn vào được), nhưng các thao tác sau sẽ thất bại: Thao tác Hành vi khi mất mạng Mở app từ Màn hình chính ✅ "
+  },
+  {
+    "url": "vi/index.html",
+    "locale": "vi",
+    "section": "Trang chủ",
+    "title": "Hướng dẫn sử dụng",
+    "headings": [
+      "Quản trị viên",
+      "Quản lý / Giám đốc",
+      "Tài xế"
+    ],
+    "snippet": "Chọn vai trò của bạn để xem hướng dẫn phù hợp. ⚙️ Quản trị viên Cấu hình hệ thống, duyệt chi phí, gán chuyến đi, xem báo cáo và nhật ký kiểm toán. Sử dụng trên máy tính. 📋 Quản lý / Giám đốc Đặt xe cho bản thân và nhóm, theo dõi lịch sử chuyến đi, ghi chi phí, duyệt phân cấp. Dùng cả web lẫn điện thoại. 🚗 Tài xế Xác nhận chuyến, bắt đầu/kết thúc hành trình, ghi chi phí xăng dầu, đỗ xe, sửa chữa."
+  },
+  {
+    "url": "vi/manager/00-tong-quan.html",
+    "locale": "vi",
+    "section": "Quản lý",
+    "title": "Quản lý — Tổng quan",
+    "headings": [
+      "Bạn làm gì với hệ thống?",
+      "Bạn KHÔNG được làm gì?",
+      "Khác biệt so với Admin và Driver"
+    ],
+    "snippet": "Đối tượng Quản lý, Giám đốc, Trưởng phòng — mapped từ AMA MANAGER Thiết bị Cả web lẫn điện thoại — đặt xe trên máy tính, theo dõi trên điện thoại Thời gian đọc ~3 phút Là Quản lý, bạn vừa là người dùng dịch vụ (đặt xe đi họp/đi công tác) vừa là người giám sát (theo dõi đội xe, chi phí của bộ phận). Bạn làm gì với hệ thống? Việc Trang Xem tổng quan đội xe + chuyến của mình hôm nay Dashboard Đặt xe "
+  },
+  {
+    "url": "vi/manager/01-dashboard.html",
+    "locale": "vi",
+    "section": "Quản lý",
+    "title": "Quản lý — Dashboard",
+    "headings": [
+      "3 khu vực chính",
+      "1. Lịch chuyến đi",
+      "2. Danh sách Phương tiện (panel phải trên)",
+      "3. Chuyến đi liên quan (panel phải dưới)",
+      "Nút \"Tạo chuyến mới\"",
+      "Khác Admin ở điểm gì?"
+    ],
+    "snippet": "URL /dashboard — trang chủ tự động khi đăng nhập vai trò Quản lý Phạm vi dữ liệu Chỉ các chuyến của bạn (chuyến do bạn tạo HOẶC bạn là hành khách) Dashboard Quản lý (desktop) — calendar tháng (giữa) + danh sách Phương tiện (phải trên) + Chuyến đi liên quan (phải dưới) Cùng dashboard nhìn trên điện thoại — bố cục cuộn dọc, ưu tiên chuyến hôm nay 3 khu vực chính 1. Lịch chuyến đi Hiển thị tất cả chu"
+  },
+  {
+    "url": "vi/manager/02-dat-xe.html",
+    "locale": "vi",
+    "section": "Quản lý",
+    "title": "Quản lý — Đặt xe",
+    "headings": [
+      "Mở form",
+      "Các ô cần điền",
+      "Trạng thái chuyến sau khi tạo"
+    ],
+    "snippet": "URL /trips/new Bắt buộc Điểm đón, Điểm đến, Thời gian khởi hành Tùy chọn Hành khách (mặc định = bạn), Tài xế, Xe, Mục đích, Điểm ghé, Ghi chú Auto-save Hệ thống lưu nháp mỗi 5 giây — không sợ mất nếu reload Mở form Có 3 cách: Bấm nút lớn \"+ Tạo chuyến mới\" ở góc trên phải Dashboard Vào sidebar → Chuyến đi → nút \"+ Tạo mới\" Truy cập trực tiếp /trips/new Form tạo chuyến — các ô bắt buộc có dấu * đỏ,"
+  },
+  {
+    "url": "vi/manager/03-theo-doi-chuyen-di.html",
+    "locale": "vi",
+    "section": "Quản lý",
+    "title": "Quản lý — Theo dõi chuyến đi",
+    "headings": [
+      "Danh sách chuyến của tôi",
+      "Chi tiết chuyến",
+      "Hành động bạn được làm",
+      "Đặc biệt: chuyến bạn là hành khách"
+    ],
+    "snippet": "URL /trips (danh sách) và /trips/[id] (chi tiết) Phạm vi Chỉ chuyến do bạn tạo hoặc bạn là hành khách Danh sách chuyến của tôi Danh sách chuyến của Quản lý — gom theo trạng thái, có bộ lọc Trang /trips hiển thị toàn bộ chuyến của bạn theo thứ tự thời gian khởi hành mới nhất. Mỗi dòng có: Mã chuyến (TR-3001…) Tuyến (điểm đón → điểm đến) Ngày + giờ khởi hành Xe + tài xế (nếu đã gán) Nhãn trạng thái "
+  },
+  {
+    "url": "vi/manager/04-ghi-chi-phi.html",
+    "locale": "vi",
+    "section": "Quản lý",
+    "title": "Quản lý — Ghi chi phí",
+    "headings": [
+      "8 loại chi phí",
+      "Form ghi chi phí"
+    ],
+    "snippet": "URL /expenses/new (vào trực tiếp hoặc từ /costs → \"+ Ghi nhận chi phí\") Phê duyệt Không cần phê duyệt — phiên bản hiện tại tự động ghi nhận mọi khoản (PRD R3 đã bỏ luồng duyệt phân cấp) Thời hạn Ghi trong vòng 7 ngày từ ngày chi tiêu Quản lý cũng cần ghi chi phí khi tự đi công tác bằng xe công ty (đỗ xe, phí đường, ăn uống công tác…) hoặc khi ứng tiền cho tài xế . 8 loại chi phí Giống hệt như Tài "
+  },
+  {
+    "url": "vi/manager/05-so-chi-phi.html",
+    "locale": "vi",
+    "section": "Quản lý",
+    "title": "Quản lý — Sổ chi phí",
+    "headings": [
+      "Sổ chi phí trông thế nào",
+      "Bộ lọc + xuất dữ liệu",
+      "Tạo chi phí mới từ đây",
+      "Khác Tài xế ở đâu?"
+    ],
+    "snippet": "URL /costs Phạm vi Toàn bộ chi phí của tổ chức (không phải chỉ của bạn) Quyền Đọc + Xuất CSV + Tạo chi phí mới — KHÔNG duyệt ℹ️ Phiên bản trước có \"Phê duyệt phân cấp\" — Manager duyệt chi phí của tài xế dưới quyền. Tính năng đó đã được gỡ bỏ ở phiên bản hiện tại (PRD revision 3). Mọi chi phí giờ tự động được ghi nhận, Manager + Admin chỉ xem. Sổ chi phí trông thế nào Sổ chi phí — danh sách theo th"
+  },
+  {
+    "url": "vi/manager/06-bao-cao-ca-nhan.html",
+    "locale": "vi",
+    "section": "Quản lý",
+    "title": "Quản lý — Báo cáo cá nhân",
+    "headings": [
+      "Cách 1 — Báo cáo chuyến đi đã thực hiện",
+      "Cách 2 — Báo cáo chi phí cá nhân",
+      "Báo cáo nâng cao"
+    ],
+    "snippet": "Mục đích Tổng kết hoạt động đi lại của riêng bạn theo tháng/quý Cách tạo Lọc dữ liệu trên Dashboard + Sổ chi phí, xuất CSV Hiện chưa có trang \"Báo cáo\" riêng cho Quản lý — báo cáo cá nhân được tạo bằng cách lọc dữ liệu trên các trang có sẵn rồi xuất ra file Excel. Cách 1 — Báo cáo chuyến đi đã thực hiện 1 Vào Dashboard hoặc /trips . 2 Đặt bộ lọc: Trạng thái = \"Hoàn tất\" Khoảng ngày = từ ngày đầu t"
+  }
+]

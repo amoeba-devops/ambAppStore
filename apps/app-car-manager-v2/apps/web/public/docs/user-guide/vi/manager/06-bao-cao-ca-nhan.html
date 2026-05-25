@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quản lý — Báo cáo cá nhân — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — Trang chủ hướng dẫn" aria-label="Amoeba Car Manager v2 — Trang chủ hướng dẫn">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span><span class="header__brand-mobile">Hướng dẫn</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="5" fill="#fff"/><path d="M15,5 a5,5 0 0,1 0,10 a2.5,2.5 0 0,0 0,-5 a2.5,2.5 0 0,1 0,-5" fill="#003478"/><path d="M15,5 a5,5 0 0,0 0,10 a2.5,2.5 0 0,1 0,-5 a2.5,2.5 0 0,0 0,-5" fill="#C60C30"/></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Quản lý</div>
+        <a class="sidebar__link" href="00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="01-dashboard.html">Dashboard</a>
+        <a class="sidebar__link" href="02-dat-xe.html">Đặt xe</a>
+        <a class="sidebar__link" href="03-theo-doi-chuyen-di.html">Theo dõi chuyến đi</a>
+        <a class="sidebar__link" href="04-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="05-so-chi-phi.html">Sổ chi phí</a>
+        <a class="sidebar__link" href="06-bao-cao-ca-nhan.html">Báo cáo cá nhân</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">Trang chủ</a> · Quản lý · Báo cáo cá nhân</div>
+        <h1>Báo cáo cá nhân</h1>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>Mục đích</dt><dd>Tổng kết hoạt động đi lại của riêng bạn theo tháng/quý</dd>
+            <dt>Cách tạo</dt><dd>Lọc dữ liệu trên Dashboard + Sổ chi phí, xuất CSV</dd>
+          </dl>
+        </div>
+
+        <p>Hiện chưa có trang "Báo cáo" riêng cho Quản lý — báo cáo cá nhân được tạo bằng cách <strong>lọc dữ liệu</strong> trên các trang có sẵn rồi xuất ra file Excel.</p>
+
+        <h2>Cách 1 — Báo cáo chuyến đi đã thực hiện</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body"><p>Vào <strong>Dashboard</strong> hoặc <code>/trips</code>.</p></div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body"><p>Đặt bộ lọc:</p>
+            <ul>
+              <li><strong>Trạng thái</strong> = "Hoàn tất"</li>
+              <li><strong>Khoảng ngày</strong> = từ ngày đầu tháng → cuối tháng</li>
+            </ul>
+            <p>Hệ thống chỉ hiển thị chuyến của bạn (phạm vi Manager).</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Tổng hợp tay (sao chép) hoặc nhờ Admin xuất Excel toàn bộ — Admin có tính năng xuất nâng cao trong <code>/reports</code> (chỉ Admin truy cập được).</p>
+          </div>
+        </div>
+
+        <h2>Cách 2 — Báo cáo chi phí cá nhân</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body"><p>Vào <code>/costs</code> (Sổ chi phí).</p></div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body"><p>Đặt bộ lọc:</p>
+            <ul>
+              <li><strong>Người nộp</strong> = chính bạn (Lê Hoàng)</li>
+              <li><strong>Khoảng ngày</strong> = tháng cần báo cáo</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Bấm <strong>"Xuất CSV"</strong> — file tải về có sẵn để gửi bộ phận tài chính.</p>
+          </div>
+        </div>
+
+        <h2>Báo cáo nâng cao</h2>
+        <p>Nếu cần các báo cáo phức tạp (biểu đồ chi phí theo tháng, top tuyến đường tốn nhất, hiệu suất xe…), liên hệ Admin để truy cập <code>/reports</code> hoặc đề xuất tính năng cho đội phát triển: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>.</p>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">🚧</div>
+          <div class="callout__body">
+            <p><strong>Phiên bản 2.2</strong> dự kiến có trang Báo cáo riêng cho Manager với biểu đồ tổng hợp + xuất PDF — đang trong roadmap.</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="05-so-chi-phi.html"><span>← Trước</span><strong>Sổ chi phí</strong></a>
+          <a class="pager__next" href="../admin/00-tong-quan.html"><span>Tiếp theo →</span><strong>Hướng dẫn Quản trị viên</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">Cập nhật 24-05-2026 · Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

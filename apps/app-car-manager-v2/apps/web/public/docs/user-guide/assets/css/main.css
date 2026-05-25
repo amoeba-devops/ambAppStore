@@ -1,0 +1,868 @@
+/* User Guide — Main stylesheet
+ * Bilingual (vi / ko) HTML docs for app-car-manager-v2
+ * Palette: Toss blue accent + neutral grey (matches the app itself).
+ */
+
+:root {
+  --c-bg: #f7f8fa;
+  --c-surface: #ffffff;
+  --c-surface-2: #f1f3f6;
+  --c-border: #e5e8eb;
+  --c-border-strong: #d1d6db;
+  --c-text: #191f28;
+  --c-text-muted: #4e5968;
+  --c-text-subtle: #8b95a1;
+  --c-accent: #3182f6;
+  --c-accent-soft: #e8f3ff;
+  --c-accent-dark: #1b64da;
+  --c-warning: #ff9500;
+  --c-danger: #ff3b30;
+  --c-success: #10b981;
+
+  --sidebar-w: 280px;
+  --header-h: 56px;
+  --max-content: 880px;
+
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 16px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+
+  --font: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans KR', 'Noto Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', Menlo, Consolas, monospace;
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/woff2/PretendardVariable.woff2')
+    format('woff2-variations');
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--c-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--c-surface-2);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+/* ─── Layout shell ─────────────────────────────────────────────────────────── */
+.layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-rows: var(--header-h) 1fr;
+  grid-template-areas:
+    'header header'
+    'sidebar main';
+  min-height: 100vh;
+}
+
+.header {
+  grid-area: header;
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--c-text);
+}
+
+.header__brand-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--c-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.header__brand-sub {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-text-muted);
+}
+
+/* Brand text spans (both desktop full name and mobile short label) are
+ * always hidden — the .header__brand-mark avatar square already carries
+ * the identity. Removes header clutter on every viewport and lets search +
+ * lang switch fill the bar. The link itself still works (anchors home);
+ * give it a tooltip via title attribute on the page for hover hint. */
+.header__brand-desktop,
+.header__brand-mobile { display: none; }
+
+/* Make the standalone avatar slightly larger + add a subtle hover ring
+ * so it reads as an interactive logo button rather than a flat tile. */
+.header__brand-mark {
+  transition: box-shadow 120ms, transform 120ms;
+}
+.header__brand:hover .header__brand-mark {
+  box-shadow: 0 0 0 3px var(--c-accent-soft);
+}
+.header__brand:active .header__brand-mark {
+  transform: scale(0.97);
+}
+
+.header__tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Language switcher — segmented control style, bigger + more discoverable
+ * than the previous flat link pills. On desktop shows flag + full name
+ * ("🇻🇳 Tiếng Việt"); on mobile collapses to flag + 2-letter code to save
+ * width. Active state uses accent-soft background + dark text for clear
+ * contrast. Hover state on the inactive side hints interactivity. */
+.lang-switch {
+  display: inline-flex;
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  padding: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 2px;
+}
+
+.lang-switch a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  min-height: 28px;
+  border-radius: 999px;
+  color: var(--c-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 120ms, color 120ms;
+}
+
+.lang-switch a:hover:not(.is-active) {
+  background: var(--c-surface);
+  color: var(--c-text);
+  text-decoration: none;
+}
+
+.lang-switch a.is-active {
+  background: var(--c-accent);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(49, 130, 246, 0.3);
+}
+
+/* Flag visual — inline SVG (not emoji) so the actual flag shows on every
+ * platform regardless of font support (Windows Chrome notably refuses to
+ * render 🇻🇳 / 🇰🇷 regional-indicator pairs without an emoji font). The
+ * 18×12px box matches the 13px line height of the surrounding label. */
+.lang-switch a .lang-flag {
+  width: 18px;
+  height: 12px;
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+.lang-switch a .lang-flag svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+/* Show full language name on desktop, code-only on mobile (paired with flag). */
+.lang-switch a .lang-name { display: inline; }
+.lang-switch a .lang-code { display: none; }
+@media (max-width: 700px) {
+  .lang-switch a .lang-name { display: none; }
+  .lang-switch a .lang-code { display: inline; font-weight: 700; letter-spacing: 0.02em; }
+  .lang-switch a { padding: 6px 10px; gap: 4px; }
+}
+
+/* ─── Sidebar ──────────────────────────────────────────────────────────────── */
+.sidebar {
+  grid-area: sidebar;
+  background: var(--c-surface);
+  border-right: 1px solid var(--c-border);
+  padding: 16px 8px;
+  overflow-y: auto;
+  position: sticky;
+  top: var(--header-h);
+  align-self: start;
+  max-height: calc(100vh - var(--header-h));
+}
+
+.sidebar__group {
+  margin-bottom: 12px;
+}
+
+.sidebar__group-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-text-subtle);
+  padding: 12px 16px 4px;
+}
+
+.sidebar__link {
+  display: block;
+  padding: 7px 16px;
+  color: var(--c-text-muted);
+  font-size: 14px;
+  border-radius: var(--radius);
+  text-decoration: none;
+  margin: 1px 4px;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.sidebar__link:hover {
+  background: var(--c-surface-2);
+  text-decoration: none;
+  color: var(--c-text);
+}
+
+.sidebar__link.is-active {
+  background: var(--c-accent-soft);
+  color: var(--c-accent-dark);
+  font-weight: 600;
+}
+
+/* ─── Main content ─────────────────────────────────────────────────────────── */
+.main {
+  grid-area: main;
+  padding: 32px 48px 80px;
+  overflow-x: hidden;
+}
+
+.content {
+  max-width: var(--max-content);
+  margin: 0 auto;
+}
+
+.breadcrumb {
+  font-size: 13px;
+  color: var(--c-text-subtle);
+  margin-bottom: 8px;
+}
+
+.breadcrumb a {
+  color: var(--c-text-muted);
+}
+
+.content h1 {
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.content h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 40px 0 12px;
+  letter-spacing: -0.01em;
+  scroll-margin-top: 72px;
+}
+
+.content h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 28px 0 8px;
+  color: var(--c-text);
+  scroll-margin-top: 72px;
+}
+
+.content p {
+  margin: 0 0 14px;
+  color: var(--c-text);
+}
+
+.content ul,
+.content ol {
+  padding-left: 24px;
+  margin: 0 0 16px;
+}
+
+.content li {
+  margin: 4px 0;
+}
+
+.content figure {
+  margin: 20px 0;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.content figure img {
+  display: block;
+  width: 100%;
+  cursor: zoom-in;
+}
+
+.content figcaption {
+  padding: 10px 16px;
+  background: var(--c-surface-2);
+  border-top: 1px solid var(--c-border);
+  font-size: 13px;
+  color: var(--c-text-muted);
+}
+
+/* Page intro card (mục tiêu / điều kiện trước) */
+.intro {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin: 16px 0 32px;
+  box-shadow: var(--shadow-sm);
+}
+
+.intro__row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 8px 20px;
+  font-size: 14px;
+}
+
+.intro__row dt {
+  color: var(--c-text-subtle);
+  font-weight: 600;
+}
+
+.intro__row dd {
+  margin: 0;
+  color: var(--c-text);
+}
+
+/* Step block — numbered instruction */
+.step {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.step__num {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--c-accent);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.step__body {
+  min-width: 0;
+}
+
+.step__body p:first-child {
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+/* Callouts */
+.callout {
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin: 16px 0;
+  border-left: 4px solid;
+  font-size: 14px;
+  display: flex;
+  gap: 12px;
+}
+
+.callout > .callout__icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.callout > .callout__body {
+  min-width: 0;
+}
+
+.callout > .callout__body > :first-child { margin-top: 0; }
+.callout > .callout__body > :last-child { margin-bottom: 0; }
+
+.callout--info { background: var(--c-accent-soft); border-color: var(--c-accent); }
+.callout--info .callout__icon { color: var(--c-accent-dark); }
+
+.callout--warn { background: #fff4e6; border-color: var(--c-warning); }
+.callout--warn .callout__icon { color: var(--c-warning); }
+
+.callout--danger { background: #ffe9e8; border-color: var(--c-danger); }
+.callout--danger .callout__icon { color: var(--c-danger); }
+
+/* Tables */
+.content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 14px;
+  background: var(--c-surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.content th,
+.content td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.content th {
+  background: var(--c-surface-2);
+  font-weight: 600;
+  color: var(--c-text-muted);
+  font-size: 13px;
+}
+
+.content tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Prev/next pager */
+.pager {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 64px;
+  padding-top: 24px;
+  border-top: 1px solid var(--c-border);
+}
+
+.pager a {
+  flex: 1;
+  padding: 16px 20px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  color: var(--c-text);
+  text-decoration: none;
+}
+
+.pager a:hover {
+  border-color: var(--c-accent);
+  text-decoration: none;
+}
+
+.pager a span {
+  color: var(--c-text-subtle);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pager a strong {
+  font-weight: 600;
+}
+
+.pager a.pager__prev { text-align: left; }
+.pager a.pager__next { text-align: right; }
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 24px;
+  color: var(--c-text-subtle);
+  font-size: 13px;
+  margin-top: 40px;
+}
+
+.footer a {
+  color: var(--c-text-muted);
+}
+
+/* Landing page (index.html) */
+.landing {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 80px 24px;
+  text-align: center;
+}
+
+.landing h1 {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+}
+
+.landing__sub {
+  color: var(--c-text-muted);
+  font-size: 17px;
+  margin: 0 0 48px;
+}
+
+.landing__roles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  text-align: left;
+}
+
+.role-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  display: block;
+}
+
+.role-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--c-accent);
+  box-shadow: var(--shadow);
+  text-decoration: none;
+}
+
+.role-card__icon {
+  width: 48px;
+  height: 48px;
+  background: var(--c-accent-soft);
+  color: var(--c-accent-dark);
+  border-radius: var(--radius);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.role-card h2 {
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.role-card p {
+  margin: 0;
+  color: var(--c-text-muted);
+  font-size: 14px;
+}
+
+.lang-picker {
+  display: inline-flex;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.lang-picker a {
+  padding: 10px 28px;
+  color: var(--c-text-muted);
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.lang-picker a:hover {
+  background: var(--c-surface-2);
+  text-decoration: none;
+}
+
+/* Mobile responsive */
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'header' 'main';
+  }
+  .sidebar {
+    display: none;
+  }
+  .header {
+    padding: 0 10px;
+    gap: 6px;
+  }
+  /* Brand text is hidden site-wide (top-level rule) — on mobile we just
+   * tweak the avatar size so it stays a comfortable tap target without
+   * dominating the bar. */
+  .header__brand {
+    min-width: 0;
+  }
+  .header__brand-mark {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+  .main {
+    padding: 20px 16px 60px;
+    min-width: 0;
+    overflow-x: hidden;
+    width: 100vw;
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+  .content {
+    /* Force the content column to fit the viewport so long words / inline
+     * code / URLs wrap instead of pushing the layout horizontally. */
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+  /* Belt + suspenders for inline elements that can blow out a flex/grid
+   * container — Vietnamese paragraphs tend to be long, plus we have inline
+   * <code> with URL paths that don't break naturally. */
+  .content p,
+  .content li,
+  .content figcaption,
+  .content .callout__body p {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
+  }
+  .content code {
+    overflow-wrap: anywhere;
+    word-break: break-all;
+  }
+  .content h1 { font-size: 26px; line-height: 1.25; }
+  .content h2 { font-size: 19px; }
+  .content h3 { font-size: 16px; }
+  /* Tables: horizontal scroll within page width so wide grids don't overflow
+   * the body. The shadow on the right edge hints scrollability. */
+  .content table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+    white-space: nowrap;
+  }
+  .content td, .content th { white-space: normal; }
+  /* Intro card: stack label above value instead of 140px grid so long
+   * Vietnamese phrases fit. */
+  .intro {
+    padding: 16px;
+  }
+  .intro__row {
+    grid-template-columns: 1fr;
+    gap: 2px 0;
+  }
+  .intro__row dt {
+    font-size: 12px;
+    margin-top: 8px;
+  }
+  .intro__row dt:first-child { margin-top: 0; }
+  /* Code blocks: allow scroll, prevent breaking layout */
+  .content pre {
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  .content figure img { width: 100%; }
+  .landing__roles {
+    grid-template-columns: 1fr;
+  }
+  .pager {
+    flex-direction: column;
+  }
+  /* Step blocks: shrink number circle column on mobile */
+  .step {
+    grid-template-columns: 28px 1fr;
+    gap: 12px;
+  }
+}
+
+/* Search */
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search__input {
+  width: 240px;
+  height: 32px;
+  padding: 0 12px 0 32px;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  background: var(--c-surface-2) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b95a1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>") no-repeat 9px center;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 120ms, background-color 120ms;
+}
+
+.search__input:focus {
+  background-color: var(--c-surface);
+  border-color: var(--c-accent);
+}
+
+.search__results {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  width: 480px;
+  max-width: 90vw;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 20;
+}
+
+.search__results.is-open {
+  display: block;
+}
+
+.search__hit {
+  display: block;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--c-border);
+  color: var(--c-text);
+  text-decoration: none;
+}
+
+.search__hit:hover {
+  background: var(--c-surface-2);
+  text-decoration: none;
+}
+
+.search__hit:last-child { border-bottom: 0; }
+
+.search__hit-section {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-accent);
+  margin-bottom: 2px;
+}
+
+.search__hit-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--c-text);
+  margin-bottom: 4px;
+}
+
+.search__hit-snippet {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--c-text-muted);
+}
+
+.search__hit-snippet mark {
+  background: var(--c-accent-soft);
+  color: var(--c-accent-dark);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.search__empty {
+  padding: 16px;
+  font-size: 13px;
+  color: var(--c-text-subtle);
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  /* Search flex-fills the gap between brand and lang switch — shrinks on
+   * narrow phones, grows on wider mobile. Caps prevent it from dominating
+   * the header on tablets in portrait. */
+  .header__tools { flex: 1; min-width: 0; justify-content: flex-end; }
+  .search { flex: 1; min-width: 0; max-width: 180px; }
+  .search__input { width: 100%; min-width: 90px; padding-left: 28px; background-position: 7px center; }
+  .search__results { width: 92vw; right: -8px; }
+}
+@media (max-width: 380px) {
+  /* Very small phones: hide the search placeholder text but keep the input
+   * functional — user can still tap to focus + type. */
+  .search__input::placeholder { color: transparent; }
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  cursor: zoom-out;
+  padding: 32px;
+}
+
+.lightbox.is-open {
+  display: flex;
+}
+
+.lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5);
+}
