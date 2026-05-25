@@ -150,6 +150,60 @@
           </div>
         </div>
 
+        <h2>최초 온보딩 — 관리자로부터 정보 받는 절차</h2>
+
+        <p>처음 시스템을 사용하는 경우, 회사 관리자가 SMS / 카카오톡 / 텔레그램 / 이메일을 통해
+        <strong>2가지 필수 정보</strong>를 보내드립니다:</p>
+
+        <table>
+          <thead><tr><th>정보</th><th>예시</th><th>주의</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>회사 코드</strong> (ent_code)</td>
+              <td><code>VN01</code>, <code>AMOEBA-VN</code></td>
+              <td>관리자가 제공. 대문자, 공백 없음.</td>
+            </tr>
+            <tr>
+              <td><strong>본인 전화번호</strong></td>
+              <td><code>+84 90 555 8819</code></td>
+              <td>회사 등록 시 Amoeba에 입력한 번호. AMA 시스템과 <strong>정확히 일치</strong>해야 함.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>관리자가 보내드릴 메시지 템플릿</h3>
+
+        <pre style="background:var(--c-surface);border:1px solid var(--c-border);padding:16px;border-radius:8px;font-family:var(--font-mono);font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-x:auto"><code>[이름]님 안녕하세요,
+
+회사의 Amoeba Car Manager 시스템에 등록되셨습니다.
+로그인 방법:
+
+1. 접속: https://apps.amoeba.site/app-car-manager-v2/login
+2. 회사 코드: <strong>VN01</strong>
+3. 전화번호: 본인 전화번호 (Amoeba 등록 번호)
+4. "로그인" 클릭
+
+로그인 후 역할에 따라 자동으로 권한이 부여됩니다.
+
+지원 문의: [관리자 이름 / 전화번호]</code></pre>
+
+        <h3>로그인 성공 후</h3>
+        <ul>
+          <li>시스템이 DB에 본인 사용자 레코드를 자동 생성</li>
+          <li>Amoeba 권한에 따라 역할 자동 부여 (관리자 / 매니저 / 기사)</li>
+          <li>기사의 경우: 관리자가 운전면허, 등급, 만료일을 별도 등록 — 본인이 할 일 없음</li>
+          <li>다음부터는 <code>ama.amoeba.site</code>에서 Car Manager 아이콘 클릭만으로 바로 입장 (코드 재입력 불필요)</li>
+        </ul>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">💬</div>
+          <div class="callout__body">
+            <p><strong>관리자 참고사항:</strong> 직원이 Amoeba 계정을 받지 못한 경우, 인사팀에 연락해
+            <em>먼저</em> 전화번호 + 역할을 AMA에 등록한 후 로그인 정보를 발송하세요. 앱에 입력하는
+            전화번호는 AMA에 등록된 번호와 일치해야 합니다.</p>
+          </div>
+        </div>
+
         <h2>자주 발생하는 문제</h2>
         <table>
           <thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead>

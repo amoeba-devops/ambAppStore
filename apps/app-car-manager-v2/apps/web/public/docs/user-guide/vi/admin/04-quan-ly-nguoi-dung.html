@@ -76,42 +76,71 @@
           <li><strong>Lần hoạt động cuối</strong></li>
         </ul>
 
-        <h2>Mời user mới</h2>
+        <h2>Onboarding thành viên mới (gửi thông tin qua tin nhắn)</h2>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">📢</div>
+          <div class="callout__body">
+            <p><strong>Cập nhật quy trình (25-05-2026):</strong> nút <em>"+ Mời thành viên"</em>
+            trên trang <code>/users</code> đã được gỡ bỏ. Thay vào đó, Admin <strong>gửi
+            trực tiếp thông tin doanh nghiệp</strong> cho thành viên qua kênh liên lạc cá nhân
+            (SMS / Zalo / Telegram / email), sau đó thành viên tự đăng nhập ở
+            <code>/login</code> với số điện thoại của mình.</p>
+          </div>
+        </div>
+
+        <p>Quy trình đơn giản hơn vì không cần thao tác trên hệ thống — chỉ cần gửi đúng
+        <strong>Mã doanh nghiệp</strong> (ent_code) là thành viên tự đăng nhập được.</p>
+
+        <h3>Bước 1 — Lấy mã doanh nghiệp của bạn</h3>
+        <p>Mã doanh nghiệp hiển thị ở trang <a href="09-cau-hinh-he-thong.html">Cấu hình hệ thống</a>
+        — mục <strong>"Tổ chức"</strong>. Mã có dạng <code>VN01</code>, <code>AMOEBA-VN</code>…
+        (chữ in hoa, không khoảng trắng). Đây là mã được Amoeba cấp khi đăng ký doanh nghiệp.</p>
+
+        <h3>Bước 2 — Gửi tin nhắn cho thành viên</h3>
+        <p>Dùng mẫu tin nhắn dưới đây (sao chép + sửa tên cho phù hợp):</p>
+
+        <pre style="background:var(--c-surface);border:1px solid var(--c-border);padding:16px;border-radius:8px;font-family:var(--font-mono);font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-x:auto"><code>Chào [Tên],
+
+Bạn đã được thêm vào hệ thống Amoeba Car Manager của công ty.
+Cách đăng nhập:
+
+1. Mở: https://apps.amoeba.site/app-car-manager-v2/login
+2. Mã doanh nghiệp: <strong>VN01</strong>      ← thay bằng mã của bạn
+3. Số điện thoại: số điện thoại của bạn (đã đăng ký với Amoeba)
+4. Bấm "Đăng nhập"
+
+Sau khi vào hệ thống, bạn sẽ được tự động cấp quyền theo vai trò.
+
+Cần hỗ trợ liên hệ: [Admin tên / số điện thoại]</code></pre>
+
+        <h3>Bước 3 — Thành viên tự đăng nhập</h3>
+        <p>Khi thành viên truy cập <code>/login</code> với mã doanh nghiệp + SĐT của họ, hệ thống tự động:</p>
+        <ul>
+          <li>Tạo bản ghi user trong <code>car_users</code> (nếu chưa có)</li>
+          <li>Map vai trò AMA → vai trò app theo bảng dưới</li>
+          <li>Chuyển hướng tới trang chủ phù hợp với vai trò</li>
+        </ul>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">⚠️</div>
+          <div class="callout__body">
+            <p><strong>Yêu cầu bắt buộc:</strong> số điện thoại thành viên phải đã được Amoeba
+            đăng ký <em>trước</em> với vai trò trong tổ chức của bạn. Nếu chưa, hãy liên hệ
+            quản trị AMA hoặc bộ phận nhân sự để bổ sung vào hệ thống Amoeba trước khi gửi
+            thông tin đăng nhập.</p>
+          </div>
+        </div>
+
+        <h3>Bước 4 — Bổ sung hồ sơ tài xế (nếu là tài xế)</h3>
+        <p>Sau khi tài xế đăng nhập lần đầu (user tự xuất hiện trong <code>/users</code>),
+        Admin vào <a href="03-quan-ly-tai-xe.html">/drivers/new</a> để tạo hồ sơ tài xế
+        (bằng lái, hạng, hạn) và liên kết với user vừa đăng nhập.</p>
+
         <figure>
-          <img src="../../assets/img/screenshots/vi/admin/04-user-invite.png" alt="Form mời user">
-          <figcaption>Form mời user — nhập SĐT + chọn vai trò → hệ thống tạo invite link</figcaption>
+          <img src="../../assets/img/screenshots/vi/admin/04-user-invite.png" alt="Form mời user (legacy, đã ẩn nút quick-access)">
+          <figcaption>Form <code>/users/new</code> — vẫn truy cập được qua URL trực tiếp nếu cần (legacy), nhưng nút quick-access đã được gỡ bỏ theo quy trình mới.</figcaption>
         </figure>
-
-        <div class="step">
-          <div class="step__num">1</div>
-          <div class="step__body"><p>Bấm <strong>"+ Mời thành viên"</strong> ở góc trên phải <code>/users</code>.</p></div>
-        </div>
-
-        <div class="step">
-          <div class="step__num">2</div>
-          <div class="step__body"><p>Điền:</p>
-            <ul>
-              <li><strong>Tên</strong></li>
-              <li><strong>Số điện thoại</strong> (VN 10 số, bắt buộc) — sẽ là username cho AMA</li>
-              <li><strong>Vai trò AMA</strong>: MASTER / MANAGER / MEMBER / VIEWER (Manager chỉ chọn được MEMBER/VIEWER)</li>
-              <li><strong>Phòng ban</strong> (tùy chọn)</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step__num">3</div>
-          <div class="step__body">
-            <p>Bấm <strong>"Tạo mời"</strong>. Hệ thống sinh <strong>invite link</strong> + hướng dẫn SMS — gửi cho user.</p>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step__num">4</div>
-          <div class="step__body">
-            <p>User vào link → tạo tài khoản AMA → login app → tự động được cấp vai trò bạn đã chọn.</p>
-          </div>
-        </div>
 
         <h2>Mapping vai trò AMA → vai trò app</h2>
         <table>

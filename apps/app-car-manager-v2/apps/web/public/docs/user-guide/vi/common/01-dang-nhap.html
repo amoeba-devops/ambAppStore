@@ -175,6 +175,60 @@
           </div>
         </div>
 
+        <h2>Onboarding lần đầu — quy trình nhận thông tin từ Admin</h2>
+
+        <p>Nếu đây là lần đầu bạn dùng hệ thống, Admin doanh nghiệp sẽ gửi cho bạn một <strong>tin nhắn</strong>
+        (qua SMS, Zalo, Telegram, hoặc email) chứa <strong>2 thông tin bắt buộc</strong>:</p>
+
+        <table>
+          <thead><tr><th>Thông tin</th><th>Ví dụ</th><th>Lưu ý</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Mã doanh nghiệp</strong> (ent_code)</td>
+              <td><code>VN01</code>, <code>AMOEBA-VN</code></td>
+              <td>Do Admin cung cấp. Chữ in hoa, không khoảng trắng.</td>
+            </tr>
+            <tr>
+              <td><strong>Số điện thoại của bạn</strong></td>
+              <td><code>+84 90 555 8819</code></td>
+              <td>Số đã đăng ký với Amoeba khi tham gia doanh nghiệp. <strong>Phải khớp chính xác</strong> với hệ thống AMA.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Tin nhắn mẫu Admin gửi cho bạn</h3>
+
+        <pre style="background:var(--c-surface);border:1px solid var(--c-border);padding:16px;border-radius:8px;font-family:var(--font-mono);font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-x:auto"><code>Chào [Tên bạn],
+
+Bạn đã được thêm vào hệ thống Amoeba Car Manager của công ty.
+Cách đăng nhập:
+
+1. Mở: https://apps.amoeba.site/app-car-manager-v2/login
+2. Mã doanh nghiệp: <strong>VN01</strong>
+3. Số điện thoại: số điện thoại của bạn (đã đăng ký với Amoeba)
+4. Bấm "Đăng nhập"
+
+Sau khi vào hệ thống, bạn sẽ được tự động cấp quyền theo vai trò.
+
+Cần hỗ trợ liên hệ: [Admin tên / số điện thoại]</code></pre>
+
+        <h3>Sau khi đăng nhập thành công</h3>
+        <ul>
+          <li>Hệ thống tự tạo bản ghi user của bạn trong DB</li>
+          <li>Bạn được tự động cấp vai trò (Admin / Quản lý / Tài xế) dựa trên quyền Amoeba</li>
+          <li>Tài xế: Admin sẽ bổ sung hồ sơ tài xế (bằng lái, hạng, hạn) cho bạn — bạn không cần làm gì</li>
+          <li>Lần sau chỉ cần vào <code>ama.amoeba.site</code> → bấm icon Car Manager là vào thẳng (không cần nhập lại mã)</li>
+        </ul>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">💬</div>
+          <div class="callout__body">
+            <p><strong>Lưu ý cho Admin:</strong> nếu nhân viên chưa được Amoeba cấp tài khoản, cần
+            liên hệ bộ phận nhân sự đăng ký số điện thoại + vai trò vào AMA <strong>trước</strong>
+            khi gửi tin nhắn đăng nhập. Số điện thoại nhập trong app phải khớp với số trên AMA.</p>
+          </div>
+        </div>
+
         <h2>Sự cố thường gặp</h2>
         <table>
           <thead>
