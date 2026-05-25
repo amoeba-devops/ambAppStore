@@ -135,6 +135,13 @@ code {
   color: var(--c-text-muted);
 }
 
+/* Mobile brand label is hidden on desktop — paired with the desktop brand
+ * text span via display toggle in the mobile media query. Keeps the full
+ * product name visible on wide screens while a short "Hướng dẫn" / "사용
+ * 안내서" replaces it on phones where the long name would dominate the
+ * header bar. */
+.header__brand-mobile { display: none; }
+
 .header__tools {
   display: flex;
   align-items: center;
@@ -603,22 +610,29 @@ code {
     display: none;
   }
   .header {
-    padding: 0 12px;
-    gap: 8px;
+    padding: 0 10px;
+    gap: 6px;
   }
-  /* Hide the "· Hướng dẫn" subtitle on mobile — brand line stays one line */
-  .header__brand-sub {
-    display: none;
+  /* Swap desktop brand text for a short mobile label. The full product name
+   * is too long for a 390px viewport once search + lang switch eat ~200px,
+   * so we replace it with just "Hướng dẫn" / "사용 안내서" — the logo
+   * square already conveys the "Amoeba Car" identity. */
+  .header__brand-desktop { display: none; }
+  .header__brand-mobile {
+    display: inline;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--c-text);
   }
   .header__brand {
     font-size: 14px;
     min-width: 0;
     overflow: hidden;
+    gap: 8px;
   }
-  .header__brand > span:not(.header__brand-mark) {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .header__brand-mark {
+    width: 32px;
+    height: 32px;
   }
   .main {
     padding: 20px 16px 60px;
@@ -796,8 +810,18 @@ code {
 }
 
 @media (max-width: 700px) {
-  .search__input { width: 160px; }
+  /* Search flex-fills the gap between brand and lang switch — shrinks on
+   * narrow phones, grows on wider mobile. Caps prevent it from dominating
+   * the header on tablets in portrait. */
+  .header__tools { flex: 1; min-width: 0; justify-content: flex-end; }
+  .search { flex: 1; min-width: 0; max-width: 180px; }
+  .search__input { width: 100%; min-width: 90px; padding-left: 28px; background-position: 7px center; }
   .search__results { width: 92vw; right: -8px; }
+}
+@media (max-width: 380px) {
+  /* Very small phones: hide the search placeholder text but keep the input
+   * functional — user can still tap to focus + type. */
+  .search__input::placeholder { color: transparent; }
 }
 
 /* Lightbox */
