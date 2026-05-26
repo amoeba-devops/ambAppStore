@@ -74,6 +74,8 @@
     "tripLogStep2Body": "Khi xong, bấm [Gửi → COMPLETED] ở cuối trang chi tiết. Admin sẽ được yêu cầu xác nhận.",
     "tripLogStep3Title": "COMPLETED → VERIFIED (xác nhận)",
     "tripLogStep3Body": "Admin xem lại rồi bấm [Xác nhận → VERIFIED]. Sau đó nhật ký bị khoá, không sửa được nữa.",
+    "tripLogStep4Title": "VOIDED — khi nhập sai",
+    "tripLogStep4Body": "Khi trạng thái là IN_PROGRESS hoặc COMPLETED, bạn có thể hủy nhật ký bằng nút [Hủy] ở trang chi tiết. Sau khi nhập lý do, hành động sẽ được áp dụng ngay và không thể hoàn tác. Nhật ký đã hủy sẽ bị loại khỏi thống kê tháng (quãng đường, chi phí nhiên liệu), và yêu cầu điều xe liên kết cũng tự động chuyển sang CANCELLED. Không thể hủy khi nhật ký đã VERIFIED.",
     "tripLogTip": "Mẹo",
     "tripLogTipBody": "Dùng Tải lên Excel để nhập nhiều dòng cùng lúc, và Tải xuống Excel để xuất báo cáo theo tháng.",
     "openTripLogList": "Mở danh sách nhật ký",
@@ -198,6 +200,9 @@
     "confirmDelete": "Xoá tài xế {{name}}?",
     "deleted": "Đã xoá tài xế",
     "deleteFailed": "Xoá thất bại",
+    "deleteTitle": "Xoá tài xế",
+    "deleteWarning": "Hành động này không thể hoàn tác. Để tiếp tục, vui lòng nhập chính xác tên tài xế.",
+    "deleteTypeNameToConfirm": "Nhập tên để xác nhận:",
     "updated": "Đã cập nhật tài xế"
   },
   "driverForm": {
@@ -266,6 +271,7 @@
     "statusArrived": "Đã đến",
     "statusCompleted": "Hoàn thành",
     "statusCancelled": "Đã hủy",
+    "statusCancelledRejected": "Đã hủy / Từ chối",
     "confirmDispatch": "Xác nhận điều xe",
     "dispatchSummary": "Tóm tắt điều xe",
     "selectVehicle": "Chọn xe",
@@ -300,7 +306,12 @@
     "rejectReason": "Lý do từ chối",
     "cancelReason": "Lý do hủy",
     "rejectReasonPrompt": "Nhập lý do từ chối",
-    "cancelReasonPrompt": "Nhập lý do hủy"
+    "cancelReasonPrompt": "Nhập lý do hủy",
+    "rejectTitle": "Từ chối điều xe",
+    "cancelTitle": "Hủy điều xe",
+    "reasonWarning": "Lý do này sẽ được ghi nhận vĩnh viễn. Vui lòng nhập chính xác.",
+    "reasonLabel": "Lý do",
+    "reasonMin": "Tối thiểu 5 ký tự"
   },
   "tripLog": {
     "title": "Danh sách nhật ký chuyến",
@@ -355,7 +366,23 @@
     "fuelCalcHint": "Lượng nhiên liệu × Đơn giá = Chi phí nhiên liệu (tự động)",
     "edit": "Sửa",
     "assignedDriver": "Tài xế phân công",
-    "detailTitle": "Chi tiết nhật ký chuyến"
+    "detailTitle": "Chi tiết nhật ký chuyến",
+    "void": "Hủy",
+    "voidTitle": "Hủy nhật ký chuyến",
+    "voidWarning": "Nhật ký đã hủy không thể khôi phục. Vui lòng nhập lý do chính xác.",
+    "voidReasonLabel": "Lý do hủy",
+    "voidReasonPlaceholder": "Ví dụ: Nhập sai số ODO khởi hành",
+    "voidReasonMin": "Tối thiểu 5 ký tự",
+    "voidedBadge": "Đã hủy",
+    "voidedAt": "Thời điểm hủy",
+    "voidedBy": "Người hủy",
+    "voidedReason": "Lý do hủy",
+    "voidSuccess": "Đã hủy nhật ký chuyến",
+    "voidError": "Hủy nhật ký thất bại",
+    "statusInProgress": "Đang chạy",
+    "statusCompleted": "Đã gửi",
+    "statusVerified": "Đã xác minh",
+    "statusVoided": "Đã hủy"
   },
   "tripLogImport": {
     "title": "Nhập nhật ký chuyến từ Excel",

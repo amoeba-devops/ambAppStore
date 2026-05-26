@@ -74,6 +74,8 @@
     "tripLogStep2Body": "When entry is done, click [Submit → COMPLETED] at the bottom of the detail page. Admin will be asked to verify.",
     "tripLogStep3Title": "COMPLETED → VERIFIED",
     "tripLogStep3Body": "Admin reviews and clicks [Verify → VERIFIED]. After this the log is final and cannot be edited.",
+    "tripLogStep4Title": "VOIDED — when entered incorrectly",
+    "tripLogStep4Body": "While status is IN_PROGRESS or COMPLETED, you can void a trip log via the [Void] button on the detail page. After entering a reason, the action is applied immediately and cannot be undone. Voided logs are excluded from monthly statistics (distance, fuel cost), and the linked dispatch is automatically set to CANCELLED. Voiding is not allowed once the log is VERIFIED.",
     "tripLogTip": "Tip",
     "tripLogTipBody": "Use Excel upload to register many logs at once, and Excel download to extract a monthly report.",
     "openTripLogList": "Open Trip Log list",
@@ -198,6 +200,9 @@
     "confirmDelete": "Delete driver {{name}}?",
     "deleted": "Driver deleted",
     "deleteFailed": "Failed to delete",
+    "deleteTitle": "Delete Driver",
+    "deleteWarning": "This action cannot be undone. To proceed, please type the driver's name exactly.",
+    "deleteTypeNameToConfirm": "Type the name to confirm:",
     "updated": "Driver updated"
   },
   "driverForm": {
@@ -266,6 +271,7 @@
     "statusArrived": "Arrived",
     "statusCompleted": "Completed",
     "statusCancelled": "Cancelled",
+    "statusCancelledRejected": "Cancelled / Rejected",
     "confirmDispatch": "Confirm Dispatch",
     "dispatchSummary": "Dispatch Summary",
     "selectVehicle": "Select Vehicle",
@@ -300,7 +306,12 @@
     "rejectReason": "Reject Reason",
     "cancelReason": "Cancel Reason",
     "rejectReasonPrompt": "Enter reject reason",
-    "cancelReasonPrompt": "Enter cancel reason"
+    "cancelReasonPrompt": "Enter cancel reason",
+    "rejectTitle": "Reject Dispatch",
+    "cancelTitle": "Cancel Dispatch",
+    "reasonWarning": "This reason will be permanently logged. Please be accurate.",
+    "reasonLabel": "Reason",
+    "reasonMin": "Minimum 5 characters required"
   },
   "tripLog": {
     "title": "Trip Log List",
@@ -355,7 +366,23 @@
     "fuelCalcHint": "Fuel Amount × Unit Price = Fuel Cost (auto-calculated)",
     "edit": "Edit",
     "assignedDriver": "Assigned Driver",
-    "detailTitle": "Trip Log Detail"
+    "detailTitle": "Trip Log Detail",
+    "void": "Void",
+    "voidTitle": "Void Trip Log",
+    "voidWarning": "Voided trip logs cannot be undone. Please enter the reason accurately.",
+    "voidReasonLabel": "Void Reason",
+    "voidReasonPlaceholder": "e.g. Wrong starting mileage",
+    "voidReasonMin": "Minimum 5 characters required",
+    "voidedBadge": "Voided",
+    "voidedAt": "Voided At",
+    "voidedBy": "Voided By",
+    "voidedReason": "Void Reason",
+    "voidSuccess": "Trip log has been voided",
+    "voidError": "Failed to void trip log",
+    "statusInProgress": "In Progress",
+    "statusCompleted": "Completed",
+    "statusVerified": "Verified",
+    "statusVoided": "Voided"
   },
   "tripLogImport": {
     "title": "Trip Log Excel Import",

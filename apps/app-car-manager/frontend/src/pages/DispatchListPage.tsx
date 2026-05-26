@@ -18,6 +18,7 @@ type SortKey = 'date' | 'requester' | 'status';
 const PENDING_STATUSES = ['PENDING'];
 const ACTIVE_STATUSES = ['APPROVED', 'DRIVER_ACCEPTED', 'DEPARTED', 'ARRIVED'];
 const DONE_STATUSES = ['COMPLETED'];
+const CANCELLED_STATUSES = ['CANCELLED', 'REJECTED'];
 const ALL_STATUSES = ['', 'PENDING', 'APPROVED', 'DEPARTED', 'ARRIVED', 'COMPLETED', 'CANCELLED', 'REJECTED'];
 
 export function DispatchListPage() {
@@ -36,17 +37,19 @@ export function DispatchListPage() {
   const dispatches: DispatchItem[] = data?.data || [];
 
   // Kanban columns
-  const { pending, active, done } = useMemo(() => {
+  const { pending, active, done, cancelled } = useMemo(() => {
     const p: DispatchItem[] = [];
     const a: DispatchItem[] = [];
     const d: DispatchItem[] = [];
+    const c: DispatchItem[] = [];
     for (const item of dispatches) {
       const status = item.status as string;
       if (PENDING_STATUSES.includes(status)) p.push(item);
       else if (ACTIVE_STATUSES.includes(status)) a.push(item);
       else if (DONE_STATUSES.includes(status)) d.push(item);
+      else if (CANCELLED_STATUSES.includes(status)) c.push(item);
     }
-    return { pending: p, active: a, done: d };
+    return { pending: p, active: a, done: d, cancelled: c };
   }, [dispatches]);
 
   // List view: filtered + sorted
@@ -125,7 +128,7 @@ export function DispatchListPage() {
         <div className="py-20 text-center text-gray-400">{t('common.loading')}</div>
       ) : viewMode === 'kanban' ? (
         /* Kanban View */
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
           <KanbanColumn title={t('dispatch.statusPending')} count={pending.length} color="yellow">
             {pending.length === 0 ? (
               <div className="py-8 text-center text-xs text-gray-400">{t('common.noData')}</div>
@@ -149,6 +152,15 @@ export function DispatchListPage() {
               <div className="py-8 text-center text-xs text-gray-400">{t('common.noData')}</div>
             ) : (
               done.map((d) => (
+                <DispatchCard key={d.dispatchId as string} dispatch={d} onClick={() => navigate(`/dispatches/${d.dispatchId}`)} />
+              ))
+            )}
+          </KanbanColumn>
+          <KanbanColumn title={t('dispatch.statusCancelledRejected')} count={cancelled.length} color="gray">
+            {cancelled.length === 0 ? (
+              <div className="py-8 text-center text-xs text-gray-400">{t('common.noData')}</div>
+            ) : (
+              cancelled.map((d) => (
                 <DispatchCard key={d.dispatchId as string} dispatch={d} onClick={() => navigate(`/dispatches/${d.dispatchId}`)} />
               ))
             )}

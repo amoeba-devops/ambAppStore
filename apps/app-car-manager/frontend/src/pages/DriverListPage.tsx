@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, Plus, Pencil, Trash2 } from 'lucide-react';
 
 import { useDrivers, useDeleteDriver } from '@/hooks/useDrivers';
 import { useToastStore } from '@/stores/toast.store';
@@ -19,6 +19,8 @@ export function DriverListPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [showDriverForm, setShowDriverForm] = useState(false);
   const [editingDriver, setEditingDriver] = useState<DriverFormInitial | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [confirmText, setConfirmText] = useState('');
   const { data, isLoading } = useDrivers(statusFilter ? { status: statusFilter } : undefined);
   const deleteMut = useDeleteDriver();
   const showToast = useToastStore((s) => s.showToast);
@@ -43,12 +45,23 @@ export function DriverListPage() {
     });
   };
 
-  const handleDelete = async (d: Record<string, unknown>) => {
+  const openDeleteConfirm = (d: Record<string, unknown>) => {
     const name = (d.driverName as string) || (d.amaUserId as string);
-    if (!window.confirm(t('driver.confirmDelete', { name }))) return;
+    setDeleteTarget({ id: d.driverId as string, name });
+    setConfirmText('');
+  };
+
+  const closeDeleteConfirm = () => {
+    setDeleteTarget(null);
+    setConfirmText('');
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteMut.mutateAsync(d.driverId as string);
+      await deleteMut.mutateAsync(deleteTarget.id);
       showToast(t('driver.deleted'), 'success');
+      closeDeleteConfirm();
     } catch (err) {
       showToast(`${t('driver.deleteFailed')}: ${(err as Error).message}`, 'error');
     }
@@ -58,6 +71,8 @@ export function DriverListPage() {
     setShowDriverForm(false);
     setEditingDriver(null);
   };
+
+  const deleteConfirmValid = deleteTarget !== null && confirmText.trim() === deleteTarget.name;
 
   return (
     <div>
@@ -136,7 +151,7 @@ export function DriverListPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDelete(d)}
+                          onClick={() => openDeleteConfirm(d)}
                           disabled={deleteMut.isPending}
                           title={t('common.delete')}
                           aria-label={t('common.delete')}
@@ -159,6 +174,50 @@ export function DriverListPage() {
         onClose={handleCloseForm}
         driver={editingDriver ?? undefined}
       />
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="mb-2 flex items-center gap-2 text-lg font-semibold text-gray-900">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              {t('driver.deleteTitle')}
+            </h3>
+            <p className="mb-3 text-sm text-gray-600">{t('driver.deleteWarning')}</p>
+            <p className="mb-1 text-xs text-gray-500">
+              {t('driver.deleteTypeNameToConfirm')}
+              <span className="ml-1 rounded bg-red-50 px-1.5 py-0.5 font-mono text-red-700">
+                {deleteTarget.name}
+              </span>
+            </p>
+            <input
+              type="text"
+              autoFocus
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={deleteTarget.name}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-red-400 focus:outline-none"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeDeleteConfirm}
+                disabled={deleteMut.isPending}
+                className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                disabled={!deleteConfirmValid || deleteMut.isPending}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+              >
+                {t('common.delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

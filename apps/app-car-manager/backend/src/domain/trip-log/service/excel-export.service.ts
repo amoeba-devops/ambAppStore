@@ -31,6 +31,8 @@ export class ExcelExportService {
       { header: '사고', key: 'hasAccident', width: 6 },
       { header: '상태', key: 'status', width: 12 },
       { header: '비고', key: 'note', width: 30 },
+      { header: '무효처리일', key: 'voidedAt', width: 18 },
+      { header: '무효사유', key: 'voidedReason', width: 30 },
     ];
     ws.getRow(1).font = { bold: true };
 
@@ -56,6 +58,8 @@ export class ExcelExportService {
         hasAccident: tl.ctlHasAccident ? 'Y' : 'N',
         status: tl.ctlStatus,
         note: tl.ctlNote ?? '',
+        voidedAt: formatDateTime(tl.ctlVoidedAt),
+        voidedReason: tl.ctlVoidedReason ?? '',
       });
     }
 

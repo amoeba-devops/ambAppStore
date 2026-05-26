@@ -114,12 +114,14 @@ export function HelpPage() {
           <p className="mb-4 text-sm text-gray-600">{t('help.tripLogIntro')}</p>
 
           <div className="mb-5 rounded-lg border border-[#e2e5eb] bg-[#f9fafb] p-4">
-            <div className="flex items-center gap-1 font-mono text-[11px]">
+            <div className="flex flex-wrap items-center gap-1 font-mono text-[11px]">
               <StatusPill color="yellow" label="IN_PROGRESS" />
               <Arrow />
               <StatusPill color="blue" label="COMPLETED" />
               <Arrow />
               <StatusPill color="green" label="VERIFIED" />
+              <span className="mx-2 text-gray-400">|</span>
+              <StatusPill color="gray" label="VOIDED" />
             </div>
           </div>
 
@@ -127,6 +129,7 @@ export function HelpPage() {
             <Step n={1} title={t('help.tripLogStep1Title')} body={t('help.tripLogStep1Body')} />
             <Step n={2} title={t('help.tripLogStep2Title')} body={t('help.tripLogStep2Body')} />
             <Step n={3} title={t('help.tripLogStep3Title')} body={t('help.tripLogStep3Body')} />
+            <Step n={4} title={t('help.tripLogStep4Title')} body={t('help.tripLogStep4Body')} />
           </ol>
 
           <div className="mt-5 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-800">
@@ -217,6 +220,7 @@ const PILL_COLORS: Record<string, string> = {
   blue: 'bg-blue-100 text-blue-800 border-blue-300',
   indigo: 'bg-indigo-100 text-indigo-800 border-indigo-300',
   green: 'bg-green-100 text-green-800 border-green-300',
+  gray: 'bg-gray-100 text-gray-600 border-gray-300 line-through',
 };
 
 function StatusPill({ color, label }: { color: keyof typeof PILL_COLORS; label: string }) {

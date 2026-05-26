@@ -52,3 +52,15 @@ export function useSubmitTripLog() {
     onSuccess: () => qc.invalidateQueries({ queryKey: tripLogKeys.all }),
   });
 }
+
+export function useVoidTripLog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      tripLogApi.void(id, { reason }),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: tripLogKeys.lists() });
+      qc.invalidateQueries({ queryKey: tripLogKeys.detail(id) });
+    },
+  });
+}

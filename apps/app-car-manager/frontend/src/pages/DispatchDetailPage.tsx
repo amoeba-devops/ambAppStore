@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDispatch, useDispatchAction, useUpdateDispatch } from '@/hooks/useDispatches';
 import { useDrivers } from '@/hooks/useDrivers';
-import { Pencil, Save, X } from 'lucide-react';
+import { AlertTriangle, Pencil, Save, X } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { StatusBadge, getStatusVariant } from '@/components/common/StatusBadge';
@@ -21,6 +21,8 @@ export function DispatchDetailPage() {
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<Record<string, string>>({});
   const [editDriverId, setEditDriverId] = useState<string>('');
+  const [reasonMode, setReasonMode] = useState<'reject' | 'cancel' | null>(null);
+  const [reasonText, setReasonText] = useState('');
 
   const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
   const MINUTES = ['00', '15', '30', '45'];
@@ -242,7 +244,7 @@ export function DispatchDetailPage() {
                   {t('dispatch.confirmDispatch')}
                 </button>
                 <button
-                  onClick={() => { const r = prompt(t('dispatchDetail.rejectReasonPrompt')); if (r) handleAction('reject', { reason: r }); }}
+                  onClick={() => { setReasonText(''); setReasonMode('reject'); }}
                   className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
                 >
                   {t('dispatch.reject')}
@@ -263,7 +265,7 @@ export function DispatchDetailPage() {
             )}
             {!['COMPLETED', 'CANCELLED', 'REJECTED'].includes(dispatch.status) && (
               <button
-                onClick={() => { const r = prompt(t('dispatchDetail.cancelReasonPrompt')); if (r) handleAction('cancel', { reason: r }); }}
+                onClick={() => { setReasonText(''); setReasonMode('cancel'); }}
                 className="rounded-lg border border-[#d4d8e0] px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
               >
                 {t('dispatch.cancelDispatch')}
@@ -275,6 +277,58 @@ export function DispatchDetailPage() {
 
       {showConfirm && (
         <DispatchConfirmModal dispatch={dispatch} onClose={() => setShowConfirm(false)} />
+      )}
+
+      {reasonMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="mb-2 flex items-center gap-2 text-lg font-semibold text-gray-900">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              {reasonMode === 'reject' ? t('dispatchDetail.rejectTitle') : t('dispatchDetail.cancelTitle')}
+            </h3>
+            <p className="mb-3 text-sm text-gray-600">{t('dispatchDetail.reasonWarning')}</p>
+            <label className="mb-1 block text-xs font-medium text-gray-500">
+              {t('dispatchDetail.reasonLabel')}
+            </label>
+            <textarea
+              value={reasonText}
+              onChange={(e) => setReasonText(e.target.value)}
+              rows={3}
+              maxLength={500}
+              placeholder={reasonMode === 'reject' ? t('dispatchDetail.rejectReasonPrompt') : t('dispatchDetail.cancelReasonPrompt')}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-red-400 focus:outline-none"
+            />
+            <div className="mt-1 flex justify-between text-[11px] text-gray-400">
+              <span>{reasonText.trim().length > 0 && reasonText.trim().length < 5 && t('dispatchDetail.reasonMin')}</span>
+              <span>{reasonText.length} / 500</span>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setReasonMode(null); setReasonText(''); }}
+                disabled={actionMut.isPending}
+                className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const r = reasonText.trim();
+                  if (r.length < 5) return;
+                  const mode = reasonMode;
+                  setReasonMode(null);
+                  setReasonText('');
+                  await handleAction(mode === 'reject' ? 'reject' : 'cancel', { reason: r });
+                }}
+                disabled={reasonText.trim().length < 5 || actionMut.isPending}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+              >
+                {t('common.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

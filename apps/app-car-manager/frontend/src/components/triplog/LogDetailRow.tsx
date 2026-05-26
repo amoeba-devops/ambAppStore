@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, Pencil, Save, X } from 'lucide-react';
 import { StatusBadge, getStatusVariant } from '@/components/common/StatusBadge';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useUpdateTripLog } from '@/hooks/useTripLogs';
+import { tripLogStatusLabel } from '@/lib/trip-log-status';
 
 interface LogDetailRowProps {
   log: Record<string, unknown>;
@@ -20,7 +21,11 @@ export function LogDetailRow({ log }: LogDetailRowProps) {
   const status = log.status as string;
   const departAt = (log.departActual || log.departAt) ? new Date((log.departActual || log.departAt) as string) : null;
   const returnAt = (log.arriveActual || log.returnAt) ? new Date((log.arriveActual || log.returnAt) as string) : null;
-  const canEdit = status !== 'VERIFIED';
+  const isVoided = status === 'VOIDED';
+  const canEdit = status !== 'VERIFIED' && !isVoided;
+  const voidedReason = (log.voidedReason as string) || '';
+  const voidedByName = (log.voidedByName as string) || '';
+  const voidedAt = log.voidedAt ? new Date(log.voidedAt as string) : null;
 
   // Edit state
   const [editDriverId, setEditDriverId] = useState((log.driverId as string) || '');
@@ -66,9 +71,11 @@ export function LogDetailRow({ log }: LogDetailRowProps) {
       {/* Main row — 5 columns: 날짜 | 차량번호 | 노선 | 주행거리 | 상태 */}
       <tr
         onClick={() => setExpanded((v) => !v)}
+        title={isVoided && voidedReason ? `${t('tripLog.voidedReason')}: ${voidedReason}` : undefined}
         className={clsx(
           'cursor-pointer transition-colors hover:bg-gray-50',
           expanded && 'bg-orange-500/5',
+          isVoided && 'opacity-60 line-through',
         )}
       >
         <td className="px-4 py-3 text-sm text-gray-700">
@@ -98,7 +105,7 @@ export function LogDetailRow({ log }: LogDetailRowProps) {
           {log.distanceKm != null ? `${log.distanceKm}km` : '-'}
         </td>
         <td className="px-4 py-3">
-          <StatusBadge variant={getStatusVariant(status)} label={status} />
+          <StatusBadge variant={getStatusVariant(status)} label={tripLogStatusLabel(status, t)} />
         </td>
       </tr>
 
@@ -245,6 +252,19 @@ export function LogDetailRow({ log }: LogDetailRowProps) {
                 {Boolean(log.note) && (
                   <div className="col-span-4">
                     <DetailField label={t('tripLog.note')} value={String(log.note)} />
+                  </div>
+                )}
+                {isVoided && (
+                  <div className="col-span-4 rounded border border-gray-300 bg-gray-50 p-2 text-[12px]">
+                    <div className="mb-1 font-medium text-gray-700">{t('tripLog.voidedBadge')}</div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <DetailField
+                        label={t('tripLog.voidedAt')}
+                        value={voidedAt ? voidedAt.toLocaleString() : '-'}
+                      />
+                      <DetailField label={t('tripLog.voidedBy')} value={voidedByName || '-'} />
+                      <DetailField label={t('tripLog.voidedReason')} value={voidedReason || '-'} />
+                    </div>
                   </div>
                 )}
               </div>

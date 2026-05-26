@@ -74,6 +74,8 @@
     "tripLogStep2Body": "입력이 끝나면 상세 페이지 하단의 [제출 → COMPLETED] 클릭. 관리자에게 검증 요청이 들어갑니다.",
     "tripLogStep3Title": "COMPLETED → VERIFIED (검증)",
     "tripLogStep3Body": "관리자가 내용을 확인 후 [검증 → VERIFIED] 클릭. 이후에는 수정할 수 없는 최종 상태가 됩니다.",
+    "tripLogStep4Title": "VOIDED (무효 처리) — 잘못 입력한 경우",
+    "tripLogStep4Body": "IN_PROGRESS 또는 COMPLETED 상태일 때 상세 페이지의 [무효 처리] 버튼으로 운행일지를 무효화할 수 있습니다. 사유를 입력하면 즉시 적용되며 되돌릴 수 없습니다. 무효 처리된 일지는 월별 통계(거리·연료비)에서 제외되며, 함께 생성된 배차 요청도 자동으로 CANCELLED 처리됩니다. VERIFIED 상태에서는 무효 처리할 수 없습니다.",
     "tripLogTip": "팁",
     "tripLogTipBody": "Excel 업로드로 여러 건을 한꺼번에 등록할 수 있고, Excel 다운로드로 월별 보고서를 추출할 수 있습니다.",
     "openTripLogList": "운행일지 목록 열기",
@@ -198,6 +200,9 @@
     "confirmDelete": "{{name}} 운전자를 삭제하시겠습니까?",
     "deleted": "운전자가 삭제되었습니다",
     "deleteFailed": "삭제 실패",
+    "deleteTitle": "운전자 삭제",
+    "deleteWarning": "이 작업은 되돌릴 수 없습니다. 계속하려면 운전자 이름을 정확히 입력해 주세요.",
+    "deleteTypeNameToConfirm": "확인을 위해 이름을 입력하세요:",
     "updated": "운전자 정보가 수정되었습니다"
   },
   "driverForm": {
@@ -266,6 +271,7 @@
     "statusArrived": "도착",
     "statusCompleted": "완료",
     "statusCancelled": "취소됨",
+    "statusCancelledRejected": "취소/반려",
     "confirmDispatch": "배차 확정",
     "dispatchSummary": "배차 요약",
     "selectVehicle": "차량 선택",
@@ -300,7 +306,12 @@
     "rejectReason": "반려 사유",
     "cancelReason": "취소 사유",
     "rejectReasonPrompt": "반려 사유를 입력하세요",
-    "cancelReasonPrompt": "취소 사유를 입력하세요"
+    "cancelReasonPrompt": "취소 사유를 입력하세요",
+    "rejectTitle": "배차 반려",
+    "cancelTitle": "배차 취소",
+    "reasonWarning": "사유는 기록에 영구 보존됩니다. 정확히 입력해 주세요.",
+    "reasonLabel": "사유",
+    "reasonMin": "최소 5자 이상 입력하세요"
   },
   "tripLog": {
     "title": "운행일지 목록",
@@ -355,7 +366,23 @@
     "fuelCalcHint": "주유량 × 리터당 단가 = 주유비 자동계산",
     "edit": "수정",
     "assignedDriver": "배정운전자",
-    "detailTitle": "운행일지 상세"
+    "detailTitle": "운행일지 상세",
+    "void": "무효 처리",
+    "voidTitle": "운행일지 무효 처리",
+    "voidWarning": "무효 처리된 일지는 되돌릴 수 없습니다. 사유를 정확히 입력해 주세요.",
+    "voidReasonLabel": "무효 사유",
+    "voidReasonPlaceholder": "예) 출발 마일리지 잘못 입력",
+    "voidReasonMin": "최소 5자 이상 입력하세요",
+    "voidedBadge": "무효 처리됨",
+    "voidedAt": "처리 시각",
+    "voidedBy": "처리자",
+    "voidedReason": "무효 사유",
+    "voidSuccess": "운행일지가 무효 처리되었습니다",
+    "voidError": "무효 처리 실패",
+    "statusInProgress": "운행중",
+    "statusCompleted": "제출 완료",
+    "statusVerified": "검증 완료",
+    "statusVoided": "무효"
   },
   "tripLogImport": {
     "title": "운행일지 엑셀 업로드",
