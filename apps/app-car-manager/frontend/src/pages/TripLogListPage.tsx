@@ -77,12 +77,13 @@ export function TripLogListPage() {
     return result;
   }, [tripLogs, currentMonth, vehicleFilter, routeSearch]);
 
-  // Summary stats
+  // Summary stats — exclude VOIDED trip logs
   const summary = useMemo(() => {
+    const active = filtered.filter((tl) => tl.status !== 'VOIDED');
     let totalDistance = 0;
     let totalFuel = 0;
-    let totalTrips = filtered.length;
-    for (const tl of filtered) {
+    const totalTrips = active.length;
+    for (const tl of active) {
       if (tl.distanceKm != null) totalDistance += tl.distanceKm as number;
       if (tl.fuelCost != null) totalFuel += tl.fuelCost as number;
     }

@@ -148,6 +148,9 @@ export class TripLogService {
     if (tripLog.ctlStatus === TripLogStatus.VERIFIED) {
       throw new BusinessException('CAR-E6002', 'Cannot update verified trip log', HttpStatus.BAD_REQUEST);
     }
+    if (tripLog.ctlStatus === TripLogStatus.VOIDED) {
+      throw new BusinessException('CAR-E6002', 'Cannot update voided trip log', HttpStatus.BAD_REQUEST);
+    }
 
     if (req.driver_id !== undefined) tripLog.cvdId = req.driver_id;
     if (req.depart_actual !== undefined) tripLog.ctlDepartActual = req.depart_actual ? new Date(req.depart_actual) : null;
@@ -184,6 +187,9 @@ export class TripLogService {
   async submit(entityId: string, id: string, req: SubmitTripLogRequest): Promise<TripLogEntity> {
     const tripLog = await this.findById(entityId, id);
 
+    if (tripLog.ctlStatus === TripLogStatus.VOIDED) {
+      throw new BusinessException('CAR-E6002', 'Cannot submit voided trip log', HttpStatus.BAD_REQUEST);
+    }
     if (req.status === TripLogStatus.COMPLETED && tripLog.ctlStatus !== TripLogStatus.IN_PROGRESS) {
       throw new BusinessException('CAR-E6003', 'Can only submit in-progress trip logs', HttpStatus.BAD_REQUEST);
     }
@@ -197,5 +203,40 @@ export class TripLogService {
     }
 
     return this.tripLogRepo.save(tripLog);
+  }
+
+  async void(
+    entityId: string,
+    id: string,
+    reason: string,
+    userId: string,
+    userName: string,
+  ): Promise<TripLogEntity> {
+    const tripLog = await this.findById(entityId, id);
+
+    if (tripLog.ctlStatus === TripLogStatus.VERIFIED) {
+      throw new BusinessException('CAR-E6005', 'Cannot void verified trip log', HttpStatus.BAD_REQUEST);
+    }
+    if (tripLog.ctlStatus === TripLogStatus.VOIDED) {
+      throw new BusinessException('CAR-E6006', 'Trip log already voided', HttpStatus.BAD_REQUEST);
+    }
+
+    tripLog.ctlStatus = TripLogStatus.VOIDED;
+    tripLog.ctlVoidedAt = new Date();
+    tripLog.ctlVoidedBy = userId;
+    tripLog.ctlVoidedByName = userName;
+    tripLog.ctlVoidedReason = reason;
+
+    const saved = await this.tripLogRepo.save(tripLog);
+
+    // Sync proxy dispatch — non-proxy dispatch는 보존
+    if (tripLog.cdrId) {
+      const dispatch = await this.dispatchRepo.findOne({ where: { cdrId: tripLog.cdrId } });
+      if (dispatch && dispatch.cdrIsProxy && dispatch.cdrStatus !== DispatchStatus.CANCELLED) {
+        await this.dispatchRepo.update(tripLog.cdrId, { cdrStatus: DispatchStatus.CANCELLED });
+      }
+    }
+
+    return saved;
   }
 }

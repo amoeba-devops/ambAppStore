@@ -48,6 +48,7 @@ const STATUS_VARIANT_MAP: Record<string, BadgeVariant> = {
   CANCELLED: 'danger',
   DISPOSED: 'danger',
   INACTIVE: 'default',
+  VOIDED: 'default',
 };
 
 export function getStatusVariant(status: string): BadgeVariant {

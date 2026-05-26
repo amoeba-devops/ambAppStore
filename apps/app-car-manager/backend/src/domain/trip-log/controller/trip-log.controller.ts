@@ -19,6 +19,7 @@ import { ExcelExportService } from '../service/excel-export.service';
 import { TripLogMapper } from '../mapper/trip-log.mapper';
 import { CreateTripLogRequest } from '../dto/request/create-trip-log.request';
 import { UpdateTripLogRequest, SubmitTripLogRequest } from '../dto/request/trip-log.request';
+import { VoidTripLogRequest } from '../dto/request/void-trip-log.request';
 import { Auth } from '../../../auth/decorators/auth.decorator';
 import { CurrentUser } from '../../../auth/decorators/current-user.decorator';
 import { AmaJwtPayload } from '../../../auth/interfaces/ama-jwt-payload.interface';
@@ -114,6 +115,24 @@ export class TripLogController {
     @Body() req: SubmitTripLogRequest,
   ) {
     const tripLog = await this.tripLogService.submit(user.ent_id, id, req);
+    return successResponse(TripLogMapper.toResponse(tripLog));
+  }
+
+  @Auth()
+  @Patch(':id/void')
+  @ApiOperation({ summary: '운행일지 무효 처리' })
+  async void(
+    @CurrentUser() user: AmaJwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() req: VoidTripLogRequest,
+  ) {
+    const tripLog = await this.tripLogService.void(
+      user.ent_id,
+      id,
+      req.reason,
+      user.sub,
+      user.name || user.email || 'User',
+    );
     return successResponse(TripLogMapper.toResponse(tripLog));
   }
 
