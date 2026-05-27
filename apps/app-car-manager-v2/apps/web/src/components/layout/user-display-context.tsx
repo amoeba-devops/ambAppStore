@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import type { LocalRole } from '@car-v2/shared/auth';
 
 /* Per-user display state for client components. Mirrors `TenantDisplayProvider`
  * but for the signed-in user — name + email + computed initials + a
@@ -11,6 +12,10 @@ interface UserDisplayState {
   /** Resolved display name. Falls back to email local-part or "User". */
   name: string;
   email: string | null;
+  /** Local app role (ADMIN | MANAGER | DRIVER) — needed by client surfaces
+   * that branch on role (e.g. user-guide drawer picks admin/ vs driver/
+   * docs). Mirrors the JWT `localRole` resolution. */
+  role: LocalRole;
   /** 1–2 char uppercase initials for the avatar circle. */
   initials: string;
   /** Tailwind background + foreground class pair, e.g.
@@ -31,6 +36,8 @@ interface UserDisplayProviderProps {
   userName: string | null;
   /** Email from AMA JWT (`claims.email`). Optional — falls back to "User". */
   userEmail: string | null;
+  /** Mapped local role from JWT (ADMIN | MANAGER | DRIVER). */
+  role: LocalRole;
   /** Server-counted unread inbox notifications (from car_notifications). 0
    * when the user has no pending notifications. */
   unreadNotifications: number;
@@ -40,6 +47,7 @@ interface UserDisplayProviderProps {
 export function UserDisplayProvider({
   userName,
   userEmail,
+  role,
   unreadNotifications,
   children,
 }: UserDisplayProviderProps) {
@@ -48,11 +56,12 @@ export function UserDisplayProvider({
     return {
       name,
       email: userEmail,
+      role,
       initials: deriveInitials(name),
       color: pickColor(userEmail ?? userName ?? name),
       unreadNotifications,
     };
-  }, [userName, userEmail, unreadNotifications]);
+  }, [userName, userEmail, role, unreadNotifications]);
   return <UserDisplayContext.Provider value={value}>{children}</UserDisplayContext.Provider>;
 }
 

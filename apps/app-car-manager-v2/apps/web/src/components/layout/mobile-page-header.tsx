@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@car-v2/ui';
 import { NotificationBell } from './notification-bell';
 import { useTenantDisplay } from './tenant-display-context';
 import { useUserDisplay } from './user-display-context';
+import { UserGuideDrawer } from './user-guide-drawer';
 import type { BreadcrumbItem } from './breadcrumbs';
 
 interface MobilePageHeaderProps {
@@ -164,31 +165,32 @@ function BrandHeader() {
 }
 
 /* Permanent User Guide affordance — pinned next to the Me avatar so it's
- * reachable in one tap from any mobile page. Mirrors the desktop sidebar
- * permanent entry (Option C) for cross-device consistency. Plain <a> because
- * the target is static HTML under /public/docs/, not a Next.js route. */
+ * reachable in one tap from any mobile page. Opens the in-app guide drawer
+ * (deep-linked to the page that matches current route × role × locale).
+ * The drawer header also has an "open in new tab" icon for users who want
+ * the standalone reading experience. */
 function UserGuideIconLink() {
   const tNav = useTranslations('nav');
-  const locale = useLocale();
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
-  const guideLocale = locale === 'ko' ? 'ko' : 'vi';
-  const href = `${basePath}/docs/user-guide/${guideLocale}/index.html`;
+  const { role } = useUserDisplay();
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={tNav('userGuideAria')}
-      title={tNav('userGuide')}
-      className={cn(
-        'shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-full',
-        'text-text-muted hover:bg-surface-2 hover:text-text active:bg-surface-2/80',
-        'transition-[background-color,color] duration-150 motion-reduce:transition-none',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
-      )}
-    >
-      <BookOpen className="h-5 w-5" aria-hidden />
-    </a>
+    <UserGuideDrawer
+      role={role}
+      trigger={
+        <button
+          type="button"
+          aria-label={tNav('userGuideAria')}
+          title={tNav('userGuide')}
+          className={cn(
+            'shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-full',
+            'text-text-muted hover:bg-surface-2 hover:text-text active:bg-surface-2/80',
+            'transition-[background-color,color] duration-150 motion-reduce:transition-none',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+          )}
+        >
+          <BookOpen className="h-5 w-5" aria-hidden />
+        </button>
+      }
+    />
   );
 }
 

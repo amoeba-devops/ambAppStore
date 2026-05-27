@@ -1235,5 +1235,13 @@
     "footnote": "사용자 페이지의 \"동기화\" 버튼으로 언제든 재동기화할 수 있습니다.",
     "managerWaitTitle": "Admin 온보딩 대기 중",
     "managerWaitDesc": "초기 멤버 동기화는 Admin 계정(AMA의 MASTER/OWNER 역할)만 수행할 수 있습니다. 회사 Admin에게 이 단계를 완료해 달라고 요청해 주세요."
+  },
+  "userGuide": {
+    "matchedHint": "보기: {page}",
+    "fallbackHint": "이 페이지에는 전용 가이드가 없습니다 — 역할 개요를 표시합니다.",
+    "openInNewTab": "새 탭에서 열기",
+    "loading": "가이드 로딩 중…",
+    "localeNote": "{locale} 버전 표시 · UI: {uiLocale}",
+    "viewIndex": "목차 보기"
   }
 }

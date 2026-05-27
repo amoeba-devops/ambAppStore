@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition } from 'react';
-import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -37,6 +37,7 @@ import { useAllDrafts, type DraftEntry } from '@/hooks/use-all-drafts';
 import { activeKeyFor, navItemsForRole, type NavKey } from './nav-items';
 import { SidebarLocaleSwitcher } from './sidebar-locale-switcher';
 import { useTenantDisplay } from './tenant-display-context';
+import { UserGuideDrawer } from './user-guide-drawer';
 
 /* Entity → child icon. Helps user recognise "this is a vehicle/trip/driver/
  * expense draft" without reading text. */
@@ -82,15 +83,8 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
   const tRole  = useTranslations('settings.me.roles');
   const tGroup = useTranslations();
   const pathname = usePathname();
-  const locale = useLocale();
-  /* User guide is a static HTML site served from apps/web/public/docs/user-guide/.
-   * URL = basePath + /docs/user-guide/{locale}/index.html so the visitor lands
-   * on a page matching their current UI language. Falls back to /vi/ if the
-   * locale isn't part of the published doc set (e.g. en — KO doc covers en
-   * users for now). Opened in a new tab so the user keeps their app context. */
-  const guideBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
-  const guideLocale = locale === 'ko' ? 'ko' : 'vi';
-  const userGuideHref = `${guideBasePath}/docs/user-guide/${guideLocale}/index.html`;
+  // locale + guide href no longer needed here — UserGuideDrawer reads locale +
+  // pathname itself and deep-links to the matching role × page.
   /* Live tenant display — re-renders whenever an Admin edits the name in
    * Settings, no route reload required. Seed value comes from AppShell. */
   const tenant = useTenantDisplay();
@@ -207,46 +201,52 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
         <SidebarLocaleSwitcher collapsed={collapsed} />
       </div>
 
-      {/* Permanent User Guide entry — sits between nav and avatar so it's
-       * always visible (no dropdown click needed). Mirrors the mobile header
-       * icon for cross-device consistency. */}
+      {/* Permanent User Guide entry — opens the in-app drawer deep-linked to
+       * the page matching (pathname × role × locale). Drawer header carries
+       * an "open in new tab" icon for users who want the full standalone
+       * doc view. Mirrors the mobile header icon for cross-device parity. */}
       <div className="border-t border-border p-2">
         <TooltipProvider delayDuration={400} disableHoverableContent>
           {collapsed ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <a
-                  href={userGuideHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={tNav('userGuideAria')}
-                  className={cn(
-                    'mx-auto flex items-center justify-center h-9 w-9 rounded',
-                    'text-text-muted hover:bg-surface-2 hover:text-text',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  )}
-                >
-                  <BookOpen className="h-4 w-4" aria-hidden />
-                </a>
+                <UserGuideDrawer
+                  role={role}
+                  trigger={
+                    <button
+                      type="button"
+                      aria-label={tNav('userGuideAria')}
+                      className={cn(
+                        'mx-auto flex items-center justify-center h-9 w-9 rounded',
+                        'text-text-muted hover:bg-surface-2 hover:text-text',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      )}
+                    >
+                      <BookOpen className="h-4 w-4" aria-hidden />
+                    </button>
+                  }
+                />
               </TooltipTrigger>
               <TooltipContent side="right">{tNav('userGuide')}</TooltipContent>
             </Tooltip>
           ) : (
-            <a
-              href={userGuideHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={tNav('userGuideAria')}
-              className={cn(
-                'group flex items-center gap-2.5 h-9 rounded px-2 text-sm font-medium',
-                'text-text-muted hover:bg-surface-2 hover:text-text transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              )}
-            >
-              <BookOpen className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="flex-1 truncate">{tNav('userGuide')}</span>
-              <span className="text-text-faint text-[10px] shrink-0" aria-hidden>↗</span>
-            </a>
+            <UserGuideDrawer
+              role={role}
+              trigger={
+                <button
+                  type="button"
+                  aria-label={tNav('userGuideAria')}
+                  className={cn(
+                    'group flex items-center gap-2.5 h-9 w-full rounded px-2 text-sm font-medium',
+                    'text-text-muted hover:bg-surface-2 hover:text-text transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  )}
+                >
+                  <BookOpen className="h-4 w-4 shrink-0" aria-hidden />
+                  <span className="flex-1 truncate text-left">{tNav('userGuide')}</span>
+                </button>
+              }
+            />
           )}
         </TooltipProvider>
       </div>
@@ -338,20 +338,22 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              {/* Plain <a> not Next.js <Link> — the user guide is a static
-               * tree under /public/docs/, NOT a Next.js route. Link would try
-               * to client-side navigate and 404. target=_blank keeps the app
-               * context open in the original tab. */}
-              <a
-                href={userGuideHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={tNav('userGuideAria')}
-                className="flex items-center gap-2 w-full cursor-pointer"
-              >
-                <BookOpen aria-hidden />
-                <span>{tNav('userGuide')}</span>
-              </a>
+              {/* Opens the deep-linked in-app guide drawer instead of a new
+               * tab — drawer header still offers an explicit "open in new
+               * tab" icon for users who want the standalone doc view. */}
+              <UserGuideDrawer
+                role={role}
+                trigger={
+                  <button
+                    type="button"
+                    aria-label={tNav('userGuideAria')}
+                    className="flex items-center gap-2 w-full cursor-pointer text-left"
+                  >
+                    <BookOpen aria-hidden />
+                    <span>{tNav('userGuide')}</span>
+                  </button>
+                }
+              />
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

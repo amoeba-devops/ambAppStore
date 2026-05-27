@@ -1235,5 +1235,13 @@
     "footnote": "You can re-sync at any time using the \"Sync\" button on the Users page.",
     "managerWaitTitle": "Waiting for Admin onboarding",
     "managerWaitDesc": "Only Admin accounts (MASTER/OWNER role on AMA) can run the initial member sync. Please ask your company Admin to complete this step."
+  },
+  "userGuide": {
+    "matchedHint": "Viewing: {page}",
+    "fallbackHint": "No dedicated guide for this page — showing the role overview.",
+    "openInNewTab": "Open in new tab",
+    "loading": "Loading guide…",
+    "localeNote": "Showing {locale} version · UI: {uiLocale}",
+    "viewIndex": "View index"
   }
 }

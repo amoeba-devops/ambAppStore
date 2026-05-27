@@ -1235,5 +1235,13 @@
     "footnote": "Bạn có thể đồng bộ lại bất cứ lúc nào qua nút \"Đồng bộ\" ở trang Người dùng.",
     "managerWaitTitle": "Đang chờ Admin onboard",
     "managerWaitDesc": "Chỉ tài khoản Admin (vai trò MASTER/OWNER trên AMA) mới có quyền đồng bộ thành viên lần đầu. Vui lòng liên hệ Admin của công ty để thực hiện bước này."
+  },
+  "userGuide": {
+    "matchedHint": "Đang xem: {page}",
+    "fallbackHint": "Trang này chưa có hướng dẫn riêng — hiển thị tổng quan vai trò.",
+    "openInNewTab": "Mở tab mới",
+    "loading": "Đang tải hướng dẫn…",
+    "localeNote": "Hiển thị bản {locale} · UI: {uiLocale}",
+    "viewIndex": "Xem mục lục"
   }
 }
