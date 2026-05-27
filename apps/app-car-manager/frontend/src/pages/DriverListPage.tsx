@@ -45,9 +45,14 @@ export function DriverListPage() {
     });
   };
 
+  // Normalize NBSP → space then trim. Stored names can carry invisible
+  // whitespace (DB import, copy-paste); span padding hides it so the user
+  // can never type a matching string.
+  const normalizeName = (s: string) => s.replace(/\u00A0/g, ' ').trim();
+
   const openDeleteConfirm = (d: Record<string, unknown>) => {
-    const name = (d.driverName as string) || (d.amaUserId as string);
-    setDeleteTarget({ id: d.driverId as string, name });
+    const raw = (d.driverName as string) || (d.amaUserId as string);
+    setDeleteTarget({ id: d.driverId as string, name: normalizeName(raw) });
     setConfirmText('');
   };
 
@@ -72,7 +77,9 @@ export function DriverListPage() {
     setEditingDriver(null);
   };
 
-  const deleteConfirmValid = deleteTarget !== null && confirmText.trim() === deleteTarget.name;
+  const deleteConfirmValid =
+    deleteTarget !== null &&
+    normalizeName(confirmText) === deleteTarget.name;
 
   return (
     <div>
