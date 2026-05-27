@@ -13,6 +13,7 @@ import {
 import type { CarMaintenanceAlertType } from '@car-v2/db/schema';
 import type { MaintenanceAlertListItem } from '@/server/queries/maintenance-alerts.queries';
 import { acknowledgeAlertAction } from '@/server/actions/maintenance/maintenance.actions';
+import { formatActionError } from '@/lib/format-action-error';
 
 const ALERT_ICON: Record<CarMaintenanceAlertType, typeof Droplet> = {
   OIL_OVERDUE: Droplet,
@@ -30,6 +31,7 @@ export function MaintenanceAlertList({
 }) {
   const t = useTranslations('maintenance');
   const tA = useTranslations('actions');
+  const tErr = useTranslations();
 
   if (alerts.length === 0) {
     return (
@@ -54,6 +56,7 @@ export function MaintenanceAlertList({
           variant={variant}
           t={t}
           tA={tA}
+          tErr={tErr}
         />
       ))}
     </ul>
@@ -65,11 +68,13 @@ function AlertRow({
   variant,
   t,
   tA,
+  tErr,
 }: {
   row: MaintenanceAlertListItem;
   variant: 'full' | 'compact';
   t: ReturnType<typeof useTranslations>;
   tA: ReturnType<typeof useTranslations>;
+  tErr: ReturnType<typeof useTranslations>;
 }) {
   const [pending, startTransition] = useTransition();
   const a = row.alert;
@@ -83,7 +88,7 @@ function AlertRow({
       if (res.success) {
         toast.success(t('toastAcked'));
       } else {
-        toast.error(`${res.error.code}: ${res.error.message}`);
+        toast.error(formatActionError(res.error, tErr));
       }
     });
   }

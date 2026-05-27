@@ -15,6 +15,7 @@ import {
   toast,
 } from '@car-v2/ui';
 import { updateMemberAction } from '@/server/actions/users/update-member.action';
+import { formatActionError } from '@/lib/format-action-error';
 
 interface DriverSigninToggleProps {
   amaUserId: string;
@@ -33,6 +34,8 @@ export function DriverSigninToggle({
 }: DriverSigninToggleProps) {
   const router = useRouter();
   const t = useTranslations('users.signin');
+  const tStatus = useTranslations('users.statusBadge');
+  const tErr = useTranslations();
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
 
@@ -47,7 +50,7 @@ export function DriverSigninToggle({
         status: nextStatus,
       });
       if (!res.success) {
-        toast.error(res.error.message);
+        toast.error(formatActionError(res.error, tErr));
         return;
       }
       toast.success(
@@ -119,11 +122,11 @@ export function DriverSigninToggle({
                 <span className="text-text-muted">{t('rowStatus')}</span>
                 <span className="font-mono text-xs tabular">
                   <span className={isCurrentlyActive ? 'text-success line-through' : 'text-danger line-through'}>
-                    {currentStatus}
+                    {tStatus(currentStatus as 'ACTIVE' | 'INACTIVE' | 'SUSPENDED')}
                   </span>
                   <span className="mx-1.5 text-text-faint">→</span>
                   <span className={isCurrentlyActive ? 'text-danger font-bold' : 'text-success font-bold'}>
-                    {nextStatus}
+                    {tStatus(nextStatus)}
                   </span>
                 </span>
               </div>

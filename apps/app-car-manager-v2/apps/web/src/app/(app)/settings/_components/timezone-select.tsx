@@ -11,6 +11,7 @@ import {
   toast,
 } from '@car-v2/ui';
 import { updateTimezoneAction } from '@/server/actions/settings/tenant-settings.actions';
+import { formatActionError } from '@/lib/format-action-error';
 
 interface TimezoneSelectProps {
   defaultValue: string;
@@ -25,6 +26,7 @@ const OPTIONS = [
 
 export function TimezoneSelect({ defaultValue, disabled }: TimezoneSelectProps) {
   const tStatus = useTranslations('settings.saveStatus');
+  const tErr = useTranslations();
   const [value, setValue] = useState(defaultValue);
   const [pending, startTransition] = useTransition();
 
@@ -38,7 +40,7 @@ export function TimezoneSelect({ defaultValue, disabled }: TimezoneSelectProps) 
         toast.success(tStatus('saved'));
       } else {
         setValue(previous);
-        toast.error(tStatus('error', { message: result.error.message }));
+        toast.error(tStatus('error', { message: formatActionError(result.error, tErr) }));
       }
     });
   };

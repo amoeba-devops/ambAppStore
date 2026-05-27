@@ -21,6 +21,7 @@ import {
   toast,
 } from '@car-v2/ui';
 import { addMemberAction, type AddMemberResult } from '@/server/actions/users/add-member.action';
+import { formatActionError } from '@/lib/format-action-error';
 import type { LocalRole } from '@car-v2/shared/auth';
 
 function isValidEmail(email: string): boolean {
@@ -34,6 +35,7 @@ interface AddMemberFormProps {
 export function AddMemberForm({ actorRole }: AddMemberFormProps) {
   const router = useRouter();
   const t = useTranslations('users.create');
+  const tErr = useTranslations();
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -70,7 +72,7 @@ export function AddMemberForm({ actorRole }: AddMemberFormProps) {
         department: department.trim() || undefined,
       });
       if (!res.success) {
-        toast.error(res.error.message);
+        toast.error(formatActionError(res.error, tErr));
         return;
       }
       setResult(res.data);

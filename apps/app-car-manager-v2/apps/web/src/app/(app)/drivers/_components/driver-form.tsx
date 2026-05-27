@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle, KeyRound, Loader2, Save } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 import {
   Button,
   Card,
@@ -13,12 +13,6 @@ import {
   CardHeader,
   CardHeaderText,
   CardTitle,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Input,
   Label,
   Select,
@@ -136,64 +130,9 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
     dismissDraft();
   };
 
-  const originalPhone = driver?.drvPhone ?? '';
   const normalizedPhone = normalizePreview(phone);
-  const phoneChanged = isEdit && normalizedPhone !== originalPhone;
+  const phoneChanged = isEdit && normalizedPhone !== (driver?.drvPhone ?? '');
   const phoneValid = !phone || isValidVnMobile(normalizedPhone);
-  const [confirmPhoneOpen, setConfirmPhoneOpen] = useState(false);
-
-  const doSubmit = () => {
-    startTransition(async () => {
-      const basePayload = {
-        license_number: licenseNumber.trim(),
-        license_class: licenseClass,
-        license_expiry: licenseExpiry,
-        emergency_contact: emergencyContact.trim() || undefined,
-        notes: notes.trim() || undefined,
-      };
-
-      /* Phone edit ở edit-mode: gọi updateMemberAction TRƯỚC để đồng bộ AMA's
-       * `usr_phone` (source of truth cho phone-login). Driver action sau sẽ
-       * tự re-sync drv_phone qua resolveUserPhone(). Nếu update AMA fail, dừng
-       * lại — không cho driver mismatch. */
-      if (isEdit && phoneChanged && driver) {
-        const memberRes = await updateMemberAction({
-          userId: driver.drvUserId,
-          phone: phone.trim(),
-        });
-        if (!memberRes.success) {
-          toast.error(t('phoneUpdateFail'), {
-            description: formatActionError(memberRes.error, tErr),
-          });
-          return;
-        }
-      }
-
-      const result = isEdit
-        ? await updateDriverAction(driver.drvId, { ...basePayload, status })
-        : await createDriverAction({
-            ...basePayload,
-            user_id: userId,
-            // Phone auto-synced từ AMA user account trong server action — không
-            // nhận từ form ở create mode.
-          });
-
-      if (result.success) {
-        clearDraft();
-        toast.success(isEdit ? t('tUpdated') : t('tAdded'));
-        if (phoneChanged) {
-          toast.info(t('phoneReloginToast'));
-        }
-        setConfirmPhoneOpen(false);
-        router.push(`/drivers/${result.data.drvId}`);
-        router.refresh();
-      } else {
-        toast.error(isEdit ? t('errUpdate') : t('errCreate'), {
-          description: formatActionError(result.error, tErr),
-        });
-      }
-    });
-  };
 
   const onSubmit = () => {
     if (!isEdit && !userId) {
@@ -210,13 +149,51 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
       });
       return;
     }
-    /* Đổi SĐT login → bắt buộc xác nhận. Banner trong form chỉ là nhắc lần 1,
-     * dialog là rào chắn lần 2 trước khi commit. */
-    if (phoneChanged) {
-      setConfirmPhoneOpen(true);
-      return;
-    }
-    doSubmit();
+
+    startTransition(async () => {
+      const basePayload = {
+        license_number: licenseNumber.trim(),
+        license_class: licenseClass,
+        license_expiry: licenseExpiry,
+        emergency_contact: emergencyContact.trim() || undefined,
+        notes: notes.trim() || undefined,
+      };
+
+      /* Phone là contact info — đẩy lên AMA member trước (source of truth cho
+       * usr_phone), sau đó driver action sẽ tự re-sync drv_phone qua
+       * resolveUserPhone(). Phone KHÔNG còn là login key (login = email),
+       * nên không có warning/confirmation. */
+      if (isEdit && phoneChanged && driver) {
+        const memberRes = await updateMemberAction({
+          userId: driver.drvUserId,
+          phone: phone.trim(),
+        });
+        if (!memberRes.success) {
+          toast.error(formatActionError(memberRes.error, tErr));
+          return;
+        }
+      }
+
+      const result = isEdit
+        ? await updateDriverAction(driver.drvId, { ...basePayload, status })
+        : await createDriverAction({
+            ...basePayload,
+            user_id: userId,
+            // Phone auto-synced từ AMA user account trong server action — không
+            // nhận từ form ở create mode.
+          });
+
+      if (result.success) {
+        clearDraft();
+        toast.success(isEdit ? t('tUpdated') : t('tAdded'));
+        router.push(`/drivers/${result.data.drvId}`);
+        router.refresh();
+      } else {
+        toast.error(isEdit ? t('errUpdate') : t('errCreate'), {
+          description: formatActionError(result.error, tErr),
+        });
+      }
+    });
   };
 
   return (
@@ -310,45 +287,27 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
                 </Select>
               </Field>
             )}
-            {/* CRITICAL phone field — chỉ edit mode mới render. Create mode phone
-             *  auto-sync từ AMA user account trong server action. */}
+            {/* Phone là contact info (admin click-to-call). Login = email,
+             *  nên không cần warning. Chỉ render ở edit mode — create mode
+             *  phone auto-sync từ AMA user account trong server action. */}
             {isEdit && (
               <Field label={t('phone')}>
-                <div className="rounded-md border-2 border-danger/40 bg-danger-soft/30 p-2.5 space-y-2">
-                  <div className="flex items-start gap-2">
-                    <KeyRound className="h-4 w-4 text-danger shrink-0 mt-0.5" aria-hidden />
-                    <div className="text-xs text-text-muted leading-relaxed">
-                      <strong className="text-danger">{t('phoneLoginTitle')}</strong> — {t('phoneLoginDesc')}
-                    </div>
-                  </div>
-                  <Input
-                    value={phone ?? ''}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder={t('phonePlaceholder')}
-                    type="tel"
-                    inputMode="tel"
-                    pattern="[+0-9\s\-]{9,15}"
-                    maxLength={20}
-                    className={
-                      'font-mono ' +
-                      (phone && !phoneValid ? 'border-danger focus-visible:border-danger' : '')
-                    }
-                  />
-                  {phone && (
-                    <div className="text-xs flex items-center justify-end gap-1.5">
-                      <span
-                        className={
-                          'font-mono tabular ' +
-                          (phoneValid ? 'text-success font-semibold' : 'text-danger')
-                        }
-                      >
-                        {phoneValid
-                          ? `→ ${normalizedPhone}${phoneChanged ? ' ' + t('phoneChanged') : ''}`
-                          : t('phoneInvalid')}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                <Input
+                  value={phone ?? ''}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder={t('phonePlaceholder')}
+                  type="tel"
+                  inputMode="tel"
+                  pattern="[+0-9\s\-]{9,15}"
+                  maxLength={20}
+                  className={
+                    'font-mono ' +
+                    (phone && !phoneValid ? 'border-danger focus-visible:border-danger' : '')
+                  }
+                />
+                {phone && !phoneValid && (
+                  <div className="text-xs text-danger mt-1">{t('phoneInvalid')}</div>
+                )}
               </Field>
             )}
             <Field label={t('emergencyContact')}>
@@ -385,69 +344,6 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
           {pending ? t('submitSaving') : isEdit ? t('submitSave') : t('submitAdd')}
         </Button>
       </div>
-
-      {/* Phone-change confirmation — driver login sẽ thay đổi, admin phải xác nhận. */}
-      <Dialog open={confirmPhoneOpen} onOpenChange={(o) => !pending && setConfirmPhoneOpen(o)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-danger">
-              <AlertTriangle className="h-5 w-5" />
-              {t('confirmPhoneTitle')}
-            </DialogTitle>
-            <DialogDescription>{t('confirmPhoneDesc')}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 text-sm">
-            <div className="rounded-md bg-surface-2 p-3 space-y-2">
-              <div className="flex justify-between gap-2">
-                <span className="text-text-muted">{t('confirmRowDriver')}</span>
-                <span className="font-medium text-text">
-                  {driver?.user?.usrName ?? driver?.drvLicenseNumber ?? '—'}
-                </span>
-              </div>
-              <div className="flex justify-between gap-2 items-center">
-                <span className="text-text-muted">{t('confirmRowOldPhone')}</span>
-                <span className="font-mono text-text-muted line-through tabular">
-                  {originalPhone || t('confirmEmpty')}
-                </span>
-              </div>
-              <div className="flex justify-between gap-2 items-center">
-                <span className="text-text-muted">{t('confirmRowNewPhone')}</span>
-                <span className="font-mono tabular font-bold text-danger">
-                  {normalizedPhone}
-                </span>
-              </div>
-            </div>
-            <div className="rounded-md bg-warning-soft/40 border border-warning/30 p-3 text-xs text-text leading-relaxed">
-              <strong className="text-warning-strong">{t('confirmAfterTitle')}</strong>
-              <ul className="mt-1.5 list-disc list-inside space-y-0.5">
-                <li>{t('confirmAfter1')}</li>
-                <li>{t('confirmAfter2', { phone: normalizedPhone })}</li>
-                <li>{t('confirmAfter3')}</li>
-                <li>{t('confirmAfter4')}</li>
-              </ul>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setConfirmPhoneOpen(false)}
-              disabled={pending}
-            >
-              {t('confirmCancel')}
-            </Button>
-            <Button
-              type="button"
-              variant="danger"
-              onClick={doSubmit}
-              disabled={pending}
-              iconLeft={pending ? <Loader2 className="animate-spin" /> : <Save />}
-            >
-              {pending ? t('saving') : t('confirmAction')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </form>
   );
 }

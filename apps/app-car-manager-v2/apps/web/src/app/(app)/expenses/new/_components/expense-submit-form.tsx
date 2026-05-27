@@ -10,6 +10,7 @@ import type { LocalRole } from '@car-v2/shared/auth';
 import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
 import { useFormDraft } from '@/hooks/use-form-draft';
 import { submitExpenseAction } from '@/server/actions/expenses/expense.actions';
+import { formatActionError } from '@/lib/format-action-error';
 import { AmountInput } from './amount-input';
 import { ExpenseTypeChipGrid, type ExpenseType } from './expense-type-chip-grid';
 import { ReceiptCameraInput } from './receipt-camera-input';
@@ -63,6 +64,7 @@ export function ExpenseSubmitForm({
 }: ExpenseSubmitFormProps) {
   const t  = useTranslations('expenses.submit');
   const tA = useTranslations('actions');
+  const tErr = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -220,7 +222,7 @@ export function ExpenseSubmitForm({
           router.push(isStaff ? '/costs' : '/expenses');
         } else {
           setSubmitStage(null);
-          toast.error(t('errSubmit'), { description: `${result.error.code} — ${result.error.message}` });
+          toast.error(t('errSubmit'), { description: formatActionError(result.error, tErr) });
         }
       } catch (err) {
         setSubmitStage(null);

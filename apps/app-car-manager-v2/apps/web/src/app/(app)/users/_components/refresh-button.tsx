@@ -6,17 +6,19 @@ import { useTranslations } from 'next-intl';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { Button, toast } from '@car-v2/ui';
 import { refreshUsersAction } from '@/server/actions/users/refresh-users.action';
+import { formatActionError } from '@/lib/format-action-error';
 
 export function RefreshUsersButton() {
   const router = useRouter();
   const t = useTranslations('users.refresh');
+  const tErr = useTranslations();
   const [pending, startTransition] = useTransition();
 
   const handleRefresh = () => {
     startTransition(async () => {
       const res = await refreshUsersAction();
       if (!res.success) {
-        toast.error(res.error.message);
+        toast.error(formatActionError(res.error, tErr));
         return;
       }
       router.refresh();
