@@ -188,7 +188,8 @@ export async function middleware(req: NextRequest) {
       localRole !== 'DRIVER' &&
       !pathname.startsWith('/onboarding') &&
       !pathname.startsWith('/api') &&
-      !pathname.startsWith('/dev-login')
+      !pathname.startsWith('/dev-login') &&
+      process.env.DEMO_AUTO_LOGIN !== 'true'
     ) {
       const synced = await isTenantSynced(claims.ent_id);
       if (!synced) {
