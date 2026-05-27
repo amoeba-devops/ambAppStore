@@ -8,18 +8,7 @@ import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import { createDriverSchema, updateDriverSchema } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { logAudit } from '@/server/services/audit-log.service';
-import { listEntityMembersFromAma } from '@/server/services/ama/list-entity-members';
 import { runAction } from '../_helpers';
-
-/** Resolve phone from linked AMA user (source of truth cho phone-login).
- *  Trả về `null` nếu không tìm thấy (user chưa có phone, AMA unreachable, ...).
- *  Driver record's `drv_phone` luôn đồng bộ với giá trị này — tránh bị drift
- *  khiến driver login bằng số khác nhau với số trên record. */
-async function resolveUserPhone(entId: string, userId: string): Promise<string | null> {
-  const members = await listEntityMembersFromAma(entId);
-  if (!members) return null;
-  return members.find((m) => m.userId === userId)?.phone ?? null;
-}
 
 export async function createDriverAction(input: unknown): Promise<ActionResult<CarDriver>> {
   return runAction(async () => {
@@ -33,10 +22,6 @@ export async function createDriverAction(input: unknown): Promise<ActionResult<C
     });
     if (!user) throw new CarError('CAR-E0404', 404, 'User not found in this tenant');
 
-    /* Phone đồng bộ từ AMA user account — ignore client input. Đảm bảo
-     * drv_phone luôn = số đăng nhập, tránh driver confused khi login. */
-    const syncedPhone = await resolveUserPhone(actor.entId, data.user_id);
-
     const [created] = await db
       .insert(carDrivers)
       .values({
@@ -46,7 +31,7 @@ export async function createDriverAction(input: unknown): Promise<ActionResult<C
         drvLicenseNumber: data.license_number,
         drvLicenseClass: data.license_class,
         drvLicenseExpiry: data.license_expiry,
-        drvPhone: syncedPhone,
+        drvPhone: data.phone?.trim() || null,
         drvEmergencyContact: data.emergency_contact ?? null,
         drvNotes: data.notes ?? null,
       })
@@ -86,14 +71,7 @@ export async function updateDriverAction(id: string, input: unknown): Promise<Ac
     if (data.emergency_contact !== undefined) patch.drvEmergencyContact = data.emergency_contact;
     if (data.notes          !== undefined) patch.drvNotes = data.notes;
     if (data.status         !== undefined) patch.drvStatus = data.status;
-
-    /* Phone luôn re-sync từ AMA — đảm bảo nếu admin đổi SĐT ở /users/[id]/edit,
-     * lần update driver tiếp theo tự pick up giá trị mới. Client-sent `data.phone`
-     * bị ignore (sẽ remove khỏi form ở step 4). */
-    const syncedPhone = await resolveUserPhone(actor.entId, existing.drvUserId);
-    if (syncedPhone !== existing.drvPhone) {
-      patch.drvPhone = syncedPhone;
-    }
+    if (data.phone          !== undefined) patch.drvPhone = data.phone.trim() || null;
 
     const [updated] = await db
       .update(carDrivers)

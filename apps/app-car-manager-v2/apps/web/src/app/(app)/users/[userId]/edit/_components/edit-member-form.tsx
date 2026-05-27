@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Loader2, Save } from 'lucide-react';
+import { ExternalLink, Loader2, Lock, Save, Unlock } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -12,7 +12,6 @@ import {
   CardHeader,
   CardHeaderText,
   CardTitle,
-  Input,
   Label,
   Select,
   SelectContent,
@@ -21,81 +20,59 @@ import {
   SelectValue,
   toast,
 } from '@car-v2/ui';
+import type { CarUserLocalRole } from '@car-v2/db/schema';
 import { updateMemberAction } from '@/server/actions/users/update-member.action';
 import { formatActionError } from '@/lib/format-action-error';
-import type { AmaMember } from '@/server/services/ama/list-entity-members';
 
 interface EditMemberFormProps {
-  member: AmaMember;
+  userId: string;
+  name: string | null;
+  email: string | null;
+  amaRoleSnapshot: string | null;
+  localRole: CarUserLocalRole;
+  blocked: boolean;
+  isSelf: boolean;
 }
 
-const ROLES = ['MASTER', 'MANAGER', 'MEMBER', 'VIEWER'] as const;
-const STATUSES = ['ACTIVE', 'INACTIVE', 'SUSPENDED'] as const;
+const LOCAL_ROLES: CarUserLocalRole[] = ['ADMIN', 'MANAGER', 'DRIVER'];
 
-function normalizePreview(raw: string): string {
-  let digits = raw.replace(/\D/g, '');
-  if (digits.startsWith('00')) digits = digits.slice(2);
-  if (digits.startsWith('84') && digits.length === 11) digits = '0' + digits.slice(2);
-  return digits;
-}
+const AMA_MEMBERS_URL =
+  process.env.NEXT_PUBLIC_AMA_ORIGIN
+    ? `${process.env.NEXT_PUBLIC_AMA_ORIGIN}/entity-settings/members`
+    : null;
 
-function isValidVnMobile(phone: string): boolean {
-  return /^0[35789]\d{8}$/.test(phone);
-}
-
-export function EditMemberForm({ member }: EditMemberFormProps) {
+export function EditMemberForm({
+  userId,
+  name,
+  email,
+  amaRoleSnapshot,
+  localRole: initialLocalRole,
+  blocked: initialBlocked,
+  isSelf,
+}: EditMemberFormProps) {
   const router = useRouter();
   const t = useTranslations('users.edit');
-  const tCreate = useTranslations('users.create');
-  const tStatus = useTranslations('users.statusBadge');
   const tErr = useTranslations();
   const [pending, startTransition] = useTransition();
+  const [localRole, setLocalRole] = useState<CarUserLocalRole>(initialLocalRole);
+  const [blocked, setBlocked] = useState(initialBlocked);
 
-  const initialRole = ROLES.includes(member.amaRole as typeof ROLES[number])
-    ? (member.amaRole as typeof ROLES[number])
-    : 'MEMBER';
-  const initialStatus = STATUSES.includes(member.status as typeof STATUSES[number])
-    ? (member.status as typeof STATUSES[number])
-    : 'ACTIVE';
-
-  const [role, setRole] = useState<typeof ROLES[number]>(initialRole);
-  const [status, setStatus] = useState<typeof STATUSES[number]>(initialStatus);
-  const [department, setDepartment] = useState(member.unit ?? '');
-  const [jobTitle, setJobTitle] = useState(member.jobTitle ?? '');
-  const [phone, setPhone] = useState(member.phone ?? '');
-
-  const ROLE_LABELS: Record<typeof ROLES[number], string> = {
-    MASTER: tCreate('roleMaster'),
-    MANAGER: tCreate('roleManager'),
-    MEMBER: tCreate('roleMember'),
-    VIEWER: tCreate('roleViewer'),
-  };
-
-  const originalPhone = member.phone ?? '';
-  const normalizedPhone = normalizePreview(phone);
-  const phoneChanged = normalizedPhone !== originalPhone;
-  const phoneValid = !phone || isValidVnMobile(normalizedPhone);
+  const dirty = localRole !== initialLocalRole || blocked !== initialBlocked;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (phone && !phoneValid) {
-      toast.error(t('phoneInvalidToast'));
-      return;
-    }
+    if (!dirty) return;
     startTransition(async () => {
       const res = await updateMemberAction({
-        userId: member.userId,
-        role,
-        status,
-        department: department.trim() || undefined,
-        jobTitle: jobTitle.trim() || undefined,
-        phone: phoneChanged && phone.trim() ? phone.trim() : undefined,
+        userId,
+        localRole: localRole !== initialLocalRole ? localRole : undefined,
+        blocked: blocked !== initialBlocked ? blocked : undefined,
       });
       if (!res.success) {
         toast.error(formatActionError(res.error, tErr));
         return;
       }
-      toast.success(t('updatedToast', { name: member.name ?? member.email }));
+      toast.success(t('updatedToast', { name: name ?? email ?? userId }));
       router.push('/users');
       router.refresh();
     });
@@ -110,103 +87,84 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
+          {/* AMA-owned fields — read-only display + link to AMA UI to change */}
           <div className="rounded-md bg-surface-2 p-3 space-y-2 text-sm">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-0.5 sm:gap-2">
               <span className="text-text-muted text-xs sm:text-sm">{t('name')}</span>
-              <span className="font-medium text-text break-words">{member.name ?? '—'}</span>
+              <span className="font-medium text-text break-words">{name ?? '—'}</span>
             </div>
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-0.5 sm:gap-2">
               <span className="text-text-muted text-xs sm:text-sm">{t('emailIdLabel')}</span>
-              <span className="font-mono text-xs text-text break-all">{member.email}</span>
+              <span className="font-mono text-xs text-text break-all">{email ?? '—'}</span>
             </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2">
-              <span className="text-text-muted text-xs sm:text-sm">{t('level')}</span>
-              <Badge tone="neutral" size="sm">{member.levelCode}</Badge>
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="phone" className="text-xs">
-              {t('phoneLabel')}
-            </Label>
-            <Input
-              id="phone"
-              type="tel"
-              inputMode="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="0904567890"
-              pattern="[+0-9\s\-]{9,}"
-              className={
-                'font-mono ' +
-                (phone && !phoneValid ? 'border-danger focus-visible:border-danger' : '')
-              }
-            />
-            {phone && !phoneValid && (
-              <p className="mt-1 text-xs text-danger">{t('phoneInvalid')}</p>
+            {amaRoleSnapshot && (
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2">
+                <span className="text-text-muted text-xs sm:text-sm">{t('amaRoleLabel')}</span>
+                <Badge tone="neutral" size="sm">{amaRoleSnapshot}</Badge>
+              </div>
+            )}
+            {AMA_MEMBERS_URL && (
+              <div className="pt-1.5 border-t border-border text-xs text-text-muted leading-relaxed">
+                {t('amaManagedHint')}{' '}
+                <a
+                  href={AMA_MEMBERS_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-accent inline-flex items-center gap-1 hover:underline"
+                >
+                  {t('openOnAma')} <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
             )}
           </div>
 
+          {/* Local-only field — app role override */}
           <div>
-            <Label htmlFor="role">
-              {t('role')} <span className="text-danger">*</span>
+            <Label htmlFor="localRole">
+              {t('localRole')} <span className="text-danger">*</span>
             </Label>
-            <Select value={role} onValueChange={(v) => setRole(v as typeof role)}>
-              <SelectTrigger id="role">
+            <Select value={localRole} onValueChange={(v) => setLocalRole(v as CarUserLocalRole)}>
+              <SelectTrigger id="localRole">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ROLES.map((r) => (
+                {LOCAL_ROLES.map((r) => (
                   <SelectItem key={r} value={r}>
-                    {ROLE_LABELS[r]}
+                    {t(`localRoleOption.${r}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <p className="mt-1 text-xs text-text-muted">{t('roleDesc')}</p>
+            <p className="mt-1 text-xs text-text-muted">{t('localRoleDesc')}</p>
           </div>
 
-          <div>
-            <Label htmlFor="status">
-              {t('status')} <span className="text-danger">*</span>
-            </Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
-              <SelectTrigger id="status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {tStatus(s)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="mt-1 text-xs text-text-muted">{t('statusDesc')}</p>
-          </div>
-
-          <div>
-            <Label htmlFor="department">{t('department')}</Label>
-            <Input
-              id="department"
-              type="text"
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              placeholder={t('departmentPlaceholder')}
-              maxLength={30}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="jobTitle">{t('jobTitle')}</Label>
-            <Input
-              id="jobTitle"
-              type="text"
-              value={jobTitle}
-              onChange={(e) => setJobTitle(e.target.value)}
-              placeholder={t('jobTitlePlaceholder')}
-              maxLength={100}
-            />
+          {/* Local-only field — block from car-v2 (soft-delete) */}
+          <div className="rounded-md border border-border p-3 space-y-2">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-text inline-flex items-center gap-1.5">
+                  {blocked ? <Lock className="h-3.5 w-3.5 text-danger" /> : <Unlock className="h-3.5 w-3.5 text-success" />}
+                  {blocked ? t('statusBlocked') : t('statusAllowed')}
+                </div>
+                <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
+                  {blocked ? t('blockedDesc') : t('allowedDesc')}
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant={blocked ? 'accent' : 'ghost'}
+                className={blocked ? '' : 'text-danger hover:text-danger hover:bg-danger-soft'}
+                disabled={isSelf || pending}
+                onClick={() => setBlocked(!blocked)}
+                iconLeft={blocked ? <Unlock /> : <Lock />}
+              >
+                {blocked ? t('toggleUnblock') : t('toggleBlock')}
+              </Button>
+            </div>
+            {isSelf && (
+              <p className="text-[11px] text-warning-strong">{t('blockSelfWarning')}</p>
+            )}
           </div>
 
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4 border-t border-border">
@@ -224,7 +182,7 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
               type="submit"
               variant="accent"
               size="lg"
-              disabled={pending || Boolean(phone && !phoneValid)}
+              disabled={pending || !dirty}
               className="w-full sm:w-auto"
             >
               {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

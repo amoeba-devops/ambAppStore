@@ -38,7 +38,6 @@ import {
   cancelTripAction,
   updateTripAction,
 } from '@/server/actions/trips/trip.actions';
-import { updateMemberAction } from '@/server/actions/users/update-member.action';
 
 interface EditTripDraftValues {
   passengerId: string;

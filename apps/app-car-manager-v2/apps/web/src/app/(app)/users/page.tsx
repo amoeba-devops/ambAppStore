@@ -1,7 +1,8 @@
 import { getTranslations, getLocale } from 'next-intl/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { IdCard } from 'lucide-react';
+import { eq } from 'drizzle-orm';
+import { ExternalLink, IdCard, Lock } from 'lucide-react';
 import {
   Avatar,
   Badge,
@@ -14,18 +15,24 @@ import {
   TableHeader,
   TableRow,
 } from '@car-v2/ui';
+import { db } from '@car-v2/db/client';
+import { carTenantSettings } from '@car-v2/db/schema';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { listUsers } from '@/server/queries/users.queries';
-import { getTenantSyncSummary } from '@/server/queries/tenant-onboarding.queries';
+import { listUsers, type UserListItem } from '@/server/queries/users.queries';
 import type { LocalRole } from '@car-v2/shared/auth';
-import { RefreshUsersButton } from './_components/refresh-button';
 import { DriverSigninToggle } from './_components/driver-signin-toggle';
+import { SyncFromAmaButton } from './_components/sync-from-ama-button';
 
 const LOCAL_ROLE_TONE: Record<LocalRole, 'accent' | 'info' | 'neutral'> = {
   ADMIN: 'accent', MANAGER: 'info', DRIVER: 'neutral',
 };
+
+const AMA_MEMBERS_URL =
+  process.env.NEXT_PUBLIC_AMA_ORIGIN
+    ? `${process.env.NEXT_PUBLIC_AMA_ORIGIN}/entity-settings/members`
+    : null;
 
 type RelativeTimeT = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -50,21 +57,6 @@ function localeToBcp47(locale: string): string {
   return 'en-US';
 }
 
-function isActiveUser(lastLoginAt: Date | null): boolean {
-  if (!lastLoginAt) return false;
-  return (Date.now() - new Date(lastLoginAt).getTime()) / 86_400_000 < 30;
-}
-
-/** Row hiển thị — lấy từ car_users local sau onboarding sync. */
-interface DisplayUser {
-  amaUserId: string;
-  name: string;
-  email: string;
-  amaRole: string;
-  localRole: LocalRole;
-  lastLoginAt: Date | null;
-}
-
 interface PageProps {
   searchParams: Promise<{ q?: string; page?: string }>;
 }
@@ -87,37 +79,34 @@ export default async function UsersPage({ searchParams }: PageProps) {
   const tRel    = await getTranslations('users.relativeTime');
   const locale  = await getLocale();
 
-  /* SOURCE: car_users local DB (đã populate qua onboarding sync hoặc Refresh button).
-   * Status filter tab (active/inactive/suspended) đã bỏ ở Wave 2 — car_users không
-   * mirror amb_users.usr_status. Sẽ thêm lại nếu cần ở wave sau (mirror cột status). */
-  const v2Users = await listUsers(actor.entId);
-  const syncSummary = await getTenantSyncSummary(actor.entId);
-
-  let displayUsers: DisplayUser[] = v2Users.map((u) => ({
-    amaUserId: u.usrId,
-    name: u.usrName ?? u.usrEmail?.split('@')[0] ?? 'User',
-    email: u.usrEmail ?? '—',
-    amaRole: u.usrAmaRoleSnapshot ?? 'UNKNOWN',
-    localRole: u.usrLocalRole,
-    lastLoginAt: u.usrLastLoginAt,
-  }));
+  /* Reads from `car_users` local DB. After Option 1b, members appear here
+   * lazily — only after their first login to car-v2 (`ensureCarUser` JIT
+   * upserts). Admin can force-populate via the "Sync from AMA" button for
+   * the case "I just invited someone on AMA and want to assign them as
+   * driver before they log in for the first time". */
+  let users: UserListItem[] = await listUsers(actor.entId);
+  const tenantSettings = await db.query.carTenantSettings.findFirst({
+    where: eq(carTenantSettings.entId, actor.entId),
+    columns: { tnsUsersSyncedAt: true },
+  });
+  const lastSyncedAt = tenantSettings?.tnsUsersSyncedAt ?? null;
 
   if (searchQ) {
     const needle = searchQ.toLowerCase();
-    displayUsers = displayUsers.filter(
+    users = users.filter(
       (u) =>
-        u.name.toLowerCase().includes(needle) ||
-        u.email.toLowerCase().includes(needle) ||
-        u.amaRole.toLowerCase().includes(needle),
+        (u.usrName ?? '').toLowerCase().includes(needle) ||
+        (u.usrEmail ?? '').toLowerCase().includes(needle) ||
+        (u.usrAmaRoleSnapshot ?? '').toLowerCase().includes(needle),
     );
   }
 
-  const active = displayUsers.filter((u) => isActiveUser(u.lastLoginAt)).length;
-  const inactive = displayUsers.length - active;
+  const blocked = users.filter((u) => u.blocked).length;
+  const allowed = users.length - blocked;
 
-  const totalUsers = displayUsers.length;
+  const totalUsers = users.length;
   const totalPages = Math.max(1, Math.ceil(totalUsers / USERS_PAGE_SIZE));
-  const pagedUsers = displayUsers.slice((page - 1) * USERS_PAGE_SIZE, page * USERS_PAGE_SIZE);
+  const pagedUsers = users.slice((page - 1) * USERS_PAGE_SIZE, page * USERS_PAGE_SIZE);
   const showingFrom = totalUsers === 0 ? 0 : (page - 1) * USERS_PAGE_SIZE + 1;
   const showingTo = Math.min(totalUsers, page * USERS_PAGE_SIZE);
 
@@ -129,20 +118,19 @@ export default async function UsersPage({ searchParams }: PageProps) {
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('users') }]}
         actions={
           <>
-            {/* Sync calls AMA `/entity-settings/members` được OwnEntityGuard
-             * gate ở MASTER/ADMIN only (USER_LEVEL+MASTER policy). MANAGER bị
-             * AMA reject 403 nên ẩn nút để tránh confusing toast error. */}
-            {actor.role === 'ADMIN' && <RefreshUsersButton />}
+            {actor.role === 'ADMIN' && <SyncFromAmaButton />}
+            {actor.role === 'ADMIN' && AMA_MEMBERS_URL && (
+              <Button asChild variant="ghost" size="md" iconLeft={<ExternalLink />}>
+                <a href={AMA_MEMBERS_URL} target="_blank" rel="noreferrer">
+                  {tList('manageOnAma')}
+                </a>
+              </Button>
+            )}
             {actor.role === 'ADMIN' && (
               <Button asChild variant="secondary" size="md" iconLeft={<IdCard />}>
                 <Link href="/drivers/new">{tList('createDriver')}</Link>
               </Button>
             )}
-            {/* Invite-user button retired (REQ-20260525). New driver onboarding
-             * flow: admin sends the ent_code via personal message (SMS/Zalo/Telegram),
-             * driver enters ent_code + phone on /login self-service. See user guide
-             * "Đăng nhập" for the messaging template. The empty-state CTA still
-             * points to /users/new for admins who really need the legacy form. */}
           </>
         }
       />
@@ -155,14 +143,14 @@ export default async function UsersPage({ searchParams }: PageProps) {
               className="md:w-80"
               clearLabel={tA('clear')}
             />
-            <div className="flex items-center gap-3 text-xs md:text-sm text-text-muted">
-              <span>{tList('statsActive', { active, inactive })}</span>
-              {syncSummary.syncedAt && (
+            <div className="flex items-center gap-3 text-xs md:text-sm text-text-muted flex-wrap">
+              <span>{tList('statsAllowed', { allowed, blocked })}</span>
+              {lastSyncedAt && (
                 <span
                   className="text-text-faint"
-                  title={new Date(syncSummary.syncedAt).toLocaleString()}
+                  title={new Date(lastSyncedAt).toLocaleString()}
                 >
-                  · {tList('syncedAgo', { time: formatRelativeTime(syncSummary.syncedAt, tRel, locale) })}
+                  · {tList('syncedAgo', { time: formatRelativeTime(lastSyncedAt, tRel, locale) })}
                 </span>
               )}
             </div>
@@ -171,14 +159,24 @@ export default async function UsersPage({ searchParams }: PageProps) {
 
         {pagedUsers.length === 0 ? (
           <Card variant="outline" className="p-8 text-center">
-            <div className="text-text-muted text-sm">
-              {searchQ
-                ? tList('notFound', { query: searchQ })
-                : tList('emptyMembers')}
-              {!searchQ && actor.role === 'ADMIN' && (
-                <>
-                  {' '}<Link href="/users/new" className="text-accent hover:underline">{tList('addNew')}</Link>.
-                </>
+            <div className="text-text-muted text-sm space-y-2">
+              <p>
+                {searchQ
+                  ? tList('notFound', { query: searchQ })
+                  : tList('emptyMembers')}
+              </p>
+              {!searchQ && actor.role === 'ADMIN' && AMA_MEMBERS_URL && (
+                <p className="text-xs">
+                  {tList('emptyHint')}{' '}
+                  <a
+                    href={AMA_MEMBERS_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent hover:underline inline-flex items-center gap-1"
+                  >
+                    {tList('manageOnAma')} <ExternalLink className="h-3 w-3" />
+                  </a>
+                </p>
               )}
             </div>
           </Card>
@@ -187,30 +185,40 @@ export default async function UsersPage({ searchParams }: PageProps) {
             {/* Mobile: card list */}
             <ul className="md:hidden space-y-2.5">
               {pagedUsers.map((u) => (
-                <li key={u.amaUserId} className="rounded-md border border-border bg-surface px-4 py-3.5">
+                <li key={u.usrId} className={'rounded-md border border-border bg-surface px-4 py-3.5 ' + (u.blocked ? 'opacity-60' : '')}>
                   <div className="flex items-start gap-3">
-                    <Avatar name={u.name} size="md" />
+                    <Avatar name={u.usrName ?? u.usrEmail ?? '?'} size="md" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <span className="font-semibold text-text truncate block">{u.name}</span>
-                          <div className="text-xs text-text-faint truncate">{u.email}</div>
+                          <span className="font-semibold text-text truncate block">
+                            {u.usrName ?? u.usrEmail ?? u.usrId}
+                          </span>
+                          <div className="text-xs text-text-faint truncate">{u.usrEmail ?? '—'}</div>
                         </div>
-                        <Badge tone={LOCAL_ROLE_TONE[u.localRole]} size="sm">{u.localRole}</Badge>
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge tone={LOCAL_ROLE_TONE[u.usrLocalRole]} size="sm">{u.usrLocalRole}</Badge>
+                          {u.blocked && (
+                            <Badge tone="danger" size="sm">
+                              <Lock className="h-3 w-3 mr-0.5" />
+                              {tList('blockedBadge')}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                       <div className="mt-2 flex items-center justify-between text-xs">
                         <span className="text-text-muted">
                           {tList('amaPrefix')}{' '}
-                          <span className="font-mono">{u.amaRole}</span>
+                          <span className="font-mono">{u.usrAmaRoleSnapshot ?? '—'}</span>
                         </span>
-                        <span className="text-text-faint">{formatRelativeTime(u.lastLoginAt, tRel, locale)}</span>
+                        <span className="text-text-faint">{formatRelativeTime(u.usrLastLoginAt, tRel, locale)}</span>
                       </div>
-                      {actor.role === 'ADMIN' && u.localRole === 'DRIVER' && (
+                      {actor.role === 'ADMIN' && u.usrLocalRole === 'DRIVER' && u.usrId !== actor.userId && (
                         <div className="mt-2 pt-2 border-t border-border flex justify-end">
                           <DriverSigninToggle
-                            amaUserId={u.amaUserId}
-                            displayName={u.name}
-                            currentStatus="ACTIVE"
+                            amaUserId={u.usrId}
+                            displayName={u.usrName ?? u.usrEmail ?? u.usrId}
+                            blocked={u.blocked}
                             compact
                           />
                         </div>
@@ -229,46 +237,54 @@ export default async function UsersPage({ searchParams }: PageProps) {
                     <TableHead>{tList('thAppRole')}</TableHead>
                     <TableHead>{tList('thAmaRole')}</TableHead>
                     <TableHead>{tList('thLastActive')}</TableHead>
-                    <TableHead className="w-[200px] text-right" />
+                    <TableHead className="w-[220px] text-right" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {pagedUsers.map((u) => (
-                    <TableRow key={u.amaUserId}>
+                    <TableRow key={u.usrId} className={u.blocked ? 'opacity-60' : ''}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <Avatar name={u.name} size="md" />
+                          <Avatar name={u.usrName ?? u.usrEmail ?? '?'} size="md" />
                           <div className="min-w-0">
-                            <span className="font-medium text-text truncate block">{u.name}</span>
-                            <div className="text-xs text-text-faint truncate">{u.email}</div>
+                            <span className="font-medium text-text truncate block">
+                              {u.usrName ?? u.usrEmail ?? u.usrId}
+                            </span>
+                            <div className="text-xs text-text-faint truncate">{u.usrEmail ?? '—'}</div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge tone={LOCAL_ROLE_TONE[u.localRole]} size="sm">{u.localRole}</Badge>
+                        <div className="inline-flex items-center gap-1.5">
+                          <Badge tone={LOCAL_ROLE_TONE[u.usrLocalRole]} size="sm">{u.usrLocalRole}</Badge>
+                          {u.blocked && (
+                            <Badge tone="danger" size="sm">
+                              <Lock className="h-3 w-3 mr-0.5" />
+                              {tList('blockedBadge')}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-text-muted">{u.amaRole}</TableCell>
+                      <TableCell className="font-mono text-xs text-text-muted">{u.usrAmaRoleSnapshot ?? '—'}</TableCell>
                       <TableCell className="text-text-muted">
-                        {formatRelativeTime(u.lastLoginAt, tRel, locale)}
+                        {formatRelativeTime(u.usrLastLoginAt, tRel, locale)}
                       </TableCell>
                       <TableCell className="text-right">
-                        {actor.role === 'ADMIN' ? (
+                        {actor.role === 'ADMIN' && (
                           <div className="inline-flex items-center gap-1 justify-end">
-                            {u.localRole === 'DRIVER' && (
+                            {u.usrLocalRole === 'DRIVER' && u.usrId !== actor.userId && (
                               <DriverSigninToggle
-                                amaUserId={u.amaUserId}
-                                displayName={u.name}
-                                currentStatus="ACTIVE"
+                                amaUserId={u.usrId}
+                                displayName={u.usrName ?? u.usrEmail ?? u.usrId}
+                                blocked={u.blocked}
                                 compact
                               />
                             )}
                             <Button asChild variant="ghost" size="sm">
-                              <Link href={`/users/${u.amaUserId}/edit`}>{tA('edit')}</Link>
+                              <Link href={`/users/${u.usrId}/edit`}>{tA('edit')}</Link>
                             </Button>
                           </div>
-                        ) : !isActiveUser(u.lastLoginAt) ? (
-                          <span className="text-xs text-text-faint italic">{tList('inactive')}</span>
-                        ) : null}
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

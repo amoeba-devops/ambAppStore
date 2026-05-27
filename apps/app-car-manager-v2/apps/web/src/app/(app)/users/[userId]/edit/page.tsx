@@ -1,15 +1,21 @@
 import { redirect, notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import { and, eq } from 'drizzle-orm';
+import { db } from '@car-v2/db/client';
+import { carUsers } from '@car-v2/db/schema';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { PageHeader } from '@/components/layout/page-header';
-import { listEntityMembersFromAma } from '@/server/services/ama/list-entity-members';
 import { EditMemberForm } from './_components/edit-member-form';
 
 /**
- * Admin edit existing member — fetch real data từ AMA → render form → save qua AMA.
+ * Admin edit existing member — local-only fields (Option 1b).
  *
- * Access: ADMIN only (AMA OwnEntityGuard yêu cầu MASTER/ADMIN; v2 ADMIN map từ
- * AMA OWNER/MASTER/ADMIN nên đủ quyền).
+ * Reads from `car_users`. To change AMA-side fields (email, name, AMA role,
+ * department, jobTitle) the admin must open the AMA UI directly — car-v2 only
+ * owns the LOCAL projection: app role override + block-from-car-v2 flag +
+ * preferred locale.
+ *
+ * Access: ADMIN only.
  */
 export default async function EditUserPage({
   params,
@@ -23,13 +29,10 @@ export default async function EditUserPage({
 
   const { userId } = await params;
 
-  // Lấy current data từ AMA member list (đơn giản hơn build endpoint riêng cho GET 1 user)
-  const members = await listEntityMembersFromAma(actor.entId);
-  if (members === null) {
-    redirect('/users');
-  }
-  const member = members.find((m) => m.userId === userId);
-  if (!member) {
+  const row = await db.query.carUsers.findFirst({
+    where: and(eq(carUsers.usrId, userId), eq(carUsers.entId, actor.entId)),
+  });
+  if (!row) {
     notFound();
   }
 
@@ -39,14 +42,22 @@ export default async function EditUserPage({
     <>
       <PageHeader
         title={t('title')}
-        subtitle={`${member.name ?? member.email}`}
+        subtitle={row.usrName ?? row.usrEmail ?? userId}
         breadcrumbs={[
           { label: t('breadcrumbParent'), href: '/users' },
           { label: t('breadcrumbCurrent') },
         ]}
       />
       <div className="px-4 md:px-7 py-4 md:py-6 max-w-2xl mx-auto md:mx-0 w-full">
-        <EditMemberForm member={member} />
+        <EditMemberForm
+          userId={row.usrId}
+          name={row.usrName}
+          email={row.usrEmail}
+          amaRoleSnapshot={row.usrAmaRoleSnapshot}
+          localRole={row.usrLocalRole}
+          blocked={row.usrDeletedAt !== null}
+          isSelf={row.usrId === actor.userId}
+        />
       </div>
     </>
   );

@@ -10,14 +10,14 @@ export interface UserListItem {
   usrLocalRole: CarUser['usrLocalRole'];
   usrAmaRoleSnapshot: string | null;
   usrLastLoginAt: Date | null;
+  /** True when soft-deleted from car_users (admin blocked the user from car-v2). */
+  blocked: boolean;
 }
 
 /**
- * v2 local users cache only (subset who logged in v2 ít nhất 1 lần).
+ * List all v2 users (users who have logged into car-v2 at least once).
+ * Includes blocked rows so admins can see + restore them.
  * Sort: last_login DESC.
- *
- * Use case: fallback khi AMA endpoint không reach được.
- * Primary source: `listEntityMembersFromAma` (AMA is source of truth).
  */
 export async function listUsers(entId: string): Promise<UserListItem[]> {
   const rows = await db
@@ -28,22 +28,32 @@ export async function listUsers(entId: string): Promise<UserListItem[]> {
       usrLocalRole: carUsers.usrLocalRole,
       usrAmaRoleSnapshot: carUsers.usrAmaRoleSnapshot,
       usrLastLoginAt: carUsers.usrLastLoginAt,
+      usrDeletedAt: carUsers.usrDeletedAt,
     })
     .from(carUsers)
-    .where(and(eq(carUsers.entId, entId), isNull(carUsers.usrDeletedAt)))
+    .where(eq(carUsers.entId, entId))
     .orderBy(desc(carUsers.usrLastLoginAt));
 
-  return rows;
+  return rows.map((r) => ({
+    usrId: r.usrId,
+    usrName: r.usrName,
+    usrEmail: r.usrEmail,
+    usrLocalRole: r.usrLocalRole,
+    usrAmaRoleSnapshot: r.usrAmaRoleSnapshot,
+    usrLastLoginAt: r.usrLastLoginAt,
+    blocked: r.usrDeletedAt !== null,
+  }));
 }
 
 /**
- * Map: ama_user_id → car_users info (for cross-reference với AMA member list).
- * Returns chỉ những user có row trong car_users (đã login v2).
+ * Map: ama_user_id → car_users info — used by Driver/Trip pages to attach
+ * names/emails. Excludes soft-deleted users (blocked admins shouldn't appear
+ * as assignable drivers).
  */
 export async function getCarUsersByAmaId(
   entId: string,
   amaUserIds: string[],
-): Promise<Map<string, UserListItem>> {
+): Promise<Map<string, Omit<UserListItem, 'blocked'>>> {
   if (amaUserIds.length === 0) return new Map();
   const rows = await db
     .select({
@@ -58,7 +68,7 @@ export async function getCarUsersByAmaId(
     .from(carUsers)
     .where(and(eq(carUsers.entId, entId), isNull(carUsers.usrDeletedAt)));
 
-  const map = new Map<string, UserListItem>();
+  const map = new Map<string, Omit<UserListItem, 'blocked'>>();
   for (const r of rows) {
     if (amaUserIds.includes(r.usrAmaUserId)) {
       map.set(r.usrAmaUserId, {

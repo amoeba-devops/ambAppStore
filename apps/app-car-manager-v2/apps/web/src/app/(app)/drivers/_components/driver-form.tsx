@@ -31,7 +31,6 @@ import {
   createDriverAction,
   updateDriverAction,
 } from '@/server/actions/drivers/driver.actions';
-import { updateMemberAction } from '@/server/actions/users/update-member.action';
 
 /** Mirror AMA normalize — preview only, server validate lại. */
 function normalizePreview(raw: string): string {
@@ -130,9 +129,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
     dismissDraft();
   };
 
-  const normalizedPhone = normalizePreview(phone);
-  const phoneChanged = isEdit && normalizedPhone !== (driver?.drvPhone ?? '');
-  const phoneValid = !phone || isValidVnMobile(normalizedPhone);
+  const phoneValid = !phone || isValidVnMobile(normalizePreview(phone));
 
   const onSubmit = () => {
     if (!isEdit && !userId) {
@@ -155,32 +152,19 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
         license_number: licenseNumber.trim(),
         license_class: licenseClass,
         license_expiry: licenseExpiry,
+        phone: phone.trim() || undefined,
         emergency_contact: emergencyContact.trim() || undefined,
         notes: notes.trim() || undefined,
       };
 
-      /* Phone là contact info — đẩy lên AMA member trước (source of truth cho
-       * usr_phone), sau đó driver action sẽ tự re-sync drv_phone qua
-       * resolveUserPhone(). Phone KHÔNG còn là login key (login = email),
-       * nên không có warning/confirmation. */
-      if (isEdit && phoneChanged && driver) {
-        const memberRes = await updateMemberAction({
-          userId: driver.drvUserId,
-          phone: phone.trim(),
-        });
-        if (!memberRes.success) {
-          toast.error(formatActionError(memberRes.error, tErr));
-          return;
-        }
-      }
-
+      /* Phone là contact info local trong car_drivers — KHÔNG đẩy ngược lên
+       * AMA (Option 1b: car-v2 không mutate AMA member data). Nếu cần sync
+       * sang AMA, admin tự cập nhật ở AMA UI. */
       const result = isEdit
         ? await updateDriverAction(driver.drvId, { ...basePayload, status })
         : await createDriverAction({
             ...basePayload,
             user_id: userId,
-            // Phone auto-synced từ AMA user account trong server action — không
-            // nhận từ form ở create mode.
           });
 
       if (result.success) {
@@ -287,29 +271,26 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
                 </Select>
               </Field>
             )}
-            {/* Phone là contact info (admin click-to-call). Login = email,
-             *  nên không cần warning. Chỉ render ở edit mode — create mode
-             *  phone auto-sync từ AMA user account trong server action. */}
-            {isEdit && (
-              <Field label={t('phone')}>
-                <Input
-                  value={phone ?? ''}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder={t('phonePlaceholder')}
-                  type="tel"
-                  inputMode="tel"
-                  pattern="[+0-9\s\-]{9,15}"
-                  maxLength={20}
-                  className={
-                    'font-mono ' +
-                    (phone && !phoneValid ? 'border-danger focus-visible:border-danger' : '')
-                  }
-                />
-                {phone && !phoneValid && (
-                  <div className="text-xs text-danger mt-1">{t('phoneInvalid')}</div>
-                )}
-              </Field>
-            )}
+            {/* Phone là contact info local trong car_drivers (admin gọi tài xế).
+             *  Login = email, không liên quan SĐT. Render cả ở create + edit mode. */}
+            <Field label={t('phone')}>
+              <Input
+                value={phone ?? ''}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder={t('phonePlaceholder')}
+                type="tel"
+                inputMode="tel"
+                pattern="[+0-9\s\-]{9,15}"
+                maxLength={20}
+                className={
+                  'font-mono ' +
+                  (phone && !phoneValid ? 'border-danger focus-visible:border-danger' : '')
+                }
+              />
+              {phone && !phoneValid && (
+                <div className="text-xs text-danger mt-1">{t('phoneInvalid')}</div>
+              )}
+            </Field>
             <Field label={t('emergencyContact')}>
               <Input value={emergencyContact ?? ''} onChange={(e) => setEmergencyContact(e.target.value)} placeholder={t('emergencyPlaceholder')} maxLength={100} />
             </Field>
