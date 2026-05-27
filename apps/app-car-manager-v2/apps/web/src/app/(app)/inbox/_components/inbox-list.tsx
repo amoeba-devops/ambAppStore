@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Calendar, Check, Loader2, Receipt, ShieldAlert, UserPlus } from 'lucide-react';
 import { Card, cn, toast } from '@car-v2/ui';
-import type { CarNotification } from '@car-v2/db/schema';
+import type { CarNotification, NotificationTemplatePayload } from '@car-v2/db/schema';
 import { markNotificationReadAction } from '@/server/actions/notifications/notification.actions';
 
 interface InboxListProps {
@@ -18,6 +18,7 @@ interface InboxListProps {
  * follow-up). Empty handling done by parent. */
 export function InboxList({ items }: InboxListProps) {
   const t = useTranslations('inbox');
+  const tEvents = useTranslations('notifications.events');
   const [pending, startTransition] = useTransition();
 
   const handleClick = (ntfId: string, isRead: boolean) => {
@@ -36,6 +37,7 @@ export function InboxList({ items }: InboxListProps) {
         const isRead = n.ntfReadAt !== null;
         const Icon = pickIcon(n.ntfEvent);
         const href = linkFor(n);
+        const { title, body } = resolveCopy(n, tEvents);
 
         const inner = (
           <Card
@@ -64,7 +66,7 @@ export function InboxList({ items }: InboxListProps) {
                       isRead ? 'text-text font-medium' : 'text-text font-semibold',
                     )}
                   >
-                    {n.ntfTitle}
+                    {title}
                   </h3>
                   <time
                     className="shrink-0 text-xs text-text-faint tabular"
@@ -73,9 +75,9 @@ export function InboxList({ items }: InboxListProps) {
                     {formatRelative(n.ntfCreatedAt)}
                   </time>
                 </div>
-                {n.ntfBody && (
+                {body && (
                   <p className={cn('mt-1 text-xs leading-relaxed', isRead ? 'text-text-muted' : 'text-text')}>
-                    {n.ntfBody}
+                    {body}
                   </p>
                 )}
                 {n.ntfEntityRef && (
@@ -121,6 +123,51 @@ export function InboxList({ items }: InboxListProps) {
       })}
     </ul>
   );
+}
+
+/* Re-render a notification's title/body in the user's CURRENT UI locale via
+ * `notifications.events.{EVENT}` JSON templates. Falls back to the frozen
+ * `ntf_title` / `ntf_body` stored at insert time for legacy rows (no payload)
+ * OR when the event has no template registered yet. */
+function resolveCopy(
+  n: CarNotification,
+  tEvents: ReturnType<typeof useTranslations>,
+): { title: string; body: string | null } {
+  const payload = n.ntfTemplatePayload as NotificationTemplatePayload | null;
+  if (!payload) {
+    return { title: n.ntfTitle, body: n.ntfBody };
+  }
+  /* `useTranslations` throws if the key is missing — wrap so a new event
+   * deployed before its JSON copy doesn't crash the whole inbox. */
+  try {
+    const subjectKey = `${n.ntfEvent}.subject`;
+    const bodyKey = pickBodyKey(n.ntfEvent, payload);
+    const interp = {
+      ref: payload.ref,
+      route: payload.route ?? '',
+      reason: payload.reason ?? '',
+      amount: payload.amount ?? '',
+      description: payload.description ?? '',
+    };
+    const title = tEvents(subjectKey, interp);
+    const body = tEvents(`${n.ntfEvent}.${bodyKey}`, interp);
+    return { title, body };
+  } catch {
+    return { title: n.ntfTitle, body: n.ntfBody };
+  }
+}
+
+/* Mirror of notification-template.service.pickBodyKey — kept duplicated to
+ * avoid pulling a server-only module into the client bundle. Both must stay
+ * in sync if a new conditional body variant is added. */
+function pickBodyKey(event: string, payload: NotificationTemplatePayload): 'body' | 'bodyWithRoute' | 'bodyWithReason' {
+  if ((event === 'TRIP.ASSIGNED' || event === 'TRIP.NEEDS_ASSIGNMENT') && payload.route) {
+    return 'bodyWithRoute';
+  }
+  if ((event === 'TRIP.REJECTED' || event === 'TRIP.CANCELLED') && payload.reason) {
+    return 'bodyWithReason';
+  }
+  return 'body';
 }
 
 /* Icon glyph chosen by event prefix. Falls back to a generic icon so a new

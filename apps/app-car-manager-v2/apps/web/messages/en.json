@@ -1002,6 +1002,69 @@
     "markReadFailed": "Couldn't update status",
     "unreadAria": "Unread"
   },
+  "notifications": {
+    "cta": "View trip",
+    "events": {
+      "TRIP": {
+        "ASSIGNED": {
+          "subject": "New trip assigned to you",
+          "body": "Trip {ref} needs your confirmation.",
+          "bodyWithRoute": "Trip {ref} ({route}) needs your confirmation."
+        },
+        "NEEDS_ASSIGNMENT": {
+          "subject": "A trip needs a driver",
+          "body": "Trip {ref} has no driver yet.",
+          "bodyWithRoute": "Trip {ref} ({route}) has no driver yet."
+        },
+        "ACCEPTED": {
+          "subject": "Driver accepted the trip",
+          "body": "The driver accepted trip {ref}."
+        },
+        "REJECTED": {
+          "subject": "Driver rejected the trip",
+          "body": "The driver rejected trip {ref}. Please reassign.",
+          "bodyWithReason": "The driver rejected trip {ref}. Reason: {reason}. Please reassign."
+        },
+        "COMPLETED": {
+          "subject": "Trip completed",
+          "body": "Trip {ref} was ended by the driver."
+        },
+        "CANCELLED": {
+          "subject": "Trip cancelled",
+          "body": "Trip {ref} was cancelled.",
+          "bodyWithReason": "Trip {ref} was cancelled. Reason: {reason}."
+        }
+      },
+      "EXPENSE": {
+        "ACCIDENT_REPORTED": {
+          "subject": "New accident expense reported",
+          "body": "Accident expense {ref} has been recorded. Please review."
+        },
+        "APPROVED": {
+          "subject": "Expense {amount} approved",
+          "body": "{description}"
+        }
+      },
+      "MAINTENANCE": {
+        "OIL_OVERDUE": {
+          "subject": "Oil change overdue",
+          "body": "Vehicle {ref} is overdue for an oil change."
+        },
+        "OIL_DUE_SOON": {
+          "subject": "Oil change due soon",
+          "body": "Vehicle {ref} is approaching oil change interval."
+        },
+        "INSPECTION_OVERDUE": {
+          "subject": "Inspection overdue",
+          "body": "Vehicle {ref} is overdue for inspection."
+        },
+        "INSPECTION_DUE_SOON": {
+          "subject": "Inspection due soon",
+          "body": "Vehicle {ref} is approaching its inspection date."
+        }
+      }
+    }
+  },
   "expenses": {
     "history": {
       "title": "My expenses",

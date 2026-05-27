@@ -1002,6 +1002,69 @@
     "markReadFailed": "Không cập nhật được trạng thái",
     "unreadAria": "Chưa đọc"
   },
+  "notifications": {
+    "cta": "Xem chuyến",
+    "events": {
+      "TRIP": {
+        "ASSIGNED": {
+          "subject": "Bạn vừa được giao chuyến đi mới",
+          "body": "Chuyến {ref} cần bạn xác nhận.",
+          "bodyWithRoute": "Chuyến {ref} ({route}) cần bạn xác nhận."
+        },
+        "NEEDS_ASSIGNMENT": {
+          "subject": "Có chuyến đi mới cần phân công",
+          "body": "Chuyến {ref} chưa có tài xế.",
+          "bodyWithRoute": "Chuyến {ref} ({route}) chưa có tài xế."
+        },
+        "ACCEPTED": {
+          "subject": "Tài xế đã xác nhận chuyến",
+          "body": "Tài xế đã đồng ý chuyến {ref}."
+        },
+        "REJECTED": {
+          "subject": "Tài xế đã từ chối chuyến",
+          "body": "Tài xế từ chối chuyến {ref}. Vui lòng phân công lại.",
+          "bodyWithReason": "Tài xế từ chối chuyến {ref}. Lý do: {reason}. Vui lòng phân công lại."
+        },
+        "COMPLETED": {
+          "subject": "Chuyến đi đã hoàn tất",
+          "body": "Chuyến {ref} đã được tài xế kết thúc."
+        },
+        "CANCELLED": {
+          "subject": "Chuyến đi đã bị huỷ",
+          "body": "Chuyến {ref} đã bị huỷ.",
+          "bodyWithReason": "Chuyến {ref} đã bị huỷ. Lý do: {reason}."
+        }
+      },
+      "EXPENSE": {
+        "ACCIDENT_REPORTED": {
+          "subject": "Có sự cố tai nạn vừa được ghi nhận",
+          "body": "Chi phí tai nạn {ref} vừa được ghi nhận. Vui lòng kiểm tra."
+        },
+        "APPROVED": {
+          "subject": "Khoản chi {amount} đã được duyệt",
+          "body": "{description}"
+        }
+      },
+      "MAINTENANCE": {
+        "OIL_OVERDUE": {
+          "subject": "Quá hạn thay dầu",
+          "body": "Xe {ref} đã quá hạn thay dầu, cần xử lý ngay."
+        },
+        "OIL_DUE_SOON": {
+          "subject": "Sắp đến hạn thay dầu",
+          "body": "Xe {ref} sắp đến hạn thay dầu, vui lòng lên kế hoạch."
+        },
+        "INSPECTION_OVERDUE": {
+          "subject": "Quá hạn đăng kiểm",
+          "body": "Xe {ref} đã quá hạn đăng kiểm."
+        },
+        "INSPECTION_DUE_SOON": {
+          "subject": "Sắp đến hạn đăng kiểm",
+          "body": "Xe {ref} sắp đến hạn đăng kiểm."
+        }
+      }
+    }
+  },
   "expenses": {
     "history": {
       "title": "Chi phí của tôi",

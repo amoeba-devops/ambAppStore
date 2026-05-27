@@ -1002,6 +1002,69 @@
     "markReadFailed": "상태를 업데이트할 수 없습니다",
     "unreadAria": "읽지 않음"
   },
+  "notifications": {
+    "cta": "운행 보기",
+    "events": {
+      "TRIP": {
+        "ASSIGNED": {
+          "subject": "새 운행이 배정되었습니다",
+          "body": "운행 {ref}을(를) 확인해 주세요.",
+          "bodyWithRoute": "운행 {ref} ({route})을(를) 확인해 주세요."
+        },
+        "NEEDS_ASSIGNMENT": {
+          "subject": "기사 배정이 필요한 운행",
+          "body": "운행 {ref}에 기사가 배정되지 않았습니다.",
+          "bodyWithRoute": "운행 {ref} ({route})에 기사가 배정되지 않았습니다."
+        },
+        "ACCEPTED": {
+          "subject": "기사가 운행을 수락했습니다",
+          "body": "기사가 운행 {ref}을(를) 수락했습니다."
+        },
+        "REJECTED": {
+          "subject": "기사가 운행을 거절했습니다",
+          "body": "기사가 운행 {ref}을(를) 거절했습니다. 다시 배정해 주세요.",
+          "bodyWithReason": "기사가 운행 {ref}을(를) 거절했습니다. 사유: {reason}. 다시 배정해 주세요."
+        },
+        "COMPLETED": {
+          "subject": "운행이 완료되었습니다",
+          "body": "운행 {ref}이(가) 기사에 의해 종료되었습니다."
+        },
+        "CANCELLED": {
+          "subject": "운행이 취소되었습니다",
+          "body": "운행 {ref}이(가) 취소되었습니다.",
+          "bodyWithReason": "운행 {ref}이(가) 취소되었습니다. 사유: {reason}."
+        }
+      },
+      "EXPENSE": {
+        "ACCIDENT_REPORTED": {
+          "subject": "사고 비용이 보고되었습니다",
+          "body": "사고 비용 {ref}이(가) 기록되었습니다. 확인해 주세요."
+        },
+        "APPROVED": {
+          "subject": "지출 {amount}이(가) 승인되었습니다",
+          "body": "{description}"
+        }
+      },
+      "MAINTENANCE": {
+        "OIL_OVERDUE": {
+          "subject": "오일 교체 기한 초과",
+          "body": "차량 {ref}의 오일 교체 기한이 지났습니다."
+        },
+        "OIL_DUE_SOON": {
+          "subject": "오일 교체 임박",
+          "body": "차량 {ref}의 오일 교체 시기가 다가옵니다."
+        },
+        "INSPECTION_OVERDUE": {
+          "subject": "검사 기한 초과",
+          "body": "차량 {ref}의 검사 기한이 지났습니다."
+        },
+        "INSPECTION_DUE_SOON": {
+          "subject": "검사 기한 임박",
+          "body": "차량 {ref}의 검사 일정이 다가옵니다."
+        }
+      }
+    }
+  },
   "expenses": {
     "history": {
       "title": "내 비용",
