@@ -38,7 +38,7 @@
         <div class="sidebar__group-label">매니저</div>
         <a class="sidebar__link" href="00-tong-quan.html">개요</a>
         <a class="sidebar__link" href="01-dashboard.html">대시보드</a>
-        <a class="sidebar__link" href="02-dat-xe.html">차량 예약</a>
+        <a class="sidebar__link" href="02-dat-xe.html">차량 신청</a>
         <a class="sidebar__link" href="03-theo-doi-chuyen-di.html">운행 추적</a>
         <a class="sidebar__link" href="04-ghi-chi-phi.html">비용 기록</a>
         <a class="sidebar__link" href="05-so-chi-phi.html">비용 장부</a>
@@ -54,40 +54,40 @@
         <div class="intro">
           <dl class="intro__row">
             <dt>대상</dt><dd>매니저, 디렉터, 부서장 — AMA <code>MANAGER</code>에서 매핑</dd>
-            <dt>기기</dt><dd>웹과 모바일 모두 — 데스크톱에서 예약, 모바일에서 추적</dd>
+            <dt>기기</dt><dd>웹과 모바일 모두 — 데스크톱에서 신청, 모바일에서 추적</dd>
             <dt>읽는 시간</dt><dd>약 3분</dd>
           </dl>
         </div>
 
-        <p>매니저로서 본인은 <strong>서비스 이용자</strong> (회의/출장 차량 예약)이자 <strong>감독자</strong> (부서 차량팀과 비용 모니터링)입니다.</p>
+        <p>매니저는 <strong>서비스 이용자</strong>(회의/출장 차량 신청)이자 <strong>감독자</strong>(부서 차량팀 및 비용 모니터링) 역할을 합니다.</p>
 
         <h2>시스템에서 무엇을 하나요?</h2>
 
         <table>
           <thead><tr><th>작업</th><th>페이지</th></tr></thead>
           <tbody>
-            <tr><td>차량팀 + 본인 오늘 운행 개요 확인</td><td><a href="01-dashboard.html">대시보드</a></td></tr>
-            <tr><td>새 차량 예약 (본인 또는 동료용)</td><td><a href="02-dat-xe.html">차량 예약</a></td></tr>
+            <tr><td>차량팀 및 오늘 운행 개요 확인</td><td><a href="01-dashboard.html">대시보드</a></td></tr>
+            <tr><td>새 차량 신청 (나 또는 동료용)</td><td><a href="02-dat-xe.html">차량 신청</a></td></tr>
             <tr><td>운행 진행 상황 추적 + 필요 시 취소</td><td><a href="03-theo-doi-chuyen-di.html">운행 추적</a></td></tr>
             <tr><td>발생 비용 기록 (주유, 주차…)</td><td><a href="04-ghi-chi-phi.html">비용 기록</a></td></tr>
             <tr><td>조직 비용 장부 + CSV 내보내기</td><td><a href="05-so-chi-phi.html">비용 장부</a></td></tr>
-            <tr><td>개인 보고서 보기 (본인의 운행 + 주행거리 + 비용)</td><td><a href="06-bao-cao-ca-nhan.html">보고서</a></td></tr>
+            <tr><td>개인 보고서 보기 (내 운행 + 주행거리 + 비용)</td><td><a href="06-bao-cao-ca-nhan.html">보고서</a></td></tr>
           </tbody>
         </table>
 
-        <h2>무엇은 하지 않나요?</h2>
+        <h2>할 수 없는 작업은?</h2>
         <ul>
-          <li><strong>사용자 관리 불가</strong> — 초대/역할 변경은 관리자 권한</li>
-          <li><strong>시스템 설정 불가</strong> — 승인 규칙, 통화 형식은 관리자 업무</li>
-          <li><strong>감사 로그 접근 불가</strong> — 보안</li>
-          <li><strong>타인 비용 승인 불가</strong> — 현재 버전은 단계별 승인 흐름을 제거; 모든 비용 자동 기록</li>
+          <li><strong>사용자 관리 불가</strong> — 초대/역할 변경은 관리자 권한입니다</li>
+          <li><strong>시스템 설정 불가</strong> — 승인 규칙, 통화 형식은 관리자 업무입니다</li>
+          <li><strong>감사 로그 접근 불가</strong> — 보안 사유</li>
+          <li><strong>타인 비용 승인 불가</strong> — 현재 버전은 단계별 승인 흐름을 제거했습니다. 모든 비용이 자동으로 기록됩니다.</li>
         </ul>
 
         <h2>관리자, 기사와의 차이점</h2>
         <table>
           <thead><tr><th>기능</th><th>관리자</th><th>매니저</th><th>기사</th></tr></thead>
           <tbody>
-            <tr><td>차량 예약</td><td>✓</td><td>✓</td><td>✗</td></tr>
+            <tr><td>차량 신청</td><td>✓</td><td>✓</td><td>✗</td></tr>
             <tr><td>운행에 기사/차량 배정</td><td>✓</td><td>✓ (생성 시)</td><td>✗</td></tr>
             <tr><td>전사 보고서 조회</td><td>✓ 전체</td><td>본인만</td><td>✗</td></tr>
             <tr><td>차량/기사 관리 (CRUD)</td><td>✓</td><td>읽기 + 생성</td><td>✗</td></tr>

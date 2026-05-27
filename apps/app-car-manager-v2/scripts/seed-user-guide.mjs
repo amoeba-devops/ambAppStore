@@ -48,8 +48,11 @@ if (!url) {
 const sql = neon(url);
 
 // ─── Deterministic IDs (must match /dev-login presets) ───────────────────
-const ENT_ID  = '00000000-0000-0000-0000-000000000010';
-const U_ADMIN = '00000000-0000-0000-0000-000000000001';
+// Sentinel UUIDs migrated to RFC 4122 v4 format (position 13='4', position 17='8')
+// because AMA `resolveEntityId` uses strict `uuidValidate()` that rejects all-zero
+// variants. Keep aligned with `apps/web/src/app/dev-login/route.ts`.
+const ENT_ID  = '00000000-0000-4000-8000-000000000010';
+const U_ADMIN = '00000000-0000-4000-8000-000000000001';
 const U_MGR   = '11111111-1111-1111-1111-111111111200';
 const U_TU    = '11111111-1111-1111-1111-111111111101';
 const U_HUNG  = '11111111-1111-1111-1111-111111111102';

@@ -70,7 +70,7 @@
         <p>Mỗi dòng user hiển thị:</p>
         <ul>
           <li><strong>Avatar + Tên + nhãn trạng thái</strong> (nếu Inactive/Suspended)</li>
-          <li><strong>Số điện thoại</strong> (bấm gọi)</li>
+          <li><strong>Email</strong> (đăng ký trên AMA, là tài khoản đăng nhập)</li>
           <li><strong>Vai trò trong app</strong>: ADMIN / MANAGER / DRIVER (hoặc "—" nếu chưa từng login)</li>
           <li><strong>Vai trò AMA</strong>: OWNER / MASTER / MANAGER / MEMBER / VIEWER (monospace)</li>
           <li><strong>Lần hoạt động cuối</strong></li>
@@ -85,7 +85,7 @@
             trên trang <code>/users</code> đã được gỡ bỏ. Thay vào đó, Admin <strong>gửi
             trực tiếp thông tin doanh nghiệp</strong> cho thành viên qua kênh liên lạc cá nhân
             (SMS / Zalo / Telegram / email), sau đó thành viên tự đăng nhập ở
-            <code>/login</code> với số điện thoại của mình.</p>
+            <code>/login</code> với email của mình.</p>
           </div>
         </div>
 
@@ -107,15 +107,15 @@ Cách đăng nhập:
 
 1. Mở: https://apps.amoeba.site/app-car-manager-v2/login
 2. Mã doanh nghiệp: <strong>VN01</strong>      ← thay bằng mã của bạn
-3. Số điện thoại: số điện thoại của bạn (đã đăng ký với Amoeba)
+3. Email: email của bạn (đã được Admin đăng ký trên AMA)
 4. Bấm "Đăng nhập"
 
 Sau khi vào hệ thống, bạn sẽ được tự động cấp quyền theo vai trò.
 
-Cần hỗ trợ liên hệ: [Admin tên / số điện thoại]</code></pre>
+Cần hỗ trợ liên hệ: [Admin tên / email hoặc số điện thoại]</code></pre>
 
         <h3>Bước 3 — Thành viên tự đăng nhập</h3>
-        <p>Khi thành viên truy cập <code>/login</code> với mã doanh nghiệp + SĐT của họ, hệ thống tự động:</p>
+        <p>Khi thành viên truy cập <code>/login</code> với mã doanh nghiệp + email của họ, hệ thống tự động:</p>
         <ul>
           <li>Tạo bản ghi user trong <code>car_users</code> (nếu chưa có)</li>
           <li>Map vai trò AMA → vai trò app theo bảng dưới</li>
@@ -125,7 +125,7 @@ Cần hỗ trợ liên hệ: [Admin tên / số điện thoại]</code></pre>
         <div class="callout callout--warn">
           <div class="callout__icon">⚠️</div>
           <div class="callout__body">
-            <p><strong>Yêu cầu bắt buộc:</strong> số điện thoại thành viên phải đã được Amoeba
+            <p><strong>Yêu cầu bắt buộc:</strong> email thành viên phải đã được Amoeba
             đăng ký <em>trước</em> với vai trò trong tổ chức của bạn. Nếu chưa, hãy liên hệ
             quản trị AMA hoặc bộ phận nhân sự để bổ sung vào hệ thống Amoeba trước khi gửi
             thông tin đăng nhập.</p>

@@ -109,11 +109,20 @@ export async function GET(req: NextRequest) {
   const cookieName = process.env.SESSION_COOKIE_NAME ?? 'amb_session';
   const redirectTo = req.nextUrl.searchParams.get('next') ?? '/';
 
+  // Localhost dev/screenshot pipeline runs over plain HTTP — WebKit (mobile
+  // Safari) rejects `secure=true; sameSite=none` cookies over HTTP, so the
+  // session never sticks and downstream tests land back on /login. When the
+  // host is localhost, downgrade to `secure=false; sameSite=lax` regardless of
+  // NODE_ENV so the screenshot pipeline works under `next start` too.
+  const isLocalhost = req.nextUrl.hostname === 'localhost' || req.nextUrl.hostname === '127.0.0.1';
+  const cookieSecure = IS_PROD && !isLocalhost;
+  const cookieSameSite: 'none' | 'lax' = IS_PROD && !isLocalhost ? 'none' : 'lax';
+
   const res = NextResponse.redirect(absoluteUrl(req, redirectTo));
   res.cookies.set(cookieName, token, {
     httpOnly: true,
-    secure: IS_PROD,
-    sameSite: IS_PROD ? 'none' : 'lax',
+    secure: cookieSecure,
+    sameSite: cookieSameSite,
     path: '/',
     maxAge: 60 * 60 * 8,
   });

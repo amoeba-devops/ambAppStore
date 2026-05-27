@@ -52,7 +52,7 @@
         <div class="sidebar__group-label">매니저</div>
         <a class="sidebar__link" href="../manager/00-tong-quan.html">개요</a>
         <a class="sidebar__link" href="../manager/01-dashboard.html">대시보드</a>
-        <a class="sidebar__link" href="../manager/02-dat-xe.html">차량 예약</a>
+        <a class="sidebar__link" href="../manager/02-dat-xe.html">차량 신청</a>
         <a class="sidebar__link" href="../manager/03-theo-doi-chuyen-di.html">운행 추적</a>
         <a class="sidebar__link" href="../manager/04-ghi-chi-phi.html">비용 기록</a>
         <a class="sidebar__link" href="../manager/05-so-chi-phi.html">비용 장부</a>
@@ -95,7 +95,7 @@
           <thead><tr><th>역할</th><th>특징</th><th>주 사용 기기</th></tr></thead>
           <tbody>
             <tr><td><strong>관리자</strong></td><td>시스템 전권 — 설정, 비용 검토, 차량 배정, 보고서 조회, 감사 로그 확인</td><td>웹 브라우저</td></tr>
-            <tr><td><strong>매니저 / 디렉터</strong></td><td>본인 또는 팀의 차량 예약, 이력 추적, 본인 운행 취소</td><td>웹 + 모바일</td></tr>
+            <tr><td><strong>매니저 / 디렉터</strong></td><td>본인 또는 팀의 차량 신청, 이력 추적, 본인 운행 취소, 계층적 비용 승인</td><td>웹 + 모바일</td></tr>
             <tr><td><strong>기사</strong></td><td>운행 일정 확인, 운행 상태 업데이트, 발생 비용 기록</td><td>모바일 (PWA)</td></tr>
           </tbody>
         </table>
@@ -107,17 +107,17 @@
           <li><strong>차량 관리</strong> — 차량 등록, 엔진오일 교환 주기, 정기검사</li>
           <li><strong>기사 관리</strong> — 기사 목록, 운전면허, 만료일</li>
           <li><strong>사용자 관리</strong> — 멤버 초대, 역할 변경</li>
-          <li><strong>운행</strong> — 예약, 배정, 추적, 취소 (7단계 상태 머신)</li>
+          <li><strong>운행</strong> — 신청, 배정, 추적, 취소 (7단계 상태 머신)</li>
           <li><strong>비용</strong> — 8종 (주유, 엔진오일, 주차, 통행료, 식대, 수리, 사고, 정기검사)</li>
           <li><strong>정비 알림</strong> — 주행거리 및 기간 기반 자동 알림</li>
-          <li><strong>보고서</strong> — Excel/PDF 다차원 내보내기</li>
+          <li><strong>보고서</strong> — Excel/PDF 다양한 기준 내보내기</li>
           <li><strong>시스템 설정</strong> — 승인 규칙, 조직 파라미터</li>
           <li><strong>감사 로그</strong> — 수정 불가, 5년 보관</li>
         </ol>
 
         <h2>시스템 내 정보 흐름</h2>
         <p>운영 흐름 요약:</p>
-        <pre style="background:var(--c-surface);border:1px solid var(--c-border);padding:16px;border-radius:8px;font-family:var(--font-mono);font-size:13px;line-height:1.5;overflow-x:auto"><code>매니저 운행 예약  →  관리자 차량+기사 배정  →  기사 확인
+        <pre style="background:var(--c-surface);border:1px solid var(--c-border);padding:16px;border-radius:8px;font-family:var(--font-mono);font-size:13px;line-height:1.5;overflow-x:auto"><code>매니저 운행 신청  →  관리자 차량+기사 배정  →  기사 확인
                                                 ↓
         보고서  ←  감사 로그  ←  기사 비용 기록 + 주행거리 마감
                                                 ↓
