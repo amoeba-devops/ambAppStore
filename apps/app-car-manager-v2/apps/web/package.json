@@ -9,6 +9,8 @@
     "start:local": "dotenv -e ../../.env -- next start --port 3001",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:e2e": "dotenv -e ../../.env -- playwright test",
+    "test:e2e:ui": "dotenv -e ../../.env -- playwright test --ui",
     "clean": "rm -rf .next .turbo"
   },
   "dependencies": {
@@ -58,6 +60,7 @@
     "@next/swc-linux-x64-gnu": "15.5.18"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",

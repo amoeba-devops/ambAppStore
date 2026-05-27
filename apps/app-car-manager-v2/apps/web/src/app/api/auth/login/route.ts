@@ -2,19 +2,22 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { absoluteUrl } from '@/lib/request-origin';
 
 /**
- * D-010 rev — Phone-login proxy endpoint cho v2.
+ * Email-login proxy endpoint cho v2 (REQ-20260526 Wave 3).
  *
  * Flow:
- *   1. v2 nhận form { ent_code, phone, remember } từ /login page
- *   2. POST tới AMA /auth/phone-login → AMA verify + mint AMA access/refresh tokens
- *   3. Với accessToken, GET AMA /entity-settings/custom-apps/my → tìm eca_id của
- *      'app-car-manager-v2' (entity đã install qua seed)
- *   4. POST AMA /entity-settings/custom-apps/:eca_id/token → mint app token 1h
- *      (role = eur_role — D-002)
- *   5. Set cookie amb_session với app token; maxAge 30d nếu remember, 8h nếu không
- *   6. Redirect tới /today (driver) hoặc / (admin/manager) — auto-decide by role
+ *   1. v2 nhận form { ent_code, email, remember } từ /login page
+ *   2. POST tới AMA `/auth/email-login` → AMA verify + mint access/refresh tokens
+ *   3. Với accessToken, GET AMA `/entity-settings/custom-apps/my` → tìm eca_id
+ *      của 'app-car-manager-v2' (entity đã install qua seed)
+ *   4. POST AMA `/entity-settings/custom-apps/:eca_id/token` → mint app token 1h
+ *   5. Set cookies (amb_session/amb_ama_access/amb_ama_refresh) → redirect
  *
  * Error → redirect /login?error=<reason>
+ *
+ * AMA Backend Dependency:
+ *   `POST /auth/email-login { entity_code, email }` — endpoint mới cần AMA team
+ *   build. Chi tiết: docs/integration/AMA-DEPENDENCIES.md §2.4.
+ *   Trong khi chờ AMA endpoint, user dev local nên dùng /dev-login để bypass.
  */
 
 const APP_CODE = 'app-car-manager-v2';
@@ -22,64 +25,64 @@ const AMA_API = process.env.AMA_API_BASE_URL ?? 'http://localhost:3009/api/v1';
 
 export const dynamic = 'force-dynamic';
 
-/* Chuẩn hoá SĐT VN về 10 chữ số bắt đầu với `0`. Xử lý các format user hay nhập:
- *   +84 90 4567890   → 0904567890
- *   84-90-4567890    → 0904567890
- *   0090 4567890     → 0904567890  (international 00 prefix)
- *   0904 567 890     → 0904567890
- *   0904567890       → 0904567890  (no-op)
- * Phone DB lưu canonical 10 chữ số "0XXXXXXXXX" — phải khớp exact ở phone-login. */
-function normalizePhoneVn(raw: string): string {
-  let digits = raw.replace(/\D/g, '');
-  // "00" international prefix → strip (cả "0084..." form)
-  if (digits.startsWith('00')) digits = digits.slice(2);
-  // "84..." (11 digits) → "0..." (10 digits). VN mobile gốc luôn 10 ký tự.
-  if (digits.startsWith('84') && digits.length === 11) {
-    digits = '0' + digits.slice(2);
-  }
-  return digits;
+/* Basic email validation — RFC 5322 simplified. Server validate, KHÔNG trust
+ * client-side type="email" alone. */
+function isValidEmail(input: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
+}
+
+/* Mask email trong logs: foo@bar.com → fo***@bar.com */
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!local || !domain) return '***';
+  const head = local.slice(0, 2);
+  return `${head}***@${domain}`;
 }
 
 export async function POST(req: NextRequest) {
   const form = await req.formData();
   const entityCode = (form.get('ent_code') as string | null)?.trim().toUpperCase();
-  const phoneRaw = form.get('phone') as string | null;
-  const phone = phoneRaw ? normalizePhoneVn(phoneRaw) : undefined;
+  const emailRaw = form.get('email') as string | null;
+  const email = emailRaw?.trim().toLowerCase();
   const remember = form.get('remember') === 'on';
   const nextParam = form.get('next') as string | null;
 
-  if (!entityCode || !phone) {
+  if (!entityCode || !email || !isValidEmail(email)) {
     return NextResponse.redirect(absoluteUrl(req, '/login?error=missing'));
   }
 
-  /* Diagnostic logging — mask phone (4 digits prefix + 2 suffix) để dev biết
-   * input đến server thế nào (đã normalize đúng chưa). */
-  const masked = phone.length >= 6
-    ? `${phone.slice(0, 4)}****${phone.slice(-2)} (len=${phone.length})`
-    : `len=${phone.length}`;
-  console.log(`[login] attempt ent=${entityCode} phone=${masked} rawLen=${phoneRaw?.length ?? 0}`);
+  const masked = maskEmail(email);
+  console.log(`[login] attempt ent=${entityCode} email=${masked}`);
 
   try {
-    // 1) AMA phone-login
-    const loginRes = await fetch(`${AMA_API}/auth/phone-login`, {
+    // 1) AMA email-login
+    const loginRes = await fetch(`${AMA_API}/auth/email-login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ entity_code: entityCode, phone }),
+      body: JSON.stringify({ entity_code: entityCode, email }),
     });
 
     if (loginRes.status === 429) {
-      console.warn(`[login] rate_limit ent=${entityCode} phone=${masked}`);
+      console.warn(`[login] rate_limit ent=${entityCode} email=${masked}`);
       return NextResponse.redirect(absoluteUrl(req, '/login?error=rate_limit'));
+    }
+    if (loginRes.status === 404) {
+      /* AMA endpoint chưa tồn tại — Wave 3 pending AMA team. UX rõ ràng:
+       * thay vì 500, dirot user về /login?error=not_implemented. */
+      console.error('[login] AMA /auth/email-login 404 — endpoint chưa build');
+      return NextResponse.redirect(absoluteUrl(req, '/login?error=not_implemented'));
     }
     if (!loginRes.ok) {
       const errBody = await loginRes.text().catch(() => '');
-      console.warn(`[login] AMA phone-login fail status=${loginRes.status} ent=${entityCode} phone=${masked} body=${errBody.slice(0, 200)}`);
+      console.warn(
+        `[login] AMA email-login fail status=${loginRes.status} ent=${entityCode} email=${masked} body=${errBody.slice(0, 200)}`,
+      );
       return NextResponse.redirect(absoluteUrl(req, '/login?error=invalid'));
     }
 
     const loginData = await loginRes.json();
-    // AMA wraps response: { success, data: { tokens: { accessToken, refreshToken } } }
-    // Also handle legacy shapes: { tokens: ... } or { accessToken: ... } directly.
+    /* AMA wraps response: { success, data: { tokens: { accessToken, refreshToken } } }
+     * Also handle legacy shapes: { tokens: ... } or { accessToken: ... } directly. */
     const tokens = loginData?.data?.tokens ?? loginData?.tokens ?? loginData;
     const accessToken: string | undefined = tokens?.accessToken;
     if (!accessToken) {
@@ -87,7 +90,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(absoluteUrl(req, '/login?error=server'));
     }
 
-    // 2) Find eca_id of app-car-manager-v2 (filtered by user's entity + role)
+    // 2) Find eca_id of app-car-manager-v2
     const myAppsRes = await fetch(`${AMA_API}/entity-settings/custom-apps/my`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
@@ -97,7 +100,6 @@ export async function POST(req: NextRequest) {
     }
 
     const myAppsBody = await myAppsRes.json();
-    // Response shape: { data: [...] } or [...] — handle both
     const apps: Array<{ id?: string; ecaId?: string; code?: string; ecaCode?: string }> =
       Array.isArray(myAppsBody) ? myAppsBody : (myAppsBody?.data ?? []);
     const app = apps.find((a) => (a.code ?? a.ecaCode) === APP_CODE);
@@ -124,7 +126,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(absoluteUrl(req, '/login?error=invalid'));
     }
     const tokenBody = await tokenRes.json();
-    // AMA wraps: { success, data: { token, expiresAt } }
     const token: string | undefined = tokenBody?.data?.token ?? tokenBody?.token;
     if (!token) {
       console.error('[login] mint app token: no token in response', tokenBody);
@@ -143,17 +144,11 @@ export async function POST(req: NextRequest) {
     };
 
     const redirectTo = nextParam && nextParam.startsWith('/') ? nextParam : '/';
-
     const refreshToken: string | undefined = tokens?.refreshToken;
 
     const res = NextResponse.redirect(absoluteUrl(req, redirectTo));
-    // Primary session cookie — app token (1h JWT, but cookie keeps maxAge for browser persistence)
     res.cookies.set(cookieName, token, { ...cookieAttrs, maxAge });
-    // AMA access token — for admin server actions calling back AMA endpoints
-    // (e.g. POST /entity-settings/members/phone-add). 4h expiry matches AMA default.
     res.cookies.set('amb_ama_access', accessToken, { ...cookieAttrs, maxAge: 4 * 60 * 60 });
-    // AMA refresh token — for silent refresh when app token (1h) expires.
-    // 7d expiry matches AMA default. Rotates on each refresh.
     if (refreshToken) {
       res.cookies.set('amb_ama_refresh', refreshToken, {
         ...cookieAttrs,

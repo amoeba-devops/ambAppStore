@@ -13,10 +13,9 @@ import { ensureCarUser } from '@/server/services/user/ensure-car-user.service';
  * (trip create, expense submit, ...) phụ thuộc vào row đã được sync. Bỏ qua →
  * FK violation. React `cache()` dedupes nếu multiple RSC trong cùng request.
  *
- * The previous CRITICAL maintenance-alert sticky banner (oil/inspection overdue,
- * REQ-20260519 Q7) has been removed from this layout — the alert UI is being
- * redefined elsewhere. The OilOverdueBanner component and getCriticalUnresolvedAlerts
- * query are still in the codebase for that future placement to consume.
+ * Onboarding gate đã move LÊN middleware (REQ-20260526 §3.6 — fixed 2026-05-27)
+ * để có hard 307 deterministic thay vì layout-level soft redirect bị streaming
+ * RSC quirk làm URL bar không update. Layout chỉ còn ensureCarUser + AppShell.
  */
 export default async function AppGroupLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();

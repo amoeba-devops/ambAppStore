@@ -1,4 +1,4 @@
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, getLocale } from 'next-intl/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Download, FileText, Fuel, Plus, Receipt, User, Wrench } from 'lucide-react';
@@ -35,17 +35,20 @@ function formatVnd(amount: string | number): string {
   return `${VND_FMT.format(n)}₫`;
 }
 
-function formatRelative(date: Date | string): string {
+type RelativeT = (key: string, vars?: Record<string, string | number>) => string;
+
+function formatRelative(date: Date | string, t: RelativeT, locale: string): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   const diffMin = Math.floor((Date.now() - d.getTime()) / 60_000);
-  if (diffMin < 1) return 'Vừa xong';
-  if (diffMin < 60) return `${diffMin} phút trước`;
+  if (diffMin < 1) return t('justNow');
+  if (diffMin < 60) return t('minutesAgo', { n: diffMin });
   const hr = Math.floor(diffMin / 60);
-  if (hr < 24) return `${hr} giờ trước`;
+  if (hr < 24) return t('hoursAgo', { n: hr });
   const day = Math.floor(hr / 24);
-  if (day === 1) return 'Hôm qua';
-  if (day < 7) return `${day} ngày trước`;
-  return d.toLocaleDateString('vi-VN');
+  if (day === 1) return t('yesterday');
+  if (day < 7) return t('daysAgo', { n: day });
+  const bcp = locale === 'ko' ? 'ko-KR' : locale === 'en' ? 'en-US' : 'vi-VN';
+  return d.toLocaleDateString(bcp);
 }
 
 interface PageProps {
@@ -77,6 +80,8 @@ export default async function CostsPage({ searchParams }: PageProps) {
   const tCo     = await getTranslations('company');
   const t       = await getTranslations('costs');
   const tType   = await getTranslations('costs.types');
+  const tRel    = await getTranslations('users.relativeTime');
+  const locale  = await getLocale();
 
   const items = await listEntityExpenses(actor.entId);
   const selected = items.find((e) => e.expId === sp.selected) ?? items[0] ?? null;
@@ -176,7 +181,7 @@ export default async function CostsPage({ searchParams }: PageProps) {
                         <span>·</span>
                         <span className="truncate">{driver}</span>
                         <span>·</span>
-                        <span className="whitespace-nowrap">{formatRelative(e.expSubmittedAt)}</span>
+                        <span className="whitespace-nowrap">{formatRelative(e.expSubmittedAt, tRel, locale)}</span>
                       </div>
                     </div>
                   </div>
@@ -224,10 +229,11 @@ export default async function CostsPage({ searchParams }: PageProps) {
                 sourceStaff: t('sourceStaff'),
                 submittedBy: t('submittedBy'),
                 receiptTitle: t('receiptTitle'),
+                notesLabel: t('notesLabel'),
               }}
               typeLabel={tType(selected.expType)}
               amountFormatted={formatVnd(selected.expAmount)}
-              submittedAtFormatted={formatRelative(selected.expSubmittedAt)}
+              submittedAtFormatted={formatRelative(selected.expSubmittedAt, tRel, locale)}
             />
           ) : (
             <div className="max-w-md mx-auto mt-12 text-center text-sm text-text-muted">

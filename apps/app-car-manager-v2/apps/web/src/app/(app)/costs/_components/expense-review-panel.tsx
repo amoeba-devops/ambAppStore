@@ -24,6 +24,7 @@ interface ExpenseDetailPanelProps {
     sourceStaff: string;
     submittedBy: string;
     receiptTitle: string;
+    notesLabel: string;
   };
   typeLabel: string;
   /* Pre-formatted strings instead of formatter functions — Next.js 15
@@ -95,7 +96,7 @@ export function ExpenseReviewPanel({
           </dl>
           {expense.expNote && (
             <div className="mt-4 pt-4 border-t border-border">
-              <div className="text-xs font-medium text-text-muted mb-1">Ghi chú</div>
+              <div className="text-xs font-medium text-text-muted mb-1">{labels.notesLabel}</div>
               <div className="text-sm text-text whitespace-pre-wrap">{expense.expNote}</div>
             </div>
           )}

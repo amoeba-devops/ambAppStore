@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { neon } from '@neondatabase/serverless';
 import { mapAmaRoleToLocal } from '@car-v2/shared/auth';
 import { verifyAmaJwt } from '@/lib/auth/verify-jwt';
 import { absoluteUrl } from '@/lib/request-origin';
@@ -20,6 +21,9 @@ const PUBLIC_PATHS = [
   '/api/auth/login',
   '/api/auth/refresh',
   '/api/auth/logout',
+  /* Dev-only endpoints: gated bởi DEMO_AUTO_LOGIN=true inside route handler.
+   * Trong production server các route này tự return 404. */
+  '/api/dev/',
   '/_next',
   '/favicon.ico',
   /* Static user-guide site lives under apps/web/public/docs/ — must be reachable
@@ -68,6 +72,50 @@ function isDriverAllowed(pathname: string): boolean {
    * since the actions themselves do their own role checks. */
   if (pathname.startsWith('/api/')) return true;
   return false;
+}
+
+/* Cache tenant-synced state trong-module-instance lifetime (Edge worker
+ * instance). Reset khi worker restart. revalidateTag không reach được Edge
+ * runtime — chấp nhận stale tối đa 60s. Sync action cũng set syncedAt → DB
+ * → next middleware request đọc fresh sau cache TTL. */
+const SYNC_CACHE_TTL_MS = 60_000;
+const syncCache = new Map<string, { syncedAt: number; cachedAt: number }>();
+
+async function isTenantSynced(entId: string): Promise<boolean> {
+  /* Dev mode bypass cache để E2E test sau reset DB thấy state mới ngay.
+   * Production: 60s cache trade-off OK vì sync state rarely changes. */
+  const useCache = process.env.NODE_ENV === 'production';
+  const cached = useCache ? syncCache.get(entId) : null;
+  const now = Date.now();
+  if (cached && now - cached.cachedAt < SYNC_CACHE_TTL_MS) {
+    return cached.syncedAt > 0;
+  }
+
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    /* Không có DB connection → fail-open (cho qua, layout sẽ catch). */
+    return true;
+  }
+
+  try {
+    const sql = neon(url);
+    const rows = (await sql`
+      SELECT tns_users_synced_at AS synced_at
+      FROM car_tenant_settings
+      WHERE ent_id = ${entId}
+      LIMIT 1
+    `) as Array<{ synced_at: string | null }>;
+    const syncedAt = rows[0]?.synced_at
+      ? new Date(rows[0].synced_at).getTime()
+      : 0;
+    if (useCache) syncCache.set(entId, { syncedAt, cachedAt: now });
+    return syncedAt > 0;
+  } catch (e) {
+    /* DB unreachable → fail-open. Onboarding redirect không phải critical
+     * security check, app vẫn function. */
+    console.warn('[middleware] isTenantSynced DB error', e);
+    return true;
+  }
 }
 
 const cookieAttrs = {
@@ -123,6 +171,29 @@ export async function middleware(req: NextRequest) {
     const localRole = mapAmaRoleToLocal(claims.role);
     if (localRole === 'DRIVER' && !isDriverAllowed(pathname)) {
       return NextResponse.redirect(absoluteUrl(req, '/today'));
+    }
+
+    /* Onboarding gate (REQ-20260526 §3.6):
+     *   - ADMIN/MANAGER chưa onboard (tns_users_synced_at IS NULL) → redirect /onboarding
+     *   - DRIVER không bị gate (ensureCarUser tự tạo row cho riêng họ)
+     *   - Bỏ qua /onboarding, /api/* để tránh redirect loop
+     *
+     * Previously gate ở (app)/layout.tsx nhưng Next.js streaming RSC render
+     * destination inline thay vì HTTP 307 → URL bar không update. Move xuống
+     * middleware cho hard 307 deterministic.
+     *
+     * Edge runtime + Neon HTTP driver: query lightweight, không cần cache (~50ms).
+     * Tradeoff: 1 DB call mỗi protected request. Add cache layer khi cần. */
+    if (
+      localRole !== 'DRIVER' &&
+      !pathname.startsWith('/onboarding') &&
+      !pathname.startsWith('/api') &&
+      !pathname.startsWith('/dev-login')
+    ) {
+      const synced = await isTenantSynced(claims.ent_id);
+      if (!synced) {
+        return NextResponse.redirect(absoluteUrl(req, '/onboarding'));
+      }
     }
     // MUST propagate as REQUEST headers (not response headers) so RSC's
     // `headers()` in getCurrentUser() can read x-ent-id / x-user-id / x-user-role.

@@ -48,11 +48,12 @@ const sql = neon(url);
 
 // ─── Deterministic IDs ───────────────────────────────────────────────────
 // Same ent_id as /dev-login JWT payload — see apps/web/src/app/dev-login/route.ts
-const ENT_ID = '00000000-0000-0000-0000-000000000010';
+// RFC4122 v4 format (position 13='4', position 17='8') required by AMA uuidValidate.
+const ENT_ID = '00000000-0000-4000-8000-000000000010';
 
 // Users — UUID v4 fixed for seed reproducibility.
 // The Admin user_id matches the JWT.sub in dev-login (so /dev-login session sees this seed).
-const U_ADMIN = '00000000-0000-0000-0000-000000000001';
+const U_ADMIN = '00000000-0000-4000-8000-000000000001';
 const U_TU    = '11111111-1111-1111-1111-111111111101';
 const U_HUNG  = '11111111-1111-1111-1111-111111111102';
 const U_DUC   = '11111111-1111-1111-1111-111111111103';

@@ -47,6 +47,10 @@ export const carTenantSettings = pgTable(
     tnsRetentionTripYears: integer('tns_retention_trip_years').notNull().default(5),
     /* Audit log: NULL = indefinite. Allowlist 3/5/NULL in service. */
     tnsRetentionAuditYears: integer('tns_retention_audit_years').default(5),
+    /* NULL = chưa onboard. Set tại syncTenantUsersAction sau bulk upsert thành công.
+     * Middleware đọc cột này để quyết định redirect admin/manager tới /onboarding. */
+    tnsUsersSyncedAt: timestamp('tns_users_synced_at', { withTimezone: true }),
+    tnsUsersSyncedCount: integer('tns_users_synced_count').notNull().default(0),
     tnsUpdatedAt: timestamp('tns_updated_at', { withTimezone: true }).defaultNow().notNull(),
     tnsUpdatedBy: char('tns_updated_by', { length: 36 }).references(() => carUsers.usrId, {
       onDelete: 'set null',

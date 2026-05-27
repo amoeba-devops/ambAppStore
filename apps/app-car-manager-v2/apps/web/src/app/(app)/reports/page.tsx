@@ -158,7 +158,7 @@ export default async function ReportsPage() {
             <CardContent>
               {SPEND_MIX.length === 0 ? (
                 <div className="py-8 text-center text-sm text-text-muted">
-                  Chưa có dữ liệu chi phí trong {PERIOD_WEEKS} tuần qua.
+                  {tR('emptyNoExpense', { weeks: PERIOD_WEEKS })}
                 </div>
               ) : (
                 <div className="flex items-center gap-5">
@@ -220,7 +220,7 @@ export default async function ReportsPage() {
           <CardContent>
             {utilization.vehicles.length === 0 ? (
               <div className="py-8 text-center text-sm text-text-muted">
-                Công ty này chưa có xe nào.
+                {tR('emptyNoVehicle')}
               </div>
             ) : (
               <LineChart

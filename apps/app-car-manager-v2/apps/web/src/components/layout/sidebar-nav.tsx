@@ -35,6 +35,7 @@ import {
 import type { LocalRole } from '@car-v2/shared/auth';
 import { useAllDrafts, type DraftEntry } from '@/hooks/use-all-drafts';
 import { activeKeyFor, navItemsForRole, type NavKey } from './nav-items';
+import { SidebarLocaleSwitcher } from './sidebar-locale-switcher';
 import { useTenantDisplay } from './tenant-display-context';
 
 /* Entity → child icon. Helps user recognise "this is a vehicle/trip/driver/
@@ -135,15 +136,13 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
     });
   };
 
-  /* `me` is rendered as its own tail block below the two groups (with a
-   * separator above) so the sidebar nav mirrors the mobile BottomTabNav —
-   * one canonical nav surface across breakpoints. The avatar dropdown at
-   * the footer keeps its Me shortcut as a quick-access duplicate; the
-   * tail link is the discoverable primary entry. */
+  /* Desktop sidebar drops the `me` nav entry — the avatar at the footer is
+   * already the canonical "current user" affordance on desktop (clicks open a
+   * dropdown with Me + Sign out), so a separate row was redundant. Mobile keeps
+   * the avatar in MobilePageHeader, which already links to /settings/me. */
   const allItems = navItemsForRole(role);
   const workspace = allItems.filter((i) => i.group === 'workspace' && i.key !== 'me');
   const admin = allItems.filter((i) => i.group === 'admin');
-  const meItem = allItems.find((i) => i.key === 'me');
 
   return (
     <aside
@@ -198,25 +197,15 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
           onRemoveDraft={removeDraft}
           t={(key: NavKey) => tNav(key === 'audit' ? 'auditLog' : key)}
         />
-        {meItem && (
-          /* Pull `me` out of its workspace group and pin it below the rest
-           * with a top border. Keeps the identity entry visually distinct
-           * from workflow nav, and mirrors the mobile bar where `me` is
-           * always the rightmost tab. */
-          <div className="border-t border-border pt-5">
-            <NavGroup
-              label={null}
-              items={[meItem]}
-              activeKey={active}
-              collapsed={collapsed}
-              draftsByNavKey={draftsByNavKey}
-              metricCounts={metricCounts}
-              onRemoveDraft={removeDraft}
-              t={(key: NavKey) => tNav(key === 'audit' ? 'auditLog' : key)}
-            />
-          </div>
-        )}
       </nav>
+
+      {/* Quick locale switcher — admin/manager often flip between vi/en/ko
+       * for cross-team demos. Putting it permanently in the rail avoids the
+       * 3-click roundtrip to /settings/me. Driver path unchanged (no sidebar
+       * on mobile). */}
+      <div className="border-t border-border p-2">
+        <SidebarLocaleSwitcher collapsed={collapsed} />
+      </div>
 
       {/* Permanent User Guide entry — sits between nav and avatar so it's
        * always visible (no dropdown click needed). Mirrors the mobile header

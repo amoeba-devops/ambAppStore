@@ -48,3 +48,7 @@ resources/
 
 # Claude
 .claude/
+
+# Playwright artifacts (run-by-run output, not source)
+apps/web/test-results/
+apps/web/playwright-report/

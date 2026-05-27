@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Save, Copy, Check, MessageCircle, KeyRound } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { Loader2, Save, Copy, Check, Mail, KeyRound } from 'lucide-react';
 import {
   Button,
   Card,
@@ -22,33 +23,20 @@ import {
 import { addMemberAction, type AddMemberResult } from '@/server/actions/users/add-member.action';
 import type { LocalRole } from '@car-v2/shared/auth';
 
-/** Mirror AMA normalize — chỉ preview, server validate lại. */
-function normalizePreview(raw: string): string {
-  let digits = raw.replace(/\D/g, '');
-  if (digits.startsWith('00')) digits = digits.slice(2);
-  if (digits.startsWith('84') && digits.length === 11) digits = '0' + digits.slice(2);
-  return digits;
-}
-function isValidVnMobile(phone: string): boolean {
-  return /^0[35789]\d{8}$/.test(phone);
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 interface AddMemberFormProps {
   actorRole: LocalRole;
 }
 
-const ALL_ROLES = [
-  { value: 'MASTER', label: 'Master (Quản trị cấp cao)', driverEligible: false },
-  { value: 'MANAGER', label: 'Manager (Quản lý)', driverEligible: false },
-  { value: 'MEMBER', label: 'Driver (Tài xế)', driverEligible: true },
-  { value: 'VIEWER', label: 'Viewer (Chỉ xem)', driverEligible: true },
-] as const;
-
 export function AddMemberForm({ actorRole }: AddMemberFormProps) {
   const router = useRouter();
+  const t = useTranslations('users.create');
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [role, setRole] = useState<'MASTER' | 'MANAGER' | 'MEMBER' | 'VIEWER'>(
     actorRole === 'ADMIN' ? 'MANAGER' : 'MEMBER',
   );
@@ -56,28 +44,28 @@ export function AddMemberForm({ actorRole }: AddMemberFormProps) {
   const [result, setResult] = useState<AddMemberResult | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // MANAGER chỉ tạo được DRIVER (MEMBER/VIEWER)
+  const ALL_ROLES = [
+    { value: 'MASTER' as const, label: t('roleMaster'), driverEligible: false },
+    { value: 'MANAGER' as const, label: t('roleManager'), driverEligible: false },
+    { value: 'MEMBER' as const, label: t('roleMember'), driverEligible: true },
+    { value: 'VIEWER' as const, label: t('roleViewer'), driverEligible: true },
+  ];
   const availableRoles = ALL_ROLES.filter((r) =>
     actorRole === 'ADMIN' ? true : r.driverEligible,
   );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    /* Pre-send validation — chuẩn hoá VN phone + check format trước khi gọi action.
-     * Đây là login key, sai = user mất khả năng login → cần feedback ngay
-     * thay vì để server reject sau round-trip. */
-    const canonical = normalizePreview(phone);
-    if (!isValidVnMobile(canonical)) {
-      toast.error('Số điện thoại không hợp lệ', {
-        description: 'Yêu cầu 10 chữ số bắt đầu 03/05/07/08/09 (VN mobile).',
-      });
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!isValidEmail(trimmedEmail)) {
+      toast.error(t('invalidEmail'), { description: t('invalidEmailDesc') });
       return;
     }
 
     startTransition(async () => {
       const res = await addMemberAction({
         name: name.trim(),
-        phone: canonical,
+        email: trimmedEmail,
         role,
         department: department.trim() || undefined,
       });
@@ -86,61 +74,69 @@ export function AddMemberForm({ actorRole }: AddMemberFormProps) {
         return;
       }
       setResult(res.data);
-      toast.success(`Đã tạo ${res.data.name}`);
+      toast.success(t('createdToast', { name: res.data.name }));
     });
   };
 
   const handleCopy = async () => {
     if (!result) return;
     try {
-      await navigator.clipboard.writeText(result.smsTemplate);
+      await navigator.clipboard.writeText(result.emailTemplate);
       setCopied(true);
-      toast.success('Đã copy nội dung tin nhắn');
+      toast.success(t('successCopyToast'));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Không copy được — vui lòng chọn text và copy thủ công');
+      toast.error(t('successCopyFail'));
     }
   };
 
   if (result) {
-    const zaloUrl = `https://zalo.me/?text=${encodeURIComponent(result.smsTemplate)}`;
+    const mailtoUrl = `mailto:${result.email}?subject=${encodeURIComponent(
+      t('emailSubject', { name: result.name, entName: result.entName }),
+    )}&body=${encodeURIComponent(result.emailTemplate)}`;
     return (
       <Card variant="elevated">
         <CardHeader>
           <CardHeaderText>
-            <CardTitle>✅ Đã tạo {result.name}</CardTitle>
+            <CardTitle>{t('successTitle', { name: result.name })}</CardTitle>
           </CardHeaderText>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-md bg-success-soft text-success-strong text-sm p-3 leading-relaxed">
             <div>
-              <strong>{result.name}</strong> đã được thêm vào công ty{' '}
-              <strong>{result.entName}</strong> với vai trò{' '}
-              <strong>{result.role}</strong>.
+              {t.rich('successDesc', {
+                name: result.name,
+                entName: result.entName,
+                role: result.role,
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
             </div>
             <div className="mt-1 text-xs">
-              SĐT đăng nhập: <code className="font-mono">{result.phone}</code>{' '}
-              · Mã công ty: <code className="font-mono">{result.entCode}</code>
+              {t.rich('successCredentials', {
+                email: result.email,
+                entCode: result.entCode,
+                code: (chunks) => <code className="font-mono">{chunks}</code>,
+              })}
             </div>
           </div>
 
           <div>
-            <Label>Tin nhắn gửi cho {result.name}</Label>
+            <Label>{t('successEmailLabel', { name: result.name })}</Label>
             <textarea
               readOnly
-              value={result.smsTemplate}
+              value={result.emailTemplate}
               rows={6}
               className="mt-1 w-full rounded-md border border-border bg-surface-2 p-3 text-sm font-mono whitespace-pre-wrap"
             />
             <div className="mt-3 flex flex-wrap gap-2">
               <Button onClick={handleCopy} variant="accent" size="md">
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                {copied ? 'Đã copy' : 'Copy nội dung'}
+                {copied ? t('successCopyDone') : t('successCopyButton')}
               </Button>
               <Button asChild variant="secondary" size="md">
-                <a href={zaloUrl} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle className="h-4 w-4" />
-                  Mở Zalo để gửi
+                <a href={mailtoUrl}>
+                  <Mail className="h-4 w-4" />
+                  {t('successOpenMail')}
                 </a>
               </Button>
             </div>
@@ -148,10 +144,10 @@ export function AddMemberForm({ actorRole }: AddMemberFormProps) {
 
           <div className="flex justify-end gap-2 pt-2 border-t border-border">
             <Button variant="ghost" onClick={() => setResult(null)}>
-              Thêm người khác
+              {t('successAddOther')}
             </Button>
             <Button variant="secondary" onClick={() => router.push('/users')}>
-              Về danh sách
+              {t('successBackList')}
             </Button>
           </div>
         </CardContent>
@@ -163,14 +159,14 @@ export function AddMemberForm({ actorRole }: AddMemberFormProps) {
     <Card variant="elevated">
       <CardHeader>
         <CardHeaderText>
-          <CardTitle>Thông tin thành viên</CardTitle>
+          <CardTitle>{t('title')}</CardTitle>
         </CardHeaderText>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="name">
-              Họ và tên <span className="text-danger">*</span>
+              {t('fullName')} <span className="text-danger">*</span>
             </Label>
             <Input
               id="name"
@@ -178,65 +174,59 @@ export function AddMemberForm({ actorRole }: AddMemberFormProps) {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Nguyễn Văn Bình"
+              placeholder={t('fullNamePlaceholder')}
               maxLength={50}
             />
           </div>
 
-          {/* ── PHONE (CRITICAL) ──
-           * Đây là login key duy nhất của user. Sai = user không bao giờ login được.
-           * Banner danger-styled prominent để admin chú ý gấp đôi khi điền. */}
           <div className="rounded-md border-2 border-danger/40 bg-danger-soft/30 p-3 space-y-3">
             <div className="flex items-start gap-2">
               <KeyRound className="h-5 w-5 text-danger shrink-0 mt-0.5" aria-hidden />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-danger">
-                  SĐT đăng nhập (rất quan trọng)
+                  {t('emailLoginTitle')}
                 </div>
                 <p className="text-xs text-text-muted leading-relaxed mt-0.5">
-                  Đây là <strong>thông tin DUY NHẤT</strong> để user login app. Sai = user không vào được.
-                  Hãy <strong>xác nhận lại</strong> với user trước khi tạo.
+                  {t('emailLoginDesc')}
                 </p>
               </div>
             </div>
 
             <div>
-              <Label htmlFor="phone" className="text-xs">
-                Số điện thoại <span className="text-danger">*</span>
+              <Label htmlFor="email" className="text-xs">
+                Email <span className="text-danger">*</span>
               </Label>
               <Input
-                id="phone"
-                type="tel"
+                id="email"
+                type="email"
                 required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="VD: 0904567890 hoặc +84 904567890"
-                inputMode="tel"
-                pattern="[+0-9\s\-]{9,15}"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t('emailPlaceholder')}
+                inputMode="email"
+                autoComplete="off"
+                maxLength={255}
                 className={
                   'font-mono ' +
-                  (phone && !isValidVnMobile(normalizePreview(phone))
+                  (email && !isValidEmail(email.trim().toLowerCase())
                     ? 'border-danger focus-visible:border-danger'
                     : '')
                 }
               />
               <div className="mt-1.5 text-xs flex items-center justify-between gap-2 flex-wrap">
-                <span className="text-text-faint">
-                  Hệ thống tự chuẩn hoá <code className="font-mono">+84</code> /
-                  khoảng trắng → 10 chữ số.
-                </span>
-                {phone && (
+                <span className="text-text-faint">{t('emailFormatHint')}</span>
+                {email && (
                   <span
                     className={
                       'font-mono tabular ' +
-                      (isValidVnMobile(normalizePreview(phone))
+                      (isValidEmail(email.trim().toLowerCase())
                         ? 'text-success font-semibold'
                         : 'text-danger')
                     }
                   >
-                    {isValidVnMobile(normalizePreview(phone))
-                      ? `→ ${normalizePreview(phone)} ✓`
-                      : '✗ Không hợp lệ (10 chữ số bắt đầu 03/05/07/08/09)'}
+                    {isValidEmail(email.trim().toLowerCase())
+                      ? t('emailValid', { email: email.trim().toLowerCase() })
+                      : t('emailInvalid')}
                   </span>
                 )}
               </div>
@@ -245,7 +235,7 @@ export function AddMemberForm({ actorRole }: AddMemberFormProps) {
 
           <div>
             <Label htmlFor="role">
-              Vai trò <span className="text-danger">*</span>
+              {t('role')} <span className="text-danger">*</span>
             </Label>
             <Select value={role} onValueChange={(v) => setRole(v as typeof role)}>
               <SelectTrigger id="role">
@@ -260,20 +250,18 @@ export function AddMemberForm({ actorRole }: AddMemberFormProps) {
               </SelectContent>
             </Select>
             {actorRole === 'MANAGER' && (
-              <p className="mt-1 text-xs text-text-muted">
-                Manager chỉ có thể tạo Driver hoặc Viewer.
-              </p>
+              <p className="mt-1 text-xs text-text-muted">{t('managerHint')}</p>
             )}
           </div>
 
           <div>
-            <Label htmlFor="department">Phòng ban (tùy chọn)</Label>
+            <Label htmlFor="department">{t('department')}</Label>
             <Input
               id="department"
               type="text"
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
-              placeholder="VD: Vận hành"
+              placeholder={t('departmentPlaceholder')}
               maxLength={30}
             />
           </div>
@@ -285,11 +273,11 @@ export function AddMemberForm({ actorRole }: AddMemberFormProps) {
               onClick={() => router.push('/users')}
               disabled={pending}
             >
-              Hủy
+              {t('cancel')}
             </Button>
             <Button type="submit" variant="accent" disabled={pending}>
               {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Tạo thành viên
+              {t('submit')}
             </Button>
           </div>
         </form>

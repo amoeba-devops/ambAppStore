@@ -63,10 +63,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const messages = await getMessages();
 
   return (
-    /* suppressHydrationWarning here mutes the noise from browser extensions
-     * (Bitdefender, Grammarly, password managers) that inject attributes like
-     * `bis_skin_checked` / `__processed_*` post-SSR. It does NOT mask real
-     * hydration bugs deeper in the tree. */
+    /* suppressHydrationWarning trên <html> + <body> mute noise của browser
+     * extension (Bitdefender, Grammarly, ...) chèn attributes như
+     * `bis_skin_checked` / `__processed_*` post-SSR.
+     *
+     * Previous attempt: thêm inline cleanup <script> nhưng Bitdefender chính
+     * nó REPLACE script content bằng chrome-extension URL → cleanup không
+     * chạy + tạo thêm 1 hydration warning trên <script> tag → tệ hơn.
+     *
+     * Hydration warning về nested `<div hidden bis_skin_checked>` (trong
+     * Next.js metadata boundary) là COSMETIC dev-only noise — không break
+     * functionality. Production users không có extension này sẽ không thấy.
+     * Tài liệu trong README §10 troubleshooting để dev local biết cách bỏ
+     * qua (Bitdefender → Safe Browsing → whitelist localhost). */
     <html lang={locale} className={fontVariables} suppressHydrationWarning>
       <body className="min-h-screen" suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>

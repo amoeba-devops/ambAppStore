@@ -224,10 +224,88 @@ code {
 /* Show full language name on desktop, code-only on mobile (paired with flag). */
 .lang-switch a .lang-name { display: inline; }
 .lang-switch a .lang-code { display: none; }
-@media (max-width: 700px) {
+
+/* Chevron indicator on the active link — only visible on mobile where the
+ * switcher behaves as a dropdown. JS injects this <span class="lang-chevron">
+ * with an inline SVG. */
+.lang-switch .lang-chevron {
+  display: none;
+}
+.lang-switch .lang-chevron svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+.lang-switch.is-open .lang-chevron {
+  transform: rotate(180deg);
+}
+.lang-switch .lang-chevron {
+  transition: transform 180ms ease;
+}
+
+/* 900px matches the sidebar breakpoint so the header collapses to mobile mode
+ * at the same time the sidebar becomes a drawer. Previously this was 700px,
+ * which left tablet-portrait (~768px) showing the desktop pill row even when
+ * the rest of the chrome was already in mobile layout. */
+@media (max-width: 900px) {
   .lang-switch a .lang-name { display: none; }
   .lang-switch a .lang-code { display: inline; font-weight: 700; letter-spacing: 0.02em; }
   .lang-switch a { padding: 6px 10px; gap: 4px; }
+
+  /* Mobile dropdown mode — wrap becomes positioning anchor, active link is
+   * the trigger, inactive links hide by default and reveal as dropdown below
+   * when `.is-open`. */
+  .lang-switch {
+    position: relative;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    gap: 0;
+  }
+  /* Active = trigger pill. Restored bordered look the wrapper used to own. */
+  .lang-switch a.is-active {
+    background: var(--c-surface);
+    color: var(--c-text);
+    border: 1px solid var(--c-border);
+    box-shadow: none;
+    padding: 6px 8px 6px 10px;
+  }
+  .lang-switch.is-open a.is-active {
+    border-color: var(--c-accent);
+    color: var(--c-accent);
+  }
+  /* Inactive items hidden by default on mobile — they're revealed only when
+   * the dropdown is open. */
+  .lang-switch a:not(.is-active) {
+    display: none;
+  }
+  .lang-switch.is-open a:not(.is-active) {
+    display: inline-flex;
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 20;
+    min-width: 100%;
+    justify-content: flex-start;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    /* Slight entry animation so the appearance reads as a panel opening,
+     * not a layout shift. */
+    animation: lang-switch-open 160ms ease;
+  }
+  @keyframes lang-switch-open {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  /* Show chevron on mobile only. */
+  .lang-switch .lang-chevron {
+    display: inline-flex;
+    margin-left: 2px;
+    color: var(--c-text-muted);
+  }
 }
 
 /* ─── Sidebar ──────────────────────────────────────────────────────────────── */
@@ -637,9 +715,9 @@ code {
     grid-template-columns: 1fr;
     grid-template-areas: 'header' 'main';
   }
-  .sidebar {
-    display: none;
-  }
+  /* `.sidebar` mobile styling moved further down — it becomes a slide-in
+   * drawer (see `.sidebar` rule below in this same media query) instead of
+   * being hidden entirely. */
   .header {
     padding: 0 10px;
     gap: 6px;
@@ -730,6 +808,90 @@ code {
   .step {
     grid-template-columns: 28px 1fr;
     gap: 12px;
+  }
+
+  /* ─── Mobile drawer — sidebar slides in from left on demand ────────── */
+  /* Override the desktop `display: none` for sidebar so we can transform it
+   * in/out instead. Hidden by default off-screen; `.is-open` slides into view.
+   *
+   * Use `top: 0` + `bottom: 0` (NOT `height: 100dvh`) — that way the panel is
+   * pinned to both edges of the viewport, so it always fills the full height
+   * even when the mobile URL bar collapses or `dvh` falls back to 100vh in
+   * older browsers. `box-sizing: border-box` so padding doesn't push beyond
+   * those edges. */
+  .sidebar {
+    display: block;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 280px;
+    max-width: 86vw;
+    z-index: 50;
+    box-sizing: border-box;
+    background: var(--c-surface);
+    border-right: 1px solid var(--c-border);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+    transform: translateX(-100%);
+    transition: transform 220ms ease;
+    overflow-y: auto;
+    padding: 16px 12px calc(16px + env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling: touch;
+  }
+  .sidebar.is-open {
+    transform: translateX(0);
+  }
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 36, 0.45);
+    z-index: 40;
+    /* Fade-in via opacity transition. Default state is hidden via the
+     * `hidden` attribute so no transition runs on initial render. */
+    animation: sidebar-backdrop-fade-in 200ms ease;
+  }
+  @keyframes sidebar-backdrop-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* Hamburger toggle — visible only on mobile, pinned at header left. */
+  .header__menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-right: 2px;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    color: var(--c-text);
+    cursor: pointer;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .header__menu-toggle:hover {
+    background: var(--c-surface-2);
+  }
+  .header__menu-toggle:focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: 2px;
+  }
+  .header__menu-icon {
+    width: 22px;
+    height: 22px;
+  }
+  /* Swap bars ↔ X icons based on toggle state. */
+  .header__menu-icon--close { display: none; }
+  .header__menu-toggle[data-open] .header__menu-icon--bars { display: none; }
+  .header__menu-toggle[data-open] .header__menu-icon--close { display: block; }
+}
+
+/* Hamburger button hidden on desktop — sidebar is part of grid layout there. */
+@media (min-width: 901px) {
+  .header__menu-toggle {
+    display: none;
   }
 }
 
