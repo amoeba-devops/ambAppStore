@@ -12,6 +12,8 @@ export interface ProductMetric {
   sku: string;
   nameVi: string;
   nameEn: string;
+  /** Shopee option / variation name (e.g. "Hồng san hô,Nhỏ"). May be empty. */
+  variationName?: string;
   platform: 'SHOPEE' | 'TIKTOK';
   pv: number;
   cvr: number; // 0..1
@@ -36,6 +38,8 @@ export interface ProductMetric {
   isOthers?: boolean;
   /** Shop-wide ad campaigns (Shop Ads / Shop GMV Max) shown as standalone rows. */
   isShopWideAd?: boolean;
+  /** Combo / bundle SKU — split row from the parent product in Product Breakdown. */
+  isCombo?: boolean;
 }
 
 // Hardcoded 5 products (matches design) — same numbers regardless of week for demo.

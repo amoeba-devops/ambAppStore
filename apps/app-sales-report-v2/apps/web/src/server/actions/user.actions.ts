@@ -6,8 +6,10 @@ import { and, asc, eq, ilike, isNull, or, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema, withEnt } from '@v2/db';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
+import { mapAmaRoleToLocal } from '@v2/shared/auth';
 import { SalError, type ActionResult } from '@v2/shared/errors';
 import { logAction } from '@/server/services/action-log.service';
+import { createAmaClient } from '@/server/services/ama-client.service';
 
 const LOCAL_ROLES = ['OPERATOR', 'MANAGER', 'ADMIN'] as const;
 const STATUSES = ['ACTIVE', 'INACTIVE'] as const;
@@ -164,7 +166,19 @@ export async function deactivateUserAction(input: z.infer<typeof statusInputSche
     const user = await getCurrentUser();
     requireRole(user.role, ['ADMIN']);
     const parsed = statusInputSchema.parse(input);
-    if (parsed.usrId === user.userId) {
+    // Load the target row first so we can compare its AMA user id (not the
+    // local PK) against the caller's AMA sub.
+    const target = await db
+      .select({ usrAmaUserId: schema.salUsers.usrAmaUserId })
+      .from(schema.salUsers)
+      .where(
+        and(
+          withEnt(schema.salUsers.entId, user.entId),
+          eq(schema.salUsers.usrId, parsed.usrId),
+        ),
+      )
+      .limit(1);
+    if (target[0]?.usrAmaUserId === user.userId) {
       throw new SalError('SAL-E0061', 400, 'Cannot deactivate your own account');
     }
     const result = await db
@@ -242,6 +256,111 @@ const inviteInputSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   role: z.enum(LOCAL_ROLES),
 });
+
+export interface SyncSummary {
+  inserted: number;
+  updated: number;
+  deactivated: number;
+  total: number;
+}
+
+/**
+ * Bulk-sync entity members from AMA into sal_users.
+ * - New AMA members → INSERT with mapped role + status=INACTIVE (admin reviews).
+ * - Existing users → UPDATE name/email/ama_role_snapshot (preserve local role + status).
+ * - Users no longer in AMA → set status=INACTIVE (never hard-delete; FK from action logs).
+ * - Current admin is never auto-deactivated.
+ *
+ * Idempotent: running twice gives the same DB state.
+ */
+export async function syncFromAmaAction(): Promise<ActionResult<SyncSummary>> {
+  return wrap(async () => {
+    const user = await getCurrentUser();
+    requireRole(user.role, ['ADMIN']);
+
+    const amaClient = createAmaClient();
+    const amaMembers = await amaClient.fetchEntityMembers(user.entId);
+    const amaIds = new Set(amaMembers.map((m) => m.amaUserId));
+
+    const existing = await db
+      .select()
+      .from(schema.salUsers)
+      .where(
+        and(
+          withEnt(schema.salUsers.entId, user.entId),
+          isNull(schema.salUsers.usrDeletedAt),
+        ),
+      );
+    const existingByAmaId = new Map(existing.map((u) => [u.usrAmaUserId, u]));
+
+    let inserted = 0;
+    let updated = 0;
+    let deactivated = 0;
+
+    for (const member of amaMembers) {
+      const found = existingByAmaId.get(member.amaUserId);
+      if (found) {
+        await db
+          .update(schema.salUsers)
+          .set({
+            usrEmail: member.email,
+            usrName: member.name,
+            usrAmaRoleSnapshot: member.amaRole,
+            usrUpdatedAt: new Date(),
+          })
+          .where(eq(schema.salUsers.usrId, found.usrId));
+        updated++;
+      } else {
+        await db
+          .insert(schema.salUsers)
+          .values({
+            usrId: randomUUID(),
+            entId: user.entId,
+            usrAmaUserId: member.amaUserId,
+            usrEmail: member.email,
+            usrName: member.name,
+            usrLocalRole: mapAmaRoleToLocal(member.amaRole),
+            usrAmaRoleSnapshot: member.amaRole,
+            usrStatus: 'INACTIVE',
+          })
+          .onConflictDoNothing();
+        inserted++;
+      }
+    }
+
+    for (const found of existing) {
+      if (amaIds.has(found.usrAmaUserId)) continue;
+      if (found.usrStatus === 'INACTIVE') continue;
+      // Self-protect: user.userId is the AMA sub (claim from JWT), not the
+      // local sal_users PK — compare against usrAmaUserId.
+      if (found.usrAmaUserId === user.userId) continue;
+      await db
+        .update(schema.salUsers)
+        .set({ usrStatus: 'INACTIVE', usrUpdatedAt: new Date() })
+        .where(eq(schema.salUsers.usrId, found.usrId));
+      deactivated++;
+    }
+
+    const summary: SyncSummary = {
+      inserted,
+      updated,
+      deactivated,
+      total: amaMembers.length,
+    };
+
+    await logAction({
+      user,
+      category: 'OTHER',
+      verb: 'synced from AMA',
+      targetType: 'user',
+      targetId: 'bulk',
+      targetLabel: 'AMA entity members',
+      summary: `inserted ${inserted} · updated ${updated} · deactivated ${deactivated}`,
+    });
+
+    return summary;
+  });
+}
 
 /**
  * Pre-register a user by email so they appear in the list with a chosen role

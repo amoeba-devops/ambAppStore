@@ -23,35 +23,44 @@ interface PrimeCostFormModalProps {
 interface FormState {
   productId: string;
   variationId: string;
+  variationName: string;
   productNameVi: string;
   productNameEn: string;
   skuCode: string;
   primeCostVnd: string;
   sellingPriceVnd: string;
   listingPriceVnd: string;
+  isCombo: boolean;
+  comboComponentSkus: string;
 }
 
 const EMPTY: FormState = {
   productId: '',
   variationId: '',
+  variationName: '',
   productNameVi: '',
   productNameEn: '',
   skuCode: '',
   primeCostVnd: '',
   sellingPriceVnd: '',
   listingPriceVnd: '',
+  isCombo: false,
+  comboComponentSkus: '',
 };
 
 function fromRow(r: PrimeCostRow): FormState {
   return {
     productId: r.productId ?? '',
     variationId: r.variationId ?? '',
+    variationName: r.variationName ?? '',
     productNameVi: r.productNameVi,
     productNameEn: r.productNameEn ?? '',
     skuCode: r.skuCode,
     primeCostVnd: String(r.primeCostVnd),
     sellingPriceVnd: r.sellingPriceVnd != null ? String(r.sellingPriceVnd) : '',
     listingPriceVnd: r.listingPriceVnd != null ? String(r.listingPriceVnd) : '',
+    isCombo: r.isCombo ?? false,
+    comboComponentSkus: (r.comboMeta?.componentSkus ?? []).join('_'),
   };
 }
 
@@ -98,15 +107,25 @@ export function PrimeCostFormModal({ open, initial, onClose, onSaved }: PrimeCos
     }
 
     setSubmitting(true);
+    const componentSkus = form.comboComponentSkus
+      .split('_')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    const comboMeta =
+      form.isCombo && componentSkus.length > 0 ? { componentSkus } : null;
+
     const payload = {
       productId: form.productId.trim() || null,
       variationId: form.variationId.trim() || null,
+      variationName: form.variationName.trim() || null,
       productNameVi: form.productNameVi.trim(),
       productNameEn: form.productNameEn.trim() || null,
       skuCode: form.skuCode.trim(),
       primeCostVnd: primeCost,
       sellingPriceVnd: parseNumeric(form.sellingPriceVnd),
       listingPriceVnd: parseNumeric(form.listingPriceVnd),
+      isCombo: form.isCombo,
+      comboMeta,
     };
 
     const res = isEdit
@@ -146,6 +165,12 @@ export function PrimeCostFormModal({ open, initial, onClose, onSaved }: PrimeCos
             <Field label={t('labelProductId')} value={form.productId} onChange={(v) => set('productId', v)} placeholder="44409304528" mono />
             <Field label={t('labelVariationId')} value={form.variationId} onChange={(v) => set('variationId', v)} placeholder="243646783891" mono />
 
+            <Field
+              label={t('labelVariationName')}
+              value={form.variationName}
+              onChange={(v) => set('variationName', v)}
+              placeholder="Phới nhỏ / Combo nhỏ + lớn"
+            />
             <Field
               label={t('labelProductVi')}
               value={form.productNameVi}
@@ -197,6 +222,33 @@ export function PrimeCostFormModal({ open, initial, onClose, onSaved }: PrimeCos
               type="number"
             />
           </div>
+
+          <label className="flex items-center gap-2 rounded-md border border-neutral-200 bg-neutral-50/60 px-3 py-2.5 text-sm cursor-pointer hover:bg-neutral-100">
+            <input
+              type="checkbox"
+              checked={form.isCombo}
+              onChange={(e) => set('isCombo', e.target.checked)}
+              className="h-4 w-4 rounded border-neutral-300 text-accent-700 focus:ring-2 focus:ring-accent-700/30"
+            />
+            <span className="flex-1">
+              <span className="font-medium text-neutral-900">{t('labelIsCombo')}</span>
+              <span className="ml-2 text-xs text-neutral-500">{t('hintIsCombo')}</span>
+            </span>
+          </label>
+
+          {form.isCombo && (
+            <div className="space-y-3 rounded-md border border-warning-500/30 bg-warning-50/40 px-3 py-3">
+              <p className="text-xs text-neutral-600">{t('comboMetaHint')}</p>
+              <Field
+                label={t('labelComboComponentSkus')}
+                value={form.comboComponentSkus}
+                onChange={(v) => set('comboComponentSkus', v)}
+                placeholder="SAFG26U0004_SAFG26U0003"
+                mono
+                hint={t('hintComboComponentSkus')}
+              />
+            </div>
+          )}
 
           {error && (
             <div className="rounded-md border border-error-500 bg-error-50 px-3 py-2 text-sm text-error-500">

@@ -16,6 +16,8 @@
       "uploadReports": "Upload Reports",
       "rawArchive": "Raw Archive",
       "primeCost": "Prime Cost",
+      "sellingPrice": "Selling Price",
+      "listingPrice": "Listing Price",
       "weeklyReport": "Weekly Report",
       "monthlyReport": "Monthly Report",
       "trendingReport": "Trending Report",
@@ -32,7 +34,9 @@
     "upload": "Upload Reports",
     "rawArchive": "Raw Archive",
     "manualInput": "Manual Cost Input",
-    "primeCost": "Prime Cost Master",
+    "primeCost": "Prime Cost",
+    "sellingPrice": "Selling Price",
+    "listingPrice": "Listing Price",
     "weeklyReport": "Weekly Report",
     "monthlyReport": "Monthly Report",
     "trendingReport": "Trending Report",
@@ -78,7 +82,9 @@
     "actions": "Actions",
     "createdAt": "Created at",
     "dash": "—",
-    "currentUser": "Current user"
+    "currentUser": "Current user",
+    "change": "Change",
+    "empty": "No results"
   },
   "role": {
     "admin": "Admin",
@@ -116,11 +122,13 @@
         "edit": "Edit",
         "resetPwd": "Reset pwd",
         "activate": "Activate",
-        "deactivate": "Deactivate"
+        "deactivate": "Deactivate",
+        "syncFromAma": "Sync from AMA"
       },
       "confirm": {
         "deactivate": "Deactivate {target}? They won't be able to access this app.",
-        "resetPwd": "Send password reset reminder for {email}?\nNote: Passwords are managed by AMA. This logs the request only."
+        "resetPwd": "Send password reset reminder for {email}?\nNote: Passwords are managed by AMA. This logs the request only.",
+        "syncFromAma": "Bulk sync from AMA — new members will be added as INACTIVE for your review, and members no longer in AMA will be deactivated. Proceed?"
       },
       "toast": {
         "deactivated": "User deactivated",
@@ -129,7 +137,8 @@
         "resetMock": "Reset request logged (mock). Direct user to ama.amoeba.site",
         "resetReal": "Reset request logged. Direct user to ama.amoeba.site",
         "updated": "User updated",
-        "added": "User added"
+        "added": "User added",
+        "synced": "Sync complete · New: {inserted} · Updated: {updated} · Deactivated: {deactivated}"
       }
     },
     "form": {
@@ -345,6 +354,7 @@
       "searchPlaceholder": "Search SKU or product…",
       "empty": "No products match.",
       "total": "TOTAL",
+      "comboBadge": "Combo",
       "col": {
         "no": "No",
         "sku": "SKU",
@@ -847,6 +857,9 @@
       "sellingPrice": "Selling Price",
       "listingPrice": "Listing Price",
       "effectiveFrom": "Effective From",
+      "effectivePrime": "Prime Eff.",
+      "effectiveSelling": "Sell Eff.",
+      "effectiveListing": "List Eff.",
       "versionCount": "{count} versions",
       "lastUpdated": "Last updated",
       "actions": "Actions"
@@ -860,10 +873,15 @@
     "version": {
       "add": "Add new version",
       "effectiveFrom": "Effective From",
-      "effectiveFromDesc": "Orders placed on/after this date will use this cost. Cannot be more than 30 days in the future.",
+      "effectiveFromDesc": "Orders placed on/after this date will use this value. Cannot be more than 30 days in the future.",
       "sourceNote": "Source / Note",
+      "tab": {
+        "prime": "Prime Cost",
+        "selling": "Selling",
+        "listing": "Listing"
+      },
       "history": {
-        "title": "Prime cost version history",
+        "title": "Version history",
         "empty": "No versions yet.",
         "latestBadge": "Latest"
       },
@@ -898,22 +916,31 @@
       "inserted": "Inserted",
       "updated": "Updated",
       "versionsAdded": "Versions",
+      "primeVersionsAdded": "Prime versions",
+      "sellingVersionsAdded": "Selling versions",
+      "listingVersionsAdded": "Listing versions",
       "errors": "Errors",
       "rowsSkipped": "Rows skipped",
       "rowPrefix": "Row {index}",
       "close": "Close"
     },
     "form": {
-      "titleAdd": "Add Prime Cost row",
-      "titleEdit": "Edit Prime Cost row",
+      "titleAdd": "Add SKU",
+      "titleEdit": "Edit SKU",
       "labelProductId": "Product ID",
       "labelVariationId": "Variation ID",
+      "labelVariationName": "Variation Name",
       "labelProductVi": "Product name (VI) *",
       "labelProductEn": "Product name (EN)",
       "labelSku": "SKU *",
       "labelPrimeCost": "Prime Cost (VND) *",
       "labelSellingPrice": "Selling Price (VND)",
       "labelListingPrice": "Listing Price (VND)",
+      "labelIsCombo": "Mark as Combo / Bundle",
+      "hintIsCombo": "Splits this SKU into its own row in Product Breakdown.",
+      "comboMetaHint": "Optional reference data — Phase 1: not used by the calculator yet.",
+      "labelComboComponentSkus": "Component SKUs",
+      "hintComboComponentSkus": "Separated by underscore (_). E.g. SAFG26U0004_SAFG26U0003",
       "krwHint": "≈ {value} KRW (rate 17.543)",
       "errorPrimeCost": "Prime Cost is required and must be a valid number",
       "errorRequired": "Product name (VI) and SKU are required",
@@ -921,6 +948,75 @@
       "submitAdd": "Add row",
       "submitEdit": "Save changes",
       "saving": "Saving…"
+    }
+  },
+  "priceVersion": {
+    "title": {
+      "prime": "Prime Cost",
+      "selling": "Selling Price",
+      "listing": "Listing Price"
+    },
+    "subtitle": {
+      "prime": "All prime-cost version changes across SKUs, newest first. Each row shows the value, when it took effect, and when it was recorded.",
+      "selling": "All selling-price version changes across SKUs, newest first. Used by Shopee Net GMV calculation per order date.",
+      "listing": "All listing-price version changes across SKUs, newest first. Used by TikTok GMV calculation per order date."
+    },
+    "field": {
+      "prime": "Prime Cost",
+      "selling": "Selling Price",
+      "listing": "Listing Price"
+    },
+    "searchPlaceholder": "SKU, product name…",
+    "comboFilter": {
+      "all": "All",
+      "combo": "Combo only",
+      "nonCombo": "Non-combo only"
+    },
+    "badge": {
+      "versionCount": "{count} versions",
+      "combo": "Combo"
+    },
+    "action": {
+      "addSku": "Add SKU",
+      "addVersion": "Add Version",
+      "editSku": "Edit",
+      "deleteVersion": "Delete"
+    },
+    "column": {
+      "sku": "SKU",
+      "productVi": "Product (VI)",
+      "variationName": "Variation",
+      "vnd": "VND",
+      "krw": "KRW",
+      "effectiveFrom": "Effective From",
+      "createdAt": "Recorded At",
+      "sourceNote": "Source / Note"
+    },
+    "footer": {
+      "count": "Showing {visible} of {total} versions",
+      "groupedCount": "{skus} SKUs · {versions} versions"
+    },
+    "group": {
+      "expand": "Show {count} versions",
+      "collapse": "Collapse",
+      "versionCount": "{count} versions",
+      "versionLabel": "↳ older version"
+    },
+    "empty": {
+      "search": "No versions match your search.",
+      "initial": "No versions yet. Click \"+ Add Version\" or \"+ Add SKU\" to start."
+    },
+    "delete": {
+      "confirm": "Delete version of {sku} effective from {date}? This cannot be undone.",
+      "success": "Version deleted."
+    },
+    "error": {
+      "skuRequired": "Pick a SKU first."
+    },
+    "addModal": {
+      "title": "Add {field} Version",
+      "sku": "SKU",
+      "skuSearch": "Search SKU or product name…"
     }
   },
   "activityLog": {

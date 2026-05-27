@@ -172,6 +172,52 @@ export interface ArchivedFile {
  * by the Upload wizard to preload "Previously uploaded files" panel when
  * re-ingesting an Active period.
  */
+/**
+ * Load the raw bytes + metadata of the active archived file for a
+ * (period, channel, type) triple. Returns null when no archive exists.
+ * Used by re-ingest to combine previously-uploaded files with newly-added
+ * ones in Step 2.
+ */
+export async function loadActiveArchiveBuffer(input: {
+  entId: string;
+  granularity: ArchiveGranularity;
+  weekNum?: number | null;
+  monthIdx?: number | null;
+  year: number;
+  channel: ArchiveChannel;
+  fileType: ArchiveFileType;
+}): Promise<{ buffer: ArrayBuffer; filename: string; size: number } | null> {
+  const conditions = [
+    withEnt(schema.salArchiveFiles.entId, input.entId),
+    eq(schema.salArchiveFiles.arfGranularity, input.granularity),
+    eq(schema.salArchiveFiles.arfYear, input.year),
+    eq(schema.salArchiveFiles.arfChannel, input.channel),
+    eq(schema.salArchiveFiles.arfFileType, input.fileType),
+    isNull(schema.salArchiveFiles.arfReplacedAt),
+  ];
+  if (input.granularity === 'WEEKLY' && input.weekNum != null) {
+    conditions.push(eq(schema.salArchiveFiles.arfWeekNum, input.weekNum));
+  } else if (input.monthIdx != null) {
+    conditions.push(eq(schema.salArchiveFiles.arfMonthIdx, input.monthIdx));
+  }
+  const rows = await db
+    .select({
+      bytes: schema.salArchiveFiles.arfRawBytes,
+      filename: schema.salArchiveFiles.arfFilename,
+      sizeBytes: schema.salArchiveFiles.arfSizeBytes,
+    })
+    .from(schema.salArchiveFiles)
+    .where(and(...conditions))
+    .limit(1);
+  const row = rows[0];
+  if (!row || row.bytes == null) return null;
+  const buf = Buffer.isBuffer(row.bytes) ? row.bytes : Buffer.from(row.bytes as Uint8Array);
+  // Slice to a standalone ArrayBuffer (parsers expect plain ArrayBuffer, not a
+  // Buffer pooled-view into a larger backing store).
+  const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+  return { buffer: ab, filename: row.filename, size: Number(row.sizeBytes) };
+}
+
 export async function listArchiveFilesForPeriod(input: {
   entId: string;
   granularity: ArchiveGranularity;

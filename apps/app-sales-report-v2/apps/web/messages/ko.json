@@ -16,6 +16,8 @@
       "uploadReports": "리포트 업로드",
       "rawArchive": "원본 아카이브",
       "primeCost": "원가",
+      "sellingPrice": "판매가",
+      "listingPrice": "정상가",
       "weeklyReport": "주간 리포트",
       "monthlyReport": "월간 리포트",
       "trendingReport": "추세 리포트",
@@ -32,7 +34,9 @@
     "upload": "리포트 업로드",
     "rawArchive": "원본 아카이브",
     "manualInput": "수동 비용 입력",
-    "primeCost": "원가 마스터",
+    "primeCost": "원가",
+    "sellingPrice": "판매가",
+    "listingPrice": "정상가",
     "weeklyReport": "주간 리포트",
     "monthlyReport": "월간 리포트",
     "trendingReport": "추세 리포트",
@@ -78,7 +82,9 @@
     "actions": "작업",
     "createdAt": "생성 일시",
     "dash": "—",
-    "currentUser": "현재 사용자"
+    "currentUser": "현재 사용자",
+    "change": "변경",
+    "empty": "결과 없음"
   },
   "role": {
     "admin": "관리자",
@@ -116,11 +122,13 @@
         "edit": "수정",
         "resetPwd": "비밀번호 재설정",
         "activate": "활성화",
-        "deactivate": "비활성화"
+        "deactivate": "비활성화",
+        "syncFromAma": "AMA에서 동기화"
       },
       "confirm": {
         "deactivate": "{target} 계정을 비활성화하시겠습니까? 이 앱에 접근할 수 없게 됩니다.",
-        "resetPwd": "{email} 의 비밀번호 재설정 안내를 보내시겠습니까?\n비밀번호는 AMA가 관리합니다. 이 요청은 로그만 남깁니다."
+        "resetPwd": "{email} 의 비밀번호 재설정 안내를 보내시겠습니까?\n비밀번호는 AMA가 관리합니다. 이 요청은 로그만 남깁니다.",
+        "syncFromAma": "AMA에서 일괄 동기화합니다 — 신규 멤버는 비활성 상태로 추가되어 관리자 검토를 기다리고, AMA에 더 이상 없는 멤버는 비활성화됩니다. 계속하시겠습니까?"
       },
       "toast": {
         "deactivated": "사용자가 비활성화되었습니다",
@@ -129,7 +137,8 @@
         "resetMock": "재설정 요청이 기록되었습니다 (mock). 사용자를 ama.amoeba.site 로 안내하세요",
         "resetReal": "재설정 요청이 기록되었습니다. 사용자를 ama.amoeba.site 로 안내하세요",
         "updated": "사용자가 수정되었습니다",
-        "added": "사용자가 추가되었습니다"
+        "added": "사용자가 추가되었습니다",
+        "synced": "동기화 완료 · 신규: {inserted} · 업데이트: {updated} · 비활성화: {deactivated}"
       }
     },
     "form": {
@@ -345,6 +354,7 @@
       "searchPlaceholder": "SKU 또는 상품명 검색…",
       "empty": "조건에 맞는 상품이 없습니다.",
       "total": "합계",
+      "comboBadge": "콤보",
       "col": {
         "no": "번호",
         "sku": "SKU",
@@ -847,6 +857,9 @@
       "sellingPrice": "판매가",
       "listingPrice": "정상가",
       "effectiveFrom": "적용 시작",
+      "effectivePrime": "원가 적용",
+      "effectiveSelling": "판매가 적용",
+      "effectiveListing": "정상가 적용",
       "versionCount": "버전 {count}개",
       "lastUpdated": "최근 수정",
       "actions": "작업"
@@ -860,10 +873,15 @@
     "version": {
       "add": "새 버전 추가",
       "effectiveFrom": "적용 시작일",
-      "effectiveFromDesc": "이 날짜 이후 주문에 해당 원가가 적용됩니다. 30일 이상 미래 날짜는 불가합니다.",
+      "effectiveFromDesc": "이 날짜 이후 주문에 해당 값이 적용됩니다. 30일 이상 미래 날짜는 불가합니다.",
       "sourceNote": "출처 / 메모",
+      "tab": {
+        "prime": "원가",
+        "selling": "판매가",
+        "listing": "정상가"
+      },
       "history": {
-        "title": "원가 버전 이력",
+        "title": "버전 이력",
         "empty": "버전이 없습니다.",
         "latestBadge": "최신"
       },
@@ -898,22 +916,31 @@
       "inserted": "추가",
       "updated": "수정",
       "versionsAdded": "버전",
+      "primeVersionsAdded": "원가 버전",
+      "sellingVersionsAdded": "판매가 버전",
+      "listingVersionsAdded": "정상가 버전",
       "errors": "오류",
       "rowsSkipped": "건너뛴 행",
       "rowPrefix": "행 {index}",
       "close": "닫기"
     },
     "form": {
-      "titleAdd": "원가 행 추가",
-      "titleEdit": "원가 행 수정",
+      "titleAdd": "SKU 추가",
+      "titleEdit": "SKU 수정",
       "labelProductId": "상품 ID",
       "labelVariationId": "변형 ID",
+      "labelVariationName": "변형 이름",
       "labelProductVi": "상품명 (VI) *",
       "labelProductEn": "상품명 (EN)",
       "labelSku": "SKU *",
       "labelPrimeCost": "원가 (VND) *",
       "labelSellingPrice": "판매가 (VND)",
       "labelListingPrice": "정상가 (VND)",
+      "labelIsCombo": "콤보 / 번들로 표시",
+      "hintIsCombo": "Product Breakdown에서 별도 행으로 분리됩니다.",
+      "comboMetaHint": "선택 참고 데이터 — Phase 1: 계산기에서 사용하지 않습니다.",
+      "labelComboComponentSkus": "구성 SKU 목록",
+      "hintComboComponentSkus": "밑줄(_)로 구분. 예: SAFG26U0004_SAFG26U0003",
       "krwHint": "≈ {value} KRW (환율 17.543)",
       "errorPrimeCost": "원가는 필수이며 유효한 숫자여야 합니다",
       "errorRequired": "상품명 (VI) 과 SKU 는 필수입니다",
@@ -921,6 +948,75 @@
       "submitAdd": "행 추가",
       "submitEdit": "변경 사항 저장",
       "saving": "저장 중…"
+    }
+  },
+  "priceVersion": {
+    "title": {
+      "prime": "원가",
+      "selling": "판매가",
+      "listing": "정상가"
+    },
+    "subtitle": {
+      "prime": "모든 SKU의 원가 버전 변경 이력 (최신순). 각 행은 값, 적용 시작일, 기록 시각을 보여줍니다.",
+      "selling": "모든 SKU의 판매가 버전 변경 이력 (최신순). 쇼피 Net GMV 계산에 주문일 기준으로 적용됩니다.",
+      "listing": "모든 SKU의 정상가 버전 변경 이력 (최신순). 틱톡 GMV 계산에 주문일 기준으로 적용됩니다."
+    },
+    "field": {
+      "prime": "원가",
+      "selling": "판매가",
+      "listing": "정상가"
+    },
+    "searchPlaceholder": "SKU, 상품명…",
+    "comboFilter": {
+      "all": "전체",
+      "combo": "콤보만",
+      "nonCombo": "콤보 제외"
+    },
+    "badge": {
+      "versionCount": "버전 {count}개",
+      "combo": "콤보"
+    },
+    "action": {
+      "addSku": "SKU 추가",
+      "addVersion": "버전 추가",
+      "editSku": "수정",
+      "deleteVersion": "삭제"
+    },
+    "column": {
+      "sku": "SKU",
+      "productVi": "상품명 (VI)",
+      "variationName": "변형",
+      "vnd": "VND",
+      "krw": "KRW",
+      "effectiveFrom": "적용 시작일",
+      "createdAt": "기록 일시",
+      "sourceNote": "출처 / 메모"
+    },
+    "footer": {
+      "count": "{visible} / 총 {total} 버전",
+      "groupedCount": "SKU {skus}개 · 버전 {versions}개"
+    },
+    "group": {
+      "expand": "버전 {count}개 보기",
+      "collapse": "접기",
+      "versionCount": "버전 {count}개",
+      "versionLabel": "↳ 이전 버전"
+    },
+    "empty": {
+      "search": "검색 결과가 없습니다.",
+      "initial": "버전이 없습니다. \"+ 버전 추가\" 또는 \"+ SKU 추가\" 로 시작하세요."
+    },
+    "delete": {
+      "confirm": "{sku} 의 {date} 적용 버전을 삭제하시겠습니까? 되돌릴 수 없습니다.",
+      "success": "버전이 삭제되었습니다."
+    },
+    "error": {
+      "skuRequired": "먼저 SKU 를 선택하세요."
+    },
+    "addModal": {
+      "title": "{field} 버전 추가",
+      "sku": "SKU",
+      "skuSearch": "SKU 또는 상품명으로 검색…"
     }
   },
   "activityLog": {

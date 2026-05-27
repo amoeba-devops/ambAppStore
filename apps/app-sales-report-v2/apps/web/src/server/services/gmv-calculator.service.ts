@@ -24,6 +24,14 @@ export interface PrimeCostVersion {
   breakdown: Record<string, unknown> | null;
 }
 
+/** One row from `sal_selling_price_versions` or `sal_listing_price_versions`. */
+export interface PriceVersion {
+  /** ISO `YYYY-MM-DD`. */
+  effectiveFrom: string;
+  /** Per-unit price in VND. */
+  valueVnd: number;
+}
+
 /** Prime cost master keyed by SKU code — passed in from caller (DB lookup). */
 export interface PrimeCostMaster {
   /**
@@ -33,14 +41,26 @@ export interface PrimeCostMaster {
    * to honour versioning instead of reading this field directly.
    */
   primeCost: number;
-  /** Per-unit selling price in VND (for Shopee Net GMV). Phase 1: not versioned. */
+  /** Latest effective selling price in VND. Calculators must use `findSellingPrice` to honour versioning. */
   sellingPrice: number;
-  /** Per-unit listing price in VND (for TikTok GMV). Phase 1: not versioned. */
+  /** Latest effective listing price in VND. Calculators must use `findListingPrice` to honour versioning. */
   listingPrice: number;
   /** English product name (for Product Breakdown display). May be empty. */
   productNameEn: string;
-  /** Versions sorted DESC by `effectiveFrom`. ≥1 row when SKU exists. */
+  /** Shopee option / variation name (e.g. "Hồng san hô,Nhỏ"). May be empty. */
+  variationName: string;
+  /**
+   * Combo / bundle flag. When true, Product Breakdown renders this SKU as a
+   * separate row from the parent product (it's split out of the regular-option
+   * aggregation). Set via the "Mark as combo" checkbox in RFR Data → SKU edit.
+   */
+  isCombo: boolean;
+  /** Prime cost versions sorted DESC by `effectiveFrom`. ≥1 row when SKU exists. */
   versions: PrimeCostVersion[];
+  /** Selling-price versions sorted DESC by `effectiveFrom`. May be empty (SKU never had selling). */
+  sellingVersions: PriceVersion[];
+  /** Listing-price versions sorted DESC by `effectiveFrom`. May be empty (SKU never had listing). */
+  listingVersions: PriceVersion[];
 }
 export type PrimeCostMap = Map<string, PrimeCostMaster>;
 
@@ -63,6 +83,37 @@ export function findPrimeCost(master: PrimeCostMaster | undefined, orderDate: st
     if (v.effectiveFrom <= orderDate) return v.primeCost;
   }
   return master.primeCost;
+}
+
+/**
+ * Resolve the per-unit selling price for a Shopee row given the order date.
+ * Mirrors {@link findPrimeCost}: scans DESC, returns the latest version whose
+ * `effectiveFrom <= orderDate`. Empty version list or missing date → falls
+ * back to the master's flat `sellingPrice` (which is the latest cached value).
+ */
+export function findSellingPrice(
+  master: PrimeCostMaster | undefined,
+  orderDate: string,
+): number {
+  if (!master) return 0;
+  if (!orderDate || master.sellingVersions.length === 0) return master.sellingPrice;
+  for (const v of master.sellingVersions) {
+    if (v.effectiveFrom <= orderDate) return v.valueVnd;
+  }
+  return master.sellingPrice;
+}
+
+/** TikTok-equivalent of {@link findSellingPrice} for listing price. */
+export function findListingPrice(
+  master: PrimeCostMaster | undefined,
+  orderDate: string,
+): number {
+  if (!master) return 0;
+  if (!orderDate || master.listingVersions.length === 0) return master.listingPrice;
+  for (const v of master.listingVersions) {
+    if (v.effectiveFrom <= orderDate) return v.valueVnd;
+  }
+  return master.listingPrice;
 }
 
 export interface ShopeeMetricsResult {
@@ -138,7 +189,10 @@ export interface ShopeeMetricsResult {
   productBreakdown: Array<{
     productName: string;
     productNameEn: string;
+    variationName: string;
     representativeSku: string;
+    /** True when this row aggregates combo / bundle SKUs (split from parent product). */
+    isCombo: boolean;
     gmv: number;
     netGmv: number;
     nmv: number;
@@ -296,7 +350,7 @@ export function computeShopeeMetrics(
   const missingByProduct = new Map<string, { sku: string; productName: string; units: number; gmvContribution: number }>();
   const productAgg = new Map<
     string,
-    { gmv: number; netGmv: number; nmv: number; sellerDiscount: number; primeCost: number; units: number; skus: Set<string>; nameEn: string }
+    { gmv: number; netGmv: number; nmv: number; sellerDiscount: number; primeCost: number; units: number; skus: Set<string>; nameEn: string; variationName: string; isCombo: boolean }
   >();
   const giftAgg = new Map<
     string,
@@ -396,7 +450,7 @@ export function computeShopeeMetrics(
       missingByProduct.set(key, prev);
     }
 
-    const sellingPrice = master?.sellingPrice ?? 0;
+    const sellingPrice = findSellingPrice(master, row.orderDate);
     const primeCost = rowPrimeCost;
     const netGmvRow = sellingPrice * itemSold;
     const primeCostRow = primeCost * itemSold;
@@ -410,12 +464,30 @@ export function computeShopeeMetrics(
     primeCostKept += primeCostRow;
     kept++;
 
-    let agg = productAgg.get(row.productName);
+    // Each SKU renders as a separate row in Product Breakdown — even when
+    // multiple SKUs share the same product name (typical for Shopee
+    // variations). Aggregation key = `productName|varSku`. Combo flag still
+    // surfaces as a visual badge on the row.
+    const isCombo = master?.isCombo ?? false;
+    const aggKey = `${row.productName}|${row.varSku}`;
+    let agg = productAgg.get(aggKey);
     if (!agg) {
-      agg = { gmv: 0, netGmv: 0, nmv: 0, sellerDiscount: 0, primeCost: 0, units: 0, skus: new Set(), nameEn: master?.productNameEn ?? '' };
-      productAgg.set(row.productName, agg);
-    } else if (!agg.nameEn && master?.productNameEn) {
-      agg.nameEn = master.productNameEn;
+      agg = {
+        gmv: 0,
+        netGmv: 0,
+        nmv: 0,
+        sellerDiscount: 0,
+        primeCost: 0,
+        units: 0,
+        skus: new Set(),
+        nameEn: master?.productNameEn ?? '',
+        variationName: master?.variationName ?? '',
+        isCombo,
+      };
+      productAgg.set(aggKey, agg);
+    } else {
+      if (!agg.nameEn && master?.productNameEn) agg.nameEn = master.productNameEn;
+      if (!agg.variationName && master?.variationName) agg.variationName = master.variationName;
     }
     agg.gmv += gmv;
     agg.netGmv += netGmvRow;
@@ -436,19 +508,26 @@ export function computeShopeeMetrics(
   }
 
   const productBreakdown = [...productAgg.entries()]
-    .map(([productName, agg]) => ({
-      productName,
-      productNameEn: agg.nameEn,
-      representativeSku: [...agg.skus][0] ?? '',
-      gmv: agg.gmv,
-      netGmv: agg.netGmv,
-      nmv: agg.nmv,
-      sellerDiscount: agg.sellerDiscount,
-      primeCost: agg.primeCost,
-      units: agg.units,
-      skuCount: agg.skus.size,
-      pageViews: pvByProduct.get(productName.normalize('NFC').trim()) ?? 0,
-    }))
+    .map(([aggKey, agg]) => {
+      // aggKey shape: `${productName}|${combo|regular}` — strip the suffix.
+      const sepIdx = aggKey.lastIndexOf('|');
+      const productName = sepIdx >= 0 ? aggKey.slice(0, sepIdx) : aggKey;
+      return {
+        productName,
+        productNameEn: agg.nameEn,
+        variationName: agg.variationName,
+        representativeSku: [...agg.skus][0] ?? '',
+        isCombo: agg.isCombo,
+        gmv: agg.gmv,
+        netGmv: agg.netGmv,
+        nmv: agg.nmv,
+        sellerDiscount: agg.sellerDiscount,
+        primeCost: agg.primeCost,
+        units: agg.units,
+        skuCount: agg.skus.size,
+        pageViews: pvByProduct.get(productName.normalize('NFC').trim()) ?? 0,
+      };
+    })
     .sort((a, b) => b.gmv - a.gmv);
 
   const giftBreakdown = [...giftAgg.entries()]

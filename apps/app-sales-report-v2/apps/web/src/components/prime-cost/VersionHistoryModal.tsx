@@ -9,6 +9,12 @@ import {
   addPrimeCostVersionAction,
   listPrimeCostVersionsAction,
   softDeletePrimeCostVersionAction,
+  addSellingPriceVersionAction,
+  listSellingPriceVersionsAction,
+  softDeleteSellingPriceVersionAction,
+  addListingPriceVersionAction,
+  listListingPriceVersionsAction,
+  softDeleteListingPriceVersionAction,
 } from '@/server/actions/prime-cost.actions';
 
 const KRW_RATE = 17.543;
@@ -16,15 +22,18 @@ const KRW_RATE = 17.543;
 function fmtVnd(value: number): string {
   return new Intl.NumberFormat('vi-VN').format(Math.round(value));
 }
-
 function fmtKrw(vnd: number): string {
   return new Intl.NumberFormat('ko-KR').format(Math.round(vnd / KRW_RATE));
 }
 
-interface VersionRow {
-  pcvId: string;
+export type VersionTab = 'prime' | 'selling' | 'listing';
+
+interface UnifiedVersionRow {
+  /** UUID — `pcvId` for prime, `spvId` for selling, `lpvId` for listing. */
+  id: string;
   effectiveFrom: string;
-  primeCostVnd: number;
+  valueVnd: number;
+  /** Prime-cost only — selling/listing have no breakdown. */
   breakdown: Record<string, unknown> | null;
   sourceNote: string | null;
   createdBy: string;
@@ -36,6 +45,7 @@ interface VersionHistoryModalProps {
   pcsId: string | null;
   skuLabel: string;
   productName: string;
+  initialTab?: VersionTab;
   onClose: () => void;
   /** Called after any successful add/delete so parent can refresh master list (cache cost). */
   onChanged?: () => void;
@@ -46,51 +56,139 @@ export function VersionHistoryModal({
   pcsId,
   skuLabel,
   productName,
+  initialTab = 'prime',
   onClose,
   onChanged,
 }: VersionHistoryModalProps) {
   const t = useTranslations('primeCost.version');
   const tCommon = useTranslations('common');
-  const [versions, setVersions] = useState<VersionRow[]>([]);
+  const [activeTab, setActiveTab] = useState<VersionTab>(initialTab);
+  const [versions, setVersions] = useState<UnifiedVersionRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Reset tab to initial when modal opens for a new SKU
+  useEffect(() => {
+    if (open) setActiveTab(initialTab);
+  }, [open, initialTab, pcsId]);
+
+  const fetchVersions = async (pcsIdArg: string, tab: VersionTab): Promise<UnifiedVersionRow[]> => {
+    if (tab === 'prime') {
+      const res = await listPrimeCostVersionsAction({ pcsId: pcsIdArg });
+      if (!res.success) throw new Error(res.error.message);
+      return res.data.versions.map((v) => ({
+        id: v.pcvId,
+        effectiveFrom: v.effectiveFrom,
+        valueVnd: v.primeCostVnd,
+        breakdown: v.breakdown,
+        sourceNote: v.sourceNote,
+        createdBy: v.createdBy,
+        createdAt: v.createdAt,
+      }));
+    }
+    if (tab === 'selling') {
+      const res = await listSellingPriceVersionsAction({ pcsId: pcsIdArg });
+      if (!res.success) throw new Error(res.error.message);
+      return res.data.versions.map((v) => ({
+        id: v.spvId,
+        effectiveFrom: v.effectiveFrom,
+        valueVnd: v.sellingPriceVnd,
+        breakdown: null,
+        sourceNote: v.sourceNote,
+        createdBy: v.createdBy,
+        createdAt: v.createdAt,
+      }));
+    }
+    const res = await listListingPriceVersionsAction({ pcsId: pcsIdArg });
+    if (!res.success) throw new Error(res.error.message);
+    return res.data.versions.map((v) => ({
+      id: v.lpvId,
+      effectiveFrom: v.effectiveFrom,
+      valueVnd: v.listingPriceVnd,
+      breakdown: null,
+      sourceNote: v.sourceNote,
+      createdBy: v.createdBy,
+      createdAt: v.createdAt,
+    }));
+  };
+
+  // Counts per tab — fetched once when modal opens, refreshed after add/delete
+  const [counts, setCounts] = useState<{ prime: number; selling: number; listing: number }>({
+    prime: 0,
+    selling: 0,
+    listing: 0,
+  });
+
+  const reloadCounts = async (pcsIdArg: string) => {
+    const [p, s, l] = await Promise.all([
+      listPrimeCostVersionsAction({ pcsId: pcsIdArg }),
+      listSellingPriceVersionsAction({ pcsId: pcsIdArg }),
+      listListingPriceVersionsAction({ pcsId: pcsIdArg }),
+    ]);
+    setCounts({
+      prime: p.success ? p.data.versions.length : 0,
+      selling: s.success ? s.data.versions.length : 0,
+      listing: l.success ? l.data.versions.length : 0,
+    });
+  };
 
   useEffect(() => {
     if (!open || !pcsId) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
-    listPrimeCostVersionsAction({ pcsId }).then((res) => {
-      if (cancelled) return;
-      setLoading(false);
-      if (!res.success) {
-        setError(res.error.message);
+    fetchVersions(pcsId, activeTab)
+      .then((rows) => {
+        if (cancelled) return;
+        setVersions(rows);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError((err as Error).message);
         setVersions([]);
-        return;
-      }
-      setVersions(res.data.versions);
-    });
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
+  }, [open, pcsId, activeTab]);
+
+  useEffect(() => {
+    if (!open || !pcsId) return;
+    void reloadCounts(pcsId);
   }, [open, pcsId]);
 
   if (!open || !pcsId) return null;
 
   const refresh = async () => {
     setLoading(true);
-    const res = await listPrimeCostVersionsAction({ pcsId });
-    setLoading(false);
-    if (res.success) setVersions(res.data.versions);
+    try {
+      const rows = await fetchVersions(pcsId, activeTab);
+      setVersions(rows);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+    await reloadCounts(pcsId);
     onChanged?.();
   };
 
-  const onDelete = async (v: VersionRow) => {
+  const onDelete = async (v: UnifiedVersionRow) => {
     if (!confirm(t('delete.confirm', { date: v.effectiveFrom }))) return;
-    setDeletingId(v.pcvId);
-    const res = await softDeletePrimeCostVersionAction({ pcvId: v.pcvId });
+    setDeletingId(v.id);
+    let res;
+    if (activeTab === 'prime') {
+      res = await softDeletePrimeCostVersionAction({ pcvId: v.id });
+    } else if (activeTab === 'selling') {
+      res = await softDeleteSellingPriceVersionAction({ spvId: v.id });
+    } else {
+      res = await softDeleteListingPriceVersionAction({ lpvId: v.id });
+    }
     setDeletingId(null);
     if (!res.success) {
       setError(res.error.message);
@@ -119,6 +217,33 @@ export function VersionHistoryModal({
           >
             <X className="h-4 w-4" />
           </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex items-center border-b border-neutral-200 px-6">
+          {(['prime', 'selling', 'listing'] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                'border-b-2 px-3 py-2.5 text-sm font-medium transition-colors',
+                activeTab === tab
+                  ? 'border-accent-700 text-accent-700'
+                  : 'border-transparent text-neutral-500 hover:text-neutral-700',
+              )}
+            >
+              {t(`tab.${tab}`)}{' '}
+              <span
+                className={cn(
+                  'ml-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px]',
+                  activeTab === tab ? 'bg-accent-700/15 text-accent-700' : 'bg-neutral-100 text-neutral-500',
+                )}
+              >
+                {counts[tab]}
+              </span>
+            </button>
+          ))}
         </div>
 
         {/* Add-version banner */}
@@ -162,7 +287,7 @@ export function VersionHistoryModal({
                 {versions.map((v, i) => {
                   const isLatest = i === 0;
                   return (
-                    <tr key={v.pcvId} className={cn(isLatest && 'bg-success-50/30')}>
+                    <tr key={v.id} className={cn(isLatest && 'bg-success-50/30')}>
                       <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">
                         {v.effectiveFrom}
                         {isLatest && (
@@ -172,10 +297,10 @@ export function VersionHistoryModal({
                         )}
                       </td>
                       <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums text-neutral-900">
-                        {fmtVnd(v.primeCostVnd)}
+                        {fmtVnd(v.valueVnd)}
                       </td>
                       <td className="px-3 py-2 text-right font-mono tabular-nums text-neutral-500">
-                        {fmtKrw(v.primeCostVnd)}
+                        {fmtKrw(v.valueVnd)}
                       </td>
                       <td className="px-3 py-2 text-xs text-neutral-600">
                         {v.sourceNote ?? tCommon('dash')}
@@ -187,7 +312,7 @@ export function VersionHistoryModal({
                         <button
                           type="button"
                           onClick={() => onDelete(v)}
-                          disabled={deletingId === v.pcvId || versions.length <= 1}
+                          disabled={deletingId === v.id || versions.length <= 1}
                           title={versions.length <= 1 ? t('delete.lastWarning') : undefined}
                           className="inline-flex items-center gap-1 rounded-md border border-error-500 bg-white px-2 py-1 text-xs font-medium text-error-500 hover:bg-error-50 disabled:opacity-30 disabled:cursor-not-allowed"
                         >
@@ -208,6 +333,7 @@ export function VersionHistoryModal({
       {addOpen && (
         <AddVersionModal
           pcsId={pcsId}
+          tab={activeTab}
           onClose={() => setAddOpen(false)}
           onSaved={async () => {
             setAddOpen(false);
@@ -221,16 +347,18 @@ export function VersionHistoryModal({
 
 interface AddVersionModalProps {
   pcsId: string;
+  tab: VersionTab;
   onClose: () => void;
   onSaved: () => void;
 }
 
-function AddVersionModal({ pcsId, onClose, onSaved }: AddVersionModalProps) {
+function AddVersionModal({ pcsId, tab, onClose, onSaved }: AddVersionModalProps) {
   const t = useTranslations('primeCost.version');
   const tCommon = useTranslations('common');
   const todayIso = new Date().toISOString().slice(0, 10);
   const [effectiveFrom, setEffectiveFrom] = useState(todayIso);
-  const [primeCost, setPrimeCost] = useState('');
+  const [value, setValue] = useState('');
+  // Prime-cost-only breakdown fields
   const [cogs, setCogs] = useState('');
   const [logistic, setLogistic] = useState('');
   const [warehouse, setWarehouse] = useState('');
@@ -242,25 +370,41 @@ function AddVersionModal({ pcsId, onClose, onSaved }: AddVersionModalProps) {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const cost = Number(primeCost.replace(/[, ]/g, ''));
+    const cost = Number(value.replace(/[, ]/g, ''));
     if (!Number.isFinite(cost) || cost < 0) {
       setError(t('error.primeCostInvalid'));
       return;
     }
-    const breakdown: Record<string, number | string> = {};
-    if (cogs) breakdown.cogs = Number(cogs.replace(/[, ]/g, ''));
-    if (logistic) breakdown.logistic = Number(logistic.replace(/[, ]/g, ''));
-    if (warehouse) breakdown.warehousePerDay = Number(warehouse.replace(/[, ]/g, ''));
-    if (fulfillment) breakdown.fulfillment = Number(fulfillment.replace(/[, ]/g, ''));
-
     setSubmitting(true);
-    const res = await addPrimeCostVersionAction({
-      pcsId,
-      effectiveFrom,
-      primeCostVnd: cost,
-      breakdown: Object.keys(breakdown).length > 0 ? breakdown : null,
-      sourceNote: sourceNote.trim() || null,
-    });
+    let res;
+    if (tab === 'prime') {
+      const breakdown: Record<string, number | string> = {};
+      if (cogs) breakdown.cogs = Number(cogs.replace(/[, ]/g, ''));
+      if (logistic) breakdown.logistic = Number(logistic.replace(/[, ]/g, ''));
+      if (warehouse) breakdown.warehousePerDay = Number(warehouse.replace(/[, ]/g, ''));
+      if (fulfillment) breakdown.fulfillment = Number(fulfillment.replace(/[, ]/g, ''));
+      res = await addPrimeCostVersionAction({
+        pcsId,
+        effectiveFrom,
+        primeCostVnd: cost,
+        breakdown: Object.keys(breakdown).length > 0 ? breakdown : null,
+        sourceNote: sourceNote.trim() || null,
+      });
+    } else if (tab === 'selling') {
+      res = await addSellingPriceVersionAction({
+        pcsId,
+        effectiveFrom,
+        valueVnd: cost,
+        sourceNote: sourceNote.trim() || null,
+      });
+    } else {
+      res = await addListingPriceVersionAction({
+        pcsId,
+        effectiveFrom,
+        valueVnd: cost,
+        sourceNote: sourceNote.trim() || null,
+      });
+    }
     setSubmitting(false);
     if (!res.success) {
       setError(res.error.message);
@@ -273,7 +417,9 @@ function AddVersionModal({ pcsId, onClose, onSaved }: AddVersionModalProps) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-900/40 p-4">
       <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-neutral-900">{t('add')}</h2>
+          <h2 className="text-lg font-semibold text-neutral-900">
+            {t('add')} — {t(`tab.${tab}`)}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -307,26 +453,28 @@ function AddVersionModal({ pcsId, onClose, onSaved }: AddVersionModalProps) {
             <input
               type="text"
               inputMode="numeric"
-              value={primeCost}
-              onChange={(e) => setPrimeCost(e.target.value)}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
               placeholder="295000"
               required
               className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-right font-mono tabular-nums focus:border-neutral-500 focus:outline-none"
             />
           </label>
 
-          {/* Optional cost breakdown */}
-          <details className="rounded-md border border-neutral-200 px-3 py-2">
-            <summary className="cursor-pointer text-xs font-medium text-neutral-700">
-              {t('breakdown.title')}
-            </summary>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <BreakdownInput label={t('breakdown.cogs')} value={cogs} onChange={setCogs} />
-              <BreakdownInput label={t('breakdown.logistic')} value={logistic} onChange={setLogistic} />
-              <BreakdownInput label={t('breakdown.warehouse')} value={warehouse} onChange={setWarehouse} />
-              <BreakdownInput label={t('breakdown.fulfillment')} value={fulfillment} onChange={setFulfillment} />
-            </div>
-          </details>
+          {/* Optional cost breakdown — Prime tab only */}
+          {tab === 'prime' && (
+            <details className="rounded-md border border-neutral-200 px-3 py-2">
+              <summary className="cursor-pointer text-xs font-medium text-neutral-700">
+                {t('breakdown.title')}
+              </summary>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <BreakdownInput label={t('breakdown.cogs')} value={cogs} onChange={setCogs} />
+                <BreakdownInput label={t('breakdown.logistic')} value={logistic} onChange={setLogistic} />
+                <BreakdownInput label={t('breakdown.warehouse')} value={warehouse} onChange={setWarehouse} />
+                <BreakdownInput label={t('breakdown.fulfillment')} value={fulfillment} onChange={setFulfillment} />
+              </div>
+            </details>
+          )}
 
           <label className="block">
             <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-neutral-500">

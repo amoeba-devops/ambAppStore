@@ -8,6 +8,8 @@ const TITLE_KEY_MAP: Record<string, string> = {
   '/raw-archive': 'rawArchive',
   '/manual-input': 'manualInput',
   '/cost-master/prime-cost': 'primeCost',
+  '/cost-master/selling-price': 'sellingPrice',
+  '/cost-master/listing-price': 'listingPrice',
   '/reports/weekly': 'weeklyReport',
   '/reports/monthly': 'monthlyReport',
   '/reports/trending': 'trendingReport',

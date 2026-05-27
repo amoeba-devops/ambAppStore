@@ -1,6 +1,6 @@
 import 'server-only';
 import type { TikTokSaleRow } from './tiktok-sales-parser.service';
-import { findPrimeCost, type PrimeCostMap } from './gmv-calculator.service';
+import { findPrimeCost, findListingPrice, type PrimeCostMap } from './gmv-calculator.service';
 import {
   aggregateTikTokTraffic,
   type TikTokTrafficRow,
@@ -58,7 +58,10 @@ export interface TikTokMetricsResult {
   productBreakdown: Array<{
     productName: string;
     productNameEn: string;
+    variationName: string;
     representativeSku: string;
+    /** True when this row aggregates combo / bundle SKUs (split from parent product). */
+    isCombo: boolean;
     gmv: number;
     netGmv: number;
     nmv: number;
@@ -180,7 +183,7 @@ export function computeTikTokMetrics(
   const missingByProduct = new Map<string, { sku: string; productName: string; units: number; gmvContribution: number }>();
   const productAgg = new Map<
     string,
-    { gmv: number; netGmv: number; nmv: number; sellerDiscount: number; primeCost: number; units: number; skus: Set<string>; nameEn: string }
+    { gmv: number; netGmv: number; nmv: number; sellerDiscount: number; primeCost: number; units: number; skus: Set<string>; nameEn: string; variationName: string; isCombo: boolean }
   >();
   const giftAgg = new Map<
     string,
@@ -224,9 +227,10 @@ export function computeTikTokMetrics(
     const isGift = row.productName.startsWith('[GIFT]');
 
     const master = primeCosts.get(row.sellerSku);
-    const listingPrice = master?.listingPrice ?? 0;
-    // Date-aware prime cost: applies the version active at the order's
-    // createDate. Empty `row.orderDate` (legacy file) falls back to latest.
+    // Date-aware listing price (TikTok GMV) + prime cost — both apply the
+    // version active at the order's createTime. Empty `row.orderDate` (legacy
+    // file without "Created Time" column) falls back to the latest cached value.
+    const listingPrice = findListingPrice(master, row.orderDate);
     const primeCost = findPrimeCost(master, row.orderDate);
     const gmv = listingPrice * itemSold;
 
@@ -290,12 +294,28 @@ export function computeTikTokMetrics(
     orderNetGmvSum.set(row.orderId, (orderNetGmvSum.get(row.orderId) ?? 0) + netGmv);
     kept++;
 
-    let agg = productAgg.get(row.productName);
+    // Group same-product regular SKUs into one row, combo SKUs into another.
+    // Aggregation key = `${productName}|${combo|regular}`.
+    const isCombo = master?.isCombo ?? false;
+    const aggKey = `${row.productName}|${isCombo ? 'combo' : 'regular'}`;
+    let agg = productAgg.get(aggKey);
     if (!agg) {
-      agg = { gmv: 0, netGmv: 0, nmv: 0, sellerDiscount: 0, primeCost: 0, units: 0, skus: new Set(), nameEn: master?.productNameEn ?? '' };
-      productAgg.set(row.productName, agg);
-    } else if (!agg.nameEn && master?.productNameEn) {
-      agg.nameEn = master.productNameEn;
+      agg = {
+        gmv: 0,
+        netGmv: 0,
+        nmv: 0,
+        sellerDiscount: 0,
+        primeCost: 0,
+        units: 0,
+        skus: new Set(),
+        nameEn: master?.productNameEn ?? '',
+        variationName: master?.variationName ?? '',
+        isCombo,
+      };
+      productAgg.set(aggKey, agg);
+    } else {
+      if (!agg.nameEn && master?.productNameEn) agg.nameEn = master.productNameEn;
+      if (!agg.variationName && master?.variationName) agg.variationName = master.variationName;
     }
     agg.gmv += gmv;
     agg.netGmv += netGmv;
@@ -316,19 +336,26 @@ export function computeTikTokMetrics(
   }
 
   const productBreakdown = [...productAgg.entries()]
-    .map(([productName, agg]) => ({
-      productName,
-      productNameEn: agg.nameEn,
-      representativeSku: [...agg.skus][0] ?? '',
-      gmv: agg.gmv,
-      netGmv: agg.netGmv,
-      nmv: agg.nmv,
-      sellerDiscount: agg.sellerDiscount,
-      primeCost: agg.primeCost,
-      units: agg.units,
-      skuCount: agg.skus.size,
-      pageViews: pvByProduct.get(productName.normalize('NFC').trim()) ?? 0,
-    }))
+    .map(([aggKey, agg]) => {
+      // aggKey: `${productName}|${sellerSku}` — strip SKU half for display.
+      const sepIdx = aggKey.lastIndexOf('|');
+      const productName = sepIdx >= 0 ? aggKey.slice(0, sepIdx) : aggKey;
+      return {
+        productName,
+        productNameEn: agg.nameEn,
+        variationName: agg.variationName,
+        representativeSku: [...agg.skus][0] ?? '',
+        isCombo: agg.isCombo,
+        gmv: agg.gmv,
+        netGmv: agg.netGmv,
+        nmv: agg.nmv,
+        sellerDiscount: agg.sellerDiscount,
+        primeCost: agg.primeCost,
+        units: agg.units,
+        skuCount: agg.skus.size,
+        pageViews: pvByProduct.get(productName.normalize('NFC').trim()) ?? 0,
+      };
+    })
     .sort((a, b) => b.gmv - a.gmv);
 
   const giftBreakdown = [...giftAgg.entries()]
