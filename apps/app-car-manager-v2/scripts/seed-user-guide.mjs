@@ -48,8 +48,11 @@ if (!url) {
 const sql = neon(url);
 
 // ─── Deterministic IDs (must match /dev-login presets) ───────────────────
-const ENT_ID  = '00000000-0000-0000-0000-000000000010';
-const U_ADMIN = '00000000-0000-0000-0000-000000000001';
+// Sentinel UUIDs migrated to RFC 4122 v4 format (position 13='4', position 17='8')
+// because AMA `resolveEntityId` uses strict `uuidValidate()` that rejects all-zero
+// variants. Keep aligned with `apps/web/src/app/dev-login/route.ts`.
+const ENT_ID  = '00000000-0000-4000-8000-000000000010';
+const U_ADMIN = '00000000-0000-4000-8000-000000000001';
 const U_MGR   = '11111111-1111-1111-1111-111111111200';
 const U_TU    = '11111111-1111-1111-1111-111111111101';
 const U_HUNG  = '11111111-1111-1111-1111-111111111102';
@@ -67,14 +70,15 @@ try {
   //    to JWT ent_name → i18n default. Setting it here makes the brand match
   //    the doc tenant "Amoeba".
   await sql`
-    INSERT INTO car_tenant_settings (tns_id, ent_id, tns_tenant_name, tns_app_name)
-    VALUES (${TNS_ID}, ${ENT_ID}, 'Amoeba', 'Amoeba Car')
+    INSERT INTO car_tenant_settings (tns_id, ent_id, tns_tenant_name, tns_app_name, tns_users_synced_at)
+    VALUES (${TNS_ID}, ${ENT_ID}, 'Amoeba', 'Amoeba Car', NOW())
     ON CONFLICT (ent_id) DO UPDATE SET
       tns_tenant_name = EXCLUDED.tns_tenant_name,
       tns_app_name = EXCLUDED.tns_app_name,
+      tns_users_synced_at = COALESCE(car_tenant_settings.tns_users_synced_at, EXCLUDED.tns_users_synced_at),
       tns_updated_at = NOW()
   `;
-  console.log('  ✓ tenant_settings (tenant=Amoeba, app=Amoeba Car)');
+  console.log('  ✓ tenant_settings (tenant=Amoeba, app=Amoeba Car, users_synced_at set)');
 
   // 2. User name overrides — set Việt names so /dev-login JWT.name doesn't
   //    leak "Demo OWNER" into the sidebar profile card. Note: ensureCarUser
