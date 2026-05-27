@@ -1,25 +1,20 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ChevronLeft } from 'lucide-react';
-import { Button } from '@car-v2/ui';
+import { ChevronLeft, UserPlus } from 'lucide-react';
+import { Button, Card, CardContent } from '@car-v2/ui';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listDriverCandidates } from '@/server/queries/drivers.queries';
 import { DriverForm } from '../_components/driver-form';
-import { InlineDriverForm } from '../_components/inline-driver-form';
-
-interface PageProps {
-  searchParams: Promise<{ mode?: string }>;
-}
 
 /**
- * Trang tạo tài xế — 2 modes:
- *   - mode=inline (default): tạo tài xế + user account trong 1 form
- *   - mode=existing: chọn user có sẵn rồi gắn license
+ * Tạo tài xế — chọn user có sẵn trong entity rồi gắn license.
+ *
+ * User mới phải được tạo qua /users/new (sync AMA) — trang này KHÔNG tạo user inline.
+ * REQ-20260526 §3.4.
  */
-export default async function NewDriverPage({ searchParams }: PageProps) {
-  const sp = await searchParams;
+export default async function NewDriverPage() {
   const tA   = await getTranslations('actions');
   const tNav = await getTranslations('nav');
   const tCo  = await getTranslations('company');
@@ -27,8 +22,7 @@ export default async function NewDriverPage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
   if (user.role !== 'ADMIN' && user.role !== 'MANAGER') redirect('/drivers');
 
-  const mode = sp.mode === 'existing' ? 'existing' : 'inline';
-  const candidates = mode === 'existing' ? await listDriverCandidates(user.entId) : [];
+  const candidates = await listDriverCandidates(user.entId);
 
   return (
     <>
@@ -49,41 +43,30 @@ export default async function NewDriverPage({ searchParams }: PageProps) {
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6">
-        {/* Mode toggle — 2 tab segmented control */}
-        <div className="max-w-[720px] mx-auto mb-5">
-          <div className="inline-flex items-center gap-1 rounded-md bg-surface-2 p-1 w-full sm:w-auto">
-            <Link
-              href="/drivers/new"
-              className={
-                'inline-flex items-center justify-center h-9 px-4 rounded text-sm font-medium transition-colors flex-1 sm:flex-initial ' +
-                (mode === 'inline'
-                  ? 'bg-surface text-text shadow-xs'
-                  : 'text-text-muted hover:text-text')
-              }
-            >
-              + Tạo tài xế mới
-            </Link>
-            <Link
-              href="/drivers/new?mode=existing"
-              className={
-                'inline-flex items-center justify-center h-9 px-4 rounded text-sm font-medium transition-colors flex-1 sm:flex-initial ' +
-                (mode === 'existing'
-                  ? 'bg-surface text-text shadow-xs'
-                  : 'text-text-muted hover:text-text')
-              }
-            >
-              Chọn user có sẵn
-            </Link>
-          </div>
-          <p className="mt-2 text-xs text-text-muted leading-relaxed">
-            {mode === 'inline'
-              ? '✓ Tạo tài khoản đăng nhập + license trong 1 form. Hệ thống tự tạo user AMA backing tài xế.'
-              : 'Chọn 1 user đã có trong công ty và gắn thông tin bằng lái. Phù hợp khi user vừa làm admin/manager vừa lái xe.'}
-          </p>
-        </div>
-
-        {mode === 'inline' ? (
-          <InlineDriverForm />
+        {candidates.length === 0 ? (
+          <Card variant="outline" className="max-w-[720px] mx-auto">
+            <CardContent className="text-center py-10 space-y-4">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-accent-soft text-accent">
+                <UserPlus className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-md font-semibold text-text">
+                  {tScr('emptyHeading')}
+                </div>
+                <p className="mt-1 text-sm text-text-muted max-w-md mx-auto">
+                  {tScr('emptyDesc')}
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
+                <Button variant="accent" size="md" asChild>
+                  <Link href="/users/new">{tScr('createUserCta')}</Link>
+                </Button>
+                <Button variant="ghost" size="md" asChild>
+                  <Link href="/drivers">{tA('back')}</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         ) : (
           <DriverForm userCandidates={candidates} />
         )}

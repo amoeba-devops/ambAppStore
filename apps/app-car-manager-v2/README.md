@@ -5,6 +5,8 @@
 
 **Documentation entry**: [CLAUDE.md](CLAUDE.md) (project context, ⭐ đọc trước) · [PRD.md](PRD.md) (business spec MVP) · [User Guide HTML (vi + ko)](apps/web/public/docs/user-guide/index.html) (33 trang × 2 ngôn ngữ, 80 screenshot — phục vụ end-user, không phải dev).
 
+> 🇰🇷 한국어 버전: [README.ko.md](README.ko.md)
+
 ---
 
 ## 0. TL;DR (đã setup từ trước rồi, chỉ run)

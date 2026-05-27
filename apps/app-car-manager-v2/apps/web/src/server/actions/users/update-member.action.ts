@@ -9,6 +9,7 @@ import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { runAction } from '../_helpers';
 
 const AMA_API = process.env.AMA_API_BASE_URL ?? 'http://localhost:3009/api/v1';
+const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? 'amb_session';
 
 const updateMemberSchema = z.object({
   userId: z.string().uuid(),
@@ -16,8 +17,10 @@ const updateMemberSchema = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']).optional(),
   department: z.string().max(30).optional(),
   jobTitle: z.string().max(100).optional(),
-  /* CRITICAL: phone = login key. AMA-side normalize + validate VN mobile +
-   * check uniqueness trong tenant. Sai = driver không login được. */
+  /* Wave 3: email = login key. AMA-side normalize + validate RFC + check
+   * uniqueness trong tenant. Sai = user không login được. */
+  email: z.string().email('Email không hợp lệ').max(255).optional(),
+  /* phone là contact (optional) — không phải login key sau Wave 3. */
   phone: z.string().regex(/^[+0-9\s\-]{9,15}$/, 'SĐT không đúng format').optional(),
 });
 
@@ -41,7 +44,10 @@ export async function updateMemberAction(
     const dto = updateMemberSchema.parse(input);
 
     const cookieStore = await cookies();
-    const amaAccess = cookieStore.get('amb_ama_access')?.value;
+    /* Option B fallback: standalone có amb_ama_access, embed chỉ có amb_session. */
+    const amaAccess =
+      cookieStore.get('amb_ama_access')?.value ??
+      cookieStore.get(SESSION_COOKIE)?.value;
     if (!amaAccess) {
       throw new CarError(
         'CAR-E0101',
@@ -55,6 +61,7 @@ export async function updateMemberAction(
     if (dto.status) body.status = dto.status;
     if (dto.department !== undefined) body.department = dto.department;
     if (dto.jobTitle !== undefined) body.job_title = dto.jobTitle;
+    if (dto.email !== undefined) body.email = dto.email;
     if (dto.phone !== undefined) body.phone = dto.phone;
 
     const url = `${AMA_API}/entity-settings/members/${dto.userId}?entity_id=${actor.entId}`;

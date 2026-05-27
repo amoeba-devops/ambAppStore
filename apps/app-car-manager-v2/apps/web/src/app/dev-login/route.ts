@@ -5,37 +5,9 @@ import { absoluteUrl } from '@/lib/request-origin';
 // Local dev only — gated by DEMO_AUTO_LOGIN=true. Mints an HS256 JWT with
 // the same shape AMA would issue, then drops it into the session cookie.
 // Use to test the app locally without a real ambManagement session.
-//
-// Query params (all optional):
-//   role     — OWNER | MASTER | MANAGER | MEMBER (default: OWNER)
-//   userId   — UUID overriding the default subject (default: 000...001)
-//   entityId — UUID overriding the default tenant (default: 000...010)
-//   name     — display name (default: "Demo <ROLE>")
-//   email    — email (default: "demo-<role>@dev.car-manager-v2.local")
-//   preset   — convenience bundle: admin-vi | manager-vi | driver-vi |
-//                                 admin-ko | manager-ko | driver-ko
-//              Sets userId/role/name/email together; individual params still
-//              win if also passed. Used by the user-guide screenshot pipeline.
-//   next     — post-login redirect (default: /)
 
 const validRoles = ['OWNER', 'MASTER', 'MANAGER', 'MEMBER'] as const;
 type AmaRole = (typeof validRoles)[number];
-
-const DEFAULT_USER_ID = '00000000-0000-0000-0000-000000000001';
-const DEFAULT_ENT_ID = '00000000-0000-0000-0000-000000000010';
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-// Presets mirror the seed (db-seed.mjs + seed-user-guide.mjs) so the
-// screenshot pipeline can hit the right user with one short query string.
-const PRESETS: Record<string, { role: AmaRole; userId: string; name: string; email: string }> = {
-  'admin-vi':   { role: 'OWNER',   userId: '00000000-0000-0000-0000-000000000001', name: 'Nguyễn Thanh An', email: 'an.nguyen@amoeba.group' },
-  'manager-vi': { role: 'MANAGER', userId: '11111111-1111-1111-1111-111111111200', name: 'Lê Hoàng',         email: 'hoang.le@amoeba.group' },
-  'driver-vi':  { role: 'MEMBER',  userId: '11111111-1111-1111-1111-111111111101', name: 'Nguyễn Văn Tú',    email: 'tu.nguyen@amoeba.group' },
-  'admin-ko':   { role: 'OWNER',   userId: '00000000-0000-0000-0000-000000000001', name: '박준호',            email: 'park.joonho@amoeba.group' },
-  'manager-ko': { role: 'MANAGER', userId: '11111111-1111-1111-1111-111111111200', name: '김민수',            email: 'kim.minsoo@amoeba.group' },
-  'driver-ko':  { role: 'MEMBER',  userId: '11111111-1111-1111-1111-111111111101', name: '이성재',            email: 'lee.sungjae@amoeba.group' },
-};
 
 export const dynamic = 'force-dynamic';
 
@@ -47,41 +19,64 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const q = req.nextUrl.searchParams;
-
-  // Apply preset first; explicit query params then override individual fields.
-  const presetKey = q.get('preset');
-  const preset = presetKey ? PRESETS[presetKey] : undefined;
-  if (presetKey && !preset) {
-    return new NextResponse(
-      `Unknown preset "${presetKey}". Valid: ${Object.keys(PRESETS).join(', ')}`,
-      { status: 400 },
-    );
-  }
-
-  const roleParam = q.get('role') ?? preset?.role ?? 'OWNER';
+  const roleParam = req.nextUrl.searchParams.get('role') ?? 'OWNER';
   if (!validRoles.includes(roleParam as AmaRole)) {
     return new NextResponse(`Invalid role. Use one of: ${validRoles.join(', ')}`, { status: 400 });
   }
   const role = roleParam as AmaRole;
 
-  const userId = q.get('userId') ?? preset?.userId ?? DEFAULT_USER_ID;
-  if (!UUID_RE.test(userId)) {
-    return new NextResponse(`Invalid userId — must be a UUID`, { status: 400 });
-  }
-
-  const entityId = q.get('entityId') ?? DEFAULT_ENT_ID;
-  if (!UUID_RE.test(entityId)) {
-    return new NextResponse(`Invalid entityId — must be a UUID`, { status: 400 });
-  }
-
-  const name = q.get('name') ?? preset?.name ?? `Demo ${role}`;
-  const email = q.get('email') ?? preset?.email ?? `demo-${role.toLowerCase()}@dev.car-manager-v2.local`;
-
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     return new NextResponse('JWT_SECRET not set', { status: 500 });
   }
+
+  /* E2E test support: cho phép override entityId + sub qua query params (gated
+   * bởi DEMO_AUTO_LOGIN=true). Test có thể mint token cho 1 entity thật trong
+   * db_amb để verify integration với AMA `/entity-settings/members`.
+   * Default fallback các users đã được seed bởi
+   * `scripts/seed-dev-accounts.mjs` trên DEV01 entity. */
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const entIdOverride = req.nextUrl.searchParams.get('ent_id');
+  const subOverride = req.nextUrl.searchParams.get('sub');
+  if (entIdOverride && !UUID_RE.test(entIdOverride)) {
+    return new NextResponse('Invalid ent_id format (need UUID).', { status: 400 });
+  }
+  if (subOverride && !UUID_RE.test(subOverride)) {
+    return new NextResponse('Invalid sub format (need UUID).', { status: 400 });
+  }
+  /* Sentinel format: position 13 = '4' (RFC 4122 version), position 17 = '8'
+   * (variant 10xx). AMA `resolveEntityId` uses strict `uuidValidate()` —
+   * sentinels all-zeros với version=0 (legacy seed) reject với 400. Keep
+   * pattern human-readable: last byte distinguishes ent / owner / manager / driver. */
+  const entityId = entIdOverride ?? '00000000-0000-4000-8000-000000000010';
+  const DEFAULT_SUB_BY_ROLE: Record<AmaRole, string> = {
+    OWNER:   '00000000-0000-4000-8000-000000000001',
+    MASTER:  '00000000-0000-4000-8000-000000000001',
+    MANAGER: '00000000-0000-4000-8000-000000000002',
+    MEMBER:  '00000000-0000-4000-8000-000000000003',
+  };
+  const sub = subOverride ?? DEFAULT_SUB_BY_ROLE[role];
+
+  /* AMA `OwnEntityGuard` (apps/api/src/domain/auth/guard/own-entity.guard.ts)
+   * chỉ accept `user.role === 'MASTER' || 'ADMIN'` cho USER_LEVEL. Token với
+   * role 'OWNER' literal sẽ bị guard reject 403 khi gọi `/entity-settings/*`.
+   *
+   * Seed-dev-accounts insert `usr_role = MASTER` cho user owner — token phải
+   * mint match DB row, không match URL param. Map URL alias → actual JWT role:
+   *   ?role=OWNER  → token role 'MASTER' (seed user thực sự là MASTER)
+   *   ?role=MASTER → token role 'MASTER'
+   *   ?role=MANAGER → token role 'MANAGER'
+   *   ?role=MEMBER → token role 'MEMBER'
+   *
+   * v2-side: mapAmaRoleToLocal đã treat MASTER ≡ OWNER → local ADMIN, không
+   * affect UI/routing. AMA-side: guard pass. */
+  const URL_TO_JWT_ROLE: Record<AmaRole, AmaRole> = {
+    OWNER:   'MASTER',
+    MASTER:  'MASTER',
+    MANAGER: 'MANAGER',
+    MEMBER:  'MEMBER',
+  };
+  const jwtRole = URL_TO_JWT_ROLE[role];
 
   const key = new TextEncoder().encode(secret);
   // Payload shape MUST match AMA's `generateAppToken` exactly — camelCase keys
@@ -89,14 +84,22 @@ export async function GET(req: NextRequest) {
   // See packages/shared/src/auth/jwt-claims.ts. Drift between mint and verify
   // shows up as: cookie set → next request fails Zod parse → /session-expired
   // loop with the cookie cleared.
-  const token = await new SignJWT({
-    sub: userId,
+  //
+  // E2E mode (sub/ent_id override): bỏ email + name khỏi payload để
+  // ensureCarUser KHÔNG overwrite các giá trị thật trong car_users với fake
+  // `demo-master@dev.local`. Test cần data nguyên vẹn cho assertions.
+  const isTestMode = !!entIdOverride && !!subOverride;
+  const payload: Record<string, unknown> = {
+    sub,
     entityId,
-    role,
-    email,
-    name,
+    role: jwtRole,
     appCode: 'car-manager-v2',
-  })
+  };
+  if (!isTestMode) {
+    payload.email = `demo-${role.toLowerCase()}@dev.car-manager-v2.local`;
+    payload.name = `Demo ${role}`;
+  }
+  const token = await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('8h')
@@ -104,7 +107,7 @@ export async function GET(req: NextRequest) {
 
   const IS_PROD = process.env.NODE_ENV === 'production';
   const cookieName = process.env.SESSION_COOKIE_NAME ?? 'amb_session';
-  const redirectTo = q.get('next') ?? '/';
+  const redirectTo = req.nextUrl.searchParams.get('next') ?? '/';
 
   const res = NextResponse.redirect(absoluteUrl(req, redirectTo));
   res.cookies.set(cookieName, token, {

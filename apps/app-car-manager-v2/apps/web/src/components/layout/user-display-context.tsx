@@ -18,6 +18,10 @@ interface UserDisplayState {
    * user always gets the same colour so the avatar reads as identity
    * rather than chrome. */
   color: { bg: string; fg: string };
+  /** Server-counted unread inbox notifications for THIS user. Drives the
+   * red badge on the header bell. 0 hides the badge. Refreshes on every
+   * route navigation (server re-renders AppShell). */
+  unreadNotifications: number;
 }
 
 const UserDisplayContext = createContext<UserDisplayState | null>(null);
@@ -27,12 +31,16 @@ interface UserDisplayProviderProps {
   userName: string | null;
   /** Email from AMA JWT (`claims.email`). Optional — falls back to "User". */
   userEmail: string | null;
+  /** Server-counted unread inbox notifications (from car_notifications). 0
+   * when the user has no pending notifications. */
+  unreadNotifications: number;
   children: ReactNode;
 }
 
 export function UserDisplayProvider({
   userName,
   userEmail,
+  unreadNotifications,
   children,
 }: UserDisplayProviderProps) {
   const value = useMemo<UserDisplayState>(() => {
@@ -42,8 +50,9 @@ export function UserDisplayProvider({
       email: userEmail,
       initials: deriveInitials(name),
       color: pickColor(userEmail ?? userName ?? name),
+      unreadNotifications,
     };
-  }, [userName, userEmail]);
+  }, [userName, userEmail, unreadNotifications]);
   return <UserDisplayContext.Provider value={value}>{children}</UserDisplayContext.Provider>;
 }
 

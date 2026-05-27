@@ -174,7 +174,7 @@ export function TripPeekDrawer(props: TripPeekDrawerProps) {
 
         {/* Notes */}
         {trip.trpNotes && (
-          <PeekRow label={tDetail('notes')}>
+          <PeekRow label={tDetail('notesTitle')}>
             <div className="text-sm text-text-muted whitespace-pre-wrap leading-relaxed">
               {trip.trpNotes}
             </div>

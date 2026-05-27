@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@car-v2/ui';
+import { NotificationBell } from './notification-bell';
 import { useTenantDisplay } from './tenant-display-context';
 import { useUserDisplay } from './user-display-context';
 import type { BreadcrumbItem } from './breadcrumbs';
@@ -86,6 +87,7 @@ export function MobilePageHeader({
         </div>
       )}
 
+      <NotificationBell variant="mobile" />
       <UserGuideIconLink />
       <MeAvatarLink />
     </div>
@@ -154,6 +156,7 @@ function BrandHeader() {
           </div>
         </div>
       </div>
+      <NotificationBell variant="mobile" />
       <UserGuideIconLink />
       <MeAvatarLink />
     </div>

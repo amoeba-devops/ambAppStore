@@ -114,7 +114,7 @@ Identity is fixed in [.env.local](../../.env.local) — these URLs work without 
 
 ```
 # 1. Open catalog + set entity context (auto-fills SubscriptionRequestModal)
-http://localhost:5200/?ent_id=00000000-0000-0000-0000-000000000010&ent_code=DEMO&ent_name=Demo%20Company&email=dev-owner@dev.car-manager-v2.local
+http://localhost:5200/?ent_id=00000000-0000-4000-8000-000000000010&ent_code=DEMO&ent_name=Demo%20Company&email=dev-owner@dev.car-manager-v2.local
 
 # 2. Mint cookie + jump straight to v2 dashboard
 http://localhost:5200/app-car-manager-v2/dev-login?role=OWNER   # → DashboardA as ADMIN

@@ -81,7 +81,7 @@ export default async function TodayPage() {
           breadcrumbs={[{ label: tCo('tenant') }, { label: tT('title') }]}
           actions={
             <Button asChild variant="ghost" size="md" iconLeft={<LogOut />}>
-              <a href={`${process.env.BASE_PATH ?? ''}/api/auth/logout`}>Đổi tài xế</a>
+              <a href={`${process.env.BASE_PATH ?? ''}/api/auth/logout`}>{tT('switchDriver')}</a>
             </Button>
           }
           mobileVariant="brand"

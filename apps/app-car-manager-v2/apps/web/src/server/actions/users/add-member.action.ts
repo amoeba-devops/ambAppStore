@@ -8,10 +8,11 @@ import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { runAction } from '../_helpers';
 
 const AMA_API = process.env.AMA_API_BASE_URL ?? 'http://localhost:3009/api/v1';
+const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? 'amb_session';
 
 const addMemberSchema = z.object({
   name: z.string().min(2).max(50),
-  phone: z.string().regex(/^\d{9,11}$/, 'Phone must be 9-11 digits'),
+  email: z.string().email('Email không hợp lệ').max(255),
   role: z.enum(['MASTER', 'MANAGER', 'MEMBER', 'VIEWER']),
   department: z.string().max(30).optional(),
 });
@@ -19,22 +20,26 @@ const addMemberSchema = z.object({
 export interface AddMemberResult {
   userId: string;
   name: string;
-  phone: string;
+  email: string;
   role: string;
   entCode: string;
   entName: string;
-  smsTemplate: string;
+  emailTemplate: string;
 }
 
 /**
- * D-017 — Admin tạo member bằng phone (v2 → AMA proxy).
+ * Admin tạo member bằng email (REQ-20260526 Wave 3).
  *
  * Permissions:
- *   - Local role ADMIN (= AMA OWNER/MASTER) tạo MANAGER/MEMBER/VIEWER
- *   - Local role MANAGER (= AMA MANAGER) chỉ tạo MEMBER/VIEWER (driver)
+ *   - Local role ADMIN tạo MASTER/MANAGER/MEMBER/VIEWER
+ *   - Local role MANAGER chỉ tạo MEMBER/VIEWER (driver/viewer)
  *   - DRIVER không tạo được ai
  *
- * Forward: AMA access token (cookie `amb_ama_access`) → AMA `/entity-settings/members/phone-add`
+ * Forward token (Option B fallback): amb_ama_access (standalone) || amb_session
+ * (embed). AMA cần accept cả 2 — xem docs/integration/AMA-DEPENDENCIES.md §2.3.
+ *
+ * AMA endpoint: POST /entity-settings/members/email-add (chưa exist —
+ * Wave 3 blocker). Khi AMA chưa support, action trả CAR-E0501 "not_implemented".
  */
 export async function addMemberAction(
   input: z.infer<typeof addMemberSchema>,
@@ -45,7 +50,6 @@ export async function addMemberAction(
 
     const dto = addMemberSchema.parse(input);
 
-    // MANAGER chỉ tạo MEMBER/VIEWER. ADMIN có thể tạo MASTER/MANAGER/MEMBER/VIEWER.
     if (actor.role === 'MANAGER' && !['MEMBER', 'VIEWER'].includes(dto.role)) {
       throw new CarError(
         'CAR-E0102',
@@ -55,7 +59,9 @@ export async function addMemberAction(
     }
 
     const cookieStore = await cookies();
-    const amaAccess = cookieStore.get('amb_ama_access')?.value;
+    const amaAccess =
+      cookieStore.get('amb_ama_access')?.value ??
+      cookieStore.get(SESSION_COOKIE)?.value;
     if (!amaAccess) {
       throw new CarError(
         'CAR-E0101',
@@ -64,7 +70,7 @@ export async function addMemberAction(
       );
     }
 
-    const url = `${AMA_API}/entity-settings/members/phone-add?entity_id=${actor.entId}`;
+    const url = `${AMA_API}/entity-settings/members/email-add?entity_id=${actor.entId}`;
     const res = await fetch(url, {
       method: 'POST',
       headers: {
@@ -77,13 +83,21 @@ export async function addMemberAction(
     if (res.status === 401 || res.status === 403) {
       throw new CarError('CAR-E0101', res.status, 'Phiên AMA không hợp lệ.');
     }
+    if (res.status === 404) {
+      /* Endpoint chưa exist — Wave 3 pending AMA team */
+      throw new CarError(
+        'CAR-E0501',
+        501,
+        'Tính năng tạo user bằng email đang được AMA team triển khai. Vui lòng tạo user qua AMA portal tạm thời.',
+      );
+    }
     if (res.status === 400) {
       const body = await res.json().catch(() => ({}));
-      throw new CarError(
-        'CAR-E2001',
-        400,
-        body?.message ?? 'Dữ liệu không hợp lệ',
-      );
+      const msg = body?.message ?? 'Dữ liệu không hợp lệ';
+      if (/email.*đã.*dùng|already|duplicate/i.test(msg)) {
+        throw new CarError('CAR-E2003', 400, `Email ${dto.email} đã được dùng trong công ty này.`);
+      }
+      throw new CarError('CAR-E2001', 400, msg);
     }
     if (!res.ok) {
       throw new CarError('CAR-E0500', 500, `AMA error ${res.status}`);

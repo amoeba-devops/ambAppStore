@@ -1,5 +1,5 @@
 import { getLocale, getTranslations } from 'next-intl/server';
-import { LogIn, Building2, Phone, ExternalLink, BookOpen } from 'lucide-react';
+import { LogIn, Building2, Mail, ExternalLink, BookOpen } from 'lucide-react';
 import { Button, Card, CardContent } from '@car-v2/ui';
 import { LoginLanguageSwitcher } from './_components/login-language-switcher';
 
@@ -89,28 +89,25 @@ export default async function LoginPage({
 
             <div>
               <label
-                htmlFor="phone"
+                htmlFor="email"
                 className="block text-sm font-medium text-text mb-1"
               >
-                {t('phoneLabel')}
+                {t('emailLabel')}
               </label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-faint" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-faint" />
                 <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
+                  id="email"
+                  name="email"
+                  type="email"
                   required
-                  inputMode="tel"
-                  autoComplete="tel"
-                  /* Pattern accept cả `+84 90 ...`, `0904 ...`, `84-90-...` — server normalize
-                   * về 10-digit canonical. Min 9 chars để vẫn block input quá ngắn. */
-                  pattern="[+0-9\s\-]{9,}"
-                  placeholder={t('phonePlaceholder')}
+                  inputMode="email"
+                  autoComplete="email"
+                  placeholder={t('emailPlaceholder')}
                   className="w-full rounded-md border border-border bg-surface pl-10 pr-3 py-3 text-base focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                 />
               </div>
-              <p className="mt-1 text-xs text-text-faint">{t('phoneHint')}</p>
+              <p className="mt-1 text-xs text-text-faint">{t('emailHint')}</p>
             </div>
 
             {/* Mặc định "Ghi nhớ thiết bị 30 ngày" — input hidden để route /api/auth/login set cookie 30d */}
@@ -176,11 +173,12 @@ export default async function LoginPage({
 
 function resolveErrorMessage(error: string, t: (key: string) => string): string {
   switch (error) {
-    case 'missing':       return t('errMissing');
-    case 'invalid':       return t('errInvalid');
-    case 'rate_limit':    return t('errRateLimit');
-    case 'not_installed': return t('errNotInstalled');
-    case 'server':        return t('errServer');
-    default:              return t('errFallback');
+    case 'missing':         return t('errMissing');
+    case 'invalid':         return t('errInvalid');
+    case 'rate_limit':      return t('errRateLimit');
+    case 'not_installed':   return t('errNotInstalled');
+    case 'not_implemented': return t('errNotImplemented');
+    case 'server':          return t('errServer');
+    default:                return t('errFallback');
   }
 }

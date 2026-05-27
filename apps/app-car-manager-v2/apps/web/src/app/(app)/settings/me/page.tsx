@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from 'next-intl/server';
+import Link from 'next/link';
 import { eq, and, isNull } from 'drizzle-orm';
-import { BookOpen, ExternalLink } from 'lucide-react';
+import { BookOpen, ChevronRight, ExternalLink, Settings } from 'lucide-react';
 import { db } from '@car-v2/db/client';
 import { carUsers } from '@car-v2/db/schema';
 import { Card, CardContent } from '@car-v2/ui';
@@ -21,6 +22,7 @@ export default async function MePage() {
   const tCo  = await getTranslations('company');
   const tNav = await getTranslations('nav');
   const tMe  = await getTranslations('settings.me');
+  const tSet = await getTranslations('screens.settings');
   const user = await getCurrentUser();
   const locale = await getLocale();
 
@@ -93,6 +95,31 @@ export default async function MePage() {
         <MeLanguageCard />
 
         <MePushCard />
+
+        {/* Tenant settings shortcut — admin/manager only. On desktop they reach
+         * /settings via the sidebar Admin nav group; on mobile the sidebar is
+         * hidden and Settings isn't a bottom-tab, so this card is the only way
+         * in. Driver doesn't see /settings (page 403s anyway via requireRole),
+         * so the entry is suppressed for them. */}
+        {user.role !== 'DRIVER' && (
+          <Card>
+            <CardContent>
+              <Link
+                href="/settings"
+                className="group flex items-center gap-3 -m-2 p-3 rounded-md hover:bg-surface-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="h-9 w-9 rounded-md bg-accent-soft text-accent inline-flex items-center justify-center shrink-0">
+                  <Settings className="h-4 w-4" aria-hidden />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-medium text-text">{tSet('title')}</span>
+                  <span className="block text-xs text-text-muted truncate">{tSet('subtitle')}</span>
+                </span>
+                <ChevronRight className="h-4 w-4 text-text-faint shrink-0 group-hover:text-text-muted" aria-hidden />
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
         {/* User guide entry — primary surface on mobile where there's no
          * sidebar avatar menu. Plain <a> (not <Link>) because the target is

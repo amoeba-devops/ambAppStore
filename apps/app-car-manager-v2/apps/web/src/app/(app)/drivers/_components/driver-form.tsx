@@ -162,7 +162,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
           phone: phone.trim(),
         });
         if (!memberRes.success) {
-          toast.error('Không đổi được SĐT', {
+          toast.error(t('phoneUpdateFail'), {
             description: formatActionError(memberRes.error, tErr),
           });
           return;
@@ -174,14 +174,15 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
         : await createDriverAction({
             ...basePayload,
             user_id: userId,
-            phone: phone.trim() || undefined,
+            // Phone auto-synced từ AMA user account trong server action — không
+            // nhận từ form ở create mode.
           });
 
       if (result.success) {
         clearDraft();
         toast.success(isEdit ? t('tUpdated') : t('tAdded'));
         if (phoneChanged) {
-          toast.info('Tài xế cần đăng nhập lại bằng SĐT mới');
+          toast.info(t('phoneReloginToast'));
         }
         setConfirmPhoneOpen(false);
         router.push(`/drivers/${result.data.drvId}`);
@@ -204,8 +205,8 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
       return;
     }
     if (phone && !phoneValid) {
-      toast.error('SĐT không hợp lệ', {
-        description: 'Yêu cầu 10 chữ số bắt đầu 03/05/07/08/09.',
+      toast.error(t('phoneInvalidToast'), {
+        description: t('phoneInvalidDesc'),
       });
       return;
     }
@@ -309,22 +310,21 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
                 </Select>
               </Field>
             )}
-            {/* CRITICAL phone field — chỉ edit mode mới editable. Create mode
-             *  phone sẽ resolve từ AMA sau khi link user (server action). */}
-            {isEdit ? (
+            {/* CRITICAL phone field — chỉ edit mode mới render. Create mode phone
+             *  auto-sync từ AMA user account trong server action. */}
+            {isEdit && (
               <Field label={t('phone')}>
                 <div className="rounded-md border-2 border-danger/40 bg-danger-soft/30 p-2.5 space-y-2">
                   <div className="flex items-start gap-2">
                     <KeyRound className="h-4 w-4 text-danger shrink-0 mt-0.5" aria-hidden />
                     <div className="text-xs text-text-muted leading-relaxed">
-                      <strong className="text-danger">SĐT đăng nhập</strong> — đổi sai
-                      = tài xế không vào app được. Lưu ý: đổi xong tài xế PHẢI đăng nhập lại.
+                      <strong className="text-danger">{t('phoneLoginTitle')}</strong> — {t('phoneLoginDesc')}
                     </div>
                   </div>
                   <Input
                     value={phone ?? ''}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="VD: 0904567890 hoặc +84 904567890"
+                    placeholder={t('phonePlaceholder')}
                     type="tel"
                     inputMode="tel"
                     pattern="[+0-9\s\-]{9,15}"
@@ -343,25 +343,12 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
                         }
                       >
                         {phoneValid
-                          ? `→ ${normalizedPhone}${phoneChanged ? ' (THAY ĐỔI)' : ''}`
-                          : '✗ Không hợp lệ'}
+                          ? `→ ${normalizedPhone}${phoneChanged ? ' ' + t('phoneChanged') : ''}`
+                          : t('phoneInvalid')}
                       </span>
                     </div>
                   )}
                 </div>
-              </Field>
-            ) : (
-              <Field
-                label={t('phone')}
-                hint="SĐT sẽ lấy từ user account sau khi link — không cần nhập tay ở đây."
-              >
-                <Input
-                  value=""
-                  readOnly
-                  disabled
-                  placeholder="(Tự lấy từ user account)"
-                  className="font-mono bg-surface-2 text-text-muted cursor-not-allowed"
-                />
               </Field>
             )}
             <Field label={t('emergencyContact')}>
@@ -405,40 +392,38 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-danger">
               <AlertTriangle className="h-5 w-5" />
-              Xác nhận đổi SĐT đăng nhập
+              {t('confirmPhoneTitle')}
             </DialogTitle>
-            <DialogDescription>
-              Tài xế sẽ phải đăng nhập lại bằng SĐT mới.
-            </DialogDescription>
+            <DialogDescription>{t('confirmPhoneDesc')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <div className="rounded-md bg-surface-2 p-3 space-y-2">
               <div className="flex justify-between gap-2">
-                <span className="text-text-muted">Tài xế</span>
+                <span className="text-text-muted">{t('confirmRowDriver')}</span>
                 <span className="font-medium text-text">
                   {driver?.user?.usrName ?? driver?.drvLicenseNumber ?? '—'}
                 </span>
               </div>
               <div className="flex justify-between gap-2 items-center">
-                <span className="text-text-muted">SĐT cũ</span>
+                <span className="text-text-muted">{t('confirmRowOldPhone')}</span>
                 <span className="font-mono text-text-muted line-through tabular">
-                  {originalPhone || '(chưa có)'}
+                  {originalPhone || t('confirmEmpty')}
                 </span>
               </div>
               <div className="flex justify-between gap-2 items-center">
-                <span className="text-text-muted">SĐT mới</span>
+                <span className="text-text-muted">{t('confirmRowNewPhone')}</span>
                 <span className="font-mono tabular font-bold text-danger">
                   {normalizedPhone}
                 </span>
               </div>
             </div>
             <div className="rounded-md bg-warning-soft/40 border border-warning/30 p-3 text-xs text-text leading-relaxed">
-              <strong className="text-warning-strong">Sau khi đổi:</strong>
+              <strong className="text-warning-strong">{t('confirmAfterTitle')}</strong>
               <ul className="mt-1.5 list-disc list-inside space-y-0.5">
-                <li>SĐT cũ <strong>KHÔNG</strong> dùng để đăng nhập app được nữa</li>
-                <li>Tài xế phải <strong>đăng nhập lại</strong> bằng SĐT mới <code className="font-mono">{normalizedPhone}</code></li>
-                <li>Token hiện tại của tài xế còn dùng được tối đa 1 giờ</li>
-                <li>Hãy gọi báo tài xế trước khi xác nhận</li>
+                <li>{t('confirmAfter1')}</li>
+                <li>{t('confirmAfter2', { phone: normalizedPhone })}</li>
+                <li>{t('confirmAfter3')}</li>
+                <li>{t('confirmAfter4')}</li>
               </ul>
             </div>
           </div>
@@ -449,7 +434,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
               onClick={() => setConfirmPhoneOpen(false)}
               disabled={pending}
             >
-              Huỷ
+              {t('confirmCancel')}
             </Button>
             <Button
               type="button"
@@ -458,7 +443,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
               disabled={pending}
               iconLeft={pending ? <Loader2 className="animate-spin" /> : <Save />}
             >
-              {pending ? 'Đang lưu…' : 'Xác nhận đổi SĐT'}
+              {pending ? t('saving') : t('confirmAction')}
             </Button>
           </DialogFooter>
         </DialogContent>
