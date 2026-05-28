@@ -11,6 +11,7 @@ import {
   toast,
 } from '@car-v2/ui';
 import { updateRetentionAction } from '@/server/actions/settings/tenant-settings.actions';
+import { formatActionError } from '@/lib/format-action-error';
 
 interface RetentionSelectProps {
   field: 'trip' | 'audit';
@@ -34,6 +35,7 @@ function decode(s: string): number | null {
 
 export function RetentionSelect({ field, defaultValue, options, disabled }: RetentionSelectProps) {
   const tStatus = useTranslations('settings.saveStatus');
+  const tErr = useTranslations();
   const [value, setValue] = useState<string>(encode(defaultValue));
   const [pending, startTransition] = useTransition();
 
@@ -47,7 +49,7 @@ export function RetentionSelect({ field, defaultValue, options, disabled }: Rete
         toast.success(tStatus('saved'));
       } else {
         setValue(previous);
-        toast.error(tStatus('error', { message: result.error.message }));
+        toast.error(tStatus('error', { message: formatActionError(result.error, tErr) }));
       }
     });
   };

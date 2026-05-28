@@ -12,6 +12,7 @@ import {
 } from '@car-v2/ui';
 import type { CarCurrency } from '@car-v2/db/schema';
 import { updateCurrencyAction } from '@/server/actions/settings/tenant-settings.actions';
+import { formatActionError } from '@/lib/format-action-error';
 
 interface CurrencySelectProps {
   defaultValue: CarCurrency;
@@ -26,6 +27,7 @@ const OPTIONS: ReadonlyArray<{ value: CarCurrency; label: string }> = [
 
 export function CurrencySelect({ defaultValue, disabled }: CurrencySelectProps) {
   const tStatus = useTranslations('settings.saveStatus');
+  const tErr = useTranslations();
   const [value, setValue] = useState<CarCurrency>(defaultValue);
   const [pending, startTransition] = useTransition();
 
@@ -40,7 +42,7 @@ export function CurrencySelect({ defaultValue, disabled }: CurrencySelectProps) 
         toast.success(tStatus('saved'));
       } else {
         setValue(previous); // revert
-        toast.error(tStatus('error', { message: result.error.message }));
+        toast.error(tStatus('error', { message: formatActionError(result.error, tErr) }));
       }
     });
   };

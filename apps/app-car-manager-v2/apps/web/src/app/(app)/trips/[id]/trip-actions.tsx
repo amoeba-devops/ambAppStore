@@ -71,6 +71,7 @@ export function TripActions({
   vehicles,
 }: TripActionsProps) {
   const t  = useTranslations('trips.actions');
+  const tStatus = useTranslations('trips.status');
   const tErr = useTranslations();
   const [pending, startTransition] = useTransition();
   const [dialog, setDialog] = useState<DialogKind>(null);
@@ -82,7 +83,7 @@ export function TripActions({
     startTransition(async () => {
       const result = await fn();
       if (result.success) {
-        toast.success(label, { description: `${t('tStatusPrefix')} ${result.data.trpStatus}` });
+        toast.success(label, { description: `${t('tStatusPrefix')} ${tStatus(result.data.trpStatus)}` });
       } else {
         toast.error(`${label} ${t('tFailedSuffix')}`, { description: formatActionError(result.error, tErr) });
       }

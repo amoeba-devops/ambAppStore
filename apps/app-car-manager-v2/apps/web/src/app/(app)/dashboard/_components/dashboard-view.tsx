@@ -8,6 +8,7 @@ import {
   fetchTripsForCalendarAction,
   updateTripAction,
 } from '@/server/actions/trips/trip.actions';
+import { formatActionError } from '@/lib/format-action-error';
 import type { TripListItem } from '@/server/queries/trips.queries';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { CalendarToolbar } from './calendar/toolbar';
@@ -78,6 +79,7 @@ export function DashboardView({
 }: DashboardViewProps) {
   const router = useRouter();
   const t = useTranslations('dashboard.calendar');
+  const tErr = useTranslations();
   const [anchor, setAnchor] = useState<Date>(() => new Date());
   /* Seed with SSR-safe defaults; the post-mount effect below adopts the
    * persisted localStorage value. Keeps server + client first paint
@@ -184,10 +186,10 @@ export function DashboardView({
       } else if (res.error.code === 'CAR-E0413') {
         toast.error(t('rangeTooLarge'));
       } else {
-        toast.error(res.error.message);
+        toast.error(formatActionError(res.error, tErr));
       }
     });
-  }, [anchor, view, rangeFilter, t]);
+  }, [anchor, view, rangeFilter, t, tErr]);
 
   const events = useMemo<CalendarEvent[]>(() => trips.map(tripToCalendarEvent), [trips]);
 
@@ -236,10 +238,10 @@ export function DashboardView({
         setTrips((prev) =>
           prev.map((tr) => (tr.trpId === eventId ? { ...tr, trpScheduledAt: oldStart } : tr)),
         );
-        toast.error(t('dragError'), { description: res.error.message });
+        toast.error(t('dragError'), { description: formatActionError(res.error, tErr) });
       }
     },
-    [events, t, router],
+    [events, t, tErr, router],
   );
 
   /* Navigation handlers — any of these implies the user is moving away from

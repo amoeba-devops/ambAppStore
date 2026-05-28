@@ -2,7 +2,12 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
-import { carNotifications, carPushSubscriptions, carUsers } from '@car-v2/db/schema';
+import {
+  carNotifications,
+  carPushSubscriptions,
+  carUsers,
+  type NotificationTemplatePayload,
+} from '@car-v2/db/schema';
 import { sendEmail } from './email.service';
 import {
   renderNotification,
@@ -13,36 +18,41 @@ import {
 import { sendPushToSubscriptions, type PushSubscriptionRecord } from './push.service';
 
 /**
- * Notification fan-out — DB queue + email + Web Push (P4).
+ * Notification fan-out — DB queue + email + Web Push.
+ *
+ * Localization strategy (Option A — render-at-read):
+ *   - DB stores `ntf_event + ntf_template_payload` so the inbox UI can
+ *     re-render in the user's CURRENT UI locale.
+ *   - Email + Push render server-side using the recipient's saved
+ *     `usr_preferred_locale` (they aren't in a Next request context so
+ *     `useTranslations` isn't available client-side for them).
+ *   - The frozen `ntf_title` / `ntf_body` columns now hold the
+ *     recipient-locale render as a FALLBACK for legacy rows + clients that
+ *     can't resolve the event key (e.g. old service workers caching the
+ *     inbox JSON).
  *
  * Order of operations:
- *   1. Insert row into car_notifications (in-app bell)  ← ALWAYS happens
- *   2. Load recipient (email + locale + push subscriptions)
- *   3. If event matches DELIVERY_CHANNELS, fire email + push in parallel
- *   4. All transport failures are swallowed (best-effort) — parent mutation
- *      MUST NOT crash because Resend is down.
- *
- * Transport gating: each channel checks its own env config (`getEmailConfig`,
- * `getPushConfig`). Missing → silent skip. This lets a feature branch ship
- * without Resend keys, and still benefit from in-app bell.
- *
- * @see notification-template.service for the 6 trip event templates
- * @see push.service for VAPID + endpoint cleanup
+ *   1. Lookup recipient (need locale + email + push subs)
+ *   2. Render in recipient locale (for DB fallback + email/push transports)
+ *   3. INSERT row with event + payload + frozen fallback strings
+ *   4. Fire email + push in parallel — best-effort, swallow failures so the
+ *      parent mutation doesn't crash because Resend is down.
  */
 
 interface NotifyInput {
   entId: string;
   userId: string;
-  /** Upper-snake event identifier: TRIP.ASSIGNED, TRIP.REJECTED, ... */
-  event: string;
-  title: string;
+  /** Upper-snake event identifier matching messages/*.json `notifications.events.*`. */
+  event: NotificationEvent | string;
+  /** Plain-string fallback when the event has no template entry (rare). */
+  title?: string;
   body?: string;
   entityId?: string;
   entityRef?: string;
   /**
-   * Template context for email/push render. Optional — when omitted, only
-   * the in-app bell row is inserted (title/body used as-is). Most callers
-   * SHOULD provide this so email/push get rich content.
+   * Template context for re-rendering at read time AND for email/push render.
+   * REQUIRED for any event listed in the templates JSON — without it the
+   * inbox UI can't re-render on locale switch.
    */
   template?: TemplateContext;
 }
@@ -65,35 +75,9 @@ const DELIVERY_CHANNELS: Record<string, { email: boolean; push: boolean }> = {
 };
 
 export async function notifyUser(input: NotifyInput): Promise<void> {
-  /* Step 1 — DB queue. ALWAYS run, even if transport fails or is disabled. */
-  try {
-    await db.insert(carNotifications).values({
-      ntfId: randomUUID(),
-      entId: input.entId,
-      ntfUserId: input.userId,
-      ntfEvent: input.event,
-      ntfTitle: input.title,
-      ntfBody: input.body ?? null,
-      ntfEntityId: input.entityId ?? null,
-      ntfEntityRef: input.entityRef ?? null,
-    });
-  } catch (err) {
-    /* eslint-disable-next-line no-console */
-    console.error('[notify] failed to queue notification', input.event, err);
-    /* DB failed — don't even try transport, recipient already de facto "lost". */
-    return;
-  }
-
-  /* Step 2 — Fan out to email + push, gated by event + config. */
-  const channels = DELIVERY_CHANNELS[input.event];
-  if (!channels) return;
-  if (!input.template) return; // Caller didn't opt into transport rendering.
-
-  const wantEmail = channels.email;
-  const wantPush = channels.push;
-  if (!wantEmail && !wantPush) return;
-
-  /* Recipient lookup. Skip transport if user soft-deleted or missing locale. */
+  /* Step 1 — Recipient lookup. We need this BEFORE insert to pick the
+   * fallback render locale. If the user is missing/soft-deleted, skip the
+   * notification entirely (their inbox can't receive it anyway). */
   const user = await db.query.carUsers.findFirst({
     where: and(
       eq(carUsers.usrId, input.userId),
@@ -104,17 +88,85 @@ export async function notifyUser(input: NotifyInput): Promise<void> {
   if (!user) return;
 
   const locale = resolveLocale(user.usrPreferredLocale);
-  const rendered = renderNotification(input.event as NotificationEvent, locale, input.template);
+
+  /* Step 2 — Render fallback strings + payload. If the event has no template
+   * registered we fall back to the caller-supplied title/body (rare path —
+   * future events without copy yet). */
+  let renderedSubject = input.title ?? input.event;
+  let renderedBody: string | null = input.body ?? null;
+  let renderedUrl: string | null = null;
+  let renderedHtml: string | null = null;
+  let renderedPlainText: string | null = null;
+
+  if (input.template) {
+    try {
+      const rendered = await renderNotification(
+        input.event as NotificationEvent,
+        locale,
+        input.template,
+      );
+      renderedSubject = rendered.subject;
+      renderedBody = rendered.body;
+      renderedUrl = rendered.url;
+      renderedHtml = rendered.html;
+      renderedPlainText = rendered.plainText;
+    } catch (err) {
+      /* Template key missing → fall back to caller-supplied strings.
+       * Don't crash the parent mutation just because copy is unrouted. */
+      // eslint-disable-next-line no-console
+      console.warn('[notify] template render failed, using fallback', input.event, err);
+    }
+  }
+
+  /* Step 3 — INSERT row. Payload is what the inbox UI reads to re-render in
+   * the user's CURRENT UI locale; title/body stay as immutable fallback. */
+  const payload: NotificationTemplatePayload | null = input.template
+    ? {
+        ref: input.template.ref,
+        route: input.template.route,
+        reason: input.template.reason,
+        tripPath: input.template.tripPath,
+      }
+    : null;
+
+  try {
+    await db.insert(carNotifications).values({
+      ntfId: randomUUID(),
+      entId: input.entId,
+      ntfUserId: input.userId,
+      ntfEvent: input.event,
+      ntfTitle: renderedSubject,
+      ntfBody: renderedBody,
+      ntfTemplatePayload: payload,
+      ntfEntityId: input.entityId ?? null,
+      ntfEntityRef: input.entityRef ?? null,
+    });
+  } catch (err) {
+    /* eslint-disable-next-line no-console */
+    console.error('[notify] failed to queue notification', input.event, err);
+    /* DB failed — don't even try transport, recipient already de facto "lost". */
+    return;
+  }
+
+  /* Step 4 — Fan out to email + push, gated by event + config. Skip if no
+   * template (we have no rich content to send) or no channels configured. */
+  const channels = DELIVERY_CHANNELS[input.event];
+  if (!channels) return;
+  if (!input.template || renderedUrl === null) return;
+
+  const wantEmail = channels.email;
+  const wantPush = channels.push;
+  if (!wantEmail && !wantPush) return;
 
   const tasks: Array<Promise<unknown>> = [];
 
-  if (wantEmail && user.usrEmail) {
+  if (wantEmail && user.usrEmail && renderedHtml && renderedPlainText) {
     tasks.push(
       sendEmail({
         to: user.usrEmail,
-        subject: rendered.subject,
-        html: rendered.html,
-        text: rendered.plainText,
+        subject: renderedSubject,
+        html: renderedHtml,
+        text: renderedPlainText,
       }),
     );
   }
@@ -136,9 +188,9 @@ export async function notifyUser(input: NotifyInput): Promise<void> {
         });
         if (subs.length === 0) return;
         await sendPushToSubscriptions(subs as PushSubscriptionRecord[], {
-          title: rendered.subject,
-          body: rendered.body,
-          url: rendered.url,
+          title: renderedSubject,
+          body: renderedBody ?? '',
+          url: renderedUrl,
           ref: input.template!.ref,
         });
       })(),

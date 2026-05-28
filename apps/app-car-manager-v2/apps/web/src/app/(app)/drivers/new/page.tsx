@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ChevronLeft, UserPlus } from 'lucide-react';
+import { ChevronLeft, ExternalLink, UserPlus } from 'lucide-react';
 import { Button, Card, CardContent } from '@car-v2/ui';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
@@ -9,11 +9,16 @@ import { listDriverCandidates } from '@/server/queries/drivers.queries';
 import { DriverForm } from '../_components/driver-form';
 
 /**
- * Tạo tài xế — chọn user có sẵn trong entity rồi gắn license.
+ * Tạo tài xế — chọn user có sẵn (đã từng login car-v2) rồi gắn license.
  *
- * User mới phải được tạo qua /users/new (sync AMA) — trang này KHÔNG tạo user inline.
- * REQ-20260526 §3.4.
+ * Option 1b: car-v2 không quản lý member roster. Member chỉ xuất hiện trong
+ * `car_users` sau lần login đầu tiên. Để mời member mới, admin sang AMA UI.
  */
+const AMA_MEMBERS_URL =
+  process.env.NEXT_PUBLIC_AMA_ORIGIN
+    ? `${process.env.NEXT_PUBLIC_AMA_ORIGIN}/entity-settings/members`
+    : null;
+
 export default async function NewDriverPage() {
   const tA   = await getTranslations('actions');
   const tNav = await getTranslations('nav');
@@ -58,9 +63,13 @@ export default async function NewDriverPage() {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
-                <Button variant="accent" size="md" asChild>
-                  <Link href="/users/new">{tScr('createUserCta')}</Link>
-                </Button>
+                {AMA_MEMBERS_URL && (
+                  <Button variant="accent" size="md" iconLeft={<ExternalLink />} asChild>
+                    <a href={AMA_MEMBERS_URL} target="_blank" rel="noreferrer">
+                      {tScr('createUserCta')}
+                    </a>
+                  </Button>
+                )}
                 <Button variant="ghost" size="md" asChild>
                   <Link href="/drivers">{tA('back')}</Link>
                 </Button>

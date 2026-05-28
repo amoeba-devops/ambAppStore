@@ -83,7 +83,7 @@
     "newVehicle":    { "title": "차량 추가",             "subtitle": "차량을 새로 등록합니다" },
     "drivers":       { "title": "기사",                  "subtitle": "명단 + 면허 + 성과" },
     "driverDetail":  { "title": "기사 프로필",           "subtitle": "면허 · 운행 · 문서" },
-    "newDriver":     { "title": "기사 추가",             "subtitle": "기사 프로필을 새로 만듭니다", "emptyHeading": "기사로 등록할 수 있는 사용자가 없습니다", "emptyDesc": "회사의 모든 사용자가 이미 기사로 연결되어 있거나, AMA에서 새 사용자를 먼저 만들어야 합니다.", "createUserCta": "→ 새 사용자 만들기" },
+    "newDriver":     { "title": "기사 추가",             "subtitle": "기사 프로필을 새로 만듭니다", "emptyHeading": "기사로 등록할 수 있는 사용자가 없습니다", "emptyDesc": "회사의 모든 사용자가 이미 기사로 연결되어 있거나, 새 사용자가 아직 car-v2에 로그인하지 않았습니다. AMA에서 사용자를 초대한 뒤 car-v2에 한 번 로그인하도록 안내해 주세요.", "createUserCta": "AMA에서 사용자 초대" },
     "newUser":       { "title": "새 멤버 추가", "subtitle": "이메일로 로그인 계정 생성 (AMA 관리)", "breadcrumbParent": "사용자", "breadcrumbCurrent": "추가" },
     "editUser":      { "title": "멤버 편집", "breadcrumbParent": "사용자", "breadcrumbCurrent": "편집" },
     "users":         { "title": "사용자 & 역할",         "subtitle": "멤버 + 역할 배정" },
@@ -550,27 +550,9 @@
       "errUpdate": "수정할 수 없습니다",
       "draftLabelNew": "기사 추가 중",
       "draftLabelEdit": "기사 {name} 수정 중",
-      "phoneLoginTitle": "로그인 전화번호",
-      "phoneLoginDesc": "잘못 변경하면 기사가 앱에 로그인할 수 없습니다. 변경 후 기사는 반드시 다시 로그인해야 합니다.",
       "phoneInvalid": "✗ 유효하지 않음",
       "phoneInvalidToast": "전화번호가 유효하지 않습니다",
       "phoneInvalidDesc": "03/05/07/08/09로 시작하는 10자리 숫자가 필요합니다.",
-      "phoneUpdateFail": "전화번호를 변경할 수 없습니다",
-      "phoneReloginToast": "기사는 새 전화번호로 다시 로그인해야 합니다",
-      "phoneChanged": "(변경됨)",
-      "confirmPhoneTitle": "전화번호 변경 확인",
-      "confirmPhoneDesc": "기사는 새 전화번호로 다시 로그인해야 합니다.",
-      "confirmRowDriver": "기사",
-      "confirmRowOldPhone": "이전 전화",
-      "confirmRowNewPhone": "새 전화",
-      "confirmEmpty": "(없음)",
-      "confirmAfterTitle": "변경 후:",
-      "confirmAfter1": "이전 전화로는 앱에 로그인할 수 없습니다",
-      "confirmAfter2": "기사는 새 전화 {phone}로 로그인해야 합니다",
-      "confirmAfter3": "현재 기사 토큰은 최대 1시간까지 사용 가능합니다",
-      "confirmAfter4": "확인 전 기사에게 전화로 알리세요",
-      "confirmCancel": "취소",
-      "confirmAction": "전화 변경 확인",
       "saving": "저장 중…"
     },
     "detail": {
@@ -614,14 +596,17 @@
       "previous": "이전",
       "next": "다음",
       "createDriver": "운전자 만들기",
-      "syncedAgo": "{time} 동기화",
+      "manageOnAma": "AMA에서 멤버 관리",
+      "statsAllowed": "{allowed}명 허용 · {blocked}명 차단",
+      "blockedBadge": "차단됨",
+      "syncedAgo": "AMA 동기화 {time}",
       "notFound": "\"{query}\"에 일치하는 사용자가 없습니다.",
-      "emptyMembers": "이 회사에 아직 멤버가 없습니다.",
-      "addNew": "새 멤버 추가"
+      "emptyMembers": "아직 car-v2에 로그인한 사용자가 없습니다.",
+      "emptyHint": "사용자는 첫 로그인 후 여기 표시됩니다. 멤버 초대는:"
     },
     "refresh": {
-      "label": "동기화",
-      "successToast": "AMA에서 {count}명의 사용자를 동기화했습니다",
+      "label": "AMA에서 동기화",
+      "successToast": "동기화 완료: 추가 {inserted}명 · 업데이트 {updated}명",
       "skippedDesc": "{count}명의 cross-entity 사용자를 건너뛰었습니다"
     },
     "relativeTime": {
@@ -633,31 +618,25 @@
       "daysAgo": "{n}일 전",
       "weeksAgo": "{n}주 전"
     },
-    "statusBadge": {
-      "ACTIVE": "활성",
-      "INACTIVE": "잠금",
-      "SUSPENDED": "정지"
-    },
     "signin": {
-      "lockSignin": "로그인 잠금",
-      "unlockSignin": "로그인 잠금 해제",
-      "lockedToast": "{name}의 로그인을 잠갔습니다",
-      "unlockedToast": "{name}의 로그인을 해제했습니다",
-      "btnLocked": "잠금",
-      "btnUnlocked": "잠금 해제",
-      "confirmTitleLock": "로그인 잠금 확인",
-      "confirmTitleUnlock": "로그인 잠금 해제 확인",
-      "descLock": "잠금 후 운전자는 앱에 로그인할 수 없습니다.",
-      "descUnlock": "잠금 해제 후 운전자가 다시 로그인할 수 있습니다.",
+      "lockSignin": "car-v2 차단",
+      "unlockSignin": "car-v2 차단 해제",
+      "lockedToast": "{name}님을 car-v2에서 차단했습니다",
+      "unlockedToast": "{name}님의 차단을 해제했습니다",
+      "btnLocked": "차단",
+      "btnUnlocked": "허용",
+      "confirmTitleLock": "car-v2 접근 차단 확인",
+      "confirmTitleUnlock": "car-v2 접근 허용 확인",
+      "descLock": "차단 후 운전자는 car-v2에 접근할 수 없습니다. 다른 Amoeba 앱은 정상 이용 가능합니다.",
+      "descUnlock": "차단 해제 후 운전자가 car-v2에 다시 접근할 수 있습니다.",
       "rowDriver": "운전자",
-      "rowStatus": "상태",
-      "afterLockTitle": "잠금 후:",
-      "afterLock1": "운전자는 다시 로그인할 수 없음",
-      "afterLock2": "현재 토큰은 최대 1시간까지 사용 가능",
-      "afterLock3": "잠금 탭에 계속 표시 — 언제든 잠금 해제 가능",
-      "afterUnlockTitle": "잠금 해제 후:",
-      "afterUnlock1": "등록된 전화로 다시 로그인 가능",
-      "afterUnlock2": "다른 설정(역할, 부서, 면허)은 그대로 유지",
+      "afterLockTitle": "차단 후:",
+      "afterLock1": "운전자는 car-v2에 접근할 수 없음",
+      "afterLock2": "현재 토큰은 최대 1시간까지 사용 가능 — 이후 자동 로그아웃",
+      "afterLock3": "AMA 및 다른 앱 로그인은 정상 작동",
+      "afterUnlockTitle": "차단 해제 후:",
+      "afterUnlock1": "운전자가 car-v2에 즉시 다시 접근 가능",
+      "afterUnlock2": "다른 설정(역할, 운전자 프로필)은 그대로 유지",
       "cancel": "취소",
       "pending": "처리 중…"
     },
@@ -700,40 +679,28 @@
     "edit": {
       "title": "멤버 정보",
       "name": "이름",
-      "emailIdLabel": "이메일/ID",
-      "level": "Level",
-      "phoneTitle": "로그인 전화번호",
-      "phoneDesc": "사용자가 앱에 로그인할 때 사용하는 전화번호입니다. 잘못 변경하면 사용자가 앱에 로그인할 수 없으니, 변경 전 반드시 사용자에게 알리세요.",
-      "phoneLabel": "전화번호",
-      "phoneInvalid": "✗ 유효하지 않음",
-      "phoneChanged": "(변경됨)",
-      "phoneNormalizeHint": "시스템이 +84 / 공백을 자동 정리합니다.",
-      "role": "역할 (AMA)",
-      "roleDesc": "AMA 역할이 v2 권한을 결정합니다. MEMBER → DRIVER, MANAGER → MANAGER, MASTER → ADMIN.",
-      "status": "상태",
-      "statusDesc": "INACTIVE/SUSPENDED → 사용자는 더 이상 로그인할 수 없습니다.",
-      "department": "부서",
-      "departmentPlaceholder": "예: 운영",
-      "jobTitle": "직책",
-      "jobTitlePlaceholder": "예: 부서장",
+      "emailIdLabel": "이메일",
+      "amaRoleLabel": "AMA 역할",
+      "amaManagedHint": "이름 / 이메일 / AMA 역할은 AMA에서 관리합니다.",
+      "openOnAma": "AMA에서 편집",
+      "localRole": "앱 내 역할",
+      "localRoleDesc": "car-v2에만 적용되는 역할입니다. AMA 역할은 참고용으로 유지됩니다.",
+      "localRoleOption": {
+        "ADMIN": "관리자",
+        "MANAGER": "매니저",
+        "DRIVER": "운전자"
+      },
+      "statusAllowed": "car-v2 접근 허용",
+      "statusBlocked": "car-v2 접근 차단됨",
+      "allowedDesc": "사용자가 car-v2에 정상적으로 로그인하여 사용할 수 있습니다.",
+      "blockedDesc": "사용자가 car-v2에 접근할 수 없습니다 (다른 Amoeba 앱은 정상 이용 가능).",
+      "toggleBlock": "접근 차단",
+      "toggleUnblock": "다시 허용",
+      "blockSelfWarning": "본인 계정은 차단할 수 없습니다.",
       "save": "변경 저장",
       "cancel": "취소",
       "saving": "저장 중…",
-      "updatedToast": "{name} 업데이트됨",
-      "phoneInvalidToast": "VN 전화 형식이 잘못되었습니다 (03/05/07/08/09로 시작하는 10자리)",
-      "confirmTitle": "전화번호 변경 확인",
-      "confirmDesc": "이 작업은 사용자의 로그인에 영향을 줍니다.",
-      "confirmUser": "사용자",
-      "confirmOldPhone": "이전 전화",
-      "confirmNewPhone": "새 전화",
-      "confirmEmpty": "(없음)",
-      "confirmAfterTitle": "변경 후:",
-      "confirmAfter1": "사용자는 이전 전화로 로그인할 수 없음",
-      "confirmAfter2": "사용자는 새 전화 {phone}로 로그인해야 함",
-      "confirmAfter3": "현재 토큰은 최대 1시간까지 사용 가능",
-      "confirmAfter4": "변경 전 사용자에게 알릴 것",
-      "confirmCancel": "취소",
-      "confirmAction": "전화 변경 확인"
+      "updatedToast": "{name} 업데이트됨"
     }
   },
   "costs": {
@@ -1037,6 +1004,69 @@
     "markReadFailed": "상태를 업데이트할 수 없습니다",
     "unreadAria": "읽지 않음"
   },
+  "notifications": {
+    "cta": "운행 보기",
+    "events": {
+      "TRIP": {
+        "ASSIGNED": {
+          "subject": "새 운행이 배정되었습니다",
+          "body": "운행 {ref}을(를) 확인해 주세요.",
+          "bodyWithRoute": "운행 {ref} ({route})을(를) 확인해 주세요."
+        },
+        "NEEDS_ASSIGNMENT": {
+          "subject": "기사 배정이 필요한 운행",
+          "body": "운행 {ref}에 기사가 배정되지 않았습니다.",
+          "bodyWithRoute": "운행 {ref} ({route})에 기사가 배정되지 않았습니다."
+        },
+        "ACCEPTED": {
+          "subject": "기사가 운행을 수락했습니다",
+          "body": "기사가 운행 {ref}을(를) 수락했습니다."
+        },
+        "REJECTED": {
+          "subject": "기사가 운행을 거절했습니다",
+          "body": "기사가 운행 {ref}을(를) 거절했습니다. 다시 배정해 주세요.",
+          "bodyWithReason": "기사가 운행 {ref}을(를) 거절했습니다. 사유: {reason}. 다시 배정해 주세요."
+        },
+        "COMPLETED": {
+          "subject": "운행이 완료되었습니다",
+          "body": "운행 {ref}이(가) 기사에 의해 종료되었습니다."
+        },
+        "CANCELLED": {
+          "subject": "운행이 취소되었습니다",
+          "body": "운행 {ref}이(가) 취소되었습니다.",
+          "bodyWithReason": "운행 {ref}이(가) 취소되었습니다. 사유: {reason}."
+        }
+      },
+      "EXPENSE": {
+        "ACCIDENT_REPORTED": {
+          "subject": "사고 비용이 보고되었습니다",
+          "body": "사고 비용 {ref}이(가) 기록되었습니다. 확인해 주세요."
+        },
+        "APPROVED": {
+          "subject": "지출 {amount}이(가) 승인되었습니다",
+          "body": "{description}"
+        }
+      },
+      "MAINTENANCE": {
+        "OIL_OVERDUE": {
+          "subject": "오일 교체 기한 초과",
+          "body": "차량 {ref}의 오일 교체 기한이 지났습니다."
+        },
+        "OIL_DUE_SOON": {
+          "subject": "오일 교체 임박",
+          "body": "차량 {ref}의 오일 교체 시기가 다가옵니다."
+        },
+        "INSPECTION_OVERDUE": {
+          "subject": "검사 기한 초과",
+          "body": "차량 {ref}의 검사 기한이 지났습니다."
+        },
+        "INSPECTION_DUE_SOON": {
+          "subject": "검사 기한 임박",
+          "body": "차량 {ref}의 검사 일정이 다가옵니다."
+        }
+      }
+    }
+  },
   "expenses": {
     "history": {
       "title": "내 비용",
@@ -1205,5 +1235,13 @@
     "footnote": "사용자 페이지의 \"동기화\" 버튼으로 언제든 재동기화할 수 있습니다.",
     "managerWaitTitle": "Admin 온보딩 대기 중",
     "managerWaitDesc": "초기 멤버 동기화는 Admin 계정(AMA의 MASTER/OWNER 역할)만 수행할 수 있습니다. 회사 Admin에게 이 단계를 완료해 달라고 요청해 주세요."
+  },
+  "userGuide": {
+    "matchedHint": "보기: {page}",
+    "fallbackHint": "이 페이지에는 전용 가이드가 없습니다 — 역할 개요를 표시합니다.",
+    "openInNewTab": "새 탭에서 열기",
+    "loading": "가이드 로딩 중…",
+    "localeNote": "{locale} 버전 표시 · UI: {uiLocale}",
+    "viewIndex": "목차 보기"
   }
 }

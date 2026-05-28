@@ -6,6 +6,7 @@ import { Check, Loader2 } from 'lucide-react';
 import { Input, toast } from '@car-v2/ui';
 import { useTenantDisplay } from '@/components/layout/tenant-display-context';
 import { updateAppNameAction } from '@/server/actions/settings/tenant-settings.actions';
+import { formatActionError } from '@/lib/format-action-error';
 
 interface AppNameInputProps {
   defaultValue: string | null;
@@ -22,6 +23,7 @@ const DEBOUNCE_MS = 500;
  * the last persisted value so it never drifts from the DB. */
 export function AppNameInput({ defaultValue, disabled }: AppNameInputProps) {
   const tStatus = useTranslations('settings.saveStatus');
+  const tErr = useTranslations();
   const { setAppName: setDisplayAppName } = useTenantDisplay();
   const [value, setValue] = useState(defaultValue ?? '');
   const persistedRef = useRef(defaultValue ?? '');
@@ -49,7 +51,7 @@ export function AppNameInput({ defaultValue, disabled }: AppNameInputProps) {
           setTimeout(() => setSavedFlash(false), 1500);
         } else {
           setDisplayAppName(persistedRef.current === '' ? null : persistedRef.current);
-          toast.error(tStatus('error', { message: result.error.message }));
+          toast.error(tStatus('error', { message: formatActionError(result.error, tErr) }));
         }
       });
     }, DEBOUNCE_MS);

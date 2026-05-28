@@ -108,7 +108,7 @@ export function AppShellClient({
       initialAppName={appName}
       defaultAppName={appDefaultName}
     >
-      <UserDisplayProvider userName={userName} userEmail={userEmail} unreadNotifications={unreadNotificationCount}>
+      <UserDisplayProvider userName={userName} userEmail={userEmail} role={role} unreadNotifications={unreadNotificationCount}>
       <PushConfigProvider vapidPublicKey={vapidPublicKey} basePath={basePath}>
         <div className="flex min-h-dvh bg-bg text-text">
           {/* Sidebar — hidden on mobile, replaced by BottomTabNav below.

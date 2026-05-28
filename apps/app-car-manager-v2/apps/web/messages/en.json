@@ -83,7 +83,7 @@
     "newVehicle":    { "title": "Add vehicle",          "subtitle": "Register a new vehicle in the fleet" },
     "drivers":       { "title": "Drivers",              "subtitle": "Roster + license + performance" },
     "driverDetail":  { "title": "Driver profile",       "subtitle": "License · trips · documents" },
-    "newDriver":     { "title": "Add driver",           "subtitle": "Register a new driver profile", "emptyHeading": "No user is ready to become a driver", "emptyDesc": "Every user in the company is already linked to a driver, or you need to create a new user on AMA first.", "createUserCta": "→ Create new user" },
+    "newDriver":     { "title": "Add driver",           "subtitle": "Register a new driver profile", "emptyHeading": "No user is ready to become a driver", "emptyDesc": "Every user in the company is already linked to a driver, or the new user has not signed in to car-v2 yet. Invite the user on AMA, then ask them to sign in once so they show up here.", "createUserCta": "Invite user on AMA" },
     "newUser":       { "title": "Add new member", "subtitle": "Create a sign-in account via email (AMA-managed)", "breadcrumbParent": "Users", "breadcrumbCurrent": "Add" },
     "editUser":      { "title": "Edit member", "breadcrumbParent": "Users", "breadcrumbCurrent": "Edit" },
     "users":         { "title": "Users & roles",        "subtitle": "Members + role assignment" },
@@ -550,27 +550,9 @@
       "errUpdate": "Could not update",
       "draftLabelNew": "Adding a driver",
       "draftLabelEdit": "Editing {name}",
-      "phoneLoginTitle": "Login phone",
-      "phoneLoginDesc": "wrong number = driver cannot enter the app. Note: after changing, driver MUST sign in again.",
       "phoneInvalid": "✗ Invalid",
       "phoneInvalidToast": "Invalid phone",
       "phoneInvalidDesc": "Requires 10 digits starting with 03/05/07/08/09.",
-      "phoneUpdateFail": "Could not change phone",
-      "phoneReloginToast": "Driver must sign in again using the new phone",
-      "phoneChanged": "(CHANGED)",
-      "confirmPhoneTitle": "Confirm phone change",
-      "confirmPhoneDesc": "The driver must sign in again with the new phone.",
-      "confirmRowDriver": "Driver",
-      "confirmRowOldPhone": "Old phone",
-      "confirmRowNewPhone": "New phone",
-      "confirmEmpty": "(none)",
-      "confirmAfterTitle": "After change:",
-      "confirmAfter1": "The old phone CANNOT be used to sign in",
-      "confirmAfter2": "The driver must sign in with the new phone {phone}",
-      "confirmAfter3": "Current driver token still usable for up to 1 hour",
-      "confirmAfter4": "Call the driver before confirming",
-      "confirmCancel": "Cancel",
-      "confirmAction": "Confirm phone change",
       "saving": "Saving…"
     },
     "detail": {
@@ -614,14 +596,17 @@
       "previous": "Previous",
       "next": "Next",
       "createDriver": "Create driver",
-      "syncedAgo": "Synced {time}",
+      "manageOnAma": "Manage members on AMA",
+      "statsAllowed": "{allowed} allowed · {blocked} blocked",
+      "blockedBadge": "Blocked",
+      "syncedAgo": "AMA synced {time}",
       "notFound": "No user matches \"{query}\".",
-      "emptyMembers": "No members in this company yet.",
-      "addNew": "Add new member"
+      "emptyMembers": "Nobody has signed in to car-v2 yet.",
+      "emptyHint": "Members appear here after their first sign-in. To invite more:"
     },
     "refresh": {
-      "label": "Sync",
-      "successToast": "Synced {count} users from AMA",
+      "label": "Sync from AMA",
+      "successToast": "Synced: added {inserted} · updated {updated}",
       "skippedDesc": "Skipped {count} cross-entity users"
     },
     "relativeTime": {
@@ -633,31 +618,25 @@
       "daysAgo": "{n} day(s) ago",
       "weeksAgo": "{n} week(s) ago"
     },
-    "statusBadge": {
-      "ACTIVE": "Active",
-      "INACTIVE": "Locked",
-      "SUSPENDED": "Suspended"
-    },
     "signin": {
-      "lockSignin": "Lock sign-in",
-      "unlockSignin": "Unlock sign-in",
-      "lockedToast": "Locked sign-in for {name}",
-      "unlockedToast": "Unlocked sign-in for {name}",
-      "btnLocked": "Lock",
-      "btnUnlocked": "Unlock",
-      "confirmTitleLock": "Confirm lock sign-in",
-      "confirmTitleUnlock": "Confirm unlock sign-in",
-      "descLock": "The driver will not be able to sign in after locking.",
-      "descUnlock": "The driver will be able to sign in again after unlocking.",
+      "lockSignin": "Block from car-v2",
+      "unlockSignin": "Restore access",
+      "lockedToast": "{name} blocked from car-v2",
+      "unlockedToast": "Restored {name}'s access",
+      "btnLocked": "Block",
+      "btnUnlocked": "Allow",
+      "confirmTitleLock": "Block car-v2 access",
+      "confirmTitleUnlock": "Restore car-v2 access",
+      "descLock": "The driver will not be able to use car-v2. Other Amoeba apps are unaffected.",
+      "descUnlock": "The driver will regain access to car-v2.",
       "rowDriver": "Driver",
-      "rowStatus": "Status",
-      "afterLockTitle": "After locking:",
-      "afterLock1": "The driver CANNOT sign in again",
-      "afterLock2": "Existing token still usable for up to 1 hour",
-      "afterLock3": "Driver still appears in Locked tab — unlock anytime",
-      "afterUnlockTitle": "After unlocking:",
-      "afterUnlock1": "Driver can sign in again using registered phone",
-      "afterUnlock2": "Other settings (role, department, license) remain unchanged",
+      "afterLockTitle": "After blocking:",
+      "afterLock1": "The driver CANNOT use car-v2",
+      "afterLock2": "Existing token still usable up to 1 hour — then auto-logout",
+      "afterLock3": "AMA login and other apps continue to work",
+      "afterUnlockTitle": "After restoring:",
+      "afterUnlock1": "The driver can immediately use car-v2 again",
+      "afterUnlock2": "Other settings (role, driver profile) remain unchanged",
       "cancel": "Cancel",
       "pending": "Processing…"
     },
@@ -700,40 +679,28 @@
     "edit": {
       "title": "Member information",
       "name": "Name",
-      "emailIdLabel": "Email/ID",
-      "level": "Level",
-      "phoneTitle": "Login phone",
-      "phoneDesc": "This is the phone the user signs in with. Wrong = user cannot enter. Tell the user before changing.",
-      "phoneLabel": "Phone number",
-      "phoneInvalid": "✗ Invalid",
-      "phoneChanged": "(CHANGED)",
-      "phoneNormalizeHint": "System auto-normalizes +84 / spaces.",
-      "role": "Role (AMA)",
-      "roleDesc": "AMA role determines permissions in v2. MEMBER → DRIVER, MANAGER → MANAGER, MASTER → ADMIN.",
-      "status": "Status",
-      "statusDesc": "INACTIVE/SUSPENDED → user can no longer sign in.",
-      "department": "Department",
-      "departmentPlaceholder": "e.g. Operations",
-      "jobTitle": "Job title",
-      "jobTitlePlaceholder": "e.g. Department head",
+      "emailIdLabel": "Email",
+      "amaRoleLabel": "AMA role",
+      "amaManagedHint": "Name / email / AMA role are managed by AMA.",
+      "openOnAma": "Edit on AMA",
+      "localRole": "App role",
+      "localRoleDesc": "Role specific to car-v2. The AMA role is kept as reference.",
+      "localRoleOption": {
+        "ADMIN": "Admin",
+        "MANAGER": "Manager",
+        "DRIVER": "Driver"
+      },
+      "statusAllowed": "car-v2 access allowed",
+      "statusBlocked": "Blocked from car-v2",
+      "allowedDesc": "User can sign in and use car-v2 normally.",
+      "blockedDesc": "User cannot access car-v2 (other Amoeba apps remain available).",
+      "toggleBlock": "Block access",
+      "toggleUnblock": "Restore access",
+      "blockSelfWarning": "You cannot block your own account.",
       "save": "Save changes",
       "cancel": "Cancel",
       "saving": "Saving…",
-      "updatedToast": "Updated {name}",
-      "phoneInvalidToast": "Invalid VN phone (10 digits starting with 03/05/07/08/09)",
-      "confirmTitle": "Confirm phone change",
-      "confirmDesc": "This will affect the user's ability to sign in.",
-      "confirmUser": "User",
-      "confirmOldPhone": "Old phone",
-      "confirmNewPhone": "New phone",
-      "confirmEmpty": "(none)",
-      "confirmAfterTitle": "After change:",
-      "confirmAfter1": "User CANNOT sign in with the old phone",
-      "confirmAfter2": "User must use new phone {phone} to sign in",
-      "confirmAfter3": "Current token still usable for up to 1 hour",
-      "confirmAfter4": "Notify the user before confirming",
-      "confirmCancel": "Cancel",
-      "confirmAction": "Confirm phone change"
+      "updatedToast": "Updated {name}"
     }
   },
   "costs": {
@@ -1037,6 +1004,69 @@
     "markReadFailed": "Couldn't update status",
     "unreadAria": "Unread"
   },
+  "notifications": {
+    "cta": "View trip",
+    "events": {
+      "TRIP": {
+        "ASSIGNED": {
+          "subject": "New trip assigned to you",
+          "body": "Trip {ref} needs your confirmation.",
+          "bodyWithRoute": "Trip {ref} ({route}) needs your confirmation."
+        },
+        "NEEDS_ASSIGNMENT": {
+          "subject": "A trip needs a driver",
+          "body": "Trip {ref} has no driver yet.",
+          "bodyWithRoute": "Trip {ref} ({route}) has no driver yet."
+        },
+        "ACCEPTED": {
+          "subject": "Driver accepted the trip",
+          "body": "The driver accepted trip {ref}."
+        },
+        "REJECTED": {
+          "subject": "Driver rejected the trip",
+          "body": "The driver rejected trip {ref}. Please reassign.",
+          "bodyWithReason": "The driver rejected trip {ref}. Reason: {reason}. Please reassign."
+        },
+        "COMPLETED": {
+          "subject": "Trip completed",
+          "body": "Trip {ref} was ended by the driver."
+        },
+        "CANCELLED": {
+          "subject": "Trip cancelled",
+          "body": "Trip {ref} was cancelled.",
+          "bodyWithReason": "Trip {ref} was cancelled. Reason: {reason}."
+        }
+      },
+      "EXPENSE": {
+        "ACCIDENT_REPORTED": {
+          "subject": "New accident expense reported",
+          "body": "Accident expense {ref} has been recorded. Please review."
+        },
+        "APPROVED": {
+          "subject": "Expense {amount} approved",
+          "body": "{description}"
+        }
+      },
+      "MAINTENANCE": {
+        "OIL_OVERDUE": {
+          "subject": "Oil change overdue",
+          "body": "Vehicle {ref} is overdue for an oil change."
+        },
+        "OIL_DUE_SOON": {
+          "subject": "Oil change due soon",
+          "body": "Vehicle {ref} is approaching oil change interval."
+        },
+        "INSPECTION_OVERDUE": {
+          "subject": "Inspection overdue",
+          "body": "Vehicle {ref} is overdue for inspection."
+        },
+        "INSPECTION_DUE_SOON": {
+          "subject": "Inspection due soon",
+          "body": "Vehicle {ref} is approaching its inspection date."
+        }
+      }
+    }
+  },
   "expenses": {
     "history": {
       "title": "My expenses",
@@ -1205,5 +1235,13 @@
     "footnote": "You can re-sync at any time using the \"Sync\" button on the Users page.",
     "managerWaitTitle": "Waiting for Admin onboarding",
     "managerWaitDesc": "Only Admin accounts (MASTER/OWNER role on AMA) can run the initial member sync. Please ask your company Admin to complete this step."
+  },
+  "userGuide": {
+    "matchedHint": "Viewing: {page}",
+    "fallbackHint": "No dedicated guide for this page — showing the role overview.",
+    "openInNewTab": "Open in new tab",
+    "loading": "Loading guide…",
+    "localeNote": "Showing {locale} version · UI: {uiLocale}",
+    "viewIndex": "View index"
   }
 }

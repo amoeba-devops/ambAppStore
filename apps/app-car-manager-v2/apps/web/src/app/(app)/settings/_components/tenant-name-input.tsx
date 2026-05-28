@@ -6,6 +6,7 @@ import { Check, Loader2 } from 'lucide-react';
 import { Input, toast } from '@car-v2/ui';
 import { useTenantDisplay } from '@/components/layout/tenant-display-context';
 import { updateTenantNameAction } from '@/server/actions/settings/tenant-settings.actions';
+import { formatActionError } from '@/lib/format-action-error';
 
 interface TenantNameInputProps {
   defaultValue: string | null;
@@ -28,6 +29,7 @@ const DEBOUNCE_MS = 500;
  */
 export function TenantNameInput({ defaultValue, disabled }: TenantNameInputProps) {
   const tStatus = useTranslations('settings.saveStatus');
+  const tErr = useTranslations();
   /* Push every keystroke into the shared display context so the sidebar
    * header reflects the change in real-time. Server persistence still runs
    * debounced — see scheduleSave below. On save failure we revert the
@@ -64,7 +66,7 @@ export function TenantNameInput({ defaultValue, disabled }: TenantNameInputProps
           /* Roll back the optimistic header update so it doesn't diverge
            * from what's actually persisted. */
           setDisplayName(persistedRef.current === '' ? null : persistedRef.current);
-          toast.error(tStatus('error', { message: result.error.message }));
+          toast.error(tStatus('error', { message: formatActionError(result.error, tErr) }));
         }
       });
     }, DEBOUNCE_MS);

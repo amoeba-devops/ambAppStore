@@ -83,7 +83,7 @@
     "newVehicle":    { "title": "Thêm xe",              "subtitle": "Đăng ký xe mới vào đội" },
     "drivers":       { "title": "Tài xế",               "subtitle": "Danh sách + bằng lái + hiệu suất" },
     "driverDetail":  { "title": "Hồ sơ tài xế",         "subtitle": "Bằng lái · chuyến · giấy tờ" },
-    "newDriver":     { "title": "Thêm tài xế",          "subtitle": "Tạo hồ sơ tài xế mới", "emptyHeading": "Chưa có user nào sẵn sàng làm tài xế", "emptyDesc": "Mọi user trong công ty đã được link với tài xế, hoặc bạn cần tạo user mới trên AMA trước khi gắn bằng lái.", "createUserCta": "→ Tạo user mới" },
+    "newDriver":     { "title": "Thêm tài xế",          "subtitle": "Tạo hồ sơ tài xế mới", "emptyHeading": "Chưa có user nào sẵn sàng làm tài xế", "emptyDesc": "Mọi user trong công ty đã được link với tài xế, hoặc user mới chưa từng đăng nhập car-v2. Mời user mới trên AMA, sau đó nhờ họ đăng nhập car-v2 1 lần để xuất hiện ở đây.", "createUserCta": "Mời user trên AMA" },
     "newUser":       { "title": "Thêm thành viên mới", "subtitle": "Tạo tài khoản đăng nhập bằng email (AMA quản lý)", "breadcrumbParent": "Người dùng", "breadcrumbCurrent": "Thêm mới" },
     "editUser":      { "title": "Chỉnh sửa thành viên", "breadcrumbParent": "Người dùng", "breadcrumbCurrent": "Chỉnh sửa" },
     "users":         { "title": "Người dùng & vai trò", "subtitle": "Thành viên + phân vai trò" },
@@ -550,27 +550,9 @@
       "errUpdate": "Không cập nhật được",
       "draftLabelNew": "Đang thêm tài xế mới",
       "draftLabelEdit": "Đang sửa tài xế {name}",
-      "phoneLoginTitle": "SĐT đăng nhập",
-      "phoneLoginDesc": "đổi sai = tài xế không vào app được. Lưu ý: đổi xong tài xế PHẢI đăng nhập lại.",
       "phoneInvalid": "✗ Không hợp lệ",
       "phoneInvalidToast": "SĐT không hợp lệ",
       "phoneInvalidDesc": "Yêu cầu 10 chữ số bắt đầu 03/05/07/08/09.",
-      "phoneUpdateFail": "Không đổi được SĐT",
-      "phoneReloginToast": "Tài xế cần đăng nhập lại bằng SĐT mới",
-      "phoneChanged": "(THAY ĐỔI)",
-      "confirmPhoneTitle": "Xác nhận đổi SĐT đăng nhập",
-      "confirmPhoneDesc": "Tài xế sẽ phải đăng nhập lại bằng SĐT mới.",
-      "confirmRowDriver": "Tài xế",
-      "confirmRowOldPhone": "SĐT cũ",
-      "confirmRowNewPhone": "SĐT mới",
-      "confirmEmpty": "(chưa có)",
-      "confirmAfterTitle": "Sau khi đổi:",
-      "confirmAfter1": "SĐT cũ KHÔNG dùng để đăng nhập app được nữa",
-      "confirmAfter2": "Tài xế phải đăng nhập lại bằng SĐT mới {phone}",
-      "confirmAfter3": "Token hiện tại của tài xế còn dùng được tối đa 1 giờ",
-      "confirmAfter4": "Hãy gọi báo tài xế trước khi xác nhận",
-      "confirmCancel": "Huỷ",
-      "confirmAction": "Xác nhận đổi SĐT",
       "saving": "Đang lưu…"
     },
     "detail": {
@@ -614,14 +596,17 @@
       "previous": "Trước",
       "next": "Sau",
       "createDriver": "Tạo tài xế",
-      "syncedAgo": "Đồng bộ {time}",
+      "manageOnAma": "Quản lý thành viên trên AMA",
+      "statsAllowed": "{allowed} cho phép · {blocked} đã chặn",
+      "blockedBadge": "Đã chặn",
+      "syncedAgo": "Đồng bộ AMA {time}",
       "notFound": "Không tìm thấy user nào khớp \"{query}\".",
-      "emptyMembers": "Chưa có thành viên nào trong công ty này.",
-      "addNew": "Thêm thành viên mới"
+      "emptyMembers": "Chưa có ai đăng nhập vào car-v2.",
+      "emptyHint": "Thành viên xuất hiện ở đây sau lần đăng nhập đầu tiên. Để mời thêm:"
     },
     "refresh": {
-      "label": "Đồng bộ",
-      "successToast": "Đã đồng bộ {count} user từ AMA",
+      "label": "Đồng bộ từ AMA",
+      "successToast": "Đã đồng bộ: thêm {inserted} · cập nhật {updated}",
       "skippedDesc": "Bỏ qua {count} user cross-entity"
     },
     "relativeTime": {
@@ -633,31 +618,25 @@
       "daysAgo": "{n} ngày trước",
       "weeksAgo": "{n} tuần trước"
     },
-    "statusBadge": {
-      "ACTIVE": "Hoạt động",
-      "INACTIVE": "Tạm khoá",
-      "SUSPENDED": "Đình chỉ"
-    },
     "signin": {
-      "lockSignin": "Khoá đăng nhập",
-      "unlockSignin": "Mở khoá đăng nhập",
-      "lockedToast": "Đã khoá đăng nhập {name}",
-      "unlockedToast": "Đã mở khoá đăng nhập {name}",
-      "btnLocked": "Khoá",
-      "btnUnlocked": "Mở khoá",
-      "confirmTitleLock": "Xác nhận khoá đăng nhập",
-      "confirmTitleUnlock": "Xác nhận mở khoá đăng nhập",
-      "descLock": "Tài xế sẽ không login vào app được sau khi khoá.",
-      "descUnlock": "Tài xế sẽ login được trở lại sau khi mở khoá.",
+      "lockSignin": "Chặn truy cập",
+      "unlockSignin": "Mở truy cập",
+      "lockedToast": "Đã chặn {name} khỏi car-v2",
+      "unlockedToast": "Đã mở truy cập cho {name}",
+      "btnLocked": "Chặn",
+      "btnUnlocked": "Mở",
+      "confirmTitleLock": "Xác nhận chặn truy cập car-v2",
+      "confirmTitleUnlock": "Xác nhận mở truy cập car-v2",
+      "descLock": "Tài xế sẽ không vào car-v2 được. Các app Amoeba khác không bị ảnh hưởng.",
+      "descUnlock": "Tài xế sẽ truy cập car-v2 được trở lại.",
       "rowDriver": "Tài xế",
-      "rowStatus": "Trạng thái",
-      "afterLockTitle": "Sau khi khoá:",
-      "afterLock1": "Tài xế KHÔNG login mới được",
-      "afterLock2": "Token hiện tại còn dùng được tối đa 1 giờ tiếp theo",
-      "afterLock3": "Tài xế vẫn xuất hiện ở tab Tạm khoá — mở khoá bất kỳ lúc nào",
-      "afterUnlockTitle": "Sau khi mở khoá:",
-      "afterUnlock1": "Tài xế login lại được bằng SĐT đã đăng ký",
-      "afterUnlock2": "Mọi cài đặt khác (role, phòng ban, license) giữ nguyên",
+      "afterLockTitle": "Sau khi chặn:",
+      "afterLock1": "Tài xế KHÔNG vào được car-v2",
+      "afterLock2": "Token hiện tại còn dùng được tối đa 1 giờ — sau đó tự logout",
+      "afterLock3": "Đăng nhập AMA và các app khác vẫn hoạt động bình thường",
+      "afterUnlockTitle": "Sau khi mở:",
+      "afterUnlock1": "Tài xế truy cập car-v2 lại được ngay",
+      "afterUnlock2": "Mọi cài đặt khác (vai trò, hồ sơ tài xế) giữ nguyên",
       "cancel": "Huỷ",
       "pending": "Đang xử lý…"
     },
@@ -700,40 +679,28 @@
     "edit": {
       "title": "Thông tin thành viên",
       "name": "Tên",
-      "emailIdLabel": "Email/ID",
-      "level": "Level",
-      "phoneTitle": "SĐT đăng nhập",
-      "phoneDesc": "Đây là SĐT user dùng để login app. Đổi sai số = user không vào được app. Hãy chắc chắn báo cho user trước khi đổi.",
-      "phoneLabel": "Số điện thoại",
-      "phoneInvalid": "✗ Không hợp lệ",
-      "phoneChanged": "(THAY ĐỔI)",
-      "phoneNormalizeHint": "Hệ thống tự chuẩn hoá +84 / khoảng trắng.",
-      "role": "Vai trò (AMA)",
-      "roleDesc": "Vai trò AMA quyết định quyền trong v2. MEMBER → DRIVER, MANAGER → MANAGER, MASTER → ADMIN.",
-      "status": "Trạng thái",
-      "statusDesc": "INACTIVE/SUSPENDED → user không login được nữa.",
-      "department": "Phòng ban",
-      "departmentPlaceholder": "VD: Vận hành",
-      "jobTitle": "Chức danh",
-      "jobTitlePlaceholder": "VD: Trưởng phòng",
+      "emailIdLabel": "Email",
+      "amaRoleLabel": "Vai trò trên AMA",
+      "amaManagedHint": "Tên / email / vai trò AMA do AMA quản lý.",
+      "openOnAma": "Sửa trên AMA",
+      "localRole": "Vai trò trong app",
+      "localRoleDesc": "Vai trò áp dụng riêng cho car-v2. Vai trò AMA vẫn được giữ làm tham chiếu.",
+      "localRoleOption": {
+        "ADMIN": "Quản trị",
+        "MANAGER": "Quản lý",
+        "DRIVER": "Tài xế"
+      },
+      "statusAllowed": "Cho phép truy cập car-v2",
+      "statusBlocked": "Đang chặn khỏi car-v2",
+      "allowedDesc": "User có thể đăng nhập và sử dụng car-v2 bình thường.",
+      "blockedDesc": "User không vào được car-v2 (các app khác trên Amoeba vẫn dùng được).",
+      "toggleBlock": "Chặn truy cập",
+      "toggleUnblock": "Mở truy cập lại",
+      "blockSelfWarning": "Không thể tự chặn chính mình.",
       "save": "Lưu thay đổi",
       "cancel": "Hủy",
       "saving": "Đang lưu…",
-      "updatedToast": "Đã cập nhật {name}",
-      "phoneInvalidToast": "SĐT không đúng format VN (10 chữ số bắt đầu 03/05/07/08/09)",
-      "confirmTitle": "Xác nhận đổi SĐT đăng nhập",
-      "confirmDesc": "Hành động này sẽ ảnh hưởng đến khả năng đăng nhập của user.",
-      "confirmUser": "User",
-      "confirmOldPhone": "SĐT cũ",
-      "confirmNewPhone": "SĐT mới",
-      "confirmEmpty": "(chưa có)",
-      "confirmAfterTitle": "Sau khi đổi:",
-      "confirmAfter1": "User KHÔNG login được bằng SĐT cũ nữa",
-      "confirmAfter2": "User phải dùng SĐT mới {phone} để login",
-      "confirmAfter3": "Token hiện tại của user vẫn dùng được trong tối đa 1h tiếp theo",
-      "confirmAfter4": "Hãy thông báo cho user trước khi xác nhận",
-      "confirmCancel": "Huỷ",
-      "confirmAction": "Xác nhận đổi SĐT"
+      "updatedToast": "Đã cập nhật {name}"
     }
   },
   "costs": {
@@ -1037,6 +1004,69 @@
     "markReadFailed": "Không cập nhật được trạng thái",
     "unreadAria": "Chưa đọc"
   },
+  "notifications": {
+    "cta": "Xem chuyến",
+    "events": {
+      "TRIP": {
+        "ASSIGNED": {
+          "subject": "Bạn vừa được giao chuyến đi mới",
+          "body": "Chuyến {ref} cần bạn xác nhận.",
+          "bodyWithRoute": "Chuyến {ref} ({route}) cần bạn xác nhận."
+        },
+        "NEEDS_ASSIGNMENT": {
+          "subject": "Có chuyến đi mới cần phân công",
+          "body": "Chuyến {ref} chưa có tài xế.",
+          "bodyWithRoute": "Chuyến {ref} ({route}) chưa có tài xế."
+        },
+        "ACCEPTED": {
+          "subject": "Tài xế đã xác nhận chuyến",
+          "body": "Tài xế đã đồng ý chuyến {ref}."
+        },
+        "REJECTED": {
+          "subject": "Tài xế đã từ chối chuyến",
+          "body": "Tài xế từ chối chuyến {ref}. Vui lòng phân công lại.",
+          "bodyWithReason": "Tài xế từ chối chuyến {ref}. Lý do: {reason}. Vui lòng phân công lại."
+        },
+        "COMPLETED": {
+          "subject": "Chuyến đi đã hoàn tất",
+          "body": "Chuyến {ref} đã được tài xế kết thúc."
+        },
+        "CANCELLED": {
+          "subject": "Chuyến đi đã bị huỷ",
+          "body": "Chuyến {ref} đã bị huỷ.",
+          "bodyWithReason": "Chuyến {ref} đã bị huỷ. Lý do: {reason}."
+        }
+      },
+      "EXPENSE": {
+        "ACCIDENT_REPORTED": {
+          "subject": "Có sự cố tai nạn vừa được ghi nhận",
+          "body": "Chi phí tai nạn {ref} vừa được ghi nhận. Vui lòng kiểm tra."
+        },
+        "APPROVED": {
+          "subject": "Khoản chi {amount} đã được duyệt",
+          "body": "{description}"
+        }
+      },
+      "MAINTENANCE": {
+        "OIL_OVERDUE": {
+          "subject": "Quá hạn thay dầu",
+          "body": "Xe {ref} đã quá hạn thay dầu, cần xử lý ngay."
+        },
+        "OIL_DUE_SOON": {
+          "subject": "Sắp đến hạn thay dầu",
+          "body": "Xe {ref} sắp đến hạn thay dầu, vui lòng lên kế hoạch."
+        },
+        "INSPECTION_OVERDUE": {
+          "subject": "Quá hạn đăng kiểm",
+          "body": "Xe {ref} đã quá hạn đăng kiểm."
+        },
+        "INSPECTION_DUE_SOON": {
+          "subject": "Sắp đến hạn đăng kiểm",
+          "body": "Xe {ref} sắp đến hạn đăng kiểm."
+        }
+      }
+    }
+  },
   "expenses": {
     "history": {
       "title": "Chi phí của tôi",
@@ -1205,5 +1235,13 @@
     "footnote": "Bạn có thể đồng bộ lại bất cứ lúc nào qua nút \"Đồng bộ\" ở trang Người dùng.",
     "managerWaitTitle": "Đang chờ Admin onboard",
     "managerWaitDesc": "Chỉ tài khoản Admin (vai trò MASTER/OWNER trên AMA) mới có quyền đồng bộ thành viên lần đầu. Vui lòng liên hệ Admin của công ty để thực hiện bước này."
+  },
+  "userGuide": {
+    "matchedHint": "Đang xem: {page}",
+    "fallbackHint": "Trang này chưa có hướng dẫn riêng — hiển thị tổng quan vai trò.",
+    "openInNewTab": "Mở tab mới",
+    "loading": "Đang tải hướng dẫn…",
+    "localeNote": "Hiển thị bản {locale} · UI: {uiLocale}",
+    "viewIndex": "Xem mục lục"
   }
 }

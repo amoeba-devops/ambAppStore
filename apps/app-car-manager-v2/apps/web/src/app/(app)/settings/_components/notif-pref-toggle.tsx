@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { Switch, toast } from '@car-v2/ui';
 import { updateNotifPrefAction } from '@/server/actions/settings/tenant-settings.actions';
+import { formatActionError } from '@/lib/format-action-error';
 
 type NotifField = 'inapp' | 'email' | 'digest';
 
@@ -28,6 +29,7 @@ export function NotifPrefToggle({
   disabled,
 }: NotifPrefToggleProps) {
   const tStatus = useTranslations('settings.saveStatus');
+  const tErr = useTranslations();
   const [checked, setChecked] = useState(defaultChecked);
   const [pending, startTransition] = useTransition();
 
@@ -40,7 +42,7 @@ export function NotifPrefToggle({
         toast.success(tStatus('saved'));
       } else {
         setChecked(previous);
-        toast.error(tStatus('error', { message: result.error.message }));
+        toast.error(tStatus('error', { message: formatActionError(result.error, tErr) }));
       }
     });
   };

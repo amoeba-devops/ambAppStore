@@ -1,6 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import crypto from 'node:crypto';
+import { redirect } from 'next/navigation';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carUsers, carAuditLogs } from '@car-v2/db/schema';
@@ -76,6 +77,14 @@ async function ensureCarUserImpl(input: EnsureCarUserInput): Promise<void> {
       audCreatedAt: now,
     });
     return;
+  }
+
+  /* Option 1b — Admin can soft-delete a user from car-v2 (`usr_deleted_at`).
+   * Block them from accessing any RSC by short-circuiting here. They can
+   * still sign in to AMA + other apps; only car-v2 is locked out. To restore,
+   * an admin clears the flag via `/users/[id]/edit`. */
+  if (existing.usrDeletedAt !== null) {
+    redirect('/session-expired?reason=blocked');
   }
 
   /* Sanity check cho legacy row: nếu usr_id != usr_ama_user_id, đây là row di

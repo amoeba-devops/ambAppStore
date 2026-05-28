@@ -29,3 +29,4 @@ export const carUsers = pgTable(
 
 export type CarUser = typeof carUsers.$inferSelect;
 export type CarUserInsert = typeof carUsers.$inferInsert;
+export type CarUserLocalRole = (typeof localRoleEnum.enumValues)[number];

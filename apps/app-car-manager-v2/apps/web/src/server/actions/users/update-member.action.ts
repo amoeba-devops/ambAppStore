@@ -1,39 +1,34 @@
 'use server';
 
-import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { CarError } from '@car-v2/shared/errors';
-import type { ActionResult } from '@car-v2/shared/errors';
+import { db } from '@car-v2/db/client';
+import { carUsers, localRoleEnum } from '@car-v2/db/schema';
+import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { runAction } from '../_helpers';
 
-const AMA_API = process.env.AMA_API_BASE_URL ?? 'http://localhost:3009/api/v1';
-const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? 'amb_session';
-
-const updateMemberSchema = z.object({
+/**
+ * Local-only member update (Option 1b).
+ *
+ * car-v2 no longer mutates AMA-side member data. Email / phone / department /
+ * jobTitle / AMA role are owned by AMA — admins manage them on the AMA UI.
+ *
+ * What car-v2 still owns:
+ *   - `usr_local_role`: app-level role override (DRIVER | MANAGER | ADMIN)
+ *   - `usr_deleted_at`: soft-delete = block this user from car-v2 only
+ *     (their AMA login still works for other apps)
+ */
+const updateLocalMemberSchema = z.object({
   userId: z.string().uuid(),
-  role: z.enum(['MASTER', 'MANAGER', 'MEMBER', 'VIEWER']).optional(),
-  status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']).optional(),
-  department: z.string().max(30).optional(),
-  jobTitle: z.string().max(100).optional(),
-  /* Wave 3: email = login key. AMA-side normalize + validate RFC + check
-   * uniqueness trong tenant. Sai = user không login được. */
-  email: z.string().email('Email không hợp lệ').max(255).optional(),
-  /* phone là contact (optional) — không phải login key sau Wave 3. */
-  phone: z.string().regex(/^[+0-9\s\-]{9,15}$/, 'SĐT không đúng format').optional(),
+  localRole: z.enum(localRoleEnum.enumValues).optional(),
+  /** true = soft-delete (block from car-v2); false = restore. */
+  blocked: z.boolean().optional(),
 });
 
-export type UpdateMemberInput = z.infer<typeof updateMemberSchema>;
+export type UpdateMemberInput = z.infer<typeof updateLocalMemberSchema>;
 
-/**
- * Update existing entity member qua AMA endpoint.
- *
- * AMA `PATCH /entity-settings/members/:userId` (OwnEntityGuard → MASTER/ADMIN only).
- * v2 ADMIN local role có khả năng dùng được (AMA's eur_role = ADMIN/MASTER/OWNER).
- *
- * Returns updated member info từ AMA.
- */
 export async function updateMemberAction(
   input: UpdateMemberInput,
 ): Promise<ActionResult<{ ok: true }>> {
@@ -41,77 +36,29 @@ export async function updateMemberAction(
     const actor = await getCurrentUser();
     requireRole(actor.role, ['ADMIN']);
 
-    const dto = updateMemberSchema.parse(input);
+    const dto = updateLocalMemberSchema.parse(input);
 
-    const cookieStore = await cookies();
-    /* Option B fallback: standalone có amb_ama_access, embed chỉ có amb_session. */
-    const amaAccess =
-      cookieStore.get('amb_ama_access')?.value ??
-      cookieStore.get(SESSION_COOKIE)?.value;
-    if (!amaAccess) {
-      throw new CarError(
-        'CAR-E0101',
-        401,
-        'Phiên AMA đã hết hạn. Vui lòng đăng nhập lại.',
-      );
+    /* Guard against admin locking themselves out — UI also disables the
+     * button but the server check is the source of truth. */
+    if (dto.blocked === true && dto.userId === actor.userId) {
+      throw new CarError('CAR-E0102', 403, 'Cannot block your own account.');
     }
 
-    const body: Record<string, string> = {};
-    if (dto.role) body.role = dto.role;
-    if (dto.status) body.status = dto.status;
-    if (dto.department !== undefined) body.department = dto.department;
-    if (dto.jobTitle !== undefined) body.job_title = dto.jobTitle;
-    if (dto.email !== undefined) body.email = dto.email;
-    if (dto.phone !== undefined) body.phone = dto.phone;
+    const patch: Partial<typeof carUsers.$inferInsert> = {
+      usrUpdatedAt: new Date(),
+    };
+    if (dto.localRole !== undefined) patch.usrLocalRole = dto.localRole;
+    if (dto.blocked === true) patch.usrDeletedAt = new Date();
+    if (dto.blocked === false) patch.usrDeletedAt = null;
 
-    const url = `${AMA_API}/entity-settings/members/${dto.userId}?entity_id=${actor.entId}`;
-    const res = await fetch(url, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${amaAccess}`,
-      },
-      body: JSON.stringify(body),
-    });
+    const result = await db
+      .update(carUsers)
+      .set(patch)
+      .where(and(eq(carUsers.usrId, dto.userId), eq(carUsers.entId, actor.entId)))
+      .returning({ id: carUsers.usrId });
 
-    if (res.status === 401) {
-      throw new CarError('CAR-E0101', 401, 'Phiên AMA đã hết hạn. Vui lòng đăng nhập lại.');
-    }
-    if (res.status === 403) {
-      const errBody = await res.json().catch(() => ({}));
-      throw new CarError(
-        'CAR-E0102',
-        403,
-        errBody?.message ?? 'Không có quyền chỉnh sửa người này.',
-      );
-    }
-    if (res.status === 400) {
-      const errBody = await res.json().catch(() => ({}));
-      // Pass through AMA error message để user biết chính xác lý do
-      const amaMsg = errBody?.message ?? errBody?.error?.message;
-      // Convert common AMA messages sang VN
-      let msg = 'Dữ liệu không hợp lệ';
-      if (amaMsg) {
-        if (/Member not found/i.test(amaMsg)) {
-          msg = 'Thành viên này thuộc công ty khác (cross-entity) — không chỉnh sửa được từ đây.';
-        } else if (/role/i.test(amaMsg)) {
-          msg = `Vai trò không hợp lệ: ${amaMsg}`;
-        } else {
-          msg = amaMsg;
-        }
-      }
-      throw new CarError('CAR-E2001', 400, msg);
-    }
-    if (res.status === 404) {
-      throw new CarError('CAR-E2002', 404, 'Thành viên không tồn tại');
-    }
-    if (!res.ok) {
-      const errBody = await res.json().catch(() => ({}));
-      throw new CarError(
-        'CAR-E0500',
-        res.status,
-        errBody?.message ?? `AMA error ${res.status}`,
-      );
+    if (result.length === 0) {
+      throw new CarError('CAR-E2002', 404, 'Người dùng không tồn tại trong app này.');
     }
 
     revalidatePath('/users');
