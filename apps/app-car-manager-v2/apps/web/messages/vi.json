@@ -1218,7 +1218,7 @@
     "errInvalid": "Sai mã công ty hoặc email chưa được đăng ký. Kiểm tra: (1) mã công ty viết HOA chính xác (VD: VN01); (2) email đúng với email admin đã đăng ký; (3) tài khoản chưa bị tạm khoá. Liên hệ admin nếu vẫn lỗi.",
     "errRateLimit": "Quá nhiều lần thử. Vui lòng đợi 1 phút.",
     "errNotInstalled": "App chưa được kích hoạt cho công ty này. Liên hệ quản lý.",
-    "errNotImplemented": "Tính năng email-login đang được AMA team xây dựng. Vui lòng đăng nhập qua AMA portal hoặc dùng /dev-login.",
+    "errNotImplemented": "Đăng nhập bằng email chưa khả dụng trên hệ thống này. Vui lòng đăng nhập qua AMA portal, hoặc liên hệ Admin để bật tính năng.",
     "errServer": "Lỗi hệ thống. Vui lòng thử lại sau ít phút.",
     "errFallback": "Đăng nhập thất bại. Vui lòng thử lại."
   },
