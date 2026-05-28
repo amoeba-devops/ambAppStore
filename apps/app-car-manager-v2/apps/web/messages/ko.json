@@ -29,7 +29,7 @@
     "userGuideHint": "역할별 단계별 가이드",
     "userGuideAria": "사용 안내서 열기 (새 탭)",
     "pendingCountTitle": "{n}건의 운행이 대기 중",
-    "pendingBadgeLabel": "pending",
+    "pendingBadgeLabel": "대기",
     "todayCountTitle": "오늘 기록된 비용 {n}건",
     "todayBadgeLabel": "오늘"
   },
