@@ -467,6 +467,47 @@ code {
   color: var(--c-text);
 }
 
+/* ─── "Open in app" CTA — links the guide page back to the app endpoint it
+ *     documents. Injected just after the h1/intro by the build script.
+ *     Click handling lives in assets/js/app-link.js — prepends the runtime
+ *     basePath and navigates `window.top` so the parent app (or new tab)
+ *     lands on the right route regardless of standalone/iframe context. */
+.app-link-cta-row {
+  margin: 0 0 24px;
+}
+.app-link-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--c-accent);
+  color: var(--c-accent-fg, #fff);
+  text-decoration: none;
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: background-color 150ms ease, transform 150ms ease;
+  cursor: pointer;
+}
+.app-link-cta:hover {
+  background: var(--c-accent-strong, var(--c-accent));
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+.app-link-cta:active {
+  transform: translateY(0);
+}
+.app-link-cta__route {
+  font-family: var(--font-mono, monospace);
+  font-weight: 500;
+  opacity: 0.9;
+  font-size: 12px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+}
+
 /* Step block — numbered instruction */
 .step {
   display: grid;
@@ -814,11 +855,12 @@ code {
   /* Override the desktop `display: none` for sidebar so we can transform it
    * in/out instead. Hidden by default off-screen; `.is-open` slides into view.
    *
-   * Use `top: 0` + `bottom: 0` (NOT `height: 100dvh`) — that way the panel is
-   * pinned to both edges of the viewport, so it always fills the full height
-   * even when the mobile URL bar collapses or `dvh` falls back to 100vh in
-   * older browsers. `box-sizing: border-box` so padding doesn't push beyond
-   * those edges. */
+   * Pin to both top + bottom of the viewport so the panel always fills full
+   * height. Also force `height: 100dvh` (with `100vh` fallback) — when this
+   * file is loaded inside an iframe (in-app guide drawer), some engines
+   * compute `bottom: 0` against an ambiguous height, so we belt-and-suspender
+   * with an explicit height to guarantee floor-to-ceiling reach on every
+   * device + embed mode. `box-sizing: border-box` keeps padding inside. */
   .sidebar {
     display: block;
     position: fixed;
@@ -827,6 +869,8 @@ code {
     left: 0;
     width: 280px;
     max-width: 86vw;
+    height: 100vh;
+    height: 100dvh;
     z-index: 50;
     box-sizing: border-box;
     background: var(--c-surface);
