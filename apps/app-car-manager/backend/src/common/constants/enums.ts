@@ -77,6 +77,7 @@ export enum TripLogStatus {
   IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
   VERIFIED = 'VERIFIED',
+  VOIDED = 'VOIDED',
 }
 
 export enum KrPurposeCode {

@@ -125,6 +125,8 @@ export async function notifyUser(input: NotifyInput): Promise<void> {
         ref: input.template.ref,
         route: input.template.route,
         reason: input.template.reason,
+        amount: input.template.amount,
+        description: input.template.description,
         tripPath: input.template.tripPath,
       }
     : null;

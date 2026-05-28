@@ -5,6 +5,8 @@ import { TripLogImportModal } from '@/components/trip-log/TripLogImportModal';
 
 import { useTripLogs } from '@/hooks/useTripLogs';
 import { useVehicles } from '@/hooks/useVehicles';
+import { useToastStore } from '@/stores/toast.store';
+import { tripLogApi } from '@/services/api';
 import { PageHeader } from '@/components/common/PageHeader';
 import { StatCard } from '@/components/common/StatCard';
 import { LogDetailRow } from '@/components/triplog/LogDetailRow';
@@ -23,10 +25,36 @@ export function TripLogListPage() {
   const [showImport, setShowImport] = useState(false);
   const [vehicleFilter, setVehicleFilter] = useState('');
   const [routeSearch, setRouteSearch] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
   const { data, isLoading } = useTripLogs();
   const { data: vehiclesRes } = useVehicles();
+  const showToast = useToastStore((s) => s.showToast);
   const tripLogs: Record<string, unknown>[] = data?.data || [];
   const vehicles: Record<string, unknown>[] = vehiclesRes?.data ?? [];
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const res = await tripLogApi.exportExcel(
+        vehicleFilter ? { vehicle_id: vehicleFilter } : undefined,
+      );
+      const blob = new Blob([res.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `trip-logs-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showToast(`${t('tripLog.excelDownloadError')}: ${(err as Error).message}`, 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Filter by current month (departActual or createdAt)
   const filtered = useMemo(() => {
@@ -49,12 +77,13 @@ export function TripLogListPage() {
     return result;
   }, [tripLogs, currentMonth, vehicleFilter, routeSearch]);
 
-  // Summary stats
+  // Summary stats — exclude VOIDED trip logs
   const summary = useMemo(() => {
+    const active = filtered.filter((tl) => tl.status !== 'VOIDED');
     let totalDistance = 0;
     let totalFuel = 0;
-    let totalTrips = filtered.length;
-    for (const tl of filtered) {
+    const totalTrips = active.length;
+    for (const tl of active) {
       if (tl.distanceKm != null) totalDistance += tl.distanceKm as number;
       if (tl.fuelCost != null) totalFuel += tl.fuelCost as number;
     }
@@ -86,9 +115,13 @@ export function TripLogListPage() {
               <Upload className="h-4 w-4" />
               {t('tripLogImport.upload')}
             </button>
-            <button className="flex items-center gap-1.5 rounded-lg border border-[#d4d8e0] bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            <button
+              onClick={handleExport}
+              disabled={isExporting}
+              className="flex items-center gap-1.5 rounded-lg border border-[#d4d8e0] bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
               <Download className="h-4 w-4" />
-              {t('tripLog.excelDownload')}
+              {isExporting ? t('common.loading') : t('tripLog.excelDownload')}
             </button>
           </div>
         }

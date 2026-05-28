@@ -86,6 +86,22 @@ export class VehicleService {
   async update(entityId: string, id: string, req: UpdateVehicleRequest): Promise<VehicleEntity> {
     const vehicle = await this.findById(entityId, id);
 
+    // BR-015: 차량번호 법인 내 유니크 — 변경 시 자기 자신 제외하고 중복 확인
+    if (req.plate_number !== undefined && req.plate_number !== vehicle.cvhPlateNumber) {
+      const dup = await this.vehicleRepo.findOne({
+        where: { entId: entityId, cvhPlateNumber: req.plate_number, cvhDeletedAt: IsNull() },
+      });
+      if (dup && dup.cvhId !== id) {
+        throw new BusinessException('CAR-E3002', 'Duplicate plate number within entity', HttpStatus.CONFLICT);
+      }
+      vehicle.cvhPlateNumber = req.plate_number;
+    }
+    if (req.type !== undefined) vehicle.cvhType = req.type;
+    if (req.make !== undefined) vehicle.cvhMake = req.make;
+    if (req.model !== undefined) vehicle.cvhModel = req.model;
+    if (req.year !== undefined) vehicle.cvhYear = req.year;
+    if (req.vin !== undefined) vehicle.cvhVin = req.vin || null;
+    if (req.fuel_type !== undefined) vehicle.cvhFuelType = req.fuel_type;
     if (req.color !== undefined) vehicle.cvhColor = req.color || null;
     if (req.displacement !== undefined) vehicle.cvhDisplacement = req.displacement || null;
     if (req.transmission !== undefined) vehicle.cvhTransmission = req.transmission || null;

@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import type { MonthEntry } from '@/lib/weekly-report-mock';
 import type { PeriodStatus } from '@/lib/raw-archive-mock';
@@ -118,21 +119,22 @@ function PeriodPill({ label, rangeLabel, active, status, isLocked, onClick }: Pe
 type DisplayStatus = PeriodStatus | 'Open';
 
 function StatusBadge({ status }: { status: DisplayStatus }) {
+  const tStatus = useTranslations('periodStatus');
   const map: Record<DisplayStatus, { label: string; cls: string; icon?: React.ReactNode }> = {
     Open: {
-      label: 'Open',
+      label: tStatus('open'),
       cls: 'border border-neutral-300 bg-white text-neutral-500',
     },
     Draft: {
-      label: 'Active',
+      label: tStatus('active'),
       cls: 'bg-success-500/10 text-success-500',
     },
     Finalized: {
-      label: 'Finalized',
+      label: tStatus('finalized'),
       cls: 'bg-info-500/10 text-info-500',
     },
     Locked: {
-      label: 'Locked',
+      label: tStatus('locked'),
       cls: 'bg-neutral-200 text-neutral-500',
       icon: <Lock className="h-2.5 w-2.5" />,
     },

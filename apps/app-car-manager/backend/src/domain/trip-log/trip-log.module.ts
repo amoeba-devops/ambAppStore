@@ -6,6 +6,7 @@ import { ImportLogEntity } from './entity/import-log.entity';
 import { TripLogController } from './controller/trip-log.controller';
 import { TripLogService } from './service/trip-log.service';
 import { ExcelParserService } from './service/excel-parser.service';
+import { ExcelExportService } from './service/excel-export.service';
 import { ImportOrchestratorService } from './service/import-orchestrator.service';
 import { DispatchModule } from '../dispatch/dispatch.module';
 import { MaintenanceModule } from '../maintenance/maintenance.module';
@@ -18,7 +19,7 @@ import { DispatchRequestEntity } from '../dispatch/entity/dispatch-request.entit
     MaintenanceModule,
   ],
   controllers: [TripLogController],
-  providers: [TripLogService, ExcelParserService, ImportOrchestratorService],
+  providers: [TripLogService, ExcelParserService, ExcelExportService, ImportOrchestratorService],
   exports: [TripLogService],
 })
 export class TripLogModule {}

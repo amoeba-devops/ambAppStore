@@ -1,5 +1,6 @@
 import { VehicleDriverEntity } from '../entity/vehicle-driver.entity';
 import { DriverResponse } from '../dto/response/driver.response';
+import { toDateString } from '../../../common/utils/date.util';
 
 export class DriverMapper {
   static toResponse(entity: VehicleDriverEntity): DriverResponse {
@@ -11,8 +12,8 @@ export class DriverMapper {
       driverEmail: entity.cvdDriverEmail,
       role: entity.cvdRole,
       status: entity.cvdStatus,
-      leaveStart: entity.cvdLeaveStart?.toISOString().slice(0, 10) ?? null,
-      leaveEnd: entity.cvdLeaveEnd?.toISOString().slice(0, 10) ?? null,
+      leaveStart: toDateString(entity.cvdLeaveStart),
+      leaveEnd: toDateString(entity.cvdLeaveEnd),
       note: entity.cvdNote,
       createdAt: entity.cvdCreatedAt?.toISOString(),
       updatedAt: entity.cvdUpdatedAt?.toISOString(),

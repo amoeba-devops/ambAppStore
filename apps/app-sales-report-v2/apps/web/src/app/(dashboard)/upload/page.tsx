@@ -9,6 +9,6 @@ export default async function UploadPage() {
   // in Step 1's WeekPicker/MonthPicker so deleted/never-ingested demo weeks
   // don't show residual "Active"/"Finalized" badges.
   const periods = await listArchivePeriods(user.entId);
-  const realPeriodKeys = periods.map((p) => p.periodKey);
+  const realPeriodKeys = periods.map((p) => ({ label: p.periodKey, year: p.year }));
   return <UploadReportsClient realPeriodKeys={realPeriodKeys} />;
 }

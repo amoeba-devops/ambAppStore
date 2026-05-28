@@ -23,6 +23,10 @@ export class TripLogResponse {
   krBusinessRatio: number | null;
   status: string;
   submittedAt: string | null;
+  voidedAt: string | null;
+  voidedBy: string | null;
+  voidedByName: string | null;
+  voidedReason: string | null;
   createdAt: string;
   updatedAt: string;
   // 조인 정보

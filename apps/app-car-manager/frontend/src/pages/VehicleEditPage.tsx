@@ -12,6 +12,13 @@ import { PageHeader } from '@/components/common/PageHeader';
 const emptyToUndef = z.literal('').transform(() => undefined);
 
 const editSchema = z.object({
+  plate_number: z.string().max(20).optional(),
+  type: z.union([z.enum(['PASSENGER', 'VAN', 'TRUCK']), emptyToUndef]).optional(),
+  make: z.string().max(50).optional(),
+  model: z.string().max(50).optional(),
+  year: z.union([z.coerce.number().int().min(1900).max(2100), emptyToUndef]).optional(),
+  vin: z.string().max(30).optional(),
+  fuel_type: z.union([z.enum(['GASOLINE', 'DIESEL', 'LPG', 'ELECTRIC', 'HYBRID']), emptyToUndef]).optional(),
   color: z.string().max(30).optional(),
   displacement: z.union([z.coerce.number().int().min(0), emptyToUndef]).optional(),
   transmission: z.union([z.enum(['MANUAL', 'AUTOMATIC']), emptyToUndef]).optional(),
@@ -49,6 +56,13 @@ export function VehicleEditPage() {
   useEffect(() => {
     if (!vehicle) return;
     reset({
+      plate_number: vehicle.plateNumber ?? '',
+      type: vehicle.type ?? undefined,
+      make: vehicle.make ?? '',
+      model: vehicle.model ?? '',
+      year: vehicle.year ?? undefined,
+      vin: vehicle.vin ?? '',
+      fuel_type: vehicle.fuelType ?? undefined,
       color: vehicle.color ?? '',
       displacement: vehicle.displacement ?? undefined,
       transmission: vehicle.transmission ?? undefined,
@@ -69,6 +83,13 @@ export function VehicleEditPage() {
     const add = (key: string, value: unknown) => {
       if (value !== undefined && value !== '') payload[key] = value;
     };
+    add('plate_number', form.plate_number);
+    add('type', form.type);
+    add('make', form.make);
+    add('model', form.model);
+    add('year', form.year);
+    add('vin', form.vin);
+    add('fuel_type', form.fuel_type);
     add('color', form.color);
     add('displacement', form.displacement);
     add('transmission', form.transmission);
@@ -84,8 +105,13 @@ export function VehicleEditPage() {
       await updateMutation.mutateAsync({ id, data: payload });
       showToast(t('vehicle.editSaveSuccess'), 'success');
       navigate(`/vehicles/${id}`);
-    } catch {
-      showToast(t('vehicle.editSaveError'), 'error');
+    } catch (err) {
+      const error = err as { response?: { data?: { error?: { code?: string } } } };
+      if (error.response?.data?.error?.code === 'CAR-E3002') {
+        showToast(t('vehicle.errorDuplicatePlate'), 'error');
+      } else {
+        showToast(t('vehicle.editSaveError'), 'error');
+      }
     }
   };
 
@@ -108,25 +134,57 @@ export function VehicleEditPage() {
           onSubmit={handleSubmit(onSubmit)}
           className="mx-auto max-w-3xl space-y-6 rounded-xl border bg-white p-6 shadow-sm"
         >
-          {/* 수정 불가 필드 */}
+          {/* 식별 필드 */}
           <section>
             <h2 className="mb-3 text-sm font-semibold text-gray-500">
-              {t('detail.vehicleInfo')} <span className="ml-1 text-xs text-gray-400">({t('vehicle.uneditable')})</span>
+              {t('detail.vehicleInfo')}
             </h2>
             <div className="grid grid-cols-2 gap-4">
-              <ReadOnlyField label={t('vehicle.plateNumber')} value={vehicle.plateNumber} />
-              <ReadOnlyField label={t('vehicle.type')} value={vehicle.type} />
-              <ReadOnlyField label={t('vehicle.make')} value={vehicle.make} />
-              <ReadOnlyField label={t('vehicle.model')} value={vehicle.model} />
-              <ReadOnlyField label={t('vehicle.year')} value={String(vehicle.year)} />
-              <ReadOnlyField label={t('vehicle.vin')} value={vehicle.vin} />
-              <ReadOnlyField label={t('vehicle.fuelType')} value={vehicle.fuelType} />
+              <Field label={t('vehicle.plateNumber')} error={errors.plate_number?.message}>
+                <input {...register('plate_number')} className="input" />
+              </Field>
+
+              <Field label={t('vehicle.type')} error={errors.type?.message}>
+                <select {...register('type')} className="input">
+                  <option value="">{t('common.select')}</option>
+                  <option value="PASSENGER">{t('vehicle.typePassenger')}</option>
+                  <option value="VAN">{t('vehicle.typeVan')}</option>
+                  <option value="TRUCK">{t('vehicle.typeTruck')}</option>
+                </select>
+              </Field>
+
+              <Field label={t('vehicle.make')} error={errors.make?.message}>
+                <input {...register('make')} className="input" />
+              </Field>
+
+              <Field label={t('vehicle.model')} error={errors.model?.message}>
+                <input {...register('model')} className="input" />
+              </Field>
+
+              <Field label={t('vehicle.year')} error={errors.year?.message}>
+                <input type="number" {...register('year')} className="input" />
+              </Field>
+
+              <Field label={t('vehicle.vin')} error={errors.vin?.message}>
+                <input {...register('vin')} className="input" />
+              </Field>
+
+              <Field label={t('vehicle.fuelType')} error={errors.fuel_type?.message}>
+                <select {...register('fuel_type')} className="input">
+                  <option value="">{t('common.select')}</option>
+                  <option value="GASOLINE">{t('vehicle.fuelGasoline')}</option>
+                  <option value="DIESEL">{t('vehicle.fuelDiesel')}</option>
+                  <option value="LPG">{t('vehicle.fuelLpg')}</option>
+                  <option value="ELECTRIC">{t('vehicle.fuelElectric')}</option>
+                  <option value="HYBRID">{t('vehicle.fuelHybrid')}</option>
+                </select>
+              </Field>
             </div>
           </section>
 
           <hr className="border-gray-200" />
 
-          {/* 수정 가능 필드 */}
+          {/* 추가 정보 */}
           <section>
             <h2 className="mb-3 text-sm font-semibold text-gray-500">{t('common.edit')}</h2>
             <div className="grid grid-cols-2 gap-4">
@@ -223,16 +281,5 @@ function Field({
       {children}
       {error && <span className="mt-1 block text-xs text-red-500">{error}</span>}
     </label>
-  );
-}
-
-function ReadOnlyField({ label, value }: { label: string; value: string | null | undefined }) {
-  return (
-    <div>
-      <div className="mb-1 text-xs font-medium text-gray-500">{label}</div>
-      <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-        {value ?? '—'}
-      </div>
-    </div>
   );
 }

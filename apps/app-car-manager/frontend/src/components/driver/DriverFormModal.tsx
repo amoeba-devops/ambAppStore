@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Search, X, Loader2, KeyRound } from 'lucide-react';
 
 import { Modal } from '@/components/common/Modal';
-import { useCreateDriver } from '@/hooks/useDrivers';
+import { useCreateDriver, useUpdateDriver } from '@/hooks/useDrivers';
 import { useAmaMembers } from '@/hooks/useAmaMembers';
 import { amaApi } from '@/services/api';
 
@@ -16,15 +16,27 @@ interface SelectedMember {
   email: string;
 }
 
+export interface DriverFormInitial {
+  driverId: string;
+  amaUserId: string;
+  driverName: string | null;
+  driverEmail: string | null;
+  role: string;
+  note: string | null;
+}
+
 interface DriverFormModalProps {
   open: boolean;
   onClose: () => void;
   vehicleId?: string;
+  driver?: DriverFormInitial;
 }
 
-export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalProps) {
+export function DriverFormModal({ open, onClose, vehicleId, driver }: DriverFormModalProps) {
   const { t } = useTranslation('car');
   const createMut = useCreateDriver();
+  const updateMut = useUpdateDriver();
+  const isEditMode = !!driver;
 
   // OAuth status (server-side client_credentials)
   const { data: oauthData } = useQuery({
@@ -41,11 +53,21 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedMember, setSelectedMember] = useState<SelectedMember | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [role, setRole] = useState('PRIMARY_DRIVER');
-  const [note, setNote] = useState('');
+  const [role, setRole] = useState(driver?.role ?? 'PRIMARY_DRIVER');
+  const [note, setNote] = useState(driver?.note ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Prefill on edit-mode open / driver change
+  useEffect(() => {
+    if (open && driver) {
+      setRole(driver.role);
+      setNote(driver.note ?? '');
+      setErrors({});
+      setApiError('');
+    }
+  }, [open, driver]);
 
   const { data: membersData, isLoading: membersLoading } = useAmaMembers(
     oauthConnected && !manualMode ? debouncedSearch : '',
@@ -105,14 +127,16 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (manualMode) {
-      if (!manualUuid.trim()) {
+    if (!isEditMode) {
+      if (manualMode) {
+        if (!manualUuid.trim()) {
+          newErrors.member = t('driverForm.errorRequired');
+        } else if (!UUID_REGEX.test(manualUuid.trim())) {
+          newErrors.member = t('driverForm.errorInvalidUuid');
+        }
+      } else if (!selectedMember) {
         newErrors.member = t('driverForm.errorRequired');
-      } else if (!UUID_REGEX.test(manualUuid.trim())) {
-        newErrors.member = t('driverForm.errorInvalidUuid');
       }
-    } else if (!selectedMember) {
-      newErrors.member = t('driverForm.errorRequired');
     }
     if (!role) newErrors.role = t('driverForm.errorRequired');
     setErrors(newErrors);
@@ -122,19 +146,29 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
   const handleSubmit = async () => {
     if (!validate()) return;
     setApiError('');
-    const amaUserId = manualMode ? manualUuid.trim() : selectedMember!.userId;
 
     try {
-      await createMut.mutateAsync({
-        ama_user_id: amaUserId,
-        ...(!manualMode && selectedMember && {
-          driver_name: selectedMember.name,
-          driver_email: selectedMember.email,
-        }),
-        role,
-        ...(vehicleId && { vehicle_id: vehicleId }),
-        ...(note.trim() && { note: note.trim() }),
-      });
+      if (isEditMode && driver) {
+        await updateMut.mutateAsync({
+          id: driver.driverId,
+          data: {
+            role,
+            note: note.trim(),
+          },
+        });
+      } else {
+        const amaUserId = manualMode ? manualUuid.trim() : selectedMember!.userId;
+        await createMut.mutateAsync({
+          ama_user_id: amaUserId,
+          ...(!manualMode && selectedMember && {
+            driver_name: selectedMember.name,
+            driver_email: selectedMember.email,
+          }),
+          role,
+          ...(vehicleId && { vehicle_id: vehicleId }),
+          ...(note.trim() && { note: note.trim() }),
+        });
+      }
       handleClose();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: { code?: string } } } };
@@ -146,19 +180,21 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
     }
   };
 
+  const isSubmitting = createMut.isPending || updateMut.isPending;
+
   return (
     <Modal
       open={open}
       onClose={handleClose}
-      title={t('driverForm.title')}
+      title={isEditMode ? t('driverForm.editTitle') : t('driverForm.title')}
       size="sm"
       footer={
         <>
           <button type="button" onClick={handleClose} className="rounded-lg border border-[#d4d8e0] bg-[#f0f2f5] px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900">
             {t('common.cancel')}
           </button>
-          <button type="button" onClick={handleSubmit} disabled={createMut.isPending} className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-400 disabled:opacity-50">
-            {createMut.isPending ? t('common.loading') : t('driverForm.submit')}
+          <button type="button" onClick={handleSubmit} disabled={isSubmitting} className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-400 disabled:opacity-50">
+            {isSubmitting ? t('common.loading') : isEditMode ? t('driverForm.update') : t('driverForm.submit')}
           </button>
         </>
       }
@@ -168,7 +204,27 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{apiError}</div>
         )}
 
-        {/* AMA Member Selection */}
+        {/* AMA Member Selection — read-only in edit mode */}
+        {isEditMode && driver ? (
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              {t('driverForm.amaUserId')}
+            </label>
+            <div className="flex items-center gap-2 rounded-lg border border-[#d4d8e0] bg-[#f7f8fa] px-3 py-2">
+              <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gray-300 text-xs font-semibold text-white">
+                {(driver.driverName || driver.amaUserId).charAt(0) || '?'}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-gray-900">
+                  {driver.driverName || driver.amaUserId}
+                </div>
+                {driver.driverEmail && (
+                  <div className="truncate text-xs text-gray-500">{driver.driverEmail}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">
             {t('driverForm.amaUserId')} <span className="text-red-500">*</span>
@@ -270,6 +326,7 @@ export function DriverFormModal({ open, onClose, vehicleId }: DriverFormModalPro
 
           {errors.member && <p className="mt-1 text-xs text-red-500">{errors.member}</p>}
         </div>
+        )}
 
         {/* Role */}
         <div>

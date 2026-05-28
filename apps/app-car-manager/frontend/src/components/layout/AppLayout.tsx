@@ -9,6 +9,7 @@ import {
   FilePenLine,
   FileText,
   Globe,
+  HelpCircle,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuthStore } from '@/stores/auth.store';
@@ -59,6 +60,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { to: '/trip-logs/new', icon: FilePenLine, label: t('nav.tripLogEntry') },
     { to: '/vehicles', icon: Car, label: t('nav.vehicleList') },
     { to: '/drivers', icon: UserCheck, label: t('nav.driverList') },
+    { to: '/help', icon: HelpCircle, label: t('nav.help') },
   ];
 
   const userName = user?.name || 'User';

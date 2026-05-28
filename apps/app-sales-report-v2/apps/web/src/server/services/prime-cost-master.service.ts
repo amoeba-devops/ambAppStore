@@ -1,7 +1,6 @@
 import 'server-only';
 import { and, desc, isNull } from 'drizzle-orm';
 import { db, schema, withEnt } from '@v2/db';
-import { isPrimeCostVersioningEnabled } from '@/lib/feature-flags';
 import type {
   PrimeCostMap,
   PrimeCostMaster,
@@ -11,13 +10,11 @@ import type {
 /**
  * Load prime cost master for the given entity as a SKU → master map.
  *
- * Versioning behaviour (gated by `NEXT_PUBLIC_PRIME_COST_VERSIONING`):
- * - **on**: each master row carries a `versions[]` array (DESC by
- *   `effectiveFrom`). Calculator picks the version active at the order's
- *   createDate via `findPrimeCost`.
- * - **off**: synthesize a single-version array from `pcs_prime_cost_vnd` so
- *   calculator code stays uniform. Effectively flat behaviour identical to
- *   pre-Phase-1.
+ * Each master row carries a `versions[]` array (DESC by `effectiveFrom`).
+ * Calculator picks the version active at the order's createDate via
+ * `findPrimeCost`. SKUs without any version row get a synthesized
+ * 1900-01-01 fallback from `pcs_prime_cost_vnd` so calculator code stays
+ * uniform.
  *
  * Used by Server Actions that need to join sales data with selling_price /
  * prime_cost (Total Net GMV, Total Prime Cost calculations).
@@ -37,35 +34,31 @@ export async function loadPrimeCostMaster(entId: string): Promise<PrimeCostMap> 
       and(withEnt(schema.salPrimeCosts.entId, entId), isNull(schema.salPrimeCosts.pcsDeletedAt)),
     );
 
-  // Load versions only when feature flag is on. Synthesized 1-version array
-  // otherwise keeps downstream calculator code uniform.
   const versionsByPcsId = new Map<string, PrimeCostVersion[]>();
-  if (isPrimeCostVersioningEnabled()) {
-    const versionRows = await db
-      .select({
-        pcsId: schema.salPrimeCostVersions.pcsId,
-        effectiveFrom: schema.salPrimeCostVersions.pcvEffectiveFrom,
-        primeCost: schema.salPrimeCostVersions.pcvPrimeCostVnd,
-        breakdown: schema.salPrimeCostVersions.pcvBreakdown,
-      })
-      .from(schema.salPrimeCostVersions)
-      .where(
-        and(
-          withEnt(schema.salPrimeCostVersions.entId, entId),
-          isNull(schema.salPrimeCostVersions.pcvDeletedAt),
-        ),
-      )
-      .orderBy(desc(schema.salPrimeCostVersions.pcvEffectiveFrom));
+  const versionRows = await db
+    .select({
+      pcsId: schema.salPrimeCostVersions.pcsId,
+      effectiveFrom: schema.salPrimeCostVersions.pcvEffectiveFrom,
+      primeCost: schema.salPrimeCostVersions.pcvPrimeCostVnd,
+      breakdown: schema.salPrimeCostVersions.pcvBreakdown,
+    })
+    .from(schema.salPrimeCostVersions)
+    .where(
+      and(
+        withEnt(schema.salPrimeCostVersions.entId, entId),
+        isNull(schema.salPrimeCostVersions.pcvDeletedAt),
+      ),
+    )
+    .orderBy(desc(schema.salPrimeCostVersions.pcvEffectiveFrom));
 
-    for (const v of versionRows) {
-      const arr = versionsByPcsId.get(v.pcsId) ?? [];
-      arr.push({
-        effectiveFrom: v.effectiveFrom,
-        primeCost: Number(v.primeCost),
-        breakdown: (v.breakdown as Record<string, unknown> | null) ?? null,
-      });
-      versionsByPcsId.set(v.pcsId, arr);
-    }
+  for (const v of versionRows) {
+    const arr = versionsByPcsId.get(v.pcsId) ?? [];
+    arr.push({
+      effectiveFrom: v.effectiveFrom,
+      primeCost: Number(v.primeCost),
+      breakdown: (v.breakdown as Record<string, unknown> | null) ?? null,
+    });
+    versionsByPcsId.set(v.pcsId, arr);
   }
 
   const map: PrimeCostMap = new Map();
