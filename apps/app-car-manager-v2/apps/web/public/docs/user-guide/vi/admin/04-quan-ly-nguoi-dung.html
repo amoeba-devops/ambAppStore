@@ -64,15 +64,15 @@
 
         <div class="intro">
           <dl class="intro__row">
-            <dt>URL</dt><dd><code>/users</code> · <code>/users/new</code> (mời) · <code>/users/[id]/edit</code></dd>
-            <dt>Quan trọng</dt><dd>Tài khoản user thuộc về <strong>AMA</strong> (ama.amoeba.site) — bạn chỉ "mời" và "cấp quyền dùng app", không tạo tài khoản từ đầu</dd>
+            <dt>URL</dt><dd><code>/users</code> · <code>/users/[id]/edit</code></dd>
+            <dt>Quan trọng</dt><dd>Tài khoản user thuộc về <strong>AMA</strong> (ama.amoeba.site) — bạn chỉ <strong>cấp/đổi vai trò trong app</strong> và <strong>chặn truy cập car-v2</strong>. Việc mời/tạo member, sửa email làm trực tiếp trên AMA (nút <em>"Quản lý thành viên trên AMA"</em>).</dd>
           </dl>
         </div>
 
         <h2>Danh sách người dùng</h2>
         <figure>
           <img src="../../assets/img/screenshots/vi/admin/04-users-list.png" alt="Danh sách user">
-          <figcaption>Danh sách user — tab Tất cả / Đang hoạt động / Không hoạt động / Tạm dừng + search</figcaption>
+          <figcaption>Danh sách user (đọc từ <code>car_users</code>) — search theo tên/email + thống kê "cho phép / đã chặn". Nút <em>Đồng bộ từ AMA</em> + <em>Quản lý thành viên trên AMA</em> ở header.</figcaption>
         </figure>
 
         <p>Mỗi dòng user hiển thị:</p>
@@ -145,10 +145,15 @@ Cần hỗ trợ liên hệ: [Admin tên / email hoặc số điện thoại]</c
         Admin vào <a href="03-quan-ly-tai-xe.html">/drivers/new</a> để tạo hồ sơ tài xế
         (bằng lái, hạng, hạn) và liên kết với user vừa đăng nhập.</p>
 
-        <figure>
-          <img src="../../assets/img/screenshots/vi/admin/04-user-invite.png" alt="Form mời user (legacy, đã ẩn nút quick-access)">
-          <figcaption>Form <code>/users/new</code> — vẫn truy cập được qua URL trực tiếp nếu cần (legacy), nhưng nút quick-access đã được gỡ bỏ theo quy trình mới.</figcaption>
-        </figure>
+        <div class="callout callout--info">
+          <div class="callout__icon">🔄</div>
+          <div class="callout__body">
+            <p><strong>Đồng bộ chủ động (tùy chọn):</strong> nếu cần member mới xuất hiện trong
+            <code>/users</code> NGAY (vd để gán làm tài xế trước khi họ kịp đăng nhập lần đầu),
+            Admin bấm nút <em>"Đồng bộ từ AMA"</em> ở header — kéo toàn bộ member của doanh nghiệp
+            từ AMA về. Mặc định không cần thao tác này: member tự xuất hiện sau lần đăng nhập đầu.</p>
+          </div>
+        </div>
 
         <h2>Mapping vai trò AMA → vai trò app</h2>
         <table>
@@ -160,13 +165,18 @@ Cần hỗ trợ liên hệ: [Admin tên / email hoặc số điện thoại]</c
           </tbody>
         </table>
 
-        <h2>Đổi vai trò app</h2>
-        <p>Vào <code>/users/[id]/edit</code> → đổi <strong>Vai trò app</strong>. Lưu ý: AMA role là nguồn cuối — đồng bộ lại mỗi lần user login.</p>
+        <h2>Sửa thành viên (<code>/users/[id]/edit</code>)</h2>
+        <p>Trang edit chỉ chỉnh các trường <strong>cục bộ của car-v2</strong>:</p>
+        <ul>
+          <li><strong>Vai trò app</strong> (ADMIN / MANAGER / DRIVER) — override riêng cho car-v2.</li>
+          <li><strong>Chặn truy cập car-v2</strong> — khoá user khỏi car-v2 (vẫn đăng nhập được các app Amoeba khác). Bỏ chặn bất cứ lúc nào.</li>
+        </ul>
+        <p>Các trường <strong>Tên / Email / Vai trò AMA</strong> chỉ hiển thị (read-only) — muốn sửa bấm link <em>"Sửa trên AMA"</em>. AMA role là nguồn cuối, tự đồng bộ lại mỗi lần user login.</p>
 
         <div class="callout callout--warn">
           <div class="callout__icon">⚠️</div>
           <div class="callout__body">
-            <p><strong>Đổi vai trò</strong> được audit log — sẽ thấy entry <code>ROLE_CHANGE</code> với người thay đổi + thời điểm. Cẩn thận khi nâng/hạ quyền.</p>
+            <p><strong>Vai trò app ở đây là override cục bộ.</strong> AMA mới là nguồn cuối: mỗi lần user đăng nhập, nếu vai trò suy ra từ AMA khác với vai trò hiện tại, hệ thống tự đồng bộ lại (ghi audit <code>ROLE_SYNC</code>) và override sẽ bị ghi đè. Muốn đổi vai trò lâu dài, hãy đổi trên AMA.</p>
           </div>
         </div>
 

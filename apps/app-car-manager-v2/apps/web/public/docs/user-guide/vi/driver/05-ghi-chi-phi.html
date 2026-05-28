@@ -66,9 +66,9 @@
 
         <div class="intro">
           <dl class="intro__row">
-            <dt>Khi nào</dt><dd>Ngay sau khi chi tiêu (trong vòng 7 ngày)</dd>
-            <dt>Cần</dt><dd>Ảnh hoá đơn (chụp bằng camera trong app)</dd>
-            <dt>Phê duyệt</dt><dd>Tùy loại: tự động duyệt nếu dưới ngưỡng, ngược lại Admin duyệt tay</dd>
+            <dt>Khi nào</dt><dd>Ngay sau khi chi tiêu — ghi nhận càng sớm càng tốt</dd>
+            <dt>Cần</dt><dd>Loại + số tiền + xe. Ảnh hoá đơn được khuyến khích nhưng <strong>không bắt buộc</strong></dd>
+            <dt>Phê duyệt</dt><dd><strong>Không cần</strong> — mọi chi phí được ghi nhận ngay (phiên bản hiện tại đã bỏ luồng duyệt)</dd>
           </dl>
         </div>
 
@@ -76,19 +76,20 @@
 
         <table>
           <thead>
-            <tr><th>Loại</th><th>Ví dụ</th><th>Có cần Admin duyệt?</th></tr>
+            <tr><th>Loại</th><th>Ví dụ</th></tr>
           </thead>
           <tbody>
-            <tr><td>🔵 <strong>Xăng (FUEL)</strong></td><td>Đổ xăng đầy bình</td><td>Tự động duyệt</td></tr>
-            <tr><td>🔵 <strong>Dầu (OIL)</strong></td><td>Thay dầu định kỳ</td><td>Tự động duyệt</td></tr>
-            <tr><td>🟡 <strong>Ăn uống (MEAL)</strong></td><td>Cơm ca chiều</td><td>Tự duyệt; cảnh báo nếu > 500K</td></tr>
-            <tr><td>⚪ <strong>Sửa chữa (REPAIR)</strong></td><td>Thay lốp, sửa điện</td><td>Admin duyệt nếu ≥ 1.000.000₫; ngược lại tự duyệt</td></tr>
-            <tr><td>⚪ <strong>Đỗ xe (PARKING)</strong></td><td>Phí gửi xe ở Vincom</td><td>Tự động duyệt</td></tr>
-            <tr><td>⚪ <strong>Phí đường (TOLL)</strong></td><td>BOT cao tốc</td><td>Tự động duyệt</td></tr>
-            <tr><td>🔴 <strong>Tai nạn (ACCIDENT)</strong></td><td>Va quệt nhẹ phải sơn lại</td><td><strong>Bắt buộc Admin duyệt</strong> + bắt buộc ảnh</td></tr>
-            <tr><td>🟢 <strong>Đăng kiểm (INSPECTION)</strong></td><td>Phí đăng kiểm định kỳ</td><td>Tự động duyệt</td></tr>
+            <tr><td><strong>Xăng (FUEL)</strong></td><td>Đổ xăng đầy bình</td></tr>
+            <tr><td><strong>Dầu (OIL)</strong></td><td>Thay dầu định kỳ</td></tr>
+            <tr><td><strong>Ăn uống (MEAL)</strong></td><td>Cơm ca chiều</td></tr>
+            <tr><td><strong>Sửa chữa (REPAIR)</strong></td><td>Thay lốp, sửa điện</td></tr>
+            <tr><td><strong>Đỗ xe (PARKING)</strong></td><td>Phí gửi xe ở Vincom</td></tr>
+            <tr><td><strong>Phí đường (TOLL)</strong></td><td>BOT cao tốc</td></tr>
+            <tr><td><strong>Tai nạn (ACCIDENT)</strong></td><td>Va quệt nhẹ phải sơn lại</td></tr>
+            <tr><td><strong>Đăng kiểm (INSPECTION)</strong></td><td>Phí đăng kiểm định kỳ</td></tr>
           </tbody>
         </table>
+        <p>Mọi loại đều được ghi nhận như nhau — không có loại nào cần phê duyệt riêng.</p>
 
         <h2>Cách ghi chi phí</h2>
 
@@ -124,7 +125,7 @@
         <div class="step">
           <div class="step__num">4</div>
           <div class="step__body">
-            <p>Chọn <strong>Ngày</strong> chi tiêu (mặc định là hôm nay, có thể chọn lùi tối đa 7 ngày).</p>
+            <p>Chọn <strong>Ngày</strong> chi tiêu (mặc định là hôm nay; không chọn được ngày tương lai, nhưng có thể chọn ngày trong quá khứ).</p>
           </div>
         </div>
 
@@ -139,7 +140,7 @@
           <div class="step__num">6</div>
           <div class="step__body">
             <p>Bấm <strong>"📷 Chụp / chọn ảnh"</strong> — chụp hoá đơn hoặc chọn ảnh từ thư viện.
-            Hỗ trợ tối đa <strong>5 ảnh</strong>, mỗi ảnh ≤ 5MB (PNG/JPG/GIF/WebP).</p>
+            Hỗ trợ tối đa <strong>5 ảnh</strong>, mỗi ảnh ≤ 10MB (PNG/JPG/HEIC/WebP).</p>
           </div>
         </div>
 
@@ -169,20 +170,13 @@
           <li><strong>Loại</strong> + icon</li>
           <li><strong>Số tiền</strong> (VND)</li>
           <li><strong>Ngày</strong> + mã chuyến (nếu gắn)</li>
-          <li><strong>Nhãn trạng thái</strong>:
-            <ul>
-              <li><span style="color:var(--c-warning)">Chờ duyệt</span> — đang chờ Admin</li>
-              <li><span style="color:var(--c-success)">Đã duyệt</span> — Admin đã chấp nhận</li>
-              <li><span style="color:var(--c-accent)">Tự duyệt</span> — qua ngưỡng tự động</li>
-              <li><span style="color:var(--c-danger)">Bị từ chối</span> — bấm xem để biết lý do</li>
-            </ul>
-          </li>
+          <li><strong>Nhãn trạng thái</strong> — chi phí bạn ghi nhận luôn hiển thị <span style="color:var(--c-info)">Tự duyệt</span> (tự động ghi nhận, không cần ai phê duyệt).</li>
         </ul>
 
         <div class="callout callout--warn">
           <div class="callout__icon">⚠️</div>
           <div class="callout__body">
-            <p><strong>Sau 7 ngày từ lúc nộp, bản ghi tự khóa.</strong> Bạn không tự sửa được nữa — phải nhờ Admin. Hãy ghi đầy đủ và chính xác ngay từ đầu.</p>
+            <p><strong>Hãy kiểm tra kỹ trước khi bấm "Ghi nhận".</strong> Phiên bản hiện tại chưa có chức năng sửa chi phí sau khi đã ghi (cho cả tài xế lẫn Admin) — hãy nhập đầy đủ và chính xác ngay từ đầu. Nếu ghi sai, báo Admin để xử lý.</p>
           </div>
         </div>
 

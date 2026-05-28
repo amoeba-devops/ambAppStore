@@ -82,21 +82,12 @@
         <p>Trang <code>/costs</code> hiển thị toàn bộ chi phí trong tổ chức dưới dạng <strong>ledger chronological</strong> (sổ kế toán theo thời gian):</p>
 
         <ul>
-          <li><strong>Cột trái</strong>: danh sách chi phí, mỗi dòng có Loại + Số tiền + Ngày + Người nộp + Xe</li>
-          <li><strong>Cột phải</strong> (chỉ desktop): chi tiết khoản đang chọn — bao gồm ảnh chứng từ, ghi chú, link đến chuyến đi liên quan (nếu có)</li>
-          <li><strong>Trên cùng</strong>: KPI tổng (Tổng chi · Số khoản · Loại nhiều nhất) trong khoảng thời gian đang lọc</li>
+          <li><strong>Cột trái</strong>: danh sách chi phí, mỗi dòng có Loại + Số tiền + nguồn nộp (tài xế / nhân viên back-office) + tên + thời điểm</li>
+          <li><strong>Cột phải</strong> (chỉ desktop): chi tiết chỉ-đọc của khoản đang chọn — số tiền, loại, xe, tài xế, ghi chú, ảnh chứng từ và link đến chuyến đi liên quan (nếu có). Trên mobile, bấm dòng sẽ mở trang chi tiết riêng.</li>
         </ul>
 
-        <h2>Bộ lọc + xuất dữ liệu</h2>
-        <ul>
-          <li><strong>Theo loại</strong> — chọn 1 hoặc nhiều loại (FUEL, OIL…)</li>
-          <li><strong>Theo xe</strong></li>
-          <li><strong>Theo tài xế / người nộp</strong></li>
-          <li><strong>Khoảng ngày</strong></li>
-          <li><strong>Tìm theo ghi chú</strong></li>
-        </ul>
-
-        <p>Bấm nút <strong>"Xuất CSV"</strong> ở góc trên phải để tải file Excel của các khoản đang lọc — dùng để báo cáo bộ phận tài chính.</p>
+        <h2>Xuất dữ liệu</h2>
+        <p>Trang này hiện <strong>không có bộ lọc trên giao diện</strong> — toàn bộ chi phí được liệt kê, mới nhất ở trên. Bấm nút <strong>"Xuất CSV"</strong> ở góc trên phải để tải toàn bộ sổ chi phí (tối đa 1000 dòng mới nhất) — dùng để báo cáo bộ phận tài chính rồi lọc trong Excel.</p>
 
         <h2>Tạo chi phí mới từ đây</h2>
         <p>Bấm nút lớn <strong>"+ Ghi nhận chi phí"</strong> ở góc trên phải — mở form <code>/expenses/new</code> (xem trang <a href="04-ghi-chi-phi.html">Ghi chi phí</a>).</p>
@@ -108,7 +99,7 @@
             <tr><td>URL</td><td><code>/costs</code></td><td><code>/expenses</code></td></tr>
             <tr><td>Phạm vi</td><td>Toàn tổ chức</td><td>Chỉ của bản thân</td></tr>
             <tr><td>Xuất CSV</td><td>✓</td><td>✗</td></tr>
-            <tr><td>Lọc nâng cao</td><td>✓ (theo nhiều chiều)</td><td>Cơ bản (theo loại + ngày)</td></tr>
+            <tr><td>Bố cục</td><td>2 cột (danh sách + chi tiết)</td><td>1 cột (danh sách)</td></tr>
           </tbody>
         </table>
 
