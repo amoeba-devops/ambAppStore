@@ -6,29 +6,37 @@
  *      to get whatever prefix the deploy lives under (empty on dev,
  *      "/app-car-manager-v2" on staging when mounted as a sub-app, etc.).
  *   2. Compute the destination as `${basePath}${route}`.
- *   3. If the guide is loaded inside an iframe (e.g. in-app drawer), navigate
- *      `window.top` so the parent app — not the iframe — moves to the new
- *      route. Standalone tabs just navigate themselves.
+ *   3. Navigate `window.parent` (the car-v2 page that hosts this guide
+ *      iframe) — NOT `window.top`. Frame nesting:
+ *        standalone drawer:  [car-v2] > [guide iframe]
+ *                            → parent = car-v2 ✓
+ *        AMA embed:          [AMA] > [car-v2] > [guide iframe]
+ *                            → parent = car-v2 ✓ (top = AMA, cross-origin,
+ *                              would throw or hijack the whole AMA shell)
+ *        standalone new tab: guide IS the top window
+ *                            → parent === window → navigate self ✓
+ *      Using `window.top` broke the AMA-embed case (cross-origin SecurityError
+ *      → silently fell through and reloaded car-v2 INTO the tiny guide iframe).
  *
  * Robust to:
- *   - mounted under arbitrary basePath (dev /, staging /app-car-manager-v2/)
- *   - opened standalone OR embedded in our <UserGuideDrawer> iframe
- *   - cross-origin iframe ancestors (try/catch protects against opaque-top
- *     errors when ancestor is on a different origin)
+ *   - arbitrary basePath (dev /, staging /app-car-manager-v2/)
+ *   - standalone tab, in-app drawer, AND triple-nested AMA embed
+ *   - cross-origin ancestors (try/catch guards the parent access)
  */
 (function () {
   function resolveBasePath() {
     return location.pathname.replace(/\/docs\/user-guide\/.*$/, '');
   }
 
-  function navigateTopOrSelf(href) {
+  function navigateParentOrSelf(href) {
     try {
-      if (window.top && window.top !== window) {
-        window.top.location.href = href;
+      if (window.parent && window.parent !== window) {
+        window.parent.location.href = href;
         return;
       }
     } catch (_e) {
-      /* cross-origin ancestor — fall through and navigate self instead */
+      /* cross-origin parent (shouldn't happen — guide + car-v2 share an
+       * origin — but guard anyway) → fall through to self navigation */
     }
     window.location.href = href;
   }
@@ -43,6 +51,6 @@
     event.preventDefault();
     var route = anchor.getAttribute('href') || '/';
     var dest = resolveBasePath() + route;
-    navigateTopOrSelf(dest);
+    navigateParentOrSelf(dest);
   });
 })();

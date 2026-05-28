@@ -60,7 +60,7 @@ function buildCta(route, locale) {
   return [
     MARKER,
     `<p class="app-link-cta-row">`,
-    `  <a class="app-link-cta" href="${route}" target="_top" rel="noopener">`,
+    `  <a class="app-link-cta" href="${route}" target="_parent" rel="noopener">`,
     `    <span>${label}</span>`,
     `    <span class="app-link-cta__route">${route}</span>`,
     `    <span aria-hidden="true">→</span>`,

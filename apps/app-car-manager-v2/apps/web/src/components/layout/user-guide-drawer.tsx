@@ -14,7 +14,11 @@ interface UserGuideDrawerProps {
   trigger?: React.ReactNode;
 }
 
-const BASE_PATH = '';
+/* MUST mirror the Next.js basePath so the iframe `src` resolves under the
+ * deploy prefix. Staging mounts car-v2 at `/app-car-manager-v2`, so an empty
+ * basePath would load `/docs/...` against the AMA parent origin (404 → blank
+ * drawer = "can't open"). Inlined at build time from next.config.mjs. */
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
 /**
  * In-app user-guide drawer. Auto-resolves the guide page that matches the
