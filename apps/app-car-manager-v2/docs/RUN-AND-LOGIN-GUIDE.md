@@ -86,17 +86,26 @@ enabled = CAR_V2_EMAIL_LOGIN_PASSWORDLESS === 'true' || NODE_ENV === 'developmen
 - **Local** (`NODE_ENV=development`) → tự bật.
 - **Staging/Prod** (`NODE_ENV=production|staging`) → **PHẢI set cờ = true**, nếu không AMA trả **HTTP 501 `E1099`** và mọi email-login fail.
 
-### Bật trên AMA staging (Docker)
-```yaml
-# ambManagement/docker/staging/docker-compose.staging.yml → amb-api-staging.environment:
-CAR_V2_EMAIL_LOGIN_PASSWORDLESS: ${CAR_V2_EMAIL_LOGIN_PASSWORDLESS:-false}
-```
+### AMA repo `main` ĐÃ cover đầy đủ — KHÔNG cần sửa code/compose/PR
+
+Verify trên `origin/main` (2026-05-28):
+- Logic `emailLogin` + gate + route `@Post('email-login')` — **PR #155** ✅
+- Compose khai báo env (cả staging + production, dòng 44) — **PR #167** ✅
+  ```yaml
+  CAR_V2_EMAIL_LOGIN_PASSWORDLESS: ${CAR_V2_EMAIL_LOGIN_PASSWORDLESS:-false}
+  ```
+
+Compose default `:-false` → staging chạy đúng code nhưng giá trị = false → 501. **Việc DUY NHẤT** là set GIÁ TRỊ env trên server + redeploy (cấu hình vận hành, không phải code change):
+
 ```bash
-# server: ~/ambManagement/docker/staging/.env.staging
+ssh amb-staging
+cd ~/ambManagement
+# thêm/sửa trong docker/staging/.env.staging:
 CAR_V2_EMAIL_LOGIN_PASSWORDLESS=true
-# redeploy
-ssh amb-staging "cd ~/ambManagement && bash docker/staging/deploy-staging.sh"
+# redeploy (deploy từ main — đã có sẵn logic + compose)
+bash docker/staging/deploy-staging.sh
 ```
+Production tương tự: set trong `docker/production/.env.production` + `deploy-production.sh`.
 
 > **Bảo mật**: passwordless = biết mã DN + email là login được (không cần mật khẩu). OK cho staging/demo; **cân nhắc kỹ trước khi bật prod**.
 
