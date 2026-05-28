@@ -762,6 +762,27 @@ code {
   .header {
     padding: 0 10px;
     gap: 6px;
+    /* `position: fixed` (overrides the base `sticky`) pins the bar to the
+     * viewport top INDEPENDENT of body scroll. The drawer's scroll-lock sets
+     * `overflow:hidden` on <html>/<body> (sidebar.js) — that breaks a `sticky`
+     * header once the page is scrolled (it reverts to its in-flow position,
+     * which is scrolled off-screen → header vanishes when you open the drawer
+     * after scrolling). A fixed header is immune. z-60 keeps it above the
+     * full-width drawer (z-50) + backdrop (z-40) so the hamburger→X stays the
+     * tappable close affordance. */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 60;
+    /* Pin the header to EXACTLY --header-h. On desktop the grid row enforces
+     * this height; on mobile the grid track is gone, so without an explicit
+     * height the bar shrinks to its tallest child (~40px) — leaving a ~16px
+     * white gap between the header bottom and the drawer top (which is
+     * anchored at `top: var(--header-h)` = 56px). Locking the height makes
+     * header bottom + sidebar top + main padding all meet flush. */
+    height: var(--header-h);
+    box-sizing: border-box;
   }
   /* Brand text is hidden site-wide (top-level rule) — on mobile we just
    * tweak the avatar size so it stays a comfortable tap target without
@@ -775,7 +796,8 @@ code {
     font-size: 16px;
   }
   .main {
-    padding: 20px 16px 60px;
+    /* Top padding clears the now-fixed header (out of normal flow). */
+    padding: calc(var(--header-h) + 20px) 16px 60px;
     min-width: 0;
     overflow-x: hidden;
     width: 100vw;
@@ -851,35 +873,32 @@ code {
     gap: 12px;
   }
 
-  /* ─── Mobile drawer — sidebar slides in from left on demand ────────── */
-  /* Override the desktop `display: none` for sidebar so we can transform it
-   * in/out instead. Hidden by default off-screen; `.is-open` slides into view.
-   *
-   * Pin to both top + bottom of the viewport so the panel always fills full
-   * height. Also force `height: 100dvh` (with `100vh` fallback) — when this
-   * file is loaded inside an iframe (in-app guide drawer), some engines
-   * compute `bottom: 0` against an ambiguous height, so we belt-and-suspender
-   * with an explicit height to guarantee floor-to-ceiling reach on every
-   * device + embed mode. `box-sizing: border-box` keeps padding inside. */
+  /* ─── Mobile drawer — full-screen menu below the header ─────────────── */
+  /* Override the desktop grid sidebar: on mobile it becomes a full-WIDTH +
+   * full-HEIGHT slide-in panel that fills everything BELOW the persistent
+   * header bar. `top: var(--header-h); bottom: 0` defines the height so it
+   * always reaches the screen floor (no `100dvh` — that mis-computes inside
+   * the in-app guide iframe). Full width = no leftover content strip on the
+   * right; the header (raised to z-60) stays on top so the hamburger→X is
+   * the close affordance. `right: 0` + `width: 100%` cover the viewport. */
   .sidebar {
     display: block;
     position: fixed;
-    top: 0;
+    top: var(--header-h);
     bottom: 0;
     left: 0;
-    width: 280px;
-    max-width: 86vw;
-    height: 100vh;
-    height: 100dvh;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
     z-index: 50;
     box-sizing: border-box;
     background: var(--c-surface);
-    border-right: 1px solid var(--c-border);
-    box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+    border-right: 0;
+    box-shadow: none;
     transform: translateX(-100%);
     transition: transform 220ms ease;
     overflow-y: auto;
-    padding: 16px 12px calc(16px + env(safe-area-inset-bottom));
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
     -webkit-overflow-scrolling: touch;
   }
   .sidebar.is-open {
