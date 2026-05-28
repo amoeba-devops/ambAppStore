@@ -762,9 +762,18 @@ code {
   .header {
     padding: 0 10px;
     gap: 6px;
-    /* Sit ABOVE the full-width drawer (z-50) + backdrop (z-40) so the
-     * hamburger→X stays tappable to close the menu. Without this the
-     * backdrop would cover the only close affordance. */
+    /* `position: fixed` (overrides the base `sticky`) pins the bar to the
+     * viewport top INDEPENDENT of body scroll. The drawer's scroll-lock sets
+     * `overflow:hidden` on <html>/<body> (sidebar.js) — that breaks a `sticky`
+     * header once the page is scrolled (it reverts to its in-flow position,
+     * which is scrolled off-screen → header vanishes when you open the drawer
+     * after scrolling). A fixed header is immune. z-60 keeps it above the
+     * full-width drawer (z-50) + backdrop (z-40) so the hamburger→X stays the
+     * tappable close affordance. */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
     z-index: 60;
   }
   /* Brand text is hidden site-wide (top-level rule) — on mobile we just
@@ -779,7 +788,8 @@ code {
     font-size: 16px;
   }
   .main {
-    padding: 20px 16px 60px;
+    /* Top padding clears the now-fixed header (out of normal flow). */
+    padding: calc(var(--header-h) + 20px) 16px 60px;
     min-width: 0;
     overflow-x: hidden;
     width: 100vw;
