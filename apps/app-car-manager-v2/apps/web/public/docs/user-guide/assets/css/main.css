@@ -775,6 +775,14 @@ code {
     left: 0;
     right: 0;
     z-index: 60;
+    /* Pin the header to EXACTLY --header-h. On desktop the grid row enforces
+     * this height; on mobile the grid track is gone, so without an explicit
+     * height the bar shrinks to its tallest child (~40px) — leaving a ~16px
+     * white gap between the header bottom and the drawer top (which is
+     * anchored at `top: var(--header-h)` = 56px). Locking the height makes
+     * header bottom + sidebar top + main padding all meet flush. */
+    height: var(--header-h);
+    box-sizing: border-box;
   }
   /* Brand text is hidden site-wide (top-level rule) — on mobile we just
    * tweak the avatar size so it stays a comfortable tap target without
