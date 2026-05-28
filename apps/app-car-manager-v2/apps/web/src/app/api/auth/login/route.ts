@@ -66,10 +66,16 @@ export async function POST(req: NextRequest) {
       console.warn(`[login] rate_limit ent=${entityCode} email=${masked}`);
       return NextResponse.redirect(absoluteUrl(req, '/login?error=rate_limit'));
     }
-    if (loginRes.status === 404) {
-      /* AMA endpoint chưa tồn tại — Wave 3 pending AMA team. UX rõ ràng:
-       * thay vì 500, dirot user về /login?error=not_implemented. */
-      console.error('[login] AMA /auth/email-login 404 — endpoint chưa build');
+    if (loginRes.status === 404 || loginRes.status === 501) {
+      /* 404 = AMA endpoint chưa tồn tại (Wave 3 pending).
+       * 501 = endpoint tồn tại nhưng passwordless bị tắt
+       *       (E1099 — AMA env CAR_V2_EMAIL_LOGIN_PASSWORDLESS != 'true').
+       * Cả hai → "tính năng chưa khả dụng", KHÔNG để rơi vào nhánh `invalid`
+       * (vốn hiện message "sai mã DN/email" gây hiểu lầm — bug đã từng làm
+       * mất công debug nhầm credentials). */
+      console.error(
+        `[login] AMA email-login unavailable status=${loginRes.status} — endpoint missing or passwordless disabled`,
+      );
       return NextResponse.redirect(absoluteUrl(req, '/login?error=not_implemented'));
     }
     if (!loginRes.ok) {

@@ -1218,7 +1218,7 @@
     "errInvalid": "Wrong company code or email is not registered. Check: (1) company code must be uppercase (e.g. VN01); (2) email matches what the admin registered; (3) the account isn't suspended. Contact admin if it still fails.",
     "errRateLimit": "Too many attempts. Please wait 1 minute.",
     "errNotInstalled": "The app has not been activated for this company. Contact your administrator.",
-    "errNotImplemented": "Email login is still being built by the AMA team. Please sign in via the AMA portal or use /dev-login.",
+    "errNotImplemented": "Email login isn't available on this environment. Please sign in via the AMA portal, or ask an admin to enable it.",
     "errServer": "System error. Please try again in a few minutes.",
     "errFallback": "Sign-in failed. Please try again."
   },
