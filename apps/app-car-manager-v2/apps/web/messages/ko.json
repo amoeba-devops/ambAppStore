@@ -1280,5 +1280,31 @@
     "loading": "가이드 로딩 중…",
     "localeNote": "{locale} 버전 표시 · UI: {uiLocale}",
     "viewIndex": "목차 보기"
+  },
+  "debug": {
+    "title": "디버그 컨텍스트",
+    "sectionBrowser": "브라우저",
+    "sectionSession": "세션",
+    "sectionCookie": "쿠키",
+    "sectionDecoded": "디코드된 Payload",
+    "referer": "Referrer",
+    "queryParams": "URL Query",
+    "amaTokenInUrl": "AMA Token (URL)",
+    "entId": "ent_id",
+    "userId": "user_id",
+    "role": "Role",
+    "amaRole": "AMA",
+    "cookiePresent": "amb_session 존재",
+    "cookieExpiresIn": "만료까지",
+    "cookieExpiresAt": "만료 시각",
+    "cookieExpired": "만료됨",
+    "yes": "예",
+    "no": "아니요",
+    "unitSeconds": "초",
+    "unitMinutes": "분",
+    "copy": "복사",
+    "copied": "복사됨",
+    "expand": "펼치기",
+    "collapse": "접기"
   }
 }

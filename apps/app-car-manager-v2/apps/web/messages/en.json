@@ -1280,5 +1280,31 @@
     "loading": "Loading guide…",
     "localeNote": "Showing {locale} version · UI: {uiLocale}",
     "viewIndex": "View index"
+  },
+  "debug": {
+    "title": "Debug context",
+    "sectionBrowser": "Browser",
+    "sectionSession": "Session",
+    "sectionCookie": "Cookie",
+    "sectionDecoded": "Decoded payload",
+    "referer": "Referrer",
+    "queryParams": "URL query",
+    "amaTokenInUrl": "AMA token (URL)",
+    "entId": "ent_id",
+    "userId": "user_id",
+    "role": "Role",
+    "amaRole": "AMA",
+    "cookiePresent": "amb_session present",
+    "cookieExpiresIn": "Expires in",
+    "cookieExpiresAt": "Expires at",
+    "cookieExpired": "Expired",
+    "yes": "Yes",
+    "no": "No",
+    "unitSeconds": "s",
+    "unitMinutes": "min",
+    "copy": "Copy",
+    "copied": "Copied",
+    "expand": "Expand",
+    "collapse": "Collapse"
   }
 }

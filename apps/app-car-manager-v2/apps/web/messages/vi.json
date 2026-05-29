@@ -1280,5 +1280,31 @@
     "loading": "Đang tải hướng dẫn…",
     "localeNote": "Hiển thị bản {locale} · UI: {uiLocale}",
     "viewIndex": "Xem mục lục"
+  },
+  "debug": {
+    "title": "Ngữ cảnh debug",
+    "sectionBrowser": "Trình duyệt",
+    "sectionSession": "Phiên",
+    "sectionCookie": "Cookie",
+    "sectionDecoded": "Payload đã giải mã",
+    "referer": "Referrer",
+    "queryParams": "URL query",
+    "amaTokenInUrl": "AMA token (URL)",
+    "entId": "ent_id",
+    "userId": "user_id",
+    "role": "Vai trò",
+    "amaRole": "AMA",
+    "cookiePresent": "amb_session tồn tại",
+    "cookieExpiresIn": "Hết hạn sau",
+    "cookieExpiresAt": "Hết hạn lúc",
+    "cookieExpired": "Đã hết hạn",
+    "yes": "Có",
+    "no": "Không",
+    "unitSeconds": "giây",
+    "unitMinutes": "phút",
+    "copy": "Sao chép",
+    "copied": "Đã sao chép",
+    "expand": "Mở rộng",
+    "collapse": "Thu gọn"
   }
 }

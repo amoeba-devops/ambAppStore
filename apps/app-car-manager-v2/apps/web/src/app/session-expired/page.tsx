@@ -2,6 +2,17 @@ import { getTranslations } from 'next-intl/server';
 import { LogIn, ShieldOff } from 'lucide-react';
 import { Button, Card, CardContent } from '@car-v2/ui';
 
+/**
+ * Debug provider is imported conditionally on the static `NODE_ENV` constant
+ * so webpack's DCE drops the import statement (and the transitive client
+ * panel chunk) from production builds. The provider has its own runtime
+ * `DEBUG_PANEL_ENABLED` check for staging.
+ */
+const DebugContextProvider =
+  process.env.NODE_ENV !== 'production'
+    ? (await import('@/components/dev/debug-context-provider')).DebugContextProvider
+    : null;
+
 export default async function SessionExpiredPage() {
   const tCo = await getTranslations('company');
   const tS  = await getTranslations('sessionExpired');
@@ -51,6 +62,10 @@ export default async function SessionExpiredPage() {
               </p>
             </div>
           )}
+
+          {/* Dev/staging-only debug panel. Removed from prod bundle by
+              static NODE_ENV gate above. */}
+          {DebugContextProvider && <DebugContextProvider />}
         </CardContent>
       </Card>
     </div>
