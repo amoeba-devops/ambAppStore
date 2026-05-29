@@ -112,7 +112,7 @@ export function CalendarGanttView({
       {/* Header — sticky so the date + hour labels stay anchored while the
        * user scrolls through vehicle rows. Horizontal scroll is delegated to
        * the parent container so header + rows scroll together as one strip. */}
-      <div className="sticky top-0 z-10 flex border-b border-border bg-surface-2">
+      <div className="sticky top-0 z-30 flex border-b border-border bg-surface-2">
         <div
           className="shrink-0 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-text"
           style={{ width: LABEL_WIDTH }}
@@ -149,7 +149,7 @@ export function CalendarGanttView({
                   {row.label}
                 </div>
                 <div
-                  className="relative shrink-0 cursor-pointer hover:bg-accent-soft/30"
+                  className="relative shrink-0 overflow-hidden cursor-pointer hover:bg-accent-soft/30"
                   style={{ width: totalGridWidth, height: ROW_HEIGHT }}
                   onClick={handleRowClick(row.vehicleId)}
                   onDragOver={handleDragOver}

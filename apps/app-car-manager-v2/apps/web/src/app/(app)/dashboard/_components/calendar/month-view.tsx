@@ -59,7 +59,7 @@ export function CalendarMonthView({
        * scrolls inside its 680px wrapper, and slightly heavier weight
        * (font-bold + text-text) for legibility instead of the previous
        * muted gray which looked washed out. */}
-      <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-border bg-surface-2">
+      <div className="sticky top-0 z-30 grid grid-cols-7 border-b border-border bg-surface-2">
         {weekdayLabels.map((label, i) => (
           <div
             key={i}
@@ -169,7 +169,7 @@ function WeekRow({
   };
 
   return (
-    <div className="relative border-b border-border last:border-b-0" style={{ minHeight: rowHeight }}>
+    <div className="relative overflow-hidden border-b border-border last:border-b-0" style={{ minHeight: rowHeight }}>
       <div className="grid h-full grid-cols-7">
         {week.map((day, di) => {
           const isToday = isSameDay(day, today);
