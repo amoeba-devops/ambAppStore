@@ -13,6 +13,7 @@ import {
   type EntityExpenseListItem,
 } from '@/server/queries/expenses.queries';
 import type { AttachmentItem } from '../expenses/[id]/_components/attachment-gallery';
+import { ExpensePeekDrawer } from '../expenses/_components/expense-peek-drawer';
 import { ExpenseReviewPanel } from './_components/expense-review-panel';
 
 type ExpenseType = EntityExpenseListItem['expType'];
@@ -52,7 +53,7 @@ function formatRelative(date: Date | string, t: RelativeT, locale: string): stri
 }
 
 interface PageProps {
-  searchParams: Promise<{ selected?: string }>;
+  searchParams: Promise<{ selected?: string; peek?: string }>;
 }
 
 /* Operating-cost ledger for Admin / Manager.
@@ -105,6 +106,21 @@ export default async function CostsPage({ searchParams }: PageProps) {
     }
   }
 
+  /* Mobile peek drawer target (`?peek=`). Desktop keeps its in-place right
+   * panel via `?selected=`; mobile (no right rail) opens the slide-over. */
+  const peekDetail = sp.peek ? await getExpenseDetail(actor.entId, sp.peek) : null;
+  let peekAttachments: AttachmentItem[] = [];
+  if (peekDetail) {
+    peekAttachments = await Promise.all(
+      peekDetail.attachments.map(async (a) => ({
+        eatId: a.eatId,
+        eatMime: a.eatMime,
+        eatSizeBytes: a.eatSizeBytes,
+        signedUrl: await getSignedGetUrl(a.eatS3Key, 900),
+      })),
+    );
+  }
+
   return (
     <>
       <PageHeader
@@ -155,7 +171,7 @@ export default async function CostsPage({ searchParams }: PageProps) {
                  * with `md:hidden` / `hidden md:block` so the user only
                  * ever sees + taps one. */
                 const desktopHref = `/costs?${new URLSearchParams({ selected: e.expId }).toString()}`;
-                const mobileHref = `/expenses/${e.expId}`;
+                const mobileHref = `/costs?${new URLSearchParams({ peek: e.expId }).toString()}`;
                 /* Shared row body, extracted so both anchors stay in sync. */
                 const rowBody = (
                   <div className="flex items-start gap-3">
@@ -192,8 +208,8 @@ export default async function CostsPage({ searchParams }: PageProps) {
                 );
                 return (
                   <li key={e.expId}>
-                    {/* Mobile: full-page detail. */}
-                    <Link href={mobileHref} className={cn(rowClass, 'md:hidden')}>
+                    {/* Mobile: slide-over peek drawer (right rail is hidden < md). */}
+                    <Link href={mobileHref} scroll={false} className={cn(rowClass, 'md:hidden')}>
                       {rowBody}
                     </Link>
                     {/* Desktop: select-in-place, panel updates beside. */}
@@ -248,6 +264,8 @@ export default async function CostsPage({ searchParams }: PageProps) {
        * Desktop carries the same CTA in the PageHeader actions; this is
        * the touch-friendly mirror that's reachable without a header tap. */}
       <Fab href="/expenses/new" label={t('recordExpense')} icon={<Plus />} />
+
+      {peekDetail && <ExpensePeekDrawer expense={peekDetail} attachments={peekAttachments} />}
     </>
   );
 }

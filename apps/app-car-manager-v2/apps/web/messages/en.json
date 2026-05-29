@@ -604,6 +604,12 @@
       "emptyMembers": "Nobody has signed in to car-v2 yet.",
       "emptyHint": "Members appear here after their first sign-in. To invite more:"
     },
+    "peek": {
+      "a11yTitle": "User details — {name}",
+      "a11yDescription": "User detail panel sliding in from the right.",
+      "close": "Close",
+      "signinLabel": "car-v2 sign-in access"
+    },
     "refresh": {
       "label": "Sync from AMA",
       "successToast": "Synced: added {inserted} · updated {updated}",
@@ -1103,6 +1109,12 @@
       "lightboxUnavailable": "Receipt unavailable",
       "lockRemaining": "Editable for {days} more days.",
       "lockExpired": "Edit window expired (7-day soft lock)."
+    },
+    "peek": {
+      "a11yTitle": "Expense details — {ref}",
+      "a11yDescription": "Expense detail panel sliding in from the right.",
+      "close": "Close",
+      "openFull": "Open full details"
     },
     "submit": {
       "title": "Record expense",

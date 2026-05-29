@@ -2,7 +2,7 @@ import { getTranslations, getLocale } from 'next-intl/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
-import { ExternalLink, IdCard, Lock } from 'lucide-react';
+import { ChevronRight, ExternalLink, IdCard, Lock } from 'lucide-react';
 import {
   Avatar,
   Badge,
@@ -22,8 +22,10 @@ import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listUsers, type UserListItem } from '@/server/queries/users.queries';
 import type { LocalRole } from '@car-v2/shared/auth';
+import { ClickableCard, ClickableTableRow, StopRowClick } from '@/components/clickable-table-row';
 import { DriverSigninToggle } from './_components/driver-signin-toggle';
 import { SyncFromAmaButton } from './_components/sync-from-ama-button';
+import { UserPeekDrawer } from './_components/user-peek-drawer';
 
 const LOCAL_ROLE_TONE: Record<LocalRole, 'accent' | 'info' | 'neutral'> = {
   ADMIN: 'accent', MANAGER: 'info', DRIVER: 'neutral',
@@ -58,7 +60,7 @@ function localeToBcp47(locale: string): string {
 }
 
 interface PageProps {
-  searchParams: Promise<{ q?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; peek?: string }>;
 }
 
 const USERS_PAGE_SIZE = 20;
@@ -85,6 +87,9 @@ export default async function UsersPage({ searchParams }: PageProps) {
    * the case "I just invited someone on AMA and want to assign them as
    * driver before they log in for the first time". */
   let users: UserListItem[] = await listUsers(actor.entId);
+  /* Peek target resolved from the full (pre-filter) list so the drawer opens
+   * even when the row is hidden by the current search/page. */
+  const peekUser = sp.peek ? users.find((u) => u.usrId === sp.peek) ?? null : null;
   const tenantSettings = await db.query.carTenantSettings.findFirst({
     where: eq(carTenantSettings.entId, actor.entId),
     columns: { tnsUsersSyncedAt: true },
@@ -185,7 +190,8 @@ export default async function UsersPage({ searchParams }: PageProps) {
             {/* Mobile: card list */}
             <ul className="md:hidden space-y-2.5">
               {pagedUsers.map((u) => (
-                <li key={u.usrId} className={'rounded-md border border-border bg-surface px-4 py-3.5 ' + (u.blocked ? 'opacity-60' : '')}>
+                <li key={u.usrId} className={'rounded-md border border-border bg-surface ' + (u.blocked ? 'opacity-60' : '')}>
+                  <ClickableCard href={usersPeekHref(u.usrId, page, searchQ)} scroll={false} className="px-4 py-3.5">
                   <div className="flex items-start gap-3">
                     <Avatar name={u.usrName ?? u.usrEmail ?? '?'} size="md" />
                     <div className="flex-1 min-w-0">
@@ -215,16 +221,19 @@ export default async function UsersPage({ searchParams }: PageProps) {
                       </div>
                       {actor.role === 'ADMIN' && u.usrLocalRole === 'DRIVER' && u.usrId !== actor.userId && (
                         <div className="mt-2 pt-2 border-t border-border flex justify-end">
-                          <DriverSigninToggle
-                            amaUserId={u.usrId}
-                            displayName={u.usrName ?? u.usrEmail ?? u.usrId}
-                            blocked={u.blocked}
-                            compact
-                          />
+                          <StopRowClick>
+                            <DriverSigninToggle
+                              amaUserId={u.usrId}
+                              displayName={u.usrName ?? u.usrEmail ?? u.usrId}
+                              blocked={u.blocked}
+                              compact
+                            />
+                          </StopRowClick>
                         </div>
                       )}
                     </div>
                   </div>
+                  </ClickableCard>
                 </li>
               ))}
             </ul>
@@ -241,53 +250,70 @@ export default async function UsersPage({ searchParams }: PageProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pagedUsers.map((u) => (
-                    <TableRow key={u.usrId} className={u.blocked ? 'opacity-60' : ''}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar name={u.usrName ?? u.usrEmail ?? '?'} size="md" />
-                          <div className="min-w-0">
-                            <span className="font-medium text-text truncate block">
-                              {u.usrName ?? u.usrEmail ?? u.usrId}
-                            </span>
-                            <div className="text-xs text-text-faint truncate">{u.usrEmail ?? '—'}</div>
+                  {pagedUsers.map((u) => {
+                    const isAdmin = actor.role === 'ADMIN';
+                    const cells = (
+                      <>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar name={u.usrName ?? u.usrEmail ?? '?'} size="md" />
+                            <div className="min-w-0">
+                              <span className="font-medium text-text truncate block">
+                                {u.usrName ?? u.usrEmail ?? u.usrId}
+                              </span>
+                              <div className="text-xs text-text-faint truncate">{u.usrEmail ?? '—'}</div>
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="inline-flex items-center gap-1.5">
-                          <Badge tone={LOCAL_ROLE_TONE[u.usrLocalRole]} size="sm">{u.usrLocalRole}</Badge>
-                          {u.blocked && (
-                            <Badge tone="danger" size="sm">
-                              <Lock className="h-3 w-3 mr-0.5" />
-                              {tList('blockedBadge')}
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs text-text-muted">{u.usrAmaRoleSnapshot ?? '—'}</TableCell>
-                      <TableCell className="text-text-muted">
-                        {formatRelativeTime(u.usrLastLoginAt, tRel, locale)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {actor.role === 'ADMIN' && (
-                          <div className="inline-flex items-center gap-1 justify-end">
-                            {u.usrLocalRole === 'DRIVER' && u.usrId !== actor.userId && (
-                              <DriverSigninToggle
-                                amaUserId={u.usrId}
-                                displayName={u.usrName ?? u.usrEmail ?? u.usrId}
-                                blocked={u.blocked}
-                                compact
-                              />
+                        </TableCell>
+                        <TableCell>
+                          <div className="inline-flex items-center gap-1.5">
+                            <Badge tone={LOCAL_ROLE_TONE[u.usrLocalRole]} size="sm">{u.usrLocalRole}</Badge>
+                            {u.blocked && (
+                              <Badge tone="danger" size="sm">
+                                <Lock className="h-3 w-3 mr-0.5" />
+                                {tList('blockedBadge')}
+                              </Badge>
                             )}
-                            <Button asChild variant="ghost" size="sm">
-                              <Link href={`/users/${u.usrId}/edit`}>{tA('edit')}</Link>
-                            </Button>
                           </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-text-muted">{u.usrAmaRoleSnapshot ?? '—'}</TableCell>
+                        <TableCell className="text-text-muted">
+                          {formatRelativeTime(u.usrLastLoginAt, tRel, locale)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isAdmin && (
+                            <div className="inline-flex items-center gap-1 justify-end">
+                              {u.usrLocalRole === 'DRIVER' && u.usrId !== actor.userId && (
+                                <StopRowClick>
+                                  <DriverSigninToggle
+                                    amaUserId={u.usrId}
+                                    displayName={u.usrName ?? u.usrEmail ?? u.usrId}
+                                    blocked={u.blocked}
+                                    compact
+                                  />
+                                </StopRowClick>
+                              )}
+                              <ChevronRight className="inline-block h-4 w-4 text-text-faint" />
+                            </div>
+                          )}
+                        </TableCell>
+                      </>
+                    );
+                    return isAdmin ? (
+                      <ClickableTableRow
+                        key={u.usrId}
+                        href={usersPeekHref(u.usrId, page, searchQ)}
+                        scroll={false}
+                        className={u.blocked ? 'opacity-60' : ''}
+                      >
+                        {cells}
+                      </ClickableTableRow>
+                    ) : (
+                      <TableRow key={u.usrId} className={u.blocked ? 'opacity-60' : ''}>
+                        {cells}
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </Card>
@@ -322,6 +348,15 @@ export default async function UsersPage({ searchParams }: PageProps) {
           </>
         )}
       </div>
+
+      {peekUser && (
+        <UserPeekDrawer
+          user={peekUser}
+          lastActiveLabel={formatRelativeTime(peekUser.usrLastLoginAt, tRel, locale)}
+          isAdmin={actor.role === 'ADMIN'}
+          isSelf={peekUser.usrId === actor.userId}
+        />
+      )}
     </>
   );
 }
@@ -332,4 +367,12 @@ function usersPageHref(page: number, q: string | undefined): string {
   if (page > 1) params.set('page', String(page));
   const qs = params.toString();
   return qs ? `/users?${qs}` : '/users';
+}
+
+function usersPeekHref(userId: string, page: number, q: string | undefined): string {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (page > 1) params.set('page', String(page));
+  params.set('peek', userId);
+  return `/users?${params.toString()}`;
 }

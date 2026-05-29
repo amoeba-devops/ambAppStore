@@ -604,6 +604,12 @@
       "emptyMembers": "Chưa có ai đăng nhập vào car-v2.",
       "emptyHint": "Thành viên xuất hiện ở đây sau lần đăng nhập đầu tiên. Để mời thêm:"
     },
+    "peek": {
+      "a11yTitle": "Chi tiết người dùng {name}",
+      "a11yDescription": "Bảng chi tiết người dùng trượt từ phải.",
+      "close": "Đóng",
+      "signinLabel": "Quyền đăng nhập car-v2"
+    },
     "refresh": {
       "label": "Đồng bộ từ AMA",
       "successToast": "Đã đồng bộ: thêm {inserted} · cập nhật {updated}",
@@ -1103,6 +1109,12 @@
       "lightboxUnavailable": "Không thể tải biên lai",
       "lockRemaining": "Có thể chỉnh sửa trong {days} ngày tới.",
       "lockExpired": "Đã quá hạn chỉnh sửa (sau 7 ngày)."
+    },
+    "peek": {
+      "a11yTitle": "Chi tiết chi phí {ref}",
+      "a11yDescription": "Bảng chi tiết chi phí trượt từ phải.",
+      "close": "Đóng",
+      "openFull": "Mở chi tiết đầy đủ"
     },
     "submit": {
       "title": "Ghi nhận chi phí",

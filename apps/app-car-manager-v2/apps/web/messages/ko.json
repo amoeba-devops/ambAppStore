@@ -604,6 +604,12 @@
       "emptyMembers": "아직 car-v2에 로그인한 사용자가 없습니다.",
       "emptyHint": "사용자는 첫 로그인 후 여기 표시됩니다. 멤버 초대는:"
     },
+    "peek": {
+      "a11yTitle": "사용자 상세 — {name}",
+      "a11yDescription": "오른쪽에서 슬라이드되는 사용자 상세 패널.",
+      "close": "닫기",
+      "signinLabel": "car-v2 로그인 권한"
+    },
     "refresh": {
       "label": "AMA에서 동기화",
       "successToast": "동기화 완료: 추가 {inserted}명 · 업데이트 {updated}명",
@@ -1103,6 +1109,12 @@
       "lightboxUnavailable": "영수증을 불러올 수 없습니다",
       "lockRemaining": "{days}일 동안 수정 가능합니다.",
       "lockExpired": "수정 기한 만료 (7일 소프트 락)."
+    },
+    "peek": {
+      "a11yTitle": "비용 상세 — {ref}",
+      "a11yDescription": "오른쪽에서 슬라이드되는 비용 상세 패널.",
+      "close": "닫기",
+      "openFull": "전체 상세 보기"
     },
     "submit": {
       "title": "비용 기록",

@@ -7,6 +7,9 @@ import type { DriverExpenseListItem } from '@/server/queries/expenses.queries';
 
 interface ExpensesListProps {
   items: DriverExpenseListItem[];
+  /** Current list page — preserved in the peek URL so closing the drawer
+   * returns to the same page. */
+  page?: number;
 }
 
 /* Read-only expense list for the driver.
@@ -18,9 +21,11 @@ interface ExpensesListProps {
  * Server component — receives data from the page RSC and renders. The
  * approval-status pill colour is the only signal that needs interpretation;
  * the rest is informational. */
-export async function ExpensesList({ items }: ExpensesListProps) {
+export async function ExpensesList({ items, page = 1 }: ExpensesListProps) {
   const tType    = await getTranslations('costs.types');
   const tStatus  = await getTranslations('expenses.status');
+  const peekHref = (expId: string) =>
+    page > 1 ? `/expenses?page=${page}&peek=${expId}` : `/expenses?peek=${expId}`;
 
   return (
     <ul className="space-y-2">
@@ -30,7 +35,8 @@ export async function ExpensesList({ items }: ExpensesListProps) {
         return (
           <li key={exp.expId}>
             <Link
-              href={`/expenses/${exp.expId}`}
+              href={peekHref(exp.expId)}
+              scroll={false}
               className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Card className="p-4 transition-colors active:bg-surface-2 md:hover:bg-surface-2">
