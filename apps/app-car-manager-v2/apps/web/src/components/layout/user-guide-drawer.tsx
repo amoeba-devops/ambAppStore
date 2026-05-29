@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { BookOpen, ExternalLink, Loader2 } from 'lucide-react';
 import { Button, Sheet, SheetContent, SheetTrigger } from '@car-v2/ui';
@@ -36,12 +36,33 @@ const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
  */
 export function UserGuideDrawer({ role, trigger }: UserGuideDrawerProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const uiLocale = useLocale();
   const t = useTranslations('nav');
   const tGuide = useTranslations('userGuide');
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  /* The guide iframe is sandboxed and can't navigate its parent itself. When
+   * the user clicks an "open in app" CTA inside it, app-link.js postMessages
+   * the route here — we close the drawer and SPA-route the running app to it
+   * (basePath handled by the Next router). Origin + shape are validated, and
+   * only internal paths (single leading slash) are accepted — no protocol-
+   * relative "//host" open-redirects. */
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      if (e.origin !== window.location.origin) return;
+      const data = e.data as { type?: unknown; route?: unknown } | null;
+      if (!data || data.type !== 'car-v2:guide-navigate') return;
+      const route = typeof data.route === 'string' ? data.route : null;
+      if (!route || !route.startsWith('/') || route.startsWith('//')) return;
+      setOpen(false);
+      router.push(route);
+    }
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [router]);
 
   /* Re-compute on every open so we always reflect the current pathname /
    * locale — admin who switched locale or navigated since first mount still
