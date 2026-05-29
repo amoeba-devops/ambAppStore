@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Plus, X } from 'lucide-react';
 import {
   Button,
   cn,
@@ -51,7 +50,6 @@ interface TripFormDialogProps {
   onSuccess: (tripId: string) => void;
 }
 
-const STOPOVER_CAP = 10;
 const DURATION_MIN_MINUTES = 5;
 const DURATION_MAX_MINUTES = 1440;
 
@@ -79,7 +77,6 @@ export function TripFormDialog({
   const [passengerId, setPassengerId] = useState(currentUserId);
   const [pickup, setPickup] = useState('');
   const [dropoff, setDropoff] = useState('');
-  const [stopovers, setStopovers] = useState<string[]>([]);
   const [scheduledAt, setScheduledAt] = useState('');
   const [durationMin, setDurationMin] = useState('');
   const [purpose, setPurpose] = useState('');
@@ -102,10 +99,6 @@ export function TripFormDialog({
       setPassengerId(trip.trpPassengerId ?? currentUserId);
       setPickup(trip.trpPickupAddress);
       setDropoff(trip.trpDropoffAddress);
-      /* Edit mode hydrates stopovers as a read-only display only — the server
-       * `updateTripSchema` doesn't accept stopovers, so they're shown to give
-       * the user context but the UI hides the add/remove controls below. */
-      setStopovers(trip.stopovers?.map((s) => s.address) ?? []);
       setScheduledAt(datetimeLocalString(new Date(trip.trpScheduledAt)));
       setDurationMin(trip.trpDurationMinutes ? String(trip.trpDurationMinutes) : '');
       setPurpose(trip.trpPurpose ?? '');
@@ -116,7 +109,6 @@ export function TripFormDialog({
       setPassengerId(currentUserId);
       setPickup('');
       setDropoff('');
-      setStopovers([]);
       setScheduledAt(prefill?.scheduledAt ? datetimeLocalString(prefill.scheduledAt) : '');
       setDurationMin('');
       setPurpose('');
@@ -141,20 +133,6 @@ export function TripFormDialog({
     },
     [dirty, onOpenChange, t],
   );
-
-  const addStopover = () => {
-    if (stopovers.length >= STOPOVER_CAP) return;
-    setStopovers((s) => [...s, '']);
-    markDirty();
-  };
-  const removeStopover = (i: number) => {
-    setStopovers((s) => s.filter((_, idx) => idx !== i));
-    markDirty();
-  };
-  const updateStopover = (i: number, value: string) => {
-    setStopovers((s) => s.map((v, idx) => (idx === i ? value : v)));
-    markDirty();
-  };
 
   const onSubmit = () => {
     if (pending) return;
@@ -191,13 +169,7 @@ export function TripFormDialog({
       };
 
       if (mode === 'create') {
-        /* Only `createTripSchema` accepts stopovers — `updateTripSchema`
-         * doesn't have the field, so we attach them on create only. */
-        const cleanStops = stopovers.map((s) => s.trim()).filter(Boolean);
-        const res = await createTripAction({
-          ...basePayload,
-          stopovers: cleanStops.length ? cleanStops : undefined,
-        });
+        const res = await createTripAction(basePayload);
         if (res.success) {
           toast.success(t('successCreate', { ref: res.data.trpRef }));
           onOpenChange(false);
@@ -228,15 +200,15 @@ export function TripFormDialog({
     : '/trips/new';
   const fullFormLabel = mode === 'edit' ? t('fullFormEdit') : t('fullFormCreate');
 
-  /* Visible stopovers in the map preview — trimmed + non-empty so the embed
-   * URL doesn't generate stray "/" segments. Always shown (both create and
-   * edit modes) so the user gets visual confirmation of the route they're
-   * looking at, even when the inputs themselves aren't editable on edit. */
-  const mapStopovers = stopovers.map((s) => s.trim()).filter(Boolean);
-
-  /* Show the stopover editor only in create mode — `updateTripSchema` doesn't
-   * accept stopovers, so letting the user "edit" them would be a lie. */
-  const canEditStopovers = mode === 'create';
+  /* Stopovers are no longer editable in this quick dialog (the unbounded
+   * "add stop" list overflowed the form). In edit mode we still surface any
+   * stopovers the trip already has on the map preview so the user gets visual
+   * confirmation of the saved route; create mode has none. Use the full form
+   * (/trips/new) if multi-stop routing is needed. */
+  const mapStopovers =
+    mode === 'edit'
+      ? (trip?.stopovers?.map((s) => s.address.trim()).filter(Boolean) ?? [])
+      : [];
 
   return (
     <Dialog open={open} onOpenChange={attemptClose}>
@@ -323,49 +295,6 @@ export function TripFormDialog({
                 placeholder={t('dropoffPlaceholder')}
               />
             </div>
-
-            {/* Stopovers — list + add button only in create mode. */}
-            {canEditStopovers && (
-              <div className="space-y-2">
-                {stopovers.length > 0 && (
-                  <ul className="space-y-1.5">
-                    {stopovers.map((s, i) => (
-                      <li key={i} className="flex items-center gap-2">
-                        <div className="min-w-0 flex-1">
-                          <AddressAutocomplete
-                            value={s}
-                            onChange={(val) => updateStopover(i, val)}
-                            placeholder={t('stopPlaceholder', { n: i + 1 })}
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={t('removeStopAria')}
-                          onClick={() => removeStopover(i)}
-                        >
-                          <X />
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {stopovers.length < STOPOVER_CAP && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    iconLeft={<Plus />}
-                    onClick={addStopover}
-                    className="h-7 px-2 text-xs"
-                  >
-                    {t('addStop')}
-                    {stopovers.length > 0 ? ` (${stopovers.length}/${STOPOVER_CAP})` : ''}
-                  </Button>
-                )}
-              </div>
-            )}
 
             {/* On mobile, surface the map between route + time so the user
              * gets visual confirmation right after typing the addresses.
