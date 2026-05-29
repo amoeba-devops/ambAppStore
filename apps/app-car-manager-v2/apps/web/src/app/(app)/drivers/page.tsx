@@ -20,6 +20,7 @@ import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listDrivers } from '@/server/queries/drivers.queries';
+import { ClickableTableRow } from '@/components/clickable-table-row';
 
 const STATUS_TONE: Record<CarDriverStatus, 'success' | 'info' | 'neutral'> = {
   AVAILABLE:   'success',
@@ -147,7 +148,7 @@ export default async function DriversPage({ searchParams }: PageProps) {
                   {drivers.map((d) => {
                     const daysLeft = daysUntil(d.drvLicenseExpiry);
                     return (
-                      <TableRow key={d.drvId} className="cursor-pointer">
+                      <ClickableTableRow key={d.drvId} href={`/drivers/${d.drvId}`}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar name={d.user.usrName ?? '?'} size="md" />
@@ -181,11 +182,9 @@ export default async function DriversPage({ searchParams }: PageProps) {
                           <Badge tone={STATUS_TONE[d.drvStatus]} size="sm">{tStatus(d.drvStatus)}</Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/drivers/${d.drvId}`}>{tA('view')}</Link>
-                          </Button>
+                          <ChevronRight className="inline-block h-4 w-4 text-text-faint" />
                         </TableCell>
-                      </TableRow>
+                      </ClickableTableRow>
                     );
                   })}
                 </TableBody>

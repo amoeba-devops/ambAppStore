@@ -22,6 +22,7 @@ import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getDriverByUserId, listDrivers } from '@/server/queries/drivers.queries';
 import { getTrip, listTrips, listTripsForDriver } from '@/server/queries/trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
+import { ClickableTableRow } from '@/components/clickable-table-row';
 import { DriverTripsList } from './_components/driver-trips-list';
 import { TripPeekDrawer } from './_components/trip-peek-drawer';
 
@@ -332,8 +333,11 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                 </TableHeader>
                 <TableBody>
                   {items.map((trip) => (
-                    <TableRow
+                    <ClickableTableRow
                       key={trip.trpId}
+                      href={peekHref(statusFilter, page, trip.trpId, searchQ, dateRange)}
+                      scroll={false}
+                      aria-label={tList('openAria', { ref: trip.trpRef })}
                       className={trip.trpId === highlightId ? 'ccms-row-highlight' : ''}
                     >
                       <TableCell className="font-mono text-xs text-text-muted tabular">{trip.trpRef}</TableCell>
@@ -364,17 +368,9 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                         <Badge tone={STATUS_TONE[trip.trpStatus]} size="sm">{tStatus(trip.trpStatus)}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link
-                            href={peekHref(statusFilter, page, trip.trpId, searchQ, dateRange)}
-                            scroll={false}
-                            aria-label={tList('openAria', { ref: trip.trpRef })}
-                          >
-                            {tA('view')}
-                          </Link>
-                        </Button>
+                        <ChevronRight className="inline-block h-4 w-4 text-text-faint" />
                       </TableCell>
-                    </TableRow>
+                    </ClickableTableRow>
                   ))}
                 </TableBody>
               </Table>
