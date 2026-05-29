@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { BookOpen, ExternalLink, Loader2 } from 'lucide-react';
-import { Button, Sheet, SheetContent, SheetTrigger } from '@car-v2/ui';
+import { Button, Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { guideHomeUrl, resolveGuidePage } from '@/lib/user-guide-map';
 
@@ -98,6 +98,13 @@ export function UserGuideDrawer({ role, trigger }: UserGuideDrawerProps) {
          * the iframe sits flush against the chrome. */
         className="w-screen max-w-none p-0 md:w-[70vw] md:max-w-[1100px] flex flex-col"
       >
+        {/* Radix Dialog requires an accessible title (+ description). The visible
+         * header below is plain markup, so provide sr-only Radix Title/Description
+         * to satisfy screen readers without changing the layout. */}
+        <SheetTitle className="sr-only">{t('userGuide')}</SheetTitle>
+        <SheetDescription className="sr-only">
+          {resolved.matched ? tGuide('matchedHint', { page: resolved.page }) : tGuide('fallbackHint')}
+        </SheetDescription>
         <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border bg-surface">
           <div className="min-w-0 flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-accent shrink-0" aria-hidden />
