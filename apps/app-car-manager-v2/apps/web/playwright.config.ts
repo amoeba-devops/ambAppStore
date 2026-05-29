@@ -20,6 +20,11 @@ export default defineConfig({
   timeout: 120_000,
   fullyParallel: false,
   workers: 1, // Tests share DB state — serial để tránh race
+  /* Next.js dev compile route on-demand; goto đụng đúng lúc compile dở thỉnh
+   * thoảng trả net::ERR_ABORTED. 1 retry hấp thụ flake này khi chạy local; CI
+   * (next build + next start, không on-demand compile) hiếm cần nhưng để 2 cho
+   * chắc. Root-fix: chạy e2e trên `next build && next start`. */
+  retries: process.env.CI ? 2 : 1,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     /* Default port 3001 — match README §0 + package.json dev script.

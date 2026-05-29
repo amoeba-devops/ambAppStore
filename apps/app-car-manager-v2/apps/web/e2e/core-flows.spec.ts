@@ -50,16 +50,17 @@ test.describe('Flow — ADMIN', () => {
 
   test('F2 — Admin /drivers/new shows form fields', async ({ page }) => {
     await page.goto('/drivers/new', { waitUntil: 'domcontentloaded' });
-    /* Empty state (no candidates) hoặc form. Verify ít nhất 1 trong 2 visible. */
-    const emptyStateCta = page.getByRole('link', { name: /Tạo user mới|→.*user|new user/i });
-    const candidateSelect = page.locator('[role="combobox"]').first();
-
-    const hasEmpty = await emptyStateCta.isVisible().catch(() => false);
-    const hasSelect = await candidateSelect.isVisible().catch(() => false);
-    expect(
-      hasEmpty || hasSelect,
-      'Drivers new page phải có hoặc empty state hoặc user select',
-    ).toBe(true);
+    /* The page renders one of two arms:
+     *   - form: the visible Radix Select trigger (a <button role="combobox">).
+     *     Radix ALSO renders a hidden native <select> that shares role
+     *     "combobox", so a bare [role=combobox].first() can resolve to the
+     *     hidden one — target the <button> specifically.
+     *   - empty state: an "invite on AMA" CTA (no un-linked car_users yet).
+     * toBeVisible auto-retries, absorbing the hydration timing that made the
+     * old snapshot-style .isVisible() flaky. */
+    const candidateSelect = page.locator('button[role="combobox"]').first();
+    const emptyStateCta = page.getByRole('link', { name: /Mời user trên AMA|invite.*AMA/i });
+    await expect(candidateSelect.or(emptyStateCta).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('F3 — Admin /vehicles/new form render', async ({ page }) => {
@@ -101,19 +102,23 @@ test.describe('Flow — MANAGER', () => {
     }
   });
 
-  test('F5 — Manager /audit redirect / forbidden', async ({ page }) => {
+  test('F5 — Manager /audit forbidden', async ({ page }) => {
     const res = await page.request.get('/audit', { maxRedirects: 0 });
-    /* Acceptable: 307 redirect, hoặc 200 với error boundary */
-    expect([200, 307, 403, 500].includes(res.status())).toBe(true);
+    /* Audit log is ADMIN-only (requireRole throws CAR-E0102). A manager gets
+     * either a redirect away or the global error boundary (200 with a generic
+     * error UI — the raw error message/code is intentionally hidden from the
+     * client). Either way they must never see the audit content. */
+    expect([200, 307, 403, 500].includes(res.status()), `Got ${res.status()}`).toBe(true);
     if (res.status() === 200) {
-      /* Verify error page content (requireRole throw) */
       await page.goto('/audit', { waitUntil: 'domcontentloaded' });
-      const errorVisible = await page
-        .locator('text=/Forbidden|không có quyền|requires ADMIN|CAR-E0102/i')
+      /* The audit log table renders only for an authorised admin; the error
+       * boundary has no table. Its absence confirms the manager is blocked. */
+      const auditTableVisible = await page
+        .locator('table')
         .first()
         .isVisible()
         .catch(() => false);
-      expect(errorVisible, 'Manager /audit phải hiển thị error').toBe(true);
+      expect(auditTableVisible, 'Manager must not see audit log content').toBe(false);
     }
   });
 });
