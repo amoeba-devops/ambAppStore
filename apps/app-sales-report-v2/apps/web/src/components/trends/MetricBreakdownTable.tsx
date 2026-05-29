@@ -272,8 +272,9 @@ function Row({
             wow={wow}
             isFirst={i === 0}
             metricKind={mode === 'ratio' ? 'ratio' : def.kind}
+            currency={currency}
             valueClass={valueClass}
-            invertColors={row.metric === 'CM' && mode === 'amount'}
+            invertColors={false}
           />
         );
       })}
@@ -292,15 +293,25 @@ interface ValueCellProps {
   wow: number | null;
   isFirst: boolean;
   metricKind: 'money' | 'count' | 'ratio';
+  /** Selected currency mode for the table — controls VND vs KRW symbol on money cells. */
+  currency: CurrencyMode;
   valueClass: string;
   invertColors?: boolean;
 }
 
-function ValueCell({ value, wow, isFirst, metricKind, valueClass, invertColors }: ValueCellProps) {
+function ValueCell({
+  value,
+  wow,
+  isFirst,
+  metricKind,
+  currency,
+  valueClass,
+  invertColors,
+}: ValueCellProps) {
   return (
     <>
       <td className={cn('px-3 py-2.5 text-right font-mono tabular-nums whitespace-nowrap', valueClass)}>
-        {fmtCellValue(value, metricKind)}
+        {fmtCellValue(value, metricKind, currency)}
       </td>
       <td className="px-3 py-2.5 text-right whitespace-nowrap">
         {isFirst ? (
@@ -313,12 +324,21 @@ function ValueCell({ value, wow, isFirst, metricKind, valueClass, invertColors }
   );
 }
 
-function fmtCellValue(value: number | null, kind: 'money' | 'count' | 'ratio'): string {
+function fmtCellValue(
+  value: number | null,
+  kind: 'money' | 'count' | 'ratio',
+  currency: CurrencyMode,
+): string {
   if (value == null) return '—';
   if (kind === 'ratio') return (value * 100).toFixed(2) + '%';
   if (kind === 'count') return new Intl.NumberFormat('en-US').format(Math.round(value));
-  // money: raw VND with comma thousand separators
-  return new Intl.NumberFormat('en-US').format(Math.round(value));
+  // Money: format with currency-appropriate locale + symbol so VND/KRW
+  // toggle is unambiguous in the table (previously bare digits left users
+  // guessing which currency they were looking at).
+  if (currency === 'KRW') {
+    return `${new Intl.NumberFormat('ko-KR').format(Math.round(value))} ₩`;
+  }
+  return `${new Intl.NumberFormat('en-US').format(Math.round(value))} ₫`;
 }
 
 function DeltaInline({ value, invert }: { value: number | null; invert?: boolean }) {

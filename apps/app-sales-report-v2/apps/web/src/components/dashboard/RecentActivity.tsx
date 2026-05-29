@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
+import { fmtDate, fmtTime } from '@/lib/format';
 import type { ActionLogRow } from '@/server/actions/action-log.actions';
 
 interface Props {
@@ -37,18 +38,13 @@ const CATEGORY_PILL: Record<Category, string> = {
 export function RecentActivity({ rows }: Props) {
   const t = useTranslations('dashboard.activity');
   const tCategory = useTranslations('activityLog.category');
-  const locale = useLocale();
-  const intlLocale = locale === 'ko' ? 'ko-KR' : 'en-US';
-
+  // Unified app-wide date format: DD/MM/YYYY HH:MM (locale-independent).
+  // RecentActivity is a compact widget so we drop seconds — minute granularity
+  // is enough for "what happened recently" surface.
   const fmtRelative = (iso: string): string => {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return iso;
-    return d.toLocaleString(intlLocale, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const date = fmtDate(iso);
+    if (date === '—') return iso;
+    return `${date} ${fmtTime(iso).slice(0, 5)}`;
   };
 
   return (

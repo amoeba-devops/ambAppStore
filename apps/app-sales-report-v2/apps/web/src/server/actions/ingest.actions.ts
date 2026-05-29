@@ -53,6 +53,7 @@ import {
 } from '@/server/services/period-snapshot.service';
 import {
   archiveFile,
+  loadActiveArchiveBuffer,
   type ArchiveChannel,
   type ArchiveFileType,
 } from '@/server/services/archive-files.service';
@@ -113,6 +114,28 @@ export async function commitIngestAction(
     const tiktokPlatformFeeRatePct =
       numFromForm(formData, 'tiktokPlatformFeeRatePct') ?? defaultTiktokRate;
 
+    // Re-ingest support: when a slot is empty in the form payload, fall back
+    // to the most-recent archived file for the same (period, channel, type).
+    // This lets the Operator upload only the *new* report in Step 2 and have
+    // the existing files merged automatically. See [[archive-files.service]].
+    const slotOrArchive = async (
+      formField: string,
+      channel: ArchiveChannel,
+      fileType: ArchiveFileType,
+    ): Promise<UploadedFile | null> => {
+      const fromForm = await bufferFromForm(formData, formField);
+      if (fromForm) return fromForm;
+      return loadActiveArchiveBuffer({
+        entId: user.entId,
+        granularity,
+        weekNum: weekNum ?? null,
+        monthIdx: monthIdx ?? null,
+        year,
+        channel,
+        fileType,
+      });
+    };
+
     // Parse Shopee files in parallel
     const [
       shopeeSalesFile,
@@ -126,15 +149,15 @@ export async function commitIngestAction(
       tiktokAffiliateFile,
       master,
     ] = await Promise.all([
-      bufferFromForm(formData, 'shopee_sales'),
-      bufferFromForm(formData, 'shopee_ads'),
-      bufferFromForm(formData, 'shopee_brand_ads'),
-      bufferFromForm(formData, 'shopee_off_platform_ads'),
-      bufferFromForm(formData, 'shopee_traffic'),
-      bufferFromForm(formData, 'shopee_affiliate'),
-      bufferFromForm(formData, 'tiktok_sales'),
-      bufferFromForm(formData, 'tiktok_traffic'),
-      bufferFromForm(formData, 'tiktok_affiliate'),
+      slotOrArchive('shopee_sales', 'SHOPEE', 'SALES'),
+      slotOrArchive('shopee_ads', 'SHOPEE', 'ADS'),
+      slotOrArchive('shopee_brand_ads', 'SHOPEE', 'BRAND_ADS'),
+      slotOrArchive('shopee_off_platform_ads', 'SHOPEE', 'OFF_PLATFORM_ADS'),
+      slotOrArchive('shopee_traffic', 'SHOPEE', 'TRAFFIC'),
+      slotOrArchive('shopee_affiliate', 'SHOPEE', 'AFFILIATE'),
+      slotOrArchive('tiktok_sales', 'TIKTOK', 'SALES'),
+      slotOrArchive('tiktok_traffic', 'TIKTOK', 'TRAFFIC'),
+      slotOrArchive('tiktok_affiliate', 'TIKTOK', 'AFFILIATE'),
       loadPrimeCostMaster(user.entId),
     ]);
 

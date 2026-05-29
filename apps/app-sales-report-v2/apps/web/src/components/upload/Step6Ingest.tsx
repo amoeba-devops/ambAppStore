@@ -12,7 +12,8 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
-import { fmtVND } from '@/lib/format';
+import { DEFAULT_VND_PER_KRW, fmtVND } from '@/lib/format';
+import { useFxRateOverride } from '@/lib/fx-rate-override';
 import {
   commitIngestAction,
   type CommitIngestResult,
@@ -56,6 +57,9 @@ export function Step6Ingest({
 }: Props) {
   const t = useTranslations('uploadWizard.step6');
   const [pending, startTransition] = useTransition();
+  const { rate: krwRate } = useFxRateOverride(DEFAULT_VND_PER_KRW);
+  const krwOf = (vnd: number): string =>
+    `≈ ${new Intl.NumberFormat('ko-KR').format(Math.round(vnd / krwRate))} ₩`;
   const [result, setResult] = useState<CommitIngestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [autoTriggered, setAutoTriggered] = useState(false);
@@ -233,14 +237,28 @@ export function Step6Ingest({
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatTile label={t('tile.shopeeNetGmv')} value={fmtVND(metrics.shopee.totalNetGmv)} />
-        <StatTile label={t('tile.tiktokNetGmv')} value={fmtVND(metrics.tiktok.totalNetGmv)} />
+        <StatTile
+          label={t('tile.shopeeNetGmv')}
+          value={fmtVND(metrics.shopee.totalNetGmv)}
+          subValue={krwOf(metrics.shopee.totalNetGmv)}
+        />
+        <StatTile
+          label={t('tile.tiktokNetGmv')}
+          value={fmtVND(metrics.tiktok.totalNetGmv)}
+          subValue={krwOf(metrics.tiktok.totalNetGmv)}
+        />
         <StatTile
           label={t('tile.totalNetGmv')}
           value={fmtVND(metrics.shopee.totalNetGmv + metrics.tiktok.totalNetGmv)}
+          subValue={krwOf(metrics.shopee.totalNetGmv + metrics.tiktok.totalNetGmv)}
           highlight
         />
-        <StatTile label={t('tile.totalCm')} value={fmtVND(Math.round(totalCm))} highlight />
+        <StatTile
+          label={t('tile.totalCm')}
+          value={fmtVND(Math.round(totalCm))}
+          subValue={krwOf(totalCm)}
+          highlight
+        />
       </div>
 
       <div className="rounded-lg border border-neutral-200 bg-white px-4 py-3 text-xs text-neutral-600">
@@ -255,10 +273,12 @@ export function Step6Ingest({
 function StatTile({
   label,
   value,
+  subValue,
   highlight,
 }: {
   label: string;
   value: string;
+  subValue?: string;
   highlight?: boolean;
 }) {
   return (
@@ -274,6 +294,11 @@ function StatTile({
       <div className="mt-0.5 font-mono text-sm font-semibold text-neutral-900 tabular-nums">
         {value}
       </div>
+      {subValue && (
+        <div className="mt-0.5 font-mono text-[11px] text-neutral-500 tabular-nums">
+          {subValue}
+        </div>
+      )}
     </div>
   );
 }

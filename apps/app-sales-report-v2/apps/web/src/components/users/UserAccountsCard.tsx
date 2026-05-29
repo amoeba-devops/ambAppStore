@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Search } from 'lucide-react';
+import { RotateCw, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { fmtDateTime } from '@/lib/format';
@@ -9,6 +9,7 @@ import {
   listUsersAction,
   deactivateUserAction,
   activateUserAction,
+  syncFromAmaAction,
   type UserRow,
 } from '@/server/actions/user.actions';
 import {
@@ -48,6 +49,7 @@ export function UserAccountsCard({ initialRealRows, mockSeeds, currentUserId }: 
   // Users are sourced from AMA — Admins can only edit role/status, never add.
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; msg: string } | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const firstRender = useRef(true);
@@ -132,6 +134,23 @@ export function UserAccountsCard({ initialRealRows, mockSeeds, currentUserId }: 
     void refresh();
   };
 
+  const onSync = async () => {
+    if (!confirm(t('confirm.syncFromAma'))) return;
+    setSyncing(true);
+    const res = await syncFromAmaAction();
+    setSyncing(false);
+    if (!res.success) {
+      setFeedback({ tone: 'error', msg: res.error.message });
+      return;
+    }
+    const { inserted, updated, deactivated } = res.data;
+    setFeedback({
+      tone: 'success',
+      msg: t('toast.synced', { inserted, updated, deactivated }),
+    });
+    void refresh();
+  };
+
   const onActivate = async (row: UserRow) => {
     if (row.role === 'UNASSIGNED') {
       setFeedback({ tone: 'error', msg: t('toast.assignRoleFirst') });
@@ -191,6 +210,15 @@ export function UserAccountsCard({ initialRealRows, mockSeeds, currentUserId }: 
             <option value="ACTIVE">{tStatus('active')}</option>
             <option value="INACTIVE">{tStatus('inactive')}</option>
           </select>
+          <button
+            type="button"
+            onClick={onSync}
+            disabled={syncing}
+            className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-info-500 bg-white px-2.5 py-1.5 text-sm font-medium text-info-500 hover:bg-info-50 disabled:opacity-50"
+          >
+            <RotateCw className={cn('h-3.5 w-3.5', syncing && 'animate-spin')} />
+            {t('action.syncFromAma')}
+          </button>
         </div>
       </div>
 
@@ -237,7 +265,9 @@ export function UserAccountsCard({ initialRealRows, mockSeeds, currentUserId }: 
               </tr>
             )}
             {rows.map((row) => {
-              const isSelf = row.usrId === currentUserId;
+              // currentUserId is the AMA sub (JWT claim), not the local PK,
+              // so compare against the row's AMA user id.
+              const isSelf = row.amaUserId === currentUserId;
               const isInactive = row.status === 'INACTIVE';
               return (
                 <tr key={row.usrId} className="hover:bg-neutral-50/60">

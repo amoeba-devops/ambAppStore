@@ -4,7 +4,8 @@ import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { combinedMetric, getPeriodHeaderLabel, type WeekPoint } from '@/lib/trends-mock';
-import { fmtCompact } from '@/lib/format';
+import { DEFAULT_VND_PER_KRW, fmtCompact } from '@/lib/format';
+import { useFxRateOverride } from '@/lib/fx-rate-override';
 import { MiniLineChart } from '@/components/trends/MiniLineChart';
 
 interface Props {
@@ -57,6 +58,11 @@ function fmtValue(value: number, kind: KpiKind): React.ReactNode {
   );
 }
 
+/** KRW conversion line for the money-kind KPI cards (compact, gray subtext). */
+function fmtKrwCompact(value: number, vndPerKrw: number): string {
+  return `≈ ${fmtCompact(value / vndPerKrw, 2)} ₩`;
+}
+
 function deltaText(curr: number, prev: number | null, kind: KpiKind): { text: string; positive: boolean | null } {
   if (prev == null) return { text: '—', positive: null };
   if (kind === 'ratio') {
@@ -74,6 +80,9 @@ function deltaText(curr: number, prev: number | null, kind: KpiKind): { text: st
 
 export function HeroKpis({ weekPoints }: Props) {
   const t = useTranslations('dashboard.kpi');
+  // Read live FX override so KRW sub-line stays in sync with the rate
+  // editor on RFR Data + Report pages.
+  const { rate: krwRate } = useFxRateOverride(DEFAULT_VND_PER_KRW);
 
   // Chronologically sorted ascending — already by snapshotsToWeekPoints.
   const latest = weekPoints[weekPoints.length - 1]!;
@@ -107,6 +116,11 @@ export function HeroKpis({ weekPoints }: Props) {
               <div className="mt-1.5 font-mono text-2xl font-semibold text-neutral-900 tabular-nums">
                 {fmtValue(curr, spec.kind)}
               </div>
+              {spec.kind === 'money' && (
+                <div className="mt-0.5 font-mono text-[11px] text-neutral-500 tabular-nums">
+                  {fmtKrwCompact(curr, krwRate)}
+                </div>
+              )}
               <div className="mt-2 flex items-center justify-between gap-2">
                 <DeltaPill text={d.text} positive={d.positive} />
                 <span className="text-[10px] text-neutral-400">{t('vsPrev')}</span>
@@ -123,7 +137,7 @@ export function HeroKpis({ weekPoints }: Props) {
                         ? (v * 100).toFixed(2) + '%'
                         : spec.kind === 'count'
                           ? new Intl.NumberFormat('en-US').format(Math.round(v))
-                          : new Intl.NumberFormat('vi-VN').format(Math.round(v))
+                          : `${new Intl.NumberFormat('vi-VN').format(Math.round(v))} ₫ (${fmtKrwCompact(v, krwRate)})`
                     }
                   />
                 </div>

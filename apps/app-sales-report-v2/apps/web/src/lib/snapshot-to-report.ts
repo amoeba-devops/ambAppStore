@@ -369,6 +369,7 @@ export function snapshotToProducts(
         sku: p.representativeSku,
         nameVi: p.productName,
         nameEn: p.productNameEn || p.productName,
+        variationName: p.variationName ?? '',
         platform: 'SHOPEE',
         pv,
         cvr: pv > 0 ? p.units / pv : 0,
@@ -388,6 +389,7 @@ export function snapshotToProducts(
         platformFee,
         primeCost: p.primeCost,
         cm,
+        isCombo: p.isCombo ?? false,
       });
     }
     for (const g of shopee.giftBreakdown ?? []) {
@@ -450,6 +452,7 @@ export function snapshotToProducts(
         sku: p.representativeSku,
         nameVi: p.productName,
         nameEn: p.productNameEn || p.productName,
+        variationName: p.variationName ?? '',
         platform: 'TIKTOK',
         pv,
         cvr: pv > 0 ? p.units / pv : 0,
@@ -469,6 +472,7 @@ export function snapshotToProducts(
         platformFee,
         primeCost: p.primeCost,
         cm,
+        isCombo: p.isCombo ?? false,
       });
     }
     for (const g of tiktok.giftBreakdown ?? []) {
@@ -501,7 +505,57 @@ export function snapshotToProducts(
     }
   }
 
-  out.sort((a, b) => b.gmv - a.gmv);
+  // Sort order:
+  //   1. Regular products first; gifts grouped at the bottom (yellow band)
+  //   2. Within each group: product name ASC
+  //   3. Within same product: by "primary SKU" — for combos like
+  //      `A_B`, primary = `A` (component before the first underscore). This
+  //      places each combo right next to its base SKU.
+  //   4. Within same primary: regular first, combo after, then GMV DESC.
+  //   5. ShopWideAd + Others appended after this sort.
+  const primarySku = (sku: string): string => {
+    const idx = sku.indexOf('_');
+    return idx >= 0 ? sku.slice(0, idx) : sku;
+  };
+  out.sort((a, b) => {
+    const aIsGift = a.isGift ? 1 : 0;
+    const bIsGift = b.isGift ? 1 : 0;
+    if (aIsGift !== bIsGift) return aIsGift - bIsGift;
+    const nameCmp = a.nameVi.localeCompare(b.nameVi, 'vi');
+    if (nameCmp !== 0) return nameCmp;
+    const primaryCmp = primarySku(a.sku).localeCompare(primarySku(b.sku));
+    if (primaryCmp !== 0) return primaryCmp;
+    const aCombo = a.isCombo ? 1 : 0;
+    const bCombo = b.isCombo ? 1 : 0;
+    if (aCombo !== bCombo) return aCombo - bCombo;
+    return b.gmv - a.gmv;
+  });
+
+  // PV is reported per product listing (not per SKU variation). After
+  // splitting SKUs into separate rows, PV would be duplicated across rows of
+  // the same product. Keep PV only on the first (highest-GMV) row of each
+  // product group; zero out PV + CVR on the rest. CVR on the owner row uses
+  // total items across all variations of the product (so it reflects the
+  // product's overall conversion, not just the top variation's).
+  {
+    const itemsByProduct = new Map<string, number>();
+    for (const p of out) {
+      if (p.isGift || p.isShopWideAd || p.isOthers) continue;
+      itemsByProduct.set(p.nameVi, (itemsByProduct.get(p.nameVi) ?? 0) + p.items);
+    }
+    const seenPv = new Set<string>();
+    for (const p of out) {
+      if (p.isGift || p.isShopWideAd || p.isOthers) continue;
+      if (seenPv.has(p.nameVi)) {
+        p.pv = 0;
+        p.cvr = 0;
+      } else {
+        seenPv.add(p.nameVi);
+        const totalItems = itemsByProduct.get(p.nameVi) ?? p.items;
+        p.cvr = p.pv > 0 ? totalItems / p.pv : 0;
+      }
+    }
+  }
 
   // Shop-wide ad campaigns (Shopee only) — added as standalone rows after the
   // per-product list. Only AD Spend column is populated; everything else dashed

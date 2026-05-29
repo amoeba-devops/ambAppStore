@@ -4,6 +4,9 @@ import {
   Upload,
   Archive,
   Database,
+  Tag,
+  Receipt,
+  Package,
   BarChart3,
   CalendarRange,
   TrendingUp,
@@ -60,9 +63,27 @@ export const navSections: NavSection[] = [
     titleKey: 'rfrData',
     items: [
       {
+        labelKey: 'productList',
+        href: '/cost-master/products',
+        icon: Package,
+        roles: ['OPERATOR', 'ADMIN'],
+      },
+      {
         labelKey: 'primeCost',
         href: '/cost-master/prime-cost',
         icon: Database,
+        roles: ['OPERATOR', 'ADMIN'],
+      },
+      {
+        labelKey: 'sellingPrice',
+        href: '/cost-master/selling-price',
+        icon: Tag,
+        roles: ['OPERATOR', 'ADMIN'],
+      },
+      {
+        labelKey: 'listingPrice',
+        href: '/cost-master/listing-price',
+        icon: Receipt,
         roles: ['OPERATOR', 'ADMIN'],
       },
     ],

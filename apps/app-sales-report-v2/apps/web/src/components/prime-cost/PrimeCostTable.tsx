@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Download, Upload, Plus, Search, Trash2, Pencil, History } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
-import { fmtDateTime } from '@/lib/format';
+import { DEFAULT_VND_PER_KRW, fmtDate, fmtDateTime } from '@/lib/format';
 import { downloadCsv } from '@/lib/csv';
 import {
   listPrimeCostsAction,
@@ -15,10 +15,10 @@ import {
   type ImportResult,
 } from '@/server/actions/prime-cost.actions';
 import { PrimeCostFormModal } from './PrimeCostFormModal';
-import { VersionHistoryModal } from './VersionHistoryModal';
+import { VersionHistoryModal, type VersionTab } from './VersionHistoryModal';
 import { isPrimeCostVersioningEnabled } from '@/lib/feature-flags';
 
-const KRW_RATE = 17.543;
+const KRW_RATE = DEFAULT_VND_PER_KRW;
 
 function fmtVnd(value: number | null): string {
   if (value == null) return '—';
@@ -44,7 +44,7 @@ export function PrimeCostTable({ initialRows, initialTotal }: PrimeCostTableProp
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<PrimeCostRow | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [versionTarget, setVersionTarget] = useState<PrimeCostRow | null>(null);
+  const [versionTarget, setVersionTarget] = useState<{ row: PrimeCostRow; tab: VersionTab } | null>(null);
   const versioningEnabled = isPrimeCostVersioningEnabled();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; msg: string } | null>(null);
@@ -232,7 +232,9 @@ export function PrimeCostTable({ initialRows, initialTotal }: PrimeCostTableProp
                 <th className="px-4 py-3 text-right font-medium">{t('column.krw')}</th>
                 <th className="px-4 py-3 text-right font-medium">{t('column.sellingPrice')}</th>
                 <th className="px-4 py-3 text-right font-medium">{t('column.listingPrice')}</th>
-                <th className="px-4 py-3 text-left font-medium">{t('column.effectiveFrom')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('column.effectivePrime')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('column.effectiveSelling')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('column.effectiveListing')}</th>
                 <th className="px-4 py-3 text-left font-medium">{t('column.lastUpdated')}</th>
                 <th className="px-4 py-3 text-right font-medium">{t('column.actions')}</th>
               </tr>
@@ -240,14 +242,14 @@ export function PrimeCostTable({ initialRows, initialTotal }: PrimeCostTableProp
             <tbody className="divide-y divide-neutral-100">
               {loading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-4 py-8 text-center text-sm text-neutral-500">
+                  <td colSpan={14} className="px-4 py-8 text-center text-sm text-neutral-500">
                     {tCommon('loading')}
                   </td>
                 </tr>
               )}
               {!loading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-4 py-8 text-center text-sm text-neutral-500">
+                  <td colSpan={14} className="px-4 py-8 text-center text-sm text-neutral-500">
                     {search ? t('empty.search') : t('empty.initial')}
                   </td>
                 </tr>
@@ -273,25 +275,30 @@ export function PrimeCostTable({ initialRows, initialTotal }: PrimeCostTableProp
                   <td className="px-4 py-3 text-right font-mono tabular-nums text-neutral-700">
                     {fmtVnd(row.listingPriceVnd)}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">
-                    {row.effectiveFromLatest ? (
-                      <span className="text-neutral-900">
-                        {row.effectiveFromLatest}
-                        {row.versionCount > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => setVersionTarget(row)}
-                            className="ml-1.5 inline-flex items-center rounded-full bg-info-50 px-1.5 py-0.5 text-[10px] font-medium text-info-500 hover:bg-info-500/15"
-                            title={t('version.history.title')}
-                          >
-                            {t('column.versionCount', { count: row.versionCount })}
-                          </button>
-                        )}
-                      </span>
-                    ) : (
-                      <span className="text-neutral-400">{tCommon('dash')}</span>
-                    )}
-                  </td>
+                  <EffectiveCell
+                    latest={row.effectiveFromLatest}
+                    count={row.versionCount}
+                    onClick={() => setVersionTarget({ row, tab: 'prime' })}
+                    label={t('version.history.title')}
+                    countLabel={(c) => t('column.versionCount', { count: c })}
+                    dash={tCommon('dash')}
+                  />
+                  <EffectiveCell
+                    latest={row.sellingEffectiveFromLatest}
+                    count={row.sellingVersionCount}
+                    onClick={() => setVersionTarget({ row, tab: 'selling' })}
+                    label={t('version.history.title')}
+                    countLabel={(c) => t('column.versionCount', { count: c })}
+                    dash={tCommon('dash')}
+                  />
+                  <EffectiveCell
+                    latest={row.listingEffectiveFromLatest}
+                    count={row.listingVersionCount}
+                    onClick={() => setVersionTarget({ row, tab: 'listing' })}
+                    label={t('version.history.title')}
+                    countLabel={(c) => t('column.versionCount', { count: c })}
+                    dash={tCommon('dash')}
+                  />
                   <td className="px-4 py-3 font-mono text-xs text-neutral-500 whitespace-nowrap">
                     {fmtDateTime(row.updatedAt)}
                   </td>
@@ -300,7 +307,7 @@ export function PrimeCostTable({ initialRows, initialTotal }: PrimeCostTableProp
                       {versioningEnabled && (
                         <button
                           type="button"
-                          onClick={() => setVersionTarget(row)}
+                          onClick={() => setVersionTarget({ row, tab: 'prime' })}
                           className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-info-500 bg-white px-2 py-1 text-xs font-medium text-info-500 hover:bg-info-50"
                           title={t('version.history.title')}
                         >
@@ -351,9 +358,10 @@ export function PrimeCostTable({ initialRows, initialTotal }: PrimeCostTableProp
 
       <VersionHistoryModal
         open={versionTarget != null}
-        pcsId={versionTarget?.pcsId ?? null}
-        skuLabel={versionTarget?.skuCode ?? ''}
-        productName={versionTarget?.productNameVi ?? ''}
+        pcsId={versionTarget?.row.pcsId ?? null}
+        skuLabel={versionTarget?.row.skuCode ?? ''}
+        productName={versionTarget?.row.productNameVi ?? ''}
+        initialTab={versionTarget?.tab}
         onClose={() => setVersionTarget(null)}
         onChanged={() => void refresh(search)}
       />
@@ -384,11 +392,15 @@ function ImportResultModal({ summary, onClose }: { summary: ImportResult; onClos
           </button>
         </div>
         <div className="space-y-3 px-6 py-5 text-sm">
-          <div className="grid grid-cols-4 gap-3 text-center">
+          <div className="grid grid-cols-3 gap-3 text-center">
             <Stat label={t('inserted')} value={summary.inserted} tone="success" />
             <Stat label={t('updated')} value={summary.updated} tone="info" />
-            <Stat label={t('versionsAdded')} value={summary.versionsAdded} tone="info" />
             <Stat label={t('errors')} value={summary.errors.length} tone={hasErrors ? 'error' : 'neutral'} />
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <Stat label={t('primeVersionsAdded')} value={summary.versionsAdded} tone="info" />
+            <Stat label={t('sellingVersionsAdded')} value={summary.sellingVersionsAdded} tone="info" />
+            <Stat label={t('listingVersionsAdded')} value={summary.listingVersionsAdded} tone="info" />
           </div>
           {hasErrors && (
             <div className="max-h-60 overflow-y-auto rounded-md border border-neutral-200 bg-neutral-50 p-3">
@@ -434,6 +446,48 @@ function Stat({ label, value, tone }: { label: string; value: number; tone: 'suc
       <div className="text-xs font-medium uppercase tracking-wider opacity-80">{label}</div>
       <div className="mt-1 font-mono text-2xl font-semibold tabular-nums">{value}</div>
     </div>
+  );
+}
+
+function EffectiveCell({
+  latest,
+  count,
+  onClick,
+  label,
+  countLabel,
+  dash,
+}: {
+  latest: string | null;
+  count: number;
+  onClick: () => void;
+  label: string;
+  countLabel: (n: number) => string;
+  dash: string;
+}) {
+  if (!latest) {
+    return <td className="px-4 py-3 font-mono text-xs text-neutral-400 whitespace-nowrap">{dash}</td>;
+  }
+  return (
+    <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">
+      <button
+        type="button"
+        onClick={onClick}
+        title={label}
+        className="text-neutral-900 hover:underline"
+      >
+        {fmtDate(latest)}
+      </button>
+      {count > 1 && (
+        <button
+          type="button"
+          onClick={onClick}
+          className="ml-1.5 inline-flex items-center rounded-full bg-info-50 px-1.5 py-0.5 text-[10px] font-medium text-info-500 hover:bg-info-500/15"
+          title={label}
+        >
+          {countLabel(count)}
+        </button>
+      )}
+    </td>
   );
 }
 
