@@ -22,6 +22,16 @@ export function fmtDate(iso: string | Date | null | undefined): string {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
+/** Time-only form `HH:MM:SS` (24h, local timezone). Pairs with `fmtDate` when
+ *  a cell wants date + time on separate lines. */
+export function fmtTime(iso: string | Date | null | undefined): string {
+  if (iso == null) return '';
+  const d = iso instanceof Date ? iso : new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 export function fmtVND(n: number | null | undefined): string {
   if (n == null) return '—';
   return new Intl.NumberFormat('vi-VN').format(Math.round(n)) + ' ₫';
@@ -53,7 +63,18 @@ export function fmtCompact(n: number | null | undefined, decimals = 2): string {
   return sign + abs.toFixed(0);
 }
 
-export function vndToKrw(vnd: number, vndPerKrw = 17.543): number {
+/**
+ * Default VND-per-KRW exchange rate. Used as a fallback when no live rate
+ * has been fetched from `sal_fx_rates`. Override at the call-site by
+ * passing the second arg (e.g. live rate from server prop, or a frozen
+ * snapshot rate from a finalized report).
+ *
+ * Per SRD §5.5: 1 KRW ≈ 17.543 VND (verified from FINAL REPORT.csv:
+ * 1,682,035,200 VND / 95,876,006 KRW = 17.544).
+ */
+export const DEFAULT_VND_PER_KRW = 17.543;
+
+export function vndToKrw(vnd: number, vndPerKrw = DEFAULT_VND_PER_KRW): number {
   return vnd / vndPerKrw;
 }
 

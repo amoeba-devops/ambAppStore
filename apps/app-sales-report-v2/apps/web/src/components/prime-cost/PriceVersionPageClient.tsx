@@ -1,10 +1,16 @@
 'use client';
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, Download, Upload, Plus, Search, Trash2, Pencil, Calendar } from 'lucide-react';
+import { ChevronRight, Copy, Download, Upload, Plus, Search, Trash2, Pencil, Calendar } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
-import { fmtDateTime } from '@/lib/format';
+import { DEFAULT_VND_PER_KRW, fmtDate, fmtTime } from '@/lib/format';
+import { useFxRateOverride } from '@/lib/fx-rate-override';
+import {
+  broadcastMutation,
+  useRevalidateOnMutation,
+} from '@/lib/data-revalidation';
+import { FxRateEditor } from '@/components/shared/FxRateEditor';
 import { downloadCsv } from '@/lib/csv';
 import {
   listFlatVersionsAction,
@@ -22,8 +28,7 @@ import {
   type ImportResult,
 } from '@/server/actions/prime-cost.actions';
 import { PrimeCostFormModal } from './PrimeCostFormModal';
-
-const KRW_RATE = 17.543;
+import { formatSkuMultiline } from '@/lib/sku-format';
 
 export type PriceField = 'prime' | 'selling' | 'listing';
 
@@ -31,15 +36,17 @@ function fmtVnd(value: number | null): string {
   if (value == null) return '—';
   return new Intl.NumberFormat('vi-VN').format(Math.round(value));
 }
-function fmtKrw(vnd: number | null): string {
+function fmtKrwAt(vnd: number | null, rate: number): string {
   if (vnd == null) return '—';
-  return new Intl.NumberFormat('ko-KR').format(Math.round(vnd / KRW_RATE));
+  return new Intl.NumberFormat('ko-KR').format(Math.round(vnd / rate));
 }
 
 interface Props {
   field: PriceField;
   /** Server-fetched first page of versions. */
   initialVersions: FlatVersionRow[];
+  /** Live VND-per-KRW rate, fetched server-side from `sal_fx_rates`. */
+  vndPerKrw?: number;
 }
 
 /**
@@ -51,16 +58,30 @@ interface Props {
  * Primary content: flat list of versions DESC by `effectiveFrom`, one row per
  * version. SKU master CRUD piggybacks via the SKU-code link in each row.
  */
-export function PriceVersionPageClient({ field, initialVersions }: Props) {
+export function PriceVersionPageClient({ field, initialVersions, vndPerKrw }: Props) {
+  const { rate: krwRate, override, setOverride } = useFxRateOverride(
+    vndPerKrw ?? DEFAULT_VND_PER_KRW,
+  );
+  const fmtKrw = (vnd: number | null) => fmtKrwAt(vnd, krwRate);
   const t = useTranslations('priceVersion');
   const tMaster = useTranslations('primeCost');
   const tCommon = useTranslations('common');
+  // Reuse productList.filter.* keys (date range, "All updaters") so the
+  // 3 price pages stay aligned with Product List terminology.
+  const tProductList = useTranslations('productList');
   const [rows, setRows] = useState<FlatVersionRow[]>(initialVersions);
   const [search, setSearch] = useState('');
   const [comboFilter, setComboFilter] = useState<'ALL' | 'COMBO' | 'NON_COMBO'>('ALL');
+  const [updatedFrom, setUpdatedFrom] = useState<string>('');
+  const [updatedTo, setUpdatedTo] = useState<string>('');
+  const [updatedByFilter, setUpdatedByFilter] = useState<string>('ALL');
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; msg: string } | null>(null);
   const [editingSku, setEditingSku] = useState<PrimeCostRow | null>(null);
+  // When set (and `editingSku` is null), the SKU modal opens in "Duplicate"
+  // mode: form pre-filled from this source row, but action INSERTs a new
+  // master row (no pcsId). Set by the row-level Copy button.
+  const [duplicateSource, setDuplicateSource] = useState<PrimeCostRow | null>(null);
   const [skuModalOpen, setSkuModalOpen] = useState(false);
   const [addVersionOpen, setAddVersionOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -81,27 +102,62 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
     setRows(res.data.rows);
   }, [field]);
 
+  // Listen for cost-master mutations from other tabs/pages.
+  useRevalidateOnMutation(['cost-master']);
+
   useEffect(() => {
     if (!feedback) return;
     const handle = setTimeout(() => setFeedback(null), 3000);
     return () => clearTimeout(handle);
   }, [feedback]);
 
+  // Unique createdByDisplay values present in the current dataset — drives
+  // the Updated By <select>. Sorted alphabetically.
+  const updatedByOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of rows) {
+      if (r.createdByDisplay) set.add(r.createdByDisplay);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const fromDate = updatedFrom || null;
+    const toDate = updatedTo || null;
     return rows.filter((r) => {
       if (comboFilter === 'COMBO' && !r.isCombo) return false;
       if (comboFilter === 'NON_COMBO' && r.isCombo) return false;
+      // Last-Updated date range — uses the version's createdAt (per-version
+      // timestamp), not effectiveFrom. ISO prefix = local-UTC day.
+      if (fromDate || toDate) {
+        const day = r.createdAt.slice(0, 10);
+        if (fromDate && day < fromDate) return false;
+        if (toDate && day > toDate) return false;
+      }
+      // Updated By — match on per-version author display name.
+      if (updatedByFilter !== 'ALL' && r.createdByDisplay !== updatedByFilter) return false;
       if (q) {
-        return (
-          r.skuCode.toLowerCase().includes(q) ||
-          r.productNameVi.toLowerCase().includes(q) ||
-          (r.productNameEn ?? '').toLowerCase().includes(q)
-        );
+        // Search matches across SKU code, product names, variation name,
+        // AND component SKUs (so admin can paste a component string from
+        // Shopee and locate the parent combo SKU).
+        if (r.skuCode.toLowerCase().includes(q)) return true;
+        if (r.productNameVi.toLowerCase().includes(q)) return true;
+        if ((r.productNameEn ?? '').toLowerCase().includes(q)) return true;
+        if ((r.variationName ?? '').toLowerCase().includes(q)) return true;
+        if (r.componentSkus && r.componentSkus.length > 0) {
+          // Match against each component SKU individually AND the joined
+          // string (so admin can paste either "SAFG20U0014" or the full
+          // "SAFG20U0014_SAFG20U0012_..." concat).
+          const joined = r.componentSkus.join('_').toLowerCase();
+          if (joined.includes(q)) return true;
+          if (r.componentSkus.some((c) => c.toLowerCase().includes(q))) return true;
+        }
+        return false;
       }
       return true;
     });
-  }, [rows, search, comboFilter]);
+  }, [rows, search, comboFilter, updatedFrom, updatedTo, updatedByFilter]);
 
   /**
    * Group filtered version rows by `pcsId`. Each group is sorted DESC by
@@ -133,6 +189,7 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
 
   const openAddSku = () => {
     setEditingSku(null);
+    setDuplicateSource(null);
     setSkuModalOpen(true);
   };
 
@@ -142,7 +199,21 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
     if (res.success) {
       const found = res.data.rows.find((r) => r.pcsId === pcsId);
       if (found) {
+        setDuplicateSource(null);
         setEditingSku(found);
+        setSkuModalOpen(true);
+      }
+    }
+  };
+
+  /** Open modal in Duplicate mode — same form data but stays in Add path. */
+  const openDuplicateSku = async (pcsId: string) => {
+    const res = await listPrimeCostsAction({ search: '' });
+    if (res.success) {
+      const found = res.data.rows.find((r) => r.pcsId === pcsId);
+      if (found) {
+        setEditingSku(null);
+        setDuplicateSource(found);
         setSkuModalOpen(true);
       }
     }
@@ -151,12 +222,13 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
   const onSkuSaved = () => {
     setSkuModalOpen(false);
     setFeedback({ tone: 'success', msg: editingSku ? tMaster('rowUpdated') : tMaster('rowAdded') });
+    broadcastMutation('cost-master');
     void refresh();
   };
 
   const onDownload = async () => {
     setDownloading(true);
-    const res = await exportPrimeCostsAction();
+    const res = await exportPrimeCostsAction({ field });
     setDownloading(false);
     if (!res.success) {
       setFeedback({ tone: 'error', msg: res.error.message });
@@ -186,6 +258,7 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
         return;
       }
       setImportSummary(res.data);
+      broadcastMutation('cost-master');
       void refresh();
     } finally {
       setImporting(false);
@@ -209,6 +282,7 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
       return;
     }
     setFeedback({ tone: 'success', msg: t('delete.success') });
+    broadcastMutation('cost-master');
     void refresh();
   };
 
@@ -220,12 +294,15 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
           <h1 className="text-xl font-semibold text-neutral-900">{t(`title.${field}`)}</h1>
           <p className="mt-1 text-sm text-neutral-500">{t(`subtitle.${field}`)}</p>
         </div>
+        <div className="shrink-0 rounded-md border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-700">
+          <FxRateEditor rate={krwRate} override={override} onSet={setOverride} />
+        </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-col gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 items-center gap-3">
-          <div className="relative flex-1 max-w-md">
+      {/* Toolbar — filters on row 1, actions on row 2. */}
+      <div className="space-y-3 rounded-lg border border-neutral-200 bg-white px-4 py-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
             <input
               type="search"
@@ -244,11 +321,60 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
             <option value="COMBO">{t('comboFilter.combo')}</option>
             <option value="NON_COMBO">{t('comboFilter.nonCombo')}</option>
           </select>
-          <span className="hidden text-sm font-medium text-accent-700 sm:inline">
-            {t('badge.versionCount', { count: rows.length })}
-          </span>
+          {/* Last-Updated date range — filters per-version createdAt. */}
+          <div className="inline-flex items-center gap-1 rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm">
+            <input
+              type="date"
+              value={updatedFrom}
+              onChange={(e) => setUpdatedFrom(e.target.value)}
+              title={tProductList('filter.updatedFrom')}
+              className="w-[7.5rem] rounded px-1 py-0.5 text-xs focus:outline-none"
+            />
+            <span className="text-xs text-neutral-400">–</span>
+            <input
+              type="date"
+              value={updatedTo}
+              onChange={(e) => setUpdatedTo(e.target.value)}
+              title={tProductList('filter.updatedTo')}
+              className="w-[7.5rem] rounded px-1 py-0.5 text-xs focus:outline-none"
+            />
+            {(updatedFrom || updatedTo) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setUpdatedFrom('');
+                  setUpdatedTo('');
+                }}
+                className="ml-0.5 rounded px-1 text-xs text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+                title={tProductList('filter.clearDates')}
+              >
+                ×
+              </button>
+            )}
+          </div>
+          {/* Updated By filter */}
+          <select
+            value={updatedByFilter}
+            onChange={(e) => setUpdatedByFilter(e.target.value)}
+            className="max-w-[10rem] rounded-md border border-neutral-300 bg-white px-2.5 py-2 text-sm text-neutral-700 focus:border-neutral-500 focus:outline-none"
+          >
+            <option value="ALL">{tProductList('filter.updatedByAll')}</option>
+            {updatedByOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs text-neutral-500">
+            {t('footer.groupedCount', {
+              skus: groups.length,
+              versions: filtered.length,
+              total: rows.length,
+            })}
+          </span>
+          <div className="flex flex-wrap items-center gap-2">
           <ToolbarButton icon={<Download className="h-4 w-4" />} onClick={onDownload} disabled={downloading}>
             {downloading ? tMaster('downloading') : tMaster('download')}
           </ToolbarButton>
@@ -283,6 +409,7 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
             <Plus className="h-4 w-4" />
             {t('action.addVersion')}
           </button>
+          </div>
         </div>
       </div>
 
@@ -305,15 +432,15 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
           <table className="w-full text-sm">
             <thead className="bg-neutral-50 text-xs uppercase tracking-wider text-neutral-500">
               <tr>
-                <th className="px-4 py-3 text-left font-medium">{t('column.sku')}</th>
-                <th className="px-4 py-3 text-left font-medium">{t('column.productVi')}</th>
-                <th className="px-4 py-3 text-left font-medium">{t('column.variationName')}</th>
-                <th className="px-4 py-3 text-right font-medium">{t('column.vnd')}</th>
-                <th className="px-4 py-3 text-right font-medium">{t('column.krw')}</th>
-                <th className="px-4 py-3 text-left font-medium">{t('column.effectiveFrom')}</th>
-                <th className="px-4 py-3 text-left font-medium">{t('column.createdAt')}</th>
-                <th className="px-4 py-3 text-left font-medium">{t('column.sourceNote')}</th>
-                <th className="px-4 py-3 text-right font-medium">{tMaster('column.actions')}</th>
+                <th className="px-2.5 py-3 text-left font-medium">{t('column.sku')}</th>
+                <th className="px-2.5 py-3 text-left font-medium">{t('column.productVi')}</th>
+                <th className="px-2.5 py-3 text-left font-medium">{t('column.variationName')}</th>
+                <th className="px-2.5 py-3 text-right font-medium">{t(`field.${field}`)}</th>
+                <th className="px-2.5 py-3 text-left font-medium">{t('column.effectiveFrom')}</th>
+                <th className="px-2.5 py-3 text-left font-medium">{t('column.createdAt')}</th>
+                <th className="px-2.5 py-3 text-left font-medium">{t('column.updatedBy')}</th>
+                <th className="px-2.5 py-3 text-left font-medium">{t('column.sourceNote')}</th>
+                <th className="px-2.5 py-3 text-right font-medium">{tMaster('column.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
@@ -340,7 +467,7 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
                   <Fragment key={g.pcsId}>
                     {/* Primary row — latest version */}
                     <tr className="hover:bg-neutral-50/60">
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-2.5 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
                           {hasMore ? (
                             <button
@@ -365,8 +492,8 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
                             className="text-left text-info-500 hover:underline"
                             title={t('action.editSku')}
                           >
-                            <code className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs text-neutral-700 hover:text-info-500">
-                              {latest.skuCode}
+                            <code className="inline-block rounded bg-neutral-100 px-1.5 py-0.5 text-xs text-neutral-700 whitespace-pre-line leading-tight hover:text-info-500">
+                              {formatSkuMultiline(latest.skuCode)}
                             </code>
                           </button>
                           {hasMore && (
@@ -376,8 +503,8 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-neutral-900">
-                        <div className="flex items-start gap-2">
+                      <td className="max-w-[200px] px-2.5 py-3 text-xs text-neutral-900">
+                        <div className="flex items-start gap-1.5">
                           <span>{latest.productNameVi}</span>
                           {latest.isCombo && (
                             <span className="inline-flex shrink-0 items-center rounded-full bg-warning-50 px-1.5 py-0.5 text-[10px] font-medium text-warning-500">
@@ -386,45 +513,55 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-neutral-700">
+                      <td className="max-w-[140px] px-2.5 py-3 text-xs text-neutral-700">
                         {latest.variationName ?? tCommon('dash')}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono font-semibold tabular-nums text-neutral-900">
-                        {fmtVnd(latest.valueVnd)}
+                      <td className="px-2.5 py-3 text-right font-mono tabular-nums text-neutral-900">
+                        <div className="font-semibold">{fmtVnd(latest.valueVnd)}</div>
+                        <div className="text-[11px] text-neutral-500">{fmtKrw(latest.valueVnd)}</div>
                       </td>
-                      <td className="px-4 py-3 text-right font-mono tabular-nums text-neutral-500">
-                        {fmtKrw(latest.valueVnd)}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">
+                      <td className="px-2.5 py-3 font-mono text-xs whitespace-nowrap">
                         <span className="inline-flex items-center gap-1">
                           <Calendar className="h-3 w-3 text-neutral-400" />
-                          {latest.effectiveFrom}
+                          {fmtDate(latest.effectiveFrom)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-mono text-[11px] text-neutral-500 whitespace-nowrap">
-                        {fmtDateTime(latest.createdAt)}
+                      <td className="px-2.5 py-3 font-mono text-[11px] text-neutral-500 whitespace-nowrap leading-tight">
+                        <div>{fmtDate(latest.createdAt)}</div>
+                        <div className="text-neutral-400">{fmtTime(latest.createdAt)}</div>
                       </td>
-                      <td className="px-4 py-3 text-xs text-neutral-600">
+                      <td className="px-2.5 py-3 text-xs text-neutral-700 whitespace-nowrap">
+                        {latest.createdByDisplay}
+                      </td>
+                      <td className="max-w-[150px] px-2.5 py-3 text-xs text-neutral-600">
                         {latest.sourceNote ?? tCommon('dash')}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex justify-end gap-1.5">
+                      <td className="px-2.5 py-3 whitespace-nowrap">
+                        <div className="flex justify-end gap-1">
                           <button
                             type="button"
                             onClick={() => openEditSku(latest.pcsId)}
-                            className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-neutral-300 bg-white px-2 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+                            title={t('action.editSku')}
+                            className="inline-flex shrink-0 items-center justify-center rounded-md border border-neutral-300 bg-white p-1.5 text-neutral-700 hover:bg-neutral-50"
                           >
-                            <Pencil className="h-3 w-3" />
-                            {t('action.editSku')}
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openDuplicateSku(latest.pcsId)}
+                            title={t('action.duplicateSku')}
+                            className="inline-flex shrink-0 items-center justify-center rounded-md border border-neutral-300 bg-white p-1.5 text-neutral-700 hover:bg-neutral-50"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
                           </button>
                           <button
                             type="button"
                             onClick={() => onDeleteVersion(latest)}
                             disabled={deletingId === latest.versionId}
-                            className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-error-500 bg-white px-2 py-1 text-xs font-medium text-error-500 hover:bg-error-50 disabled:opacity-50"
+                            title={t('action.deleteVersion')}
+                            className="inline-flex shrink-0 items-center justify-center rounded-md border border-error-500 bg-white p-1.5 text-error-500 hover:bg-error-50 disabled:opacity-50"
                           >
-                            <Trash2 className="h-3 w-3" />
-                            {t('action.deleteVersion')}
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
                       </td>
@@ -434,37 +571,39 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
                     {isExpanded &&
                       older.map((v) => (
                         <tr key={v.versionId} className="bg-neutral-100 hover:bg-neutral-150">
-                          <td className="px-4 py-2" />
-                          <td className="px-4 py-2" />
-                          <td className="px-4 py-2" />
-                          <td className="px-4 py-2 text-right font-mono tabular-nums text-neutral-700">
-                            {fmtVnd(v.valueVnd)}
+                          <td className="px-2.5 py-2" />
+                          <td className="px-2.5 py-2" />
+                          <td className="px-2.5 py-2" />
+                          <td className="px-2.5 py-2 text-right font-mono tabular-nums text-neutral-700">
+                            <div>{fmtVnd(v.valueVnd)}</div>
+                            <div className="text-[11px] text-neutral-500">{fmtKrw(v.valueVnd)}</div>
                           </td>
-                          <td className="px-4 py-2 text-right font-mono tabular-nums text-neutral-500">
-                            {fmtKrw(v.valueVnd)}
-                          </td>
-                          <td className="px-4 py-2 font-mono text-xs whitespace-nowrap text-neutral-600">
+                          <td className="px-2.5 py-2 font-mono text-xs whitespace-nowrap text-neutral-600">
                             <span className="inline-flex items-center gap-1">
                               <Calendar className="h-3 w-3 text-neutral-400" />
-                              {v.effectiveFrom}
+                              {fmtDate(v.effectiveFrom)}
                             </span>
                           </td>
-                          <td className="px-4 py-2 font-mono text-[11px] text-neutral-500 whitespace-nowrap">
-                            {fmtDateTime(v.createdAt)}
+                          <td className="px-2.5 py-2 font-mono text-[11px] text-neutral-500 whitespace-nowrap leading-tight">
+                            <div>{fmtDate(v.createdAt)}</div>
+                            <div className="text-neutral-400">{fmtTime(v.createdAt)}</div>
                           </td>
-                          <td className="px-4 py-2 text-xs text-neutral-600">
+                          <td className="px-2.5 py-2 text-xs text-neutral-700 whitespace-nowrap">
+                            {v.createdByDisplay}
+                          </td>
+                          <td className="max-w-[150px] px-2.5 py-2 text-xs text-neutral-600">
                             {v.sourceNote ?? tCommon('dash')}
                           </td>
-                          <td className="px-4 py-2 whitespace-nowrap">
+                          <td className="px-2.5 py-2 whitespace-nowrap">
                             <div className="flex justify-end">
                               <button
                                 type="button"
                                 onClick={() => onDeleteVersion(v)}
                                 disabled={deletingId === v.versionId}
-                                className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-error-500 bg-white px-2 py-1 text-xs font-medium text-error-500 hover:bg-error-50 disabled:opacity-50"
+                                title={t('action.deleteVersion')}
+                                className="inline-flex shrink-0 items-center justify-center rounded-md border border-error-500 bg-white p-1.5 text-error-500 hover:bg-error-50 disabled:opacity-50"
                               >
-                                <Trash2 className="h-3 w-3" />
-                                {t('action.deleteVersion')}
+                                <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           </td>
@@ -489,8 +628,10 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
       <PrimeCostFormModal
         open={skuModalOpen}
         initial={editingSku}
+        prefill={duplicateSource}
         onClose={() => setSkuModalOpen(false)}
         onSaved={onSkuSaved}
+        priceField={field}
       />
 
       {addVersionOpen && (
@@ -499,6 +640,7 @@ export function PriceVersionPageClient({ field, initialVersions }: Props) {
           onClose={() => setAddVersionOpen(false)}
           onSaved={async () => {
             setAddVersionOpen(false);
+            broadcastMutation('cost-master');
             await refresh();
           }}
         />
@@ -557,7 +699,8 @@ function AddVersionForFieldModal({ field, onClose, onSaved }: AddVersionForField
       setError(t('error.skuRequired'));
       return;
     }
-    const v = Number(value.replace(/[, ]/g, ''));
+    // Strip thousand separators (comma OR dot — VN typing convention) + spaces.
+    const v = Number(value.replace(/[,.\s]/g, ''));
     if (!Number.isFinite(v) || v < 0) {
       setError(tMaster('version.error.primeCostInvalid'));
       return;
@@ -621,7 +764,9 @@ function AddVersionForFieldModal({ field, onClose, onSaved }: AddVersionForField
             </span>
             {selectedSku ? (
               <div className="flex items-center gap-2 rounded-md border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm">
-                <code className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs">{selectedSku.skuCode}</code>
+                <code className="inline-block rounded bg-neutral-100 px-1.5 py-0.5 text-xs whitespace-pre-line leading-tight">
+                  {formatSkuMultiline(selectedSku.skuCode)}
+                </code>
                 <span className="flex-1 text-neutral-700">{selectedSku.productNameVi}</span>
                 <button
                   type="button"
@@ -655,7 +800,9 @@ function AddVersionForFieldModal({ field, onClose, onSaved }: AddVersionForField
                           }}
                           className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-neutral-50"
                         >
-                          <code className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs">{s.skuCode}</code>
+                          <code className="inline-block rounded bg-neutral-100 px-1.5 py-0.5 text-xs whitespace-pre-line leading-tight">
+                            {formatSkuMultiline(s.skuCode)}
+                          </code>
                           <span className="truncate text-neutral-700">{s.productNameVi}</span>
                         </button>
                       ))

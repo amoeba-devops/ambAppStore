@@ -26,6 +26,9 @@ import { KpiCard } from './KpiCard';
 import { BreakdownCard } from './BreakdownCard';
 import { downloadReportXlsx } from '@/lib/weekly-report-xlsx';
 import { appendActionLog } from '@/lib/action-log-mock';
+import { DEFAULT_VND_PER_KRW } from '@/lib/format';
+import { useFxRateOverride } from '@/lib/fx-rate-override';
+import { FxRateEditor } from '@/components/shared/FxRateEditor';
 
 type ChannelOpt = { key: WeeklyChannel; labelKey: 'all' | 'shopee' | 'tiktok' };
 const CHANNEL_OPTS: ChannelOpt[] = [
@@ -33,8 +36,6 @@ const CHANNEL_OPTS: ChannelOpt[] = [
   { key: 'SHOPEE', labelKey: 'shopee' },
   { key: 'TIKTOK', labelKey: 'tiktok' },
 ];
-
-const DEFAULT_KRW_RATE = 17543;
 
 interface WeeklyReportClientProps {
   /** Reserved for future use (passed for parity with Monthly). Picker still shows all 53 weeks. */
@@ -88,7 +89,10 @@ export function WeeklyReportClient({ realWeekKeys = [] }: WeeklyReportClientProp
     }
   }, [weeks, weekNum]);
   const [channel, setChannel] = useState<WeeklyChannel>('ALL');
-  const [krwRate, setKrwRate] = useState(DEFAULT_KRW_RATE);
+  // FX rate — synced with RFR Data pages via localStorage override.
+  // Canonical magnitude (SRD §5.5): VND per 1 KRW = 17.543.
+  const { rate: krwRate, override: krwOverride, setOverride: setKrwOverride } =
+    useFxRateOverride(DEFAULT_VND_PER_KRW);
 
   // Try loading a real-data snapshot for the selected week + the previous
   // week (for WoW deltas). Fall back to mock if current snapshot missing.
@@ -270,20 +274,7 @@ export function WeeklyReportClient({ realWeekKeys = [] }: WeeklyReportClientProp
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="inline-flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm">
-            <span className="text-neutral-500">{t('krwRate.prefix')}</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={krwRate ? krwRate.toLocaleString('en-US') : ''}
-              onChange={(e) => {
-                const digits = e.target.value.replace(/[^\d]/g, '');
-                setKrwRate(digits ? Math.max(0, Number(digits)) : 0);
-              }}
-              className="w-24 rounded border border-neutral-200 px-2 py-0.5 text-right font-mono tabular-nums text-neutral-900 focus:border-neutral-500 focus:outline-none"
-            />
-            <span className="text-neutral-500">{t('krwRate.suffix')}</span>
-          </div>
+          <FxRateEditor rate={krwRate} override={krwOverride} onSet={setKrwOverride} />
           <button
             type="button"
             onClick={onDownload}

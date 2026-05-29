@@ -20,7 +20,8 @@ import {
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { Pencil, Lock as LockIcon } from 'lucide-react';
-import { fmtDateTime, fmtVND } from '@/lib/format';
+import { DEFAULT_VND_PER_KRW, fmtDateTime, fmtVND } from '@/lib/format';
+import { useFxRateOverride } from '@/lib/fx-rate-override';
 import type { ArchivePeriod, ArchiveFile, PeriodStatus } from '@/lib/raw-archive-mock';
 import { useEffectivePeriod } from '@/lib/raw-archive-state';
 import { downloadArchiveFile, downloadPeriodBulk } from '@/lib/raw-archive-download';
@@ -49,6 +50,9 @@ export function ArchiveDetailClient({ period: basePeriod }: Props) {
   const tManualField = useTranslations('uploadWizard.step3.field');
   const manualFieldLabel = (key: string): string =>
     isKnownManualField(key) ? tManualField(key) : key;
+  const { rate: krwRate } = useFxRateOverride(DEFAULT_VND_PER_KRW);
+  const krwOf = (vnd: number): string =>
+    `≈ ${new Intl.NumberFormat('ko-KR').format(Math.round(vnd / krwRate))} ₩`;
   const period = useEffectivePeriod(basePeriod);
   const [manualEditOpen, setManualEditOpen] = useState(false);
   const canEditManual = period.status === 'Draft';
@@ -197,8 +201,9 @@ export function ArchiveDetailClient({ period: basePeriod }: Props) {
                   className="flex items-baseline justify-between gap-3 py-1 border-b border-neutral-50 last:border-0"
                 >
                   <span className="text-neutral-600 truncate">{manualFieldLabel(field)}</span>
-                  <span className="font-mono font-semibold text-neutral-900 tabular-nums whitespace-nowrap">
-                    {fmtVND(value)}
+                  <span className="text-right font-mono tabular-nums whitespace-nowrap">
+                    <span className="font-semibold text-neutral-900">{fmtVND(value)}</span>
+                    <span className="ml-2 text-[11px] text-neutral-500">{krwOf(value)}</span>
                   </span>
                 </div>
               ))}

@@ -5,6 +5,7 @@ import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import type { ProductMetric } from '@/lib/weekly-report-mock';
+import { formatSkuMultiline } from '@/lib/sku-format';
 
 interface Props {
   products: ProductMetric[];
@@ -21,21 +22,7 @@ function fmtPct(n: number, decimals = 1): string {
   return (n * 100).toFixed(decimals) + '%';
 }
 
-/**
- * Format a combo SKU for compact display: groups of 2 component SKUs per line,
- * underscore-separated. Single or 2-component SKUs render on 1 line as-is.
- *   `A_B_C_D_E`  →  "A_B\n_C_D\n_E"
- */
-function formatSkuMultiline(sku: string): string {
-  const parts = sku.split('_');
-  if (parts.length <= 2) return sku;
-  const lines: string[] = [];
-  for (let i = 0; i < parts.length; i += 2) {
-    const group = parts.slice(i, i + 2).join('_');
-    lines.push(i === 0 ? group : '_' + group);
-  }
-  return lines.join('\n');
-}
+// formatSkuMultiline moved to @/lib/sku-format (shared util)
 
 /**
  * Columns whose values come from platform-level totals allocated/distributed

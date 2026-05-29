@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Trash2, X, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
-import { fmtDateTime } from '@/lib/format';
+import { DEFAULT_VND_PER_KRW, fmtDate, fmtDateTime } from '@/lib/format';
 import {
   addPrimeCostVersionAction,
   listPrimeCostVersionsAction,
@@ -17,7 +17,7 @@ import {
   softDeleteListingPriceVersionAction,
 } from '@/server/actions/prime-cost.actions';
 
-const KRW_RATE = 17.543;
+const KRW_RATE = DEFAULT_VND_PER_KRW;
 
 function fmtVnd(value: number): string {
   return new Intl.NumberFormat('vi-VN').format(Math.round(value));
@@ -289,7 +289,7 @@ export function VersionHistoryModal({
                   return (
                     <tr key={v.id} className={cn(isLatest && 'bg-success-50/30')}>
                       <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">
-                        {v.effectiveFrom}
+                        {fmtDate(v.effectiveFrom)}
                         {isLatest && (
                           <span className="ml-2 inline-flex items-center rounded-full bg-success-500/15 px-1.5 py-0.5 text-[10px] font-medium text-success-500">
                             {t('history.latestBadge')}
@@ -370,7 +370,7 @@ function AddVersionModal({ pcsId, tab, onClose, onSaved }: AddVersionModalProps)
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const cost = Number(value.replace(/[, ]/g, ''));
+    const cost = Number(value.replace(/[,.\s]/g, ''));
     if (!Number.isFinite(cost) || cost < 0) {
       setError(t('error.primeCostInvalid'));
       return;
@@ -379,10 +379,10 @@ function AddVersionModal({ pcsId, tab, onClose, onSaved }: AddVersionModalProps)
     let res;
     if (tab === 'prime') {
       const breakdown: Record<string, number | string> = {};
-      if (cogs) breakdown.cogs = Number(cogs.replace(/[, ]/g, ''));
-      if (logistic) breakdown.logistic = Number(logistic.replace(/[, ]/g, ''));
-      if (warehouse) breakdown.warehousePerDay = Number(warehouse.replace(/[, ]/g, ''));
-      if (fulfillment) breakdown.fulfillment = Number(fulfillment.replace(/[, ]/g, ''));
+      if (cogs) breakdown.cogs = Number(cogs.replace(/[,.\s]/g, ''));
+      if (logistic) breakdown.logistic = Number(logistic.replace(/[,.\s]/g, ''));
+      if (warehouse) breakdown.warehousePerDay = Number(warehouse.replace(/[,.\s]/g, ''));
+      if (fulfillment) breakdown.fulfillment = Number(fulfillment.replace(/[,.\s]/g, ''));
       res = await addPrimeCostVersionAction({
         pcsId,
         effectiveFrom,

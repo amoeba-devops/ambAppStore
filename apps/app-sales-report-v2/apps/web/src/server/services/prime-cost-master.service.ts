@@ -32,6 +32,7 @@ export async function loadPrimeCostMaster(entId: string): Promise<PrimeCostMap> 
       productNameEn: schema.salPrimeCosts.pcsProductNameEn,
       variationName: schema.salPrimeCosts.pcsVariationName,
       isCombo: schema.salPrimeCosts.pcsIsCombo,
+      comboMeta: schema.salPrimeCosts.pcsComboMeta,
     })
     .from(schema.salPrimeCosts)
     .where(
@@ -110,6 +111,14 @@ export async function loadPrimeCostMaster(entId: string): Promise<PrimeCostMap> 
     listingByPcsId.set(v.pcsId, arr);
   }
 
+  // Alias map: when a master row carries `pcs_combo_meta.componentSkus`, we
+  // also register the joined "A_B_C..." string as an alias key pointing to
+  // the same master. This lets the calculator resolve a Shopee `varSku` that
+  // looks like a concatenated component-SKU list (a common Shopee combo
+  // naming convention) → the canonical combo master. Direct SKU match always
+  // wins; aliases only fill in when no direct match exists.
+  const pendingAliases: Array<{ key: string; master: PrimeCostMaster }> = [];
+
   const map: PrimeCostMap = new Map();
   for (const r of masters) {
     const flatCost = Number(r.primeCost);
@@ -137,6 +146,21 @@ export async function loadPrimeCostMaster(entId: string): Promise<PrimeCostMap> 
       listingVersions,
     };
     map.set(r.sku, master);
+
+    // Queue componentSkus alias (resolves Shopee combo varSku like
+    // `A_B_C_D_E` → the canonical master that owns those components).
+    const meta = r.comboMeta as { componentSkus?: string[] } | null;
+    const components = meta?.componentSkus;
+    if (Array.isArray(components) && components.length > 0) {
+      pendingAliases.push({ key: components.join('_'), master });
+    }
   }
+
+  // Apply aliases AFTER all direct SKUs are in place. Skip when a direct entry
+  // (or an earlier alias) already claims the same key — direct match always wins.
+  for (const { key, master } of pendingAliases) {
+    if (!map.has(key)) map.set(key, master);
+  }
+
   return map;
 }

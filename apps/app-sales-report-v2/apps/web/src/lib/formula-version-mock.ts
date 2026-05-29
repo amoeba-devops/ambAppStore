@@ -141,14 +141,12 @@ function replacePeriodEnd(period: string, newEnd: string): string {
 }
 
 function formatDateTime(d: Date): string {
-  // e.g. "5/13/2026, 1:41:48 PM"
-  return d.toLocaleString('en-US', {
-    month: 'numeric',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true,
-  });
+  // Unified app-wide format: DD/MM/YYYY HH:MM:SS (24h, local timezone).
+  // Matches `@/lib/format.fmtDateTime`. Kept local here because this is a
+  // mock module imported in places that can't depend on the format lib.
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ` +
+    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  );
 }

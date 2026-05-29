@@ -23,6 +23,10 @@ export const salPrimeCosts = pgTable(
     pcsProductNameVi: varchar('pcs_product_name_vi', { length: 512 }).notNull(),
     pcsProductNameEn: varchar('pcs_product_name_en', { length: 512 }),
     pcsSkuCode: varchar('pcs_sku_code', { length: 128 }).notNull(),
+    /** Global Trade Item Number (EAN/UPC barcode). Free-text, nullable. */
+    pcsGtin: varchar('pcs_gtin', { length: 64 }),
+    /** HS Code (Harmonized System tariff code) for customs declaration. Free-text, nullable. */
+    pcsHsCode: varchar('pcs_hs_code', { length: 32 }),
     pcsPrimeCostVnd: numeric('pcs_prime_cost_vnd', { precision: 18, scale: 2 }).notNull(),
     pcsSellingPriceVnd: numeric('pcs_selling_price_vnd', { precision: 18, scale: 2 }),
     pcsListingPriceVnd: numeric('pcs_listing_price_vnd', { precision: 18, scale: 2 }),

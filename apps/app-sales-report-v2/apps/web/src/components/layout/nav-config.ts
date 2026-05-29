@@ -6,6 +6,7 @@ import {
   Database,
   Tag,
   Receipt,
+  Package,
   BarChart3,
   CalendarRange,
   TrendingUp,
@@ -61,6 +62,12 @@ export const navSections: NavSection[] = [
   {
     titleKey: 'rfrData',
     items: [
+      {
+        labelKey: 'productList',
+        href: '/cost-master/products',
+        icon: Package,
+        roles: ['OPERATOR', 'ADMIN'],
+      },
       {
         labelKey: 'primeCost',
         href: '/cost-master/prime-cost',

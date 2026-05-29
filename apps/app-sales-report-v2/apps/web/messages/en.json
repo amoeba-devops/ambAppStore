@@ -15,6 +15,7 @@
       "dashboard": "Dashboard",
       "uploadReports": "Upload Reports",
       "rawArchive": "Raw Archive",
+      "productList": "Product List",
       "primeCost": "Prime Cost",
       "sellingPrice": "Selling Price",
       "listingPrice": "Listing Price",
@@ -34,6 +35,7 @@
     "upload": "Upload Reports",
     "rawArchive": "Raw Archive",
     "manualInput": "Manual Cost Input",
+    "productList": "Product List",
     "primeCost": "Prime Cost",
     "sellingPrice": "Selling Price",
     "listingPrice": "Listing Price",
@@ -84,7 +86,12 @@
     "dash": "—",
     "currentUser": "Current user",
     "change": "Change",
-    "empty": "No results"
+    "empty": "No results",
+    "fxCaption": "1 KRW = {rate} VND",
+    "saving": "Saving…",
+    "fxEdit": "Edit FX rate (preview only — syncs across RFR Data pages)",
+    "fxReset": "Reset to default rate",
+    "fxOverrideActive": "Using your override — click reset to revert"
   },
   "role": {
     "admin": "Admin",
@@ -927,12 +934,17 @@
     "form": {
       "titleAdd": "Add SKU",
       "titleEdit": "Edit SKU",
+      "titleDuplicate": "Duplicate SKU",
       "labelProductId": "Product ID",
       "labelVariationId": "Variation ID",
       "labelVariationName": "Variation Name",
       "labelProductVi": "Product name (VI) *",
       "labelProductEn": "Product name (EN)",
       "labelSku": "SKU *",
+      "labelGtin": "GTIN (barcode)",
+      "labelHsCode": "HS Code",
+      "advancedSection": "Advanced information",
+      "advancedSectionHint": "GTIN + HS Code — optional, for customs / barcode systems.",
       "labelPrimeCost": "Prime Cost (VND) *",
       "labelSellingPrice": "Selling Price (VND)",
       "labelListingPrice": "Listing Price (VND)",
@@ -950,6 +962,51 @@
       "saving": "Saving…"
     }
   },
+  "productList": {
+    "title": "Product List",
+    "subtitle": "All SKUs with GTIN, HS Code, prices, and latest update.",
+    "searchPlaceholder": "SKU, GTIN, HS Code, product name…",
+    "comboFilter": {
+      "all": "All",
+      "combo": "Combo only",
+      "nonCombo": "Non-combo only"
+    },
+    "filter": {
+      "updatedFrom": "From",
+      "updatedTo": "To",
+      "clearDates": "Clear date range",
+      "updatedByAll": "All updaters"
+    },
+    "badge": {
+      "skuCount": "{count} SKUs",
+      "combo": "Combo"
+    },
+    "action": {
+      "addSku": "Add SKU",
+      "duplicateSku": "Duplicate — pre-fill a new SKU from this row"
+    },
+    "column": {
+      "sku": "SKU",
+      "gtin": "GTIN",
+      "hsCode": "HS Code",
+      "productVi": "Product (VI)",
+      "productEn": "Product (EN)",
+      "variation": "Variation",
+      "primeCost": "Prime Cost",
+      "sellingPrice": "Selling Price",
+      "listingPrice": "Listing Price",
+      "recordedAt": "Last Updated",
+      "updatedBy": "Updated By",
+      "sourceNote": "Source / Note"
+    },
+    "empty": {
+      "search": "No SKUs match your search.",
+      "initial": "No products yet. Click \"+ Add SKU\" to start."
+    },
+    "footer": {
+      "count": "{shown} of {total} SKUs"
+    }
+  },
   "priceVersion": {
     "title": {
       "prime": "Prime Cost",
@@ -957,7 +1014,7 @@
       "listing": "Listing Price"
     },
     "subtitle": {
-      "prime": "All prime-cost version changes across SKUs, newest first. Each row shows the value, when it took effect, and when it was recorded.",
+      "prime": "All prime-cost version changes across SKUs, newest first. Each row shows the value, when it took effect, and when it was last updated.",
       "selling": "All selling-price version changes across SKUs, newest first. Used by Shopee Net GMV calculation per order date.",
       "listing": "All listing-price version changes across SKUs, newest first. Used by TikTok GMV calculation per order date."
     },
@@ -980,6 +1037,7 @@
       "addSku": "Add SKU",
       "addVersion": "Add Version",
       "editSku": "Edit",
+      "duplicateSku": "Duplicate — pre-fill a new SKU from this row",
       "deleteVersion": "Delete"
     },
     "column": {
@@ -989,7 +1047,8 @@
       "vnd": "VND",
       "krw": "KRW",
       "effectiveFrom": "Effective From",
-      "createdAt": "Recorded At",
+      "createdAt": "Last Updated",
+      "updatedBy": "Updated By",
       "sourceNote": "Source / Note"
     },
     "footer": {

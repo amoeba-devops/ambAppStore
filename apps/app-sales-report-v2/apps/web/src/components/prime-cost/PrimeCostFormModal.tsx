@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { ChevronRight, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import {
@@ -10,14 +10,39 @@ import {
   type PrimeCostRow,
 } from '@/server/actions/prime-cost.actions';
 import { NumberInput } from '@/components/shared/NumberInput';
+import { DEFAULT_VND_PER_KRW } from '@/lib/format';
 
-const KRW_RATE = 17.543;
+const KRW_RATE = DEFAULT_VND_PER_KRW;
 
 interface PrimeCostFormModalProps {
   open: boolean;
   initial: PrimeCostRow | null;
+  /**
+   * Source row to pre-fill form state from, while staying in Add mode (no
+   * pcsId → action INSERTs a new SKU). Used by the row-level "Duplicate"
+   * affordance on Price Version pages: user clicks Duplicate → modal
+   * opens with every field already populated → user tweaks SKU + any
+   * other fields → saves as a new master row.
+   *
+   * Takes precedence over `initial` when both are present. Edit vs
+   * Duplicate is disambiguated by which prop the caller sets.
+   */
+  prefill?: PrimeCostRow | null;
   onClose: () => void;
   onSaved: () => void;
+  /**
+   * When set AND editing an existing SKU, show only this field's price
+   * input and hide the other two. Other prices stay in form state (so the
+   * action receives unchanged values and doesn't clobber them).
+   *
+   * Use case: Edit SKU modal opened from a Price Version page should let
+   * the user touch only the field they're managing. Product List opens
+   * the modal without this prop → shows all 3 prices.
+   *
+   * Add mode (initial = null) ignores this prop and always shows all 3
+   * inputs — creating a new SKU needs the full price set up-front.
+   */
+  priceField?: 'prime' | 'selling' | 'listing';
 }
 
 interface FormState {
@@ -27,6 +52,8 @@ interface FormState {
   productNameVi: string;
   productNameEn: string;
   skuCode: string;
+  gtin: string;
+  hsCode: string;
   primeCostVnd: string;
   sellingPriceVnd: string;
   listingPriceVnd: string;
@@ -41,6 +68,8 @@ const EMPTY: FormState = {
   productNameVi: '',
   productNameEn: '',
   skuCode: '',
+  gtin: '',
+  hsCode: '',
   primeCostVnd: '',
   sellingPriceVnd: '',
   listingPriceVnd: '',
@@ -56,6 +85,8 @@ function fromRow(r: PrimeCostRow): FormState {
     productNameVi: r.productNameVi,
     productNameEn: r.productNameEn ?? '',
     skuCode: r.skuCode,
+    gtin: r.gtin ?? '',
+    hsCode: r.hsCode ?? '',
     primeCostVnd: String(r.primeCostVnd),
     sellingPriceVnd: r.sellingPriceVnd != null ? String(r.sellingPriceVnd) : '',
     listingPriceVnd: r.listingPriceVnd != null ? String(r.listingPriceVnd) : '',
@@ -66,27 +97,50 @@ function fromRow(r: PrimeCostRow): FormState {
 
 function parseNumeric(s: string): number | null {
   if (!s) return null;
-  const n = Number(s.replace(/[,\s]/g, ''));
+  // Strip thousand separators (comma OR dot — Vietnamese typing convention
+  // uses `.` for thousands) and whitespace. VND prices are always integers,
+  // so we don't preserve a decimal point.
+  const n = Number(s.replace(/[,.\s]/g, ''));
   return Number.isFinite(n) ? n : null;
 }
 
-export function PrimeCostFormModal({ open, initial, onClose, onSaved }: PrimeCostFormModalProps) {
+export function PrimeCostFormModal({
+  open,
+  initial,
+  prefill,
+  onClose,
+  onSaved,
+  priceField,
+}: PrimeCostFormModalProps) {
   const t = useTranslations('primeCost.form');
   const tCommon = useTranslations('common');
   const [form, setForm] = useState<FormState>(EMPTY);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Advanced fields (GTIN, HS Code) are hidden by default — most data entry
+   * runs without them. Auto-expand when editing a SKU that already has at
+   * least one advanced value so users don't lose sight of the data.
+   */
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setForm(initial ? fromRow(initial) : EMPTY);
+      // Priority: initial (Edit) > prefill (Duplicate) > EMPTY (Add).
+      const source = initial ?? prefill ?? null;
+      const next = source ? fromRow(source) : EMPTY;
+      setForm(next);
       setError(null);
+      setAdvancedOpen(Boolean(next.gtin || next.hsCode));
     }
-  }, [open, initial]);
+  }, [open, initial, prefill]);
 
   if (!open) return null;
 
+  // Edit mode = updating an existing SKU. Duplicate (prefill set but no
+  // initial) stays in Add mode so the action INSERTs a new master row.
   const isEdit = !!initial;
+  const isDuplicate = !initial && !!prefill;
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -121,6 +175,8 @@ export function PrimeCostFormModal({ open, initial, onClose, onSaved }: PrimeCos
       productNameVi: form.productNameVi.trim(),
       productNameEn: form.productNameEn.trim() || null,
       skuCode: form.skuCode.trim(),
+      gtin: form.gtin.trim() || null,
+      hsCode: form.hsCode.trim() || null,
       primeCostVnd: primeCost,
       sellingPriceVnd: parseNumeric(form.sellingPriceVnd),
       listingPriceVnd: parseNumeric(form.listingPriceVnd),
@@ -142,13 +198,25 @@ export function PrimeCostFormModal({ open, initial, onClose, onSaved }: PrimeCos
 
   const primeCostNum = parseNumeric(form.primeCostVnd);
   const krwPreview = primeCostNum != null ? Math.round(primeCostNum / KRW_RATE) : null;
+  const sellingNum = parseNumeric(form.sellingPriceVnd);
+  const sellingKrwPreview = sellingNum != null ? Math.round(sellingNum / KRW_RATE) : null;
+  const listingNum = parseNumeric(form.listingPriceVnd);
+  const listingKrwPreview = listingNum != null ? Math.round(listingNum / KRW_RATE) : null;
+
+  // Field-restricted edit: when opened from a Price Version page in edit
+  // mode, only the matching price input is rendered. Add mode and the
+  // Product List page always render all three.
+  const restrictTo = isEdit ? priceField : undefined;
+  const showPrime = !restrictTo || restrictTo === 'prime';
+  const showSelling = !restrictTo || restrictTo === 'selling';
+  const showListing = !restrictTo || restrictTo === 'listing';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40 p-4">
       <div className="w-full max-w-2xl rounded-lg bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
           <h2 className="text-lg font-semibold text-neutral-900">
-            {isEdit ? t('titleEdit') : t('titleAdd')}
+            {isEdit ? t('titleEdit') : isDuplicate ? t('titleDuplicate') : t('titleAdd')}
           </h2>
           <button
             type="button"
@@ -193,34 +261,84 @@ export function PrimeCostFormModal({ open, initial, onClose, onSaved }: PrimeCos
               required
               mono
             />
-            <Field
-              label={t('labelPrimeCost')}
-              value={form.primeCostVnd}
-              onChange={(v) => set('primeCostVnd', v)}
-              placeholder="197000"
-              required
-              type="number"
-              hint={
-                krwPreview != null
-                  ? t('krwHint', { value: krwPreview.toLocaleString('ko-KR') })
-                  : undefined
-              }
-            />
+            {showPrime && (
+              <Field
+                label={t('labelPrimeCost')}
+                value={form.primeCostVnd}
+                onChange={(v) => set('primeCostVnd', v)}
+                placeholder="197000"
+                required
+                type="number"
+                hint={
+                  krwPreview != null
+                    ? t('krwHint', { value: krwPreview.toLocaleString('ko-KR') })
+                    : undefined
+                }
+              />
+            )}
 
-            <Field
-              label={t('labelSellingPrice')}
-              value={form.sellingPriceVnd}
-              onChange={(v) => set('sellingPriceVnd', v)}
-              placeholder="479900"
-              type="number"
-            />
-            <Field
-              label={t('labelListingPrice')}
-              value={form.listingPriceVnd}
-              onChange={(v) => set('listingPriceVnd', v)}
-              placeholder="565000"
-              type="number"
-            />
+            {showSelling && (
+              <Field
+                label={t('labelSellingPrice')}
+                value={form.sellingPriceVnd}
+                onChange={(v) => set('sellingPriceVnd', v)}
+                placeholder="479900"
+                type="number"
+                hint={
+                  sellingKrwPreview != null
+                    ? t('krwHint', { value: sellingKrwPreview.toLocaleString('ko-KR') })
+                    : undefined
+                }
+              />
+            )}
+            {showListing && (
+              <Field
+                label={t('labelListingPrice')}
+                value={form.listingPriceVnd}
+                onChange={(v) => set('listingPriceVnd', v)}
+                placeholder="565000"
+                type="number"
+                hint={
+                  listingKrwPreview != null
+                    ? t('krwHint', { value: listingKrwPreview.toLocaleString('ko-KR') })
+                    : undefined
+                }
+              />
+            )}
+          </div>
+
+          {/* Advanced — GTIN + HS Code. Optional, hidden by default. */}
+          <div className="rounded-md border border-neutral-200 bg-neutral-50/60">
+            <button
+              type="button"
+              onClick={() => setAdvancedOpen((v) => !v)}
+              aria-expanded={advancedOpen}
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-sm hover:bg-neutral-100"
+            >
+              <ChevronRight
+                className={cn('h-4 w-4 text-neutral-500 transition-transform', advancedOpen && 'rotate-90')}
+              />
+              <span className="font-medium text-neutral-900">{t('advancedSection')}</span>
+              <span className="ml-2 text-xs text-neutral-500">{t('advancedSectionHint')}</span>
+            </button>
+            {advancedOpen && (
+              <div className="grid grid-cols-1 gap-4 border-t border-neutral-200 px-3 py-3 sm:grid-cols-2">
+                <Field
+                  label={t('labelGtin')}
+                  value={form.gtin}
+                  onChange={(v) => set('gtin', v)}
+                  placeholder="8809123456789"
+                  mono
+                />
+                <Field
+                  label={t('labelHsCode')}
+                  value={form.hsCode}
+                  onChange={(v) => set('hsCode', v)}
+                  placeholder="3924.10.00"
+                  mono
+                />
+              </div>
+            )}
           </div>
 
           <label className="flex items-center gap-2 rounded-md border border-neutral-200 bg-neutral-50/60 px-3 py-2.5 text-sm cursor-pointer hover:bg-neutral-100">

@@ -15,7 +15,8 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
-import { fmtVND } from '@/lib/format';
+import { DEFAULT_VND_PER_KRW, fmtDateTime, fmtVND } from '@/lib/format';
+import { useFxRateOverride } from '@/lib/fx-rate-override';
 import type { ArchivePeriod, ArchiveFile, PeriodStatus } from '@/lib/raw-archive-mock';
 import { useEffectivePeriods, type EffectivePeriod } from '@/lib/raw-archive-state';
 import { downloadArchiveFile } from '@/lib/raw-archive-download';
@@ -313,6 +314,9 @@ function ManualInputSection({ period }: { period: ArchivePeriod }) {
   const entries = Object.entries(period.manualInputs);
   const total = entries.reduce((s, [, v]) => s + v, 0);
   const canEdit = period.status === 'Draft';
+  const { rate: krwRate } = useFxRateOverride(DEFAULT_VND_PER_KRW);
+  const krwOf = (vnd: number): string =>
+    `≈ ${new Intl.NumberFormat('ko-KR').format(Math.round(vnd / krwRate))} ₩`;
 
   return (
     <div className="border-t border-neutral-100 bg-neutral-50/30">
@@ -333,6 +337,9 @@ function ManualInputSection({ period }: { period: ArchivePeriod }) {
             {t('fieldCount', { count: entries.length })}
             <span className="font-mono font-semibold text-neutral-700 tabular-nums">
               {fmtVND(total)}
+            </span>
+            <span className="ml-2 font-mono text-[10px] text-neutral-400 tabular-nums">
+              {krwOf(total)}
             </span>
           </span>
           {canEdit ? (
@@ -360,8 +367,9 @@ function ManualInputSection({ period }: { period: ArchivePeriod }) {
                 className="flex items-baseline justify-between gap-3 py-1 border-b border-neutral-50 last:border-0"
               >
                 <span className="text-neutral-600 truncate">{manualFieldLabel(field)}</span>
-                <span className="font-mono font-semibold text-neutral-900 tabular-nums whitespace-nowrap">
-                  {fmtVND(value)}
+                <span className="text-right font-mono tabular-nums whitespace-nowrap">
+                  <span className="font-semibold text-neutral-900">{fmtVND(value)}</span>
+                  <span className="ml-2 text-[10px] text-neutral-500">{krwOf(value)}</span>
                 </span>
               </div>
             ))}
@@ -416,7 +424,7 @@ function FileRow({ file }: { file: ArchiveFile }) {
       </td>
       <td className="px-3 py-2.5 align-middle">
         <span className="font-mono text-xs text-neutral-500 tabular-nums whitespace-nowrap">
-          {fmtUploadedAt(file.uploadedAt)}
+          {fmtDateTime(file.uploadedAt)}
         </span>
       </td>
       <td className="px-3 py-2.5 align-middle">
@@ -586,9 +594,3 @@ function fmtBytes(b: number): string {
   return `${b} B`;
 }
 
-function fmtUploadedAt(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}

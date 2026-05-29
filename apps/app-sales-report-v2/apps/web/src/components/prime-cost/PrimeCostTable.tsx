@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Download, Upload, Plus, Search, Trash2, Pencil, History } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
-import { fmtDateTime } from '@/lib/format';
+import { DEFAULT_VND_PER_KRW, fmtDate, fmtDateTime } from '@/lib/format';
 import { downloadCsv } from '@/lib/csv';
 import {
   listPrimeCostsAction,
@@ -18,7 +18,7 @@ import { PrimeCostFormModal } from './PrimeCostFormModal';
 import { VersionHistoryModal, type VersionTab } from './VersionHistoryModal';
 import { isPrimeCostVersioningEnabled } from '@/lib/feature-flags';
 
-const KRW_RATE = 17.543;
+const KRW_RATE = DEFAULT_VND_PER_KRW;
 
 function fmtVnd(value: number | null): string {
   if (value == null) return '—';
@@ -475,7 +475,7 @@ function EffectiveCell({
         title={label}
         className="text-neutral-900 hover:underline"
       >
-        {latest}
+        {fmtDate(latest)}
       </button>
       {count > 1 && (
         <button

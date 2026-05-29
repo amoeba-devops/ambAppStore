@@ -15,6 +15,7 @@
       "dashboard": "대시보드",
       "uploadReports": "리포트 업로드",
       "rawArchive": "원본 아카이브",
+      "productList": "제품 목록",
       "primeCost": "원가",
       "sellingPrice": "판매가",
       "listingPrice": "정상가",
@@ -34,6 +35,7 @@
     "upload": "리포트 업로드",
     "rawArchive": "원본 아카이브",
     "manualInput": "수동 비용 입력",
+    "productList": "제품 목록",
     "primeCost": "원가",
     "sellingPrice": "판매가",
     "listingPrice": "정상가",
@@ -84,7 +86,12 @@
     "dash": "—",
     "currentUser": "현재 사용자",
     "change": "변경",
-    "empty": "결과 없음"
+    "empty": "결과 없음",
+    "fxCaption": "1 KRW = {rate} VND",
+    "saving": "저장 중…",
+    "fxEdit": "환율 편집 (미리보기 전용 — RFR Data 화면 간 동기화)",
+    "fxReset": "기본 환율로 재설정",
+    "fxOverrideActive": "재정의된 환율 사용 중 — 재설정으로 되돌리기"
   },
   "role": {
     "admin": "관리자",
@@ -927,12 +934,17 @@
     "form": {
       "titleAdd": "SKU 추가",
       "titleEdit": "SKU 수정",
+      "titleDuplicate": "SKU 복제",
       "labelProductId": "상품 ID",
       "labelVariationId": "변형 ID",
       "labelVariationName": "변형 이름",
       "labelProductVi": "상품명 (VI) *",
       "labelProductEn": "상품명 (EN)",
       "labelSku": "SKU *",
+      "labelGtin": "GTIN (바코드)",
+      "labelHsCode": "HS 코드",
+      "advancedSection": "고급 정보",
+      "advancedSectionHint": "GTIN + HS 코드 — 선택 항목, 통관 / 바코드용.",
       "labelPrimeCost": "원가 (VND) *",
       "labelSellingPrice": "판매가 (VND)",
       "labelListingPrice": "정상가 (VND)",
@@ -950,6 +962,51 @@
       "saving": "저장 중…"
     }
   },
+  "productList": {
+    "title": "제품 목록",
+    "subtitle": "GTIN, HS 코드, 가격 및 최근 수정 정보가 포함된 모든 SKU.",
+    "searchPlaceholder": "SKU, GTIN, HS 코드, 제품명…",
+    "comboFilter": {
+      "all": "전체",
+      "combo": "콤보만",
+      "nonCombo": "콤보 외"
+    },
+    "filter": {
+      "updatedFrom": "부터",
+      "updatedTo": "까지",
+      "clearDates": "날짜 범위 지우기",
+      "updatedByAll": "전체 수정자"
+    },
+    "badge": {
+      "skuCount": "{count}개 SKU",
+      "combo": "콤보"
+    },
+    "action": {
+      "addSku": "SKU 추가",
+      "duplicateSku": "복제 — 이 행을 기반으로 새 SKU 미리 채우기"
+    },
+    "column": {
+      "sku": "SKU",
+      "gtin": "GTIN",
+      "hsCode": "HS 코드",
+      "productVi": "상품명 (VI)",
+      "productEn": "상품명 (EN)",
+      "variation": "옵션",
+      "primeCost": "원가",
+      "sellingPrice": "판매가",
+      "listingPrice": "정상가",
+      "recordedAt": "최근 수정",
+      "updatedBy": "수정자",
+      "sourceNote": "출처 / 메모"
+    },
+    "empty": {
+      "search": "검색 조건과 일치하는 SKU가 없습니다.",
+      "initial": "제품이 없습니다. \"+ SKU 추가\"로 시작하세요."
+    },
+    "footer": {
+      "count": "{total}개 중 {shown}개 SKU"
+    }
+  },
   "priceVersion": {
     "title": {
       "prime": "원가",
@@ -957,7 +1014,7 @@
       "listing": "정상가"
     },
     "subtitle": {
-      "prime": "모든 SKU의 원가 버전 변경 이력 (최신순). 각 행은 값, 적용 시작일, 기록 시각을 보여줍니다.",
+      "prime": "모든 SKU의 원가 버전 변경 이력 (최신순). 각 행은 값, 적용 시작일, 최근 수정 시각을 보여줍니다.",
       "selling": "모든 SKU의 판매가 버전 변경 이력 (최신순). 쇼피 Net GMV 계산에 주문일 기준으로 적용됩니다.",
       "listing": "모든 SKU의 정상가 버전 변경 이력 (최신순). 틱톡 GMV 계산에 주문일 기준으로 적용됩니다."
     },
@@ -980,6 +1037,7 @@
       "addSku": "SKU 추가",
       "addVersion": "버전 추가",
       "editSku": "수정",
+      "duplicateSku": "복제 — 이 행을 기반으로 새 SKU 미리 채우기",
       "deleteVersion": "삭제"
     },
     "column": {
@@ -989,7 +1047,8 @@
       "vnd": "VND",
       "krw": "KRW",
       "effectiveFrom": "적용 시작일",
-      "createdAt": "기록 일시",
+      "createdAt": "최근 수정",
+      "updatedBy": "수정자",
       "sourceNote": "출처 / 메모"
     },
     "footer": {
