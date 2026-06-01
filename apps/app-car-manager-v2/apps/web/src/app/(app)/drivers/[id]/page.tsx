@@ -11,34 +11,19 @@ import {
   CardHeader,
   CardHeaderText,
   CardTitle,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
 } from '@car-v2/ui';
-import type { CarDriverStatus, CarTripStatus } from '@car-v2/db/schema';
+import type { CarDriverStatus } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getDriver } from '@/server/queries/drivers.queries';
 import { listTripsForDriver } from '@/server/queries/trips.queries';
+import { TripHistorySection } from '../../trips/_components/trip-history-section';
 
 const STATUS_TONE: Record<CarDriverStatus, 'success' | 'info' | 'neutral'> = {
   AVAILABLE:   'success',
   ON_TRIP:     'info',
   OFF_DUTY:    'neutral',
   UNAVAILABLE: 'neutral',
-};
-
-const TRIP_STATUS_TONE: Record<CarTripStatus, 'info' | 'success' | 'neutral' | 'warning' | 'danger' | 'accent'> = {
-  PENDING_ASSIGNMENT: 'accent',
-  PENDING_DRIVER_CONFIRMATION: 'warning',
-  CONFIRMED: 'success',
-  IN_PROGRESS: 'info',
-  COMPLETED: 'neutral',
-  REJECTED_BY_DRIVER: 'danger',
-  CANCELLED: 'danger',
 };
 
 function daysUntil(dateStr: string): number {
@@ -54,12 +39,14 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
   const tStatus  = await getTranslations('drivers.status');
   const tDetail  = await getTranslations('drivers.detail');
   const tList    = await getTranslations('drivers.list');
-  const tTripSt  = await getTranslations('trips.status');
   const user = await getCurrentUser();
 
   const driver = await getDriver(user.entId, id);
   if (!driver) notFound();
-  const trips = await listTripsForDriver(user.entId, id, 10);
+  /* Pull a fuller history (not just 10) so the Kanban board has enough cards
+   * across its status columns to be meaningful. The table view paginates
+   * visually via scroll. */
+  const trips = await listTripsForDriver(user.entId, id, 50);
   const tripsLast30 = trips.filter(
     (t) => new Date(t.trpScheduledAt).getTime() > Date.now() - 30 * 24 * 60 * 60 * 1000,
   ).length;
@@ -98,9 +85,11 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-5">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
-          {/* Main */}
-          <div className="space-y-5">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-5">
+          {/* Main — `min-w-0` lets the embedded Kanban board scroll horizontally
+           * inside this 1fr track instead of forcing the track (and the page)
+           * wider than the viewport. */}
+          <div className="min-w-0 space-y-5">
             <Card>
               <CardContent>
                 <div className="flex flex-col sm:flex-row items-start gap-5">
@@ -152,45 +141,12 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardHeaderText>
-                  <CardTitle>{tDetail('recentTrips')}</CardTitle>
-                </CardHeaderText>
-              </CardHeader>
-              <CardContent padded={false}>
-                {trips.length === 0 ? (
-                  <div className="p-8 text-center text-sm text-text-muted">{tDetail('noTrips')}</div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{tDetail('thRef')}</TableHead>
-                        <TableHead>{tDetail('thWhen')}</TableHead>
-                        <TableHead>{tDetail('thRoute')}</TableHead>
-                        <TableHead>{tDetail('thVehicle')}</TableHead>
-                        <TableHead>{tDetail('thStatus')}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {trips.map((r) => (
-                        <TableRow key={r.trpId}>
-                          <TableCell>
-                            <Link href={`/trips/${r.trpId}`} className="font-mono text-xs text-accent hover:underline tabular">{r.trpRef}</Link>
-                          </TableCell>
-                          <TableCell className="text-text-muted tabular">{new Date(r.trpScheduledAt).toISOString().slice(0, 10)}</TableCell>
-                          <TableCell className="max-w-[240px] truncate">{r.trpPickupAddress} → {r.trpDropoffAddress}</TableCell>
-                          <TableCell className="font-mono text-xs tabular">{r.vehiclePlate ?? '—'}</TableCell>
-                          <TableCell>
-                            <Badge tone={TRIP_STATUS_TONE[r.trpStatus]} size="sm">{tTripSt(r.trpStatus)}</Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
+            <TripHistorySection
+              trips={trips}
+              variant="driver"
+              title={tDetail('recentTrips')}
+              emptyLabel={tDetail('noTrips')}
+            />
           </div>
 
           {/* Side */}

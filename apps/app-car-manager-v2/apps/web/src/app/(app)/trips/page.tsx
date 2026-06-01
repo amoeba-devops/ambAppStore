@@ -13,6 +13,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  cn,
 } from '@car-v2/ui';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import type { CarTripStatus } from '@car-v2/db/schema';
@@ -20,11 +21,14 @@ import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getDriverByUserId, listDrivers } from '@/server/queries/drivers.queries';
-import { getTrip, listTrips, listTripsForDriver } from '@/server/queries/trips.queries';
+import { getTrip, listTrips, listTripsForBoard, listTripsForDriver, type TripListItem } from '@/server/queries/trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { ClickableTableRow } from '@/components/clickable-table-row';
 import { DriverTripsList } from './_components/driver-trips-list';
 import { TripPeekDrawer } from './_components/trip-peek-drawer';
+import { TripBoard } from './_components/trip-board';
+import { TripsViewControl } from './_components/trips-view-control';
+import { BoardViewport } from './_components/board-viewport';
 
 const STATUS_TONE: Record<CarTripStatus, 'accent' | 'warning' | 'success' | 'info' | 'neutral' | 'danger'> = {
   PENDING_ASSIGNMENT:          'accent',
@@ -55,6 +59,7 @@ interface PageProps {
     highlight?: string;
     q?: string;
     date?: string;
+    view?: string;
   }>;
 }
 
@@ -94,6 +99,10 @@ export default async function TripsListPage({ searchParams }: PageProps) {
   /* Default filter = 'pending' — the most actionable view (chuyến chờ phân
    * công hoặc chờ tài xế xác nhận). Admin/Manager landing on /trips usually
    * arrive to triage these. Use "All" filter explicitly when needed. */
+  /* View mode — Kanban is the default (no `?view`); `?view=list` opts into the
+   * paginated table. The two need different fetch shapes: Kanban loads the whole
+   * filtered set (every status column at once), List stays paginated. */
+  const view: 'kanban' | 'list' = sp.view === 'list' ? 'list' : 'kanban';
   const statusFilter = (sp.status ?? 'pending') as 'all' | 'pending' | 'active' | 'completed';
   const dateRange = (sp.date ?? 'all') as 'all' | 'today' | 'thisWeek' | 'thisMonth' | 'past';
   const searchQ = sp.q?.trim() || undefined;
@@ -104,20 +113,50 @@ export default async function TripsListPage({ searchParams }: PageProps) {
    * fades, so refreshing the page makes it disappear naturally. */
   const highlightId = sp.highlight;
 
-  /* Fetch list + peek-target in parallel. peek lookup is best-effort — if the
-   * id is stale or wrong tenant, the drawer just won't render (no error). */
-  const [{ items, total, pageSize }, peekTrip] = await Promise.all([
-    listTrips({
-      entId: user.entId,
-      role: user.role,
-      userId: user.userId,
-      status: statusFilter,
-      q: searchQ,
-      dateRange,
-      page,
-    }),
-    peekId ? getTrip(user.entId, peekId) : Promise.resolve(null),
-  ]);
+  /* peek lookup is best-effort — if the id is stale or wrong tenant, the drawer
+   * just won't render (no error). It works in both views. */
+  const peekPromise = peekId ? getTrip(user.entId, peekId) : Promise.resolve(null);
+
+  let items: TripListItem[] = [];
+  let total = 0;
+  let pageSize = 0;
+  let boardItems: TripListItem[] = [];
+  let boardCapped = false;
+  let peekTrip: Awaited<typeof peekPromise> = null;
+
+  if (view === 'kanban') {
+    const [board, pk] = await Promise.all([
+      listTripsForBoard({
+        entId: user.entId,
+        role: user.role,
+        userId: user.userId,
+        q: searchQ,
+        dateRange,
+      }),
+      peekPromise,
+    ]);
+    boardItems = board.items;
+    boardCapped = board.capped;
+    total = boardItems.length;
+    peekTrip = pk;
+  } else {
+    const [list, pk] = await Promise.all([
+      listTrips({
+        entId: user.entId,
+        role: user.role,
+        userId: user.userId,
+        status: statusFilter,
+        q: searchQ,
+        dateRange,
+        page,
+      }),
+      peekPromise,
+    ]);
+    items = list.items;
+    total = list.total;
+    pageSize = list.pageSize;
+    peekTrip = pk;
+  }
 
   /* Drawer needs the same admin context as the full detail page (driver/vehicle
    * lookups + role flags). Compute only when we actually have a peek target
@@ -160,12 +199,51 @@ export default async function TripsListPage({ searchParams }: PageProps) {
    * đúng cái họ đang xem. Route handler trả CSV ent-scoped. */
   const exportHref = (() => {
     const params = new URLSearchParams();
-    if (statusFilter !== 'pending') params.set('status', statusFilter);
+    /* Kanban shows every status; export the same (omit status → route default
+     * 'all'). In list view, mirror the active status bucket. */
+    if (view === 'list' && statusFilter !== 'pending') params.set('status', statusFilter);
     if (searchQ) params.set('q', searchQ);
     if (dateRange !== 'all') params.set('date', dateRange);
     const qs = params.toString();
     return qs ? `/api/v1/trips/export?${qs}` : '/api/v1/trips/export';
   })();
+
+  /* Shared empty state (both views). In Kanban we only show this when there are
+   * literally zero trips matching — otherwise the board renders with empty
+   * columns. Distinguish "no trips at all" from "filters matched nothing": an
+   * active search/date filter means the tenant likely HAS trips, just none
+   * matching — so offer "clear filters", not "create your first trip". */
+  const hasActiveFilter = !!searchQ || dateRange !== 'all';
+  const clearHref = buildTripsHref({
+    status: view === 'list' ? statusFilter : undefined,
+    view: view === 'list' ? 'list' : undefined,
+  });
+  const emptyCard = (
+    <Card>
+      <EmptyState
+        icon={<Calendar />}
+        title={hasActiveFilter ? tList('emptyNoMatchTitle') : tList('emptyTitle')}
+        description={
+          hasActiveFilter
+            ? tList('emptyNoMatchDesc')
+            : view === 'list' && statusFilter !== 'all' && statusFilter !== 'pending'
+              ? tList('emptyFilterDesc', { filter: statusFilter })
+              : tList('emptyAdminDesc')
+        }
+        action={
+          hasActiveFilter ? (
+            <Button variant="secondary" size="md" asChild>
+              <Link href={clearHref}>{tA('clear')}</Link>
+            </Button>
+          ) : (
+            <Button variant="accent" size="md" asChild>
+              <Link href="/trips/new"><Plus />{tA('new')}</Link>
+            </Button>
+          )
+        }
+      />
+    </Card>
+  );
 
   return (
     <>
@@ -185,33 +263,55 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         }
       />
 
-      <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-5 space-y-4">
+      {/* Body wrapper. Kanban → bounded flex column (filter bar fixed, board
+       * region fills the remaining height and owns its own scroll). List →
+       * the wrapper itself scrolls vertically (document-style). Both anchor on
+       * `flex-1 min-h-0` so the height chain resolves against the shell's
+       * min-h-dvh main without growing the page. */}
+      <div
+        className={cn(
+          'flex-1 min-h-0 flex flex-col px-4 md:px-7 pt-4 md:pt-5',
+          /* List scrolls vertically as a whole; Kanban delegates scroll to the
+           * board's columns (its bottom spacing is owned by BoardViewport). */
+          view === 'list' ? 'overflow-auto gap-4 pb-4 md:pb-5' : 'gap-3 overflow-hidden',
+        )}
+      >
         {/* Filter bar */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div className="-mx-4 md:mx-0 px-4 md:px-0 overflow-x-auto">
-            <div className="inline-flex items-center gap-1 rounded-md bg-surface-2 p-1">
-              {FILTERS.map((f) => {
-                const active = statusFilter === f.key;
-                /* Khi đổi status, GIỮ các filter khác (q, date). */
-                const href = buildTripsHref({
-                  status: f.key,
-                  q: searchQ,
-                  date: dateRange,
-                });
-                return (
-                  <Link
-                    key={f.key}
-                    href={href}
-                    className={
-                      'inline-flex items-center gap-2 h-8 px-3 rounded text-sm font-medium transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ' +
-                      (active ? 'bg-surface text-text shadow-xs' : 'text-text-muted hover:text-text')
-                    }
-                  >
-                    {f.label}
-                  </Link>
-                );
-              })}
-            </div>
+        <div className="shrink-0 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="flex items-center gap-2">
+            {/* View switch — Kanban (default) vs List. Leads the filter bar so
+             * it reads as the primary mode selector on every breakpoint. */}
+            <TripsViewControl current={view} />
+            {/* Status buckets only make sense in List view — in Kanban each
+             * status IS a column, so we hide them to avoid contradiction. */}
+            {view === 'list' && (
+              <div className="-mx-1 md:mx-0 overflow-x-auto">
+                <div className="inline-flex items-center gap-1 rounded-md bg-surface-2 p-1">
+                  {FILTERS.map((f) => {
+                    const active = statusFilter === f.key;
+                    /* Khi đổi status, GIỮ các filter khác (q, date, view). */
+                    const href = buildTripsHref({
+                      status: f.key,
+                      q: searchQ,
+                      date: dateRange,
+                      view: 'list',
+                    });
+                    return (
+                      <Link
+                        key={f.key}
+                        href={href}
+                        className={
+                          'inline-flex items-center gap-2 h-8 px-3 rounded text-sm font-medium transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ' +
+                          (active ? 'bg-surface text-text shadow-xs' : 'text-text-muted hover:text-text')
+                        }
+                      >
+                        {f.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
             {/* Debounced search — tự cập nhật URL `?q=` sau 300ms, preserve các
@@ -232,7 +332,12 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                 ]
               ).map((d) => {
                 const active = dateRange === d.key;
-                const href = buildTripsHref({ status: statusFilter, q: searchQ, date: d.key });
+                const href = buildTripsHref({
+                  status: statusFilter,
+                  q: searchQ,
+                  date: d.key,
+                  view: view === 'list' ? 'list' : undefined,
+                });
                 return (
                   <Link
                     key={d.key}
@@ -249,29 +354,22 @@ export default async function TripsListPage({ searchParams }: PageProps) {
             </div>
             {(searchQ || dateRange !== 'all') && (
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/trips">{tA('clear')}</Link>
+                <Link href={buildTripsHref({ view: view === 'list' ? 'list' : undefined })}>{tA('clear')}</Link>
               </Button>
             )}
           </div>
         </div>
 
-        {items.length === 0 ? (
-          <Card>
-            <EmptyState
-              icon={<Calendar />}
-              title={tList('emptyTitle')}
-              description={
-                statusFilter === 'all'
-                  ? tList('emptyAdminDesc')
-                  : tList('emptyFilterDesc', { filter: statusFilter })
-              }
-              action={
-                <Button variant="accent" size="md" asChild>
-                  <Link href="/trips/new"><Plus />{tA('new')}</Link>
-                </Button>
-              }
-            />
-          </Card>
+        {view === 'kanban' ? (
+          <BoardViewport>
+            {boardItems.length === 0 ? (
+              <div className="flex h-full flex-col justify-center">{emptyCard}</div>
+            ) : (
+              <TripBoard trips={boardItems} mode="peek" capped={boardCapped} fillHeight />
+            )}
+          </BoardViewport>
+        ) : items.length === 0 ? (
+          emptyCard
         ) : (
           <>
             {/* Mobile card list */}
@@ -427,8 +525,11 @@ function buildTripsHref(opts: {
   date?: string;
   page?: number;
   peek?: string;
+  /** 'list' is persisted; 'kanban' is the default and omitted for clean URLs. */
+  view?: 'list' | 'kanban';
 }): string {
   const params = new URLSearchParams();
+  if (opts.view === 'list') params.set('view', 'list');
   if (opts.status && opts.status !== 'pending') params.set('status', opts.status);
   if (opts.q) params.set('q', opts.q);
   if (opts.date && opts.date !== 'all') params.set('date', opts.date);
@@ -439,7 +540,7 @@ function buildTripsHref(opts: {
 }
 
 function pageHref(status: string, page: number, q?: string, date?: string): string {
-  return buildTripsHref({ status, page, q, date });
+  return buildTripsHref({ status, page, q, date, view: 'list' });
 }
 
 /**
@@ -447,5 +548,5 @@ function pageHref(status: string, page: number, q?: string, date?: string): stri
  * drawer drops the user back exactly where they were.
  */
 function peekHref(status: string, page: number, tripId: string, q?: string, date?: string): string {
-  return buildTripsHref({ status, page, q, date, peek: tripId });
+  return buildTripsHref({ status, page, q, date, peek: tripId, view: 'list' });
 }

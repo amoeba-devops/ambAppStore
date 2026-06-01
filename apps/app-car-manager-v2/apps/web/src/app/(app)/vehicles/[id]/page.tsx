@@ -10,38 +10,23 @@ import {
   CardHeader,
   CardHeaderText,
   CardTitle,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from '@car-v2/ui';
-import type { CarTripStatus, CarVehicleStatus } from '@car-v2/db/schema';
+import type { CarVehicleStatus } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listTripsForVehicle } from '@/server/queries/trips.queries';
 import { getVehicle } from '@/server/queries/vehicles.queries';
+import { TripHistorySection } from '../../trips/_components/trip-history-section';
 
 const STATUS_TONE: Record<CarVehicleStatus, 'success' | 'info' | 'warning' | 'neutral'> = {
   AVAILABLE: 'success',
   IN_USE: 'info',
   MAINTENANCE: 'warning',
   RETIRED: 'neutral',
-};
-
-const TRIP_STATUS_TONE: Record<CarTripStatus, 'info' | 'success' | 'neutral' | 'warning' | 'danger' | 'accent'> = {
-  PENDING_ASSIGNMENT: 'accent',
-  PENDING_DRIVER_CONFIRMATION: 'warning',
-  CONFIRMED: 'success',
-  IN_PROGRESS: 'info',
-  COMPLETED: 'neutral',
-  REJECTED_BY_DRIVER: 'danger',
-  CANCELLED: 'danger',
 };
 
 export default async function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -51,13 +36,13 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   const tCo      = await getTranslations('company');
   const tStatus  = await getTranslations('vehicles.status');
   const tDetail  = await getTranslations('vehicles.detail');
-  const tTripSt  = await getTranslations('trips.status');
   const user = await getCurrentUser();
 
   const vehicle = await getVehicle(user.entId, id);
   if (!vehicle) notFound();
 
-  const trips = await listTripsForVehicle(user.entId, id, 10);
+  /* Fuller history so the Kanban board's status columns are well-populated. */
+  const trips = await listTripsForVehicle(user.entId, id, 50);
   const remainingOil =
     vehicle.cvhLastOilChangeKm != null
       ? vehicle.cvhLastOilChangeKm + vehicle.cvhOilIntervalKm - vehicle.cvhOdometerKm
@@ -137,45 +122,12 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
           </TabsList>
 
           <TabsContent value="trips">
-            <Card>
-              <CardHeader>
-                <CardHeaderText>
-                  <CardTitle>{tDetail('recentTripsTitle')}</CardTitle>
-                </CardHeaderText>
-              </CardHeader>
-              <CardContent padded={false}>
-                {trips.length === 0 ? (
-                  <div className="p-8 text-center text-sm text-text-muted">{tDetail('noTrips')}</div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{tDetail('thRef')}</TableHead>
-                        <TableHead>{tDetail('thWhen')}</TableHead>
-                        <TableHead>{tDetail('thRoute')}</TableHead>
-                        <TableHead>{tDetail('thDriver')}</TableHead>
-                        <TableHead>{tDetail('thStatus')}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {trips.map((r) => (
-                        <TableRow key={r.trpId}>
-                          <TableCell>
-                            <Link href={`/trips/${r.trpId}`} className="font-mono text-xs text-accent hover:underline tabular">{r.trpRef}</Link>
-                          </TableCell>
-                          <TableCell className="text-text-muted tabular">{new Date(r.trpScheduledAt).toISOString().slice(0, 10)}</TableCell>
-                          <TableCell className="max-w-[280px] truncate">{r.trpPickupAddress} → {r.trpDropoffAddress}</TableCell>
-                          <TableCell>{r.driverName ?? '—'}</TableCell>
-                          <TableCell>
-                            <Badge tone={TRIP_STATUS_TONE[r.trpStatus]} size="sm">{tTripSt(r.trpStatus)}</Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
+            <TripHistorySection
+              trips={trips}
+              variant="vehicle"
+              title={tDetail('recentTripsTitle')}
+              emptyLabel={tDetail('noTrips')}
+            />
           </TabsContent>
 
           <TabsContent value="docs">

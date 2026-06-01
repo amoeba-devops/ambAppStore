@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState } from 'react';
 import { useFormatter, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -10,7 +10,6 @@ import {
   ChevronsUpDown,
   ClipboardList,
   IdCard,
-  Loader2,
   LogOut,
   PencilLine,
   Receipt,
@@ -34,6 +33,7 @@ import {
 } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { useAllDrafts, type DraftEntry } from '@/hooks/use-all-drafts';
+import { LogoutConfirmDialog } from '@/components/auth/logout-confirm-dialog';
 import { activeKeyFor, navItemsForRole, type NavKey } from './nav-items';
 import { SidebarLocaleSwitcher } from './sidebar-locale-switcher';
 import { useTenantDisplay } from './tenant-display-context';
@@ -100,7 +100,7 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
    * for admin/manager — otherwise the driver's first tab would never light up
    * since dashboard/trips isn't in their filtered items. */
   const active = activeKeyFor(pathname ?? '/', role);
-  const [signingOut, startSignOut] = useTransition();
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   const { drafts, removeDraft } = useAllDrafts();
   /* Group drafts by nav key so each NavGroup can render relevant children
@@ -119,15 +119,14 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
     costs: todayExpenseCount,
   };
 
-  const handleSignOut = () => {
-    startSignOut(async () => {
-      // D-013: dùng /api/auth/logout route để clear 3 cookies + best-effort AMA logout
-      // (logoutAction chỉ clear amb_session, không clear amb_ama_access/refresh).
-      // basePath prefix required — staging mounts app under /app-car-manager-v2,
-      // raw '/api/auth/logout' hits the nginx parent and returns PLT-E9999.
-      const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
-      window.location.href = `${basePath}/api/auth/logout`;
-    });
+  /* Passed to the confirm dialog as `perform` — runs AFTER the client wipes
+   * web storage + caches. Uses the /api/auth/logout route (clears all 3 cookies
+   * + best-effort AMA logout). basePath prefix required — staging mounts the app
+   * under /app-car-manager-v2, so a raw '/api/auth/logout' would hit the nginx
+   * parent and return PLT-E9999. */
+  const performSignOut = () => {
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+    window.location.href = `${basePath}/api/auth/logout`;
   };
 
   /* Desktop sidebar drops the `me` nav entry — the avatar at the footer is
@@ -274,11 +273,7 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
                         'data-[state=open]:ring-2 data-[state=open]:ring-ring',
                       )}
                     >
-                      {signingOut ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-text-muted mx-auto" />
-                      ) : (
-                        <Avatar name={displayName} size="sm" />
-                      )}
+                      <Avatar name={displayName} size="sm" />
                     </button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
@@ -303,11 +298,7 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
                   <div className="text-sm font-medium text-text truncate">{displayName}</div>
                   <div className="text-xs text-text-muted truncate">{displayRole}</div>
                 </div>
-                {signingOut ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-text-muted shrink-0" />
-                ) : (
-                  <ChevronsUpDown className="h-3.5 w-3.5 text-text-faint shrink-0" aria-hidden />
-                )}
+                <ChevronsUpDown className="h-3.5 w-3.5 text-text-faint shrink-0" aria-hidden />
               </button>
             </DropdownMenuTrigger>
           )}
@@ -358,21 +349,20 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
             <DropdownMenuSeparator />
             <DropdownMenuItem
               tone="danger"
-              onSelect={(e) => {
-                /* Keep the menu open until the action fires + browser
-                 * navigates so the user sees the spinner. Closing immediately
-                 * + page swap leaves a "flash" of empty sidebar that feels
-                 * jumpy on slow networks. */
-                e.preventDefault();
-                handleSignOut();
+              onSelect={() => {
+                /* Let the menu close, then open the confirm dialog on the next
+                 * tick so Radix's focus return (menu → trigger) doesn't fight
+                 * the dialog's focus trap. */
+                setTimeout(() => setLogoutOpen(true), 0);
               }}
-              disabled={signingOut}
             >
-              {signingOut ? <Loader2 className="animate-spin" /> : <LogOut aria-hidden />}
+              <LogOut aria-hidden />
               <span>{tAct('signOut')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <LogoutConfirmDialog open={logoutOpen} onOpenChange={setLogoutOpen} perform={performSignOut} />
       </div>
     </aside>
   );

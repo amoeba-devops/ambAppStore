@@ -124,7 +124,30 @@
   },
   "workspace": "Không gian làm việc",
   "admin": "Quản trị",
+  "logout": {
+    "title": "Đăng xuất?",
+    "desc": "Đăng xuất sẽ xoá toàn bộ dữ liệu phiên lưu trên trình duyệt của thiết bị này.",
+    "clearsLabel": "Sẽ xoá",
+    "clearsItems": "Bản nháp đang soạn (chuyến, xe, chi phí…), bộ lọc và tuỳ chọn hiển thị.",
+    "keepsNoti": "Cài đặt thông báo (push) vẫn được giữ nguyên.",
+    "confirm": "Đăng xuất",
+    "cancel": "Huỷ"
+  },
   "trips": {
+    "board": {
+      "viewKanban": "Kanban",
+      "viewList": "Danh sách",
+      "switchAria": "Đổi kiểu hiển thị",
+      "cappedNote": "Hiển thị một phần kết quả — hãy thu hẹp bộ lọc để xem đầy đủ.",
+      "emptyColumn": "Trống",
+      "jumpAria": "Tới cột {status} ({count})",
+      "thRef": "Mã",
+      "thWhen": "Thời gian",
+      "thRoute": "Tuyến đường",
+      "thDriver": "Tài xế",
+      "thVehicle": "Xe",
+      "thStatus": "Trạng thái"
+    },
     "status": {
       "PENDING_ASSIGNMENT": "Chờ phân công",
       "PENDING_DRIVER_CONFIRMATION": "Chờ tài xế",
@@ -143,6 +166,8 @@
       "emptyAdminDesc": "Tạo chuyến đầu tiên để bắt đầu.",
       "emptyDriverDesc": "Bạn chưa được giao chuyến nào.",
       "emptyFilterDesc": "Không có chuyến nào khớp với bộ lọc \"{filter}\".",
+      "emptyNoMatchTitle": "Không tìm thấy chuyến",
+      "emptyNoMatchDesc": "Không có chuyến nào khớp với tìm kiếm/bộ lọc hiện tại. Thử xoá bớt điều kiện lọc.",
       "searchPlaceholder": "Tìm kiếm…",
       "thisWeek": "Tuần này",
       "thisMonth": "Tháng này",

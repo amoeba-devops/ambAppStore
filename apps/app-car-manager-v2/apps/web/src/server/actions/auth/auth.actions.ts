@@ -19,6 +19,11 @@ const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? 'amb_session';
  */
 export async function logoutAction(): Promise<never> {
   const cookieStore = await cookies();
+  /* Clear every auth cookie — not just the app session — so logout is a clean
+   * slate (matches the /api/auth/logout route). The client wipes web storage +
+   * caches before invoking this. */
   cookieStore.delete(SESSION_COOKIE);
+  cookieStore.delete('amb_ama_access');
+  cookieStore.delete('amb_ama_refresh');
   redirect('/session-expired');
 }
