@@ -83,7 +83,7 @@
           <tbody>
             <tr><td><strong>Thời điểm</strong></td><td>Timestamp ISO, múi giờ Asia/Ho_Chi_Minh</td></tr>
             <tr><td><strong>Người thực hiện</strong></td><td>Avatar + tên user, hoặc "system" nếu cron tự động</td></tr>
-            <tr><td><strong>Hành động</strong></td><td>Badge mã sự kiện (TRIP.CREATE, EXPENSE.APPROVE, ROLE_CHANGE, …)</td></tr>
+            <tr><td><strong>Hành động</strong></td><td>Badge mã sự kiện (TRIP.CREATE, EXPENSE.SUBMITTED, ROLE_SYNC, …)</td></tr>
             <tr><td><strong>Thực thể</strong></td><td>Loại đối tượng (Trip, Vehicle, User, Expense, …)</td></tr>
             <tr><td><strong>Mã</strong></td><td>ID hoặc tham chiếu (vd <code>TR-1042</code>, biển số xe)</td></tr>
             <tr><td><strong>IP</strong></td><td>IP request — giúp phát hiện thao tác bất thường</td></tr>
@@ -91,12 +91,14 @@
         </table>
 
         <h2>Màu badge theo loại hành động</h2>
+        <p>Màu badge suy ra từ <em>từ khóa</em> trong mã hành động:</p>
         <ul>
-          <li>🟢 <strong>Success</strong> — ACCEPT, APPROVE, COMPLETE</li>
-          <li>🔵 <strong>Accent</strong> — ASSIGN, UPDATE, CREATE</li>
-          <li>🟣 <strong>Info</strong> — START, END, SYNC</li>
-          <li>🟡 <strong>Warning</strong> — ALERT, WARN, CONFLICT_OVERRIDDEN</li>
-          <li>🔴 <strong>Danger</strong> — REJECT, CANCEL, DELETE, ADMIN_EDIT</li>
+          <li>🟢 <strong>Success</strong> — mã chứa <code>ACCEPT</code></li>
+          <li>🔵 <strong>Accent</strong> — mã chứa <code>ASSIGN</code> hoặc <code>UPDATE</code></li>
+          <li>🟣 <strong>Info</strong> — mã chứa <code>START</code> hoặc <code>END</code></li>
+          <li>🟡 <strong>Warning</strong> — mã chứa <code>ALERT</code> hoặc <code>WARN</code></li>
+          <li>🔴 <strong>Danger</strong> — mã chứa <code>REJECT</code>, <code>CANCEL</code> hoặc <code>DELETE</code></li>
+          <li>⚪ <strong>Neutral</strong> — còn lại (<code>CREATE</code>, <code>SUBMITTED</code>, <code>OIL_RESET</code>, <code>ROLE_SYNC</code>, <code>PROVISIONED</code>…)</li>
         </ul>
 
         <h2>Bộ lọc</h2>
@@ -120,19 +122,23 @@
           <thead><tr><th>Mã</th><th>Ý nghĩa</th></tr></thead>
           <tbody>
             <tr><td><code>TRIP.CREATE</code></td><td>Tạo chuyến mới</td></tr>
+            <tr><td><code>TRIP.UPDATE</code></td><td>Sửa thông tin chuyến</td></tr>
             <tr><td><code>TRIP.ASSIGN</code></td><td>Admin gán driver + vehicle</td></tr>
+            <tr><td><code>TRIP.REASSIGN</code></td><td>Admin gán lại sau khi tài xế từ chối</td></tr>
             <tr><td><code>TRIP.ACCEPT</code></td><td>Tài xế chấp nhận</td></tr>
             <tr><td><code>TRIP.REJECT</code></td><td>Tài xế từ chối (kèm lý do)</td></tr>
             <tr><td><code>TRIP.START</code></td><td>Tài xế bấm "Bắt đầu"</td></tr>
             <tr><td><code>TRIP.END</code></td><td>Tài xế bấm "Kết thúc"</td></tr>
             <tr><td><code>TRIP.CANCEL</code></td><td>Hủy chuyến (Admin hoặc người tạo)</td></tr>
-            <tr><td><code>TRIP.CONFLICT_OVERRIDDEN</code></td><td>Admin save chuyến dù có cảnh báo xung đột lịch</td></tr>
-            <tr><td><code>EXPENSE.SUBMIT</code></td><td>User nộp chi phí mới</td></tr>
-            <tr><td><code>EXPENSE.ADMIN_EDIT</code></td><td>Admin sửa chi phí của user khác</td></tr>
-            <tr><td><code>VEHICLE.STATUS_CHANGE</code></td><td>Đổi trạng thái xe (AVAILABLE ↔ MAINTENANCE …)</td></tr>
-            <tr><td><code>ROLE_CHANGE</code></td><td>Đổi vai trò app của 1 user</td></tr>
-            <tr><td><code>ROLE_SYNC</code></td><td>Auto-sync vai trò khi user login (system event)</td></tr>
-            <tr><td><code>MAINTENANCE.OIL_OVERDUE</code></td><td>Cron tự gửi alert dầu quá hạn</td></tr>
+            <tr><td><code>EXPENSE.SUBMITTED</code></td><td>Ghi nhận chi phí mới (mọi chi phí tự động duyệt — không có bước phê duyệt)</td></tr>
+            <tr><td><code>DRIVER.CREATE</code> / <code>DRIVER.UPDATE</code></td><td>Tạo / sửa hồ sơ tài xế</td></tr>
+            <tr><td><code>VEHICLE.CREATE</code> / <code>VEHICLE.UPDATE</code> / <code>VEHICLE.DELETE</code></td><td>Tạo / sửa / xoá xe</td></tr>
+            <tr><td><code>VEHICLE.OIL_RESET</code></td><td>Reset chu kỳ thay dầu sau khi đã thay</td></tr>
+            <tr><td><code>SETTINGS.UPDATE</code></td><td>Đổi cấu hình hệ thống</td></tr>
+            <tr><td><code>MAINTENANCE.ACKNOWLEDGED</code></td><td>Admin xác nhận đã xử lý alert bảo dưỡng</td></tr>
+            <tr><td><code>MAINTENANCE.CRON_EVALUATED</code></td><td>Cron đánh giá lịch bảo dưỡng hằng ngày (system)</td></tr>
+            <tr><td><code>PROVISIONED</code></td><td>Tạo user lần đầu khi đăng nhập (system)</td></tr>
+            <tr><td><code>ROLE_SYNC</code></td><td>Auto-sync vai trò khi user login (system)</td></tr>
           </tbody>
         </table>
 

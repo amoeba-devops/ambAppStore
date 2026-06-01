@@ -61,11 +61,11 @@
         <div class="intro">
           <dl class="intro__row">
             <dt>Mục đích</dt><dd>Tổng kết hoạt động đi lại của riêng bạn theo tháng/quý</dd>
-            <dt>Cách tạo</dt><dd>Lọc dữ liệu trên Dashboard + Sổ chi phí, xuất CSV</dd>
+            <dt>Cách tạo</dt><dd>Xem trên Dashboard, xuất CSV từ Sổ chi phí rồi lọc/tổng hợp trong Excel</dd>
           </dl>
         </div>
 
-        <p>Hiện chưa có trang "Báo cáo" riêng cho Quản lý — báo cáo cá nhân được tạo bằng cách <strong>lọc dữ liệu</strong> trên các trang có sẵn rồi xuất ra file Excel.</p>
+        <p>Hiện chưa có trang "Báo cáo" riêng cho Quản lý — báo cáo cá nhân được tạo bằng cách xem dữ liệu trên các trang có sẵn rồi <strong>xuất CSV</strong> (mở bằng Excel/Google Sheets để lọc và tổng hợp).</p>
 
         <h2>Cách 1 — Báo cáo chuyến đi đã thực hiện</h2>
 
@@ -88,7 +88,7 @@
         <div class="step">
           <div class="step__num">3</div>
           <div class="step__body">
-            <p>Tổng hợp tay (sao chép) hoặc nhờ Admin xuất Excel toàn bộ — Admin có tính năng xuất nâng cao trong <code>/reports</code> (chỉ Admin truy cập được).</p>
+            <p>Tổng hợp tay từ Dashboard, hoặc dùng file CSV chi phí ở Cách 2. (Trang <code>/reports</code> của Admin có biểu đồ tổng hợp, nhưng nút xuất Excel/PDF hiện <strong>chưa hoạt động</strong>.)</p>
           </div>
         </div>
 
@@ -101,23 +101,20 @@
 
         <div class="step">
           <div class="step__num">2</div>
-          <div class="step__body"><p>Đặt bộ lọc:</p>
-            <ul>
-              <li><strong>Người nộp</strong> = chính bạn (Lê Hoàng)</li>
-              <li><strong>Khoảng ngày</strong> = tháng cần báo cáo</li>
-            </ul>
+          <div class="step__body">
+            <p>Bấm <strong>"Xuất CSV"</strong> để tải toàn bộ sổ chi phí (trang này hiện không có bộ lọc trên giao diện).</p>
           </div>
         </div>
 
         <div class="step">
           <div class="step__num">3</div>
           <div class="step__body">
-            <p>Bấm <strong>"Xuất CSV"</strong> — file tải về có sẵn để gửi bộ phận tài chính.</p>
+            <p>Mở file CSV trong Excel/Google Sheets, lọc theo <strong>người nộp</strong> (tên bạn) và <strong>tháng</strong> để có số liệu cá nhân gửi bộ phận tài chính.</p>
           </div>
         </div>
 
         <h2>Báo cáo nâng cao</h2>
-        <p>Nếu cần các báo cáo phức tạp (biểu đồ chi phí theo tháng, top tuyến đường tốn nhất, hiệu suất xe…), liên hệ Admin để truy cập <code>/reports</code> hoặc đề xuất tính năng cho đội phát triển: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>.</p>
+        <p>Nếu cần báo cáo phức tạp (biểu đồ cơ cấu chi phí, tỉ lệ sử dụng xe…), Admin có trang <code>/reports</code> với các biểu đồ này (chỉ Admin truy cập). Để đề xuất tính năng, liên hệ đội phát triển: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>.</p>
 
         <div class="callout callout--info">
           <div class="callout__icon">🚧</div>

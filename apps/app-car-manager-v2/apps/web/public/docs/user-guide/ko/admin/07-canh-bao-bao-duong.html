@@ -65,7 +65,7 @@
 
         <div class="intro">
           <dl class="intro__row">
-            <dt>트리거</dt><dd>매일 06:00 ICT 자동 크론 실행 — 전체 차량 스캔</dd>
+            <dt>트리거</dt><dd>정기 작업(크론)이 매일 전체 차량을 스캔하여 알림 생성</dd>
             <dt>표시 위치</dt><dd>알림함 <code>/inbox</code> + <code>/vehicles</code> 차량 카드 상단 배너</dd>
             <dt>처리 책임</dt><dd>관리자 (일정 조율 + 완료 후 OIL/INSPECTION 비용 등록)</dd>
           </dl>
@@ -75,9 +75,9 @@
         <table>
           <thead><tr><th>코드</th><th>발생 조건</th><th>심각도</th></tr></thead>
           <tbody>
-            <tr><td><code>OIL_DUE_SOON</code></td><td>차량 주행거리가 엔진오일 교환 주기의 80% 이상 도달 (기본값 4,000 km / 2.4개월)</td><td>WARNING</td></tr>
-            <tr><td><code>OIL_OVERDUE</code></td><td>차량이 엔진오일 교환 주기를 초과함</td><td>CRITICAL</td></tr>
-            <tr><td><code>INSPECTION_DUE_SOON</code></td><td>정기검사 만료까지 30일 이하 남음</td><td>WARNING</td></tr>
+            <tr><td><code>OIL_DUE_SOON</code></td><td>교환 주기 km의 95% 이상 도달 (예: 4,750/5,000 km) 또는 개월 기한까지 ~1주 이내 (예: 2.75/3개월)</td><td>WARNING</td></tr>
+            <tr><td><code>OIL_OVERDUE</code></td><td>차량이 엔진오일 교환 주기를 초과함 (km 또는 개월 기준)</td><td>CRITICAL</td></tr>
+            <tr><td><code>INSPECTION_DUE_SOON</code></td><td>정기검사 만료까지 7일 이하 남음</td><td>WARNING</td></tr>
             <tr><td><code>INSPECTION_OVERDUE</code></td><td>정기검사 기한이 이미 지남</td><td>CRITICAL</td></tr>
           </tbody>
         </table>
@@ -108,24 +108,31 @@
         <div class="step">
           <div class="step__num">4</div>
           <div class="step__body">
-            <p>정비 완료 후 <code>/expenses/new</code>에서 <strong>OIL</strong> 또는 <strong>INSPECTION</strong> 유형으로 비용을 등록합니다 — 해당 차량을 정확히 선택하세요.</p>
+            <p><code>/inbox</code>의 알림에서 <strong>"확인"</strong>(acknowledge)을 눌러 접수했음을 표시합니다.</p>
           </div>
         </div>
 
         <div class="step">
           <div class="step__num">5</div>
           <div class="step__body">
-            <p>시스템이 자동으로 처리합니다:</p>
+            <p>오일 교환 / 정기검사를 완료한 뒤, <code>/vehicles/[id]/edit</code>에서 차량의 <strong>정비 기준점</strong>을 갱신합니다:</p>
             <ul>
-              <li>정비 주기 초기화 (km/일 카운트를 0부터 재시작)</li>
-              <li>알림함의 해당 알림을 <code>RESOLVED</code>로 표시</li>
-              <li>다음 주기까지 크론이 동일 알림을 재발송하지 않음</li>
+              <li>오일 → <strong>"최근 오일 교환"</strong> (날짜 + 새 주행거리) 입력</li>
+              <li>정기검사 → <strong>다음 정기검사 날짜</strong> 갱신</li>
             </ul>
+            <p>그러면 이후 크론이 다시 계산하여 새 주기까지 알림을 보내지 않습니다.</p>
           </div>
         </div>
 
         <div class="step">
           <div class="step__num">6</div>
+          <div class="step__body">
+            <p>(선택) <code>/expenses/new</code>에서 <strong>OIL</strong> 또는 <strong>INSPECTION</strong> 비용을 기록해 비용 장부에 남깁니다. <strong>주의:</strong> 비용 기록은 정비 주기를 <em>자동으로</em> 초기화하지 않습니다 — 5단계에서 기준점을 갱신해야 합니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">7</div>
           <div class="step__body">
             <p>차량 상태를 <code>AVAILABLE</code>로 변경하여 기사/매니저가 다시 운행을 신청할 수 있게 합니다.</p>
           </div>
@@ -141,7 +148,7 @@
         <ul>
           <li><strong>오일 교환 주기 (km)</strong> — 기본값 5,000 km</li>
           <li><strong>오일 교환 주기 (개월)</strong> — 기본값 3개월</li>
-          <li><strong>정기검사 주기 (개월)</strong> — 기본값 12개월 (차령 7년 이하) / 6개월 (차령 7년 초과)</li>
+          <li><strong>정기검사 주기 (개월)</strong> — 기본값 12개월 (차량별 개별 설정)</li>
         </ul>
 
         <div class="callout callout--info">

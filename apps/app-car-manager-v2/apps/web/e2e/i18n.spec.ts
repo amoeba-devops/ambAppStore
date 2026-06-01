@@ -32,16 +32,6 @@ const EXPECTED_TEXTS: Record<string, Record<Locale, string>> = {
     en: 'Company code',
     ko: '회사 코드',
   },
-  onboardingTitle: {
-    vi: 'Chào mừng đến với Fleet Manager',
-    en: 'Welcome to Fleet Manager',
-    ko: 'Fleet Manager에 오신 것을 환영합니다',
-  },
-  onboardingButtonStart: {
-    vi: 'Bắt đầu đồng bộ từ AMA',
-    en: 'Start syncing from AMA',
-    ko: 'AMA에서 동기화 시작',
-  },
   navUsers: {
     vi: 'Người dùng',
     en: 'Users',
@@ -67,56 +57,32 @@ test.describe('i18n — /login page (public)', () => {
       await setLocaleCookie(context, locale);
       await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
-      /* Verify key strings */
-      await expect(page.getByText(EXPECTED_TEXTS.loginTitle[locale])).toBeVisible({
-        timeout: 15_000,
-      });
+      /* Verify key strings. The title text also appears on the submit button
+       * + dev-login buttons, so target the <h1> heading specifically to avoid
+       * a strict-mode multi-match. */
+      await expect(
+        page.getByRole('heading', { name: EXPECTED_TEXTS.loginTitle[locale] }),
+      ).toBeVisible({ timeout: 15_000 });
       await expect(page.getByText(EXPECTED_TEXTS.loginEntCodeLabel[locale])).toBeVisible();
 
-      /* No raw key leak — verify no text like "login.title" or "{key}" hiển thị */
-      const bodyText = await page.locator('body').textContent();
-      expect(bodyText).not.toMatch(/[a-z]+\.[a-zA-Z]+\.[a-zA-Z]+/); // dotted i18n key pattern
+      /* No raw key leak — a missed translation renders as e.g. "login.title"
+       * or "nav.users". Use innerText (visible text only — excludes the RSC
+       * streaming <script> JS, whose member-access like `a.previousSibling.data`
+       * would false-match a generic dotted pattern) and scope to the i18n
+       * namespaces this page actually uses, so URLs/emails don't trip it. */
+      const visibleText = await page.locator('body').innerText();
+      expect(visibleText, 'Raw i18n key leaked into DOM').not.toMatch(
+        /\b(login|nav|common|errors)\.[a-zA-Z]/,
+      );
     });
   }
 });
 
-test.describe('i18n — /onboarding page (admin)', () => {
-  test.beforeEach(async ({ page, context }) => {
-    await clearSession(context);
-    /* Reset onboarding state để page hiển thị form. Default port khớp với
-     * playwright.config.ts baseURL (3001 = car-v2 dev, 3000 reserved cho
-     * app-sales-report-v2 sibling). */
-    const baseUrl = process.env.E2E_BASE_URL ?? 'http://localhost:3001';
-    await page.request.post(`${baseUrl}/api/dev/revalidate-tenant?ent_id=${VN01.entId}`);
-  });
-
-  for (const locale of LOCALES) {
-    test(`I2-${locale} — /onboarding render đúng`, async ({ page, context }) => {
-      await setLocaleCookie(context, locale);
-      await devLogin(page, {
-        role: 'MASTER',
-        entId: VN01.entId,
-        sub: VN01_USERS.master.sub,
-      });
-      await page.goto('/onboarding', { waitUntil: 'domcontentloaded' });
-
-      await expect(page.getByText(EXPECTED_TEXTS.onboardingTitle[locale])).toBeVisible({
-        timeout: 15_000,
-      });
-      await expect(
-        page.getByRole('button', { name: new RegExp(EXPECTED_TEXTS.onboardingButtonStart[locale], 'i') }),
-      ).toBeVisible();
-    });
-  }
-});
+/* The /onboarding page + gate were removed (Option 1b — JIT per-user sync +
+ * manual "Sync from AMA" on /users replaced the first-run onboarding flow), so
+ * the former I2 onboarding-i18n block no longer applies. */
 
 test.describe('i18n — sidebar nav (authenticated)', () => {
-  test.beforeAll(async ({ request }) => {
-    /* Đảm bảo tenant đã onboard để admin vào dashboard, không bị redirect */
-    /* Lazy approach: skip nếu chưa onboard — admin sẽ bị redirect /onboarding
-     * thay vì /dashboard, nav sidebar không render. Test này verify SAU sync. */
-  });
-
   for (const locale of LOCALES) {
     test(`I3-${locale} — Sidebar "Users" link text`, async ({ page, context }) => {
       await clearSession(context);
@@ -128,18 +94,11 @@ test.describe('i18n — sidebar nav (authenticated)', () => {
       });
       await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
 
-      /* Sidebar có link "Users" theo locale. Có thể không visible nếu admin
-       * bị redirect /onboarding (chưa sync). Test này phụ thuộc previous sync. */
-      const usersLink = page.getByRole('link', {
-        name: new RegExp(EXPECTED_TEXTS.navUsers[locale], 'i'),
-      });
-      const visible = await usersLink.first().isVisible().catch(() => false);
-      if (!visible) {
-        /* Acceptable: tenant chưa sync → admin redirect /onboarding. Skip assertion */
-        test.skip(true, 'Tenant chưa sync — admin redirect /onboarding, không thấy sidebar');
-      } else {
-        await expect(usersLink.first()).toBeVisible();
-      }
+      /* No onboarding gate any more — admin lands straight on /dashboard with
+       * the full sidebar, so the localized "Users" link must be present. */
+      await expect(
+        page.getByRole('link', { name: new RegExp(EXPECTED_TEXTS.navUsers[locale], 'i') }).first(),
+      ).toBeVisible({ timeout: 15_000 });
     });
   }
 });

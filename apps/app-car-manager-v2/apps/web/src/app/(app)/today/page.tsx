@@ -10,7 +10,6 @@ import {
 import {
   Avatar,
   Badge,
-  Button,
   Card,
   CardContent,
   CardHeader,
@@ -18,7 +17,6 @@ import {
   CardTitle,
   EmptyState,
 } from '@car-v2/ui';
-import { LogOut } from 'lucide-react';
 import type { CarTripStatus } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
@@ -26,6 +24,7 @@ import { getDriverByUserId } from '@/server/queries/drivers.queries';
 import { listTrips, listTripsForDriver, type TripListItem } from '@/server/queries/trips.queries';
 import { listVehiclesForDriver, type DriverVehicleSummary } from '@/server/queries/vehicles.queries';
 import { DriverTodayView } from './_components/driver-today-view';
+import { SwitchDriverButton } from './_components/switch-driver-button';
 
 const TIME_FMT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
 
@@ -80,9 +79,7 @@ export default async function TodayPage() {
           subtitle={`${tCo('currentUser')} · ${tT('subtitleTrips', { count: myTrips.filter((t) => isToday(t.trpScheduledAt)).length })}`}
           breadcrumbs={[{ label: tCo('tenant') }, { label: tT('title') }]}
           actions={
-            <Button asChild variant="ghost" size="md" iconLeft={<LogOut />}>
-              <a href={`${process.env.BASE_PATH ?? ''}/api/auth/logout`}>{tT('switchDriver')}</a>
-            </Button>
+            <SwitchDriverButton label={tT('switchDriver')} />
           }
           mobileVariant="brand"
         />

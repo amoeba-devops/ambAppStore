@@ -72,19 +72,19 @@
             <tr><td><a href="01-dashboard.html">대시보드</a></td><td>전사 차량팀 개요 — 캘린더 + KPI</td></tr>
             <tr><td><a href="02-quan-ly-xe.html">차량 관리</a></td><td>차량 등록, 수정, 추적 — 오일 교환 주기, 정기검사</td></tr>
             <tr><td><a href="03-quan-ly-tai-xe.html">기사 관리</a></td><td>기사 프로필 + 운전면허 + 만료일</td></tr>
-            <tr><td><a href="04-quan-ly-nguoi-dung.html">사용자</a></td><td>멤버 초대 + 앱 역할 변경</td></tr>
+            <tr><td><a href="04-quan-ly-nguoi-dung.html">사용자</a></td><td>앱 역할 부여 + car-v2 접근 차단 (멤버 초대는 AMA에서)</td></tr>
             <tr><td><a href="05-quan-ly-chuyen-di.html">운행</a></td><td>생성 + 기사/차량 배정 + 운행 취소</td></tr>
             <tr><td><a href="06-quan-ly-chi-phi.html">비용 관리</a></td><td>전사 비용 장부 + CSV 내보내기</td></tr>
             <tr><td><a href="07-canh-bao-bao-duong.html">정비 알림</a></td><td>오일/정기검사 알림 모니터링 + 해결</td></tr>
             <tr><td><a href="08-bao-cao.html">보고서</a></td><td>총 KPI, 비용 종류별 도넛 차트, 가동률 선 차트</td></tr>
-            <tr><td><a href="09-cau-hinh-he-thong.html">설정</a></td><td>조직명, 기본 언어, 보관 기간, 푸시 알림</td></tr>
+            <tr><td><a href="09-cau-hinh-he-thong.html">설정</a></td><td>조직명, 통화, 시간대, 보관 기간, 알림 설정</td></tr>
             <tr><td><a href="10-audit-log.html">감사 로그</a></td><td>모든 작업 로그, 5년 보관, 수정 불가</td></tr>
           </tbody>
         </table>
 
         <h2>걱정하지 않아도 되는 것</h2>
         <ul>
-          <li><strong>사용자 계정 생성</strong> — AMA가 관리; 본인은 기존 AMA 계정 보유자를 "초대"하고 앱 권한만 부여</li>
+          <li><strong>사용자 계정 생성/초대</strong> — AMA에서 처리; car-v2에서는 앱 역할 부여 + 접근 차단만</li>
           <li><strong>DB 백업</strong> — Neon Postgres가 시간당 자동 백업</li>
           <li><strong>감사 로그 삭제</strong> — 삭제 기능 없음, 추가만 가능</li>
           <li><strong>배포</strong> — git push 시 자동 배포</li>

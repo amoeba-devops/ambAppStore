@@ -67,9 +67,9 @@
 
         <div class="intro">
           <dl class="intro__row">
-            <dt>기록 시점</dt><dd>지출 직후 (지출일로부터 7일 이내)</dd>
-            <dt>준비물</dt><dd>영수증 사진 (앱 내 카메라로 촬영)</dd>
-            <dt>승인 방식</dt><dd>유형별로 다름: 기준 금액 이하면 자동 승인, 그 외에는 관리자가 수동으로 승인</dd>
+            <dt>기록 시점</dt><dd>지출 직후 — 가능한 한 빨리 기록</dd>
+            <dt>준비물</dt><dd>유형 + 금액 + 차량. 영수증 사진은 권장되지만 <strong>필수는 아닙니다</strong></dd>
+            <dt>승인 방식</dt><dd><strong>승인 불필요</strong> — 모든 비용이 즉시 기록됩니다 (현재 버전은 승인 플로우를 제거함)</dd>
           </dl>
         </div>
 
@@ -77,19 +77,20 @@
 
         <table>
           <thead>
-            <tr><th>유형</th><th>예시</th><th>관리자 승인 필요 여부</th></tr>
+            <tr><th>유형</th><th>예시</th></tr>
           </thead>
           <tbody>
-            <tr><td>🔵 <strong>주유 (FUEL)</strong></td><td>연료 가득 주유</td><td>자동 승인</td></tr>
-            <tr><td>🔵 <strong>오일 (OIL)</strong></td><td>정기 엔진오일 교환</td><td>자동 승인</td></tr>
-            <tr><td>🟡 <strong>식사 (MEAL)</strong></td><td>오후 교대 식사</td><td>자동 승인 (50만 원 초과 시 경고)</td></tr>
-            <tr><td>⚪ <strong>정비 (REPAIR)</strong></td><td>타이어 교체, 전기 계통 수리</td><td>1,000,000₫ 이상이면 관리자 승인 필요, 미만이면 자동 승인</td></tr>
-            <tr><td>⚪ <strong>주차 (PARKING)</strong></td><td>빈콤(Vincom) 주차료</td><td>자동 승인</td></tr>
-            <tr><td>⚪ <strong>통행료 (TOLL)</strong></td><td>고속도로 BOT 통행료</td><td>자동 승인</td></tr>
-            <tr><td>🔴 <strong>사고 (ACCIDENT)</strong></td><td>경미한 접촉으로 도색 비용 발생</td><td><strong>관리자 승인 필수</strong> · 사진 첨부 필수</td></tr>
-            <tr><td>🟢 <strong>자동차 검사 (INSPECTION)</strong></td><td>정기 자동차 검사 수수료</td><td>자동 승인</td></tr>
+            <tr><td><strong>주유 (FUEL)</strong></td><td>연료 가득 주유</td></tr>
+            <tr><td><strong>오일 (OIL)</strong></td><td>정기 엔진오일 교환</td></tr>
+            <tr><td><strong>식사 (MEAL)</strong></td><td>오후 교대 식사</td></tr>
+            <tr><td><strong>정비 (REPAIR)</strong></td><td>타이어 교체, 전기 계통 수리</td></tr>
+            <tr><td><strong>주차 (PARKING)</strong></td><td>빈콤(Vincom) 주차료</td></tr>
+            <tr><td><strong>통행료 (TOLL)</strong></td><td>고속도로 BOT 통행료</td></tr>
+            <tr><td><strong>사고 (ACCIDENT)</strong></td><td>경미한 접촉으로 도색 비용 발생</td></tr>
+            <tr><td><strong>자동차 검사 (INSPECTION)</strong></td><td>정기 자동차 검사 수수료</td></tr>
           </tbody>
         </table>
+        <p>모든 유형이 동일하게 기록됩니다 — 별도 승인이 필요한 유형은 없습니다.</p>
 
         <h2>비용 기록 방법</h2>
 
@@ -125,7 +126,7 @@
         <div class="step">
           <div class="step__num">4</div>
           <div class="step__body">
-            <p><strong>지출 날짜</strong>를 선택합니다 (기본값은 오늘이며, 최대 7일 전까지 거슬러 선택할 수 있습니다).</p>
+            <p><strong>지출 날짜</strong>를 선택합니다 (기본값은 오늘이며, 미래 날짜는 선택할 수 없지만 과거 날짜는 선택 가능합니다).</p>
           </div>
         </div>
 
@@ -140,7 +141,7 @@
           <div class="step__num">6</div>
           <div class="step__body">
             <p><strong>"📷 촬영 / 사진 선택"</strong>을 탭하여 영수증 사진을 촬영하거나 갤러리에서 선택합니다.
-            최대 <strong>5장</strong>까지 첨부할 수 있으며, 각 사진은 5MB 이하여야 합니다 (PNG/JPG/GIF/WebP).</p>
+            최대 <strong>5장</strong>까지 첨부할 수 있으며, 각 사진은 10MB 이하여야 합니다 (PNG/JPG/HEIC/WebP).</p>
           </div>
         </div>
 
@@ -170,20 +171,13 @@
           <li><strong>유형</strong> + 아이콘</li>
           <li><strong>금액</strong> (VND)</li>
           <li><strong>날짜</strong> + 연결된 운행 번호 (연결된 경우)</li>
-          <li><strong>상태 라벨</strong>:
-            <ul>
-              <li><span style="color:var(--c-warning)">승인 대기</span> — 관리자 승인을 기다리는 중</li>
-              <li><span style="color:var(--c-success)">승인 완료</span> — 관리자가 승인함</li>
-              <li><span style="color:var(--c-accent)">자동 승인</span> — 자동 승인 기준을 통과함</li>
-              <li><span style="color:var(--c-danger)">거절됨</span> — 탭하여 사유 확인</li>
-            </ul>
-          </li>
+          <li><strong>상태 라벨</strong> — 기록한 비용은 항상 <span style="color:var(--c-info)">자동 승인</span>으로 표시됩니다 (자동 기록, 승인 불필요).</li>
         </ul>
 
         <div class="callout callout--warn">
           <div class="callout__icon">⚠️</div>
           <div class="callout__body">
-            <p><strong>제출 후 7일이 지나면 기록은 자동으로 잠깁니다.</strong> 그 이후에는 사용자가 직접 수정할 수 없으며 관리자에게 요청해야 합니다. 처음부터 정확하고 충분한 정보를 입력해 두세요.</p>
+            <p><strong>"기록"을 누르기 전에 꼼꼼히 확인하세요.</strong> 현재 버전에는 기록 후 비용을 수정하는 기능이 없습니다 (기사·관리자 모두). 처음부터 정확하고 충분한 정보를 입력해 두세요. 잘못 기록한 경우 관리자에게 알리세요.</p>
           </div>
         </div>
 

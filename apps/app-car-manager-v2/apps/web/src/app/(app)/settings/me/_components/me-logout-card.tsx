@@ -1,23 +1,19 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { LogOut } from 'lucide-react';
 import { Button } from '@car-v2/ui';
 import { logoutAction } from '@/server/actions/auth/auth.actions';
+import { LogoutConfirmDialog } from '@/components/auth/logout-confirm-dialog';
 
-/* Logout affordance. The server action redirects to `/session-expired` itself
- * (with basePath prepended) so the client just awaits — no manual nav. */
+/* Logout affordance. Opens a confirm dialog that wipes this browser's session
+ * caches (keeping notifications) before the server action clears the cookies
+ * and redirects to `/session-expired`. */
 export function MeLogoutCard() {
-  const tMe  = useTranslations('settings.me');
+  const tMe = useTranslations('settings.me');
   const tAct = useTranslations('actions');
-  const [pending, startTransition] = useTransition();
-
-  const handle = () => {
-    startTransition(async () => {
-      await logoutAction();
-    });
-  };
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-3">
@@ -28,14 +24,13 @@ export function MeLogoutCard() {
       <Button
         variant="danger"
         size="2xl"
-        onClick={handle}
-        disabled={pending}
-        loading={pending}
+        onClick={() => setOpen(true)}
         iconLeft={<LogOut />}
         className="w-full md:w-auto md:min-w-[200px]"
       >
-        {pending ? tMe('logoutPending') : tAct('signOut')}
+        {tAct('signOut')}
       </Button>
+      <LogoutConfirmDialog open={open} onOpenChange={setOpen} perform={() => logoutAction()} />
     </div>
   );
 }

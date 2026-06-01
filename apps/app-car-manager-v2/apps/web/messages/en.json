@@ -124,7 +124,30 @@
   },
   "workspace": "Workspace",
   "admin": "Admin",
+  "logout": {
+    "title": "Sign out?",
+    "desc": "Signing out clears all session data stored in this browser on this device.",
+    "clearsLabel": "Will clear",
+    "clearsItems": "Unsaved drafts (trips, vehicles, expenses…), filters and view preferences.",
+    "keepsNoti": "Notification (push) settings are kept.",
+    "confirm": "Sign out",
+    "cancel": "Cancel"
+  },
   "trips": {
+    "board": {
+      "viewKanban": "Kanban",
+      "viewList": "List",
+      "switchAria": "Switch view",
+      "cappedNote": "Showing partial results — narrow the filters to see all.",
+      "emptyColumn": "Empty",
+      "jumpAria": "Go to {status} column ({count})",
+      "thRef": "Ref",
+      "thWhen": "When",
+      "thRoute": "Route",
+      "thDriver": "Driver",
+      "thVehicle": "Vehicle",
+      "thStatus": "Status"
+    },
     "status": {
       "PENDING_ASSIGNMENT": "Pending assignment",
       "PENDING_DRIVER_CONFIRMATION": "Pending driver",
@@ -143,6 +166,8 @@
       "emptyAdminDesc": "Create the first trip to get started.",
       "emptyDriverDesc": "You have no trips assigned to you yet.",
       "emptyFilterDesc": "No trips match the \"{filter}\" filter.",
+      "emptyNoMatchTitle": "No matching trips",
+      "emptyNoMatchDesc": "No trips match the current search or filters. Try clearing some filters.",
       "searchPlaceholder": "Search…",
       "thisWeek": "This week",
       "thisMonth": "This month",
@@ -603,6 +628,12 @@
       "notFound": "No user matches \"{query}\".",
       "emptyMembers": "Nobody has signed in to car-v2 yet.",
       "emptyHint": "Members appear here after their first sign-in. To invite more:"
+    },
+    "peek": {
+      "a11yTitle": "User details — {name}",
+      "a11yDescription": "User detail panel sliding in from the right.",
+      "close": "Close",
+      "signinLabel": "car-v2 sign-in access"
     },
     "refresh": {
       "label": "Sync from AMA",
@@ -1103,6 +1134,12 @@
       "lightboxUnavailable": "Receipt unavailable",
       "lockRemaining": "Editable for {days} more days.",
       "lockExpired": "Edit window expired (7-day soft lock)."
+    },
+    "peek": {
+      "a11yTitle": "Expense details — {ref}",
+      "a11yDescription": "Expense detail panel sliding in from the right.",
+      "close": "Close",
+      "openFull": "Open full details"
     },
     "submit": {
       "title": "Record expense",

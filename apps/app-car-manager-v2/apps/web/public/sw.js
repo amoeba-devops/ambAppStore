@@ -25,12 +25,36 @@
  * `/app-car-manager-v2/` (staging Docker).
  */
 
-/* Bumped to v2 when trip-detail offline cache was added (REQ-20260520 H.3).
- * The `activate` handler nukes any previous-version cache on upgrade. */
-const CACHE_VERSION = 'fleet-v2';
+/* Bumped to v3 to reclaim accumulated cache bloat: the previous static cache
+ * name never changed across deploys, so every build's content-hashed
+ * `_next/static/*` chunks piled up forever (they can never be re-requested
+ * once the hash changes). The `activate` handler nukes any cache whose name
+ * isn't in `keep`, so this bump one-time-clears the old `fleet-v2` caches. */
+const CACHE_VERSION = 'fleet-v3';
 const TRIP_CACHE = CACHE_VERSION + '-trips';
+/* `_next/static/*` lives in its own cache so the size cap can trim it WITHOUT
+ * risking the precached offline.html / manifest / icons (which share
+ * CACHE_VERSION and must never be evicted). */
+const STATIC_CACHE = CACHE_VERSION + '-static';
 const SCOPE = new URL(self.registration.scope).pathname;
 const BASE = SCOPE.endsWith('/') ? SCOPE : SCOPE + '/';
+
+/* Storage caps — keep Cache Storage bounded regardless of how many deploys
+ * ship or how many trips a driver opens. `trimCache` evicts oldest-inserted
+ * entries (Cache API preserves insertion order in `keys()`) once the count
+ * exceeds the cap. A cache miss after eviction just re-fetches from network
+ * (we only cache GET assets / navigations), so trimming is always safe. */
+const MAX_STATIC_ENTRIES = 80;
+const MAX_TRIP_ENTRIES = 12;
+
+async function trimCache(cacheName, maxEntries) {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys();
+  if (keys.length <= maxEntries) return;
+  /* Delete from the front (oldest) until we're back under the cap. */
+  const excess = keys.length - maxEntries;
+  await Promise.all(keys.slice(0, excess).map((req) => cache.delete(req)));
+}
 
 const OFFLINE_URL = BASE + 'offline.html';
 const PRECACHE_URLS = [
@@ -57,9 +81,9 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const names = await caches.keys();
-      /* Keep both the current static cache and the trip-detail cache; nuke
-       * everything else (previous SW version's caches). */
-      const keep = new Set([CACHE_VERSION, TRIP_CACHE]);
+      /* Keep the precache, the static-chunk cache, and the trip-detail cache;
+       * nuke everything else (previous SW version's caches). */
+      const keep = new Set([CACHE_VERSION, STATIC_CACHE, TRIP_CACHE]);
       await Promise.all(
         names.filter((n) => !keep.has(n)).map((n) => caches.delete(n)),
       );
@@ -68,59 +92,11 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-/* ─── Push handler (P4 notifications) ─────────────────────────────────── */
-
-self.addEventListener('push', (event) => {
-  if (!event.data) return;
-
-  /** @type {{ title?: string, body?: string, url?: string, tag?: string }} */
-  let payload = {};
-  try {
-    payload = event.data.json();
-  } catch {
-    payload = { title: 'CCMS', body: event.data.text() };
-  }
-
-  const title = payload.title || 'CCMS';
-  const options = {
-    body: payload.body || '',
-    /* `tag` coalesces re-pushes for the same trip into one notification. */
-    tag: payload.tag || 'ccms',
-    /* `renotify` re-vibrates/re-sounds even when tag is unchanged — useful
-     * when admin re-assigns a previously seen trip. */
-    renotify: true,
-    icon: BASE + 'icons/icon-192.png',
-    data: { url: payload.url || BASE },
-  };
-
-  event.waitUntil(self.registration.showNotification(title, options));
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-
-  const targetUrl = (event.notification.data && event.notification.data.url) || BASE;
-
-  event.waitUntil(
-    (async () => {
-      const allClients = await self.clients.matchAll({
-        type: 'window',
-        includeUncontrolled: true,
-      });
-
-      /* Prefer to re-focus a tab already open at this URL. */
-      for (const client of allClients) {
-        if (client.url.endsWith(targetUrl) && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      /* Otherwise open a new tab. */
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(targetUrl);
-      }
-    })(),
-  );
-});
+/* Push + notificationclick handlers live further down (the "Web Push
+ * (REQ-20260520 H.6)" block). They were previously ALSO defined here, which
+ * registered two listeners for each event — so a single push fired both and
+ * the user saw a duplicate notification. Removed the older pair; the single
+ * remaining pair below is the canonical one. */
 
 /* ─── Fetch handler (P5 cache strategies) ─────────────────────────────── */
 
@@ -133,15 +109,16 @@ self.addEventListener('fetch', (event) => {
 
   if (url.origin !== self.location.origin) return;
 
-  /* Static immutable build assets (hashed filenames) — cache-first. */
+  /* Static immutable build assets (hashed filenames) — cache-first into the
+   * size-capped static cache so old deploys' chunks can't accumulate. */
   if (url.pathname.startsWith(BASE + '_next/static/')) {
-    event.respondWith(cacheFirst(req));
+    event.respondWith(cacheFirst(req, STATIC_CACHE, MAX_STATIC_ENTRIES));
     return;
   }
 
-  /* Icons + manifest — cache-first too. */
+  /* Icons + manifest — cache-first into the (tiny, untrimmed) precache. */
   if (url.pathname.startsWith(BASE + 'icons/') || url.pathname === BASE + 'manifest.webmanifest') {
-    event.respondWith(cacheFirst(req));
+    event.respondWith(cacheFirst(req, CACHE_VERSION));
     return;
   }
 
@@ -175,8 +152,8 @@ self.addEventListener('fetch', (event) => {
    * the cache footprint predictable. */
 });
 
-async function cacheFirst(req) {
-  const cache = await caches.open(CACHE_VERSION);
+async function cacheFirst(req, cacheName, maxEntries) {
+  const cache = await caches.open(cacheName);
   const cached = await cache.match(req);
   if (cached) return cached;
   try {
@@ -184,7 +161,9 @@ async function cacheFirst(req) {
     /* Only cache successful, basic responses — opaque (CORS) or error
      * responses would poison the cache. */
     if (res && res.ok && res.type === 'basic') {
-      cache.put(req, res.clone());
+      await cache.put(req, res.clone());
+      /* Enforce the size cap after each insert (no-op when uncapped). */
+      if (maxEntries) void trimCache(cacheName, maxEntries);
     }
     return res;
   } catch (err) {
@@ -201,9 +180,9 @@ async function cacheFirst(req) {
  *   2. Cache fallback returns the same URL's cached body instead of
  *      offline.html, so the driver actually sees the trip they expected
  *
- * Cache eviction: passive — old entries naturally rotate out as new trips
- * are viewed. We could add explicit pruning (keep last N) but with ~5-10
- * trips/driver/day and tiny HTML payloads it's not worth the complexity. */
+ * Cache eviction: bounded to the last MAX_TRIP_ENTRIES viewed trips via
+ * `trimCache` after each successful write, so the cache can't grow without
+ * limit no matter how many trips a driver opens over the SW's lifetime. */
 /* ───────────────────────── Web Push (REQ-20260520 H.6) ───────────────────── */
 
 self.addEventListener('push', (event) => {
@@ -269,8 +248,12 @@ async function networkFirstWithCache(req, cacheName) {
     const res = await fetch(req);
     if (res && res.ok && res.type === 'basic') {
       /* Don't await — the response goes to the page immediately, the cache
-       * write can finish in the background. */
-      cache.put(req, res.clone()).catch(() => {});
+       * write + trim finish in the background. The trim keeps only the last
+       * ~12 viewed trips so this cache can't grow unbounded. */
+      cache
+        .put(req, res.clone())
+        .then(() => trimCache(cacheName, MAX_TRIP_ENTRIES))
+        .catch(() => {});
     }
     return res;
   } catch {

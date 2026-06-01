@@ -64,7 +64,7 @@
 
         <div class="intro">
           <dl class="intro__row">
-            <dt>Trigger</dt><dd>Cron tự động chạy hàng ngày 06:00 ICT — quét tất cả xe</dd>
+            <dt>Trigger</dt><dd>Tác vụ định kỳ (cron) quét toàn bộ xe hằng ngày để sinh cảnh báo</dd>
             <dt>Xuất hiện ở</dt><dd>Hộp thư <code>/inbox</code> + banner trên card xe trong <code>/vehicles</code></dd>
             <dt>Trách nhiệm xử lý</dt><dd>Admin (đặt lịch + ghi chi phí OIL/INSPECTION khi xong)</dd>
           </dl>
@@ -74,9 +74,9 @@
         <table>
           <thead><tr><th>Mã</th><th>Trigger</th><th>Mức độ</th></tr></thead>
           <tbody>
-            <tr><td><code>OIL_DUE_SOON</code></td><td>Xe đã chạy ≥ 80% chu kỳ thay dầu (mặc định 4.000 km / 2.4 tháng)</td><td>WARNING</td></tr>
-            <tr><td><code>OIL_OVERDUE</code></td><td>Xe đã vượt chu kỳ thay dầu</td><td>CRITICAL</td></tr>
-            <tr><td><code>INSPECTION_DUE_SOON</code></td><td>Còn ≤ 30 ngày đến hạn đăng kiểm</td><td>WARNING</td></tr>
+            <tr><td><code>OIL_DUE_SOON</code></td><td>Đã chạy ≥ 95% chu kỳ km (vd 4.750/5.000 km) hoặc còn ≤ ~1 tuần đến hạn theo tháng (vd 2.75/3 tháng)</td><td>WARNING</td></tr>
+            <tr><td><code>OIL_OVERDUE</code></td><td>Xe đã vượt chu kỳ thay dầu (theo km hoặc theo tháng)</td><td>CRITICAL</td></tr>
+            <tr><td><code>INSPECTION_DUE_SOON</code></td><td>Còn ≤ 7 ngày đến hạn đăng kiểm</td><td>WARNING</td></tr>
             <tr><td><code>INSPECTION_OVERDUE</code></td><td>Đã quá hạn đăng kiểm</td><td>CRITICAL</td></tr>
           </tbody>
         </table>
@@ -107,24 +107,31 @@
         <div class="step">
           <div class="step__num">4</div>
           <div class="step__body">
-            <p>Sau khi xong, ghi chi phí loại <strong>OIL</strong> hoặc <strong>INSPECTION</strong> tại <code>/expenses/new</code> — chọn đúng xe.</p>
+            <p>Bấm <strong>"Xác nhận"</strong> (acknowledge) trên cảnh báo trong <code>/inbox</code> để đánh dấu đã tiếp nhận.</p>
           </div>
         </div>
 
         <div class="step">
           <div class="step__num">5</div>
           <div class="step__body">
-            <p>Hệ thống tự động:</p>
+            <p>Sau khi đã thay dầu / đăng kiểm xong, cập nhật <strong>mốc bảo dưỡng</strong> của xe tại <code>/vehicles/[id]/edit</code>:</p>
             <ul>
-              <li>Reset chu kỳ bảo dưỡng (đếm km/ngày từ 0)</li>
-              <li>Đánh dấu cảnh báo <code>RESOLVED</code> trong hộp thư</li>
-              <li>Cron hôm sau không gửi lại alert cho đến chu kỳ tiếp theo</li>
+              <li>Với dầu → nhập <strong>"Lần thay dầu gần nhất"</strong> (ngày + số km mới)</li>
+              <li>Với đăng kiểm → cập nhật <strong>ngày đăng kiểm kế tiếp</strong></li>
             </ul>
+            <p>Nhờ đó cron các ngày sau tính lại và không cảnh báo cho đến chu kỳ mới.</p>
           </div>
         </div>
 
         <div class="step">
           <div class="step__num">6</div>
+          <div class="step__body">
+            <p>(Tùy chọn) Ghi chi phí loại <strong>OIL</strong> hoặc <strong>INSPECTION</strong> tại <code>/expenses/new</code> để vào sổ chi phí. <strong>Lưu ý:</strong> ghi chi phí <em>không</em> tự động reset chu kỳ bảo dưỡng — phải cập nhật mốc ở bước 5.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">7</div>
           <div class="step__body">
             <p>Đổi trạng thái xe về <code>AVAILABLE</code> để Tài xế/Manager có thể đặt chuyến lại.</p>
           </div>
@@ -140,7 +147,7 @@
         <ul>
           <li><strong>Chu kỳ dầu (km)</strong> — mặc định 5.000 km</li>
           <li><strong>Chu kỳ dầu (tháng)</strong> — mặc định 3 tháng</li>
-          <li><strong>Chu kỳ đăng kiểm (tháng)</strong> — mặc định 12 tháng (xe ≤ 7 năm) / 6 tháng (xe > 7 năm)</li>
+          <li><strong>Chu kỳ đăng kiểm (tháng)</strong> — mặc định 12 tháng (chỉnh riêng theo từng xe)</li>
         </ul>
 
         <div class="callout callout--info">

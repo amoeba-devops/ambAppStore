@@ -54,7 +54,7 @@
         <div class="breadcrumb">
           <a href="../index.html">Trang chủ</a> · Tài xế · Cảnh báo bảo dưỡng
         </div>
-        <h1>Đọc cảnh báo bảo dưỡng</h1>
+        <h1>Bảo dưỡng xe — vai trò của tài xế</h1>
         <!-- APP_LINK_CTA -->
         <p class="app-link-cta-row">
           <a class="app-link-cta" href="/inbox" target="_parent" rel="noopener">
@@ -66,74 +66,45 @@
 
         <div class="intro">
           <dl class="intro__row">
-            <dt>Khi nào</dt><dd>Xe bạn lái đến 80% chu kỳ thay dầu, hoặc gần đến hạn đăng kiểm</dd>
-            <dt>Ai xử lý</dt><dd>Admin / Quản lý là người đặt lịch bảo dưỡng — bạn chỉ cần <strong>đọc</strong> và phối hợp</dd>
+            <dt>Ai nhận cảnh báo</dt><dd><strong>Admin / Quản lý</strong> — cảnh báo bảo dưỡng <em>không</em> gửi cho tài xế</dd>
+            <dt>Vai trò của bạn</dt><dd>Phối hợp mang xe đi bảo dưỡng / đăng kiểm khi được Admin yêu cầu</dd>
             <dt>Cấp độ</dt><dd>WARNING (sắp đến hạn) · CRITICAL (đã quá hạn)</dd>
           </dl>
         </div>
 
-        <p>Hệ thống <strong>tự động kiểm tra hàng ngày</strong> các xe trong đội — nếu phát hiện xe sắp/quá hạn thay dầu hoặc đăng kiểm, sẽ gửi cảnh báo tới Admin/Quản lý. Bạn nhận thông báo nếu xe đó là <em>xe bạn lái thường xuyên</em>.</p>
+        <p>Hệ thống <strong>tự động kiểm tra hằng ngày</strong> các xe trong đội. Khi một xe sắp/đã đến hạn thay dầu hoặc đăng kiểm, cảnh báo được gửi tới <strong>Admin/Quản lý</strong> (qua hộp thư + banner trên trang Quản lý xe). <strong>Tài xế không nhận cảnh báo này trong app</strong> — Admin sẽ chủ động liên hệ bạn để sắp xếp.</p>
 
-        <h2>Mở hộp thư</h2>
-
-        <div class="step">
-          <div class="step__num">1</div>
-          <div class="step__body">
-            <p>Bấm biểu tượng <strong>chuông</strong> ở thanh trên cùng — số đỏ là số thông báo chưa đọc.</p>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step__num">2</div>
-          <div class="step__body">
-            <p>Trong danh sách thông báo, các cảnh báo bảo dưỡng có icon dấu tick (✓) trên nền xanh nhạt.</p>
-            <figure>
-              <img src="../../assets/img/screenshots/vi/driver/06-inbox-maintenance.png" alt="Hộp thư có cảnh báo bảo dưỡng">
-              <figcaption>Hộp thư — cảnh báo bảo dưỡng (icon ✓ nền xanh nhạt) lẫn với thông báo chuyến đi</figcaption>
-            </figure>
-          </div>
-        </div>
-
-        <h2>Hai loại cảnh báo</h2>
-
+        <h2>Các nhóm cảnh báo (Admin theo dõi)</h2>
         <table>
-          <thead><tr><th>Loại</th><th>Khi nào trigger</th><th>Bạn cần làm gì</th></tr></thead>
+          <thead><tr><th>Loại</th><th>Khi nào trigger</th><th>Tài xế phối hợp thế nào</th></tr></thead>
           <tbody>
             <tr>
               <td><strong>Sắp đến hạn thay dầu</strong> (WARNING)</td>
-              <td>Xe đã chạy ≥ 80% chu kỳ (mặc định 5.000 km)</td>
-              <td>Báo Admin xếp lịch trong vài ngày tới</td>
+              <td>Xe đã chạy ≥ 95% chu kỳ km (vd 4.750/5.000 km) hoặc còn ≤ ~1 tuần đến hạn theo tháng</td>
+              <td>Khi Admin xếp lịch, mang xe đi thay dầu</td>
             </tr>
             <tr>
               <td><strong>Quá hạn thay dầu</strong> (CRITICAL)</td>
               <td>Xe đã vượt chu kỳ thay dầu</td>
-              <td>Báo Admin <strong>ngay</strong>; tránh chạy đường dài cho đến khi thay</td>
+              <td>Tránh chạy đường dài cho đến khi thay; phối hợp đi thay sớm</td>
             </tr>
             <tr>
-              <td><strong>Sắp đến hạn đăng kiểm</strong></td>
-              <td>Còn ≤ 30 ngày tới hạn</td>
-              <td>Báo Admin đặt lịch đăng kiểm</td>
+              <td><strong>Sắp đến hạn đăng kiểm</strong> (WARNING)</td>
+              <td>Còn ≤ 7 ngày tới hạn</td>
+              <td>Mang xe đi đăng kiểm theo lịch Admin</td>
             </tr>
             <tr>
-              <td><strong>Quá hạn đăng kiểm</strong></td>
+              <td><strong>Quá hạn đăng kiểm</strong> (CRITICAL)</td>
               <td>Đã quá hạn</td>
               <td><strong>Không lái xe</strong> đến khi đăng kiểm xong (vi phạm luật)</td>
             </tr>
           </tbody>
         </table>
 
-        <h2>Sau khi xe được thay dầu / đăng kiểm</h2>
-        <p>Khi Admin (hoặc bạn — nếu được uỷ quyền) ghi chi phí loại <strong>OIL (Dầu)</strong> hoặc <strong>INSPECTION (Đăng kiểm)</strong>:</p>
-        <ul>
-          <li>Cảnh báo trong hộp thư tự động được <strong>đánh dấu giải quyết</strong></li>
-          <li>Chu kỳ bảo dưỡng được reset (km về 0, đếm lại từ đầu)</li>
-          <li>Hôm sau cron sẽ không gửi lại cảnh báo cho đến khi tới chu kỳ tiếp theo</li>
-        </ul>
-
         <div class="callout callout--info">
           <div class="callout__icon">ℹ️</div>
           <div class="callout__body">
-            <p><strong>Tài xế không trực tiếp giải quyết</strong> cảnh báo — đây là việc của Admin. Bạn chỉ cần <strong>thông tin</strong> Admin biết và <strong>phối hợp</strong> mang xe đi bảo dưỡng đúng hẹn.</p>
+            <p><strong>Tài xế không trực tiếp xử lý</strong> cảnh báo bảo dưỡng — đó là việc của Admin/Quản lý (họ theo dõi alert + cập nhật mốc bảo dưỡng sau khi xong). Vai trò của bạn là <strong>phối hợp</strong> mang xe đi đúng hẹn.</p>
           </div>
         </div>
 

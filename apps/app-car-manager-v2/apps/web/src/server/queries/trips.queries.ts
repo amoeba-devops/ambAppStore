@@ -230,6 +230,86 @@ export async function listTripsForCalendar(args: {
   }));
 }
 
+const BOARD_CAP = 300;
+
+/**
+ * Trips for the Kanban board on `/trips`.
+ *
+ * Unlike `listTrips`, the board needs the WHOLE filtered set (no 20-row
+ * pagination) because every status column must be populated at once. We
+ * deliberately drop the status-bucket filter — columns ARE the statuses — but
+ * keep role visibility + free-text search + date range so the board mirrors
+ * what the list view would show under the same q/date.
+ *
+ * Hard cap at {@link BOARD_CAP}: a 3-vehicle fleet (PRD) never approaches it,
+ * but we return `capped` so the UI can surface a "narrow the range" hint
+ * instead of silently truncating (CLAUDE.md — no silent caps).
+ */
+export async function listTripsForBoard(args: {
+  entId: string;
+  role: LocalRole;
+  userId: string;
+  q?: string;
+  dateRange?: TripDateRange;
+}): Promise<{ items: TripListItem[]; capped: boolean }> {
+  const { entId, role, userId, q, dateRange = 'all' } = args;
+  const filters: SQL[] = [eq(carTrips.entId, entId), isNull(carTrips.trpDeletedAt)];
+
+  if (role === 'MANAGER') {
+    const visibility = or(eq(carTrips.trpCreatorId, userId), eq(carTrips.trpPassengerId, userId));
+    if (visibility) filters.push(visibility);
+  } else if (role === 'DRIVER') {
+    const driver = await getDriverByUserId(entId, userId);
+    if (!driver) return { items: [], capped: false };
+    filters.push(eq(carTrips.trpDriverId, driver.drvId));
+  }
+
+  const passengerUsers = carUsers;
+  const driverUsers = sql<string | null>`drv_user.usr_name`;
+
+  const term = q?.trim();
+  if (term) {
+    const like = `%${term}%`;
+    const searchFilter = or(
+      ilike(carTrips.trpRef, like),
+      ilike(carTrips.trpPickupAddress, like),
+      ilike(carTrips.trpDropoffAddress, like),
+      ilike(carTrips.trpPurpose, like),
+      ilike(passengerUsers.usrName, like),
+    );
+    if (searchFilter) filters.push(searchFilter);
+  }
+
+  const dateFilter = dateRangeToWhere(dateRange);
+  if (dateFilter) filters.push(dateFilter);
+
+  const rows = await db
+    .select({
+      trip: carTrips,
+      passengerName: passengerUsers.usrName,
+      driverName: driverUsers,
+      vehiclePlate: carVehicles.cvhPlateNumber,
+    })
+    .from(carTrips)
+    .leftJoin(passengerUsers, eq(carTrips.trpPassengerId, passengerUsers.usrId))
+    .leftJoin(carDrivers, eq(carTrips.trpDriverId, carDrivers.drvId))
+    .leftJoin(sql`car_users AS drv_user`, sql`car_drivers.drv_user_id = drv_user.usr_id`)
+    .leftJoin(carVehicles, eq(carTrips.trpVehicleId, carVehicles.cvhId))
+    .where(and(...filters))
+    .orderBy(desc(carTrips.trpScheduledAt))
+    .limit(BOARD_CAP + 1);
+
+  const capped = rows.length > BOARD_CAP;
+  const items: TripListItem[] = rows.slice(0, BOARD_CAP).map((r) => ({
+    ...r.trip,
+    passengerName: r.passengerName ?? null,
+    driverName: r.driverName ?? null,
+    vehiclePlate: r.vehiclePlate ?? null,
+  }));
+
+  return { items, capped };
+}
+
 function statusToWhere(status: ListInput['status']): SQL | null {
   switch (status) {
     case 'all':

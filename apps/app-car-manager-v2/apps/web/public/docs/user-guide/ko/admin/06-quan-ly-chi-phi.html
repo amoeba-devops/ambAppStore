@@ -67,7 +67,7 @@
           <dl class="intro__row">
             <dt>URL</dt><dd><code>/costs</code></dd>
             <dt>범위</dt><dd>조직 내 모든 비용 — 제출자에 관계없이</dd>
-            <dt>권한</dt><dd>조회 · CSV 내보내기 · 신규 등록 · <strong>다른 사용자 비용 수정</strong> (매니저는 불가)</dd>
+            <dt>권한</dt><dd>조직의 모든 비용 조회 · 신규 비용 기록 · CSV 내보내기 (Admin과 매니저 동일; 기사는 이 페이지 접근 불가)</dd>
           </dl>
         </div>
 
@@ -84,39 +84,18 @@
           <figcaption>비용 장부 — 왼쪽 목록 + 오른쪽 상세 패널 (영수증 이미지, 메모, 운행 링크)</figcaption>
         </figure>
 
-        <h2>고급 필터</h2>
+        <h2>비용 장부 구성</h2>
         <ul>
-          <li><strong>유형별</strong> — 8가지 유형 (FUEL, OIL, MEAL, REPAIR, ACCIDENT, PARKING, TOLL, INSPECTION)</li>
-          <li><strong>제출자별</strong> — 기사 또는 매니저 선택</li>
-          <li><strong>차량별</strong> — 번호판 선택</li>
-          <li><strong>운행별</strong> — 특정 운행에 연결된 비용만 표시</li>
-          <li><strong>날짜 범위</strong></li>
-          <li><strong>금액 범위</strong> (최소/최대)</li>
-          <li><strong>메모 검색</strong></li>
+          <li><strong>왼쪽 목록</strong> — 조직의 모든 비용을 최신순으로 표시. 각 행: 유형 아이콘 + 차량 번호판, 금액, 출처 라벨(기사 / 백오피스 직원) + 이름 + 제출 시각.</li>
+          <li><strong>오른쪽 패널 (데스크톱)</strong> — 행을 클릭하면 읽기 전용 상세 표시: 금액, 유형, 연결된 운행, 차량, 기사, 메모, 영수증 이미지. 모바일에서는 행 클릭 시 별도 상세 페이지가 열립니다.</li>
         </ul>
-
-        <h2>다른 사용자 비용 수정</h2>
-        <p>Admin은 <em>모든</em> 비용을 수정할 수 있습니다 — 사용자의 7일 잠금 이후라도 가능합니다:</p>
-        <ul>
-          <li>비용 항목 클릭 → 오른쪽 상세 패널 열림</li>
-          <li><strong>"수정"</strong> 클릭 → 편집 폼 열림</li>
-          <li>금액, 날짜, 유형, 메모 수정 → 저장</li>
-          <li>감사 로그: <code>EXPENSE.ADMIN_EDIT</code>에 원래 사용자 + 수정자가 기록됨</li>
-        </ul>
-
-        <div class="callout callout--warn">
-          <div class="callout__icon">⚠️</div>
-          <div class="callout__body">
-            <p><strong>다른 사용자 비용 수정</strong>은 민감한 작업입니다. 수정 전 반드시 해당 사용자에게 알리고, 메모 필드에 수정 사유를 명확히 기입하세요.</p>
-          </div>
-        </div>
+        <p>이 페이지에는 현재 <strong>화면 필터가 없습니다</strong> — 모든 비용이 나열됩니다. 유형 / 날짜 / 차량별 분석이 필요하면 <strong>CSV 내보내기</strong> 후 Excel/Google Sheets에서 필터링하세요.</p>
 
         <h2>회계용 CSV 내보내기</h2>
         <ol>
-          <li>날짜 범위 필터 설정 (예: 2026년 5월)</li>
-          <li>오른쪽 상단 <strong>"CSV 내보내기"</strong> 클릭</li>
-          <li>다운로드 파일 열 구성: ID, 유형, 금액, 날짜, 제출자, 차량, 운행, 상태, 메모, 영수증 이미지 URL</li>
-          <li>Excel/Google Sheets로 열기 — UTF-8 BOM 인코딩 적용, 한글 표시 정상</li>
+          <li>오른쪽 상단 <strong>"CSV 내보내기"</strong> 클릭 — 전체 비용 장부 내보내기 (최신 최대 1000행)</li>
+          <li>다운로드 파일 열 구성: 비용 코드, 유형, 상태, 금액, 통화, 발생일, 제출 시각, 기사, 차량, 운행 코드, 메모</li>
+          <li>Excel/Google Sheets로 열기 — UTF-8 인코딩 적용, 한글 표시 정상</li>
         </ol>
 
         <nav class="pager">

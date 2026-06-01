@@ -7,11 +7,14 @@ import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getDriverByUserId } from '@/server/queries/drivers.queries';
-import { listExpensesForDriver } from '@/server/queries/expenses.queries';
+import { getExpenseDetail, listExpensesForDriver } from '@/server/queries/expenses.queries';
+import { getSignedGetUrl } from '@/lib/s3-client';
+import type { AttachmentItem } from './[id]/_components/attachment-gallery';
 import { ExpensesList } from './_components/expenses-list';
+import { ExpensePeekDrawer } from './_components/expense-peek-drawer';
 
 interface PageProps {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; peek?: string }>;
 }
 
 /* Driver expense history (`/expenses`).
@@ -51,6 +54,21 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
     : { items: [], total: 0, page: 1, pageSize: 20 };
   const items = result.items;
   const { total, pageSize } = result;
+
+  /* Peek target — full detail + signed receipt URLs for the slide-over drawer. */
+  const peekDetail = sp.peek ? await getExpenseDetail(user.entId, sp.peek) : null;
+  let peekAttachments: AttachmentItem[] = [];
+  if (peekDetail) {
+    peekAttachments = await Promise.all(
+      peekDetail.attachments.map(async (a) => ({
+        eatId: a.eatId,
+        eatMime: a.eatMime,
+        eatSizeBytes: a.eatSizeBytes,
+        signedUrl: await getSignedGetUrl(a.eatS3Key, 900),
+      })),
+    );
+  }
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const showingTo = Math.min(total, page * pageSize);
@@ -87,7 +105,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
           </Card>
         ) : (
           <>
-            <ExpensesList items={items} />
+            <ExpensesList items={items} page={page} />
             {totalPages > 1 && (
               <div className="flex flex-col-reverse md:flex-row md:items-center md:justify-between gap-3 text-sm text-text-muted">
                 <span className="text-xs md:text-sm">
@@ -120,6 +138,8 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
       </div>
 
       <Fab href="/expenses/new" label={tA('new')} icon={<Plus />} />
+
+      {peekDetail && <ExpensePeekDrawer expense={peekDetail} attachments={peekAttachments} />}
     </>
   );
 }

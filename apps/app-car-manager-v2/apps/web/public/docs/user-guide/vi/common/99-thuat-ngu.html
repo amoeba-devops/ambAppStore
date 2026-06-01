@@ -89,7 +89,7 @@
           <tbody>
             <tr><td><strong>AMA</strong></td><td>Amoeba Management — nền tảng quản lý tài khoản & tổ chức của Amoeba, cung cấp SSO cho mọi app trong hệ sinh thái.</td></tr>
             <tr><td><strong>Audit log</strong></td><td>Nhật ký kiểm toán — ghi lại mọi thay đổi dữ liệu, không thể sửa/xoá, lưu trữ 5 năm.</td></tr>
-            <tr><td><strong>Auto-approve</strong></td><td>Tự động duyệt — khoản chi phí dưới ngưỡng cấu hình được duyệt tự động không cần Admin can thiệp.</td></tr>
+            <tr><td><strong>Auto-approve</strong></td><td>Tự động duyệt — phiên bản hiện tại ghi nhận mọi chi phí ở trạng thái "Tự duyệt" ngay khi gửi; không còn bước phê duyệt của Admin (PRD R3 đã bỏ luồng duyệt).</td></tr>
             <tr><td><strong>Báo dưỡng</strong></td><td>Bảo dưỡng định kỳ — thay dầu, kiểm tra phanh, lốp… Hệ thống tự cảnh báo dựa trên số km và thời gian.</td></tr>
             <tr><td><strong>BFF</strong></td><td>Backend-For-Frontend — server riêng cho ứng dụng frontend, đóng vai trò proxy + xử lý nghiệp vụ.</td></tr>
             <tr><td><strong>Chuyến đi (Trip)</strong></td><td>Một lần sử dụng xe có điểm đón, điểm đến, thời gian — đối tượng dữ liệu chính.</td></tr>
@@ -101,7 +101,7 @@
         <h2>I — Q</h2>
         <table>
           <tbody>
-            <tr><td><strong>Lock 7 ngày</strong></td><td>Sau khi nộp chi phí 7 ngày, không thể tự sửa nữa — chỉ Admin mới sửa được.</td></tr>
+            <tr><td><strong>Lock 7 ngày</strong></td><td>Cửa sổ 7 ngày dự kiến cho việc sửa chi phí. Hiện app <strong>chưa có chức năng sửa</strong> chi phí sau khi ghi (cho mọi vai trò) — hãy nhập chính xác ngay từ đầu.</td></tr>
             <tr><td><strong>Maintenance Alert</strong></td><td>Cảnh báo bảo dưỡng — thông báo tự động khi xe đến hạn thay dầu/đăng kiểm.</td></tr>
             <tr><td><strong>Multi-tenancy</strong></td><td>Cơ chế chia sẻ hạ tầng nhưng cô lập dữ liệu — doanh nghiệp A không thấy dữ liệu doanh nghiệp B.</td></tr>
             <tr><td><strong>Odometer (Số công-tơ-mét)</strong></td><td>Số km tổng cộng của xe, hiển thị trên đồng hồ — dùng để tính chu kỳ bảo dưỡng.</td></tr>
@@ -115,7 +115,6 @@
             <tr><td><strong>SSO</strong></td><td>Single Sign-On — đăng nhập một lần ở AMA, dùng được mọi app.</td></tr>
             <tr><td><strong>State machine (Máy trạng thái)</strong></td><td>Mô hình quản lý vòng đời — Chuyến đi đi qua 7 trạng thái cố định theo thứ tự cho trước.</td></tr>
             <tr><td><strong>Soft delete (Xoá mềm)</strong></td><td>Xoá nhưng vẫn lưu lại trong DB — có thể khôi phục. Không có chức năng xoá cứng trong app.</td></tr>
-            <tr><td><strong>Soft-warning (Cảnh báo mềm)</strong></td><td>Cảnh báo mà không chặn thao tác — Admin có quyền tiếp tục dù có xung đột.</td></tr>
             <tr><td><strong>Vai trò (Role)</strong></td><td>Admin / Quản lý / Tài xế — quyết định trang nào bạn thấy và thao tác nào bạn được làm.</td></tr>
             <tr><td><strong>Web Push</strong></td><td>Thông báo đẩy qua trình duyệt — hiện pop-up dù đang không mở app.</td></tr>
           </tbody>

@@ -1,44 +1,46 @@
 /* "Open in app" CTA handler — runs on every guide page.
  *
- * Each page injects an <a class="app-link-cta" href="/route"> link. Click
- * behaviour:
- *   1. Derive the app basePath from the doc URL: strip "/docs/user-guide/..."
- *      to get whatever prefix the deploy lives under (empty on dev,
- *      "/app-car-manager-v2" on staging when mounted as a sub-app, etc.).
- *   2. Compute the destination as `${basePath}${route}`.
- *   3. Navigate `window.parent` (the car-v2 page that hosts this guide
- *      iframe) — NOT `window.top`. Frame nesting:
- *        standalone drawer:  [car-v2] > [guide iframe]
- *                            → parent = car-v2 ✓
- *        AMA embed:          [AMA] > [car-v2] > [guide iframe]
- *                            → parent = car-v2 ✓ (top = AMA, cross-origin,
- *                              would throw or hijack the whole AMA shell)
- *        standalone new tab: guide IS the top window
- *                            → parent === window → navigate self ✓
- *      Using `window.top` broke the AMA-embed case (cross-origin SecurityError
- *      → silently fell through and reloaded car-v2 INTO the tiny guide iframe).
+ * Each page injects an <a class="app-link-cta" href="/route"> link. Clicking
+ * one should leave the guide and take the *running app* to that route.
  *
- * Robust to:
- *   - arbitrary basePath (dev /, staging /app-car-manager-v2/)
- *   - standalone tab, in-app drawer, AND triple-nested AMA embed
- *   - cross-origin ancestors (try/catch guards the parent access)
+ * The in-app guide renders inside a SANDBOXED same-origin iframe
+ * (sandbox="allow-same-origin allow-scripts …" — note: NO allow-top-navigation).
+ * That means this iframe is NOT allowed to navigate its parent directly:
+ * `window.parent.location.href = …` is blocked by the browser (and a silent
+ * fall-through would reload the app *inside* the tiny guide iframe — wrong).
+ *
+ * So instead we postMessage the route to the host app. The host
+ * (UserGuideDrawer) closes the guide drawer and SPA-routes there via the
+ * Next router (basePath handled by the app, so we send the raw route).
+ *
+ * Frame cases:
+ *   in-app drawer:      [car-v2] > [guide iframe]  → postMessage to car-v2 ✓
+ *   AMA embed:          [AMA] > [car-v2] > [guide] → postMessage to car-v2 ✓
+ *                       (parent === car-v2, same origin as the guide)
+ *   standalone new tab: guide IS the top window    → no host; navigate self ✓
  */
 (function () {
   function resolveBasePath() {
     return location.pathname.replace(/\/docs\/user-guide\/.*$/, '');
   }
 
-  function navigateParentOrSelf(href) {
+  function go(route) {
+    /* In an iframe → ask the host app to navigate (works under sandbox; the
+     * host closes the drawer + SPA-routes). */
     try {
       if (window.parent && window.parent !== window) {
-        window.parent.location.href = href;
+        window.parent.postMessage(
+          { type: 'car-v2:guide-navigate', route: route },
+          location.origin,
+        );
         return;
       }
     } catch (_e) {
-      /* cross-origin parent (shouldn't happen — guide + car-v2 share an
-       * origin — but guard anyway) → fall through to self navigation */
+      /* defensive — fall through to self navigation */
     }
-    window.location.href = href;
+    /* Standalone tab (guide is the top window): no host app to route, so just
+     * navigate this tab to the full path (basePath + route). */
+    window.location.href = resolveBasePath() + route;
   }
 
   document.addEventListener('click', function (event) {
@@ -49,8 +51,6 @@
     var anchor = target.closest && target.closest('a.app-link-cta');
     if (!anchor) return;
     event.preventDefault();
-    var route = anchor.getAttribute('href') || '/';
-    var dest = resolveBasePath() + route;
-    navigateParentOrSelf(dest);
+    go(anchor.getAttribute('href') || '/');
   });
 })();

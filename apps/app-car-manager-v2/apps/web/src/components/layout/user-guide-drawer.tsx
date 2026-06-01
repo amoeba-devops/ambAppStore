@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { BookOpen, ExternalLink, Loader2 } from 'lucide-react';
-import { Button, Sheet, SheetContent, SheetTrigger } from '@car-v2/ui';
+import { Button, Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { guideHomeUrl, resolveGuidePage } from '@/lib/user-guide-map';
 
@@ -36,12 +36,33 @@ const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
  */
 export function UserGuideDrawer({ role, trigger }: UserGuideDrawerProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const uiLocale = useLocale();
   const t = useTranslations('nav');
   const tGuide = useTranslations('userGuide');
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  /* The guide iframe is sandboxed and can't navigate its parent itself. When
+   * the user clicks an "open in app" CTA inside it, app-link.js postMessages
+   * the route here — we close the drawer and SPA-route the running app to it
+   * (basePath handled by the Next router). Origin + shape are validated, and
+   * only internal paths (single leading slash) are accepted — no protocol-
+   * relative "//host" open-redirects. */
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      if (e.origin !== window.location.origin) return;
+      const data = e.data as { type?: unknown; route?: unknown } | null;
+      if (!data || data.type !== 'car-v2:guide-navigate') return;
+      const route = typeof data.route === 'string' ? data.route : null;
+      if (!route || !route.startsWith('/') || route.startsWith('//')) return;
+      setOpen(false);
+      router.push(route);
+    }
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [router]);
 
   /* Re-compute on every open so we always reflect the current pathname /
    * locale — admin who switched locale or navigated since first mount still
@@ -77,6 +98,13 @@ export function UserGuideDrawer({ role, trigger }: UserGuideDrawerProps) {
          * the iframe sits flush against the chrome. */
         className="w-screen max-w-none p-0 md:w-[70vw] md:max-w-[1100px] flex flex-col"
       >
+        {/* Radix Dialog requires an accessible title (+ description). The visible
+         * header below is plain markup, so provide sr-only Radix Title/Description
+         * to satisfy screen readers without changing the layout. */}
+        <SheetTitle className="sr-only">{t('userGuide')}</SheetTitle>
+        <SheetDescription className="sr-only">
+          {resolved.matched ? tGuide('matchedHint', { page: resolved.page }) : tGuide('fallbackHint')}
+        </SheetDescription>
         <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border bg-surface">
           <div className="min-w-0 flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-accent shrink-0" aria-hidden />

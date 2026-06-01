@@ -61,19 +61,20 @@ node --env-file=.env scripts/seed-dev-accounts.mjs
 
 ### 3.2 Email-login (form `/login`: mã DN + email)
 
-| Role | Mã DN | Email (local seed) |
-|---|---|---|
-| ADMIN | `DEV01` | `dev-owner@local.dev` |
-| MANAGER | `DEV01` | `dev-manager@local.dev` |
-| DRIVER | `DEV01` | `dev-driver@local.dev` |
-
 Luồng (xem `apps/web/src/app/api/auth/login/route.ts`):
 1. POST `/api/auth/login` → AMA `POST /auth/email-login {entity_code, email}` → tokens
-2. AMA `GET /entity-settings/custom-apps/my` → tìm `app-car-manager-v2` (entity phải đã install app)
+2. AMA `GET /entity-settings/custom-apps/my` → tìm `app-car-manager-v2` (**entity PHẢI đã install app**, nếu không → `error=not_installed`)
 3. AMA `POST /entity-settings/custom-apps/:id/token` → mint app token 1h
 4. Set cookie `amb_session` + redirect
 
-> **Yêu cầu env car-v2**: `AMA_API_BASE_URL` phải trỏ đúng AMA API (vd staging: `https://stg-ama.amoeba.site/api/v1`). Thiếu → proxy gọi `localhost:3009` → fail.
+> **3 điều kiện để email-login chạy** (đủ cả 3): (a) AMA bật passwordless §4 · (b) email là member ACTIVE của entity đó · (c) entity đã install `app-car-manager-v2`.
+
+> **Local**: car-v2 `.env` đã set `AMA_API_BASE_URL=http://localhost:3019/api/v1` (đúng port AMA local) + `DEMO_AUTO_LOGIN=true`. Lưu ý: trong DB local, **app-car-manager-v2 chỉ install cho entity `VN01` (amoeba.vn)**, KHÔNG cho `DEV01` (seed). Nên:
+> - Test local nhanh theo role → dùng **dev-login (§3.1)** (bỏ qua AMA, không cần app install).
+> - Muốn test full email-login flow trên local → dùng `VN01` + member ACTIVE của VN01 (vd `vn-manager@amoeba.vn`), không phải `DEV01`.
+> - Mặc định code (khi `.env` thiếu `AMA_API_BASE_URL`) = `http://localhost:3009/api/v1` — **sai port**, phải override thành `:3019`.
+
+> **Staging/Prod**: `AMA_API_BASE_URL` phải trỏ đúng AMA API (vd `https://stg-ama.amoeba.site/api/v1`). Thiếu → proxy gọi `localhost:3009` → `error=server`.
 
 ---
 

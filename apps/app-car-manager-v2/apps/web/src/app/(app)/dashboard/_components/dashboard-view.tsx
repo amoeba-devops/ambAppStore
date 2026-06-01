@@ -353,6 +353,7 @@ export function DashboardView({
             onEventClick={handleEventClick}
             onSlotClick={(w) => onSlotCreate(w, null)}
             onEventDrop={handleEventDrop}
+            onMoreClick={handleMoreClick}
           />
         )}
         {view === 'day' && (
@@ -366,6 +367,7 @@ export function DashboardView({
             onEventClick={handleEventClick}
             onSlotClick={(w) => onSlotCreate(w, null)}
             onEventDrop={handleEventDrop}
+            onMoreClick={handleMoreClick}
           />
         )}
         {view === 'gantt' && (

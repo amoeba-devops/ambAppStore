@@ -53,6 +53,15 @@ const nextConfig = {
   env: publicEnv,
   transpilePackages: ['@car-v2/db', '@car-v2/shared', '@car-v2/ui'],
   outputFileTracingRoot: __dirname,
+  /* Per-page bundles only pull the symbols they actually use from these
+   * barrel packages instead of the whole module graph. Biggest win is
+   * `@car-v2/ui`, whose barrel re-exports recharts (~280KB) via the chart
+   * components — without this, any page importing `@car-v2/ui` risks pulling
+   * recharts into its shared chunk even when it only needs a Button. Also
+   * trims lucide-react (icon-per-file) and date-fns to the used members. */
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@car-v2/ui', 'date-fns'],
+  },
   webpack: (config) => {
     config.resolve.extensionAlias = {
       '.js': ['.ts', '.tsx', '.js'],

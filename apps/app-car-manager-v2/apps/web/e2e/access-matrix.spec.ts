@@ -14,7 +14,7 @@ import { devLogin, clearSession } from './helpers/auth';
  * thay vì depend on UI render (Next.js streaming có thể mask redirect).
  */
 
-type ExpectedAccess = 'allow' | 'redirect-today' | 'redirect-login' | 'forbidden';
+type ExpectedAccess = 'allow' | 'redirect-today' | 'redirect-login' | 'forbidden' | 'not-found';
 
 interface Case {
   role: 'ADMIN' | 'MANAGER' | 'DRIVER';
@@ -36,7 +36,9 @@ const cases: Case[] = [
       { path: '/vehicles', expected: 'allow' },
       { path: '/vehicles/new', expected: 'allow' },
       { path: '/users', expected: 'allow' },
-      { path: '/users/new', expected: 'allow' },
+      /* /users/new removed (Option 1b — members are invited on AMA, not created
+       * in car-v2). Route no longer exists → 404. */
+      { path: '/users/new', expected: 'not-found', reason: 'route removed (invite on AMA)' },
       { path: '/expenses', expected: 'allow' },
       { path: '/expenses/new', expected: 'allow' },
       { path: '/costs', expected: 'allow' },
@@ -57,7 +59,7 @@ const cases: Case[] = [
       { path: '/drivers', expected: 'allow' },
       { path: '/vehicles', expected: 'allow' },
       { path: '/users', expected: 'allow' },
-      { path: '/users/new', expected: 'allow' },
+      { path: '/users/new', expected: 'not-found', reason: 'route removed (invite on AMA)' },
       { path: '/expenses', expected: 'allow' },
       { path: '/costs', expected: 'allow' },
       { path: '/reports', expected: 'allow' },
@@ -87,7 +89,9 @@ const cases: Case[] = [
       { path: '/reports', expected: 'redirect-today' },
       { path: '/audit', expected: 'redirect-today' },
       { path: '/settings', expected: 'redirect-today', reason: 'tenant settings admin-only' },
-      { path: '/costs', expected: 'allow', reason: 'driver có thể xem cost của mình' },
+      /* /costs is the entity-wide ledger for ADMIN/MANAGER; drivers are
+       * redirected to /today (their own history lives at /expenses). */
+      { path: '/costs', expected: 'redirect-today', reason: 'driver dùng /expenses, /costs là admin/manager' },
     ],
   },
 ];
@@ -128,11 +132,8 @@ for (const c of cases) {
         const { status, location } = await checkAccess(page, exp.path);
         switch (exp.expected) {
           case 'allow':
-            /* 200 OK hoặc 307 → /onboarding (nếu chưa sync). Acceptable */
-            expect(
-              status === 200 || (status === 307 && location?.includes('/onboarding')),
-              `Expected 200 or onboarding redirect, got ${status} → ${location}`,
-            ).toBe(true);
+            /* Onboarding gate removed (Option 1b) → allowed routes serve 200. */
+            expect(status, `Expected 200, got ${status} → ${location}`).toBe(200);
             break;
           case 'redirect-today':
             expect(status, `Expected redirect, got ${status}`).toBe(307);
@@ -146,6 +147,10 @@ for (const c of cases) {
             /* requireRole throw → Next.js error boundary serve 500 hoặc redirect.
              * Acceptable: 200 với error page, 403, 500 */
             expect([200, 403, 500].includes(status), `Got ${status}`).toBe(true);
+            break;
+          case 'not-found':
+            /* Route intentionally removed — Next.js serves 404. */
+            expect(status, `Expected 404, got ${status} → ${location}`).toBe(404);
             break;
         }
       });

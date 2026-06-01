@@ -11,6 +11,20 @@ const START_HOUR = 6;
 const END_HOUR = 22;
 const HOURS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => i + START_HOUR);
 const SNAP_MINUTES = 15;
+const MIN_EVENT_PX = 18;
+
+/* Visible window in minutes-from-midnight + the grid's total pixel height.
+ * Events are CLAMPED to this window so an off-hours or long-running trip can
+ * never render above/below the grid and bleed outside the calendar card. */
+const WIN_START_MIN = START_HOUR * 60; // 06:00
+const WIN_END_MIN = (END_HOUR + 1) * 60; // 23:00 (last hour line)
+const TOTAL_HEIGHT = HOURS.length * HOUR_HEIGHT;
+
+/* Week view caps how many side-by-side trips render in one overlapping
+ * cluster; the rest collapse into a "+N" chip that drills into Day view
+ * (where the lane cap is lifted so everything is visible). Day view shows
+ * every lane already, so it isn't capped. Mirrors the Month-view pattern. */
+const MAX_LANES_WEEK = 3;
 
 interface TimeGridViewProps {
   anchor: Date;
@@ -22,6 +36,8 @@ interface TimeGridViewProps {
   onEventClick: (id: string) => void;
   onSlotClick: (when: Date) => void;
   onEventDrop: (id: string, newStart: Date) => void;
+  /** Click a "+N more" overflow chip (week view) → drill into that day. */
+  onMoreClick: (day: Date) => void;
 }
 
 interface Positioned {
@@ -32,8 +48,39 @@ interface Positioned {
   heightPx: number;
 }
 
-function layoutDayEvents(dayEvents: CalendarEvent[], dayStart: Date): Positioned[] {
-  if (dayEvents.length === 0) return [];
+interface Overflow {
+  key: string;
+  lane: number;
+  lanes: number;
+  topPx: number;
+  heightPx: number;
+  count: number;
+}
+
+interface DayLayout {
+  positioned: Positioned[];
+  overflows: Overflow[];
+}
+
+const clampMin = (m: number) => Math.min(Math.max(m, WIN_START_MIN), WIN_END_MIN);
+
+/** Convert a clamped [startMin,endMin] window to {topPx,heightPx} that always
+ *  stays inside the grid (never negative, never past TOTAL_HEIGHT). */
+function toBox(startMin: number, endMin: number): { topPx: number; heightPx: number } {
+  const vStart = clampMin(startMin);
+  const vEnd = clampMin(endMin);
+  let topPx = ((vStart - WIN_START_MIN) / 60) * HOUR_HEIGHT;
+  let heightPx = Math.max(MIN_EVENT_PX, ((vEnd - vStart) / 60) * HOUR_HEIGHT - 2);
+  if (topPx + heightPx > TOTAL_HEIGHT) topPx = Math.max(0, TOTAL_HEIGHT - heightPx);
+  return { topPx, heightPx };
+}
+
+function layoutDayEvents(
+  dayEvents: CalendarEvent[],
+  dayStart: Date,
+  maxLanes: number,
+): DayLayout {
+  if (dayEvents.length === 0) return { positioned: [], overflows: [] };
   const sorted = [...dayEvents].sort((a, b) => a.start.getTime() - b.start.getTime());
   const clusters: CalendarEvent[][] = [];
   let current: CalendarEvent[] = [];
@@ -51,7 +98,9 @@ function layoutDayEvents(dayEvents: CalendarEvent[], dayStart: Date): Positioned
   if (current.length) clusters.push(current);
 
   const dayStartMs = dayStart.getTime();
-  const result: Positioned[] = [];
+  const positioned: Positioned[] = [];
+  const overflows: Overflow[] = [];
+
   for (const cluster of clusters) {
     const laneEnds: number[] = [];
     const eventLane = new Map<string, number>();
@@ -65,18 +114,44 @@ function layoutDayEvents(dayEvents: CalendarEvent[], dayStart: Date): Positioned
       eventLane.set(ev.id, lane);
     }
     const lanes = laneEnds.length;
+    /* Capped only when the cluster genuinely has more concurrent trips than
+     * the cap. When capped we reserve the last column for the "+N" chip, so
+     * events render across (maxLanes - 1) columns. */
+    const capped = lanes > maxLanes;
+    const cols = capped ? maxLanes : lanes;
+    const visibleCols = capped ? maxLanes - 1 : lanes;
+
+    let hiddenCount = 0;
+    let hiddenStartMin = Number.POSITIVE_INFINITY;
+    let hiddenEndMin = Number.NEGATIVE_INFINITY;
+
     for (const ev of cluster) {
       const lane = eventLane.get(ev.id) ?? 0;
-      const startMs = Math.max(ev.start.getTime(), dayStartMs);
-      const endMs = ev.end.getTime();
-      const startMin = (startMs - dayStartMs) / 60_000;
-      const endMin = (endMs - dayStartMs) / 60_000;
-      const topPx = Math.max(0, ((startMin - START_HOUR * 60) / 60) * HOUR_HEIGHT);
-      const heightPx = Math.max(18, ((endMin - startMin) / 60) * HOUR_HEIGHT - 2);
-      result.push({ ev, lane, lanes, topPx, heightPx });
+      const startMin = (Math.max(ev.start.getTime(), dayStartMs) - dayStartMs) / 60_000;
+      const endMin = (ev.end.getTime() - dayStartMs) / 60_000;
+      if (capped && lane >= visibleCols) {
+        hiddenCount += 1;
+        hiddenStartMin = Math.min(hiddenStartMin, startMin);
+        hiddenEndMin = Math.max(hiddenEndMin, endMin);
+        continue;
+      }
+      const { topPx, heightPx } = toBox(startMin, endMin);
+      positioned.push({ ev, lane, lanes: cols, topPx, heightPx });
+    }
+
+    if (hiddenCount > 0) {
+      const { topPx, heightPx } = toBox(hiddenStartMin, hiddenEndMin);
+      overflows.push({
+        key: cluster[0]!.id,
+        lane: visibleCols,
+        lanes: cols,
+        topPx,
+        heightPx,
+        count: hiddenCount,
+      });
     }
   }
-  return result;
+  return { positioned, overflows };
 }
 
 export function CalendarTimeGridView({
@@ -89,6 +164,7 @@ export function CalendarTimeGridView({
   onEventClick,
   onSlotClick,
   onEventDrop,
+  onMoreClick,
 }: TimeGridViewProps) {
   const locale = resolveDateFnsLocale(useLocale());
 
@@ -113,18 +189,20 @@ export function CalendarTimeGridView({
     return Array.from({ length: 7 }, (_, i) => addDays(ws, i));
   }, [anchor, dayCount]);
 
+  /* Day view lifts the lane cap (the user drilled in to see everything);
+   * week view caps + collapses overflow into a "+N" chip. */
+  const maxLanes = dayCount === 1 ? Number.POSITIVE_INFINITY : MAX_LANES_WEEK;
+
   const eventsByDay = useMemo(() => {
-    const map = new Map<number, Positioned[]>();
+    const map = new Map<number, DayLayout>();
     for (const day of days) {
       const ds = startOfDay(day).getTime();
       const de = ds + 86_400_000;
       const dayEvents = events.filter((ev) => ev.end.getTime() > ds && ev.start.getTime() < de);
-      map.set(ds, layoutDayEvents(dayEvents, startOfDay(day)));
+      map.set(ds, layoutDayEvents(dayEvents, startOfDay(day), maxLanes));
     }
     return map;
-  }, [events, days]);
-
-  const totalHeight = HOURS.length * HOUR_HEIGHT;
+  }, [events, days, maxLanes]);
 
   const handleDragOver = (e: React.DragEvent) => {
     if (e.dataTransfer.types.includes('application/x-trip-id')) {
@@ -184,7 +262,7 @@ export function CalendarTimeGridView({
        * scrolls through the 17-hour grid. Bolder + full-opacity text for
        * legibility. */}
       <div
-        className="sticky top-0 z-10 grid border-b border-border bg-surface-2"
+        className="sticky top-0 z-30 grid border-b border-border bg-surface-2"
         style={{ gridTemplateColumns: `60px repeat(${dayCount}, minmax(0, 1fr))` }}
       >
         <div />
@@ -220,7 +298,7 @@ export function CalendarTimeGridView({
         className="grid"
         style={{
           gridTemplateColumns: `60px repeat(${dayCount}, minmax(0, 1fr))`,
-          height: totalHeight,
+          height: TOTAL_HEIGHT,
         }}
       >
         {/* Hour gutter */}
@@ -238,13 +316,15 @@ export function CalendarTimeGridView({
 
         {days.map((day) => {
           const ds = startOfDay(day).getTime();
-          const positioned = eventsByDay.get(ds) || [];
+          const layout = eventsByDay.get(ds) ?? { positioned: [], overflows: [] };
           const isToday = isSameDay(day, today);
           return (
             <div
               key={ds}
               className={cn(
-                'relative border-r border-border last:border-r-0 cursor-pointer',
+                /* `overflow-hidden` guarantees event bars are clipped to the
+                 * day column and can never bleed outside the calendar card. */
+                'relative overflow-hidden border-r border-border last:border-r-0 cursor-pointer',
                 isToday && 'bg-accent-soft/30',
               )}
               onClick={handleSlotClick(day)}
@@ -270,7 +350,7 @@ export function CalendarTimeGridView({
                 </div>
               )}
 
-              {positioned.map(({ ev, lane, lanes, topPx, heightPx }) => {
+              {layout.positioned.map(({ ev, lane, lanes, topPx, heightPx }) => {
                 const colors = eventColor(ev, colorMode);
                 const draggable = draggableIds.has(ev.id);
                 const widthPct = 100 / lanes;
@@ -307,6 +387,31 @@ export function CalendarTimeGridView({
                       {format(ev.start, 'HH:mm')}–{format(ev.end, 'HH:mm')}
                     </span>
                     <span className="line-clamp-2 font-medium leading-tight">{ev.title}</span>
+                  </button>
+                );
+              })}
+
+              {/* "+N more" overflow chips (week view only) — drill into Day
+               * view for the full, uncapped list. */}
+              {layout.overflows.map((o) => {
+                const widthPct = 100 / o.lanes;
+                return (
+                  <button
+                    type="button"
+                    key={`more-${o.key}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMoreClick(day);
+                    }}
+                    className="absolute z-10 flex items-center justify-center rounded-sm border border-border bg-surface-2 px-1 text-[10px] font-semibold text-text-muted shadow-xs transition-colors hover:bg-surface hover:text-accent"
+                    style={{
+                      top: o.topPx,
+                      height: o.heightPx,
+                      left: `calc(${o.lane * widthPct}% + 2px)`,
+                      width: `calc(${widthPct}% - 4px)`,
+                    }}
+                  >
+                    +{o.count}
                   </button>
                 );
               })}

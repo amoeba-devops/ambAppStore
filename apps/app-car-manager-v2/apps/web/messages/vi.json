@@ -124,7 +124,30 @@
   },
   "workspace": "Không gian làm việc",
   "admin": "Quản trị",
+  "logout": {
+    "title": "Đăng xuất?",
+    "desc": "Đăng xuất sẽ xoá toàn bộ dữ liệu phiên lưu trên trình duyệt của thiết bị này.",
+    "clearsLabel": "Sẽ xoá",
+    "clearsItems": "Bản nháp đang soạn (chuyến, xe, chi phí…), bộ lọc và tuỳ chọn hiển thị.",
+    "keepsNoti": "Cài đặt thông báo (push) vẫn được giữ nguyên.",
+    "confirm": "Đăng xuất",
+    "cancel": "Huỷ"
+  },
   "trips": {
+    "board": {
+      "viewKanban": "Kanban",
+      "viewList": "Danh sách",
+      "switchAria": "Đổi kiểu hiển thị",
+      "cappedNote": "Hiển thị một phần kết quả — hãy thu hẹp bộ lọc để xem đầy đủ.",
+      "emptyColumn": "Trống",
+      "jumpAria": "Tới cột {status} ({count})",
+      "thRef": "Mã",
+      "thWhen": "Thời gian",
+      "thRoute": "Tuyến đường",
+      "thDriver": "Tài xế",
+      "thVehicle": "Xe",
+      "thStatus": "Trạng thái"
+    },
     "status": {
       "PENDING_ASSIGNMENT": "Chờ phân công",
       "PENDING_DRIVER_CONFIRMATION": "Chờ tài xế",
@@ -143,6 +166,8 @@
       "emptyAdminDesc": "Tạo chuyến đầu tiên để bắt đầu.",
       "emptyDriverDesc": "Bạn chưa được giao chuyến nào.",
       "emptyFilterDesc": "Không có chuyến nào khớp với bộ lọc \"{filter}\".",
+      "emptyNoMatchTitle": "Không tìm thấy chuyến",
+      "emptyNoMatchDesc": "Không có chuyến nào khớp với tìm kiếm/bộ lọc hiện tại. Thử xoá bớt điều kiện lọc.",
       "searchPlaceholder": "Tìm kiếm…",
       "thisWeek": "Tuần này",
       "thisMonth": "Tháng này",
@@ -603,6 +628,12 @@
       "notFound": "Không tìm thấy user nào khớp \"{query}\".",
       "emptyMembers": "Chưa có ai đăng nhập vào car-v2.",
       "emptyHint": "Thành viên xuất hiện ở đây sau lần đăng nhập đầu tiên. Để mời thêm:"
+    },
+    "peek": {
+      "a11yTitle": "Chi tiết người dùng {name}",
+      "a11yDescription": "Bảng chi tiết người dùng trượt từ phải.",
+      "close": "Đóng",
+      "signinLabel": "Quyền đăng nhập car-v2"
     },
     "refresh": {
       "label": "Đồng bộ từ AMA",
@@ -1103,6 +1134,12 @@
       "lightboxUnavailable": "Không thể tải biên lai",
       "lockRemaining": "Có thể chỉnh sửa trong {days} ngày tới.",
       "lockExpired": "Đã quá hạn chỉnh sửa (sau 7 ngày)."
+    },
+    "peek": {
+      "a11yTitle": "Chi tiết chi phí {ref}",
+      "a11yDescription": "Bảng chi tiết chi phí trượt từ phải.",
+      "close": "Đóng",
+      "openFull": "Mở chi tiết đầy đủ"
     },
     "submit": {
       "title": "Ghi nhận chi phí",

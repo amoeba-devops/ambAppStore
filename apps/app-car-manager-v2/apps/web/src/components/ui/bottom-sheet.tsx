@@ -88,6 +88,14 @@ export const BottomSheetContent = forwardRef<
     <SheetContent
       ref={ref}
       side="bottom"
+      /* Don't auto-focus the first field on open. On mobile, focusing a text
+       * input immediately raises the software keyboard, which slides up over
+       * the bottom sheet and hides its content (e.g. the cancel/reject reason
+       * box + confirm buttons). Keep focus on the (trapped) sheet so the user
+       * sees the whole panel first and taps the field only when ready. Radix
+       * still traps Tab + handles Esc. Placed before {...props} so a specific
+       * sheet can opt back into auto-focus if it ever needs to. */
+      onOpenAutoFocus={(e) => e.preventDefault()}
       className={cn(
         /* Cap height so a long form doesn't push the close button off-screen.
          * Internal scrolling on the body via overflow-y-auto. */

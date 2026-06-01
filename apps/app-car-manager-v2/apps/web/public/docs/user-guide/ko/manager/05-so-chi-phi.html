@@ -83,21 +83,12 @@
         <p><code>/costs</code> 페이지는 조직 전체 비용을 <strong>시간순 장부(chronological ledger)</strong> 형태로 표시합니다.</p>
 
         <ul>
-          <li><strong>왼쪽 영역</strong>: 비용 목록. 각 행에는 유형 · 금액 · 날짜 · 등록자 · 차량이 표시됩니다.</li>
-          <li><strong>오른쪽 영역</strong> (데스크톱 전용): 선택한 비용의 상세 정보 — 증빙 사진, 메모, 관련 운행 링크(있는 경우) 포함.</li>
-          <li><strong>상단</strong>: 현재 필터링된 기간의 KPI 요약 (총 지출 · 건수 · 가장 많은 유형).</li>
+          <li><strong>왼쪽 영역</strong>: 비용 목록. 각 행에는 유형 · 금액 · 출처(기사 / 백오피스 직원) · 이름 · 제출 시각이 표시됩니다.</li>
+          <li><strong>오른쪽 영역</strong> (데스크톱 전용): 선택한 비용의 읽기 전용 상세 — 금액, 유형, 차량, 기사, 메모, 증빙 사진, 관련 운행 링크(있는 경우). 모바일에서는 행 클릭 시 별도 상세 페이지가 열립니다.</li>
         </ul>
 
-        <h2>필터링 및 데이터 내보내기</h2>
-        <ul>
-          <li><strong>유형별</strong> — 한 가지 또는 여러 유형 선택 (FUEL, OIL 등)</li>
-          <li><strong>차량별</strong></li>
-          <li><strong>기사 / 등록자별</strong></li>
-          <li><strong>기간별</strong></li>
-          <li><strong>메모 검색</strong></li>
-        </ul>
-
-        <p>오른쪽 상단의 <strong>"CSV 내보내기"</strong> 버튼을 누르면 현재 필터링된 비용이 Excel 파일로 다운로드됩니다 — 재무 부서에 보고할 때 활용합니다.</p>
+        <h2>데이터 내보내기</h2>
+        <p>이 페이지에는 현재 <strong>화면 필터가 없습니다</strong> — 모든 비용이 최신순으로 나열됩니다. 오른쪽 상단의 <strong>"CSV 내보내기"</strong> 버튼을 누르면 전체 비용 장부(최신 최대 1000행)가 Excel 파일로 다운로드됩니다 — 재무 부서 보고 후 Excel에서 필터링하세요.</p>
 
         <h2>이 화면에서 신규 비용 등록하기</h2>
         <p>오른쪽 상단의 큰 <strong>"+ 비용 기록"</strong> 버튼을 누르면 <code>/expenses/new</code> 양식이 열립니다 (자세한 내용은 <a href="04-ghi-chi-phi.html">비용 기록</a> 페이지 참조).</p>
@@ -109,7 +100,7 @@
             <tr><td>URL</td><td><code>/costs</code></td><td><code>/expenses</code></td></tr>
             <tr><td>범위</td><td>조직 전체</td><td>본인 비용만</td></tr>
             <tr><td>CSV 내보내기</td><td>✓</td><td>✗</td></tr>
-            <tr><td>고급 필터링</td><td>✓ (다중 조건)</td><td>기본 (유형 + 날짜)</td></tr>
+            <tr><td>화면 구성</td><td>2단 (목록 + 상세)</td><td>1단 (목록)</td></tr>
           </tbody>
         </table>
 

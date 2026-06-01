@@ -66,7 +66,7 @@
           <dl class="intro__row">
             <dt>URL</dt><dd><code>/costs</code></dd>
             <dt>Phạm vi</dt><dd>Toàn bộ chi phí trong tổ chức — bất kể ai nộp</dd>
-            <dt>Quyền</dt><dd>Đọc · Xuất CSV · Tạo mới · <strong>Sửa của user khác</strong> (Manager không có)</dd>
+            <dt>Quyền</dt><dd>Đọc toàn bộ chi phí của tổ chức · Ghi nhận chi phí mới · Xuất CSV (Admin và Manager như nhau; Driver không truy cập trang này)</dd>
           </dl>
         </div>
 
@@ -83,39 +83,18 @@
           <figcaption>Sổ chi phí — danh sách bên trái + chi tiết bên phải (ảnh chứng từ, ghi chú, trip link)</figcaption>
         </figure>
 
-        <h2>Bộ lọc nâng cao</h2>
+        <h2>Bố cục sổ chi phí</h2>
         <ul>
-          <li><strong>Theo loại</strong> — 8 loại (FUEL, OIL, MEAL, REPAIR, ACCIDENT, PARKING, TOLL, INSPECTION)</li>
-          <li><strong>Theo người nộp</strong> — chọn tài xế hoặc Manager</li>
-          <li><strong>Theo xe</strong> — chọn biển số</li>
-          <li><strong>Theo trip</strong> — chỉ chi phí gắn với 1 chuyến cụ thể</li>
-          <li><strong>Khoảng ngày</strong></li>
-          <li><strong>Khoảng số tiền</strong> (min/max)</li>
-          <li><strong>Tìm theo ghi chú</strong></li>
+          <li><strong>Cột trái</strong> — danh sách mọi chi phí của tổ chức, mới nhất trước. Mỗi dòng: icon loại + biển số xe, số tiền, nhãn nguồn nộp (tài xế / nhân viên back-office) + tên người + thời điểm gửi.</li>
+          <li><strong>Cột phải (desktop)</strong> — bấm 1 dòng để xem chi tiết chỉ-đọc: số tiền, loại, chuyến liên kết, xe, tài xế, ghi chú và ảnh chứng từ. Trên mobile, bấm dòng sẽ mở trang chi tiết riêng.</li>
         </ul>
-
-        <h2>Sửa chi phí của user khác</h2>
-        <p>Admin có quyền sửa <em>mọi</em> chi phí — kể cả sau 7-day lock của user:</p>
-        <ul>
-          <li>Bấm vào dòng chi phí → panel chi tiết bên phải</li>
-          <li>Bấm <strong>"Sửa"</strong> → form mở</li>
-          <li>Sửa số tiền, ngày, loại, ghi chú → Lưu</li>
-          <li>Audit log: <code>EXPENSE.ADMIN_EDIT</code> ghi nhận user gốc + người sửa</li>
-        </ul>
-
-        <div class="callout callout--warn">
-          <div class="callout__icon">⚠️</div>
-          <div class="callout__body">
-            <p><strong>Sửa chi phí của user khác</strong> là hành động nhạy cảm. Hãy thông báo cho user trước khi sửa và ghi rõ lý do vào trường ghi chú.</p>
-          </div>
-        </div>
+        <p>Trang này hiện <strong>không có bộ lọc trên giao diện</strong> — toàn bộ chi phí được liệt kê. Để phân tích theo loại / ngày / xe, hãy <strong>Xuất CSV</strong> rồi lọc trong Excel/Google Sheets.</p>
 
         <h2>Xuất CSV cho kế toán</h2>
         <ol>
-          <li>Đặt bộ lọc theo khoảng ngày (ví dụ: tháng 5/2026)</li>
-          <li>Bấm <strong>"Xuất CSV"</strong> ở góc trên phải</li>
-          <li>File tải xuống có các cột: ID, Loại, Số tiền, Ngày, Người nộp, Xe, Trip, Trạng thái, Ghi chú, URL ảnh chứng từ</li>
-          <li>Mở bằng Excel/Google Sheets — đã encode UTF-8 BOM, hiện tiếng Việt OK</li>
+          <li>Bấm <strong>"Xuất CSV"</strong> ở góc trên phải — xuất toàn bộ sổ chi phí (tối đa 1000 dòng mới nhất)</li>
+          <li>File tải xuống có các cột: Mã chi phí, Loại, Trạng thái, Số tiền, Tiền tệ, Ngày phát sinh, Thời điểm gửi, Tài xế, Xe, Mã chuyến, Ghi chú</li>
+          <li>Mở bằng Excel/Google Sheets — đã encode UTF-8, hiện tiếng Việt OK</li>
         </ol>
 
         <nav class="pager">
