@@ -9,7 +9,7 @@
  * seed IDs below. Safe to re-run.
  *
  * Seed:
- *   • 1 tenant (HanaTech VN)
+ *   • 1 demo tenant (neutral demo identity — no real brand)
  *   • 4 users: 1 Admin (Park Joon-ho) + 3 Drivers (Bảo, Hiếu, Lâm)
  *   • 3 drivers (rows in car_drivers, FK to user) — placeholder licences
  *   • 3 vehicles (Peugeot, Sedona, Cross) — placeholder plates
@@ -97,10 +97,10 @@ try {
   await sql`
     INSERT INTO car_users (usr_id, ent_id, usr_ama_user_id, usr_email, usr_name, usr_local_role, usr_ama_role_snapshot)
     VALUES
-      (${U_ADMIN}, ${ENT_ID}, ${U_ADMIN}, 'park.joonho@hanatech.vn',  'Park Joon-ho',     'ADMIN',  'OWNER'),
-      (${U_TU},    ${ENT_ID}, ${U_TU},    'bao.nguyen@hanatech.vn',   'Nguyễn Quốc Bảo',  'DRIVER', 'MEMBER'),
-      (${U_HUNG},  ${ENT_ID}, ${U_HUNG},  'hieu.phan@hanatech.vn',    'Phan Huỳnh Hiếu',  'DRIVER', 'MEMBER'),
-      (${U_DUC},   ${ENT_ID}, ${U_DUC},   'lam.nguyen@hanatech.vn',   'Nguyễn Minh Lâm',  'DRIVER', 'MEMBER')
+      (${U_ADMIN}, ${ENT_ID}, ${U_ADMIN}, 'park.joonho@demo.local',  'Park Joon-ho',     'ADMIN',  'OWNER'),
+      (${U_TU},    ${ENT_ID}, ${U_TU},    'bao.nguyen@demo.local',   'Nguyễn Quốc Bảo',  'DRIVER', 'MEMBER'),
+      (${U_HUNG},  ${ENT_ID}, ${U_HUNG},  'hieu.phan@demo.local',    'Phan Huỳnh Hiếu',  'DRIVER', 'MEMBER'),
+      (${U_DUC},   ${ENT_ID}, ${U_DUC},   'lam.nguyen@demo.local',   'Nguyễn Minh Lâm',  'DRIVER', 'MEMBER')
     ON CONFLICT (usr_id) DO UPDATE SET
       usr_email             = EXCLUDED.usr_email,
       usr_name              = EXCLUDED.usr_name,

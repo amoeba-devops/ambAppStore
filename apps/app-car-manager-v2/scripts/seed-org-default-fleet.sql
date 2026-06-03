@@ -32,9 +32,9 @@ BEGIN;
 -- 1) Driver users (car_drivers.drv_user_id FK → car_users.usr_id) ───────────
 INSERT INTO car_users (usr_id, ent_id, usr_ama_user_id, usr_email, usr_name, usr_local_role, usr_ama_role_snapshot)
 VALUES
-  ('11111111-1111-1111-1111-111111111101', '00000000-0000-4000-8000-000000000010', '11111111-1111-1111-1111-111111111101', 'bao.nguyen@hanatech.vn', 'Nguyễn Quốc Bảo', 'DRIVER', 'MEMBER'),
-  ('11111111-1111-1111-1111-111111111102', '00000000-0000-4000-8000-000000000010', '11111111-1111-1111-1111-111111111102', 'hieu.phan@hanatech.vn',  'Phan Huỳnh Hiếu', 'DRIVER', 'MEMBER'),
-  ('11111111-1111-1111-1111-111111111103', '00000000-0000-4000-8000-000000000010', '11111111-1111-1111-1111-111111111103', 'lam.nguyen@hanatech.vn', 'Nguyễn Minh Lâm', 'DRIVER', 'MEMBER')
+  ('11111111-1111-1111-1111-111111111101', '00000000-0000-4000-8000-000000000010', '11111111-1111-1111-1111-111111111101', 'bao.nguyen@demo.local', 'Nguyễn Quốc Bảo', 'DRIVER', 'MEMBER'),
+  ('11111111-1111-1111-1111-111111111102', '00000000-0000-4000-8000-000000000010', '11111111-1111-1111-1111-111111111102', 'hieu.phan@demo.local',  'Phan Huỳnh Hiếu', 'DRIVER', 'MEMBER'),
+  ('11111111-1111-1111-1111-111111111103', '00000000-0000-4000-8000-000000000010', '11111111-1111-1111-1111-111111111103', 'lam.nguyen@demo.local', 'Nguyễn Minh Lâm', 'DRIVER', 'MEMBER')
 ON CONFLICT (usr_id) DO UPDATE SET
   usr_email             = EXCLUDED.usr_email,
   usr_name              = EXCLUDED.usr_name,
