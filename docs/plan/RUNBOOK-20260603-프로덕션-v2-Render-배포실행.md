@@ -73,19 +73,23 @@
         value: https://apps.amoeba.site
       - key: NEXT_PUBLIC_AMA_ORIGIN     # ⭐ 단일 구체 origin (CSP+세션만료 리다이렉트 모두 정상, BUG-260601)
         value: https://ama.amoeba.site
-      # ── 공통(스테이징과 동일해야 하는 값) ──
+      # ── 공통 값 (staging 서비스와 동일) ──
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_APP_CODE
         value: car-manager-v2
       - key: NEXT_PUBLIC_DEFAULT_LOCALE
         value: vi
-      # ── 시크릿(대시보드에서 sync:false로 직접 입력) ──
+      - key: EXPENSE_LOCK_DAYS
+        value: "7"
+      - key: WEB_PUSH_CONTACT
+        value: mailto:devops@amoeba.group
+      - key: DEMO_AUTO_LOGIN            # 반드시 false
+        value: "false"
+      # ── 시크릿(대시보드에서 sync:false로 직접 입력) — staging과 패리티 ──
       - key: JWT_SECRET                 # prod AMA(amb-api-production)와 byte-for-byte 동일
         sync: false
       - key: DATABASE_URL               # Neon prod 브랜치 pooler URL
-        sync: false
-      - key: DEMO_AUTO_LOGIN            # 반드시 false
         sync: false
       - key: AWS_REGION
         sync: false
@@ -95,7 +99,23 @@
         sync: false
       - key: AWS_SECRET_ACCESS_KEY
         sync: false
+      - key: CRON_SECRET                # P4 유지보수 알림 cron 인증
+        sync: false
+      - key: RESEND_API_KEY             # P4 이메일
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_REPLY_TO
+        sync: false
+      - key: WEB_PUSH_VAPID_PRIVATE     # P4 웹푸시
+        sync: false
+      - key: WEB_PUSH_VAPID_PUBLIC
+        sync: false
+      - key: NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC
+        sync: false
 ```
+
+> ✅ **이 블록은 [render.yaml](../../apps/app-car-manager-v2/render.yaml)에 이미 반영됨** (prod 23 env = staging 21 + `BASE_PATH`·`NEXT_PUBLIC_BASE_PATH`). prod 블록은 staging과 **기능 패리티**(P4 이메일/웹푸시·cron·지출잠금) — 빌드타임 인라인 3종(`BASE_PATH`/`APP_URL`/`NEXT_PUBLIC_AMA_ORIGIN`)만 분기.
 
 > ⚠️ Render 대시보드 env가 render.yaml보다 **우선**. 대시보드에 잔존하는 `APP_URL`/`BASE_PATH`가 있으면 prod 서비스에서 정리.
 > ⚠️ `NEXT_PUBLIC_*`·`BASE_PATH`는 **빌드타임 인라인**(제약 C2) → 값 바꾸면 **재빌드 필수**. staging 이미지 재사용 불가.
@@ -117,7 +137,13 @@
 | `NEXT_PUBLIC_APP_CODE` | car-manager-v2 | car-manager-v2 | JWT `aud`와 일치 |
 | `NEXT_PUBLIC_DEFAULT_LOCALE` | vi | vi | — |
 | `AWS_*` | staging S3 | prod S3(또는 공용) | 첨부 업로드용 |
-| (P4 선택) `RESEND_API_KEY`, `EMAIL_FROM`, `WEB_PUSH_*` | — | 알림 활성화 시 | 초기 배포엔 생략 가능 |
+| `EXPENSE_LOCK_DAYS` | "7" | "7" | 지출 잠금(PRD §10) |
+| `WEB_PUSH_CONTACT` | mailto:devops@… | mailto:devops@… | VAPID 연락처 |
+| `CRON_SECRET` | (대시보드) | (대시보드) | P4 유지보수 알림 cron 인증 |
+| `RESEND_API_KEY`/`EMAIL_FROM`/`EMAIL_REPLY_TO` | (대시보드) | (대시보드) | P4 이메일 — 미설정 시 인앱 벨만 |
+| `WEB_PUSH_VAPID_*`(3종) | (대시보드) | (대시보드) | P4 웹푸시 — 환경별 1회 생성 |
+
+> **패리티**: prod 블록은 staging의 21개 env를 모두 포함(값만 분기). 위 P4/cron/지출잠금은 **선택이 아니라 패리티 항목** — 시크릿은 알림 활성화 시 대시보드에 입력(빈 값이면 해당 전송만 비활성, 앱은 정상).
 
 > **byte-for-byte 일치 필수**: `JWT_SECRET`, `NEXT_PUBLIC_APP_CODE`(=JWT `aud`). 불일치 → 클릭 시 `/session-expired` 401.
 > **JWT 계약**(고정, INTEGRATION §7): HS256, `iss=amb-management`, `aud=car-manager-v2`, `app_code=car-manager-v2`.
