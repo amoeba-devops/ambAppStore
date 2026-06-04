@@ -187,12 +187,14 @@ echo | openssl s_client -servername apps.amoeba.site -connect apps.amoeba.site:4
 
 ## 5. AMA Postgres 시드 (Phase 3 — 단계적)
 
-파일: [scripts/seed-ama-entity-custom-app.FILLED-20260601.sql](../../apps/app-car-manager-v2/scripts/seed-ama-entity-custom-app.FILLED-20260601.sql)
-`eca_url`은 이미 `https://apps.amoeba.site/app-car-manager-v2`로 prod 정합. 멱등(`ON CONFLICT (ent_id, eca_code)`).
+단계별 분리 파일(게이트 G7 단계적 롤아웃):
+- **Step 7a (카나리아)**: [scripts/seed-ama-entity-custom-app.7a-DEMO.FILLED-20260601.sql](../../apps/app-car-manager-v2/scripts/seed-ama-entity-custom-app.7a-DEMO.FILLED-20260601.sql) — DEMO(`00000000-…-010`) **1행만** 먼저 INSERT → 로그인→iframe→CSP→세션만료 복귀 검증.
+- **Step 7b**: [scripts/seed-ama-entity-custom-app.7b-REST.FILLED-20260601.sql](../../apps/app-car-manager-v2/scripts/seed-ama-entity-custom-app.7b-REST.FILLED-20260601.sql) — 7a 검증 OK 후에만 CARGO434 / UIT327 / VN01 나머지 3행.
 
-- **Step 7a (카나리아)**: DEMO(`00000000-…-010`) 1행만 먼저 INSERT → 로그인→iframe→CSP→세션만료 복귀 검증.
-- **Step 7b**: 검증 OK → CARGO434 / UIT327 / VN01 나머지 3행.
-- 대상 DB: **AMA Postgres**(`amb-postgres-production`) — Neon/MySQL 아님.
+> 원본 4행 일괄본 [scripts/seed-ama-entity-custom-app.FILLED-20260601.sql](../../apps/app-car-manager-v2/scripts/seed-ama-entity-custom-app.FILLED-20260601.sql)은 단계 미구분(참고용·재시드 일괄). 단계적 롤아웃은 7a→7b 사용.
+
+- `eca_url`은 모두 `https://apps.amoeba.site/app-car-manager-v2`로 prod 정합. 멱등(`ON CONFLICT (ent_id, eca_code)`).
+- 대상 DB: **AMA Postgres**(`amb-postgres-production`) — Neon/MySQL 아님. 접속: `psql -U amb_user -d db_amb`.
 
 ---
 
