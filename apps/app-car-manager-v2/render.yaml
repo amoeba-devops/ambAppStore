@@ -83,6 +83,75 @@ services:
       - key: WEB_PUSH_CONTACT
         value: mailto:devops@amoeba.group
 
+  # ============================================================================
+  # PRODUCTION — apps.amoeba.site/app-car-manager-v2/ (behind host-mode nginx)
+  # See docs/plan/RUNBOOK-20260603-프로덕션-v2-Render-배포실행.md
+  #
+  # Feature-parity with staging service above (P4 email/push, cron, expense lock)
+  # — only BASE_PATH / APP_URL / NEXT_PUBLIC_AMA_ORIGIN diverge (build-time inline,
+  #   so prod needs its OWN build — C2; staging image cannot be reused).
+  # ⚠️ Render dashboard env takes priority over this file — clear stale overrides.
+  # ⚠️ Pushing this provisions a NEW prod service. Only push after gate §6.
+  # Verify: curl https://car-manager-prod.onrender.com/app-car-manager-v2/api/v1/health
+  # ============================================================================
+  - type: web
+    name: car-manager-prod              # MUST match the Render dashboard service name
+    runtime: node
+    rootDir: apps/app-car-manager-v2
+    buildCommand: npm install --include=dev && npm run build --workspace @car-v2/web
+    startCommand: npm start --workspace @car-v2/web
+    plan: starter
+    envVars:
+      # ── diverges from staging Render (prod is behind nginx at /app-car-manager-v2) ──
+      - key: BASE_PATH                  # staging omits (root); prod matches the nginx prefix
+        value: /app-car-manager-v2
+      - key: NEXT_PUBLIC_BASE_PATH      # client asset prefix → avoids _next/static 404
+        value: /app-car-manager-v2
+      - key: APP_URL                    # getRequestOrigin() → public origin
+        value: https://apps.amoeba.site
+      - key: NEXT_PUBLIC_AMA_ORIGIN     # single concrete origin: CSP + session-expired redirect (BUG-260601)
+        value: https://ama.amoeba.site
+      # ── same as staging ──
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_APP_CODE
+        value: car-manager-v2
+      - key: NEXT_PUBLIC_DEFAULT_LOCALE
+        value: vi
+      - key: EXPENSE_LOCK_DAYS
+        value: "7"
+      - key: WEB_PUSH_CONTACT
+        value: mailto:devops@amoeba.group
+      - key: DEMO_AUTO_LOGIN            # MUST stay false in prod
+        value: "false"
+      # ── secrets (enter in dashboard; sync:false keeps them out of git) ──
+      - key: JWT_SECRET                 # byte-for-byte == prod AMA (amb-api-production) — gate G1
+        sync: false
+      - key: DATABASE_URL               # Neon PROD branch pooler URL (isolated from staging)
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_S3_BUCKET
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: CRON_SECRET                # same value as the prod cron job, if enabled
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_REPLY_TO
+        sync: false
+      - key: WEB_PUSH_VAPID_PRIVATE
+        sync: false
+      - key: WEB_PUSH_VAPID_PUBLIC
+        sync: false
+      - key: NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC
+        sync: false
+
 # ────────────────────────────────────────────────────────────────────────────
 # Optional cron service — Module 2 maintenance-alert evaluator.
 # Decision D9 of REQ-20260519: code the endpoint + manual trigger first; defer

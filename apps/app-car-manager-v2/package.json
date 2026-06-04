@@ -23,6 +23,7 @@
     "db:migrate": "npm run db:migrate -w @car-v2/db",
     "db:migrate:dev": "node scripts/db-migrate.mjs dev",
     "db:migrate:staging": "node scripts/db-migrate.mjs staging",
+    "db:migrate:prod": "node scripts/db-migrate.mjs prod",
     "db:seed:dev": "node scripts/db-seed.mjs dev",
     "db:seed:staging": "node scripts/db-seed.mjs staging",
     "db:heal:dev": "node scripts/db-heal-usr-id.mjs dev",
