@@ -89,6 +89,10 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
   const [homeBase, setHomeBase] = useState(vehicle?.cvhHomeBase ?? '');
   const [notes, setNotes] = useState(vehicle?.cvhNotes ?? '');
 
+  /* Track whether user has made any changes — draft is only saved when dirty. */
+  const [isDirty, setIsDirty] = useState(false);
+  const markDirty = () => setIsDirty(true);
+
   const draftValues: VehicleDraftValues = {
     plateNumber,
     model,
@@ -122,6 +126,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
     label: vehicleLabel,
     href: isEdit ? `/vehicles/${vehicle!.cvhId}/edit` : '/vehicles/new',
     entity: 'vehicle',
+    isDirty,
   });
 
   const handleRestoreDraft = () => {
@@ -139,6 +144,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
     setOilIntervalMonths(v.oilIntervalMonths);
     setHomeBase(v.homeBase);
     setNotes(v.notes);
+    setIsDirty(true); // Restored draft should be persisted
     dismissDraft();
   };
 
@@ -243,10 +249,10 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label={t('plate')} required>
-              <Input value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder={t('platePlaceholder')} maxLength={20} className="font-mono" />
+              <Input value={plateNumber} onChange={(e) => { setPlateNumber(e.target.value); markDirty(); }} placeholder={t('platePlaceholder')} maxLength={20} className="font-mono" />
             </Field>
             <Field label={t('status')}>
-              <Select value={status} onValueChange={(v) => setStatus(v as CarVehicleStatus)} disabled={!isEdit}>
+              <Select value={status} onValueChange={(v) => { setStatus(v as CarVehicleStatus); markDirty(); }} disabled={!isEdit}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {STATUSES.map((s) => (
@@ -256,19 +262,19 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
               </Select>
             </Field>
             <Field label={t('model')} required>
-              <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder={t('modelPlaceholder')} maxLength={100} />
+              <Input value={model} onChange={(e) => { setModel(e.target.value); markDirty(); }} placeholder={t('modelPlaceholder')} maxLength={100} />
             </Field>
             <Field label={t('make')}>
-              <Input value={make ?? ''} onChange={(e) => setMake(e.target.value)} placeholder={t('makePlaceholder')} maxLength={50} />
+              <Input value={make ?? ''} onChange={(e) => { setMake(e.target.value); markDirty(); }} placeholder={t('makePlaceholder')} maxLength={50} />
             </Field>
             <Field label={t('year')}>
-              <Input type="number" value={year} onChange={(e) => setYear(e.target.value)} min={1990} max={2100} />
+              <Input type="number" value={year} onChange={(e) => { setYear(e.target.value); markDirty(); }} min={1990} max={2100} />
             </Field>
             <Field label={t('color')}>
-              <Input value={color ?? ''} onChange={(e) => setColor(e.target.value)} placeholder={t('colorPlaceholder')} maxLength={50} />
+              <Input value={color ?? ''} onChange={(e) => { setColor(e.target.value); markDirty(); }} placeholder={t('colorPlaceholder')} maxLength={50} />
             </Field>
             <Field label={t('fuel')}>
-              <Select value={fuelType} onValueChange={(v) => setFuelType(v as CarVehicleFuel)}>
+              <Select value={fuelType} onValueChange={(v) => { setFuelType(v as CarVehicleFuel); markDirty(); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {FUEL_TYPES.map((f) => (
@@ -278,7 +284,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
               </Select>
             </Field>
             <Field label={t('base')}>
-              <Input value={homeBase ?? ''} onChange={(e) => setHomeBase(e.target.value)} placeholder={t('basePlaceholder')} maxLength={100} />
+              <Input value={homeBase ?? ''} onChange={(e) => { setHomeBase(e.target.value); markDirty(); }} placeholder={t('basePlaceholder')} maxLength={100} />
             </Field>
           </div>
         </CardContent>
@@ -294,13 +300,13 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Field label={t('odometer')}>
-              <Input type="number" value={odometer} onChange={(e) => setOdometer(e.target.value)} min={0} inputMode="numeric" />
+              <Input type="number" value={odometer} onChange={(e) => { setOdometer(e.target.value); markDirty(); }} min={0} inputMode="numeric" />
             </Field>
             <Field label={t('oilEveryKm')}>
-              <Input type="number" value={oilIntervalKm} onChange={(e) => setOilIntervalKm(e.target.value)} min={1000} max={30000} inputMode="numeric" />
+              <Input type="number" value={oilIntervalKm} onChange={(e) => { setOilIntervalKm(e.target.value); markDirty(); }} min={1000} max={30000} inputMode="numeric" />
             </Field>
             <Field label={t('oilEveryMonths')}>
-              <Input type="number" value={oilIntervalMonths} onChange={(e) => setOilIntervalMonths(e.target.value)} min={1} max={24} inputMode="numeric" />
+              <Input type="number" value={oilIntervalMonths} onChange={(e) => { setOilIntervalMonths(e.target.value); markDirty(); }} min={1} max={24} inputMode="numeric" />
             </Field>
           </div>
         </CardContent>
@@ -313,7 +319,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
           </CardHeaderText>
         </CardHeader>
         <CardContent>
-          <Textarea value={notes ?? ''} onChange={(e) => setNotes(e.target.value)} placeholder={t('notesPlaceholder')} rows={3} maxLength={2000} />
+          <Textarea value={notes ?? ''} onChange={(e) => { setNotes(e.target.value); markDirty(); }} placeholder={t('notesPlaceholder')} rows={3} maxLength={2000} />
         </CardContent>
       </Card>
 

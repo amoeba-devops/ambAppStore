@@ -88,6 +88,10 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
   const [emergencyContact, setEmergencyContact] = useState(driver?.drvEmergencyContact ?? '');
   const [notes, setNotes] = useState(driver?.drvNotes ?? '');
 
+  /* Track whether user has made any changes — draft is only saved when dirty. */
+  const [isDirty, setIsDirty] = useState(false);
+  const markDirty = () => setIsDirty(true);
+
   const draftValues: DriverDraftValues = {
     userId,
     licenseNumber,
@@ -120,6 +124,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
     label: driverLabel,
     href: isEdit ? `/drivers/${driver!.drvId}/edit` : '/drivers/new',
     entity: 'driver',
+    isDirty,
   });
 
   const handleRestoreDraft = () => {
@@ -133,6 +138,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
     setStatus(v.status);
     setEmergencyContact(v.emergencyContact);
     setNotes(v.notes);
+    setIsDirty(true); // Restored draft should be persisted
     dismissDraft();
   };
 
@@ -258,7 +264,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
             </div>
           ) : (
             <Field label={t('user')} required>
-              <Select value={userId} onValueChange={setUserId}>
+              <Select value={userId} onValueChange={(v) => { setUserId(v); markDirty(); }}>
                 <SelectTrigger><SelectValue placeholder={t('userPlaceholder')} /></SelectTrigger>
                 <SelectContent>
                   {userCandidates.length === 0 ? (
@@ -288,10 +294,10 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label={t('licenseNumber')} required>
-              <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} placeholder={t('licenseNumberPlaceholder')} maxLength={50} className="font-mono" />
+              <Input value={licenseNumber} onChange={(e) => { setLicenseNumber(e.target.value); markDirty(); }} placeholder={t('licenseNumberPlaceholder')} maxLength={50} className="font-mono" />
             </Field>
             <Field label={t('class')} required>
-              <Select value={licenseClass} onValueChange={(v) => setLicenseClass(v as CarDriverLicenseClass)}>
+              <Select value={licenseClass} onValueChange={(v) => { setLicenseClass(v as CarDriverLicenseClass); markDirty(); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {LICENSE_CLASSES.map((c) => (
@@ -301,11 +307,11 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
               </Select>
             </Field>
             <Field label={t('expiry')} required hint={t('expiryHint')}>
-              <Input type="date" value={licenseExpiry} onChange={(e) => setLicenseExpiry(e.target.value)} />
+              <Input type="date" value={licenseExpiry} onChange={(e) => { setLicenseExpiry(e.target.value); markDirty(); }} />
             </Field>
             {isEdit && (
               <Field label={t('status')}>
-                <Select value={status} onValueChange={(v) => setStatus(v as CarDriverStatus)}>
+                <Select value={status} onValueChange={(v) => { setStatus(v as CarDriverStatus); markDirty(); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {STATUSES.map((s) => (
@@ -320,7 +326,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
             <Field label={t('phone')}>
               <Input
                 value={phone ?? ''}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => { setPhone(e.target.value); markDirty(); }}
                 placeholder={t('phonePlaceholder')}
                 type="tel"
                 inputMode="tel"
@@ -336,7 +342,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
               )}
             </Field>
             <Field label={t('emergencyContact')}>
-              <Input value={emergencyContact ?? ''} onChange={(e) => setEmergencyContact(e.target.value)} placeholder={t('emergencyPlaceholder')} maxLength={100} />
+              <Input value={emergencyContact ?? ''} onChange={(e) => { setEmergencyContact(e.target.value); markDirty(); }} placeholder={t('emergencyPlaceholder')} maxLength={100} />
             </Field>
           </div>
         </CardContent>
@@ -349,7 +355,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
           </CardHeaderText>
         </CardHeader>
         <CardContent>
-          <Textarea value={notes ?? ''} onChange={(e) => setNotes(e.target.value)} placeholder={t('notesPlaceholder')} rows={3} maxLength={2000} />
+          <Textarea value={notes ?? ''} onChange={(e) => { setNotes(e.target.value); markDirty(); }} placeholder={t('notesPlaceholder')} rows={3} maxLength={2000} />
         </CardContent>
       </Card>
 
