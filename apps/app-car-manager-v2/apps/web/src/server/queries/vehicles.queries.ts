@@ -1,14 +1,38 @@
 import 'server-only';
-import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, sql, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTrips, carVehicles, type CarVehicle } from '@car-v2/db/schema';
 
-export async function listVehicles(entId: string): Promise<CarVehicle[]> {
-  return db
+export type VehicleDeletedFilter = 'active' | 'deleted' | 'all';
+
+export interface VehicleListItem extends CarVehicle {
+  /** True when the vehicle is soft-deleted (for list display styling) */
+  isDeleted: boolean;
+}
+
+export async function listVehicles(
+  entId: string,
+  deletedFilter: VehicleDeletedFilter = 'active',
+): Promise<VehicleListItem[]> {
+  const filters: SQL[] = [eq(carVehicles.entId, entId)];
+
+  if (deletedFilter === 'active') {
+    filters.push(isNull(carVehicles.cvhDeletedAt));
+  } else if (deletedFilter === 'deleted') {
+    filters.push(sql`${carVehicles.cvhDeletedAt} IS NOT NULL`);
+  }
+  /* 'all' includes both — no filter on cvhDeletedAt */
+
+  const rows = await db
     .select()
     .from(carVehicles)
-    .where(and(eq(carVehicles.entId, entId), isNull(carVehicles.cvhDeletedAt)))
+    .where(and(...filters))
     .orderBy(asc(carVehicles.cvhPlateNumber));
+
+  return rows.map((v) => ({
+    ...v,
+    isDeleted: v.cvhDeletedAt !== null,
+  }));
 }
 
 export async function getVehicle(entId: string, id: string): Promise<CarVehicle | null> {

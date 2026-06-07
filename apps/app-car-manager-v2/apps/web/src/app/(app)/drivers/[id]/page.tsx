@@ -18,6 +18,7 @@ import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getDriver } from '@/server/queries/drivers.queries';
 import { listTripsForDriver } from '@/server/queries/trips.queries';
 import { TripHistorySection } from '../../trips/_components/trip-history-section';
+import { DriverDeleteButton } from './_components/driver-delete-button';
 
 const STATUS_TONE: Record<CarDriverStatus, 'success' | 'info' | 'neutral'> = {
   AVAILABLE:   'success',
@@ -100,13 +101,23 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
                         <h2 className="text-2xl font-bold text-text leading-tight">{driver.user.usrName}</h2>
                         <Badge tone={STATUS_TONE[driver.drvStatus]}>{tStatus(driver.drvStatus)}</Badge>
                       </div>
-                      {/* Inline Edit button — replaces the header's right-side
-                       * action on mobile. Sized "sm" so it doesn't dwarf the
-                       * name; desktop keeps `actions` in the header and this
-                       * mirror is harmless duplication on wide screens. */}
-                      <Button variant="secondary" size="sm" iconLeft={<Edit3 />} asChild className="shrink-0">
-                        <Link href={`/drivers/${id}/edit`}>{tA('edit')}</Link>
-                      </Button>
+                      {/* Inline Edit + Delete buttons — visible on all sizes.
+                       * On mobile (< sm): icon-only for compact layout.
+                       * On desktop (sm+): shows text labels. */}
+                      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                        <Button variant="secondary" size="sm" className="px-2 sm:px-3" asChild>
+                          <Link href={`/drivers/${id}/edit`} aria-label={tA('edit')}>
+                            <Edit3 className="h-4 w-4" />
+                            <span className="hidden sm:inline ml-1.5">{tA('edit')}</span>
+                          </Link>
+                        </Button>
+                        <DriverDeleteButton
+                          driverId={driver.drvId}
+                          driverName={driver.user.usrName ?? driver.drvLicenseNumber}
+                          variant="ghost"
+                          size="sm"
+                        />
+                      </div>
                     </div>
                     <div className="mt-2 space-y-1 text-sm">
                       {driver.drvPhone && (

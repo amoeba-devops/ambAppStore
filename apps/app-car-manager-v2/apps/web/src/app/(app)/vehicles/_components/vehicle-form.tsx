@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Loader2, Save, Trash2 } from 'lucide-react';
 import {
   Button,
@@ -28,6 +28,8 @@ import type {
   CarVehicleFuel,
   CarVehicleStatus,
 } from '@car-v2/db/schema';
+import { ConfirmDeleteDialog, type DeleteWarningRef } from '@/components/dialogs/confirm-delete-dialog';
+import { RefDetailPanel } from '@/components/dialogs/ref-detail-panel';
 import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
 import { useFormDraft } from '@/hooks/use-form-draft';
 import { formatActionError } from '@/lib/format-action-error';
@@ -35,6 +37,7 @@ import {
   createVehicleAction,
   deleteVehicleAction,
   updateVehicleAction,
+  getVehicleDeleteWarningsAction,
 } from '@/server/actions/vehicles/vehicle.actions';
 
 interface VehicleDraftValues {
@@ -64,10 +67,13 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
   const t       = useTranslations('vehicles.form');
   const tStatus = useTranslations('vehicles.status');
   const tFuel   = useTranslations('vehicles.fuel');
+  const tTripStatus = useTranslations('trips.status');
   const tA      = useTranslations('actions');
   const tErr    = useTranslations();
+  const locale  = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const isEdit = !!vehicle;
 
   const [plateNumber, setPlateNumber] = useState(vehicle?.cvhPlateNumber ?? '');
@@ -176,21 +182,39 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
     });
   };
 
-  const onDelete = () => {
+  const handleDelete = async () => {
     if (!vehicle) return;
-    if (!confirm(t('confirmRemove', { plate: vehicle.cvhPlateNumber }))) {
-      return;
+    const result = await deleteVehicleAction(vehicle.cvhId);
+    if (result.success) {
+      toast.success(t('tRemoved'));
+      router.push('/vehicles');
+      router.refresh();
+    } else {
+      toast.error(t('errRemove'), { description: formatActionError(result.error, tErr) });
+      throw new Error('Delete failed'); // Keep dialog open on error
     }
-    startTransition(async () => {
-      const result = await deleteVehicleAction(vehicle.cvhId);
-      if (result.success) {
-        toast.success(t('tRemoved'));
-        router.push('/vehicles');
-        router.refresh();
-      } else {
-        toast.error(t('errRemove'), { description: formatActionError(result.error, tErr) });
-      }
-    });
+  };
+
+  const fetchDeleteWarnings = async () => {
+    if (!vehicle) return [];
+    const result = await getVehicleDeleteWarningsAction(vehicle.cvhId);
+    if (result.success) {
+      // Translate warning messages using i18n and add hrefs
+      return result.data.warnings.map((w) => ({
+        ...w,
+        message:
+          w.type === 'active_trips'
+            ? t('warningActiveTrips', { count: w.count })
+            : w.type === 'linked_expenses'
+              ? t('warningLinkedExpenses', { count: w.count })
+              : w.message,
+        refs: w.refs?.map((ref) => ({
+          ...ref,
+          href: w.type === 'active_trips' ? `/trips/${ref.id}` : `/costs?highlight=${ref.id}`,
+        })),
+      }));
+    }
+    return [];
   };
 
   return (
@@ -296,7 +320,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
       <div className="md:flex md:justify-end md:gap-2 md:pt-2 md:static md:bg-transparent md:px-0 md:py-0 md:border-t-0
         sticky bottom-0 -mx-4 px-4 py-3 bg-bg/95 backdrop-blur border-t border-border flex gap-2">
         {isEdit && (
-          <Button type="button" variant="danger" size="lg" onClick={onDelete} disabled={pending} iconLeft={<Trash2 />} className="md:mr-auto">
+          <Button type="button" variant="danger" size="lg" onClick={() => setDeleteDialogOpen(true)} disabled={pending} iconLeft={<Trash2 />} className="md:mr-auto">
             {t('submitRemove')}
           </Button>
         )}
@@ -308,6 +332,30 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
           {pending ? t('submitSaving') : isEdit ? t('submitSave') : t('submitAdd')}
         </Button>
       </div>
+
+      {isEdit && (
+        <ConfirmDeleteDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title={t('deleteDialogTitle')}
+          description={t('confirmRemove', { plate: vehicle.cvhPlateNumber })}
+          confirmLabel={t('submitRemove')}
+          cancelLabel={tA('cancel')}
+          onConfirm={handleDelete}
+          fetchWarnings={fetchDeleteWarnings}
+          locale={locale}
+          warningLabels={{
+            loading: t('deleteWarningsLoading'),
+            hasWarnings: t('deleteWarningsFound'),
+            noWarnings: t('deleteNoWarnings'),
+            more: (count) => t('warningMore', { count }),
+            relatedTitle: t('relatedTrips'),
+            viewFullDetails: t('viewFullDetails'),
+            tripStatus: (status) => tTripStatus(status),
+          }}
+          renderRefDetail={(ref: DeleteWarningRef) => <RefDetailPanel refData={ref} />}
+        />
+      )}
     </form>
   );
 }

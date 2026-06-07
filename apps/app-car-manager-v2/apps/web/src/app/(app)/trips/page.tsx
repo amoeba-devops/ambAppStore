@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { Calendar, ChevronRight, Download, Plus } from 'lucide-react';
+import { AlertTriangle, Calendar, ChevronRight, Download, Plus } from 'lucide-react';
 import {
   Avatar,
   Badge,
@@ -21,7 +21,7 @@ import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getDriverByUserId, listDrivers } from '@/server/queries/drivers.queries';
-import { getTrip, listTrips, listTripsForBoard, listTripsForDriver, type TripListItem } from '@/server/queries/trips.queries';
+import { getTrip, listTrips, listTripsForBoard, listTripsForDriver, type TripListItem, type TripDeletedFilter } from '@/server/queries/trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { ClickableTableRow } from '@/components/clickable-table-row';
 import { DriverTripsList } from './_components/driver-trips-list';
@@ -29,6 +29,7 @@ import { TripPeekDrawer } from './_components/trip-peek-drawer';
 import { TripBoard } from './_components/trip-board';
 import { TripsViewControl } from './_components/trips-view-control';
 import { BoardViewport } from './_components/board-viewport';
+import { TripDeletedFilter as TripDeletedFilterComponent } from './_components/trip-deleted-filter';
 
 const STATUS_TONE: Record<CarTripStatus, 'accent' | 'warning' | 'success' | 'info' | 'neutral' | 'danger'> = {
   PENDING_ASSIGNMENT:          'accent',
@@ -60,6 +61,7 @@ interface PageProps {
     q?: string;
     date?: string;
     view?: string;
+    deleted?: string;
   }>;
 }
 
@@ -105,6 +107,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
   const view: 'kanban' | 'list' = sp.view === 'list' ? 'list' : 'kanban';
   const statusFilter = (sp.status ?? 'pending') as 'all' | 'pending' | 'active' | 'completed';
   const dateRange = (sp.date ?? 'all') as 'all' | 'today' | 'thisWeek' | 'thisMonth' | 'past';
+  const deletedFilter: TripDeletedFilter = (['active', 'deleted', 'all'].includes(sp.deleted ?? '') ? sp.deleted : 'active') as TripDeletedFilter;
   const searchQ = sp.q?.trim() || undefined;
   const page = Math.max(1, Number(sp.page ?? 1));
   const peekId = sp.peek;
@@ -132,6 +135,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         userId: user.userId,
         q: searchQ,
         dateRange,
+        deletedFilter,
       }),
       peekPromise,
     ]);
@@ -149,6 +153,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         q: searchQ,
         dateRange,
         page,
+        deletedFilter,
       }),
       peekPromise,
     ]);
@@ -289,12 +294,13 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                 <div className="inline-flex items-center gap-1 rounded-md bg-surface-2 p-1">
                   {FILTERS.map((f) => {
                     const active = statusFilter === f.key;
-                    /* Khi đổi status, GIỮ các filter khác (q, date, view). */
+                    /* Khi đổi status, GIỮ các filter khác (q, date, view, deleted). */
                     const href = buildTripsHref({
                       status: f.key,
                       q: searchQ,
                       date: dateRange,
                       view: 'list',
+                      deleted: deletedFilter,
                     });
                     return (
                       <Link
@@ -312,6 +318,21 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                 </div>
               </div>
             )}
+            {/* Deleted filter dropdown — Admin can filter active, deleted, or all trips */}
+            <TripDeletedFilterComponent
+              currentFilter={deletedFilter}
+              currentParams={{
+                status: statusFilter,
+                q: searchQ,
+                date: dateRange,
+                view,
+              }}
+              labels={{
+                active: tList('filterActive'),
+                deleted: tList('filterDeleted'),
+                all: tList('filterAll'),
+              }}
+            />
           </div>
           <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
             {/* Debounced search — tự cập nhật URL `?q=` sau 300ms, preserve các
@@ -337,6 +358,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                   q: searchQ,
                   date: d.key,
                   view: view === 'list' ? 'list' : undefined,
+                  deleted: deletedFilter,
                 });
                 return (
                   <Link
@@ -354,7 +376,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
             </div>
             {(searchQ || dateRange !== 'all') && (
               <Button variant="ghost" size="sm" asChild>
-                <Link href={buildTripsHref({ view: view === 'list' ? 'list' : undefined })}>{tA('clear')}</Link>
+                <Link href={buildTripsHref({ view: view === 'list' ? 'list' : undefined, deleted: deletedFilter })}>{tA('clear')}</Link>
               </Button>
             )}
           </div>
@@ -377,23 +399,32 @@ export default async function TripsListPage({ searchParams }: PageProps) {
               {items.map((trip) => (
                 <li key={trip.trpId}>
                   <Link
-                    href={peekHref(statusFilter, page, trip.trpId, searchQ, dateRange)}
+                    href={peekHref(statusFilter, page, trip.trpId, searchQ, dateRange, deletedFilter)}
                     scroll={false}
                     aria-label={tList('openAria', { ref: trip.trpRef })}
-                    className={
-                      'block rounded-md border border-border bg-surface px-4 py-3.5 active:bg-surface-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg ' +
-                      (trip.trpId === highlightId ? 'ccms-row-highlight' : '')
-                    }
+                    className={cn(
+                      'block rounded-md border border-border bg-surface px-4 py-3.5 active:bg-surface-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+                      trip.trpId === highlightId && 'ccms-row-highlight',
+                      trip.isDeleted && 'opacity-60',
+                    )}
                   >
                     <div className="flex items-start gap-3">
                       <Avatar name={trip.passengerName ?? '?'} size="md" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <div className="font-mono text-[11px] text-text-faint tabular">{trip.trpRef}</div>
-                            <div className="font-semibold text-text truncate leading-tight">{trip.passengerName ?? tCommon('unknown')}</div>
+                            <div className={cn('font-mono text-[11px] text-text-faint tabular', trip.isDeleted && 'line-through')}>{trip.trpRef}</div>
+                            <div className={cn('font-semibold text-text truncate leading-tight', trip.isDeleted && 'line-through')}>{trip.passengerName ?? tCommon('unknown')}</div>
                           </div>
-                          <Badge tone={STATUS_TONE[trip.trpStatus]} size="sm">{tStatus(trip.trpStatus)}</Badge>
+                          <div className="flex items-center gap-1.5">
+                            {trip.isDeleted && (
+                              <Badge tone="danger" size="sm" className="flex items-center gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                {tList('deletedBadge')}
+                              </Badge>
+                            )}
+                            <Badge tone={STATUS_TONE[trip.trpStatus]} size="sm">{tStatus(trip.trpStatus)}</Badge>
+                          </div>
                         </div>
                         <div className="mt-2 text-xs text-text-muted leading-snug">
                           <span className="text-text">{trip.trpPickupAddress}</span>
@@ -433,17 +464,20 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                   {items.map((trip) => (
                     <ClickableTableRow
                       key={trip.trpId}
-                      href={peekHref(statusFilter, page, trip.trpId, searchQ, dateRange)}
+                      href={peekHref(statusFilter, page, trip.trpId, searchQ, dateRange, deletedFilter)}
                       scroll={false}
                       aria-label={tList('openAria', { ref: trip.trpRef })}
-                      className={trip.trpId === highlightId ? 'ccms-row-highlight' : ''}
+                      className={cn(
+                        trip.trpId === highlightId && 'ccms-row-highlight',
+                        trip.isDeleted && 'opacity-60',
+                      )}
                     >
-                      <TableCell className="font-mono text-xs text-text-muted tabular">{trip.trpRef}</TableCell>
+                      <TableCell className={cn('font-mono text-xs text-text-muted tabular', trip.isDeleted && 'line-through')}>{trip.trpRef}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2.5">
                           <Avatar name={trip.passengerName ?? '?'} size="sm" />
                           <div className="min-w-0">
-                            <div className="font-medium text-text truncate">{trip.passengerName ?? tCommon('unknown')}</div>
+                            <div className={cn('font-medium text-text truncate', trip.isDeleted && 'line-through')}>{trip.passengerName ?? tCommon('unknown')}</div>
                           </div>
                         </div>
                       </TableCell>
@@ -463,7 +497,15 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge tone={STATUS_TONE[trip.trpStatus]} size="sm">{tStatus(trip.trpStatus)}</Badge>
+                        <div className="flex items-center gap-1.5">
+                          {trip.isDeleted && (
+                            <Badge tone="danger" size="sm" className="flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              {tList('deletedBadge')}
+                            </Badge>
+                          )}
+                          <Badge tone={STATUS_TONE[trip.trpStatus]} size="sm">{tStatus(trip.trpStatus)}</Badge>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <ChevronRight className="inline-block h-4 w-4 text-text-faint" />
@@ -481,7 +523,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                 <div className="inline-flex items-center gap-1 self-end md:self-auto">
                   {page > 1 ? (
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={pageHref(statusFilter, page - 1, searchQ, dateRange)}>{tList('previous')}</Link>
+                      <Link href={pageHref(statusFilter, page - 1, searchQ, dateRange, deletedFilter)}>{tList('previous')}</Link>
                     </Button>
                   ) : (
                     <Button variant="ghost" size="sm" disabled>{tList('previous')}</Button>
@@ -489,7 +531,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
                   <span className="px-3 text-sm tabular">{page} / {totalPages}</span>
                   {page < totalPages ? (
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={pageHref(statusFilter, page + 1, searchQ, dateRange)}>{tList('next')}</Link>
+                      <Link href={pageHref(statusFilter, page + 1, searchQ, dateRange, deletedFilter)}>{tList('next')}</Link>
                     </Button>
                   ) : (
                     <Button variant="ghost" size="sm" disabled>{tList('next')}</Button>
@@ -527,6 +569,8 @@ function buildTripsHref(opts: {
   peek?: string;
   /** 'list' is persisted; 'kanban' is the default and omitted for clean URLs. */
   view?: 'list' | 'kanban';
+  /** Deleted filter — 'active' is default and omitted for clean URLs. */
+  deleted?: TripDeletedFilter;
 }): string {
   const params = new URLSearchParams();
   if (opts.view === 'list') params.set('view', 'list');
@@ -535,18 +579,19 @@ function buildTripsHref(opts: {
   if (opts.date && opts.date !== 'all') params.set('date', opts.date);
   if (opts.page && opts.page > 1) params.set('page', String(opts.page));
   if (opts.peek) params.set('peek', opts.peek);
+  if (opts.deleted && opts.deleted !== 'active') params.set('deleted', opts.deleted);
   const qs = params.toString();
   return qs ? `/trips?${qs}` : '/trips';
 }
 
-function pageHref(status: string, page: number, q?: string, date?: string): string {
-  return buildTripsHref({ status, page, q, date, view: 'list' });
+function pageHref(status: string, page: number, q?: string, date?: string, deleted?: TripDeletedFilter): string {
+  return buildTripsHref({ status, page, q, date, view: 'list', deleted });
 }
 
 /**
  * Build a peek URL preserving the current list filter + page so closing the
  * drawer drops the user back exactly where they were.
  */
-function peekHref(status: string, page: number, tripId: string, q?: string, date?: string): string {
-  return buildTripsHref({ status, page, q, date, peek: tripId, view: 'list' });
+function peekHref(status: string, page: number, tripId: string, q?: string, date?: string, deleted?: TripDeletedFilter): string {
+  return buildTripsHref({ status, page, q, date, peek: tripId, view: 'list', deleted });
 }

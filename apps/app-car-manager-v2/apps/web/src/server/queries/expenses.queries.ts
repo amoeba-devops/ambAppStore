@@ -94,6 +94,12 @@ export interface EntityExpenseListItem {
    * soft-deleted after submission. */
   submitterRole: 'ADMIN' | 'MANAGER' | 'DRIVER' | null;
   submitterName: string | null;
+  /** Non-null when the linked trip was soft-deleted after expense creation */
+  tripDeletedAt: Date | null;
+  /** Non-null when the linked driver was soft-deleted after expense creation */
+  driverDeletedAt: Date | null;
+  /** Non-null when the linked vehicle was soft-deleted after expense creation */
+  vehicleDeletedAt: Date | null;
 }
 
 /**
@@ -125,9 +131,13 @@ export async function listEntityExpenses(
     .select({
       expense: carExpenses,
       tripRef: carTrips.trpRef,
+      tripDeletedAt: carTrips.trpDeletedAt,
       directPlate: directVehicle.cvhPlateNumber,
+      directVehicleDeletedAt: directVehicle.cvhDeletedAt,
       tripVehiclePlate: sql<string | null>`(SELECT cvh_plate_number FROM car_vehicles WHERE cvh_id = ${carTrips.trpVehicleId})`,
+      tripVehicleDeletedAt: sql<Date | null>`(SELECT cvh_deleted_at FROM car_vehicles WHERE cvh_id = ${carTrips.trpVehicleId})`,
       driverName: carUsers.usrName,
+      driverDeletedAt: carDrivers.drvDeletedAt,
       /* Pull submitter role + display name via correlated subqueries so we
        * don't have to alias `car_users` twice (joined once for the driver
        * name path above). One row per expense — the subquery only fires
@@ -170,6 +180,10 @@ export async function listEntityExpenses(
     driverName: r.driverName ?? null,
     submitterRole: r.submitterRole ?? null,
     submitterName: r.submitterName ?? null,
+    tripDeletedAt: r.tripDeletedAt ?? null,
+    driverDeletedAt: r.driverDeletedAt ?? null,
+    /* Vehicle deleted: prefer direct vehicle FK, fallback to trip's vehicle */
+    vehicleDeletedAt: r.directVehicleDeletedAt ?? r.tripVehicleDeletedAt ?? null,
   }));
 }
 
@@ -204,9 +218,13 @@ export async function getExpenseDetail(
     .select({
       expense: carExpenses,
       tripRef: carTrips.trpRef,
+      tripDeletedAt: carTrips.trpDeletedAt,
       directPlate: directVehicle.cvhPlateNumber,
+      directVehicleDeletedAt: directVehicle.cvhDeletedAt,
       tripVehiclePlate: sql<string | null>`(SELECT cvh_plate_number FROM car_vehicles WHERE cvh_id = ${carTrips.trpVehicleId})`,
+      tripVehicleDeletedAt: sql<Date | null>`(SELECT cvh_deleted_at FROM car_vehicles WHERE cvh_id = ${carTrips.trpVehicleId})`,
       driverName: carUsers.usrName,
+      driverDeletedAt: carDrivers.drvDeletedAt,
       submitterRole: sql<'ADMIN' | 'MANAGER' | 'DRIVER' | null>`(SELECT usr_local_role FROM car_users WHERE usr_id = ${carExpenses.expSubmittedBy})`,
       submitterName: sql<string | null>`(SELECT usr_name FROM car_users WHERE usr_id = ${carExpenses.expSubmittedBy})`,
     })
@@ -256,6 +274,9 @@ export async function getExpenseDetail(
     driverName: row.driverName ?? null,
     submitterRole: row.submitterRole ?? null,
     submitterName: row.submitterName ?? null,
+    tripDeletedAt: row.tripDeletedAt ?? null,
+    driverDeletedAt: row.driverDeletedAt ?? null,
+    vehicleDeletedAt: row.directVehicleDeletedAt ?? row.tripVehicleDeletedAt ?? null,
     attachments: attachments.map((a) => ({
       eatId: a.eatId,
       eatS3Key: a.eatS3Key,
