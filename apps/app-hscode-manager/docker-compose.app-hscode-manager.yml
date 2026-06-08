@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  bff-hscode-manager:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: bff-hscode-manager
+    ports:
+      - "3102:3102"
+    env_file:
+      - ./.env
+    environment:
+      - NODE_ENV=production
+      - PORT=3102
+      - ALLOW_ENTITY_HEADER_AUTH=${ALLOW_ENTITY_HEADER_AUTH:-false}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3102/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - amb-apps-network
+
+  web-hscode-manager:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/app-hscode/api}
+        VITE_AMA_LOGIN_URL: ${VITE_AMA_LOGIN_URL:-https://ama.amoeba.site/login}
+    container_name: web-hscode-manager
+    ports:
+      - "5202:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - amb-apps-network
+
+networks:
+  amb-apps-network:
+    external: true

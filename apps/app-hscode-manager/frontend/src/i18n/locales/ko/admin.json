@@ -1,0 +1,148 @@
+{
+  "title": "관리",
+  "tabs": {
+    "import_country": "수입국",
+    "export_country": "수출국",
+    "exporter": "수출업체",
+    "data_source": "외부 데이터 소스",
+    "fta": "FTA 매트릭스",
+    "policy": "정책 임계값",
+    "kpi": "KPI 대시보드",
+    "ucr": "미지원 국가 요청",
+    "user": "사용자·권한"
+  },
+  "policy": {
+    "title": "정책 임계값",
+    "add": "임계값 추가/갱신",
+    "scope": "적용 범위",
+    "scope_global": "글로벌",
+    "key": "키",
+    "value": "값",
+    "value_type": "유형",
+    "description": "설명",
+    "updated_at": "최근 수정",
+    "default_keys_title": "코드 상수 기본값 (DB 등록 누락 시 사용)",
+    "fallback_warning": "DB 등록이 없으면 코드 상수 기본값이 사용됩니다."
+  },
+  "kpi": {
+    "title": "KPI 대시보드",
+    "period_label": "기간 (개월)",
+    "rank1_hit": "1순위 히트율",
+    "seizure": "추징률",
+    "correction": "정정률",
+    "sealed": "세관확인률",
+    "totals": "누적 통계",
+    "ai": "AI 운영 지표",
+    "trend": "월별 추세"
+  },
+  "ucr": {
+    "title": "미지원 국가 추가 요청",
+    "request_country": "요청 국가",
+    "business_case": "비즈니스 케이스",
+    "estimated_volume": "예상 처리 건수",
+    "status": "상태",
+    "created_at": "요청일",
+    "resolution_note": "처리 메모",
+    "submit": "요청 제출",
+    "status_options": {
+      "OPEN": "접수",
+      "IN_PROGRESS": "검토중",
+      "RESOLVED": "처리완료",
+      "REJECTED": "반려"
+    },
+    "empty": "요청이 없습니다",
+    "user_email": "요청자",
+    "submitted_message": "요청이 제출되었습니다. 운영팀이 검토 후 회신합니다."
+  },
+  "support_status": {
+    "ACTIVE": "활성",
+    "BETA": "베타",
+    "NOT_SUPPORTED": "미지원"
+  },
+  "import_country": {
+    "title": "수입국 관리",
+    "add": "수입국 추가",
+    "code": "ISO 코드",
+    "name_ko": "한글명",
+    "name_en": "영문명",
+    "name_vi": "베트남어명",
+    "adapter_key": "어댑터 키",
+    "currency": "통화",
+    "tariff_currency": "세율 통화",
+    "status": "지원 상태",
+    "actions": "동작",
+    "edit_status": "상태 변경"
+  },
+  "export_country": {
+    "title": "수출국 관리",
+    "add": "수출국 추가",
+    "code": "ISO 코드",
+    "name_ko": "한글명",
+    "name_en": "영문명",
+    "name_vi": "베트남어명",
+    "is_active": "활성"
+  },
+  "exporter": {
+    "title": "수출업체 관리",
+    "add": "수출업체 추가",
+    "name": "업체명",
+    "country": "국가",
+    "aliases": "별칭",
+    "memo": "메모",
+    "search_placeholder": "업체명 또는 별칭 검색"
+  },
+  "data_source": {
+    "title": "외부 데이터 소스",
+    "add": "데이터 소스 추가",
+    "adapter_key": "어댑터 키",
+    "country": "수입국",
+    "display_name": "표시명",
+    "endpoint": "엔드포인트 URL",
+    "cache_ttl": "캐시 TTL(초)",
+    "is_active": "활성",
+    "priority": "우선순위"
+  },
+  "fta": {
+    "title": "FTA 매트릭스",
+    "add": "FTA 행 추가",
+    "import_country": "수입국",
+    "export_country": "수출국",
+    "agreement": "협정",
+    "hs_code": "HS 코드",
+    "rate": "세율(%)",
+    "effective_from": "발효일",
+    "effective_to": "종료일",
+    "memo": "메모",
+    "lookup_button": "협정세율 조회",
+    "lookup_no_result": "유효한 협정세율을 찾을 수 없습니다"
+  },
+  "user": {
+    "title": "내 정보",
+    "user_id": "사용자 ID",
+    "entity_id": "Entity ID",
+    "entity_code": "Entity Code",
+    "email": "이메일",
+    "name": "이름",
+    "roles": "역할"
+  },
+  "actions": {
+    "edit": "수정",
+    "delete": "삭제",
+    "create": "등록",
+    "save": "저장",
+    "cancel": "취소",
+    "search": "검색"
+  },
+  "modal": {
+    "success_title": "성공",
+    "error_title": "오류",
+    "delete_confirm_title": "삭제 확인",
+    "delete_confirm_message": "정말 삭제하시겠습니까? 이 동작은 되돌릴 수 없습니다.",
+    "created": "신규 등록되었습니다",
+    "updated": "수정되었습니다",
+    "deleted": "삭제되었습니다",
+    "status_changed": "상태가 변경되었습니다"
+  },
+  "empty": "데이터가 없습니다",
+  "total_count": "총 {{count}}건"
+}

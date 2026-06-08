@@ -1,0 +1,36 @@
+{
+  "app": {
+    "title": "HS Code Manager",
+    "subtitle": "Raw Materials HS Code Matching Platform"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "new_work": "New Inquiry",
+    "history": "History",
+    "verification": "Verification",
+    "expert": "Expert Review",
+    "admin": "Admin"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "in_progress": "In-progress Inquiries",
+    "kpi_summary": "Seizure / Correction Rate",
+    "recent_activity": "Recent Activity",
+    "empty_state": "No work yet. Select [New Inquiry] at top right to begin."
+  },
+  "language": {
+    "ko": "한국어",
+    "en": "English",
+    "vi": "Tiếng Việt"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next"
+  }
+}

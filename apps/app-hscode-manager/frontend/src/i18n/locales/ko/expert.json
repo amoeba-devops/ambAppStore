@@ -1,0 +1,70 @@
+{
+  "queue": {
+    "title": "에스컬레이션 큐 (전문가 검토)",
+    "subtitle": "{{role}} — 본인에게 할당된 검토 대상",
+    "verdict_filter": "상태",
+    "verdict": {
+      "PENDING": "대기",
+      "APPROVE": "승인",
+      "REVISE": "수정 요청",
+      "REJECT": "거부"
+    },
+    "role": {
+      "EXPERT_LOCAL": "현지 전문가 (Mr. Nguyen)",
+      "EXPERT_INTERNAL": "내부 전문가 (Ms. Hau)"
+    },
+    "columns": {
+      "requested_at": "요청일",
+      "route": "수출→수입",
+      "hs": "HS 코드",
+      "item": "품명",
+      "triggers": "트리거",
+      "verdict": "상태"
+    },
+    "trigger": {
+      "LOW_CONFIDENCE": "낮은 신뢰도",
+      "MULTIPLE_CANDIDATES": "후보 분기",
+      "PROHIBITED_KEYWORD": "수입금지 키워드",
+      "PAST_SEIZURE": "과거 추징 이력",
+      "CUSTOMER_REQUEST": "고객사 요청",
+      "AMOUNT_THRESHOLD": "금액 임계 초과",
+      "OTHER_CATEGORY": "Other 카테고리",
+      "CUSTOMS_SEIZURE_AUTO": "추징 자동 트리거"
+    },
+    "empty": "대기 중인 검토가 없습니다"
+  },
+  "detail": {
+    "title": "전문가 검토",
+    "back": "큐로 돌아가기",
+    "context": {
+      "title": "분류 컨텍스트",
+      "hs": "HS 코드",
+      "item": "품명",
+      "category": "카테고리",
+      "import": "수입국",
+      "export": "수출국"
+    },
+    "triggers_title": "발동 트리거",
+    "trigger_notes": "트리거 상세 메모 (자동 생성)",
+    "respond": {
+      "title": "회신",
+      "verdict": "판정",
+      "verdict_options": {
+        "APPROVE": "승인",
+        "REVISE": "수정 요청",
+        "REJECT": "거부"
+      },
+      "verdict_hint": {
+        "APPROVE": "분류 유지 — 다른 미해결 검토가 없으면 Inquiry RESPONDED 로 복귀",
+        "REVISE": "재컨펌 필요 — Inquiry MATCHING 으로 되돌림",
+        "REJECT": "거부 — 분류 DISPUTED + Inquiry DISPUTED 전이"
+      },
+      "notes": "회신 메모",
+      "submit": "회신 등록"
+    },
+    "modal": {
+      "responded": "회신이 등록되었습니다",
+      "already_resolved": "이미 회신된 검토입니다"
+    }
+  }
+}
