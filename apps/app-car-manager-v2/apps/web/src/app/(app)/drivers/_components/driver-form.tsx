@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
-import { Loader2, Save } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { Loader2, Save, Trash2 } from 'lucide-react';
 import {
   Button,
   Card,
@@ -24,12 +24,16 @@ import {
   toast,
 } from '@car-v2/ui';
 import type { CarDriver, CarDriverLicenseClass, CarDriverStatus } from '@car-v2/db/schema';
+import { ConfirmDeleteDialog, type DeleteWarningRef } from '@/components/dialogs/confirm-delete-dialog';
+import { RefDetailPanel } from '@/components/dialogs/ref-detail-panel';
 import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
 import { useFormDraft } from '@/hooks/use-form-draft';
 import { formatActionError } from '@/lib/format-action-error';
 import {
   createDriverAction,
   updateDriverAction,
+  deleteDriverAction,
+  getDriverDeleteWarningsAction,
 } from '@/server/actions/drivers/driver.actions';
 
 /** Mirror AMA normalize — preview only, server validate lại. */
@@ -66,10 +70,13 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
   const t       = useTranslations('drivers.form');
   const tList   = useTranslations('drivers.list');
   const tStatus = useTranslations('drivers.status');
+  const tTripStatus = useTranslations('trips.status');
   const tA      = useTranslations('actions');
   const tErr    = useTranslations();
+  const locale  = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const isEdit = !!driver;
 
   const [userId, setUserId] = useState(driver?.drvUserId ?? '');
@@ -80,6 +87,10 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
   const [status, setStatus] = useState<CarDriverStatus>(driver?.drvStatus ?? 'AVAILABLE');
   const [emergencyContact, setEmergencyContact] = useState(driver?.drvEmergencyContact ?? '');
   const [notes, setNotes] = useState(driver?.drvNotes ?? '');
+
+  /* Track whether user has made any changes — draft is only saved when dirty. */
+  const [isDirty, setIsDirty] = useState(false);
+  const markDirty = () => setIsDirty(true);
 
   const draftValues: DriverDraftValues = {
     userId,
@@ -113,6 +124,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
     label: driverLabel,
     href: isEdit ? `/drivers/${driver!.drvId}/edit` : '/drivers/new',
     entity: 'driver',
+    isDirty,
   });
 
   const handleRestoreDraft = () => {
@@ -126,6 +138,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
     setStatus(v.status);
     setEmergencyContact(v.emergencyContact);
     setNotes(v.notes);
+    setIsDirty(true); // Restored draft should be persisted
     dismissDraft();
   };
 
@@ -180,6 +193,43 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
     });
   };
 
+  const handleDelete = async () => {
+    if (!driver) return;
+    const result = await deleteDriverAction(driver.drvId);
+    if (result.success) {
+      toast.success(t('tRemoved'));
+      router.push('/drivers');
+      router.refresh();
+    } else {
+      toast.error(t('errRemove'), { description: formatActionError(result.error, tErr) });
+      throw new Error('Delete failed'); // Keep dialog open on error
+    }
+  };
+
+  const fetchDeleteWarnings = async () => {
+    if (!driver) return [];
+    const result = await getDriverDeleteWarningsAction(driver.drvId);
+    if (result.success) {
+      // Translate warning messages using i18n and add hrefs
+      return result.data.warnings.map((w) => ({
+        ...w,
+        message:
+          w.type === 'active_trips'
+            ? t('warningActiveTrips', { count: w.count })
+            : w.type === 'pending_expenses'
+              ? t('warningPendingExpenses', { count: w.count })
+              : w.message,
+        refs: w.refs?.map((ref) => ({
+          ...ref,
+          href: w.type === 'active_trips' ? `/trips/${ref.id}` : `/costs?highlight=${ref.id}`,
+        })),
+      }));
+    }
+    return [];
+  };
+
+  const driverName = driver?.user?.usrName ?? driver?.drvLicenseNumber ?? '';
+
   return (
     <form
       className="max-w-[720px] mx-auto space-y-5"
@@ -214,7 +264,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
             </div>
           ) : (
             <Field label={t('user')} required>
-              <Select value={userId} onValueChange={setUserId}>
+              <Select value={userId} onValueChange={(v) => { setUserId(v); markDirty(); }}>
                 <SelectTrigger><SelectValue placeholder={t('userPlaceholder')} /></SelectTrigger>
                 <SelectContent>
                   {userCandidates.length === 0 ? (
@@ -244,10 +294,10 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label={t('licenseNumber')} required>
-              <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} placeholder={t('licenseNumberPlaceholder')} maxLength={50} className="font-mono" />
+              <Input value={licenseNumber} onChange={(e) => { setLicenseNumber(e.target.value); markDirty(); }} placeholder={t('licenseNumberPlaceholder')} maxLength={50} className="font-mono" />
             </Field>
             <Field label={t('class')} required>
-              <Select value={licenseClass} onValueChange={(v) => setLicenseClass(v as CarDriverLicenseClass)}>
+              <Select value={licenseClass} onValueChange={(v) => { setLicenseClass(v as CarDriverLicenseClass); markDirty(); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {LICENSE_CLASSES.map((c) => (
@@ -257,11 +307,11 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
               </Select>
             </Field>
             <Field label={t('expiry')} required hint={t('expiryHint')}>
-              <Input type="date" value={licenseExpiry} onChange={(e) => setLicenseExpiry(e.target.value)} />
+              <Input type="date" value={licenseExpiry} onChange={(e) => { setLicenseExpiry(e.target.value); markDirty(); }} />
             </Field>
             {isEdit && (
               <Field label={t('status')}>
-                <Select value={status} onValueChange={(v) => setStatus(v as CarDriverStatus)}>
+                <Select value={status} onValueChange={(v) => { setStatus(v as CarDriverStatus); markDirty(); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {STATUSES.map((s) => (
@@ -276,7 +326,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
             <Field label={t('phone')}>
               <Input
                 value={phone ?? ''}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => { setPhone(e.target.value); markDirty(); }}
                 placeholder={t('phonePlaceholder')}
                 type="tel"
                 inputMode="tel"
@@ -292,7 +342,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
               )}
             </Field>
             <Field label={t('emergencyContact')}>
-              <Input value={emergencyContact ?? ''} onChange={(e) => setEmergencyContact(e.target.value)} placeholder={t('emergencyPlaceholder')} maxLength={100} />
+              <Input value={emergencyContact ?? ''} onChange={(e) => { setEmergencyContact(e.target.value); markDirty(); }} placeholder={t('emergencyPlaceholder')} maxLength={100} />
             </Field>
           </div>
         </CardContent>
@@ -305,12 +355,17 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
           </CardHeaderText>
         </CardHeader>
         <CardContent>
-          <Textarea value={notes ?? ''} onChange={(e) => setNotes(e.target.value)} placeholder={t('notesPlaceholder')} rows={3} maxLength={2000} />
+          <Textarea value={notes ?? ''} onChange={(e) => { setNotes(e.target.value); markDirty(); }} placeholder={t('notesPlaceholder')} rows={3} maxLength={2000} />
         </CardContent>
       </Card>
 
       <div className="md:flex md:justify-end md:gap-2 md:pt-2 md:static md:bg-transparent md:px-0 md:py-0 md:border-t-0
         sticky bottom-0 -mx-4 px-4 py-3 bg-bg/95 backdrop-blur border-t border-border flex gap-2">
+        {isEdit && (
+          <Button type="button" variant="danger" size="lg" onClick={() => setDeleteDialogOpen(true)} disabled={pending} iconLeft={<Trash2 />} className="md:mr-auto">
+            {t('submitRemove')}
+          </Button>
+        )}
         <Button type="button" variant="secondary" size="lg" className="flex-1 md:flex-initial" asChild>
           <Link href={isEdit ? `/drivers/${driver.drvId}` : '/drivers'}>{tA('cancel')}</Link>
         </Button>
@@ -325,6 +380,30 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
           {pending ? t('submitSaving') : isEdit ? t('submitSave') : t('submitAdd')}
         </Button>
       </div>
+
+      {isEdit && (
+        <ConfirmDeleteDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title={t('deleteDialogTitle')}
+          description={t('confirmRemove', { name: driverName })}
+          confirmLabel={t('submitRemove')}
+          cancelLabel={tA('cancel')}
+          onConfirm={handleDelete}
+          fetchWarnings={fetchDeleteWarnings}
+          locale={locale}
+          warningLabels={{
+            loading: t('deleteWarningsLoading'),
+            hasWarnings: t('deleteWarningsFound'),
+            noWarnings: t('deleteNoWarnings'),
+            more: (count) => t('warningMore', { count }),
+            relatedTitle: t('relatedTrips'),
+            viewFullDetails: t('viewFullDetails'),
+            tripStatus: (status) => tTripStatus(status),
+          }}
+          renderRefDetail={(ref: DeleteWarningRef) => <RefDetailPanel refData={ref} />}
+        />
+      )}
     </form>
   );
 }

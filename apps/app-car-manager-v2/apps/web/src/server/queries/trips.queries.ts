@@ -20,7 +20,11 @@ export interface TripListItem extends CarTrip {
   passengerName: string | null;
   driverName: string | null;
   vehiclePlate: string | null;
+  /** True when the trip is soft-deleted (for list display styling) */
+  isDeleted: boolean;
 }
+
+export type TripDeletedFilter = 'active' | 'deleted' | 'all';
 
 const PAGE_SIZE = 20;
 
@@ -36,6 +40,8 @@ interface ListInput {
   /** Date range filter dựa trên trpScheduledAt. Mặc định 'all'. */
   dateRange?: TripDateRange;
   page?: number;
+  /** Filter by soft-deleted status. Mặc định 'active' (chỉ hiện trip chưa xóa). */
+  deletedFilter?: TripDeletedFilter;
 }
 
 export async function listTrips({
@@ -46,10 +52,20 @@ export async function listTrips({
   q,
   dateRange = 'all',
   page = 1,
+  deletedFilter = 'active',
 }: ListInput): Promise<{ items: TripListItem[]; total: number; page: number; pageSize: number }> {
   /* Per PRD R-3 (REQ §3.7): Admin sees all, Manager sees own (creator OR passenger),
    * Driver sees only trips assigned to them. */
-  const filters: SQL[] = [eq(carTrips.entId, entId), isNull(carTrips.trpDeletedAt)];
+  const filters: SQL[] = [eq(carTrips.entId, entId)];
+
+  /* Soft-delete filter: 'active' only shows live trips, 'deleted' only shows
+   * soft-deleted, 'all' shows both. Default 'active' for normal operations. */
+  if (deletedFilter === 'active') {
+    filters.push(isNull(carTrips.trpDeletedAt));
+  } else if (deletedFilter === 'deleted') {
+    filters.push(sql`${carTrips.trpDeletedAt} IS NOT NULL`);
+  }
+  /* 'all' includes both — no filter on trpDeletedAt */
 
   if (role === 'MANAGER') {
     const visibility = or(eq(carTrips.trpCreatorId, userId), eq(carTrips.trpPassengerId, userId));
@@ -120,6 +136,7 @@ export async function listTrips({
     passengerName: r.passengerName ?? null,
     driverName: r.driverName ?? null,
     vehiclePlate: r.vehiclePlate ?? null,
+    isDeleted: r.trip.trpDeletedAt !== null,
   }));
 
   return {
@@ -227,6 +244,7 @@ export async function listTripsForCalendar(args: {
     passengerName: r.passengerName ?? null,
     driverName: r.driverName ?? null,
     vehiclePlate: r.vehiclePlate ?? null,
+    isDeleted: false, // Calendar only shows live trips
   }));
 }
 
@@ -251,9 +269,19 @@ export async function listTripsForBoard(args: {
   userId: string;
   q?: string;
   dateRange?: TripDateRange;
+  deletedFilter?: TripDeletedFilter;
 }): Promise<{ items: TripListItem[]; capped: boolean }> {
-  const { entId, role, userId, q, dateRange = 'all' } = args;
-  const filters: SQL[] = [eq(carTrips.entId, entId), isNull(carTrips.trpDeletedAt)];
+  const { entId, role, userId, q, dateRange = 'all', deletedFilter = 'active' } = args;
+  const filters: SQL[] = [eq(carTrips.entId, entId)];
+
+  /* Soft-delete filter: 'active' only shows live trips, 'deleted' only shows
+   * soft-deleted, 'all' shows both. Default 'active' for normal operations. */
+  if (deletedFilter === 'active') {
+    filters.push(isNull(carTrips.trpDeletedAt));
+  } else if (deletedFilter === 'deleted') {
+    filters.push(sql`${carTrips.trpDeletedAt} IS NOT NULL`);
+  }
+  /* 'all' includes both — no filter on trpDeletedAt */
 
   if (role === 'MANAGER') {
     const visibility = or(eq(carTrips.trpCreatorId, userId), eq(carTrips.trpPassengerId, userId));
@@ -305,6 +333,7 @@ export async function listTripsForBoard(args: {
     passengerName: r.passengerName ?? null,
     driverName: r.driverName ?? null,
     vehiclePlate: r.vehiclePlate ?? null,
+    isDeleted: r.trip.trpDeletedAt !== null,
   }));
 
   return { items, capped };
@@ -361,6 +390,10 @@ export interface TripDetail extends TripListItem {
   driverPhone: string | null;
   vehicleModel: string | null;
   stopovers: { address: string; order: number }[];
+  /** Non-null when the assigned driver was soft-deleted after trip creation */
+  driverDeletedAt: Date | null;
+  /** Non-null when the assigned vehicle was soft-deleted after trip creation */
+  vehicleDeletedAt: Date | null;
 }
 
 export async function getTrip(entId: string, id: string): Promise<TripDetail | null> {
@@ -405,6 +438,12 @@ export async function getTrip(entId: string, id: string): Promise<TripDetail | n
     vehiclePlate: row.vehicle?.cvhPlateNumber ?? null,
     vehicleModel: row.vehicle?.cvhModel ?? null,
     stopovers: stops,
+    isDeleted: row.trip.trpDeletedAt !== null,
+    /* Soft-delete awareness: if the trip still has a FK reference but the
+     * related entity was soft-deleted, surface the deletion timestamp so
+     * UI can show a warning badge instead of just "Not assigned". */
+    driverDeletedAt: row.driver?.drvDeletedAt ?? null,
+    vehicleDeletedAt: row.vehicle?.cvhDeletedAt ?? null,
   };
 }
 
@@ -437,6 +476,7 @@ export async function listTripsForVehicle(entId: string, vehicleId: string, limi
     passengerName: r.passengerName ?? null,
     driverName: r.driverName ?? null,
     vehiclePlate: r.vehiclePlate ?? null,
+    isDeleted: false, // Vehicle history only shows live trips
   }));
 }
 
@@ -468,5 +508,6 @@ export async function listTripsForDriver(entId: string, driverId: string, limit 
     passengerName: r.passengerName ?? null,
     driverName: r.driverName ?? null,
     vehiclePlate: r.vehiclePlate ?? null,
+    isDeleted: false, // Driver history only shows live trips
   }));
 }

@@ -1,16 +1,34 @@
 import 'server-only';
-import { and, asc, eq, ilike, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, ilike, isNotNull, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carDrivers, carUsers, type CarDriver, type CarUser } from '@car-v2/db/schema';
 
 export interface DriverWithUser extends CarDriver {
   user: Pick<CarUser, 'usrName' | 'usrEmail'>;
+  /** True if soft-deleted (for filter 'all' or 'deleted'). */
+  isDeleted?: boolean;
 }
 
+/** Filter type for listing drivers. */
+type DriverListFilter = 'active' | 'deleted' | 'all';
+
 /** List drivers trong 1 tenant, optional free-text search trên tên/email/license/phone.
- *  Ent_id filter là bắt buộc (multi-tenancy). */
-export async function listDrivers(entId: string, q?: string): Promise<DriverWithUser[]> {
-  const filters: SQL[] = [eq(carDrivers.entId, entId), isNull(carDrivers.drvDeletedAt)];
+ *  Ent_id filter là bắt buộc (multi-tenancy).
+ *  @param filter - 'active' (default), 'deleted', or 'all' */
+export async function listDrivers(
+  entId: string,
+  q?: string,
+  filter: DriverListFilter = 'active',
+): Promise<DriverWithUser[]> {
+  const filters: SQL[] = [eq(carDrivers.entId, entId)];
+
+  // Apply deleted filter
+  if (filter === 'active') {
+    filters.push(isNull(carDrivers.drvDeletedAt));
+  } else if (filter === 'deleted') {
+    filters.push(isNotNull(carDrivers.drvDeletedAt));
+  }
+  // 'all' - no deleted filter, show both
 
   const term = q?.trim();
   if (term) {
@@ -34,7 +52,11 @@ export async function listDrivers(entId: string, q?: string): Promise<DriverWith
     .where(and(...filters))
     .orderBy(asc(carUsers.usrName));
 
-  return rows.map((r) => ({ ...r.driver, user: r.user }));
+  return rows.map((r) => ({
+    ...r.driver,
+    user: r.user,
+    isDeleted: r.driver.drvDeletedAt !== null,
+  }));
 }
 
 export async function getDriver(entId: string, id: string): Promise<DriverWithUser | null> {

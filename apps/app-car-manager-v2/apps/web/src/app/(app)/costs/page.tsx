@@ -246,6 +246,9 @@ export default async function CostsPage({ searchParams }: PageProps) {
                 submittedBy: t('submittedBy'),
                 receiptTitle: t('receiptTitle'),
                 notesLabel: t('notesLabel'),
+                tripDeleted: t('tripDeleted'),
+                driverDeleted: t('driverDeleted'),
+                vehicleDeleted: t('vehicleDeleted'),
               }}
               typeLabel={tType(selected.expType)}
               amountFormatted={formatVnd(selected.expAmount)}

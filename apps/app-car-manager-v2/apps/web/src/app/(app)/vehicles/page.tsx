@@ -1,12 +1,13 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { AlertTriangle, Car, Fuel, Gauge, MapPin, Plus, Wrench } from 'lucide-react';
-import { Badge, Button, Card, EmptyState } from '@car-v2/ui';
+import { Badge, Button, Card, cn, EmptyState } from '@car-v2/ui';
 import { Fab } from '@/components/layout/fab';
 import type { CarVehicle, CarVehicleStatus } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { listVehicles } from '@/server/queries/vehicles.queries';
+import { listVehicles, type VehicleDeletedFilter, type VehicleListItem } from '@/server/queries/vehicles.queries';
+import { VehicleDeletedFilter as VehicleDeletedFilterComponent } from './_components/vehicle-deleted-filter';
 
 const STATUS_TONE: Record<CarVehicleStatus, 'success' | 'info' | 'warning' | 'neutral'> = {
   AVAILABLE: 'success',
@@ -15,13 +16,20 @@ const STATUS_TONE: Record<CarVehicleStatus, 'success' | 'info' | 'warning' | 'ne
   RETIRED: 'neutral',
 };
 
-function oilRemaining(v: CarVehicle): number {
+function oilRemaining(v: VehicleListItem): number {
   if (v.cvhLastOilChangeKm == null) return v.cvhOilIntervalKm;
   const interval = v.cvhOilIntervalKm;
   return v.cvhLastOilChangeKm + interval - v.cvhOdometerKm;
 }
 
-export default async function VehiclesPage() {
+interface PageProps {
+  searchParams: Promise<{
+    deleted?: string;
+  }>;
+}
+
+export default async function VehiclesPage({ searchParams }: PageProps) {
+  const sp = await searchParams;
   const t       = await getTranslations('screens.vehicles');
   const tA      = await getTranslations('actions');
   const tNav    = await getTranslations('nav');
@@ -29,7 +37,9 @@ export default async function VehiclesPage() {
   const tList   = await getTranslations('vehicles.list');
   const tStatus = await getTranslations('vehicles.status');
   const user = await getCurrentUser();
-  const vehicles = await listVehicles(user.entId);
+
+  const deletedFilter: VehicleDeletedFilter = (['active', 'deleted', 'all'].includes(sp.deleted ?? '') ? sp.deleted : 'active') as VehicleDeletedFilter;
+  const vehicles = await listVehicles(user.entId, deletedFilter);
 
   const summary = {
     total: vehicles.length,
@@ -52,12 +62,22 @@ export default async function VehiclesPage() {
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-5">
-        {/* Summary KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <SummaryCard label={tList('summaryTotal')} value={String(summary.total)} />
-          <SummaryCard label={tList('summaryAvailable')} value={String(summary.available)} tone="success" />
-          <SummaryCard label={tList('summaryInUse')} value={String(summary.inUse)} tone="info" />
-          <SummaryCard label={tList('summaryMaintenance')} value={String(summary.maintenance)} tone="warning" />
+        {/* Filter bar */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 flex-1">
+            <SummaryCard label={tList('summaryTotal')} value={String(summary.total)} />
+            <SummaryCard label={tList('summaryAvailable')} value={String(summary.available)} tone="success" />
+            <SummaryCard label={tList('summaryInUse')} value={String(summary.inUse)} tone="info" />
+            <SummaryCard label={tList('summaryMaintenance')} value={String(summary.maintenance)} tone="warning" />
+          </div>
+          <VehicleDeletedFilterComponent
+            currentFilter={deletedFilter}
+            labels={{
+              active: tList('filterActive'),
+              deleted: tList('filterDeleted'),
+              all: tList('filterAll'),
+            }}
+          />
         </div>
 
         {vehicles.length === 0 ? (
@@ -82,16 +102,27 @@ export default async function VehiclesPage() {
                 <Link
                   key={v.cvhId}
                   href={`/vehicles/${v.cvhId}`}
-                  className="group rounded-md border border-border bg-surface p-5 hover:border-border-strong hover:shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+                  className={cn(
+                    'group rounded-md border border-border bg-surface p-5 hover:border-border-strong hover:shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+                    v.isDeleted && 'opacity-60',
+                  )}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="inline-flex items-center gap-2 text-text-muted">
                       <Car className="h-4 w-4" />
-                      <span className="font-mono font-semibold text-text">{v.cvhPlateNumber}</span>
+                      <span className={cn('font-mono font-semibold text-text', v.isDeleted && 'line-through')}>{v.cvhPlateNumber}</span>
                     </div>
-                    <Badge tone={STATUS_TONE[v.cvhStatus]}>{tStatus(v.cvhStatus)}</Badge>
+                    <div className="flex items-center gap-1.5">
+                      {v.isDeleted && (
+                        <Badge tone="danger" size="sm" className="flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          {tList('deletedBadge')}
+                        </Badge>
+                      )}
+                      <Badge tone={STATUS_TONE[v.cvhStatus]}>{tStatus(v.cvhStatus)}</Badge>
+                    </div>
                   </div>
-                  <div className="mt-3 text-lg font-semibold text-text leading-tight">{v.cvhModel}</div>
+                  <div className={cn('mt-3 text-lg font-semibold text-text leading-tight', v.isDeleted && 'line-through')}>{v.cvhModel}</div>
                   <div className="text-sm text-text-muted">
                     {[v.cvhColor, v.cvhYear].filter(Boolean).join(' · ') || '—'}
                   </div>

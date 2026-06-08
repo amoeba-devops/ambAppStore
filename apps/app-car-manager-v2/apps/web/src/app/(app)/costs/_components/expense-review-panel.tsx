@@ -1,6 +1,6 @@
 'use client';
 
-import { FileText, User } from 'lucide-react';
+import { AlertTriangle, FileText, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardHeaderText, CardTitle, cn } from '@car-v2/ui';
 import type { EntityExpenseListItem } from '@/server/queries/expenses.queries';
 import {
@@ -25,6 +25,9 @@ interface ExpenseDetailPanelProps {
     submittedBy: string;
     receiptTitle: string;
     notesLabel: string;
+    tripDeleted?: string;
+    driverDeleted?: string;
+    vehicleDeleted?: string;
   };
   typeLabel: string;
   /* Pre-formatted strings instead of formatter functions — Next.js 15
@@ -86,9 +89,22 @@ export function ExpenseReviewPanel({
         <CardContent>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
             <DField label={labels.fType} value={typeLabel} />
-            <DField label={labels.fLinkedTrip} value={expense.tripRef ?? '—'} />
-            <DField label={labels.fVehicle} value={expense.vehiclePlate ?? '—'} mono />
-            <DField label={labels.fDriver} value={expense.driverName ?? '—'} />
+            <DField
+              label={labels.fLinkedTrip}
+              value={expense.tripRef ?? '—'}
+              deletedWarning={expense.tripDeletedAt && labels.tripDeleted ? labels.tripDeleted : undefined}
+            />
+            <DField
+              label={labels.fVehicle}
+              value={expense.vehiclePlate ?? '—'}
+              mono
+              deletedWarning={expense.vehicleDeletedAt && labels.vehicleDeleted ? labels.vehicleDeleted : undefined}
+            />
+            <DField
+              label={labels.fDriver}
+              value={expense.driverName ?? '—'}
+              deletedWarning={expense.driverDeletedAt && labels.driverDeleted ? labels.driverDeleted : undefined}
+            />
             <DField
               label={labels.fSource}
               value={expense.submitterRole === 'DRIVER' ? labels.sourceDriver : labels.sourceStaff}
@@ -120,11 +136,27 @@ export function ExpenseReviewPanel({
   );
 }
 
-function DField({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
+function DField({
+  label,
+  value,
+  mono,
+  deletedWarning,
+}: {
+  label: string;
+  value: React.ReactNode;
+  mono?: boolean;
+  deletedWarning?: string;
+}) {
   return (
     <div>
       <dt className="text-xs font-medium text-text-muted mb-1">{label}</dt>
       <dd className={mono ? 'font-mono tabular text-text font-medium' : 'text-text font-medium'}>{value}</dd>
+      {deletedWarning && (
+        <dd className="mt-1 inline-flex items-center gap-1.5 px-2 py-1 rounded bg-danger-soft text-danger text-xs font-medium">
+          <AlertTriangle className="h-3 w-3 shrink-0" />
+          <span>{deletedWarning}</span>
+        </dd>
+      )}
     </div>
   );
 }

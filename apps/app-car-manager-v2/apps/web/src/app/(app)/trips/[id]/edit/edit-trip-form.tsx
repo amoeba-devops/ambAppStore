@@ -115,6 +115,9 @@ export function EditTripForm({
     (trip.trpStatus === 'PENDING_ASSIGNMENT' || trip.trpStatus === 'REJECTED_BY_DRIVER');
   const showAssignment = isStaff;
   const [assignFieldErrors, setAssignFieldErrors] = useState<{ driver?: boolean; vehicle?: boolean }>({});
+  /* Track whether user has made any changes — draft is only saved when dirty. */
+  const [isDirty, setIsDirty] = useState(false);
+  const markDirty = () => setIsDirty(true);
 
   /* Draft persistence — keyed by trip ID so each trip has its own draft and
    * concurrent edits on multiple trips don't collide. */
@@ -138,6 +141,7 @@ export function EditTripForm({
     },
     href: `/trips/${trip.trpId}/edit`,
     entity: 'trip',
+    isDirty,
   });
 
   const handleRestoreDraft = () => {
@@ -151,6 +155,7 @@ export function EditTripForm({
     setDurationUnit(v.durationUnit);
     setPurpose(v.purpose);
     setNotes(v.notes);
+    setIsDirty(true); // Restored draft should be persisted
     dismissDraft();
   };
 
@@ -283,10 +288,10 @@ export function EditTripForm({
         <FormSection label={t('sectionRoute')} required>
           <div className="space-y-2.5">
             <FormField label={t('pickup')} required inline>
-              <AddressAutocomplete value={pickup} onChange={(val) => setPickup(val)} maxLength={2000} />
+              <AddressAutocomplete value={pickup} onChange={(val) => { setPickup(val); markDirty(); }} maxLength={2000} />
             </FormField>
             <FormField label={t('dropoff')} required inline>
-              <AddressAutocomplete value={dropoff} onChange={(val) => setDropoff(val)} maxLength={2000} />
+              <AddressAutocomplete value={dropoff} onChange={(val) => { setDropoff(val); markDirty(); }} maxLength={2000} />
             </FormField>
           </div>
         </FormSection>
@@ -304,7 +309,7 @@ export function EditTripForm({
                   type="datetime-local"
                   step={900}
                   value={scheduledAt}
-                  onChange={(e) => setScheduledAt(e.target.value)}
+                  onChange={(e) => { setScheduledAt(e.target.value); markDirty(); }}
                   className="w-full min-w-0"
                 />
               </FormField>
@@ -315,11 +320,11 @@ export function EditTripForm({
                     min={1}
                     inputMode="numeric"
                     value={durationValue}
-                    onChange={(e) => setDurationValue(e.target.value)}
+                    onChange={(e) => { setDurationValue(e.target.value); markDirty(); }}
                     placeholder={t('durationValuePlaceholder')}
                     className="w-16 shrink-0"
                   />
-                  <Select value={durationUnit} onValueChange={(v) => setDurationUnit(v as DurationUnit)}>
+                  <Select value={durationUnit} onValueChange={(v) => { setDurationUnit(v as DurationUnit); markDirty(); }}>
                     <SelectTrigger className="flex-1 min-w-0"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="minutes">{t('unitMinutes')}</SelectItem>
@@ -341,7 +346,7 @@ export function EditTripForm({
                 className="min-w-0"
                 hint={passengerLocked ? t('passengerLockHint') : undefined}
               >
-                <Select value={passengerId} onValueChange={setPassengerId} disabled={passengerLocked}>
+                <Select value={passengerId} onValueChange={(v) => { setPassengerId(v); markDirty(); }} disabled={passengerLocked}>
                   <SelectTrigger className="w-full min-w-0 h-auto py-1.5">
                     <SelectValue placeholder={t('passengerPlaceholder')} />
                   </SelectTrigger>
@@ -360,7 +365,7 @@ export function EditTripForm({
               <FormField label={t('purpose')} inline className="min-w-0">
                 <Input
                   value={purpose}
-                  onChange={(e) => setPurpose(e.target.value)}
+                  onChange={(e) => { setPurpose(e.target.value); markDirty(); }}
                   placeholder={t('purposePlaceholderEdit')}
                   maxLength={255}
                   className="w-full"
@@ -372,7 +377,7 @@ export function EditTripForm({
                 <Label className="mb-1 block text-xs">{t('notes')}</Label>
                 <Textarea
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={(e) => { setNotes(e.target.value); markDirty(); }}
                   placeholder={t('notesPlaceholder')}
                   rows={2}
                   maxLength={2000}
@@ -413,6 +418,7 @@ export function EditTripForm({
                     value={driverId}
                     onChange={(v) => {
                       setDriverId(v);
+                      markDirty();
                       if (assignFieldErrors.driver && v) {
                         setAssignFieldErrors((p) => ({ ...p, driver: false }));
                       }
@@ -439,6 +445,7 @@ export function EditTripForm({
                     value={vehicleId}
                     onChange={(v) => {
                       setVehicleId(v);
+                      markDirty();
                       if (assignFieldErrors.vehicle && v) {
                         setAssignFieldErrors((p) => ({ ...p, vehicle: false }));
                       }

@@ -25,6 +25,7 @@ import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getSignedGetUrl } from '@/lib/s3-client';
 import { getExpenseDetail } from '@/server/queries/expenses.queries';
 import { AttachmentGallery, type AttachmentItem } from './_components/attachment-gallery';
+import { ExpenseDeleteButton } from './_components/expense-delete-button';
 
 type ExpenseType =
   | 'FUEL'
@@ -252,6 +253,18 @@ export default async function ExpenseDetailPage({ params }: PageProps) {
             <AttachmentGallery attachments={signedAttachments} />
           </CardContent>
         </Card>
+
+        {/* Delete action — admin/manager only. Driver cannot delete expenses
+         * from the detail page (would need separate permission logic). */}
+        {isStaff && (
+          <div className="pt-4 border-t border-border">
+            <ExpenseDeleteButton
+              expenseId={expense.expId}
+              expenseRef={`EXP-${expense.expId.slice(0, 8).toUpperCase()}`}
+              redirectTo={backHref}
+            />
+          </div>
+        )}
 
       </div>
     </>

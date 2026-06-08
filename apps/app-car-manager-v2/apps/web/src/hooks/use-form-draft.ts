@@ -41,6 +41,12 @@ interface UseFormDraftOptions<T> {
    * Otherwise the empty initial state would overwrite a real draft.
    */
   enabled?: boolean;
+  /**
+   * Only save the draft when the form is "dirty" (user has made at least one change).
+   * Default `false` — caller must explicitly set `true` after detecting user input.
+   * This prevents drafts from being created just by opening a form without editing.
+   */
+  isDirty?: boolean;
   /** Max age before a draft is considered stale. Default 7 days. */
   maxAgeMs?: number;
 }
@@ -95,6 +101,7 @@ export function useFormDraft<T>({
   href,
   entity,
   enabled = true,
+  isDirty = false,
   maxAgeMs = DEFAULT_MAX_AGE_MS,
 }: UseFormDraftOptions<T>): UseFormDraftResult<T> {
   const storageKey = STORAGE_PREFIX + key;
@@ -131,7 +138,11 @@ export function useFormDraft<T>({
   entityRef.current = entity;
 
   useEffect(() => {
-    if (!enabled || typeof window === 'undefined') return;
+    /* Only save if:
+     *   - enabled (form is ready)
+     *   - isDirty (user has actually changed at least one field)
+     * This prevents drafts from being created just by opening a form. */
+    if (!enabled || !isDirty || typeof window === 'undefined') return;
     const timer = setTimeout(() => {
       try {
         const payload = JSON.stringify({
@@ -148,10 +159,10 @@ export function useFormDraft<T>({
       }
     }, SAVE_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-    /* Re-run save whenever the serialized value changes. JSON.stringify
-     * gives a cheap stable shallow signature for object inputs. */
+    /* Re-run save whenever the serialized value changes or dirty state changes.
+     * JSON.stringify gives a cheap stable shallow signature for object inputs. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageKey, enabled, JSON.stringify(values)]);
+  }, [storageKey, enabled, isDirty, JSON.stringify(values)]);
 
   const clearDraft = useCallback(() => {
     if (typeof window === 'undefined') return;
