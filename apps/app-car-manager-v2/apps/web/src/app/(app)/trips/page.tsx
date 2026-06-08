@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { AlertTriangle, Calendar, ChevronRight, Download, Plus } from 'lucide-react';
+import { AlertTriangle, Calendar, ChevronRight, Plus } from 'lucide-react';
 import {
   Avatar,
   Badge,
@@ -16,6 +16,7 @@ import {
   cn,
 } from '@car-v2/ui';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
+import { ExportDropdown } from '@/components/export-dropdown';
 import type { CarTripStatus } from '@car-v2/db/schema';
 import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
@@ -200,17 +201,16 @@ export default async function TripsListPage({ searchParams }: PageProps) {
 
   const dayLabels = { today: tCommon('today'), tomorrow: tCommon('tomorrow'), yesterday: tCommon('yesterday') };
 
-  /* Export URL preserves current filters (status/q/date) sao cho admin xuất
-   * đúng cái họ đang xem. Route handler trả CSV ent-scoped. */
-  const exportHref = (() => {
-    const params = new URLSearchParams();
+  /* Export params preserves current filters (status/q/date) sao cho admin xuất
+   * đúng cái họ đang xem. Route handler trả CSV/Excel/PDF ent-scoped. */
+  const exportParams = (() => {
+    const params: Record<string, string> = {};
     /* Kanban shows every status; export the same (omit status → route default
      * 'all'). In list view, mirror the active status bucket. */
-    if (view === 'list' && statusFilter !== 'pending') params.set('status', statusFilter);
-    if (searchQ) params.set('q', searchQ);
-    if (dateRange !== 'all') params.set('date', dateRange);
-    const qs = params.toString();
-    return qs ? `/api/v1/trips/export?${qs}` : '/api/v1/trips/export';
+    if (view === 'list' && statusFilter !== 'pending') params.status = statusFilter;
+    if (searchQ) params.q = searchQ;
+    if (dateRange !== 'all') params.date = dateRange;
+    return params;
   })();
 
   /* Shared empty state (both views). In Kanban we only show this when there are
@@ -258,9 +258,16 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('trips') }]}
         actions={
           <>
-            <Button variant="ghost" size="md" iconLeft={<Download />} asChild>
-              <a href={exportHref} download>{tA('export')}</a>
-            </Button>
+            <ExportDropdown
+              baseUrl="/api/v1/trips/export"
+              queryParams={exportParams}
+              labels={{
+                export: tA('export'),
+                excel: tA('exportExcel'),
+                pdf: tA('exportPdf'),
+                csv: tA('exportCsv'),
+              }}
+            />
             <Button variant="accent" size="md" asChild>
               <Link href="/trips/new"><Plus />{tA('new')}</Link>
             </Button>

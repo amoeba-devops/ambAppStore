@@ -44,6 +44,7 @@
     "lucide-react": "^0.469.0",
     "next": "^15.1.3",
     "next-intl": "^3.26.3",
+    "pdfmake": "^0.3.10",
     "pretendard": "^1.3.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -54,6 +55,7 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "web-push": "^3.6.7",
+    "xlsx": "^0.18.5",
     "zod": "^3.24.1"
   },
   "optionalDependencies": {
@@ -62,6 +64,7 @@
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@types/node": "^22.10.2",
+    "@types/pdfmake": "^0.3.3",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@types/web-push": "^3.6.4",
