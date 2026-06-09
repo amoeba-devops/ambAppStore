@@ -22,5 +22,8 @@ coverage/
 *.xlsx
 ~\
 
+# Untracked secret-bearing reports (full credentials — never commit)
+docs/report/*.local.md
+
 # ambManagement
 ambManagement/
