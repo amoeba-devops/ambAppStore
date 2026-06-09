@@ -25,12 +25,10 @@
  * `/app-car-manager-v2/` (staging Docker).
  */
 
-/* Bumped to v3 to reclaim accumulated cache bloat: the previous static cache
- * name never changed across deploys, so every build's content-hashed
- * `_next/static/*` chunks piled up forever (they can never be re-requested
- * once the hash changes). The `activate` handler nukes any cache whose name
- * isn't in `keep`, so this bump one-time-clears the old `fleet-v2` caches. */
-const CACHE_VERSION = 'fleet-v3';
+/* v3 → v4: Added notification sound (sounds/notification.wav) to precache.
+ * The `activate` handler nukes any cache whose name isn't in `keep`, so this
+ * bump one-time-clears old caches without the sound file. */
+const CACHE_VERSION = 'fleet-v4';
 const TRIP_CACHE = CACHE_VERSION + '-trips';
 /* `_next/static/*` lives in its own cache so the size cap can trim it WITHOUT
  * risking the precached offline.html / manifest / icons (which share
@@ -61,6 +59,7 @@ const PRECACHE_URLS = [
   OFFLINE_URL,
   BASE + 'manifest.webmanifest',
   BASE + 'icons/icon-192.png',
+  BASE + 'sounds/notification.wav',
 ];
 
 const NAV_TIMEOUT_MS = 3000;
@@ -116,8 +115,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  /* Icons + manifest — cache-first into the (tiny, untrimmed) precache. */
-  if (url.pathname.startsWith(BASE + 'icons/') || url.pathname === BASE + 'manifest.webmanifest') {
+  /* Icons, manifest, sounds — cache-first into the (tiny, untrimmed) precache. */
+  if (url.pathname.startsWith(BASE + 'icons/') ||
+      url.pathname.startsWith(BASE + 'sounds/') ||
+      url.pathname === BASE + 'manifest.webmanifest') {
     event.respondWith(cacheFirst(req, CACHE_VERSION));
     return;
   }
@@ -200,16 +201,39 @@ self.addEventListener('push', (event) => {
   }
 
   /* `requireInteraction: false` lets iOS PWA auto-dismiss notifications;
-   * driver scenario is "glance + tap or ignore", not "dismiss explicitly". */
+   * driver scenario is "glance + tap or ignore", not "dismiss explicitly".
+   *
+   * Sound + vibration:
+   *   - `silent: false` tells the browser to use the OS notification sound
+   *   - `vibrate` pattern (ms): vibrate 200ms, pause 100ms, vibrate 200ms
+   *   - For foreground apps, we also post a message to play custom sound
+   */
+  const notificationOptions = {
+    body: data.body,
+    tag: data.tag,
+    icon: BASE + 'icons/icon-192.png',
+    badge: BASE + 'icons/icon-192.png',
+    data: { url: data.url },
+    requireInteraction: false,
+    silent: false, /* Enable system notification sound */
+    vibrate: [200, 100, 200], /* Vibration pattern for mobile */
+  };
+
   event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      tag: data.tag,
-      icon: BASE + 'icons/icon-192.png',
-      badge: BASE + 'icons/icon-192.png',
-      data: { url: data.url },
-      requireInteraction: false,
-    }),
+    (async () => {
+      /* Show the notification (triggers system sound on most platforms) */
+      await self.registration.showNotification(data.title, notificationOptions);
+
+      /* Also notify any open windows to play custom sound (for foreground case
+       * where system notification might be suppressed or user wants app sound) */
+      const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      clients.forEach((client) => {
+        client.postMessage({
+          type: 'NOTIFICATION_RECEIVED',
+          payload: data,
+        });
+      });
+    })(),
   );
 });
 
