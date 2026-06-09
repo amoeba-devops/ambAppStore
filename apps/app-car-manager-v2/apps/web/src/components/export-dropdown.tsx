@@ -10,6 +10,11 @@ import {
 import { useLocale } from 'next-intl';
 import { Button, cn } from '@car-v2/ui';
 
+/* Next.js basePath from env — needed when app runs under a path prefix
+ * (e.g., /app-car-manager-v2). Without this, absolute hrefs like
+ * /api/v1/expenses/export would hit the wrong app (platform at /). */
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+
 export interface ExportDropdownProps {
   /** Base URL for export endpoint (e.g., /api/v1/trips/export) */
   baseUrl: string;
@@ -53,7 +58,7 @@ export function ExportDropdown({
     );
     params.set('format', format);
     params.set('locale', locale);
-    return `${baseUrl}?${params.toString()}`;
+    return `${basePath}${baseUrl}?${params.toString()}`;
   };
 
   return (

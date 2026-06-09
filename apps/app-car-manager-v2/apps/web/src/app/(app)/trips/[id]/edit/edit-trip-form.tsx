@@ -306,12 +306,16 @@ export function EditTripForm({
         />
       )}
 
-      {/* Route — full width above the grid. */}
+      {/* Route — full width above the grid. Layout matches new-trip-form:
+       * Pickup → Dropoff → Stopovers → Add Stop button. */}
       <div className="lg:shrink-0 lg:mb-4 min-w-0 overflow-x-hidden">
         <FormSection label={t('sectionRoute')} required>
           <div className="space-y-2.5">
             <FormField label={t('pickup')} required inline>
               <AddressAutocomplete value={pickup} onChange={(val) => { setPickup(val); markDirty(); }} maxLength={2000} />
+            </FormField>
+            <FormField label={t('dropoff')} required inline>
+              <AddressAutocomplete value={dropoff} onChange={(val) => { setDropoff(val); markDirty(); }} maxLength={2000} />
             </FormField>
             {/* Stopovers — ordered intermediate stops. */}
             {stopovers.length > 0 && (
@@ -352,9 +356,6 @@ export function EditTripForm({
                 {t('addStop')}{stopovers.length > 0 ? ` (${stopovers.length}/10)` : ''}
               </Button>
             )}
-            <FormField label={t('dropoff')} required inline>
-              <AddressAutocomplete value={dropoff} onChange={(val) => { setDropoff(val); markDirty(); }} maxLength={2000} />
-            </FormField>
           </div>
         </FormSection>
       </div>
