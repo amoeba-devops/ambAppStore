@@ -44,13 +44,6 @@ VALUES
    'Car', 'https://car-manager-production.onrender.com',
    'jwt', 'iframe', 'MASTER,MANAGER,MEMBER,VIEWER', 10, TRUE, NULL, NOW(), NOW()),
 
-  -- DEMO — Demo Company
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000010', 'app-car-manager-v2',
-   'Quản lý điều xe v2',
-   'Hệ thống quản lý điều xe & kiểm soát chi phí nội bộ — Trip state machine, 8 expense categories, maintenance alerts. Multi-tenant, JWT passthrough.',
-   'Car', 'https://car-manager-production.onrender.com',
-   'jwt', 'iframe', 'MASTER,MANAGER,MEMBER,VIEWER', 10, TRUE, NULL, NOW(), NOW()),
-
   -- VN01 — AMOEBA CO., LTD
   (gen_random_uuid(), 'acce6566-8a00-4071-b52b-082b69832510', 'app-car-manager-v2',
    'Quản lý điều xe v2',
