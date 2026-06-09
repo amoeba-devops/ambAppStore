@@ -5,7 +5,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { ChevronLeft } from 'lucide-react';
 import { Button } from '@car-v2/ui';
 import { db } from '@car-v2/db/client';
-import { carUsers } from '@car-v2/db/schema';
+import { carTripStopovers, carUsers } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listDrivers } from '@/server/queries/drivers.queries';
@@ -31,7 +31,7 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
     redirect(`/trips/${id}`);
   }
 
-  const [users, drivers, vehicles] = await Promise.all([
+  const [users, drivers, vehicles, stopovers] = await Promise.all([
     db
       .select({
         id: carUsers.usrId,
@@ -43,6 +43,10 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
       .where(and(eq(carUsers.entId, user.entId), isNull(carUsers.usrDeletedAt))),
     listDrivers(user.entId),
     listVehicles(user.entId),
+    db.query.carTripStopovers.findMany({
+      where: eq(carTripStopovers.tstTripId, id),
+      orderBy: (t, { asc }) => asc(t.tstOrder),
+    }),
   ]);
 
   /* Rich passenger payload (id + name + email) → form render Avatar + 2-line label.
@@ -92,6 +96,7 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
           passengers={passengerOptions}
           drivers={driverOptions}
           vehicles={vehicleOptions}
+          initialStopovers={stopovers.map((s) => s.tstAddress)}
           role={user.role}
           canCreateEntities={canCreateEntities}
         />

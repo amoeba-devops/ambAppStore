@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { Ban, Loader2, Plus, Save } from 'lucide-react';
+import { Ban, Loader2, Plus, Save, X } from 'lucide-react';
 import {
   Avatar,
   Button,
@@ -43,6 +43,7 @@ interface EditTripDraftValues {
   passengerId: string;
   pickup: string;
   dropoff: string;
+  stopovers: string[];
   scheduledAt: string;
   durationValue: string;
   durationUnit: DurationUnit;
@@ -66,6 +67,8 @@ interface EditTripFormProps {
   passengers: PassengerOption[];
   drivers: SelectOption[];
   vehicles: SelectOption[];
+  /** Existing stopovers loaded from DB, ordered by tst_order. */
+  initialStopovers: string[];
   role: LocalRole;
   /** ADMIN có quyền vào /drivers/new + /vehicles/new (xem redirect ở 2 trang đó). */
   canCreateEntities: boolean;
@@ -83,6 +86,7 @@ export function EditTripForm({
   passengers,
   drivers,
   vehicles,
+  initialStopovers,
   role,
   canCreateEntities,
 }: EditTripFormProps) {
@@ -98,6 +102,7 @@ export function EditTripForm({
   const [passengerId, setPassengerId] = useState(trip.trpPassengerId ?? '');
   const [pickup, setPickup] = useState(trip.trpPickupAddress);
   const [dropoff, setDropoff] = useState(trip.trpDropoffAddress);
+  const [stopovers, setStopovers] = useState<string[]>(initialStopovers);
   const [scheduledAt, setScheduledAt] = useState(isoToLocalInput(trip.trpScheduledAt));
   const initialDuration = fromMinutes(trip.trpDurationMinutes);
   const [durationValue, setDurationValue] = useState<string>(initialDuration.value);
@@ -119,12 +124,28 @@ export function EditTripForm({
   const [isDirty, setIsDirty] = useState(false);
   const markDirty = () => setIsDirty(true);
 
+  /* Stopover CRUD helpers — max 10 stops. */
+  const addStopover = () => {
+    if (stopovers.length >= 10) return;
+    setStopovers((s) => [...s, '']);
+    markDirty();
+  };
+  const updateStopover = (index: number, value: string) => {
+    setStopovers((s) => s.map((v, i) => (i === index ? value : v)));
+    markDirty();
+  };
+  const removeStopover = (index: number) => {
+    setStopovers((s) => s.filter((_, i) => i !== index));
+    markDirty();
+  };
+
   /* Draft persistence — keyed by trip ID so each trip has its own draft and
    * concurrent edits on multiple trips don't collide. */
   const draftValues: EditTripDraftValues = {
     passengerId,
     pickup,
     dropoff,
+    stopovers,
     scheduledAt,
     durationValue,
     durationUnit,
@@ -150,6 +171,7 @@ export function EditTripForm({
     if (!passengerLocked) setPassengerId(v.passengerId);
     setPickup(v.pickup);
     setDropoff(v.dropoff);
+    setStopovers(v.stopovers ?? []);
     setScheduledAt(v.scheduledAt);
     setDurationValue(v.durationValue);
     setDurationUnit(v.durationUnit);
@@ -184,11 +206,12 @@ export function EditTripForm({
     setAssignFieldErrors({});
 
     startTransition(async () => {
-      /* 1) Update mutable fields (passenger, addresses, time, notes...). */
+      /* 1) Update mutable fields (passenger, addresses, stopovers, time, notes...). */
       const updateRes = await updateTripAction(trip.trpId, {
         passenger_id: passengerLocked ? undefined : passengerId || undefined,
         pickup_address: pickup.trim(),
         dropoff_address: dropoff.trim(),
+        stopovers: stopovers.filter((s) => s.trim()).map((s) => s.trim()),
         scheduled_at: new Date(scheduledAt).toISOString(),
         duration_minutes: toMinutes(durationValue, durationUnit) ?? null,
         purpose: purpose.trim() || null,
@@ -290,6 +313,45 @@ export function EditTripForm({
             <FormField label={t('pickup')} required inline>
               <AddressAutocomplete value={pickup} onChange={(val) => { setPickup(val); markDirty(); }} maxLength={2000} />
             </FormField>
+            {/* Stopovers — ordered intermediate stops. */}
+            {stopovers.length > 0 && (
+              <ul className="space-y-1.5">
+                {stopovers.map((s, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <AddressAutocomplete
+                        value={s}
+                        onChange={(val) => updateStopover(i, val)}
+                        placeholder={t('stopPlaceholder', { n: i + 1 })}
+                        maxLength={2000}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeStopover(i)}
+                      className="shrink-0 h-8 w-8 text-text-muted hover:text-danger"
+                      aria-label={t('removeStopAria')}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {stopovers.length < 10 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                iconLeft={<Plus />}
+                onClick={addStopover}
+                className="h-7 px-2 text-xs"
+              >
+                {t('addStop')}{stopovers.length > 0 ? ` (${stopovers.length}/10)` : ''}
+              </Button>
+            )}
             <FormField label={t('dropoff')} required inline>
               <AddressAutocomplete value={dropoff} onChange={(val) => { setDropoff(val); markDirty(); }} maxLength={2000} />
             </FormField>
@@ -468,7 +530,7 @@ export function EditTripForm({
 
           {/* Mobile-only inline map. */}
           <div className="lg:hidden">
-            <MapPreview pickup={pickup} dropoff={dropoff} />
+            <MapPreview pickup={pickup} dropoff={dropoff} stopovers={stopovers} />
           </div>
 
           {/* Footer — sticky on mobile, inline on desktop. md:mx-0 cancels the
@@ -506,6 +568,7 @@ export function EditTripForm({
           <MapPreview
             pickup={pickup}
             dropoff={dropoff}
+            stopovers={stopovers}
             heightClassName="h-full min-h-[300px]"
             showFullscreenLink
             className="flex-1 flex flex-col [&>div:last-child]:flex-1"
