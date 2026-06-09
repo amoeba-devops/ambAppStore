@@ -206,7 +206,7 @@ echo | openssl s_client -servername apps.amoeba.site -connect apps.amoeba.site:4
 ## 6. 실행 전 게이트 (반드시 전부 통과 — PLAN §7)
 
 - [x] **G1 시크릿 패리티**: prod AMA(`amb-api-production`) `JWT_SECRET` 지문 = `sha256=5575a8ec558c` len 35 — **staging과 동일 확인(2026-06-04)**. → Render prod `JWT_SECRET`도 **동일 값**으로 설정(sys_info §3). ⚠️ prod==staging AMA 시크릿 공유 → AMA 차원 prod 전용 분리 별도 권장.
-- [ ] **G2 Neon prod 브랜치** 분리 확인 (staging 미공유)
+- [x] **G2 Neon DB**: prod = **staging Neon URL 공유** 결정(2026-06-04, sys_info §3). ⚠️ "분리"가 아닌 "공유" — prod 데이터가 staging DB에 기록됨(C3 수용). 스키마는 staging이 이미 마이그레이션 → prod 추가 마이그레이션 불필요(no-op). 추후 격리 필요 시 Neon prod 브랜치로 전환.
 - [ ] **G3 `DEMO_AUTO_LOGIN=false`** (Render prod)
 - [x] **G4 인증서 SNI**: `*.amoeba.site` 와일드카드 커버 — ✅ 2026-06-03 외부 확인 완료
 - [ ] **G5 nginx 백업 존재 + `nginx -t` 통과**
