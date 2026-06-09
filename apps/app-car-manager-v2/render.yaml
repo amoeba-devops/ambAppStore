@@ -81,7 +81,7 @@ services:
       - key: NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC
         sync: false
       - key: WEB_PUSH_CONTACT
-        value: mailto:devops@amoeba.group
+        value: mailto:dev@amoeba.group
 
   # ============================================================================
   # PRODUCTION — apps.amoeba.site/app-car-manager-v2/ (behind host-mode nginx)
@@ -111,6 +111,8 @@ services:
         value: https://apps.amoeba.site
       - key: NEXT_PUBLIC_AMA_ORIGIN     # single concrete origin: CSP + session-expired redirect (BUG-260601)
         value: https://ama.amoeba.site
+      - key: APP_STORE_API_URL          # prod value (staging = stg-apps) — platform catalog API
+        value: https://apps.amoeba.site/api/v1
       # ── same as staging ──
       - key: NODE_ENV
         value: production
@@ -118,10 +120,14 @@ services:
         value: car-manager-v2
       - key: NEXT_PUBLIC_DEFAULT_LOCALE
         value: vi
+      - key: AMA_API_BASE_URL           # AMA REST base (same host both envs)
+        value: https://ama.amoeba.site/api/v1
+      - key: SESSION_COOKIE_NAME
+        value: amb_session
       - key: EXPENSE_LOCK_DAYS
         value: "7"
       - key: WEB_PUSH_CONTACT
-        value: mailto:devops@amoeba.group
+        value: mailto:dev@amoeba.group
       - key: DEMO_AUTO_LOGIN            # MUST stay false in prod
         value: "false"
       # ── secrets (enter in dashboard; sync:false keeps them out of git) ──
@@ -150,6 +156,10 @@ services:
       - key: WEB_PUSH_VAPID_PUBLIC
         sync: false
       - key: NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC
+        sync: false
+      - key: GOOGLE_PLACES_API_KEY      # address autocomplete (reused across envs)
+        sync: false
+      - key: NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY
         sync: false
 
 # ────────────────────────────────────────────────────────────────────────────

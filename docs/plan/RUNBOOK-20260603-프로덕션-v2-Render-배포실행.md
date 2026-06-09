@@ -138,12 +138,17 @@
 | `NEXT_PUBLIC_DEFAULT_LOCALE` | vi | vi | — |
 | `AWS_*` | staging S3 | prod S3(또는 공용) | 첨부 업로드용 |
 | `EXPENSE_LOCK_DAYS` | "7" | "7" | 지출 잠금(PRD §10) |
-| `WEB_PUSH_CONTACT` | mailto:devops@… | mailto:devops@… | VAPID 연락처 |
+| `WEB_PUSH_CONTACT` | mailto:dev@… | mailto:dev@… | VAPID 연락처 (dev@로 통일) |
 | `CRON_SECRET` | (대시보드) | (대시보드) | P4 유지보수 알림 cron 인증 |
 | `RESEND_API_KEY`/`EMAIL_FROM`/`EMAIL_REPLY_TO` | (대시보드) | (대시보드) | P4 이메일 — 미설정 시 인앱 벨만 |
 | `WEB_PUSH_VAPID_*`(3종) | (대시보드) | (대시보드) | P4 웹푸시 — 환경별 1회 생성 |
+| `APP_STORE_API_URL` | `…stg-apps…/api/v1` | **`https://apps.amoeba.site/api/v1`** | ⭐ 값 분기 — 플랫폼 카탈로그 API |
+| `AMA_API_BASE_URL` | `…/api/v1` | `https://ama.amoeba.site/api/v1` | AMA REST |
+| `SESSION_COOKIE_NAME` | amb_session | amb_session | 세션 쿠키명 |
+| `GOOGLE_PLACES_API_KEY` | (대시보드) | (대시보드, 재사용) | 주소 자동완성 |
+| `NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY` | (대시보드, 빌드arg) | (대시보드, 재사용) | 지도 임베드 |
 
-> **패리티**: prod 블록은 staging의 21개 env를 모두 포함(값만 분기). 위 P4/cron/지출잠금은 **선택이 아니라 패리티 항목** — 시크릿은 알림 활성화 시 대시보드에 입력(빈 값이면 해당 전송만 비활성, 앱은 정상).
+> **패리티**: prod 블록(28 env) = staging 21 + prod 전용 7(`BASE_PATH`·`NEXT_PUBLIC_BASE_PATH`·`APP_STORE_API_URL`·`AMA_API_BASE_URL`·`SESSION_COOKIE_NAME`·Google 2). 이 5종은 staging .env엔 있으나 render.yaml엔 없던 항목 → prod 블록에 명시해 대시보드 수동 누락 방지. P4/cron/지출잠금 시크릿은 알림 활성화 시 대시보드 입력(빈 값이면 해당 전송만 비활성, 앱은 정상).
 
 > **byte-for-byte 일치 필수**: `JWT_SECRET`, `NEXT_PUBLIC_APP_CODE`(=JWT `aud`). 불일치 → 클릭 시 `/session-expired` 401.
 > **JWT 계약**(고정, INTEGRATION §7): HS256, `iss=amb-management`, `aud=car-manager-v2`, `app_code=car-manager-v2`.
