@@ -225,11 +225,27 @@ export async function updateTripAction(id: string, input: unknown): Promise<Acti
     if (data.purpose !== undefined) patch.trpPurpose = data.purpose;
     if (data.notes !== undefined) patch.trpNotes = data.notes;
 
-    /* If pickup/dropoff changed, rebuild gmaps URL. */
-    if (data.pickup_address !== undefined || data.dropoff_address !== undefined) {
+    /* If pickup/dropoff/stopovers changed, rebuild gmaps URL.
+     * Need to fetch existing stopovers if not provided in update. */
+    const stopoversChanged = data.stopovers !== undefined;
+    const routeChanged = data.pickup_address !== undefined || data.dropoff_address !== undefined || stopoversChanged;
+
+    let newStopovers: string[] | undefined;
+    if (routeChanged) {
+      if (stopoversChanged) {
+        newStopovers = data.stopovers!.filter((s) => s.trim());
+      } else {
+        /* Fetch existing stopovers to preserve them in gmaps URL. */
+        const existingStopovers = await db.query.carTripStopovers.findMany({
+          where: eq(carTripStopovers.tstTripId, id),
+          orderBy: (t, { asc }) => asc(t.tstOrder),
+        });
+        newStopovers = existingStopovers.map((s) => s.tstAddress);
+      }
       patch.trpGoogleMapsUrl = buildGoogleMapsUrl({
         pickup: data.pickup_address ?? existing.trpPickupAddress,
         dropoff: data.dropoff_address ?? existing.trpDropoffAddress,
+        stopovers: newStopovers,
       });
     }
 
@@ -240,6 +256,27 @@ export async function updateTripAction(id: string, input: unknown): Promise<Acti
       .returning();
     if (!updated) throw new CarError('CAR-E0500', 500, 'Update returned no row');
 
+    /* Handle stopovers CRUD — delete all existing and re-insert new ones.
+     * This is simpler than diffing and handles reordering cleanly. */
+    if (stopoversChanged) {
+      await db.delete(carTripStopovers).where(eq(carTripStopovers.tstTripId, id));
+      const trimmedStopovers = data.stopovers!.filter((s) => s.trim());
+      if (trimmedStopovers.length > 0) {
+        await db.insert(carTripStopovers).values(
+          trimmedStopovers.map((address, i) => ({
+            tstId: randomUUID(),
+            entId: actor.entId,
+            tstTripId: id,
+            tstAddress: address.trim(),
+            tstOrder: i,
+          })),
+        );
+      }
+    }
+
+    const auditFields = Object.keys(patch).filter((k) => k !== 'trpUpdatedAt');
+    if (stopoversChanged) auditFields.push('stopovers');
+
     await logAudit({
       entId: actor.entId,
       userId: actor.userId,
@@ -247,7 +284,7 @@ export async function updateTripAction(id: string, input: unknown): Promise<Acti
       entity: 'Trip',
       entityId: updated.trpId,
       entityRef: updated.trpRef,
-      after: { fields: Object.keys(patch).filter((k) => k !== 'trpUpdatedAt') },
+      after: { fields: auditFields },
     });
 
     revalidatePath('/trips');
