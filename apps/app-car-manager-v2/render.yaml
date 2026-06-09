@@ -92,10 +92,12 @@ services:
   #   so prod needs its OWN build — C2; staging image cannot be reused).
   # ⚠️ Render dashboard env takes priority over this file — clear stale overrides.
   # ⚠️ Pushing this provisions a NEW prod service. Only push after gate §6.
-  # Verify: curl https://car-manager-prod.onrender.com/app-car-manager-v2/api/v1/health
+  # Verify: curl https://car-manager-production.onrender.com/app-car-manager-v2/api/v1/health
+  # ⚠️ As of 2026-06-04 the live service serves at ROOT — set BASE_PATH below in the
+  #    dashboard and rebuild (build-time inline) before nginx-proxying under the prefix.
   # ============================================================================
   - type: web
-    name: car-manager-prod              # MUST match the Render dashboard service name
+    name: car-manager-production        # MUST match the Render dashboard service name (actual: car-manager-production)
     runtime: node
     rootDir: apps/app-car-manager-v2
     buildCommand: npm install --include=dev && npm run build --workspace @car-v2/web
