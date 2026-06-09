@@ -10,11 +10,11 @@
 --   platform MySQL, NOT Neon. User amb_user / DB db_amb.
 --   psql -U amb_user -d db_amb
 --
--- ⚠️ eca_url targets PRODUCTION: https://apps.amoeba.site/app-car-manager-v2
+-- ⚠️ eca_url = ZERO-TOUCH: Render prod 직접 https://car-manager-production.onrender.com (nginx/basePath 미사용)
 --
 -- ⚠️ PRECONDITION (login will 401 / iframe blank otherwise) — apply ONLY after:
 --   1. v2 Render PROD service is live and healthy
---   2. apps.amoeba.site nginx proxies /app-car-manager-v2/ → Render prod
+--   2. (zero-touch) onrender 루트 직접 — nginx 프록시/basePath 불필요
 --   3. prod AMA JWT_SECRET == Render prod JWT_SECRET (byte-for-byte, gate G1)
 --   Click before these are done → /session-expired (401). Use rollback:
 --   UPDATE amb_entity_custom_apps SET eca_is_active=false WHERE eca_code='app-car-manager-v2';
@@ -33,7 +33,7 @@ VALUES
   (gen_random_uuid(), '00000000-0000-0000-0000-000000000010', 'app-car-manager-v2',
    'Quản lý điều xe v2',
    'Hệ thống quản lý điều xe & kiểm soát chi phí nội bộ — Trip state machine, 8 expense categories, maintenance alerts. Multi-tenant, JWT passthrough.',
-   'Car', 'https://apps.amoeba.site/app-car-manager-v2',
+   'Car', 'https://car-manager-production.onrender.com',
    'jwt', 'iframe', 'MASTER,MANAGER,MEMBER,VIEWER', 10, TRUE, NULL, NOW(), NOW())
 ON CONFLICT (ent_id, eca_code) DO UPDATE SET
   eca_name          = EXCLUDED.eca_name,

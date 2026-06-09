@@ -10,9 +10,9 @@
 --   platform MySQL, NOT Neon. User amb_user / DB db_amb.
 --   psql -U amb_user -d db_amb
 --
--- ⚠️ eca_url targets PRODUCTION: https://apps.amoeba.site/app-car-manager-v2
+-- ⚠️ eca_url = ZERO-TOUCH: Render prod 직접 https://car-manager-production.onrender.com (nginx/basePath 미사용)
 --
--- ⚠️ PRECONDITION: same as 7a (Render prod live + nginx proxy + JWT_SECRET parity).
+-- ⚠️ PRECONDITION: same as 7a (Render prod live at ROOT + JWT_SECRET parity — zero-touch).
 --   Rollback (hide all, including DEMO):
 --   UPDATE amb_entity_custom_apps SET eca_is_active=false WHERE eca_code='app-car-manager-v2';
 --
@@ -30,21 +30,21 @@ VALUES
   (gen_random_uuid(), 'f55fb580-7ecf-44a0-b608-a7014064bf88', 'app-car-manager-v2',
    'Quản lý điều xe v2',
    'Hệ thống quản lý điều xe & kiểm soát chi phí nội bộ — Trip state machine, 8 expense categories, maintenance alerts. Multi-tenant, JWT passthrough.',
-   'Car', 'https://apps.amoeba.site/app-car-manager-v2',
+   'Car', 'https://car-manager-production.onrender.com',
    'jwt', 'iframe', 'MASTER,MANAGER,MEMBER,VIEWER', 10, TRUE, NULL, NOW(), NOW()),
 
   -- UIT327 — UIT
   (gen_random_uuid(), '2faa9340-165c-4e75-9454-998c24b930e5', 'app-car-manager-v2',
    'Quản lý điều xe v2',
    'Hệ thống quản lý điều xe & kiểm soát chi phí nội bộ — Trip state machine, 8 expense categories, maintenance alerts. Multi-tenant, JWT passthrough.',
-   'Car', 'https://apps.amoeba.site/app-car-manager-v2',
+   'Car', 'https://car-manager-production.onrender.com',
    'jwt', 'iframe', 'MASTER,MANAGER,MEMBER,VIEWER', 10, TRUE, NULL, NOW(), NOW()),
 
   -- VN01 — AMOEBA CO., LTD
   (gen_random_uuid(), 'acce6566-8a00-4071-b52b-082b69832510', 'app-car-manager-v2',
    'Quản lý điều xe v2',
    'Hệ thống quản lý điều xe & kiểm soát chi phí nội bộ — Trip state machine, 8 expense categories, maintenance alerts. Multi-tenant, JWT passthrough.',
-   'Car', 'https://apps.amoeba.site/app-car-manager-v2',
+   'Car', 'https://car-manager-production.onrender.com',
    'jwt', 'iframe', 'MASTER,MANAGER,MEMBER,VIEWER', 10, TRUE, NULL, NOW(), NOW())
 ON CONFLICT (ent_id, eca_code) DO UPDATE SET
   eca_name          = EXCLUDED.eca_name,
