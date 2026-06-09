@@ -25,5 +25,8 @@ coverage/
 # Untracked secret-bearing reports (full credentials — never commit)
 docs/report/*.local.md
 
+# 대화 로그 (세션 연속성용 로컬 기록 — git 동기화 제외)
+docs/log/
+
 # ambManagement
 ambManagement/
