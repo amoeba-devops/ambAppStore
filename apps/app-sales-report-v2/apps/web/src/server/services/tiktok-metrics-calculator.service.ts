@@ -5,10 +5,6 @@ import {
   aggregateTikTokTraffic,
   type TikTokTrafficRow,
 } from './tiktok-traffic-parser.service';
-import {
-  aggregateTikTokAffiliate,
-  type TikTokAffiliateRow,
-} from './tiktok-affiliate-parser.service';
 
 export interface TikTokMetricsResult {
   /** SUM(item_sold) for kept rows. */
@@ -45,15 +41,6 @@ export interface TikTokMetricsResult {
     pvVideo: number;
     pvProductCard: number;
     productCount: number;
-  } | null;
-  /** Affiliate metrics — only when Affiliate xlsx provided. */
-  affiliate: {
-    totalCommission: number;
-    totalFixedFee: number;
-    totalGmv: number;
-    totalItemsSold: number;
-    creatorCount: number;
-    activeCreatorCount: number;
   } | null;
   productBreakdown: Array<{
     productName: string;
@@ -139,9 +126,14 @@ export const TIKTOK_METRIC_SPECS = {
   TOTAL_AFFILIATE_COMMISSION_TIKTOK: {
     id: 'TOTAL_AFFILIATE_COMMISSION_TIKTOK',
     name: 'Total Affiliate Commission — TikTok',
-    expression: 'SUM({Hoa hồng ước tính}) over all creators in Creator_List xlsx',
-    requires: ['tiktok_affiliate_xlsx'],
-    note: 'Per-creator estimated commission. Fixed fee column often "--" (= 0).',
+    expression:
+      'SUM(per-row commission payouts across 3 affiliate exports: Creator + Partner + Non-collaboration). Per row = (Thanh toán hoa hồng tiêu chuẩn ước tính | Thanh toán hoa hồng ước tính) + Thanh toán hoa hồng Quảng cáo cửa hàng ước tính',
+    requires: [
+      'tiktok_affiliate_creator_xlsx',
+      'tiktok_affiliate_partner_xlsx',
+      'tiktok_affiliate_noncollab_xlsx',
+    ],
+    note: 'Cancelled + refunded rows excluded. Grouped by "Tên sản phẩm" so per-SKU attribution downstream can be exact (NMV-split intra-product, Others bucket for unmatched).',
   },
   TOTAL_PLATFORM_FEE_TIKTOK: {
     id: 'TOTAL_PLATFORM_FEE_TIKTOK',
@@ -163,7 +155,6 @@ export function computeTikTokMetrics(
   rows: TikTokSaleRow[],
   primeCosts: PrimeCostMap,
   trafficRows?: TikTokTrafficRow[] | null,
-  affiliateRows?: TikTokAffiliateRow[] | null,
   platformFeeRatePct: number = 24,
 ): TikTokMetricsResult {
   let totalItemSold = 0;
@@ -406,7 +397,6 @@ export function computeTikTokMetrics(
     freeGiftProducts: [...freeGiftProducts],
     missingFromMaster: [...missingByProduct.values()].sort((a, b) => b.gmvContribution - a.gmvContribution),
     traffic: trafficRows ? aggregateTikTokTraffic(trafficRows) : null,
-    affiliate: affiliateRows ? aggregateTikTokAffiliate(affiliateRows) : null,
     productBreakdown,
     giftBreakdown,
   };

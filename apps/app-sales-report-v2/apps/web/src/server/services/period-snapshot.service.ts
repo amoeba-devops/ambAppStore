@@ -68,6 +68,11 @@ export interface PeriodSnapshotMetrics {
   > & {
     totalPageViews: number;
     totalAffiliateCommission: number;
+    /** Per-product (`Tên sản phẩm` normalized) affiliate cost merged across the
+     *  3 TikTok affiliate exports (Creator / Partner / Non-collaboration). Used
+     *  for exact per-SKU attribution downstream + an "Others" bucket for product
+     *  names not present in the Sales breakdown. */
+    affiliateCostByProductName: Record<string, number>;
   };
   manualInputs: {
     affiliateBookingFees: number;

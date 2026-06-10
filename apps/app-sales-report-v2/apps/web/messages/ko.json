@@ -468,7 +468,13 @@
         "trafficLabel": "트래픽 리포트",
         "trafficSubtitle": "세션, PV, 전환",
         "affiliateLabel": "제휴 리포트",
-        "affiliateSubtitle": "수수료 지급"
+        "affiliateSubtitle": "수수료 지급",
+        "affiliateCreatorLabel": "제휴 · 크리에이터 주문",
+        "affiliateCreatorSubtitle": "기본 + 매장 광고 수수료",
+        "affiliatePartnerLabel": "제휴 · 파트너 주문",
+        "affiliatePartnerSubtitle": "파트너 협업 수수료",
+        "affiliateNonCollabLabel": "제휴 · 비협업 주문",
+        "affiliateNonCollabSubtitle": "자체 귀속 수수료"
       },
       "fileSlot": {
         "required": "필수",

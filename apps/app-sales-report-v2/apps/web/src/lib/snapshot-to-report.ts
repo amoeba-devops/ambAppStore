@@ -488,11 +488,30 @@ export function snapshotToProducts(
   if (useTiktok) {
     const total = tiktokNmvSum;
     const ratePct = constants?.tiktokPlatformFeeRatePct ?? 24;
-    for (const p of tiktok.productBreakdown ?? []) {
+    const tiktokBreakdown = tiktok.productBreakdown ?? [];
+
+    // Mirror Shopee — exact per-SKU affiliate attribution by product name,
+    // NMV-split among same-name variations, "Others" bucket for unmatched.
+    const tiktokAffCostByName = tiktok.affiliateCostByProductName ?? {};
+    const normalizeName = (s: string) => s.normalize('NFC').replace(/\s+/g, ' ').trim();
+    const tiktokNmvByName = new Map<string, number>();
+    for (const p of tiktokBreakdown) {
+      const k = normalizeName(p.productName);
+      tiktokNmvByName.set(k, (tiktokNmvByName.get(k) ?? 0) + p.nmv);
+    }
+    const matchedTiktokAffNames = new Set<string>();
+
+    for (const p of tiktokBreakdown) {
       const share = total > 0 ? p.nmv / total : 0;
       const freeGift = tiktok.primeCostFreeGift * share;
       const adSpend = manualInputs.tiktokAdsSpending * share;
-      const affComm = tiktok.totalAffiliateCommission * share;
+      const nameKey = normalizeName(p.productName);
+      const productAffCost = tiktokAffCostByName[nameKey] ?? 0;
+      const productNmvSum = tiktokNmvByName.get(nameKey) ?? 0;
+      const affComm = productNmvSum > 0 && productAffCost > 0
+        ? productAffCost * (p.nmv / productNmvSum)
+        : 0;
+      if (productAffCost > 0 && productNmvSum > 0) matchedTiktokAffNames.add(nameKey);
       const affBook = tiktokAffBookingFee * share;
       const livestream = manualInputs.tiktokLivestreamFees * share;
       // Per user spec: Platform Fee per row = (GMV − Seller Discount) × Rate.
@@ -538,6 +557,41 @@ export function snapshotToProducts(
         isCombo: p.isCombo ?? false,
       });
     }
+    // Affiliate cost for product names not present in TikTok Sales breakdown
+    // (or whose breakdown rows had NMV=0) → "Others" pseudo-row.
+    let othersTiktokAffCost = 0;
+    for (const [name, cost] of Object.entries(tiktokAffCostByName)) {
+      if (!matchedTiktokAffNames.has(name)) othersTiktokAffCost += cost;
+    }
+    if (othersTiktokAffCost > 0) {
+      out.push({
+        no: '',
+        sku: '—',
+        nameVi: 'Others',
+        nameEn: 'Others',
+        platform: 'TIKTOK',
+        pv: 0,
+        cvr: 0,
+        items: 0,
+        gmv: 0,
+        netGmv: 0,
+        nmv: 0,
+        voucher: 0,
+        sellerDisc: 0,
+        freeGift: 0,
+        adSpend: 0,
+        brandAds: 0,
+        offPlatformAds: 0,
+        affComm: othersTiktokAffCost,
+        affBook: 0,
+        livestream: 0,
+        platformFee: 0,
+        primeCost: 0,
+        cm: -othersTiktokAffCost,
+        isOthers: true,
+      });
+    }
+
     for (const g of tiktok.giftBreakdown ?? []) {
       out.push({
         no: '',

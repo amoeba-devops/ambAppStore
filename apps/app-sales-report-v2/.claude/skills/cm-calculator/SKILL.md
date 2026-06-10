@@ -140,7 +140,7 @@ CM % = CM / Net GMV
 **Allocated** (TikTok có ÍT HƠN Shopee):
 - `free_gift` từ `Total Free Gift TikTok × NMV contribution`
 - `ad_spending` từ manual `TikTok Ad Spending × NMV contribution`
-- `affiliate_commission` từ `Total Affiliate Commission TikTok × NMV contribution`
+- `affiliate_commission` per SKU = lookup theo Tên sản phẩm trong `tiktok.affiliateCostByProductName` (merged từ 3 file: Creator + Partner + Non-collab); NMV-split nội bộ giữa các variation cùng tên. Tên không khớp Sales breakdown → row "Others" với `isOthers: true` để giữ Total chính xác.
 - `affiliate_booking_fee` từ `Total Affiliate Booking (manual) × NMV contribution` (CHIA với Shopee)
 - `livestream_fee` từ `Total Livestream TikTok (manual) × NMV contribution`
 - `platform_fee` từ `Total Platform Fee TikTok × NMV contribution` (xem §5)

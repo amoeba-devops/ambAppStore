@@ -12,7 +12,15 @@ import { Step1Period, effectiveStatus, type Granularity, type SelectedPeriod } f
 export interface ExistingArchiveFile {
   arfId: string;
   channel: 'SHOPEE' | 'TIKTOK';
-  fileType: 'SALES' | 'ADS' | 'BRAND_ADS' | 'OFF_PLATFORM_ADS' | 'TRAFFIC' | 'AFFILIATE';
+  fileType:
+    | 'SALES'
+    | 'ADS'
+    | 'BRAND_ADS'
+    | 'OFF_PLATFORM_ADS'
+    | 'TRAFFIC'
+    | 'AFFILIATE'
+    | 'AFFILIATE_PARTNER'
+    | 'AFFILIATE_NONCOLLAB';
   filename: string;
   sizeBytes: number;
   rowCount: number | null;

@@ -16,7 +16,15 @@ for (const line of envText.split(/\r?\n/)) {
 
 const sql = neon(process.env.DATABASE_URL);
 const migrationsDir = resolve(__dirname, '../migrations');
-const TARGET_RANGE = (name) => /^00(09|1[0-7])_/.test(name);
+// Catch-up applier — re-runs migrations 0009 onward idempotently. Earlier
+// migrations (0000-0008) are handled by individual apply-*.mjs scripts or
+// drizzle-kit and are skipped here. Errors like "already exists" are tolerated
+// so this is safe to re-run after every `git pull` that brings new migrations.
+const TARGET_RANGE = (name) => {
+  const m = name.match(/^(\d{4})_/);
+  if (!m) return false;
+  return Number(m[1]) >= 9;
+};
 
 const files = readdirSync(migrationsDir)
   .filter((f) => f.endsWith('.sql') && TARGET_RANGE(f))
