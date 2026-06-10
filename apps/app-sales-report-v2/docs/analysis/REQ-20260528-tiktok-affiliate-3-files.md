@@ -13,8 +13,9 @@ status: ready
 |---|---------|------|
 | FR-01 | Upload UI TikTok có 3 slot affiliate riêng (Creator / Affiliate Partner / Non-collaboration), mỗi slot **optional** | UI |
 | FR-02 | Parser Creator: per row affComm = `Thanh toán hoa hồng tiêu chuẩn ước tính` + `Thanh toán hoa hồng Quảng cáo cửa hàng ước tính`; group by `Tên sản phẩm` | Backend |
-| FR-03 | Parser Affiliate Partner: per row affComm = `Thanh toán hoa hồng Quảng cáo cửa hàng ước tính`; header ở row 2 (row 1 = Note); group by `Tên sản phẩm` | Backend |
-| FR-04 | Parser Non-collaboration: per row affComm = `Thanh toán hoa hồng Quảng cáo cửa hàng ước tính`; shared-strings xlsx; group by `Tên sản phẩm` | Backend |
+| FR-03 | Parser Affiliate Partner: per row affComm = `Thanh toán hoa hồng Quảng cáo cửa hàng ước tính` + `Thanh toán hoa hồng ước tính` (Partner file dùng tên ngắn không có "tiêu chuẩn"); header ở row 2; group by `Tên sản phẩm` | Backend |
+| FR-04 | Parser Non-collaboration: per row affComm = `Thanh toán hoa hồng Quảng cáo cửa hàng ước tính` + `Thanh toán hoa hồng tiêu chuẩn ước tính`; shared-strings xlsx; group by `Tên sản phẩm` | Backend |
+| FR-04b | Parser dùng **alias rule** cho cột "standard commission": chấp nhận cả `Thanh toán hoa hồng tiêu chuẩn ước tính` (Creator/NonCollab naming) và `Thanh toán hoa hồng ước tính` (Partner naming) — cùng semantic, khác phrasing | Robustness |
 | FR-05 | Merge 3 maps thành `tiktok.affiliateCostByProductName: Record<normalizedName, sum>` | Backend |
 | FR-06 | `tiktok.totalAffiliateCommission = SUM(merged map)` — exact, không bị leak | Backend |
 | FR-07 | snapshot-to-report TikTok: per-SKU affComm = lookup theo Tên sản phẩm + NMV-split nội bộ giữa các variation; phần không match → row "Others" | Frontend |
@@ -45,9 +46,9 @@ status: ready
 ### 2.4 Sample files đã verify
 | File | Header row | Match key (col) | affComm cols |
 |------|-----------|-----------------|--------------|
-| Creator (`affiliate_orders_*0449.xlsx`) | 1 | C: "Tên sản phẩm" | U: "Thanh toán hoa hồng tiêu chuẩn ước tính" + Y: "Thanh toán hoa hồng Quảng cáo cửa hàng ước tính" |
-| Affiliate Partner (`affiliate_orders_*6833.xlsx`) | 2 (row 1 = Note tiếng Anh) | C: "Tên sản phẩm" | R: "Thanh toán hoa hồng Quảng cáo cửa hàng ước tính" |
-| Non-collab (`creator_order_all_*.xlsx`) | 1 | C[3]: "Tên sản phẩm" | [26]: "Thanh toán hoa hồng Quảng cáo cửa hàng ước tính" |
+| Creator (`affiliate_orders_*0449.xlsx`) | 1 | C: "Tên sản phẩm" | U[21]: "Thanh toán hoa hồng tiêu chuẩn ước tính" + Y[25]: "Thanh toán hoa hồng Quảng cáo cửa hàng ước tính" |
+| Affiliate Partner (`affiliate_orders_*6833.xlsx`) | 2 (row 1 = Note tiếng Anh) | C: "Tên sản phẩm" | O[15]: "Thanh toán hoa hồng ước tính" (alias của "tiêu chuẩn ước tính") + R[18]: "Thanh toán hoa hồng Quảng cáo cửa hàng ước tính" |
+| Non-collab (`creator_order_all_*.xlsx`) | 1 | C[3]: "Tên sản phẩm" | [22]: "Thanh toán hoa hồng tiêu chuẩn ước tính" + [26]: "Thanh toán hoa hồng Quảng cáo cửa hàng ước tính" |
 
 ### 2.5 Format quirk
 - Creator + Affiliate Partner xlsx: **inline-string** (cell có `<c t="str"><v>...</v></c>`), `<dimension ref="A1">` (bug: chỉ ghi cell đầu) → ExcelJS xác định 0 worksheets vì lookup dimension không thấy data

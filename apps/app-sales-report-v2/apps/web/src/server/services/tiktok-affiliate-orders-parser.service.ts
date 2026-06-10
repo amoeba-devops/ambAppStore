@@ -5,7 +5,6 @@ import {
   findHeaderRowByLabels,
   isXlsx,
   readXlsxGrid,
-  resolveHeaderColumns,
   XlsxParseError,
 } from './xlsx-grid.util';
 
@@ -61,19 +60,36 @@ interface VariantConfig {
   statusLabel: string;
   /** Aliases for the "refunded" column (NonCollab uses different wording). */
   refundedLabels: readonly string[];
-  /** Amount columns whose values are summed per row to produce row affiliate cost. */
-  amountLabels: readonly string[];
+  /**
+   * Per row, the row's affiliate cost is `SUM` of one value from each amount
+   * field. Each amount field is an alias list — the first alias resolved in
+   * the header wins. ALL fields must resolve to at least one alias; otherwise
+   * `MISSING_COLUMN` is thrown.
+   *
+   * Aliases let us tolerate TikTok's inconsistent naming across the 3 exports
+   * (e.g., "Thanh toán hoa hồng ước tính" in Partner file vs. "Thanh toán hoa
+   * hồng tiêu chuẩn ước tính" in Creator + NonCollab — same metric, different
+   * Vietnamese phrasing).
+   */
+  amountFields: ReadonlyArray<readonly string[]>;
 }
+
+// Standard-commission column aliases (semantically equivalent across files).
+const STANDARD_COMMISSION_ALIASES = [
+  'Thanh toán hoa hồng tiêu chuẩn ước tính', // Creator + NonCollab
+  'Thanh toán hoa hồng ước tính',            // Partner (dropped the "tiêu chuẩn" qualifier)
+] as const;
+
+const SHOP_ADS_COMMISSION_ALIASES = [
+  'Thanh toán hoa hồng Quảng cáo cửa hàng ước tính',
+] as const;
 
 const CREATOR_CONFIG: VariantConfig = {
   variant: 'creator',
   productNameLabel: 'Tên sản phẩm',
   statusLabel: 'Trạng thái đơn hàng',
   refundedLabels: ['Đã trả hàng hoặc hoàn tiền đầy đủ'],
-  amountLabels: [
-    'Thanh toán hoa hồng tiêu chuẩn ước tính',
-    'Thanh toán hoa hồng Quảng cáo cửa hàng ước tính',
-  ],
+  amountFields: [STANDARD_COMMISSION_ALIASES, SHOP_ADS_COMMISSION_ALIASES],
 };
 
 const PARTNER_CONFIG: VariantConfig = {
@@ -81,7 +97,7 @@ const PARTNER_CONFIG: VariantConfig = {
   productNameLabel: 'Tên sản phẩm',
   statusLabel: 'Trạng thái đơn hàng',
   refundedLabels: ['Đã trả hàng hoặc hoàn tiền đầy đủ'],
-  amountLabels: ['Thanh toán hoa hồng Quảng cáo cửa hàng ước tính'],
+  amountFields: [SHOP_ADS_COMMISSION_ALIASES, STANDARD_COMMISSION_ALIASES],
 };
 
 const NONCOLLAB_CONFIG: VariantConfig = {
@@ -90,7 +106,7 @@ const NONCOLLAB_CONFIG: VariantConfig = {
   statusLabel: 'Trạng thái đơn hàng',
   // NonCollab file uses different refund column names — accept any alias.
   refundedLabels: ['Trả hàng & hoàn tiền', 'Đã trả hàng hoặc hoàn tiền đầy đủ', 'Hoàn tiền'],
-  amountLabels: ['Thanh toán hoa hồng Quảng cáo cửa hàng ước tính'],
+  amountFields: [SHOP_ADS_COMMISSION_ALIASES, STANDARD_COMMISSION_ALIASES],
 };
 
 const CANCELLED_STATUS_VALUES = new Set(['đã hủy', 'da huy', 'cancelled']);
@@ -131,60 +147,77 @@ function parseGeneric(buffer: ArrayBuffer, config: VariantConfig): TikTokAffOrde
     throw new TikTokAffiliateOrderParseError('No cells found in worksheet', 'EMPTY_FILE');
   }
 
-  // Auto-detect header row (Partner file has a Note in row 1).
-  const requiredLabels = [config.productNameLabel, config.statusLabel, ...config.amountLabels];
-  const headerRowNum = findHeaderRowByLabels(grid, requiredLabels, 3);
+  // Auto-detect header row (Partner file has a Note in row 1). Use anchors that
+  // are stable across all 3 file variants: productName + status + at least one
+  // amount alias.
+  const headerAnchors = [
+    config.productNameLabel,
+    config.statusLabel,
+    ...config.amountFields.flatMap((aliases) => [...aliases]),
+  ];
+  const headerRowNum = findHeaderRowByLabels(grid, headerAnchors, 3);
   if (headerRowNum < 0) {
     throw new TikTokAffiliateOrderParseError(
-      `Header row not found — need columns: ${requiredLabels.join(', ')}`,
+      `Header row not found — need columns: ${headerAnchors.join(', ')}`,
       'NO_HEADER',
     );
   }
 
   const headerCells = grid.get(headerRowNum)!;
-  // Resolve column indices. Each amount label is a separate field; we'll sum
-  // them per row. Refunded uses alias list.
-  const headerMap: Record<string, string | readonly string[]> = {
-    productName: config.productNameLabel,
-    status: config.statusLabel,
-    refunded: config.refundedLabels,
-  };
-  config.amountLabels.forEach((label, i) => {
-    headerMap[`amount_${i}`] = label;
-  });
-  const { colByField, missing } = resolveHeaderColumns(headerCells, headerMap);
+  // Build a label → column index map from the header row (NFC-normalized so
+  // hidden width / encoding drift doesn't break matching).
+  const colByLabel = new Map<string, number>();
+  for (const [c, v] of headerCells) {
+    if (typeof v === 'string') colByLabel.set(v.trim().normalize('NFC'), c);
+  }
 
-  // Refunded column is optional (NonCollab has it under different names; if
-  // none match we just skip the refund check rather than failing the parse).
-  const requiredMissing = missing.filter((label) =>
-    [config.productNameLabel, config.statusLabel, ...config.amountLabels].includes(label),
-  );
-  if (requiredMissing.length > 0) {
+  function resolveAliases(aliases: readonly string[]): number | undefined {
+    for (const alias of aliases) {
+      const col = colByLabel.get(alias.normalize('NFC'));
+      if (col != null) return col;
+    }
+    return undefined;
+  }
+
+  const productNameCol = colByLabel.get(config.productNameLabel.normalize('NFC'));
+  const statusCol = colByLabel.get(config.statusLabel.normalize('NFC'));
+  const refundedCol = resolveAliases(config.refundedLabels); // optional — null-safe below
+  const amountCols = config.amountFields.map((aliases) => ({ aliases, col: resolveAliases(aliases) }));
+
+  // Required columns must resolve. Amount fields each need at least one alias
+  // match — if a file truly lacks one of the metrics we expect, parser fails
+  // loudly rather than silently treating it as zero.
+  const missing: string[] = [];
+  if (productNameCol == null) missing.push(config.productNameLabel);
+  if (statusCol == null) missing.push(config.statusLabel);
+  for (const { aliases, col } of amountCols) {
+    if (col == null) missing.push(aliases.join(' / '));
+  }
+  if (missing.length > 0) {
     throw new TikTokAffiliateOrderParseError(
-      `Missing required columns: ${requiredMissing.join(', ')}`,
+      `Missing required columns: ${missing.join('; ')}`,
       'MISSING_COLUMN',
     );
   }
-
-  // Safe: requiredMissing check above guarantees productName/status/amount cols resolved.
-  const productNameCol = colByField.productName!;
-  const statusCol = colByField.status!;
-  const refundedCol: number | undefined = colByField.refunded; // optional
-  const amountCols = config.amountLabels.map((_, i) => colByField[`amount_${i}`]!);
 
   const costByProductName: Record<string, number> = {};
   let totalCost = 0;
   let rowsKept = 0;
   let rowsExcluded = 0;
 
+  // Non-null assertions safe — missing check above guarantees resolution.
+  const productNameColFinal = productNameCol!;
+  const statusColFinal = statusCol!;
+  const resolvedAmountCols = amountCols.map(({ col }) => col!);
+
   const sortedRowNums = [...grid.keys()].sort((a, b) => a - b);
   for (const r of sortedRowNums) {
     if (r <= headerRowNum) continue;
     const row = grid.get(r)!;
-    const productName = cellText(row.get(productNameCol));
+    const productName = cellText(row.get(productNameColFinal));
     if (!productName) continue; // skip blank rows
 
-    const statusText = cellText(row.get(statusCol));
+    const statusText = cellText(row.get(statusColFinal));
     if (isCancelled(statusText)) {
       rowsExcluded++;
       continue;
@@ -195,7 +228,7 @@ function parseGeneric(buffer: ArrayBuffer, config: VariantConfig): TikTokAffOrde
     }
 
     let rowAmount = 0;
-    for (const col of amountCols) {
+    for (const col of resolvedAmountCols) {
       rowAmount += cellNumber(row.get(col));
     }
 

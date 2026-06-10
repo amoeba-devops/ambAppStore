@@ -35,16 +35,17 @@ status: ready
 | TC | Mục tiêu | Expected | FR |
 |----|----------|----------|-----|
 | TC-20 | Parse file mẫu Partner | Headers ở row 2 (skip Note row 1). Group by "Tên sản phẩm". | FR-03, NFR-02 |
-| TC-21 | Lấy đúng cột R = "Thanh toán hoa hồng Quảng cáo cửa hàng ước tính" | Total = SUM(col R across all rows) | FR-03 |
+| TC-21 | Lấy SUM của 2 cột: R[18] = "Thanh toán hoa hồng Quảng cáo cửa hàng ước tính" + O[15] = "Thanh toán hoa hồng ước tính" (alias) | Per-row affComm = col 18 + col 15 | FR-03, FR-04b |
 | TC-22 | File không có Note (header ở row 1) | Auto-detect vẫn OK | NFR-02 |
+| TC-23 | Alias resolution: parser khớp "Thanh toán hoa hồng ước tính" với standard-commission slot dù file Creator/NonCollab dùng "Thanh toán hoa hồng **tiêu chuẩn** ước tính" | First alias found wins, không throw | FR-04b |
 
 ## 4. Non-collab parser (Phase 2)
 
 | TC | Mục tiêu | Expected | FR |
 |----|----------|----------|-----|
 | TC-30 | Parse file mẫu NonCollab | Headers ở row 1. Group by "Tên sản phẩm" (col C[3]). | FR-04 |
-| TC-31 | Lấy đúng col [26] = "Thanh toán hoa hồng Quảng cáo cửa hàng ước tính" | Total = SUM(col [26]) | FR-04 |
-| TC-32 | File này có cả cột [22] (Thanh toán hoa hồng tiêu chuẩn) — KHÔNG được dùng | Per-row affComm = chỉ col [26], không cộng [22] | FR-04 |
+| TC-31 | Lấy SUM 2 cột: [26] "Quảng cáo cửa hàng ước tính" + [22] "tiêu chuẩn ước tính" | Per-row affComm = col 22 + col 26 | FR-04 |
+| TC-32 | (đã xoá — cả 2 cột giờ được sum theo FR-04) | — | — |
 
 ## 5. Pipeline merge (Phase 3-4)
 
