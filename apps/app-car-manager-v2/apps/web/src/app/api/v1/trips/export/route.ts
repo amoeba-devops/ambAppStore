@@ -31,11 +31,10 @@ export async function GET(req: NextRequest) {
   const t = await getTranslations({ locale, namespace: 'exportContent.trips' });
   const tStatus = await getTranslations({ locale, namespace: 'exportContent.status' });
 
-  // Helper to translate status
+  // Helper to translate status - cast needed for dynamic i18n key
   const fmtStatus = (s: string) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return tStatus(s as any);
+      return tStatus(s as Parameters<typeof tStatus>[0]);
     } catch {
       return s;
     }

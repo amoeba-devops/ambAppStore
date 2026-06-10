@@ -54,7 +54,13 @@ interface NotifyInput {
    * REQUIRED for any event listed in the templates JSON — without it the
    * inbox UI can't re-render on locale switch.
    */
-  template?: TemplateContext;
+  template?: Omit<TemplateContext, 'recipientRole'>;
+  /**
+   * Actor's display name for role-based messages like "cancelled by {actorName}".
+   * Passed separately from template because template is stored in DB for inbox
+   * re-render, but actorName is only used during initial render.
+   */
+  actorName?: string;
 }
 
 /** Events that fan out to email + push. Others stay in-app only. */
@@ -103,7 +109,14 @@ export async function notifyUser(input: NotifyInput): Promise<void> {
       const rendered = await renderNotification(
         input.event as NotificationEvent,
         locale,
-        input.template,
+        {
+          ...input.template,
+          /* Role-based content: pass recipient's local role and actor's name
+           * so renderNotification can pick appropriate template variants
+           * (e.g. "Your trip was cancelled by {actorName}" for Driver). */
+          recipientRole: user.usrLocalRole,
+          actorName: input.actorName,
+        },
       );
       renderedSubject = rendered.subject;
       renderedBody = rendered.body;
@@ -128,6 +141,7 @@ export async function notifyUser(input: NotifyInput): Promise<void> {
         amount: input.template.amount,
         description: input.template.description,
         tripPath: input.template.tripPath,
+        actorName: input.actorName,
       }
     : null;
 

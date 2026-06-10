@@ -948,6 +948,19 @@
       "AUTO_APPROVED": "Auto Approved",
       "APPROVED": "Approved",
       "REJECTED": "Rejected"
+    },
+    "audit": {
+      "sheetName": "Audit Log",
+      "title": "Audit Log",
+      "subtitle": "Exported {date} • {count} events",
+      "colTimestamp": "Timestamp",
+      "colAction": "Action",
+      "colEntity": "Entity",
+      "colRef": "Reference",
+      "colActor": "Actor",
+      "colIp": "IP",
+      "colBefore": "Before",
+      "colAfter": "After"
     }
   },
   "settings": {
@@ -1202,8 +1215,11 @@
         },
         "CANCELLED": {
           "subject": "Trip cancelled",
+          "subjectDriver": "Your trip was cancelled",
           "body": "Trip {ref} was cancelled.",
-          "bodyWithReason": "Trip {ref} was cancelled. Reason: {reason}."
+          "bodyWithReason": "Trip {ref} was cancelled. Reason: {reason}.",
+          "bodyDriver": "Your trip {ref} was cancelled by {actorName}.",
+          "bodyDriverWithReason": "Your trip {ref} was cancelled by {actorName}. Reason: {reason}."
         }
       },
       "EXPENSE": {

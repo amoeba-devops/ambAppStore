@@ -948,6 +948,19 @@
       "AUTO_APPROVED": "자동 승인",
       "APPROVED": "승인됨",
       "REJECTED": "거절됨"
+    },
+    "audit": {
+      "sheetName": "감사 로그",
+      "title": "감사 로그",
+      "subtitle": "{date} 내보내기 • {count}건",
+      "colTimestamp": "시각",
+      "colAction": "작업",
+      "colEntity": "엔티티",
+      "colRef": "참조번호",
+      "colActor": "수행자",
+      "colIp": "IP",
+      "colBefore": "변경 전",
+      "colAfter": "변경 후"
     }
   },
   "settings": {
@@ -1202,8 +1215,11 @@
         },
         "CANCELLED": {
           "subject": "운행이 취소되었습니다",
+          "subjectDriver": "배정된 운행이 취소되었습니다",
           "body": "운행 {ref}이(가) 취소되었습니다.",
-          "bodyWithReason": "운행 {ref}이(가) 취소되었습니다. 사유: {reason}."
+          "bodyWithReason": "운행 {ref}이(가) 취소되었습니다. 사유: {reason}.",
+          "bodyDriver": "{actorName}님이 운행 {ref}을(를) 취소했습니다.",
+          "bodyDriverWithReason": "{actorName}님이 운행 {ref}을(를) 취소했습니다. 사유: {reason}."
         }
       },
       "EXPENSE": {

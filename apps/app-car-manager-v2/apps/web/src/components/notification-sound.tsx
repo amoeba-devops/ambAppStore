@@ -53,22 +53,6 @@ export function NotificationSound() {
     }
   }, []);
 
-  // Play notification sound using file or Web Audio API fallback
-  const playSound = useCallback(() => {
-    // Try playing the audio file first
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {
-        // File doesn't exist or can't play, use Web Audio API
-        playBeep();
-      });
-      return;
-    }
-
-    // Fallback to Web Audio API beep
-    playBeep();
-  }, []);
-
   // Generate a pleasant notification beep using Web Audio API
   const playBeep = useCallback(() => {
     if (!audioContextRef.current) {
@@ -108,6 +92,22 @@ export function NotificationSound() {
     playTone(659, now, 0.15);
     playTone(784, now + 0.15, 0.2);
   }, []);
+
+  // Play notification sound using file or Web Audio API fallback
+  const playSound = useCallback(() => {
+    // Try playing the audio file first
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {
+        // File doesn't exist or can't play, use Web Audio API
+        playBeep();
+      });
+      return;
+    }
+
+    // Fallback to Web Audio API beep
+    playBeep();
+  }, [playBeep]);
 
   useEffect(() => {
     // Unlock audio on any user interaction

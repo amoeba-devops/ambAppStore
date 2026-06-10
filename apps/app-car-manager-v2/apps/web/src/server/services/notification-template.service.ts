@@ -57,6 +57,11 @@ export interface TemplateContext {
   description?: string;
   /** Trip detail path, e.g. `/trips/abc-123`. URL built via `buildAppUrl`. */
   tripPath: string;
+  /* ─── Role-based content (P4 post-MVP) ─────────────────────────────────── */
+  /** Recipient's local role — used to pick role-specific content variants. */
+  recipientRole?: 'ADMIN' | 'MANAGER' | 'DRIVER';
+  /** Actor's display name for "cancelled by {actorName}" messages. */
+  actorName?: string;
 }
 
 export interface RenderedNotification {
@@ -68,14 +73,41 @@ export interface RenderedNotification {
   url: string;
 }
 
-/* ─── Body variant resolver ────────────────────────────────────────────── */
+/* ─── Subject/Body variant resolver ────────────────────────────────────── */
+
+type SubjectKey = 'subject' | 'subjectDriver';
+type BodyKey =
+  | 'body'
+  | 'bodyWithRoute'
+  | 'bodyWithReason'
+  | 'bodyDriver'
+  | 'bodyDriverWithReason';
+
+/**
+ * Decide which subject translation key to use based on recipient role.
+ * For TRIP.CANCELLED, drivers see "Your trip was cancelled" while
+ * admins/managers see the generic "Trip cancelled".
+ */
+function pickSubjectKey(event: NotificationEvent, ctx: TemplateContext): SubjectKey {
+  if (event === 'TRIP.CANCELLED' && ctx.recipientRole === 'DRIVER') {
+    return 'subjectDriver';
+  }
+  return 'subject';
+}
 
 /**
  * Decide which body translation key to use based on which optional context
  * fields the caller provided. Mirrors the conditional segments in the old
  * inline template literals.
+ *
+ * For TRIP.CANCELLED with Driver recipient: use bodyDriver/bodyDriverWithReason
+ * to show "cancelled by {actorName}" instead of passive voice.
  */
-function pickBodyKey(event: NotificationEvent, ctx: TemplateContext): 'body' | 'bodyWithRoute' | 'bodyWithReason' {
+function pickBodyKey(event: NotificationEvent, ctx: TemplateContext): BodyKey {
+  /* TRIP.CANCELLED has role-specific variants for Driver recipients. */
+  if (event === 'TRIP.CANCELLED' && ctx.recipientRole === 'DRIVER') {
+    return ctx.reason ? 'bodyDriverWithReason' : 'bodyDriver';
+  }
   if ((event === 'TRIP.ASSIGNED' || event === 'TRIP.NEEDS_ASSIGNMENT') && ctx.route) {
     return 'bodyWithRoute';
   }
@@ -98,7 +130,8 @@ export async function renderNotification(
   ctx: TemplateContext,
 ): Promise<RenderedNotification> {
   const t = await getTranslations({ locale, namespace: 'notifications' });
-  const subject = t(`events.${event}.subject`, {
+  const subjectKey = pickSubjectKey(event, ctx);
+  const subject = t(`events.${event}.${subjectKey}`, {
     ref: ctx.ref,
     amount: ctx.amount ?? '',
   });
@@ -109,6 +142,7 @@ export async function renderNotification(
     reason: ctx.reason ?? '',
     amount: ctx.amount ?? '',
     description: ctx.description ?? '',
+    actorName: ctx.actorName ?? '',
   });
   const cta = t('cta');
   const url = buildAppUrl(ctx.tripPath);

@@ -948,6 +948,19 @@
       "AUTO_APPROVED": "Tự động duyệt",
       "APPROVED": "Đã duyệt",
       "REJECTED": "Từ chối"
+    },
+    "audit": {
+      "sheetName": "Nhật ký kiểm toán",
+      "title": "Nhật ký kiểm toán",
+      "subtitle": "Xuất ngày {date} • {count} sự kiện",
+      "colTimestamp": "Thời điểm",
+      "colAction": "Hành động",
+      "colEntity": "Đối tượng",
+      "colRef": "Mã đối tượng",
+      "colActor": "Người thực hiện",
+      "colIp": "IP",
+      "colBefore": "Trước thay đổi",
+      "colAfter": "Sau thay đổi"
     }
   },
   "settings": {
@@ -1202,8 +1215,11 @@
         },
         "CANCELLED": {
           "subject": "Chuyến đi đã bị huỷ",
+          "subjectDriver": "Chuyến đi của bạn đã bị huỷ",
           "body": "Chuyến {ref} đã bị huỷ.",
-          "bodyWithReason": "Chuyến {ref} đã bị huỷ. Lý do: {reason}."
+          "bodyWithReason": "Chuyến {ref} đã bị huỷ. Lý do: {reason}.",
+          "bodyDriver": "Chuyến {ref} của bạn đã bị huỷ bởi {actorName}.",
+          "bodyDriverWithReason": "Chuyến {ref} của bạn đã bị huỷ bởi {actorName}. Lý do: {reason}."
         }
       },
       "EXPENSE": {
