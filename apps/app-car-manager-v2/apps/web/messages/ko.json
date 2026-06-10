@@ -1025,7 +1025,9 @@
       "denied": "이 기기에서 알림이 차단되었습니다. 브라우저 설정에서 다시 허용하세요.",
       "unsupported": "이 브라우저는 웹 푸시를 지원하지 않습니다.",
       "serverDisabled": "서버에 푸시가 구성되어 있지 않습니다.",
-      "error": "푸시를 활성화할 수 없습니다: {message}"
+      "error": "푸시를 활성화할 수 없습니다: {message}",
+      "iframeHint": "AMA에서 보는 동안에는 알림을 활성화할 수 없습니다. 새 탭에서 앱을 열어 설정하세요.",
+      "openNewTab": "새 탭 열기"
     },
     "notifDigest": "일일 요약",
     "notifDigestDesc": "오전 9시에 승인 대기 항목 요약.",

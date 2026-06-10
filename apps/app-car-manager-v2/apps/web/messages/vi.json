@@ -1025,7 +1025,9 @@
       "denied": "Thiết bị này đã chặn thông báo. Bật lại trong cài đặt trình duyệt.",
       "unsupported": "Trình duyệt này không hỗ trợ Web Push.",
       "serverDisabled": "Push chưa được cấu hình trên máy chủ.",
-      "error": "Không thể bật push: {message}"
+      "error": "Không thể bật push: {message}",
+      "iframeHint": "Không thể bật thông báo khi đang xem trong AMA. Mở app trong tab mới để cài đặt.",
+      "openNewTab": "Mở tab mới"
     },
     "notifDigest": "Tóm tắt hàng ngày",
     "notifDigestDesc": "Bản tóm tắt các khoản chờ duyệt lúc 9:00 sáng.",
