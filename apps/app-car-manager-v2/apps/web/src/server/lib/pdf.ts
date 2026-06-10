@@ -229,10 +229,9 @@ export function buildReportPdf(options: PdfReportOptions): Promise<Buffer> {
 let pdfMakeInstance: ReturnType<typeof initPdfMake> | null = null;
 
 function initPdfMake() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdfMake = require('pdfmake/build/pdfmake');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { pretendardVfs } = require('./fonts/pretendard-vfs.js');
+  /* Dynamic require needed for pdfmake's VFS font system - ES import breaks it */
+  const pdfMake = require('pdfmake/build/pdfmake'); // eslint-disable-line
+  const { pretendardVfs } = require('./fonts/pretendard-vfs.js'); // eslint-disable-line
 
   // Add Pretendard fonts for CJK (Korean/Vietnamese/Chinese) support
   pdfMake.addVirtualFileSystem(pretendardVfs);

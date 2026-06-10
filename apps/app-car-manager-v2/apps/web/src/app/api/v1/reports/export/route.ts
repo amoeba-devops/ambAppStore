@@ -50,11 +50,10 @@ export async function GET(req: NextRequest) {
   const t = await getTranslations({ locale, namespace: 'exportContent.reports' });
   const tCat = await getTranslations({ locale, namespace: 'exportContent.categories' });
 
-  // Helper to translate category
+  // Helper to translate category - cast needed for dynamic i18n key
   const fmtCat = (expType: string) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return tCat(expType as any);
+      return tCat(expType as Parameters<typeof tCat>[0]);
     } catch {
       return expType;
     }

@@ -31,21 +31,19 @@ export async function GET(req: NextRequest) {
   const tCat = await getTranslations({ locale, namespace: 'exportContent.categories' });
   const tExpStatus = await getTranslations({ locale, namespace: 'exportContent.expenseStatus' });
 
-  // Helper to translate expense type
+  // Helper to translate expense type - cast needed for dynamic i18n key
   const fmtType = (expType: string) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return tCat(expType as any);
+      return tCat(expType as Parameters<typeof tCat>[0]);
     } catch {
       return expType;
     }
   };
 
-  // Helper to translate expense status
+  // Helper to translate expense status - cast needed for dynamic i18n key
   const fmtStatus = (status: string) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return tExpStatus(status as any);
+      return tExpStatus(status as Parameters<typeof tExpStatus>[0]);
     } catch {
       return status;
     }
