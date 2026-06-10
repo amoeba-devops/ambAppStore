@@ -948,6 +948,19 @@
       "AUTO_APPROVED": "Tự động duyệt",
       "APPROVED": "Đã duyệt",
       "REJECTED": "Từ chối"
+    },
+    "audit": {
+      "sheetName": "Nhật ký kiểm toán",
+      "title": "Nhật ký kiểm toán",
+      "subtitle": "Xuất ngày {date} • {count} sự kiện",
+      "colTimestamp": "Thời điểm",
+      "colAction": "Hành động",
+      "colEntity": "Đối tượng",
+      "colRef": "Mã đối tượng",
+      "colActor": "Người thực hiện",
+      "colIp": "IP",
+      "colBefore": "Trước thay đổi",
+      "colAfter": "Sau thay đổi"
     }
   },
   "settings": {

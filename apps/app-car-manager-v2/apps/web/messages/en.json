@@ -948,6 +948,19 @@
       "AUTO_APPROVED": "Auto Approved",
       "APPROVED": "Approved",
       "REJECTED": "Rejected"
+    },
+    "audit": {
+      "sheetName": "Audit Log",
+      "title": "Audit Log",
+      "subtitle": "Exported {date} • {count} events",
+      "colTimestamp": "Timestamp",
+      "colAction": "Action",
+      "colEntity": "Entity",
+      "colRef": "Reference",
+      "colActor": "Actor",
+      "colIp": "IP",
+      "colBefore": "Before",
+      "colAfter": "After"
     }
   },
   "settings": {

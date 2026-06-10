@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { getTranslations } from 'next-intl/server';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { listAuditActors, listAuditForExport } from '@/server/queries/audit.queries';
 import { buildCsv, fmtDateTime, fmtJsonAsKv } from '@/server/lib/csv';
@@ -8,6 +9,7 @@ import { buildCsv, fmtDateTime, fmtJsonAsKv } from '@/server/lib/csv';
  * Same filter contract như /audit page:
  *   ?q=<text>      free-text search
  *   ?actor=<usrId> filter theo người thực hiện
+ *   ?locale=vi|en|ko  language for headers (default: vi)
  *
  * Actor ID phải pass whitelist (cùng listAuditActors check như page) để chặn
  * URL-injection xem audit của tenant khác.
@@ -22,6 +24,7 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const q = sp.get('q')?.trim() || undefined;
   const actorIdRaw = sp.get('actor')?.trim() || undefined;
+  const locale = sp.get('locale') ?? 'vi';
 
   /* Whitelist actor ID — chỉ chấp nhận nếu có trong danh sách actor ent-scoped. */
   let actorId: string | undefined;
@@ -32,15 +35,18 @@ export async function GET(req: NextRequest) {
 
   const rows = await listAuditForExport(actor.entId, { q, actorId, maxRows: 5000 });
 
+  /* Load translations for CSV headers */
+  const t = await getTranslations({ locale, namespace: 'exportContent.audit' });
+
   const header = [
-    'Thời điểm',
-    'Hành động',
-    'Đối tượng',
-    'Mã đối tượng',
-    'Người thực hiện',
-    'IP',
-    'Trước thay đổi',
-    'Sau thay đổi',
+    t('colTimestamp'),
+    t('colAction'),
+    t('colEntity'),
+    t('colRef'),
+    t('colActor'),
+    t('colIp'),
+    t('colBefore'),
+    t('colAfter'),
   ];
   /* aud_before/aud_after là JSON column — flatten thành "key=value; key2=value2"
    * thay vì dump nguyên `{"status":"PENDING",...}` ra cell. */

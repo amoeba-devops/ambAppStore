@@ -1,4 +1,4 @@
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, getLocale } from 'next-intl/server';
 import Link from 'next/link';
 import { Download, Search } from 'lucide-react';
 import {
@@ -40,12 +40,13 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
   const actorIdRaw = sp.actor?.trim() || undefined;
   const page = Math.max(1, Number(sp.page ?? 1));
 
-  const t    = await getTranslations('screens.audit');
-  const tA   = await getTranslations('actions');
-  const tNav = await getTranslations('nav');
-  const tCo  = await getTranslations('company');
-  const tAu  = await getTranslations('audit');
-  const user = await getCurrentUser();
+  const t      = await getTranslations('screens.audit');
+  const tA     = await getTranslations('actions');
+  const tNav   = await getTranslations('nav');
+  const tCo    = await getTranslations('company');
+  const tAu    = await getTranslations('audit');
+  const locale = await getLocale();
+  const user   = await getCurrentUser();
   requireRole(user.role, ['ADMIN']);
 
   /* Lấy danh sách actor distinct trong tenant để render dropdown.
@@ -66,14 +67,14 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
   const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const showingTo = Math.min(total, page * pageSize);
 
-  /* Export URL preserve filters hiện tại (q + actor). Server route handler đọc
-   * cùng searchParams + ent-scope ADMIN-only. */
+  /* Export URL preserve filters hiện tại (q + actor + locale). Server route
+   * handler đọc cùng searchParams + ent-scope ADMIN-only. */
   const exportHref = (() => {
     const params = new URLSearchParams();
     if (searchQ) params.set('q', searchQ);
     if (actorId) params.set('actor', actorId);
-    const qs = params.toString();
-    return qs ? `/api/v1/audit/export?${qs}` : '/api/v1/audit/export';
+    params.set('locale', locale);
+    return `/api/v1/audit/export?${params.toString()}`;
   })();
 
   return (
