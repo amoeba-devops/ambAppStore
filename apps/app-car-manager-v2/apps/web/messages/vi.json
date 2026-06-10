@@ -1202,8 +1202,11 @@
         },
         "CANCELLED": {
           "subject": "Chuyến đi đã bị huỷ",
+          "subjectDriver": "Chuyến đi của bạn đã bị huỷ",
           "body": "Chuyến {ref} đã bị huỷ.",
-          "bodyWithReason": "Chuyến {ref} đã bị huỷ. Lý do: {reason}."
+          "bodyWithReason": "Chuyến {ref} đã bị huỷ. Lý do: {reason}.",
+          "bodyDriver": "Chuyến {ref} của bạn đã bị huỷ bởi {actorName}.",
+          "bodyDriverWithReason": "Chuyến {ref} của bạn đã bị huỷ bởi {actorName}. Lý do: {reason}."
         }
       },
       "EXPENSE": {

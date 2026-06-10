@@ -1202,8 +1202,11 @@
         },
         "CANCELLED": {
           "subject": "Trip cancelled",
+          "subjectDriver": "Your trip was cancelled",
           "body": "Trip {ref} was cancelled.",
-          "bodyWithReason": "Trip {ref} was cancelled. Reason: {reason}."
+          "bodyWithReason": "Trip {ref} was cancelled. Reason: {reason}.",
+          "bodyDriver": "Your trip {ref} was cancelled by {actorName}.",
+          "bodyDriverWithReason": "Your trip {ref} was cancelled by {actorName}. Reason: {reason}."
         }
       },
       "EXPENSE": {

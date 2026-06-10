@@ -26,9 +26,11 @@
  */
 
 /* v3 → v4: Added notification sound (sounds/notification.wav) to precache.
+ * v4 → v5: Enhanced PWA notifications with action buttons, renotify, and
+ *          critical alert detection for cancel/accident events.
  * The `activate` handler nukes any cache whose name isn't in `keep`, so this
  * bump one-time-clears old caches without the sound file. */
-const CACHE_VERSION = 'fleet-v4';
+const CACHE_VERSION = 'fleet-v5';
 const TRIP_CACHE = CACHE_VERSION + '-trips';
 /* `_next/static/*` lives in its own cache so the size cap can trim it WITHOUT
  * risking the precached offline.html / manifest / icons (which share
@@ -207,16 +209,38 @@ self.addEventListener('push', (event) => {
    *   - `silent: false` tells the browser to use the OS notification sound
    *   - `vibrate` pattern (ms): vibrate 200ms, pause 100ms, vibrate 200ms
    *   - For foreground apps, we also post a message to play custom sound
+   *
+   * Enhanced visibility (P4):
+   *   - `renotify: true` forces re-alert even if same tag (e.g., trip updated)
+   *   - `actions` adds tap targets for quick response (Chrome/Edge desktop)
+   *   - Longer vibration for CANCELLED events to grab attention
    */
+  const isCritical = data.tag && (
+    data.title.includes('cancelled') ||
+    data.title.includes('huỷ') ||
+    data.title.includes('취소') ||
+    data.title.includes('accident') ||
+    data.title.includes('tai nạn') ||
+    data.title.includes('사고')
+  );
+
   const notificationOptions = {
     body: data.body,
     tag: data.tag,
     icon: BASE + 'icons/icon-192.png',
     badge: BASE + 'icons/icon-192.png',
     data: { url: data.url },
-    requireInteraction: false,
+    requireInteraction: isCritical, /* Critical events stay until dismissed */
+    renotify: true, /* Re-alert even if tag matches previous notification */
     silent: false, /* Enable system notification sound */
-    vibrate: [200, 100, 200], /* Vibration pattern for mobile */
+    vibrate: isCritical
+      ? [300, 100, 300, 100, 300] /* Longer pattern for critical alerts */
+      : [200, 100, 200], /* Standard pattern for normal notifications */
+    /* Action buttons (Chrome/Edge desktop only — gracefully ignored elsewhere) */
+    actions: [
+      { action: 'view', title: '👁️ View' },
+      { action: 'dismiss', title: '✕' },
+    ],
   };
 
   event.waitUntil(
@@ -239,6 +263,12 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+
+  /* Handle action button clicks — 'dismiss' just closes, 'view' navigates. */
+  if (event.action === 'dismiss') {
+    return; /* Just close, don't navigate */
+  }
+
   const targetUrl = (event.notification.data && event.notification.data.url) || '/today';
   const absolute = new URL(targetUrl, self.location.origin).href;
 

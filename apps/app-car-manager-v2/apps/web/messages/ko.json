@@ -1202,8 +1202,11 @@
         },
         "CANCELLED": {
           "subject": "운행이 취소되었습니다",
+          "subjectDriver": "배정된 운행이 취소되었습니다",
           "body": "운행 {ref}이(가) 취소되었습니다.",
-          "bodyWithReason": "운행 {ref}이(가) 취소되었습니다. 사유: {reason}."
+          "bodyWithReason": "운행 {ref}이(가) 취소되었습니다. 사유: {reason}.",
+          "bodyDriver": "{actorName}님이 운행 {ref}을(를) 취소했습니다.",
+          "bodyDriverWithReason": "{actorName}님이 운행 {ref}을(를) 취소했습니다. 사유: {reason}."
         }
       },
       "EXPENSE": {

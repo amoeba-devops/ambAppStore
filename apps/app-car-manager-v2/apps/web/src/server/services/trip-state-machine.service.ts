@@ -355,6 +355,8 @@ async function notifyForTransition(
       return;
     case 'cancel': {
       const cancelTemplate = { ...baseTemplate, reason: after.trpCancelReason ?? undefined };
+      /* Actor's display name for "cancelled by {actorName}" in Driver notifications. */
+      const actorDisplayName = actor.name ?? 'Admin';
       /* PRD FR-1.3 + §13.1: notify driver if trip was already confirmed/in-progress.
        * Also notify creator if Admin (not the creator) cancelled. */
       if (
@@ -374,6 +376,7 @@ async function notifyForTransition(
             entityId: after.trpId,
             entityRef: after.trpRef,
             template: cancelTemplate,
+            actorName: actorDisplayName,
           });
         }
       }
@@ -388,6 +391,7 @@ async function notifyForTransition(
           entityId: after.trpId,
           entityRef: after.trpRef,
           template: cancelTemplate,
+          actorName: actorDisplayName,
         });
       }
       return;

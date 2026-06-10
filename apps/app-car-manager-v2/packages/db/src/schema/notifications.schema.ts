@@ -16,6 +16,8 @@ export interface NotificationTemplatePayload {
   /** Free-form description for EXPENSE.APPROVED body. */
   description?: string;
   tripPath?: string;
+  /** Actor's display name for role-based messages like "cancelled by {actorName}". */
+  actorName?: string;
 }
 
 /**
