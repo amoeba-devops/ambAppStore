@@ -1,6 +1,6 @@
-import { getTranslations, getLocale } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { Download, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import {
   Avatar,
   Badge,
@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@car-v2/ui';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
+import { ExportDropdown } from '@/components/export-dropdown';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { listAudit, listAuditActors } from '@/server/queries/audit.queries';
@@ -45,7 +46,6 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
   const tNav   = await getTranslations('nav');
   const tCo    = await getTranslations('company');
   const tAu    = await getTranslations('audit');
-  const locale = await getLocale();
   const user   = await getCurrentUser();
   requireRole(user.role, ['ADMIN']);
 
@@ -67,15 +67,11 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
   const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const showingTo = Math.min(total, page * pageSize);
 
-  /* Export URL preserve filters hiện tại (q + actor + locale). Server route
-   * handler đọc cùng searchParams + ent-scope ADMIN-only. */
-  const exportHref = (() => {
-    const params = new URLSearchParams();
-    if (searchQ) params.set('q', searchQ);
-    if (actorId) params.set('actor', actorId);
-    params.set('locale', locale);
-    return `/api/v1/audit/export?${params.toString()}`;
-  })();
+  /* Export query params to preserve filters (q + actor). Locale is handled
+   * by ExportDropdown internally via useLocale(). */
+  const exportParams: Record<string, string> = {};
+  if (searchQ) exportParams.q = searchQ;
+  if (actorId) exportParams.actor = actorId;
 
   return (
     <>
@@ -84,9 +80,16 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
         subtitle={t('subtitle')}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('auditLog') }]}
         actions={
-          <Button variant="ghost" size="md" iconLeft={<Download />} asChild>
-            <a href={exportHref} download>{tA('export')} CSV</a>
-          </Button>
+          <ExportDropdown
+            baseUrl="/api/v1/audit/export"
+            queryParams={exportParams}
+            labels={{
+              export: tA('export'),
+              excel: tA('exportExcel'),
+              pdf: tA('exportPdf'),
+              csv: tA('exportCsv'),
+            }}
+          />
         }
       />
 
