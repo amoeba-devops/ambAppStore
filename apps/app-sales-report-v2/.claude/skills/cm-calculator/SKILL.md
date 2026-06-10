@@ -273,8 +273,9 @@ Khi user finalize report (download lần đầu):
 - [ ] Cancelled order TikTok (status + substatus) excluded
 - [ ] Return order Shopee (gmv=0) excluded
 - [ ] Return order TikTok (net_gmv=0) excluded
-- [ ] Free Gift Shopee (nmv=0): prime cost ADDED to total, revenue excluded
+- [ ] Free Gift Shopee (nmv=0): prime cost vào `Total Free Gift` (NOT `Total Prime Cost`), revenue excluded
 - [ ] Free Gift TikTok (net_gmv=0 + Normal + [GIFT]): same treatment
+- [ ] `Total Prime Cost` chỉ gồm `kept rows`; CM trừ `Total Prime Cost` + `Total Free Gift` riêng biệt — không double-subtract
 - [ ] CM Shopee == manual recalc với Google Sheet RFR (cần fixture)
 - [ ] CM TikTok == manual recalc với RFR
 - [ ] NMV contribution allocation tổng = total cost (rounding residual)
@@ -292,6 +293,6 @@ Khi user finalize report (download lần đầu):
 - ❌ Allocate trước khi exclude orders cancelled/returned
 - ❌ Apply CM Shopee formula cho TikTok (khác Brand Ads, Off-Platform, Seller Vouchers)
 - ❌ Quên check NMV=0 trong allocation → division by zero
-- ❌ Free Gift bị exclude khỏi Total Prime Cost (sai — phải ADD)
+- ❌ Cộng Free Gift PC vào `Total Prime Cost` — phải để riêng ở `Total Free Gift`, tránh double-subtract trong CM (CM đã trừ cả 2 line)
 - ❌ Calc inline trong Server Action (>5s) — phải qua Inngest
 - ❌ Hard-code 48 params trong code → phải đọc từ `sal_formula_configs`

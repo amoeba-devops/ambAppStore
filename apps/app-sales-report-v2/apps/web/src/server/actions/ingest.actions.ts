@@ -231,6 +231,7 @@ export async function commitIngestAction(
         totalOffPlatformAds: r.offPlatformAds?.totalCost ?? 0,
         totalPageViews: r.traffic?.totalPageViews ?? 0,
         totalAffiliateCommission: r.affiliate?.totalCost ?? 0,
+        affiliateCostByProductName: r.affiliate?.costByProductName ?? {},
       };
     }
 
@@ -624,6 +625,7 @@ function emptyShopeeMetrics(): PeriodSnapshotMetrics['shopee'] {
     totalOffPlatformAds: 0,
     totalPageViews: 0,
     totalAffiliateCommission: 0,
+    affiliateCostByProductName: {},
   };
 }
 

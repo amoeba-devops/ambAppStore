@@ -42,6 +42,11 @@ export interface PeriodSnapshotMetrics {
     totalOffPlatformAds: number;
     totalPageViews: number;
     totalAffiliateCommission: number;
+    /** Per-product-name affiliate cost (Chi phí) from the Affiliate file.
+     *  Key = normalized product name; value = SUM(chiPhi) for that product.
+     *  Used to attribute exact affComm per breakdown row + an "Others" bucket
+     *  for product names that don't match any Sales breakdown entry. */
+    affiliateCostByProductName: Record<string, number>;
   };
   tiktok: Pick<
     TikTokMetricsResult,

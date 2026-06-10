@@ -27,7 +27,7 @@ export interface TikTokMetricsResult {
   totalPlatformFee: number;
   /** Platform fee rate used for computation (percent). */
   platformFeeRatePct: number;
-  /** SUM(prime_cost × item_sold) for kept + free gift rows. */
+  /** SUM(prime_cost × item_sold) for kept rows only. Free Gift PC is tracked separately in `primeCostFreeGift` and displayed as its own report line. */
   totalPrimeCost: number;
   primeCostKept: number;
   primeCostFreeGift: number;
@@ -124,8 +124,9 @@ export const TIKTOK_METRIC_SPECS = {
   TOTAL_PRIME_COST_TIKTOK: {
     id: 'TOTAL_PRIME_COST_TIKTOK',
     name: 'Total Prime Cost — TikTok',
-    expression: 'SUM(prime_cost × item_sold) over kept + free_gift rows',
+    expression: 'SUM(prime_cost × item_sold) over kept rows only',
     requires: ['prime_costs.prime_cost'],
+    note: 'Free Gift PC is NOT added here — it is reported separately in `primeCostFreeGift` and subtracted as a distinct CM line.',
   },
   TOTAL_PAGE_VIEWS_TIKTOK: {
     id: 'TOTAL_PAGE_VIEWS_TIKTOK',
@@ -379,7 +380,7 @@ export function computeTikTokMetrics(
     totalPlatformDiscount,
     totalPlatformFee,
     platformFeeRatePct,
-    totalPrimeCost: primeCostKept + primeCostFreeGift,
+    totalPrimeCost: primeCostKept,
     primeCostKept,
     primeCostFreeGift,
     rowsKept: kept,

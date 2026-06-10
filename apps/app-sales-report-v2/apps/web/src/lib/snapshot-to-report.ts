@@ -52,7 +52,7 @@ export function snapshotToWeeklyReport(
   const shopeeCm =
     shopee.totalNetGmv -
     shopee.totalSellerDiscount -
-    shopee.totalPrimeCost - // (kept + free gift)
+    shopee.totalPrimeCost - // kept rows only (free gift subtracted separately below)
     shopee.totalAdSpending -
     shopee.totalBrandAds -
     shopee.totalPlatformFee -
@@ -339,14 +339,41 @@ export function snapshotToProducts(
 
   if (useShopee) {
     const total = shopeeNmvSum;
-    for (const p of shopee.productBreakdown ?? []) {
+    const breakdown = shopee.productBreakdown ?? [];
+
+    // Per-product affiliate cost lookup (exact attribution by product name
+    // instead of NMV-share allocation). Keys are already normalized by the
+    // affiliate parser; we mirror the normalization here.
+    const affCostByName = shopee.affiliateCostByProductName ?? {};
+    const normalizeName = (s: string) => s.normalize('NFC').replace(/\s+/g, ' ').trim();
+
+    // For products with multiple SKU variations sharing one name, split the
+    // product's affiliate cost across variations by NMV within that product
+    // so per-SKU rows still sum to the exact product total.
+    const nmvByName = new Map<string, number>();
+    for (const p of breakdown) {
+      const k = normalizeName(p.productName);
+      nmvByName.set(k, (nmvByName.get(k) ?? 0) + p.nmv);
+    }
+    const matchedAffNames = new Set<string>();
+
+    for (const p of breakdown) {
       const share = total > 0 ? p.nmv / total : 0;
       const voucher = shopee.totalSellerVouchers * share;
       const freeGift = shopee.primeCostFreeGift * share;
       const adSpend = shopee.totalAdSpending * share;
       const brandAds = shopee.totalBrandAds * share;
       const offPlatformAds = shopee.totalOffPlatformAds * share;
-      const affComm = shopee.totalAffiliateCommission * share;
+      const nameKey = normalizeName(p.productName);
+      const productAffCost = affCostByName[nameKey] ?? 0;
+      const productNmv = nmvByName.get(nameKey) ?? 0;
+      // Split product affiliate cost across same-name variations by NMV
+      // contribution. When all variations have NMV=0 (rare edge), skip — the
+      // cost will fall through to the Others bucket below.
+      const affComm = productNmv > 0 && productAffCost > 0
+        ? productAffCost * (p.nmv / productNmv)
+        : 0;
+      if (productAffCost > 0 && productNmv > 0) matchedAffNames.add(nameKey);
       const affBook = shopeeAffBookingFee * share;
       const livestream = manualInputs.shopeeLivestreamFees * share;
       const platformFee = shopee.totalPlatformFee * share;
@@ -392,6 +419,42 @@ export function snapshotToProducts(
         isCombo: p.isCombo ?? false,
       });
     }
+    // Affiliate cost for product names not present in the Sales breakdown
+    // (including names whose breakdown rows all had NMV=0) → bucket into an
+    // "Others" pseudo-row so the platform total stays exact.
+    let othersAffCost = 0;
+    for (const [name, cost] of Object.entries(affCostByName)) {
+      if (!matchedAffNames.has(name)) othersAffCost += cost;
+    }
+    if (othersAffCost > 0) {
+      out.push({
+        no: '',
+        sku: '—',
+        nameVi: 'Others',
+        nameEn: 'Others',
+        platform: 'SHOPEE',
+        pv: 0,
+        cvr: 0,
+        items: 0,
+        gmv: 0,
+        netGmv: 0,
+        nmv: 0,
+        voucher: 0,
+        sellerDisc: 0,
+        freeGift: 0,
+        adSpend: 0,
+        brandAds: 0,
+        offPlatformAds: 0,
+        affComm: othersAffCost,
+        affBook: 0,
+        livestream: 0,
+        platformFee: 0,
+        primeCost: 0,
+        cm: -othersAffCost,
+        isOthers: true,
+      });
+    }
+
     for (const g of shopee.giftBreakdown ?? []) {
       out.push({
         no: '',
