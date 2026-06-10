@@ -61,6 +61,15 @@ export function ExportDropdown({
     return `${basePath}${baseUrl}?${params.toString()}`;
   };
 
+  /* In iframe context (AMA embed), the `download` attribute on <a> tags doesn't
+   * work due to cross-origin restrictions. Instead, we open the URL in a new
+   * tab which triggers the browser's download via Content-Disposition header.
+   * This works because the new tab is top-level navigation, not sandboxed. */
+  const handleExport = (format: 'xlsx' | 'pdf' | 'csv') => {
+    const url = buildHref(format);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -77,32 +86,26 @@ export function ExportDropdown({
         align="end"
         className="z-50 min-w-[160px] rounded-lg border border-border bg-surface p-1 shadow-lg"
       >
-        <DropdownMenuItem asChild>
-          <a
-            href={buildHref('xlsx')}
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-text hover:bg-surface-2 focus:bg-surface-2 focus:outline-none cursor-pointer"
-          >
-            <FileSpreadsheet className="h-4 w-4 text-green-600" />
-            {labels.excel}
-          </a>
+        <DropdownMenuItem
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-text hover:bg-surface-2 focus:bg-surface-2 focus:outline-none cursor-pointer"
+          onSelect={() => handleExport('xlsx')}
+        >
+          <FileSpreadsheet className="h-4 w-4 text-green-600" />
+          {labels.excel}
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a
-            href={buildHref('pdf')}
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-text hover:bg-surface-2 focus:bg-surface-2 focus:outline-none cursor-pointer"
-          >
-            <FileText className="h-4 w-4 text-red-500" />
-            {labels.pdf}
-          </a>
+        <DropdownMenuItem
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-text hover:bg-surface-2 focus:bg-surface-2 focus:outline-none cursor-pointer"
+          onSelect={() => handleExport('pdf')}
+        >
+          <FileText className="h-4 w-4 text-red-500" />
+          {labels.pdf}
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a
-            href={buildHref('csv')}
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-text hover:bg-surface-2 focus:bg-surface-2 focus:outline-none cursor-pointer"
-          >
-            <FileDown className="h-4 w-4 text-blue-500" />
-            {labels.csv}
-          </a>
+        <DropdownMenuItem
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-text hover:bg-surface-2 focus:bg-surface-2 focus:outline-none cursor-pointer"
+          onSelect={() => handleExport('csv')}
+        >
+          <FileDown className="h-4 w-4 text-blue-500" />
+          {labels.csv}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

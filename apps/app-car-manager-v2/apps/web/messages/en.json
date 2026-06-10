@@ -1025,7 +1025,9 @@
       "denied": "This device blocked notifications. Re-enable in browser settings.",
       "unsupported": "This browser does not support Web Push.",
       "serverDisabled": "Push is not configured on the server.",
-      "error": "Could not enable push: {message}"
+      "error": "Could not enable push: {message}",
+      "iframeHint": "Cannot enable notifications while viewing in AMA. Open app in a new tab to configure.",
+      "openNewTab": "Open new tab"
     },
     "notifDigest": "Daily digest",
     "notifDigestDesc": "9:00 AM summary of pending approvals.",

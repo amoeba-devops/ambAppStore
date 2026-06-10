@@ -35,6 +35,7 @@ import { PUSH_STATE_EVENT, dispatchPushStateChanged } from './push-event';
 
 export type PushState =
   | 'unsupported'
+  | 'iframe'
   | 'denied'
   | 'idle'
   | 'subscribing'
@@ -67,6 +68,16 @@ export function usePushSubscription({
    * sibling instances stay in sync — see header comment. */
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    /* In iframe context (AMA embed), Service Worker scope doesn't work properly.
+     * The SW would be registered under the iframe URL which is not useful —
+     * push notifications need top-level navigation to be installable as PWA.
+     * Show iframe state so UI can display guidance to open in new tab. */
+    if (window.self !== window.top) {
+      setState('iframe');
+      return;
+    }
+
     if (
       !('serviceWorker' in navigator) ||
       !('PushManager' in window) ||
