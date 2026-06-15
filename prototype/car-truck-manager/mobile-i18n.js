@@ -58,7 +58,6 @@
     'Chi phí & Lợi nhuận': { en: 'Cost & Profit', ko: '비용 & 수익', vi: 'Chi phí & Lợi nhuận' },
     'Báo cáo': { en: 'Reports', ko: '보고서', vi: 'Báo cáo' },
     'Import Excel': { en: 'Import Excel', ko: 'Excel 가져오기', vi: 'Import Excel' },
-    'Kiến trúc & quyết định': { en: 'Architecture & Decisions', ko: '아키텍처 & 결정', vi: 'Kiến trúc & quyết định' },
 
     // Nav items - Car
     'Chuyến đi': { en: 'Trips', ko: '운행', vi: 'Chuyến đi' },

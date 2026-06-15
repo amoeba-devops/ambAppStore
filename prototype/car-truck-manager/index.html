@@ -70,7 +70,6 @@
         <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#94A3B8;text-transform:uppercase;padding:0 8px;margin-bottom:7px;">Dữ liệu</div>
         <div style="display:flex;flex-direction:column;gap:3px;">
           <button style="{{ navS.import }}" style-hover="background:#F1F3F8;color:#0F172A;" onClick="{{ goImport }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg><span style="flex:1;">Import Excel</span></button>
-          <button style="{{ navS.about }}" style-hover="background:#F1F3F8;color:#0F172A;" onClick="{{ goAbout }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span style="flex:1;">Kiến trúc &amp; quyết định</span></button>
         </div>
       </div>
       </sc-if>
@@ -97,11 +96,6 @@
       </div>
       </sc-if>
     </nav>
-
-    <!-- doc link -->
-    <div style="border-top:1px solid #E2E5EB;padding:8px;">
-      <button style="display:flex;align-items:center;gap:10px;height:36px;width:100%;border:none;border-radius:6px;padding:0 8px;cursor:pointer;background:transparent;color:#475569;font:500 14px/1 inherit;text-align:left;" style-hover="background:#F1F3F8;color:#0F172A;" onClick="{{ goAbout2 }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span style="flex:1;">Kiến trúc &amp; quyết định</span></button>
-    </div>
 
     <!-- user -->
     <div style="border-top:1px solid #E2E5EB;padding:10px;display:flex;align-items:center;gap:10px;">
@@ -823,38 +817,6 @@
           <div style="display:flex;gap:13px;align-items:flex-start;"><div style="height:26px;width:26px;border-radius:50%;background:#0F172A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">1</div><div><div style="font-size:14px;font-weight:600;">Tải file &amp; chọn sheet</div><div style="font-size:13px;color:#64748B;margin-top:1px;">Hệ thống đọc danh sách sheet (mỗi sheet = 1 tháng) và phát hiện biển số xe từ tên file.</div></div></div>
           <div style="display:flex;gap:13px;align-items:flex-start;"><div style="height:26px;width:26px;border-radius:50%;background:#0F172A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">2</div><div><div style="font-size:14px;font-weight:600;">Ánh xạ cột (mapping)</div><div style="font-size:13px;color:#64748B;margin-top:1px;">Khớp cột Excel với trường hệ thống: ngày, lộ trình, km, lít, đơn giá, cầu đường, doanh thu…</div></div></div>
           <div style="display:flex;gap:13px;align-items:flex-start;"><div style="height:26px;width:26px;border-radius:50%;background:#0F172A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">3</div><div><div style="font-size:14px;font-weight:600;">Xem trước &amp; xác nhận</div><div style="font-size:13px;color:#64748B;margin-top:1px;">Hệ thống tự tính tổng km, chi phí nhiên liệu và lợi nhuận; cảnh báo dòng lỗi trước khi lưu.</div></div></div>
-        </div>
-      </div>
-    </div>
-    </sc-if>
-
-    <!-- ===== ABOUT / ARCHITECTURE ===== -->
-    <sc-if value="{{ isAbout }}" hint-placeholder-val="{{ false }}">
-    <header style="flex-shrink:0;background:#fff;border-bottom:1px solid #E2E5EB;padding:16px 28px;">
-      <div style="font-size:11.5px;color:#94A3B8;font-weight:500;margin-bottom:5px;">Tài liệu thiết kế</div>
-      <div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.1;white-space:nowrap;">Kiến trúc &amp; quyết định combine Truck × Car</div>
-    </header>
-    <div style="flex:1;overflow:auto;padding:24px 28px;display:flex;flex-direction:column;gap:18px;max-width:1000px;">
-      <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:22px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
-        <div style="font-size:15px;font-weight:700;margin-bottom:6px;">Quyết định: 2 phòng ban tách biệt, chung design system</div>
-        <p style="font-size:14px;color:#475569;line-height:1.65;">Phòng <b>Xe con (CCMS)</b> và phòng <b>Xe tải (Truck Manager)</b> là hai đơn vị nghiệp vụ khác nhau, dữ liệu không trộn lẫn. Hai phân hệ dùng chung <b>design system Swiss Modernism 2.0</b> (màu, font Pretendard, component Card/Badge/Table) để đồng nhất thương hiệu, nhưng có <b>điều hướng &amp; mô hình dữ liệu riêng</b>. Bộ chọn phòng ban ở góc trên thanh bên cho phép chuyển ngữ cảnh mà không trộn quyền hay số liệu.</p>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
-          <div style="display:flex;align-items:center;gap:9px;margin-bottom:12px;"><span style="font-size:20px;">🚗</span><span style="font-size:15px;font-weight:700;">Phòng Xe con (CCMS)</span></div>
-          <div style="font-size:13.5px;color:#475569;line-height:1.7;">• Mục đích: điều xe cho Manager/Director<br>• Chuyến = <b>đặt xe</b>, có vòng đời xác nhận<br>• Trọng tâm: kiểm soát &amp; phê duyệt chi phí<br>• Không có doanh thu / lợi nhuận<br>• Vai trò: Admin · Manager · Driver</div>
-        </div>
-        <div style="background:#fff;border:2px solid var(--accent,#0369A1);border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
-          <div style="display:flex;align-items:center;gap:9px;margin-bottom:12px;"><span style="font-size:20px;">🚚</span><span style="font-size:15px;font-weight:700;">Phòng Xe tải (Truck Manager)</span></div>
-          <div style="font-size:13.5px;color:#475569;line-height:1.7;">• Mục đích: vận chuyển hàng cho khách<br>• Chuyến = <b>nhật ký giao hàng</b> có doanh thu<br>• Trọng tâm: <b>lợi nhuận từng chuyến &amp; P&amp;L tháng</b><br>• Có BOL/CDF, định mức nhiên liệu, import Excel<br>• Vai trò: Admin · Điều phối · Tài xế</div>
-        </div>
-      </div>
-      <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:22px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
-        <div style="font-size:15px;font-weight:700;margin-bottom:12px;">Logic kế thừa &amp; bổ sung</div>
-        <div style="display:flex;flex-direction:column;gap:10px;font-size:13.5px;color:#475569;line-height:1.6;">
-          <div style="display:flex;gap:10px;"><span style="font-size:12px;font-weight:700;color:#15A36E;background:#E3F7EE;padding:3px 9px;border-radius:6px;height:fit-content;white-space:nowrap;">Từ v1</span><span>Mô hình <b>Dispatch + Trip Log (운행일지) + Maintenance</b>: lộ trình, odometer, nhiên liệu, cầu đường, sự cố.</span></div>
-          <div style="display:flex;gap:10px;"><span style="font-size:12px;font-weight:700;color:var(--accent,#0369A1);background:var(--accent-soft,#E0F2FE);padding:3px 9px;border-radius:6px;height:fit-content;white-space:nowrap;">Từ v2</span><span>Design system, app shell, component, cảnh báo bảo dưỡng theo km, xuất Excel/PDF.</span></div>
-          <div style="display:flex;gap:10px;"><span style="font-size:12px;font-weight:700;color:#B45309;background:#FEF3DC;padding:3px 9px;border-radius:6px;height:fit-content;white-space:nowrap;">Mới cho Truck</span><span><b>Doanh thu &amp; lợi nhuận/chuyến</b>, số BOL/CDF, khách hàng, bảng <b>P&amp;L cố định theo xe/tháng</b> (lương, khấu hao), và <b>import Excel</b>.</span></div>
         </div>
       </div>
     </div>
