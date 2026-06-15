@@ -759,84 +759,153 @@
     }
 
     // Check if locale switcher already exists
-    if (sidebar.querySelector('.locale-switcher-wrapper')) {
+    if (document.getElementById('locale-switcher-wrapper')) {
       console.log('[i18n] Locale switcher already exists, skipping');
       return;
     }
 
-    // Find insertion point: before user section (last child of sidebar)
-    // Structure: aside > (brand div) > (dept div) > nav > (user div)
-    let insertBefore = sidebar.lastElementChild;
-
-    console.log('[i18n] sidebar.lastElementChild:', insertBefore?.tagName, insertBefore?.className);
-
-    // Verify it's the user section (should have border-top and contain avatar)
-    if (insertBefore) {
-      const hasAvatar = insertBefore.querySelector('div[style*="border-radius:50%"]') ||
-                        insertBefore.textContent?.includes('Quản trị viên');
-      console.log('[i18n] Last element has avatar/user info:', hasAvatar);
-    }
-
-    console.log('[i18n] Creating locale switcher, insertBefore:', insertBefore?.tagName || 'null');
-
     const current = LOCALES.find(l => l.id === currentLang) || LOCALES[0];
 
+    // Create wrapper with INLINE STYLES to ensure visibility
     const wrapper = document.createElement('div');
-    wrapper.className = 'locale-switcher-wrapper';
-    wrapper.innerHTML = `
-      <div class="locale-backdrop"></div>
-      <button type="button" class="locale-trigger" data-open="false">
-        <span class="locale-trigger-icon">${ICONS.languages}</span>
-        <span class="locale-trigger-label">${current.label}</span>
-        <span class="locale-trigger-short">${current.short}</span>
-        <span class="locale-trigger-chevron">${ICONS.chevronUpDown}</span>
-      </button>
-      <div class="locale-dropdown">
-        <div class="locale-dropdown-label">Language</div>
-        <div class="locale-dropdown-sep"></div>
-        ${LOCALES.map(l => `
-          <button type="button" class="locale-item ${l.id === currentLang ? 'active' : ''}" data-lang="${l.id}">
-            <span class="locale-item-badge">${l.short}</span>
-            <span class="locale-item-label">${l.label}</span>
-            <span class="locale-item-check">${ICONS.check}</span>
-          </button>
-        `).join('')}
-      </div>
+    wrapper.id = 'locale-switcher-wrapper';
+    wrapper.style.cssText = `
+      position: relative;
+      border-top: 1px solid #E2E5EB;
+      padding: 8px;
+      background: #fff;
     `;
 
-    if (insertBefore) {
-      sidebar.insertBefore(wrapper, insertBefore);
+    // Create trigger button
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.id = 'locale-trigger';
+    trigger.style.cssText = `
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 8px;
+      height: 36px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      cursor: pointer;
+      font: 500 14px/1 'Pretendard Variable', 'Be Vietnam Pro', system-ui, sans-serif;
+      color: #64748B;
+      text-align: left;
+    `;
+    trigger.innerHTML = `
+      <span style="width:16px;height:16px;flex-shrink:0;">${ICONS.languages}</span>
+      <span id="locale-trigger-label" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${current.label}</span>
+      <span id="locale-trigger-short" style="font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:0.05em;color:#94A3B8;">${current.short}</span>
+      <span style="width:14px;height:14px;color:#94A3B8;">${ICONS.chevronUpDown}</span>
+    `;
+
+    // Create dropdown
+    const dropdown = document.createElement('div');
+    dropdown.id = 'locale-dropdown';
+    dropdown.style.cssText = `
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 8px;
+      right: 8px;
+      background: #fff;
+      border: 1px solid #E2E5EB;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(15,23,42,0.14);
+      padding: 4px;
+      z-index: 100;
+      display: none;
+    `;
+
+    dropdown.innerHTML = `
+      <div style="padding:8px 10px 6px;font-size:12px;font-weight:600;color:#94A3B8;">Language</div>
+      <div style="height:1px;background:#E2E5EB;margin:4px 0;"></div>
+      ${LOCALES.map(l => `
+        <button type="button" class="locale-item" data-lang="${l.id}" style="
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+          padding: 10px;
+          border: none;
+          border-radius: 6px;
+          background: ${l.id === currentLang ? '#E0F2FE' : 'transparent'};
+          cursor: pointer;
+          font: 500 14px/1 inherit;
+          color: ${l.id === currentLang ? '#0369A1' : '#0F172A'};
+          text-align: left;
+        ">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:0.05em;width:28px;text-align:center;background:${l.id === currentLang ? '#0369A1' : '#F1F3F8'};color:${l.id === currentLang ? '#fff' : '#64748B'};border-radius:4px;padding:3px 6px;">${l.short}</span>
+          <span style="flex:1;">${l.label}</span>
+          <span style="width:14px;height:14px;opacity:${l.id === currentLang ? '1' : '0'};">${ICONS.check}</span>
+        </button>
+      `).join('')}
+    `;
+
+    wrapper.appendChild(trigger);
+    wrapper.appendChild(dropdown);
+
+    // Insert before user section (last child)
+    const userSection = sidebar.lastElementChild;
+    if (userSection) {
+      sidebar.insertBefore(wrapper, userSection);
+      console.log('[i18n] Locale switcher inserted before user section');
     } else {
       sidebar.appendChild(wrapper);
+      console.log('[i18n] Locale switcher appended to sidebar');
     }
 
-    const trigger = wrapper.querySelector('.locale-trigger');
-    const dropdown = wrapper.querySelector('.locale-dropdown');
-    const backdrop = wrapper.querySelector('.locale-backdrop');
-
-    trigger.addEventListener('click', () => {
-      dropdownOpen = !dropdownOpen;
-      trigger.dataset.open = dropdownOpen;
-      dropdown.classList.toggle('open', dropdownOpen);
-      backdrop.classList.toggle('open', dropdownOpen);
+    // Event: toggle dropdown
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = dropdown.style.display === 'block';
+      dropdown.style.display = isOpen ? 'none' : 'block';
+      trigger.style.background = isOpen ? 'transparent' : '#F1F3F8';
     });
 
-    backdrop.addEventListener('click', () => {
-      dropdownOpen = false;
-      trigger.dataset.open = 'false';
-      dropdown.classList.remove('open');
-      backdrop.classList.remove('open');
+    // Event: close dropdown on outside click
+    document.addEventListener('click', (e) => {
+      if (!wrapper.contains(e.target)) {
+        dropdown.style.display = 'none';
+        trigger.style.background = 'transparent';
+      }
     });
 
-    wrapper.querySelectorAll('.locale-item').forEach(item => {
+    // Event: select language
+    dropdown.querySelectorAll('.locale-item').forEach(item => {
       item.addEventListener('click', () => {
-        setLanguage(item.dataset.lang);
-        dropdownOpen = false;
-        trigger.dataset.open = 'false';
-        dropdown.classList.remove('open');
-        backdrop.classList.remove('open');
+        const lang = item.dataset.lang;
+        setLanguage(lang);
+        dropdown.style.display = 'none';
+        trigger.style.background = 'transparent';
+
+        // Update dropdown item styles
+        dropdown.querySelectorAll('.locale-item').forEach(btn => {
+          const isActive = btn.dataset.lang === lang;
+          btn.style.background = isActive ? '#E0F2FE' : 'transparent';
+          btn.style.color = isActive ? '#0369A1' : '#0F172A';
+          btn.querySelector('span:first-child').style.background = isActive ? '#0369A1' : '#F1F3F8';
+          btn.querySelector('span:first-child').style.color = isActive ? '#fff' : '#64748B';
+          btn.querySelector('span:last-child').style.opacity = isActive ? '1' : '0';
+        });
       });
     });
+
+    // Hover effect
+    trigger.addEventListener('mouseenter', () => {
+      if (dropdown.style.display !== 'block') {
+        trigger.style.background = '#F1F3F8';
+      }
+    });
+    trigger.addEventListener('mouseleave', () => {
+      if (dropdown.style.display !== 'block') {
+        trigger.style.background = 'transparent';
+      }
+    });
+
+    console.log('[i18n] Locale switcher created successfully');
   }
 
   // ============ MOBILE HEADER ============
@@ -940,17 +1009,15 @@
 
     const current = LOCALES.find(l => l.id === lang);
 
-    // Update desktop trigger
-    const trigger = document.querySelector('.locale-trigger');
-    if (trigger && current) {
-      trigger.querySelector('.locale-trigger-label').textContent = current.label;
-      trigger.querySelector('.locale-trigger-short').textContent = current.short;
+    // Update desktop trigger label
+    const triggerLabel = document.getElementById('locale-trigger-label');
+    const triggerShort = document.getElementById('locale-trigger-short');
+    if (triggerLabel && current) {
+      triggerLabel.textContent = current.label;
     }
-
-    // Update desktop dropdown items
-    document.querySelectorAll('.locale-switcher-wrapper .locale-item').forEach(item => {
-      item.classList.toggle('active', item.dataset.lang === lang);
-    });
+    if (triggerShort && current) {
+      triggerShort.textContent = current.short;
+    }
 
     // Update mobile lang button
     const mobileLangShort = document.querySelector('.mobile-lang-short');
