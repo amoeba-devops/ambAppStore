@@ -749,29 +749,35 @@
   function createLocaleSwitcher() {
     if (!sidebar) return;
 
-    // Find the user section (last direct child div of sidebar with border-top)
+    // Find insertion point: after nav, before doc link/user sections
     // Structure: aside > (brand div) > (dept div) > nav > (doc link div) > (user div)
-    const children = Array.from(sidebar.children);
-    let userSection = null;
+    const navEl = sidebar.querySelector('nav');
+    let insertBefore = null;
 
-    // Find the last div with border-top in its style attribute (user section)
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      const styleAttr = child.getAttribute('style') || '';
-      if (child.tagName === 'DIV' && styleAttr.includes('border-top')) {
-        userSection = child;
-        break;
+    if (navEl && navEl.nextElementSibling) {
+      // Insert after nav (before doc link)
+      insertBefore = navEl.nextElementSibling;
+      console.log('[i18n] Found nav, will insert after it');
+    } else {
+      // Fallback: find last div with border-top (user section)
+      const children = Array.from(sidebar.children);
+      for (let i = children.length - 1; i >= 0; i--) {
+        const child = children[i];
+        const styleAttr = child.getAttribute('style') || '';
+        if (child.tagName === 'DIV' && styleAttr.includes('border-top')) {
+          insertBefore = child;
+          break;
+        }
       }
     }
 
-    if (!userSection) {
-      // Fallback: just use the last child
-      userSection = sidebar.lastElementChild;
+    if (!insertBefore) {
+      // Last fallback: append to sidebar
+      insertBefore = null;
+      console.log('[i18n] No insertion point found, will append to sidebar');
     }
 
-    if (!userSection) return;
-
-    console.log('[i18n] Creating locale switcher, inserting before:', userSection);
+    console.log('[i18n] Creating locale switcher, insertBefore:', insertBefore);
 
     const current = LOCALES.find(l => l.id === currentLang) || LOCALES[0];
 
@@ -798,7 +804,11 @@
       </div>
     `;
 
-    sidebar.insertBefore(wrapper, userSection);
+    if (insertBefore) {
+      sidebar.insertBefore(wrapper, insertBefore);
+    } else {
+      sidebar.appendChild(wrapper);
+    }
 
     const trigger = wrapper.querySelector('.locale-trigger');
     const dropdown = wrapper.querySelector('.locale-dropdown');
