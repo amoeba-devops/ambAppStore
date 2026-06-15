@@ -2,6 +2,8 @@
  * Mobile Responsive & i18n Enhancement for Car-Truck Manager Prototype
  * Design matches car-manager-v2 (bottom tab nav, dropdown language switcher)
  * Supports: Vietnamese (vi), English (en), Korean (ko)
+ *
+ * FULL TRANSLATION SUPPORT - All UI text is translated
  */
 
 (function() {
@@ -25,10 +27,134 @@
 
   // ============ LOCALES ============
   const LOCALES = [
-    { id: 'vi', label: 'Tieng Viet', short: 'VI' },
+    { id: 'vi', label: 'Tiếng Việt', short: 'VI' },
     { id: 'en', label: 'English',    short: 'EN' },
     { id: 'ko', label: '한국어',      short: 'KO' },
   ];
+
+  // ============ FULL TRANSLATIONS ============
+  const T = {
+    // App name
+    'Amoeba Fleet': { en: 'Amoeba Fleet', ko: 'Amoeba Fleet', vi: 'Amoeba Fleet' },
+
+    // Department switcher
+    'Phòng ban': { en: 'Department', ko: '부서', vi: 'Phòng ban' },
+    'Xe con': { en: 'Car', ko: '승용차', vi: 'Xe con' },
+    'Xe tải': { en: 'Truck', ko: '트럭', vi: 'Xe tải' },
+
+    // Nav groups
+    'Vận hành': { en: 'Operations', ko: '운영', vi: 'Vận hành' },
+    'Tài chính': { en: 'Finance', ko: '재무', vi: 'Tài chính' },
+    'Dữ liệu': { en: 'Data', ko: '데이터', vi: 'Dữ liệu' },
+    'Không gian làm việc': { en: 'Workspace', ko: '작업 공간', vi: 'Không gian làm việc' },
+    'Quản trị': { en: 'Admin', ko: '관리', vi: 'Quản trị' },
+
+    // Nav items - Truck
+    'Bảng điều khiển': { en: 'Dashboard', ko: '대시보드', vi: 'Bảng điều khiển' },
+    'Nhật ký chuyến': { en: 'Trip Log', ko: '운행 일지', vi: 'Nhật ký chuyến' },
+    'Đội xe tải': { en: 'Truck Fleet', ko: '트럭 대대', vi: 'Đội xe tải' },
+    'Tài xế': { en: 'Drivers', ko: '운전사', vi: 'Tài xế' },
+    'Chi phí & Lợi nhuận': { en: 'Cost & Profit', ko: '비용 & 수익', vi: 'Chi phí & Lợi nhuận' },
+    'Báo cáo': { en: 'Reports', ko: '보고서', vi: 'Báo cáo' },
+    'Import Excel': { en: 'Import Excel', ko: 'Excel 가져오기', vi: 'Import Excel' },
+    'Kiến trúc & quyết định': { en: 'Architecture & Decisions', ko: '아키텍처 & 결정', vi: 'Kiến trúc & quyết định' },
+
+    // Nav items - Car
+    'Chuyến đi': { en: 'Trips', ko: '운행', vi: 'Chuyến đi' },
+    'Phương tiện': { en: 'Vehicles', ko: '차량', vi: 'Phương tiện' },
+    'Chi phí': { en: 'Expenses', ko: '비용', vi: 'Chi phí' },
+    'Người dùng': { en: 'Users', ko: '사용자', vi: 'Người dùng' },
+    'Cài đặt': { en: 'Settings', ko: '설정', vi: 'Cài đặt' },
+    'Nhật ký kiểm toán': { en: 'Audit Log', ko: '감사 로그', vi: 'Nhật ký kiểm toán' },
+
+    // User section
+    'Quản trị viên': { en: 'Administrator', ko: '관리자', vi: 'Quản trị viên' },
+
+    // Page headers - Car
+    'Công ty Amoeba · Điều xe công ty': { en: 'Amoeba Corp · Company Fleet', ko: 'Amoeba 회사 · 회사 차량', vi: 'Công ty Amoeba · Điều xe công ty' },
+    'Điều xe · Chuyến đi': { en: 'Fleet · Trips', ko: '차량 · 운행', vi: 'Điều xe · Chuyến đi' },
+    'Điều xe · Đội xe': { en: 'Fleet · Vehicles', ko: '차량 · 차량대', vi: 'Điều xe · Đội xe' },
+    'Điều xe · Nhân sự': { en: 'Fleet · Personnel', ko: '차량 · 인원', vi: 'Điều xe · Nhân sự' },
+    'Kiểm soát · Chi phí & phê duyệt': { en: 'Control · Expenses & Approval', ko: '관리 · 비용 & 승인', vi: 'Kiểm soát · Chi phí & phê duyệt' },
+    'Hệ thống · Phân quyền': { en: 'System · Permissions', ko: '시스템 · 권한', vi: 'Hệ thống · Phân quyền' },
+    'Hệ thống · Cấu hình': { en: 'System · Configuration', ko: '시스템 · 설정', vi: 'Hệ thống · Cấu hình' },
+    'Kiểm soát · Truy vết': { en: 'Control · Audit Trail', ko: '관리 · 감사 추적', vi: 'Kiểm soát · Truy vết' },
+
+    // Page titles
+    'Đội xe công ty': { en: 'Company Fleet', ko: '회사 차량', vi: 'Đội xe công ty' },
+    'Chi phí & duyệt': { en: 'Expenses & Approval', ko: '비용 & 승인', vi: 'Chi phí & duyệt' },
+    'Người dùng & quyền': { en: 'Users & Permissions', ko: '사용자 & 권한', vi: 'Người dùng & quyền' },
+    'Cài đặt duyệt tự động': { en: 'Auto-approval Settings', ko: '자동 승인 설정', vi: 'Cài đặt duyệt tự động' },
+    'Nhật ký hệ thống': { en: 'System Log', ko: '시스템 로그', vi: 'Nhật ký hệ thống' },
+
+    // Buttons
+    'Đặt xe': { en: 'Book Car', ko: '차량 예약', vi: 'Đặt xe' },
+    'Tạo chuyến': { en: 'New Trip', ko: '새 운행', vi: 'Tạo chuyến' },
+    'Thêm xe': { en: 'Add Vehicle', ko: '차량 추가', vi: 'Thêm xe' },
+    'Mời người dùng': { en: 'Invite User', ko: '사용자 초대', vi: 'Mời người dùng' },
+    'Duyệt': { en: 'Approve', ko: '승인', vi: 'Duyệt' },
+    'Từ chối': { en: 'Reject', ko: '거부', vi: 'Từ chối' },
+    'Quản lý xe': { en: 'Manage Vehicles', ko: '차량 관리', vi: 'Quản lý xe' },
+
+    // Table headers
+    'Thời gian': { en: 'Time', ko: '시간', vi: 'Thời gian' },
+    'Người đặt': { en: 'Booker', ko: '예약자', vi: 'Người đặt' },
+    'Lộ trình': { en: 'Route', ko: '경로', vi: 'Lộ trình' },
+    'Xe · Tài xế': { en: 'Vehicle · Driver', ko: '차량 · 운전사', vi: 'Xe · Tài xế' },
+    'Trạng thái': { en: 'Status', ko: '상태', vi: 'Trạng thái' },
+    'Xe phụ trách': { en: 'Assigned Vehicle', ko: '담당 차량', vi: 'Xe phụ trách' },
+    'Chuyến T10': { en: 'Oct Trips', ko: '10월 운행', vi: 'Chuyến T10' },
+    'Ngày': { en: 'Date', ko: '날짜', vi: 'Ngày' },
+    'Loại': { en: 'Type', ko: '유형', vi: 'Loại' },
+    'Xe · Người nhập': { en: 'Vehicle · Submitter', ko: '차량 · 제출자', vi: 'Xe · Người nhập' },
+    'Ghi chú': { en: 'Note', ko: '메모', vi: 'Ghi chú' },
+    'Số tiền': { en: 'Amount', ko: '금액', vi: 'Số tiền' },
+    'Trạng thái / Thao tác': { en: 'Status / Action', ko: '상태 / 작업', vi: 'Trạng thái / Thao tác' },
+    'Email': { en: 'Email', ko: '이메일', vi: 'Email' },
+    'Vai trò': { en: 'Role', ko: '역할', vi: 'Vai trò' },
+
+    // Dashboard widgets
+    'Sắp tới': { en: 'Upcoming', ko: '예정', vi: 'Sắp tới' },
+    'Tất cả chuyến đặt': { en: 'All Bookings', ko: '모든 예약', vi: 'Tất cả chuyến đặt' },
+    'Tình trạng đội xe': { en: 'Fleet Status', ko: '차량 현황', vi: 'Tình trạng đội xe' },
+    'Cảnh báo bảo dưỡng': { en: 'Maintenance Alerts', ko: '정비 알림', vi: 'Cảnh báo bảo dưỡng' },
+    'Doanh thu & lợi nhuận theo tháng': { en: 'Revenue & Profit by Month', ko: '월별 매출 & 수익', vi: 'Doanh thu & lợi nhuận theo tháng' },
+    'Cơ cấu chi phí': { en: 'Cost Structure', ko: '비용 구조', vi: 'Cơ cấu chi phí' },
+
+    // KPI labels
+    'Tổng doanh thu': { en: 'Total Revenue', ko: '총 매출', vi: 'Tổng doanh thu' },
+    'Tổng chi phí': { en: 'Total Cost', ko: '총 비용', vi: 'Tổng chi phí' },
+    'Lợi nhuận ròng': { en: 'Net Profit', ko: '순이익', vi: 'Lợi nhuận ròng' },
+    'Số chuyến trong tháng': { en: 'Trips This Month', ko: '이번 달 운행', vi: 'Số chuyến trong tháng' },
+
+    // Vehicle card labels
+    'Odo': { en: 'Odo', ko: '주행거리', vi: 'Odo' },
+    'Thay dầu': { en: 'Oil Change', ko: '오일 교환', vi: 'Thay dầu' },
+
+    // Status badges
+    'chờ': { en: 'pending', ko: '대기', vi: 'chờ' },
+    'duyệt': { en: 'approve', ko: '승인', vi: 'duyệt' },
+
+    // Fleet status
+    'Đang chạy': { en: 'Running', ko: '운행중', vi: 'Đang chạy' },
+    'Sẵn sàng': { en: 'Available', ko: '사용 가능', vi: 'Sẵn sàng' },
+    'Bảo dưỡng': { en: 'Maintenance', ko: '정비중', vi: 'Bảo dưỡng' },
+
+    // Settings page
+    'Ngưỡng tự động duyệt chi phí': { en: 'Auto-approval Thresholds', ko: '자동 승인 한도', vi: 'Ngưỡng tự động duyệt chi phí' },
+    'Quy tắc điều xe': { en: 'Fleet Rules', ko: '차량 규칙', vi: 'Quy tắc điều xe' },
+    'Bắt buộc tài xế xác nhận chuyến': { en: 'Require driver confirmation', ko: '운전사 확인 필요', vi: 'Bắt buộc tài xế xác nhận chuyến' },
+    'Cảnh báo trùng lịch xe': { en: 'Schedule conflict warning', ko: '일정 충돌 경고', vi: 'Cảnh báo trùng lịch xe' },
+    'Tự nhắc thay dầu theo km': { en: 'Auto oil change reminder', ko: '자동 오일 교환 알림', vi: 'Tự nhắc thay dầu theo km' },
+
+    // Misc
+    'mục chờ duyệt': { en: 'pending approval', ko: '승인 대기', vi: 'mục chờ duyệt' },
+    'tự động duyệt': { en: 'auto-approved', ko: '자동 승인', vi: 'tự động duyệt' },
+    'Luôn cần duyệt': { en: 'Always requires approval', ko: '항상 승인 필요', vi: 'Luôn cần duyệt' },
+
+    // Truck page headers
+    'Công ty Amoeba · Đội xe tải · 50E-32407': { en: 'Amoeba Corp · Truck Fleet · 50E-32407', ko: 'Amoeba 회사 · 트럭 대대 · 50E-32407', vi: 'Công ty Amoeba · Đội xe tải · 50E-32407' },
+  };
 
   // ============ CSS STYLES ============
   const styles = `
@@ -396,15 +522,16 @@
 
   // ============ NAV ITEMS ============
   const NAV_ITEMS = [
-    { key: 'dashboard', icon: 'dashboard', label: { vi: 'Tong quan', en: 'Dashboard', ko: '대시보드' } },
-    { key: 'trips', icon: 'trips', label: { vi: 'Chuyen', en: 'Trips', ko: '운행' } },
-    { key: 'vehicles', icon: 'vehicles', label: { vi: 'Phuong tien', en: 'Vehicles', ko: '차량' } },
-    { key: 'settings', icon: 'settings', label: { vi: 'Cai dat', en: 'Settings', ko: '설정' } },
+    { key: 'dashboard', icon: 'dashboard', label: { vi: 'Tổng quan', en: 'Dashboard', ko: '대시보드' } },
+    { key: 'trips', icon: 'trips', label: { vi: 'Chuyến', en: 'Trips', ko: '운행' } },
+    { key: 'vehicles', icon: 'vehicles', label: { vi: 'Phương tiện', en: 'Vehicles', ko: '차량' } },
+    { key: 'settings', icon: 'settings', label: { vi: 'Cài đặt', en: 'Settings', ko: '설정' } },
   ];
 
   // ============ STATE ============
   let currentLang = localStorage.getItem('app-lang') || 'vi';
   let dropdownOpen = false;
+  let originalTexts = new Map(); // Store original text for translation
 
   // ============ INIT ============
   function init() {
@@ -434,11 +561,86 @@
       main.classList.add('app-main');
     }
 
+    // Scan and store original Vietnamese texts
+    scanAndStoreTexts();
+
     // Create locale switcher in sidebar
     createLocaleSwitcher();
 
     // Create bottom tab nav for mobile
     createBottomTabNav();
+
+    // Apply stored language
+    if (currentLang !== 'vi') {
+      applyTranslations(currentLang);
+    }
+  }
+
+  // ============ TEXT SCANNING & TRANSLATION ============
+  function scanAndStoreTexts() {
+    // Get all text nodes that match our translation keys
+    const walker = document.createTreeWalker(
+      document.body,
+      NodeFilter.SHOW_TEXT,
+      null,
+      false
+    );
+
+    let node;
+    while (node = walker.nextNode()) {
+      const text = node.textContent.trim();
+      if (text && T[text]) {
+        // Store reference to this node with its original text
+        if (!originalTexts.has(text)) {
+          originalTexts.set(text, []);
+        }
+        originalTexts.get(text).push(node);
+      }
+    }
+
+    // Also find text in span elements (for buttons, etc)
+    document.querySelectorAll('span, button, div, th, td').forEach(el => {
+      // Get direct text content (not including children)
+      const directText = Array.from(el.childNodes)
+        .filter(n => n.nodeType === Node.TEXT_NODE)
+        .map(n => n.textContent.trim())
+        .join('');
+
+      if (directText && T[directText]) {
+        el.setAttribute('data-i18n', directText);
+      }
+
+      // Check innerText for simple elements
+      if (el.children.length === 0) {
+        const text = el.textContent.trim();
+        if (text && T[text]) {
+          el.setAttribute('data-i18n', text);
+        }
+      }
+    });
+  }
+
+  function applyTranslations(lang) {
+    // Translate text nodes
+    originalTexts.forEach((nodes, viText) => {
+      const translation = T[viText];
+      if (translation && translation[lang]) {
+        nodes.forEach(node => {
+          // Preserve whitespace
+          const leadingSpace = node.textContent.match(/^\s*/)[0];
+          const trailingSpace = node.textContent.match(/\s*$/)[0];
+          node.textContent = leadingSpace + translation[lang] + trailingSpace;
+        });
+      }
+    });
+
+    // Translate elements with data-i18n attribute
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (T[key] && T[key][lang]) {
+        el.textContent = T[key][lang];
+      }
+    });
   }
 
   // ============ LOCALE SWITCHER ============
@@ -537,7 +739,6 @@
         e.preventDefault();
         nav.querySelectorAll('.bottom-tab-link').forEach(l => l.classList.remove('active'));
         link.classList.add('active');
-        showToast(`Navigating to ${link.dataset.nav}...`);
       });
     });
   }
@@ -569,6 +770,9 @@
       }
     });
 
+    // Apply translations to all UI text
+    applyTranslations(lang);
+
     // Show notification
     showToast(`Language: ${current.label}`);
   }
@@ -594,7 +798,9 @@
   window.AppI18n = {
     setLanguage,
     getCurrentLang: () => currentLang,
+    getTranslation: (key, lang) => T[key]?.[lang || currentLang] || key,
     LOCALES,
+    T,
   };
 
   // Run
