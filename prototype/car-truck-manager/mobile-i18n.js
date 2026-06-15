@@ -576,6 +576,16 @@
     sidebar = document.querySelector('aside');
     mainEl = document.querySelector('main');
 
+    console.log('[i18n] setupUI - sidebar found:', !!sidebar);
+    console.log('[i18n] setupUI - mainEl found:', !!mainEl);
+    if (sidebar) {
+      console.log('[i18n] sidebar children count:', sidebar.children.length);
+      Array.from(sidebar.children).forEach((child, i) => {
+        const styleAttr = child.getAttribute('style') || '';
+        console.log(`[i18n] child ${i}: ${child.tagName}, has border-top: ${styleAttr.includes('border-top')}`);
+      });
+    }
+
     // Scan and store original Vietnamese texts
     scanAndStoreTexts();
 
@@ -739,8 +749,35 @@
   function createLocaleSwitcher() {
     if (!sidebar) return;
 
-    const userSection = sidebar.querySelector('div[style*="border-top"]:last-of-type');
-    if (!userSection) return;
+    // Find insertion point: after nav, before doc link/user sections
+    // Structure: aside > (brand div) > (dept div) > nav > (doc link div) > (user div)
+    const navEl = sidebar.querySelector('nav');
+    let insertBefore = null;
+
+    if (navEl && navEl.nextElementSibling) {
+      // Insert after nav (before doc link)
+      insertBefore = navEl.nextElementSibling;
+      console.log('[i18n] Found nav, will insert after it');
+    } else {
+      // Fallback: find last div with border-top (user section)
+      const children = Array.from(sidebar.children);
+      for (let i = children.length - 1; i >= 0; i--) {
+        const child = children[i];
+        const styleAttr = child.getAttribute('style') || '';
+        if (child.tagName === 'DIV' && styleAttr.includes('border-top')) {
+          insertBefore = child;
+          break;
+        }
+      }
+    }
+
+    if (!insertBefore) {
+      // Last fallback: append to sidebar
+      insertBefore = null;
+      console.log('[i18n] No insertion point found, will append to sidebar');
+    }
+
+    console.log('[i18n] Creating locale switcher, insertBefore:', insertBefore);
 
     const current = LOCALES.find(l => l.id === currentLang) || LOCALES[0];
 
@@ -767,7 +804,11 @@
       </div>
     `;
 
-    sidebar.insertBefore(wrapper, userSection);
+    if (insertBefore) {
+      sidebar.insertBefore(wrapper, insertBefore);
+    } else {
+      sidebar.appendChild(wrapper);
+    }
 
     const trigger = wrapper.querySelector('.locale-trigger');
     const dropdown = wrapper.querySelector('.locale-dropdown');
