@@ -570,13 +570,20 @@
     }
   }
 
-  function setupUI() {
+  function setupUI(retryCount = 0) {
     // Get DOM references
     sidebar = document.querySelector('aside');
     mainEl = document.querySelector('main');
 
-    console.log('[i18n] setupUI - sidebar found:', !!sidebar);
-    console.log('[i18n] setupUI - mainEl found:', !!mainEl);
+    console.log('[i18n] setupUI attempt', retryCount + 1, '- sidebar found:', !!sidebar, '- mainEl found:', !!mainEl);
+
+    // Retry if sidebar not found yet (custom component may render async)
+    if (!sidebar && retryCount < 10) {
+      console.log('[i18n] Sidebar not found, retrying in 100ms...');
+      setTimeout(() => setupUI(retryCount + 1), 100);
+      return;
+    }
+
     if (sidebar) {
       console.log('[i18n] sidebar children count:', sidebar.children.length);
       Array.from(sidebar.children).forEach((child, i) => {
@@ -746,37 +753,31 @@
 
   // ============ LOCALE SWITCHER (Desktop) ============
   function createLocaleSwitcher() {
-    if (!sidebar) return;
-
-    // Find insertion point: after nav, before doc link/user sections
-    // Structure: aside > (brand div) > (dept div) > nav > (doc link div) > (user div)
-    const navEl = sidebar.querySelector('nav');
-    let insertBefore = null;
-
-    if (navEl && navEl.nextElementSibling) {
-      // Insert after nav (before doc link)
-      insertBefore = navEl.nextElementSibling;
-      console.log('[i18n] Found nav, will insert after it');
-    } else {
-      // Fallback: find last div with border-top (user section)
-      const children = Array.from(sidebar.children);
-      for (let i = children.length - 1; i >= 0; i--) {
-        const child = children[i];
-        const styleAttr = child.getAttribute('style') || '';
-        if (child.tagName === 'DIV' && styleAttr.includes('border-top')) {
-          insertBefore = child;
-          break;
-        }
-      }
+    if (!sidebar) {
+      console.log('[i18n] createLocaleSwitcher: sidebar not found, skipping');
+      return;
     }
 
-    if (!insertBefore) {
-      // Last fallback: append to sidebar
-      insertBefore = null;
-      console.log('[i18n] No insertion point found, will append to sidebar');
+    // Check if locale switcher already exists
+    if (sidebar.querySelector('.locale-switcher-wrapper')) {
+      console.log('[i18n] Locale switcher already exists, skipping');
+      return;
     }
 
-    console.log('[i18n] Creating locale switcher, insertBefore:', insertBefore);
+    // Find insertion point: before user section (last child of sidebar)
+    // Structure: aside > (brand div) > (dept div) > nav > (user div)
+    let insertBefore = sidebar.lastElementChild;
+
+    console.log('[i18n] sidebar.lastElementChild:', insertBefore?.tagName, insertBefore?.className);
+
+    // Verify it's the user section (should have border-top and contain avatar)
+    if (insertBefore) {
+      const hasAvatar = insertBefore.querySelector('div[style*="border-radius:50%"]') ||
+                        insertBefore.textContent?.includes('Quản trị viên');
+      console.log('[i18n] Last element has avatar/user info:', hasAvatar);
+    }
+
+    console.log('[i18n] Creating locale switcher, insertBefore:', insertBefore?.tagName || 'null');
 
     const current = LOCALES.find(l => l.id === currentLang) || LOCALES[0];
 
