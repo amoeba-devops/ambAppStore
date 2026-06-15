@@ -1,495 +1,420 @@
 /**
  * Mobile Responsive & i18n Enhancement for Car-Truck Manager Prototype
+ * Design matches car-manager-v2 (bottom tab nav, dropdown language switcher)
  * Supports: Vietnamese (vi), English (en), Korean (ko)
  */
 
 (function() {
   'use strict';
 
-  // ============ TRANSLATIONS ============
-  const translations = {
-    vi: {
-      // Sidebar
-      'dept.label': 'Phong ban',
-      'dept.car': 'Xe con',
-      'dept.truck': 'Xe tai',
-      // Truck Nav
-      'nav.dashboard': 'Bang dieu khien',
-      'nav.trips': 'Nhat ky chuyen',
-      'nav.trucks': 'Doi xe tai',
-      'nav.drivers': 'Tai xe',
-      'nav.monthly': 'Chi phi & Loi nhuan',
-      'nav.reports': 'Bao cao',
-      'nav.import': 'Import Excel',
-      'nav.about': 'Kien truc & quyet dinh',
-      'nav.operations': 'Van hanh',
-      'nav.finance': 'Tai chinh',
-      'nav.data': 'Du lieu',
-      // Car Nav
-      'car.workspace': 'Khong gian lam viec',
-      'car.admin': 'Quan tri',
-      'car.trips': 'Chuyen di',
-      'car.vehicles': 'Phuong tien',
-      'car.expenses': 'Chi phi',
-      'car.users': 'Nguoi dung',
-      'car.settings': 'Cai dat',
-      'car.audit': 'Nhat ky kiem toan',
-      // Headers
-      'header.dashboard': 'Bang dieu khien',
-      'header.trips': 'Chuyen di',
-      'header.fleet': 'Doi xe cong ty',
-      'header.drivers': 'Tai xe',
-      'header.expenses': 'Chi phi & duyet',
-      'header.users': 'Nguoi dung & quyen',
-      'header.settings': 'Cai dat duyet tu dong',
-      'header.auditLog': 'Nhat ky he thong',
-      // Buttons
-      'btn.newTrip': 'Tao chuyen',
-      'btn.bookCar': 'Dat xe',
-      'btn.addVehicle': 'Them xe',
-      'btn.inviteUser': 'Moi nguoi dung',
-      'btn.approve': 'Duyet',
-      'btn.reject': 'Tu choi',
-      // KPI
-      'kpi.revenue': 'Tong doanh thu',
-      'kpi.cost': 'Tong chi phi',
-      'kpi.profit': 'Loi nhuan rong',
-      'kpi.trips': 'So chuyen trong thang',
-      // Table Headers
-      'th.time': 'Thoi gian',
-      'th.booker': 'Nguoi dat',
-      'th.route': 'Lo trinh',
-      'th.vehicleDriver': 'Xe · Tai xe',
-      'th.status': 'Trang thai',
-      'th.driver': 'Tai xe',
-      'th.vehicle': 'Xe phu trach',
-      'th.tripsMonth': 'Chuyen T10',
-      'th.date': 'Ngay',
-      'th.type': 'Loai',
-      'th.note': 'Ghi chu',
-      'th.amount': 'So tien',
-      'th.action': 'Trang thai / Thao tac',
-      'th.user': 'Nguoi dung',
-      'th.email': 'Email',
-      'th.role': 'Vai tro',
-      // Status
-      'status.pending': 'Cho',
-      'status.confirmed': 'Da xac nhan',
-      'status.inProgress': 'Dang chay',
-      'status.completed': 'Hoan thanh',
-      'status.cancelled': 'Da huy',
-      'status.rejected': 'Tu choi',
-      'status.available': 'San sang',
-      'status.maintenance': 'Bao duong',
-      'status.running': 'Dang chay',
-      'status.approved': 'Da duyet',
-      'status.active': 'Hoat dong',
-      // Misc
-      'misc.admin': 'Quan tri vien',
-      'misc.pending': 'cho',
-      'misc.approve': 'duyet',
-      'misc.manageVehicles': 'Quan ly xe',
-      'misc.upcoming': 'Sap toi',
-      'misc.vehicles': 'Phuong tien',
-      'misc.fleetStatus': 'Tinh trang doi xe',
-      'misc.maintenanceAlerts': 'Canh bao bao duong',
-      'misc.revenueProfit': 'Doanh thu & loi nhuan theo thang',
-      'misc.costStructure': 'Co cau chi phi',
-      'misc.odo': 'Odo',
-      'misc.oilChange': 'Thay dau',
-      'misc.color': 'Mau',
-      'misc.year': 'Nam',
-      'misc.driver': 'Tai xe',
-      // Language
-      'lang.vi': 'Tieng Viet',
-      'lang.en': 'English',
-      'lang.ko': '한국어'
-    },
-    en: {
-      // Sidebar
-      'dept.label': 'Department',
-      'dept.car': 'Car',
-      'dept.truck': 'Truck',
-      // Truck Nav
-      'nav.dashboard': 'Dashboard',
-      'nav.trips': 'Trip Log',
-      'nav.trucks': 'Truck Fleet',
-      'nav.drivers': 'Drivers',
-      'nav.monthly': 'Cost & Profit',
-      'nav.reports': 'Reports',
-      'nav.import': 'Import Excel',
-      'nav.about': 'Architecture & Decisions',
-      'nav.operations': 'Operations',
-      'nav.finance': 'Finance',
-      'nav.data': 'Data',
-      // Car Nav
-      'car.workspace': 'Workspace',
-      'car.admin': 'Administration',
-      'car.trips': 'Trips',
-      'car.vehicles': 'Vehicles',
-      'car.expenses': 'Expenses',
-      'car.users': 'Users',
-      'car.settings': 'Settings',
-      'car.audit': 'Audit Log',
-      // Headers
-      'header.dashboard': 'Dashboard',
-      'header.trips': 'Trips',
-      'header.fleet': 'Company Fleet',
-      'header.drivers': 'Drivers',
-      'header.expenses': 'Expenses & Approval',
-      'header.users': 'Users & Permissions',
-      'header.settings': 'Auto-approval Settings',
-      'header.auditLog': 'System Log',
-      // Buttons
-      'btn.newTrip': 'New Trip',
-      'btn.bookCar': 'Book Car',
-      'btn.addVehicle': 'Add Vehicle',
-      'btn.inviteUser': 'Invite User',
-      'btn.approve': 'Approve',
-      'btn.reject': 'Reject',
-      // KPI
-      'kpi.revenue': 'Total Revenue',
-      'kpi.cost': 'Total Cost',
-      'kpi.profit': 'Net Profit',
-      'kpi.trips': 'Trips This Month',
-      // Table Headers
-      'th.time': 'Time',
-      'th.booker': 'Booker',
-      'th.route': 'Route',
-      'th.vehicleDriver': 'Vehicle · Driver',
-      'th.status': 'Status',
-      'th.driver': 'Driver',
-      'th.vehicle': 'Assigned Vehicle',
-      'th.tripsMonth': 'Trips Oct',
-      'th.date': 'Date',
-      'th.type': 'Type',
-      'th.note': 'Note',
-      'th.amount': 'Amount',
-      'th.action': 'Status / Action',
-      'th.user': 'User',
-      'th.email': 'Email',
-      'th.role': 'Role',
-      // Status
-      'status.pending': 'Pending',
-      'status.confirmed': 'Confirmed',
-      'status.inProgress': 'In Progress',
-      'status.completed': 'Completed',
-      'status.cancelled': 'Cancelled',
-      'status.rejected': 'Rejected',
-      'status.available': 'Available',
-      'status.maintenance': 'Maintenance',
-      'status.running': 'Running',
-      'status.approved': 'Approved',
-      'status.active': 'Active',
-      // Misc
-      'misc.admin': 'Administrator',
-      'misc.pending': 'pending',
-      'misc.approve': 'approve',
-      'misc.manageVehicles': 'Manage Vehicles',
-      'misc.upcoming': 'Upcoming',
-      'misc.vehicles': 'Vehicles',
-      'misc.fleetStatus': 'Fleet Status',
-      'misc.maintenanceAlerts': 'Maintenance Alerts',
-      'misc.revenueProfit': 'Revenue & Profit by Month',
-      'misc.costStructure': 'Cost Structure',
-      'misc.odo': 'Odo',
-      'misc.oilChange': 'Oil Change',
-      'misc.color': 'Color',
-      'misc.year': 'Year',
-      'misc.driver': 'Driver',
-      // Language
-      'lang.vi': 'Tieng Viet',
-      'lang.en': 'English',
-      'lang.ko': '한국어'
-    },
-    ko: {
-      // Sidebar
-      'dept.label': '부서',
-      'dept.car': '승용차',
-      'dept.truck': '트럭',
-      // Truck Nav
-      'nav.dashboard': '대시보드',
-      'nav.trips': '운행 일지',
-      'nav.trucks': '트럭 대대',
-      'nav.drivers': '운전사',
-      'nav.monthly': '비용 & 수익',
-      'nav.reports': '보고서',
-      'nav.import': 'Excel 가져오기',
-      'nav.about': '아키텍처 & 결정',
-      'nav.operations': '운영',
-      'nav.finance': '재무',
-      'nav.data': '데이터',
-      // Car Nav
-      'car.workspace': '작업 공간',
-      'car.admin': '관리',
-      'car.trips': '운행',
-      'car.vehicles': '차량',
-      'car.expenses': '비용',
-      'car.users': '사용자',
-      'car.settings': '설정',
-      'car.audit': '감사 로그',
-      // Headers
-      'header.dashboard': '대시보드',
-      'header.trips': '운행',
-      'header.fleet': '회사 차량',
-      'header.drivers': '운전사',
-      'header.expenses': '비용 & 승인',
-      'header.users': '사용자 & 권한',
-      'header.settings': '자동 승인 설정',
-      'header.auditLog': '시스템 로그',
-      // Buttons
-      'btn.newTrip': '새 운행',
-      'btn.bookCar': '차량 예약',
-      'btn.addVehicle': '차량 추가',
-      'btn.inviteUser': '사용자 초대',
-      'btn.approve': '승인',
-      'btn.reject': '거부',
-      // KPI
-      'kpi.revenue': '총 매출',
-      'kpi.cost': '총 비용',
-      'kpi.profit': '순이익',
-      'kpi.trips': '이번 달 운행',
-      // Table Headers
-      'th.time': '시간',
-      'th.booker': '예약자',
-      'th.route': '경로',
-      'th.vehicleDriver': '차량 · 운전사',
-      'th.status': '상태',
-      'th.driver': '운전사',
-      'th.vehicle': '담당 차량',
-      'th.tripsMonth': '10월 운행',
-      'th.date': '날짜',
-      'th.type': '유형',
-      'th.note': '메모',
-      'th.amount': '금액',
-      'th.action': '상태 / 작업',
-      'th.user': '사용자',
-      'th.email': '이메일',
-      'th.role': '역할',
-      // Status
-      'status.pending': '대기중',
-      'status.confirmed': '확인됨',
-      'status.inProgress': '진행중',
-      'status.completed': '완료',
-      'status.cancelled': '취소',
-      'status.rejected': '거부',
-      'status.available': '사용 가능',
-      'status.maintenance': '정비중',
-      'status.running': '운행중',
-      'status.approved': '승인됨',
-      'status.active': '활성',
-      // Misc
-      'misc.admin': '관리자',
-      'misc.pending': '대기',
-      'misc.approve': '승인',
-      'misc.manageVehicles': '차량 관리',
-      'misc.upcoming': '예정',
-      'misc.vehicles': '차량',
-      'misc.fleetStatus': '차량 현황',
-      'misc.maintenanceAlerts': '정비 알림',
-      'misc.revenueProfit': '월별 매출 & 수익',
-      'misc.costStructure': '비용 구조',
-      'misc.odo': '주행거리',
-      'misc.oilChange': '오일 교환',
-      'misc.color': '색상',
-      'misc.year': '연식',
-      'misc.driver': '운전사',
-      // Language
-      'lang.vi': 'Tieng Viet',
-      'lang.en': 'English',
-      'lang.ko': '한국어'
-    }
+  // ============ DESIGN TOKENS (match car-v2) ============
+  const COLORS = {
+    accent: '#0369A1',
+    accentSoft: '#E0F2FE',
+    accentFg: '#ffffff',
+    surface: '#ffffff',
+    surface2: '#F1F3F8',
+    border: '#E2E5EB',
+    text: '#0F172A',
+    textMuted: '#64748B',
+    textFaint: '#94A3B8',
+    bg: '#F8FAFC',
+    info: '#0EA5E9',
+    infoSoft: '#E2F4FD',
   };
 
-  // ============ MOBILE RESPONSIVE CSS ============
-  const mobileCSS = `
-    /* Language Switcher */
-    .lang-switcher {
-      display: flex;
-      gap: 4px;
-      padding: 8px 12px;
-      border-top: 1px solid #E2E5EB;
+  // ============ LOCALES ============
+  const LOCALES = [
+    { id: 'vi', label: 'Tieng Viet', short: 'VI' },
+    { id: 'en', label: 'English',    short: 'EN' },
+    { id: 'ko', label: '한국어',      short: 'KO' },
+  ];
+
+  // ============ CSS STYLES ============
+  const styles = `
+    /* ========== LANGUAGE SWITCHER (Dropdown) ========== */
+    .locale-switcher-wrapper {
+      position: relative;
+      border-top: 1px solid ${COLORS.border};
+      padding: 8px;
     }
-    .lang-btn {
-      flex: 1;
-      height: 32px;
-      border: 1px solid #E2E5EB;
-      border-radius: 6px;
-      background: #fff;
-      font: 600 11px/1 inherit;
-      cursor: pointer;
-      transition: all 0.15s;
+
+    .locale-trigger {
+      width: 100%;
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 4px;
-      color: #64748B;
+      gap: 10px;
+      padding: 6px 8px;
+      height: 36px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      cursor: pointer;
+      font: 500 14px/1 'Pretendard Variable', 'Be Vietnam Pro', system-ui, sans-serif;
+      color: ${COLORS.textMuted};
+      transition: background 0.15s, color 0.15s;
+      text-align: left;
     }
-    .lang-btn:hover {
-      border-color: var(--accent, #0369A1);
-      color: var(--accent, #0369A1);
+    .locale-trigger:hover {
+      background: ${COLORS.surface2};
+      color: ${COLORS.text};
     }
-    .lang-btn.active {
-      background: var(--accent, #0369A1);
-      border-color: var(--accent, #0369A1);
-      color: #fff;
+    .locale-trigger[data-open="true"] {
+      background: ${COLORS.surface2};
+      color: ${COLORS.text};
     }
-    .lang-btn img, .lang-btn svg {
+
+    .locale-trigger-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .locale-trigger-label {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .locale-trigger-short {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: ${COLORS.textFaint};
+      flex-shrink: 0;
+    }
+
+    .locale-trigger-chevron {
       width: 14px;
       height: 14px;
-      border-radius: 2px;
+      color: ${COLORS.textFaint};
+      flex-shrink: 0;
     }
 
-    /* Mobile Menu Button */
-    .mobile-menu-btn {
-      display: none;
-      position: fixed;
-      top: 12px;
-      left: 12px;
-      z-index: 1001;
-      width: 44px;
-      height: 44px;
-      border: none;
+    /* Dropdown Menu */
+    .locale-dropdown {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 8px;
+      right: 8px;
+      background: ${COLORS.surface};
+      border: 1px solid ${COLORS.border};
       border-radius: 10px;
-      background: #fff;
-      box-shadow: 0 2px 8px rgba(15,23,42,0.15);
-      cursor: pointer;
-      align-items: center;
-      justify-content: center;
+      box-shadow: 0 8px 24px rgba(15,23,42,0.14);
+      padding: 4px;
+      z-index: 100;
+      display: none;
     }
-    .mobile-menu-btn svg {
-      width: 24px;
-      height: 24px;
-      stroke: #0F172A;
+    .locale-dropdown.open {
+      display: block;
+      animation: fadeSlideUp 0.15s ease;
     }
 
-    /* Mobile Overlay */
-    .mobile-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(15,23,42,0.5);
-      z-index: 999;
-      opacity: 0;
-      transition: opacity 0.3s;
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    .mobile-overlay.show {
+
+    .locale-dropdown-label {
+      padding: 8px 10px 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: ${COLORS.textFaint};
+    }
+
+    .locale-dropdown-sep {
+      height: 1px;
+      background: ${COLORS.border};
+      margin: 4px 0;
+    }
+
+    .locale-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      cursor: pointer;
+      font: 500 14px/1 inherit;
+      color: ${COLORS.text};
+      text-align: left;
+      transition: background 0.1s;
+    }
+    .locale-item:hover {
+      background: ${COLORS.surface2};
+    }
+    .locale-item.active {
+      background: ${COLORS.accentSoft};
+      color: ${COLORS.accent};
+      font-weight: 600;
+    }
+
+    .locale-item-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      width: 28px;
+      text-align: center;
+      background: ${COLORS.surface2};
+      color: ${COLORS.textMuted};
+      border-radius: 4px;
+      padding: 3px 6px;
+    }
+    .locale-item.active .locale-item-badge {
+      background: ${COLORS.accent};
+      color: ${COLORS.accentFg};
+    }
+
+    .locale-item-label {
+      flex: 1;
+    }
+
+    .locale-item-check {
+      width: 14px;
+      height: 14px;
+      opacity: 0;
+    }
+    .locale-item.active .locale-item-check {
       opacity: 1;
     }
 
-    /* Mobile Responsive */
+    /* Backdrop for closing dropdown */
+    .locale-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 99;
+      display: none;
+    }
+    .locale-backdrop.open {
+      display: block;
+    }
+
+    /* ========== BOTTOM TAB NAV (Mobile Only) ========== */
+    .bottom-tab-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 40;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-top: 1px solid ${COLORS.border};
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .bottom-tab-list {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      height: 56px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .bottom-tab-item {
+      position: relative;
+    }
+
+    .bottom-tab-link {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      text-decoration: none;
+      color: ${COLORS.textMuted};
+      font-size: 12px;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+    .bottom-tab-link.active {
+      color: ${COLORS.accent};
+    }
+    .bottom-tab-link.active .bottom-tab-icon {
+      transform: scale(1.05);
+    }
+
+    /* Active indicator bar */
+    .bottom-tab-indicator {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      height: 2px;
+      width: 0;
+      background: ${COLORS.accent};
+      border-radius: 999px;
+      transition: width 0.18s;
+    }
+    .bottom-tab-link.active + .bottom-tab-indicator,
+    .bottom-tab-item:has(.active) .bottom-tab-indicator {
+      width: 40px;
+    }
+
+    .bottom-tab-icon {
+      width: 24px;
+      height: 24px;
+      transition: transform 0.18s;
+    }
+
+    .bottom-tab-label {
+      line-height: 1;
+    }
+
+    /* ========== MOBILE RESPONSIVE ========== */
     @media (max-width: 1024px) {
+      /* Hide sidebar on mobile */
       .app-sidebar {
-        position: fixed !important;
-        left: 0;
-        top: 0;
-        z-index: 1000;
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
-        box-shadow: 4px 0 20px rgba(15,23,42,0.15);
+        display: none !important;
       }
-      .app-sidebar.open {
-        transform: translateX(0);
-      }
-      .mobile-menu-btn {
-        display: flex;
-      }
-      .mobile-overlay.show {
+
+      /* Show bottom tab nav */
+      .bottom-tab-nav {
         display: block;
       }
+
+      /* Main content adjustments */
       .app-main {
         margin-left: 0 !important;
-        padding-top: 60px !important;
+        /* Reserve space for bottom nav */
+        padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)) !important;
       }
-      .app-main > header {
-        padding-left: 70px !important;
+
+      /* Adjust main container */
+      body > div:first-child,
+      x-dc > div:first-child {
+        flex-direction: column !important;
       }
     }
 
     @media (max-width: 768px) {
-      /* KPI Grid */
-      .kpi-grid {
+      /* KPI Grid adjustments */
+      main > div[style*="grid-template-columns:repeat(4"] {
         grid-template-columns: repeat(2, 1fr) !important;
       }
-      /* Chart Grid */
-      .chart-grid {
+
+      /* Chart Grid adjustments */
+      main > div[style*="grid-template-columns:1.15fr"] {
         grid-template-columns: 1fr !important;
       }
-      /* Content padding */
-      .content-area {
+
+      /* Dashboard grid */
+      main > div[style*="grid-template-columns:1fr 300px"] {
+        grid-template-columns: 1fr !important;
+      }
+
+      /* Fleet + Alerts grid */
+      main > div[style*="grid-template-columns:1fr 1.4fr"] {
+        grid-template-columns: 1fr !important;
+      }
+
+      /* Cards grid */
+      main > div[style*="grid-template-columns:repeat(auto-fill"] {
+        grid-template-columns: 1fr !important;
+      }
+
+      /* Header adjustments */
+      main > header {
+        flex-wrap: wrap !important;
+        gap: 12px !important;
         padding: 16px !important;
       }
-      /* Header */
-      .app-main > header {
-        padding: 12px 16px 12px 60px !important;
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 12px !important;
+
+      /* Content padding */
+      main > div {
+        padding: 16px !important;
       }
-      .app-main > header > div:last-child {
-        width: 100%;
-      }
-      .app-main > header button {
-        width: 100%;
-        justify-content: center;
-      }
-      /* Table */
-      .data-table {
+
+      /* Table horizontal scroll */
+      table {
         display: block;
         overflow-x: auto;
-      }
-      .data-table table {
-        min-width: 700px;
-      }
-      /* Cards Grid */
-      .cards-grid {
-        grid-template-columns: 1fr !important;
-      }
-      /* Dashboard grid */
-      .dashboard-grid {
-        grid-template-columns: 1fr !important;
-      }
-      /* Fleet + Alerts */
-      .fleet-alerts-grid {
-        grid-template-columns: 1fr !important;
       }
     }
 
     @media (max-width: 480px) {
-      /* KPI Grid */
-      .kpi-grid {
+      /* Single column KPI */
+      main > div[style*="grid-template-columns:repeat(2"] {
         grid-template-columns: 1fr !important;
       }
-      /* KPI Card */
-      .kpi-card {
-        padding: 14px !important;
+
+      /* Bottom tab with 3 columns for smaller screens */
+      .bottom-tab-list {
+        grid-template-columns: repeat(3, 1fr);
       }
-      .kpi-card .kpi-value {
-        font-size: 22px !important;
-      }
-      /* Header title */
-      .page-title {
-        font-size: 18px !important;
-      }
-      /* Sidebar width */
-      .app-sidebar {
-        width: 280px !important;
-      }
+    }
+
+    /* ========== NOTIFICATION TOAST ========== */
+    .locale-toast {
+      position: fixed;
+      bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%);
+      background: ${COLORS.text};
+      color: ${COLORS.surface};
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 9999;
+      box-shadow: 0 4px 20px rgba(15,23,42,0.3);
+      animation: toastSlideUp 0.3s ease;
+    }
+    .locale-toast.hiding {
+      opacity: 0;
+      transform: translateX(-50%) translateY(20px);
+      transition: all 0.3s ease;
+    }
+
+    @keyframes toastSlideUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
   `;
 
-  // ============ INITIALIZATION ============
+  // ============ SVG ICONS ============
+  const ICONS = {
+    languages: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>`,
+    chevronUpDown: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>`,
+    check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+    // Bottom Tab Icons
+    dashboard: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>`,
+    trips: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>`,
+    vehicles: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>`,
+    settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  };
+
+  // ============ NAV ITEMS ============
+  const NAV_ITEMS = [
+    { key: 'dashboard', icon: 'dashboard', label: { vi: 'Tong quan', en: 'Dashboard', ko: '대시보드' } },
+    { key: 'trips', icon: 'trips', label: { vi: 'Chuyen', en: 'Trips', ko: '운행' } },
+    { key: 'vehicles', icon: 'vehicles', label: { vi: 'Phuong tien', en: 'Vehicles', ko: '차량' } },
+    { key: 'settings', icon: 'settings', label: { vi: 'Cai dat', en: 'Settings', ko: '설정' } },
+  ];
+
+  // ============ STATE ============
   let currentLang = localStorage.getItem('app-lang') || 'vi';
-  let sidebarOpen = false;
+  let dropdownOpen = false;
 
+  // ============ INIT ============
   function init() {
-    // Inject CSS
-    const style = document.createElement('style');
-    style.id = 'mobile-i18n-styles';
-    style.textContent = mobileCSS;
-    document.head.appendChild(style);
+    // Inject styles
+    const styleEl = document.createElement('style');
+    styleEl.id = 'mobile-i18n-styles';
+    styleEl.textContent = styles;
+    document.head.appendChild(styleEl);
 
-    // Wait for DOM to be ready
+    // Wait for DOM
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', setupUI);
     } else {
@@ -498,209 +423,180 @@
   }
 
   function setupUI() {
-    // Add class to sidebar for CSS targeting
+    // Add classes for CSS targeting
     const sidebar = document.querySelector('aside');
     if (sidebar) {
       sidebar.classList.add('app-sidebar');
     }
 
-    // Add class to main content
     const main = document.querySelector('main');
     if (main) {
       main.classList.add('app-main');
     }
 
-    // Create mobile menu button
-    createMobileMenuButton();
+    // Create locale switcher in sidebar
+    createLocaleSwitcher();
 
-    // Create mobile overlay
-    createMobileOverlay();
-
-    // Create language switcher
-    createLanguageSwitcher();
-
-    // Apply initial language (don't translate on first load to preserve prototype)
-    // applyTranslations(currentLang);
+    // Create bottom tab nav for mobile
+    createBottomTabNav();
   }
 
-  function createMobileMenuButton() {
-    const btn = document.createElement('button');
-    btn.className = 'mobile-menu-btn';
-    btn.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="3" y1="6" x2="21" y2="6"></line>
-        <line x1="3" y1="12" x2="21" y2="12"></line>
-        <line x1="3" y1="18" x2="21" y2="18"></line>
-      </svg>
-    `;
-    btn.onclick = toggleSidebar;
-    document.body.appendChild(btn);
-  }
-
-  function createMobileOverlay() {
-    const overlay = document.createElement('div');
-    overlay.className = 'mobile-overlay';
-    overlay.onclick = closeSidebar;
-    document.body.appendChild(overlay);
-  }
-
-  function createLanguageSwitcher() {
+  // ============ LOCALE SWITCHER ============
+  function createLocaleSwitcher() {
     const sidebar = document.querySelector('aside');
     if (!sidebar) return;
 
-    // Find the user section (last div in sidebar)
-    const userSection = sidebar.querySelector('div:last-child');
+    // Find user section (last div with border-top)
+    const userSection = sidebar.querySelector('div[style*="border-top"]:last-of-type');
     if (!userSection) return;
 
-    // Create language switcher container
-    const langContainer = document.createElement('div');
-    langContainer.className = 'lang-switcher';
-    langContainer.innerHTML = `
-      <button class="lang-btn ${currentLang === 'vi' ? 'active' : ''}" data-lang="vi" title="Tiếng Việt">
-        <span style="font-size:14px;">🇻🇳</span>
-        <span>VI</span>
+    const current = LOCALES.find(l => l.id === currentLang) || LOCALES[0];
+
+    // Create wrapper
+    const wrapper = document.createElement('div');
+    wrapper.className = 'locale-switcher-wrapper';
+    wrapper.innerHTML = `
+      <div class="locale-backdrop"></div>
+      <button type="button" class="locale-trigger" data-open="false">
+        <span class="locale-trigger-icon">${ICONS.languages}</span>
+        <span class="locale-trigger-label">${current.label}</span>
+        <span class="locale-trigger-short">${current.short}</span>
+        <span class="locale-trigger-chevron">${ICONS.chevronUpDown}</span>
       </button>
-      <button class="lang-btn ${currentLang === 'en' ? 'active' : ''}" data-lang="en" title="English">
-        <span style="font-size:14px;">🇬🇧</span>
-        <span>EN</span>
-      </button>
-      <button class="lang-btn ${currentLang === 'ko' ? 'active' : ''}" data-lang="ko" title="한국어">
-        <span style="font-size:14px;">🇰🇷</span>
-        <span>KO</span>
-      </button>
+      <div class="locale-dropdown">
+        <div class="locale-dropdown-label">Language</div>
+        <div class="locale-dropdown-sep"></div>
+        ${LOCALES.map(l => `
+          <button type="button" class="locale-item ${l.id === currentLang ? 'active' : ''}" data-lang="${l.id}">
+            <span class="locale-item-badge">${l.short}</span>
+            <span class="locale-item-label">${l.label}</span>
+            <span class="locale-item-check">${ICONS.check}</span>
+          </button>
+        `).join('')}
+      </div>
     `;
 
     // Insert before user section
-    sidebar.insertBefore(langContainer, userSection);
+    sidebar.insertBefore(wrapper, userSection);
 
-    // Add click handlers
-    langContainer.querySelectorAll('.lang-btn').forEach(btn => {
-      btn.onclick = () => {
-        const lang = btn.dataset.lang;
+    // Event handlers
+    const trigger = wrapper.querySelector('.locale-trigger');
+    const dropdown = wrapper.querySelector('.locale-dropdown');
+    const backdrop = wrapper.querySelector('.locale-backdrop');
+
+    trigger.addEventListener('click', () => {
+      dropdownOpen = !dropdownOpen;
+      trigger.dataset.open = dropdownOpen;
+      dropdown.classList.toggle('open', dropdownOpen);
+      backdrop.classList.toggle('open', dropdownOpen);
+    });
+
+    backdrop.addEventListener('click', closeDropdown);
+
+    wrapper.querySelectorAll('.locale-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const lang = item.dataset.lang;
         setLanguage(lang);
-      };
+        closeDropdown();
+      });
+    });
+
+    function closeDropdown() {
+      dropdownOpen = false;
+      trigger.dataset.open = 'false';
+      dropdown.classList.remove('open');
+      backdrop.classList.remove('open');
+    }
+  }
+
+  // ============ BOTTOM TAB NAV ============
+  function createBottomTabNav() {
+    const nav = document.createElement('nav');
+    nav.className = 'bottom-tab-nav';
+    nav.setAttribute('aria-label', 'Mobile navigation');
+
+    nav.innerHTML = `
+      <ul class="bottom-tab-list">
+        ${NAV_ITEMS.map((item, index) => `
+          <li class="bottom-tab-item">
+            <a href="#" class="bottom-tab-link ${index === 0 ? 'active' : ''}" data-nav="${item.key}">
+              <span class="bottom-tab-icon">${ICONS[item.icon]}</span>
+              <span class="bottom-tab-label">${item.label[currentLang]}</span>
+            </a>
+            <span class="bottom-tab-indicator"></span>
+          </li>
+        `).join('')}
+      </ul>
+    `;
+
+    document.body.appendChild(nav);
+
+    // Handle tab clicks (for prototype, just show which tab is active)
+    nav.querySelectorAll('.bottom-tab-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        nav.querySelectorAll('.bottom-tab-link').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        showToast(`Navigating to ${link.dataset.nav}...`);
+      });
     });
   }
 
-  function toggleSidebar() {
-    sidebarOpen = !sidebarOpen;
-    const sidebar = document.querySelector('.app-sidebar');
-    const overlay = document.querySelector('.mobile-overlay');
-    const btn = document.querySelector('.mobile-menu-btn');
-
-    if (sidebarOpen) {
-      sidebar?.classList.add('open');
-      overlay?.classList.add('show');
-      if (btn) {
-        btn.innerHTML = `
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        `;
-      }
-    } else {
-      closeSidebar();
-    }
-  }
-
-  function closeSidebar() {
-    sidebarOpen = false;
-    const sidebar = document.querySelector('.app-sidebar');
-    const overlay = document.querySelector('.mobile-overlay');
-    const btn = document.querySelector('.mobile-menu-btn');
-
-    sidebar?.classList.remove('open');
-    overlay?.classList.remove('show');
-    if (btn) {
-      btn.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-      `;
-    }
-  }
-
+  // ============ SET LANGUAGE ============
   function setLanguage(lang) {
-    if (!translations[lang]) return;
-
+    if (!LOCALES.find(l => l.id === lang)) return;
     currentLang = lang;
     localStorage.setItem('app-lang', lang);
 
-    // Update button states
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.lang === lang);
+    // Update trigger
+    const current = LOCALES.find(l => l.id === lang);
+    const trigger = document.querySelector('.locale-trigger');
+    if (trigger && current) {
+      trigger.querySelector('.locale-trigger-label').textContent = current.label;
+      trigger.querySelector('.locale-trigger-short').textContent = current.short;
+    }
+
+    // Update dropdown items
+    document.querySelectorAll('.locale-item').forEach(item => {
+      item.classList.toggle('active', item.dataset.lang === lang);
+    });
+
+    // Update bottom tab labels
+    NAV_ITEMS.forEach(item => {
+      const link = document.querySelector(`.bottom-tab-link[data-nav="${item.key}"]`);
+      if (link) {
+        link.querySelector('.bottom-tab-label').textContent = item.label[lang];
+      }
     });
 
     // Show notification
-    showLanguageNotification(lang);
+    showToast(`Language: ${current.label}`);
   }
 
-  function showLanguageNotification(lang) {
-    const langNames = {
-      vi: 'Tiếng Việt',
-      en: 'English',
-      ko: '한국어'
-    };
-
-    // Remove existing notification
-    const existing = document.querySelector('.lang-notification');
+  // ============ TOAST ============
+  function showToast(message) {
+    // Remove existing
+    const existing = document.querySelector('.locale-toast');
     if (existing) existing.remove();
 
-    // Create notification
-    const notif = document.createElement('div');
-    notif.className = 'lang-notification';
-    notif.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #0F172A;
-      color: #fff;
-      padding: 12px 24px;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      z-index: 9999;
-      box-shadow: 0 4px 20px rgba(15,23,42,0.3);
-      animation: slideUp 0.3s ease;
-    `;
-    notif.textContent = `Language: ${langNames[lang]}`;
+    const toast = document.createElement('div');
+    toast.className = 'locale-toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
 
-    // Add animation keyframes
-    if (!document.querySelector('#lang-notif-style')) {
-      const style = document.createElement('style');
-      style.id = 'lang-notif-style';
-      style.textContent = `
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-          to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    document.body.appendChild(notif);
-
-    // Remove after 2s
     setTimeout(() => {
-      notif.style.opacity = '0';
-      notif.style.transform = 'translateX(-50%) translateY(20px)';
-      notif.style.transition = 'all 0.3s ease';
-      setTimeout(() => notif.remove(), 300);
+      toast.classList.add('hiding');
+      setTimeout(() => toast.remove(), 300);
     }, 2000);
   }
 
-  // Export for external use
+  // ============ EXPORT ============
   window.AppI18n = {
     setLanguage,
     getCurrentLang: () => currentLang,
-    getTranslation: (key) => translations[currentLang]?.[key] || key,
-    translations
+    LOCALES,
   };
 
-  // Initialize
+  // Run
   init();
 })();
