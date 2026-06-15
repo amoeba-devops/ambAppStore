@@ -576,6 +576,16 @@
     sidebar = document.querySelector('aside');
     mainEl = document.querySelector('main');
 
+    console.log('[i18n] setupUI - sidebar found:', !!sidebar);
+    console.log('[i18n] setupUI - mainEl found:', !!mainEl);
+    if (sidebar) {
+      console.log('[i18n] sidebar children count:', sidebar.children.length);
+      Array.from(sidebar.children).forEach((child, i) => {
+        const styleAttr = child.getAttribute('style') || '';
+        console.log(`[i18n] child ${i}: ${child.tagName}, has border-top: ${styleAttr.includes('border-top')}`);
+      });
+    }
+
     // Scan and store original Vietnamese texts
     scanAndStoreTexts();
 
@@ -739,8 +749,29 @@
   function createLocaleSwitcher() {
     if (!sidebar) return;
 
-    const userSection = sidebar.querySelector('div[style*="border-top"]:last-of-type');
+    // Find the user section (last direct child div of sidebar with border-top)
+    // Structure: aside > (brand div) > (dept div) > nav > (doc link div) > (user div)
+    const children = Array.from(sidebar.children);
+    let userSection = null;
+
+    // Find the last div with border-top in its style attribute (user section)
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      const styleAttr = child.getAttribute('style') || '';
+      if (child.tagName === 'DIV' && styleAttr.includes('border-top')) {
+        userSection = child;
+        break;
+      }
+    }
+
+    if (!userSection) {
+      // Fallback: just use the last child
+      userSection = sidebar.lastElementChild;
+    }
+
     if (!userSection) return;
+
+    console.log('[i18n] Creating locale switcher, inserting before:', userSection);
 
     const current = LOCALES.find(l => l.id === currentLang) || LOCALES[0];
 
