@@ -830,6 +830,112 @@
     </div>
     </sc-if>
 
+    <!-- ===== TRUCK USERS ===== -->
+    <sc-if value="{{ isUsers }}" hint-placeholder-val="{{ false }}">
+    <header style="flex-shrink:0;background:#fff;border-bottom:1px solid #E2E5EB;padding:16px 28px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;">
+      <div>
+        <div style="font-size:11.5px;color:#94A3B8;font-weight:500;margin-bottom:5px;">Quản trị · Phân quyền</div>
+        <div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.1;white-space:nowrap;">Người dùng &amp; quyền</div>
+      </div>
+      <button style="height:40px;padding:0 16px;border:none;border-radius:8px;background:#C2410C;color:#fff;font:600 14px/1 inherit;cursor:pointer;display:flex;align-items:center;gap:7px;" style-hover="background:#9A3412;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Thêm người dùng</button>
+    </header>
+    <div style="flex:1;overflow:auto;padding:24px 28px;">
+      <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;box-shadow:0 1px 3px rgba(15,23,42,.04);overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#F8FAFC;border-bottom:1px solid #E2E5EB;">
+            <th style="text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94A3B8;padding:11px 20px;">Người dùng</th>
+            <th style="text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94A3B8;padding:11px 12px;">Email</th>
+            <th style="text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94A3B8;padding:11px 12px;">Vai trò</th>
+            <th style="text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94A3B8;padding:11px 20px;">Trạng thái</th>
+          </tr></thead>
+          <tbody>
+            <sc-for list="{{ truckUserRows }}" as="u" hint-placeholder-count="5">
+              <tr style="border-bottom:1px solid #EFF1F5;">
+                <td style="padding:13px 20px;"><div style="display:flex;align-items:center;gap:11px;"><div style="height:34px;width:34px;border-radius:50%;background:#FEF3DC;color:#C2410C;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">{{ u.init }}</div><div style="font-size:14px;font-weight:600;">{{ u.name }}</div></div></td>
+                <td style="padding:13px 12px;font-size:13px;color:#64748B;">{{ u.email }}</td>
+                <td style="padding:13px 12px;"><span style="display:inline-block;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:6px;background:{{ u.roleBg }};color:{{ u.roleFg }};">{{ u.roleLabel }}</span></td>
+                <td style="padding:13px 20px;"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:{{ u.activeColor }};"><span style="width:8px;height:8px;border-radius:50%;background:{{ u.activeColor }};"></span>{{ u.activeLabel }}</span></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ===== TRUCK SETTINGS ===== -->
+    <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+    <header style="flex-shrink:0;background:#fff;border-bottom:1px solid #E2E5EB;padding:16px 28px;">
+      <div style="font-size:11.5px;color:#94A3B8;font-weight:500;margin-bottom:5px;">Quản trị · Cấu hình</div>
+      <div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.1;white-space:nowrap;">Cài đặt vận hành</div>
+    </header>
+    <div style="flex:1;overflow:auto;padding:24px 28px;max-width:760px;display:flex;flex-direction:column;gap:16px;">
+      <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:22px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px;">Định mức nhiên liệu</div>
+        <div style="font-size:13px;color:#64748B;margin-bottom:18px;line-height:1.5;">Thiết lập định mức tiêu hao nhiên liệu (L/km) cho từng xe tải. Hệ thống sẽ cảnh báo khi vượt định mức.</div>
+        <div style="display:flex;flex-direction:column;gap:0;border:1px solid #E2E5EB;border-radius:10px;overflow:hidden;">
+          <sc-for list="{{ truckFuelQuotaRows }}" as="t" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #EFF1F5;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#0F172A;">{{ t.plate }}</span>
+                <span style="font-size:12.5px;color:#64748B;">{{ t.model }}</span>
+              </div>
+              <div style="font-size:13.5px;font-weight:600;color:#C2410C;font-variant-numeric:tabular-nums;">{{ t.quota }} L/km</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:22px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
+        <div style="font-size:15px;font-weight:700;margin-bottom:16px;">Quy tắc vận hành</div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;"><div><div style="font-size:14px;font-weight:600;">Cảnh báo vượt định mức nhiên liệu</div><div style="font-size:12.5px;color:#64748B;margin-top:1px;">Hiển thị cảnh báo khi tiêu hao vượt 10% định mức.</div></div><div style="width:42px;height:24px;border-radius:999px;background:#C2410C;position:relative;flex-shrink:0;"><span style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:#fff;"></span></div></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #EFF1F5;padding-top:14px;"><div><div style="font-size:14px;font-weight:600;">Tự động tính lợi nhuận chuyến</div><div style="font-size:12.5px;color:#64748B;margin-top:1px;">Lợi nhuận = Doanh thu − Chi phí nhiên liệu − Cầu đường.</div></div><div style="width:42px;height:24px;border-radius:999px;background:#C2410C;position:relative;flex-shrink:0;"><span style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:#fff;"></span></div></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #EFF1F5;padding-top:14px;"><div><div style="font-size:14px;font-weight:600;">Nhắc bảo dưỡng định kỳ</div><div style="font-size:12.5px;color:#64748B;margin-top:1px;">Định mức 10.000 km/lần cho xe tải.</div></div><div style="width:42px;height:24px;border-radius:999px;background:#C2410C;position:relative;flex-shrink:0;"><span style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:#fff;"></span></div></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #EFF1F5;padding-top:14px;"><div><div style="font-size:14px;font-weight:600;">Yêu cầu BOL/CDF cho chuyến</div><div style="font-size:12.5px;color:#64748B;margin-top:1px;">Bắt buộc nhập số vận đơn khi tạo chuyến mới.</div></div><div style="width:42px;height:24px;border-radius:999px;background:#D1D5DB;position:relative;flex-shrink:0;"><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;"></span></div></div>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:22px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
+        <div style="font-size:15px;font-weight:700;margin-bottom:16px;">Chi phí cố định hàng tháng</div>
+        <div style="display:flex;flex-direction:column;gap:0;border:1px solid #E2E5EB;border-radius:10px;overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #EFF1F5;">
+            <span style="font-size:14px;font-weight:600;">Lương tài xế</span>
+            <span style="font-size:13.5px;font-weight:600;color:#0F172A;font-variant-numeric:tabular-nums;">12.000.000 ₫/tháng</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #EFF1F5;">
+            <span style="font-size:14px;font-weight:600;">Khấu hao xe</span>
+            <span style="font-size:13.5px;font-weight:600;color:#0F172A;font-variant-numeric:tabular-nums;">8.000.000 ₫/tháng</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;">
+            <span style="font-size:14px;font-weight:600;">Bảo hiểm xe</span>
+            <span style="font-size:13.5px;font-weight:600;color:#0F172A;font-variant-numeric:tabular-nums;">2.500.000 ₫/tháng</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ===== TRUCK AUDIT ===== -->
+    <sc-if value="{{ isAudit }}" hint-placeholder-val="{{ false }}">
+    <header style="flex-shrink:0;background:#fff;border-bottom:1px solid #E2E5EB;padding:16px 28px;">
+      <div style="font-size:11.5px;color:#94A3B8;font-weight:500;margin-bottom:5px;">Quản trị · Truy vết</div>
+      <div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.1;white-space:nowrap;">Nhật ký hệ thống</div>
+    </header>
+    <div style="flex:1;overflow:auto;padding:24px 28px;max-width:720px;">
+      <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:8px 22px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
+        <sc-for list="{{ truckAuditRows }}" as="a" hint-placeholder-count="6">
+          <div style="display:flex;gap:14px;padding:14px 0;border-bottom:1px solid #EFF1F5;">
+            <div style="width:8px;height:8px;border-radius:50%;background:{{ a.dot }};margin-top:6px;flex-shrink:0;"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:14px;color:#0F172A;"><b>{{ a.who }}</b> · {{ a.evLabel }}</div>
+              <div style="font-size:12.5px;color:#64748B;margin-top:2px;">{{ a.obj }}</div>
+            </div>
+            <div style="font-size:12px;color:#94A3B8;white-space:nowrap;flex-shrink:0;">{{ a.time }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
     </sc-if><!-- /showTruck -->
 
   </main>
@@ -1261,6 +1367,25 @@ class Component extends DCLogic {
     { time:'12/10 · 11:05', who:'Vũ Đình Khoa',  evLabel:'Ghi nhận tai nạn', obj:'6.500.000đ · 51A-512.09', tone:'warning' },
     { time:'11/10 · 08:30', who:'Quản trị viên', evLabel:'Cập nhật xe',      obj:'51F-229.88 → Bảo dưỡng',  tone:'info' },
     { time:'10/10 · 15:20', who:'Hoàng Anh Tú',  evLabel:'Từ chối chuyến',   obj:'#CT-2510-078',            tone:'danger' }
+  ];
+
+  // Truck Users
+  truckUsers = [
+    { name:'Quản trị viên',   email:'admin@amoeba.group',      role:'ADMIN',      active:true,  init:'QT' },
+    { name:'Trần Văn Minh',   email:'minh.tv@amoeba.group',    role:'DISPATCHER', active:true,  init:'TM' },
+    { name:'Phạm Quốc Hưng',  email:'hung.pq@amoeba.group',    role:'DRIVER',     active:true,  init:'PH' },
+    { name:'Lê Hoàng Nam',    email:'nam.lh@amoeba.group',     role:'DRIVER',     active:true,  init:'LN' },
+    { name:'Nguyễn Văn Tài',  email:'tai.nv@amoeba.group',     role:'DRIVER',     active:false, init:'NT' }
+  ];
+
+  // Truck Audit Log
+  truckAuditLog = [
+    { time:'13/10 · 16:45', who:'Trần Văn Minh',   evLabel:'Tạo chuyến mới',      obj:'#TR-2510-042 · Khách: Công ty ABC',    tone:'info' },
+    { time:'13/10 · 14:30', who:'Phạm Quốc Hưng',  evLabel:'Hoàn thành chuyến',   obj:'#TR-2510-041 · Doanh thu 8.500.000đ',  tone:'success' },
+    { time:'13/10 · 09:15', who:'Quản trị viên',   evLabel:'Cập nhật định mức',   obj:'50E-32407 · 0.35 → 0.32 L/km',         tone:'info' },
+    { time:'12/10 · 17:20', who:'Lê Hoàng Nam',    evLabel:'Ghi nhận chi phí',    obj:'Cầu đường 450.000đ · #TR-2510-040',    tone:'warning' },
+    { time:'12/10 · 11:00', who:'Quản trị viên',   evLabel:'Import Excel',        obj:'Nhập 45 chuyến từ file truck-data.xlsx', tone:'success' },
+    { time:'11/10 · 08:45', who:'Trần Văn Minh',   evLabel:'Vô hiệu tài xế',      obj:'Nguyễn Văn Tài · Nghỉ việc',           tone:'danger' }
   ];
 
   carTripStatusMeta(s){
@@ -1752,6 +1877,16 @@ class Component extends DCLogic {
     const auditTone={ success:C.success, info:C.info, warning:C.warning, danger:C.danger };
     const auditRows = this.auditLog.map(a=>({ ...a, dot:auditTone[a.tone]||C.faint }));
 
+    // Truck Admin Data
+    const truckRoleMeta={ ADMIN:{label:'Quản trị',bg:'#EDE7FB',fg:'#7C3AED'}, DISPATCHER:{label:'Điều phối',bg:'#FEF3DC',fg:'#C2410C'}, DRIVER:{label:'Tài xế',bg:C.surface2,fg:C.muted} };
+    const truckUserRows = this.truckUsers.map(u=>{ const rm=truckRoleMeta[u.role]||truckRoleMeta.DRIVER; return { ...u,
+      roleLabel:rm.label, roleBg:rm.bg, roleFg:rm.fg,
+      activeLabel:u.active?'Hoạt động':'Vô hiệu', activeColor:u.active?C.success:C.faint }; });
+
+    const truckFuelQuotaRows = this.trucks.map(t=>({ plate:t.plate, model:t.model, quota:t.cons }));
+
+    const truckAuditRows = this.truckAuditLog.map(a=>({ ...a, dot:auditTone[a.tone]||C.faint }));
+
     const cdt = S.carDrawerTrip; let carDrawer=null;
     if(cdt){ const cv=this.applyOv('cartrip',cdt.id,cdt); const st=carStatusOf(cdt); const m=this.carTripStatusMeta(st);
       carDrawer={ ...cv, statusLabel:m.label, statusBg:m.bg, statusFg:m.fg, fromTo:cv.from+'  →  '+cv.to,
@@ -1819,6 +1954,7 @@ class Component extends DCLogic {
       cGoExpenses:cGo('expenses'), cGoAudit:cGo('audit'), cGoUsers:cGo('users'), cGoSettings:cGo('settings'), goAbout2:()=>this.setState({dept:'truck',screen:'about'}),
       cOpenNew:()=>this.setState({drawerMode:'carNew',carDrawerTrip:null}),
       carTripRows, carCards, carDriverRows, carExpRows, carUserRows, thresholdRows, auditRows,
+      truckUserRows, truckFuelQuotaRows, truckAuditRows,
       pendingExpCount, pendingExpBadge: pendingExpCount>0,
       pendingTripCount, pendingTripBadge: pendingTripCount>0,
       carDonutEl:this.carDonut(), topUsersEl:this.topUsersBars(), carCalendarEl2:this.carCalendar(),
