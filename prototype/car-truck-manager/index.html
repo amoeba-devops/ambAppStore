@@ -493,20 +493,7 @@
               <div style="display:flex;align-items:center;gap:10px;"><span style="width:9px;height:9px;border-radius:50%;background:#F59E0B;"></span><span style="flex:1;font-size:13.5px;color:#475569;">Bảo dưỡng</span><span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;">1</span></div>
             </div>
           </div>
-          <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
-            <div style="font-size:15px;font-weight:700;margin-bottom:14px;">Cảnh báo bảo dưỡng</div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="2">
-                <div style="display:flex;gap:11px;padding:11px 12px;border-radius:9px;background:{{ a.bg }};">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{ a.fg }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-                  <div style="flex:1;min-width:0;">
-                    <div style="font-size:13px;font-weight:700;color:{{ a.fg }};">{{ a.plate }} · {{ a.title }}</div>
-                    <div style="font-size:12px;color:#475569;margin-top:2px;">{{ a.desc }}</div>
-                  </div>
-                </div>
-              </sc-for>
-            </div>
-          </div>
+          <!-- Cảnh báo bảo dưỡng widget removed -->
         </div>
 
         <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;box-shadow:0 1px 3px rgba(15,23,42,.04);overflow:hidden;">
@@ -778,29 +765,106 @@
 
     <!-- ===== REPORTS ===== -->
     <sc-if value="{{ isReports }}" hint-placeholder-val="{{ false }}">
-    <header style="flex-shrink:0;background:#fff;border-bottom:1px solid #E2E5EB;padding:16px 28px;">
-      <div style="font-size:11.5px;color:#94A3B8;font-weight:500;margin-bottom:5px;">Tài chính · Xuất báo cáo</div>
-      <div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.1;white-space:nowrap;">Báo cáo</div>
+    <header style="flex-shrink:0;background:#fff;border-bottom:1px solid #E2E5EB;padding:16px 28px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11.5px;color:#94A3B8;font-weight:500;margin-bottom:5px;">Tài chính · Xuất báo cáo</div>
+        <div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.1;white-space:nowrap;">Báo cáo</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <select style="height:38px;padding:0 32px 0 12px;border:1px solid #E2E5EB;border-radius:8px;background:#fff url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394A3B8%22 stroke-width=%222%22><path d=%22m6 9 6 6 6-6%22/></svg>') no-repeat right 10px center;font:500 13px/1 inherit;color:#475569;cursor:pointer;appearance:none;">
+          <option>50E-32407</option>
+          <option>51H-88123</option>
+          <option>Tất cả xe</option>
+        </select>
+        <select style="height:38px;padding:0 32px 0 12px;border:1px solid #E2E5EB;border-radius:8px;background:#fff url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394A3B8%22 stroke-width=%222%22><path d=%22m6 9 6 6 6-6%22/></svg>') no-repeat right 10px center;font:500 13px/1 inherit;color:#475569;cursor:pointer;appearance:none;">
+          <option>Tháng 12/2024</option>
+          <option>Tháng 11/2024</option>
+          <option>Tháng 10/2024</option>
+          <option>Quý 4/2024</option>
+        </select>
+      </div>
     </header>
-    <div style="flex:1;overflow:auto;padding:24px 28px;">
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
-        <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
-          <div style="height:40px;width:40px;border-radius:10px;background:var(--accent-soft,#E0F2FE);color:var(--accent,#0369A1);display:flex;align-items:center;justify-content:center;margin-bottom:14px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg></div>
-          <div style="font-size:15px;font-weight:700;">Chi phí theo xe</div>
-          <div style="font-size:13px;color:#64748B;margin-top:4px;line-height:1.5;">Tổng hợp chi phí &amp; lợi nhuận từng đầu xe theo kỳ.</div>
-          <div style="display:flex;gap:8px;margin-top:16px;"><span style="font-size:12px;font-weight:600;color:#15A36E;background:#E3F7EE;padding:4px 10px;border-radius:6px;">Excel</span><span style="font-size:12px;font-weight:600;color:#EF4444;background:#FCE6E6;padding:4px 10px;border-radius:6px;">PDF</span></div>
+    <div style="flex:1;overflow:auto;padding:24px 28px;display:flex;flex-direction:column;gap:20px;">
+      <!-- Quick summary -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;">
+        <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
+          <div style="font-size:12px;font-weight:600;color:#94A3B8;margin-bottom:6px;">Tổng chuyến</div>
+          <div style="font-size:24px;font-weight:800;color:#0F172A;font-variant-numeric:tabular-nums;">28</div>
         </div>
-        <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
-          <div style="height:40px;width:40px;border-radius:10px;background:var(--accent-soft,#E0F2FE);color:var(--accent,#0369A1);display:flex;align-items:center;justify-content:center;margin-bottom:14px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg></div>
-          <div style="font-size:15px;font-weight:700;">Chi phí theo tháng</div>
-          <div style="font-size:13px;color:#64748B;margin-top:4px;line-height:1.5;">Bảng P&amp;L tổng hợp tất cả xe theo từng tháng.</div>
-          <div style="display:flex;gap:8px;margin-top:16px;"><span style="font-size:12px;font-weight:600;color:#15A36E;background:#E3F7EE;padding:4px 10px;border-radius:6px;">Excel</span><span style="font-size:12px;font-weight:600;color:#EF4444;background:#FCE6E6;padding:4px 10px;border-radius:6px;">PDF</span></div>
+        <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
+          <div style="font-size:12px;font-weight:600;color:#94A3B8;margin-bottom:6px;">Tổng doanh thu</div>
+          <div style="font-size:24px;font-weight:800;color:#0F172A;font-variant-numeric:tabular-nums;">25.08<span style="font-size:14px;font-weight:600;color:#64748B;">M</span></div>
         </div>
+        <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
+          <div style="font-size:12px;font-weight:600;color:#94A3B8;margin-bottom:6px;">Tổng chi phí</div>
+          <div style="font-size:24px;font-weight:800;color:#0F172A;font-variant-numeric:tabular-nums;">23.86<span style="font-size:14px;font-weight:600;color:#64748B;">M</span></div>
+        </div>
+        <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
+          <div style="font-size:12px;font-weight:600;color:#94A3B8;margin-bottom:6px;">Lợi nhuận ròng</div>
+          <div style="font-size:24px;font-weight:800;color:#15A36E;font-variant-numeric:tabular-nums;">1.22<span style="font-size:14px;font-weight:600;color:#64748B;">M</span></div>
+        </div>
+      </div>
+
+      <!-- Report types -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;">
         <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
-          <div style="height:40px;width:40px;border-radius:10px;background:var(--accent-soft,#E0F2FE);color:var(--accent,#0369A1);display:flex;align-items:center;justify-content:center;margin-bottom:14px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M8 11h.01"/></svg></div>
-          <div style="font-size:15px;font-weight:700;">Lịch sử chuyến đi</div>
-          <div style="font-size:13px;color:#64748B;margin-top:4px;line-height:1.5;">Toàn bộ nhật ký chuyến kèm BOL, doanh thu, lợi nhuận.</div>
-          <div style="display:flex;gap:8px;margin-top:16px;"><span style="font-size:12px;font-weight:600;color:#15A36E;background:#E3F7EE;padding:4px 10px;border-radius:6px;">Excel</span><span style="font-size:12px;font-weight:600;color:#EF4444;background:#FCE6E6;padding:4px 10px;border-radius:6px;">PDF</span></div>
+          <div style="display:flex;align-items:flex-start;gap:14px;">
+            <div style="height:44px;width:44px;border-radius:10px;background:var(--accent-soft,#FEF3DC);color:var(--accent,#C2410C);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg></div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:16px;font-weight:700;">Chi phí theo xe</div>
+              <div style="font-size:13px;color:#64748B;margin-top:5px;line-height:1.5;">Tổng hợp chi phí &amp; lợi nhuận từng đầu xe: xăng dầu, cầu đường, phí phát sinh, lương tài xế, khấu hao.</div>
+              <div style="font-size:12px;color:#94A3B8;margin-top:8px;display:flex;align-items:center;gap:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>Bao gồm: bảng tổng hợp, biểu đồ cơ cấu chi phí</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid #EFF1F5;">
+            <button style="flex:1;height:36px;border:none;border-radius:7px;background:#15A36E;color:#fff;font:600 13px/1 inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;" style-hover="background:#0F8A5B;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Excel</button>
+            <button style="flex:1;height:36px;border:none;border-radius:7px;background:#EF4444;color:#fff;font:600 13px/1 inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;" style-hover="background:#DC2626;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>PDF</button>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
+          <div style="display:flex;align-items:flex-start;gap:14px;">
+            <div style="height:44px;width:44px;border-radius:10px;background:var(--accent-soft,#FEF3DC);color:var(--accent,#C2410C);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg></div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:16px;font-weight:700;">Báo cáo P&amp;L tháng</div>
+              <div style="font-size:13px;color:#64748B;margin-top:5px;line-height:1.5;">Bảng tổng hợp doanh thu – chi phí – lợi nhuận tất cả xe theo từng tháng, so sánh giữa các tháng.</div>
+              <div style="font-size:12px;color:#94A3B8;margin-top:8px;display:flex;align-items:center;gap:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>Bao gồm: P&amp;L chi tiết, biểu đồ xu hướng</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid #EFF1F5;">
+            <button style="flex:1;height:36px;border:none;border-radius:7px;background:#15A36E;color:#fff;font:600 13px/1 inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;" style-hover="background:#0F8A5B;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Excel</button>
+            <button style="flex:1;height:36px;border:none;border-radius:7px;background:#EF4444;color:#fff;font:600 13px/1 inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;" style-hover="background:#DC2626;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>PDF</button>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
+          <div style="display:flex;align-items:flex-start;gap:14px;">
+            <div style="height:44px;width:44px;border-radius:10px;background:var(--accent-soft,#FEF3DC);color:var(--accent,#C2410C);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M8 11h.01"/><path d="M12 15h4"/><path d="M8 15h.01"/></svg></div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:16px;font-weight:700;">Lịch sử chuyến đi</div>
+              <div style="font-size:13px;color:#64748B;margin-top:5px;line-height:1.5;">Toàn bộ nhật ký chuyến: ngày, khách hàng, lộ trình, số BOL/CDF, km, doanh thu, lợi nhuận từng chuyến.</div>
+              <div style="font-size:12px;color:#94A3B8;margin-top:8px;display:flex;align-items:center;gap:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>Bao gồm: danh sách chi tiết, tổng hợp theo khách hàng</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid #EFF1F5;">
+            <button style="flex:1;height:36px;border:none;border-radius:7px;background:#15A36E;color:#fff;font:600 13px/1 inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;" style-hover="background:#0F8A5B;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Excel</button>
+            <button style="flex:1;height:36px;border:none;border-radius:7px;background:#EF4444;color:#fff;font:600 13px/1 inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;" style-hover="background:#DC2626;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>PDF</button>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
+          <div style="display:flex;align-items:flex-start;gap:14px;">
+            <div style="height:44px;width:44px;border-radius:10px;background:var(--accent-soft,#FEF3DC);color:var(--accent,#C2410C);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:16px;font-weight:700;">Phân tích nhiên liệu</div>
+              <div style="font-size:13px;color:#64748B;margin-top:5px;line-height:1.5;">Báo cáo mức tiêu hao thực tế vs định mức, chi phí xăng dầu theo từng xe/tháng, cảnh báo bất thường.</div>
+              <div style="font-size:12px;color:#94A3B8;margin-top:8px;display:flex;align-items:center;gap:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>Bao gồm: bảng so sánh, biểu đồ tiêu hao</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid #EFF1F5;">
+            <button style="flex:1;height:36px;border:none;border-radius:7px;background:#15A36E;color:#fff;font:600 13px/1 inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;" style-hover="background:#0F8A5B;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Excel</button>
+            <button style="flex:1;height:36px;border:none;border-radius:7px;background:#EF4444;color:#fff;font:600 13px/1 inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;" style-hover="background:#DC2626;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>PDF</button>
+          </div>
         </div>
       </div>
     </div>
@@ -808,24 +872,120 @@
 
     <!-- ===== IMPORT ===== -->
     <sc-if value="{{ isImport }}" hint-placeholder-val="{{ false }}">
-    <header style="flex-shrink:0;background:#fff;border-bottom:1px solid #E2E5EB;padding:16px 28px;">
-      <div style="font-size:11.5px;color:#94A3B8;font-weight:500;margin-bottom:5px;">Dữ liệu · Nhập từ Excel</div>
-      <div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.1;white-space:nowrap;">Import Excel</div>
-    </header>
-    <div style="flex:1;overflow:auto;padding:24px 28px;display:flex;flex-direction:column;gap:18px;max-width:920px;">
-      <div style="border:2px dashed #CBD2DC;border-radius:12px;background:#fff;padding:40px;display:flex;flex-direction:column;align-items:center;text-align:center;">
-        <div style="height:56px;width:56px;border-radius:14px;background:var(--accent-soft,#E0F2FE);color:var(--accent,#0369A1);display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg></div>
-        <div style="font-size:16px;font-weight:700;">Kéo &amp; thả file Excel vào đây</div>
-        <div style="font-size:13.5px;color:#64748B;margin-top:6px;max-width:420px;line-height:1.5;">Hỗ trợ định dạng cũ <b>.xls</b> / <b>.xlsx</b> — mỗi xe một file, mỗi tháng một sheet (theo cách lưu hiện tại).</div>
-        <button style="margin-top:18px;height:40px;padding:0 20px;border:none;border-radius:8px;background:var(--accent,#0369A1);color:#fff;font:600 14px/1 inherit;cursor:pointer;" style-hover="background:var(--accent-strong,#025d8a);">Chọn file…</button>
+    <header style="flex-shrink:0;background:#fff;border-bottom:1px solid #E2E5EB;padding:16px 28px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11.5px;color:#94A3B8;font-weight:500;margin-bottom:5px;">Dữ liệu · Nhập từ Excel</div>
+        <div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.1;white-space:nowrap;">Import Excel</div>
       </div>
-      <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
-        <div style="font-size:15px;font-weight:700;margin-bottom:14px;">Quy trình nhập liệu</div>
-        <div style="display:flex;flex-direction:column;gap:14px;">
-          <div style="display:flex;gap:13px;align-items:flex-start;"><div style="height:26px;width:26px;border-radius:50%;background:#0F172A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">1</div><div><div style="font-size:14px;font-weight:600;">Tải file &amp; chọn sheet</div><div style="font-size:13px;color:#64748B;margin-top:1px;">Hệ thống đọc danh sách sheet (mỗi sheet = 1 tháng) và phát hiện biển số xe từ tên file.</div></div></div>
-          <div style="display:flex;gap:13px;align-items:flex-start;"><div style="height:26px;width:26px;border-radius:50%;background:#0F172A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">2</div><div><div style="font-size:14px;font-weight:600;">Ánh xạ cột (mapping)</div><div style="font-size:13px;color:#64748B;margin-top:1px;">Khớp cột Excel với trường hệ thống: ngày, lộ trình, km, lít, đơn giá, cầu đường, doanh thu…</div></div></div>
-          <div style="display:flex;gap:13px;align-items:flex-start;"><div style="height:26px;width:26px;border-radius:50%;background:#0F172A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">3</div><div><div style="font-size:14px;font-weight:600;">Xem trước &amp; xác nhận</div><div style="font-size:13px;color:#64748B;margin-top:1px;">Hệ thống tự tính tổng km, chi phí nhiên liệu và lợi nhuận; cảnh báo dòng lỗi trước khi lưu.</div></div></div>
+      <button style="height:38px;padding:0 14px;border:1px solid #E2E5EB;border-radius:8px;background:#fff;color:#475569;font:600 13px/1 inherit;cursor:pointer;display:flex;align-items:center;gap:7px;" style-hover="border-color:var(--accent,#C2410C);color:var(--accent,#C2410C);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Tải file mẫu</button>
+    </header>
+    <div style="flex:1;overflow:auto;padding:24px 28px;display:flex;flex-direction:column;gap:20px;">
+      <!-- Upload area -->
+      <div style="border:2px dashed #CBD2DC;border-radius:12px;background:#fff;padding:40px;display:flex;flex-direction:column;align-items:center;text-align:center;transition:border-color .15s,background .15s;" style-hover="border-color:var(--accent,#C2410C);background:#FFFBF5;">
+        <div style="height:56px;width:56px;border-radius:14px;background:var(--accent-soft,#FEF3DC);color:var(--accent,#C2410C);display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg></div>
+        <div style="font-size:16px;font-weight:700;">Kéo &amp; thả file Excel vào đây</div>
+        <div style="font-size:13.5px;color:#64748B;margin-top:6px;max-width:460px;line-height:1.5;">Hỗ trợ định dạng <b>.xls</b> và <b>.xlsx</b>. Mỗi file = 1 xe, mỗi sheet = 1 tháng (theo cách lưu Excel hiện tại của công ty).</div>
+        <div style="display:flex;gap:10px;margin-top:18px;">
+          <button style="height:40px;padding:0 20px;border:none;border-radius:8px;background:var(--accent,#C2410C);color:#fff;font:600 14px/1 inherit;cursor:pointer;display:flex;align-items:center;gap:7px;" style-hover="background:var(--accent-strong,#9A3412);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"/><polyline points="14 2 14 8 20 8"/><path d="M2 15h10"/><path d="m9 18 3-3-3-3"/></svg>Chọn file…</button>
         </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <!-- Supported formats -->
+        <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
+          <div style="font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C2410C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>Định dạng hỗ trợ</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F8FAFC;border-radius:8px;">
+              <span style="font-size:12px;font-weight:700;color:#15A36E;background:#E3F7EE;padding:3px 8px;border-radius:4px;">.xls</span>
+              <span style="font-size:13px;color:#475569;">Excel 97-2003 (định dạng cũ)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F8FAFC;border-radius:8px;">
+              <span style="font-size:12px;font-weight:700;color:#15A36E;background:#E3F7EE;padding:3px 8px;border-radius:4px;">.xlsx</span>
+              <span style="font-size:13px;color:#475569;">Excel 2007+ (khuyến nghị)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Field mapping preview -->
+        <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
+          <div style="font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C2410C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>Trường dữ liệu nhập</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <span style="font-size:12px;font-weight:500;color:#475569;background:#F1F5F9;padding:5px 10px;border-radius:6px;">Ngày</span>
+            <span style="font-size:12px;font-weight:500;color:#475569;background:#F1F5F9;padding:5px 10px;border-radius:6px;">Khách hàng</span>
+            <span style="font-size:12px;font-weight:500;color:#475569;background:#F1F5F9;padding:5px 10px;border-radius:6px;">Lộ trình</span>
+            <span style="font-size:12px;font-weight:500;color:#475569;background:#F1F5F9;padding:5px 10px;border-radius:6px;">Km bắt đầu</span>
+            <span style="font-size:12px;font-weight:500;color:#475569;background:#F1F5F9;padding:5px 10px;border-radius:6px;">Km kết thúc</span>
+            <span style="font-size:12px;font-weight:500;color:#475569;background:#F1F5F9;padding:5px 10px;border-radius:6px;">Số lít</span>
+            <span style="font-size:12px;font-weight:500;color:#475569;background:#F1F5F9;padding:5px 10px;border-radius:6px;">Đơn giá xăng</span>
+            <span style="font-size:12px;font-weight:500;color:#475569;background:#F1F5F9;padding:5px 10px;border-radius:6px;">Cầu đường</span>
+            <span style="font-size:12px;font-weight:500;color:#475569;background:#F1F5F9;padding:5px 10px;border-radius:6px;">Phí khác</span>
+            <span style="font-size:12px;font-weight:500;color:#475569;background:#F1F5F9;padding:5px 10px;border-radius:6px;">Doanh thu</span>
+            <span style="font-size:12px;font-weight:500;color:#475569;background:#F1F5F9;padding:5px 10px;border-radius:6px;">BOL</span>
+            <span style="font-size:12px;font-weight:500;color:#475569;background:#F1F5F9;padding:5px 10px;border-radius:6px;">CDF</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Process steps -->
+      <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.04);">
+        <div style="font-size:15px;font-weight:700;margin-bottom:16px;">Quy trình nhập liệu</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+          <div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:16px;background:#F8FAFC;border-radius:10px;">
+            <div style="height:40px;width:40px;border-radius:50%;background:#C2410C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;margin-bottom:12px;">1</div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Tải file &amp; chọn sheet</div>
+            <div style="font-size:12.5px;color:#64748B;line-height:1.5;">Đọc danh sách sheet, tự phát hiện biển số xe từ tên file</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:16px;background:#F8FAFC;border-radius:10px;">
+            <div style="height:40px;width:40px;border-radius:50%;background:#C2410C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;margin-bottom:12px;">2</div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Ánh xạ cột (Mapping)</div>
+            <div style="font-size:12.5px;color:#64748B;line-height:1.5;">Khớp cột Excel với trường hệ thống, tự động gợi ý</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:16px;background:#F8FAFC;border-radius:10px;">
+            <div style="height:40px;width:40px;border-radius:50%;background:#C2410C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;margin-bottom:12px;">3</div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Xem trước &amp; Lưu</div>
+            <div style="font-size:12.5px;color:#64748B;line-height:1.5;">Tự tính lợi nhuận, cảnh báo lỗi, xác nhận trước khi lưu</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Import history -->
+      <div style="background:#fff;border:1px solid #E2E5EB;border-radius:10px;box-shadow:0 1px 3px rgba(15,23,42,.04);overflow:hidden;">
+        <div style="padding:16px 20px;border-bottom:1px solid #EFF1F5;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:15px;font-weight:700;">Lịch sử import</div>
+          <span style="font-size:12px;color:#94A3B8;">3 lần import gần nhất</span>
+        </div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#F8FAFC;border-bottom:1px solid #E2E5EB;">
+            <th style="text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94A3B8;padding:10px 20px;">Thời gian</th>
+            <th style="text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94A3B8;padding:10px 12px;">Tên file</th>
+            <th style="text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94A3B8;padding:10px 12px;">Xe</th>
+            <th style="text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94A3B8;padding:10px 12px;">Số dòng</th>
+            <th style="text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94A3B8;padding:10px 20px;">Trạng thái</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #EFF1F5;">
+              <td style="padding:12px 20px;font-size:13px;color:#475569;">15/12/2024 14:32</td>
+              <td style="padding:12px 12px;font-size:13px;font-weight:500;">50E-32407_Q4-2024.xlsx</td>
+              <td style="padding:12px 12px;font-size:13px;color:#475569;">50E-32407</td>
+              <td style="padding:12px 12px;text-align:right;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;">28</td>
+              <td style="padding:12px 20px;"><span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#15A36E;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Thành công</span></td>
+            </tr>
+            <tr style="border-bottom:1px solid #EFF1F5;">
+              <td style="padding:12px 20px;font-size:13px;color:#475569;">10/11/2024 09:15</td>
+              <td style="padding:12px 12px;font-size:13px;font-weight:500;">51H-88123_Nov2024.xls</td>
+              <td style="padding:12px 12px;font-size:13px;color:#475569;">51H-88123</td>
+              <td style="padding:12px 12px;text-align:right;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;">22</td>
+              <td style="padding:12px 20px;"><span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#15A36E;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Thành công</span></td>
+            </tr>
+            <tr>
+              <td style="padding:12px 20px;font-size:13px;color:#475569;">05/10/2024 16:48</td>
+              <td style="padding:12px 12px;font-size:13px;font-weight:500;">50E-32407_Oct2024.xlsx</td>
+              <td style="padding:12px 12px;font-size:13px;color:#475569;">50E-32407</td>
+              <td style="padding:12px 12px;text-align:right;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;">31</td>
+              <td style="padding:12px 20px;"><span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#F59E0B;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>2 cảnh báo</span></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
     </sc-if>
