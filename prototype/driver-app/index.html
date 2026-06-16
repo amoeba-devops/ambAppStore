@@ -150,6 +150,13 @@
   .amount::placeholder{color:var(--border-strong);}
   textarea.note{width:100%;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;font:500 14px/1.4 'Be Vietnam Pro';resize:none;color:var(--text);background:var(--surface);}
   .receipt{border:1.5px dashed var(--border-strong);border-radius:12px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text-faint);text-align:center;}
+  .oc-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+  .oc-row input.ocn{flex:1;min-width:0;height:46px;border:1.5px solid var(--border);border-radius:10px;padding:0 12px;font:500 14px 'Be Vietnam Pro';background:var(--surface);color:var(--text);}
+  .oc-row input.ocv{width:112px;height:46px;border:1.5px solid var(--border);border-radius:10px;padding:0 12px;font:700 15px 'JetBrains Mono';background:var(--surface);color:var(--text);text-align:right;}
+  .oc-row input::placeholder{color:var(--border-strong);font-weight:500;}
+  .oc-del{width:40px;height:46px;flex-shrink:0;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text-faint);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .oc-del:hover{border-color:#FCA5A5;color:var(--danger);}
+  .oc-add{width:100%;height:44px;border:1.5px dashed var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:10px;font:700 13.5px 'Be Vietnam Pro';display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;margin-top:2px;}
 
   .prof{display:flex;align-items:center;gap:14px;padding:18px;}
   .prof .pav{height:56px;width:56px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;flex-shrink:0;}
@@ -311,6 +318,11 @@ const L = {
     licTitle:'Bằng lái', licNo:'Số bằng', licClass:'Hạng', licExpiry:'Ngày hết hạn', licPhone:'Điện thoại', langTitle:'Ngôn ngữ',
     pushTitle:'Thông báo đẩy', pushDesc:'Nhận thông báo chuyến mới &amp; cập nhật', logout:'Đăng xuất',
     actReject:'Từ chối', actAccept:'Chấp nhận', actStart:'Bắt đầu chuyến', actEnd:'Kết thúc chuyến', actExpense:'Ghi nhận chi phí',
+    tkToComplete:'Cần hoàn thành', heroTruckTodo:'Chuyến cần hoàn thành', badgeTruckTodo:'CẦN HOÀN THÀNH', truckTabTodo:'Cần hoàn thành', truckTabDone:'Đã hoàn thành',
+    actComplete:'Hoàn thành chuyến đi', completeTitle:'Hoàn thành chuyến đi', completeSub:'Điền thông tin & chi phí để chốt chuyến', backTrip:'Chuyến',
+    fStartTime:'Giờ bắt đầu', fEndTime:'Giờ kết thúc', fOdometer:'Số km đồng hồ lúc kết thúc', fFuel:'Lượng nhiên liệu tiêu thụ (lít)', fToll:'Phí cầu đường (VND)', fOther:'Chi phí phát sinh khác (VND)', fOtherNote:'Ghi chú chi phí phát sinh khác', fOtherNotePh:'xăng thêm, vá vỏ, rửa xe, phí bãi,..', submitComplete:'Xác nhận hoàn thành',
+    tripCostTitle:'Chi phí chuyến', totalCost:'Tổng chi phí', timeRange:'Giờ bắt đầu – kết thúc',
+    fOtherSection:'Chi phí phát sinh khác', fOtherNamePh:'Tên khoản phí (vd: vá vỏ, rửa xe…)', fOtherValuePh:'Số tiền', addOther:'Thêm khoản phí', ocSampleParking:'Phí bãi', ocSampleWash:'Rửa xe',
     navToday:'Hôm nay', navTrips:'Chuyến của tôi', navExpenses:'Ghi nhận chi phí', navMe:'Tôi',
     tripCount:n=>n+' chuyến', carsCount:n=>n+' xe', daysLeft:n=>'Còn '+n+' ngày',
     fuelPetrol:'Xăng', fuelDiesel:'Dầu',
@@ -340,6 +352,11 @@ const L = {
     licTitle:'Driver license', licNo:'License no.', licClass:'Class', licExpiry:'Expiry date', licPhone:'Phone', langTitle:'Language',
     pushTitle:'Push notifications', pushDesc:'Get alerts on new trips &amp; updates', logout:'Sign out',
     actReject:'Reject', actAccept:'Accept', actStart:'Start trip', actEnd:'End trip', actExpense:'Record expense',
+    tkToComplete:'To complete', heroTruckTodo:'Trip to complete', badgeTruckTodo:'TO COMPLETE', truckTabTodo:'To complete', truckTabDone:'Completed',
+    actComplete:'Complete trip', completeTitle:'Complete trip', completeSub:'Fill in details & costs to close the trip', backTrip:'Trip',
+    fStartTime:'Start time', fEndTime:'End time', fOdometer:'Odometer at end (km)', fFuel:'Fuel consumed (liters)', fToll:'Toll fee (VND)', fOther:'Other costs (VND)', fOtherNote:'Note for other costs', fOtherNotePh:'extra fuel, tire patch, car wash, parking,..', submitComplete:'Confirm completion',
+    tripCostTitle:'Trip costs', totalCost:'Total cost', timeRange:'Start – end time',
+    fOtherSection:'Other costs', fOtherNamePh:'Cost name (e.g. tire patch, car wash…)', fOtherValuePh:'Amount', addOther:'Add cost item', ocSampleParking:'Parking fee', ocSampleWash:'Car wash',
     navToday:'Today', navTrips:'My trips', navExpenses:'Record expense', navMe:'Me',
     tripCount:n=>n+' trips', carsCount:n=>n+' cars', daysLeft:n=>n+' days left',
     fuelPetrol:'Petrol', fuelDiesel:'Diesel',
@@ -369,6 +386,11 @@ const L = {
     licTitle:'운전면허', licNo:'면허 번호', licClass:'종류', licExpiry:'만료일', licPhone:'전화', langTitle:'언어',
     pushTitle:'푸시 알림', pushDesc:'새 운행 &amp; 업데이트 알림 받기', logout:'로그아웃',
     actReject:'거절', actAccept:'수락', actStart:'운행 시작', actEnd:'운행 종료', actExpense:'비용 기록',
+    tkToComplete:'완료 필요', heroTruckTodo:'완료할 운행', badgeTruckTodo:'완료 필요', truckTabTodo:'완료 필요', truckTabDone:'완료됨',
+    actComplete:'운행 완료', completeTitle:'운행 완료', completeSub:'정보 & 비용을 입력해 운행을 마감하세요', backTrip:'운행',
+    fStartTime:'시작 시간', fEndTime:'종료 시간', fOdometer:'종료 시 주행거리 (km)', fFuel:'연료 소비량 (리터)', fToll:'통행료 (VND)', fOther:'기타 발생 비용 (VND)', fOtherNote:'기타 비용 메모', fOtherNotePh:'추가 주유, 타이어 수리, 세차, 주차비,..', submitComplete:'완료 확인',
+    tripCostTitle:'운행 비용', totalCost:'총 비용', timeRange:'시작 – 종료 시간',
+    fOtherSection:'기타 발생 비용', fOtherNamePh:'비용 항목 (예: 타이어 수리, 세차…)', fOtherValuePh:'금액', addOther:'비용 항목 추가', ocSampleParking:'주차비', ocSampleWash:'세차',
     navToday:'오늘', navTrips:'내 운행', navExpenses:'비용 기록', navMe:'나',
     tripCount:n=>n+'회 운행', carsCount:n=>n+'대', daysLeft:n=>n+'일 남음',
     fuelPetrol:'휘발유', fuelDiesel:'경유',
@@ -421,9 +443,9 @@ const DATA = {
              {ref:'C-801',who:'Pepsico VN',plate:'51C-771.92',date:'10/06',time:'05:50',s:{vi:'Kho HCM → Đồng Nai',en:'HCMC Wh → Dong Nai',ko:'HCMC 창고 → 동나이'}} ],
     tripsOngoing:[ {ref:'C-815',who:'ACME Corp',time:'06:00',plate:'50E-324.07',st:'IN_PROGRESS',s:{vi:'Kho HCM → KCN VSIP Bình Dương',en:'HCMC Wh → VSIP IZ Binh Duong',ko:'HCMC 창고 → VSIP 산업단지 빈즈엉'}},
                    {ref:'C-816',who:'Vinamilk JSC',time:'14:00',plate:'50E-324.07',st:'CONFIRMED',s:{vi:'Bình Dương → Kho HCM',en:'Binh Duong → HCMC Wh',ko:'빈즈엉 → HCMC 창고'}} ],
-    tripsDone:[ {ref:'C-808',who:'ACME Corp',time:'14/06 · 06:10',plate:'50E-324.07',st:'COMPLETED',s:{vi:'Kho HCM → Bình Dương',en:'HCMC Wh → Binh Duong',ko:'HCMC 창고 → 빈즈엉'}},
-                {ref:'C-805',who:'Vinamilk JSC',time:'13/06 · 07:30',plate:'50E-324.07',st:'COMPLETED',s:{vi:'Bình Dương → Long An',en:'Binh Duong → Long An',ko:'빈즈엉 → 롱안'}},
-                {ref:'C-801',who:'Pepsico VN',time:'10/06 · 05:50',plate:'51C-771.92',st:'COMPLETED',s:{vi:'Kho HCM → Đồng Nai',en:'HCMC Wh → Dong Nai',ko:'HCMC 창고 → 동나이'}} ],
+    tripsDone:[ {ref:'C-808',who:'ACME Corp',time:'14/06 · 06:10',plate:'50E-324.07',st:'COMPLETED',s:{vi:'Kho HCM → Bình Dương',en:'HCMC Wh → Binh Duong',ko:'HCMC 창고 → 빈즈엉'},cost:{start:'06:10',end:'08:05',odo:'118.420',fuel:'24',toll:'350.000',total:'430.000',others:[{name:{vi:'Phí bãi',en:'Parking fee',ko:'주차비'},value:'50.000'},{name:{vi:'Rửa xe',en:'Car wash',ko:'세차'},value:'30.000'}]}},
+                {ref:'C-805',who:'Vinamilk JSC',time:'13/06 · 07:30',plate:'50E-324.07',st:'COMPLETED',s:{vi:'Bình Dương → Long An',en:'Binh Duong → Long An',ko:'빈즈엉 → 롱안'},cost:{start:'07:30',end:'10:15',odo:'119.900',fuel:'42',toll:'420.000',total:'420.000',others:[]}},
+                {ref:'C-801',who:'Pepsico VN',time:'10/06 · 05:50',plate:'51C-771.92',st:'COMPLETED',s:{vi:'Kho HCM → Đồng Nai',en:'HCMC Wh → Dong Nai',ko:'HCMC 창고 → 동나이'},cost:{start:'05:50',end:'09:30',odo:'121.050',fuel:'55',toll:'500.000',total:'650.000',others:[{name:{vi:'Vá vỏ',en:'Tire patch',ko:'타이어 수리'},value:'150.000'}]}} ],
     expenses:[ {type:'FUEL',amt:'2.400.000₫',date:'15/06/2025',ref:'C-815',st:'APPROVED'},
                {type:'TOLL',amt:'350.000₫',date:'15/06/2025',ref:'C-815',st:'AUTO_APPROVED'},
                {type:'REPAIR',amt:'800.000₫',date:'14/06/2025',ref:'C-808',st:'PENDING'},
@@ -444,7 +466,7 @@ const STATE = { confirm:{banner:'confirm',sl:'heroConfirm',badge:'badgeConfirm',
 const STONE = { PENDING_DRIVER_CONFIRMATION:'warning', CONFIRMED:'success', IN_PROGRESS:'info', COMPLETED:'neutral', CANCELLED:'danger', REJECTED_BY_DRIVER:'danger' };
 const ESTONE = { PENDING:'warning', APPROVED:'success', AUTO_APPROVED:'info', REJECTED:'danger' };
 
-let cur = { theme:'car', state:'ready', screen:'today', tripTab:'ongoing', expType:'FUEL', lang:'vi' };
+let cur = { theme:'car', state:'ready', screen:'today', tripTab:'ongoing', expType:'FUEL', lang:'vi', detailRef:null, otherCosts:null };
 
 /* helpers */
 const t = k => { const v=L[cur.lang][k]; return v!==undefined?v:L.vi[k]; };
@@ -456,13 +478,16 @@ const toL = ()=> cur.theme==='truck'?t('toTruck'):t('toCar');
 const paxL = ()=> cur.theme==='truck'?t('paxTruck'):t('paxCar');
 const lastTxt = v => v==='today'?t('todayWord'):v;
 const fuelTxt = f => f==='petrol'?t('fuelPetrol'):t('fuelDiesel');
+const isTruck = ()=> cur.theme==='truck';
+const doneTripByRef = ()=> (isTruck() && cur.detailRef) ? DATA.truck.tripsDone.find(x=>x.ref===cur.detailRef) : null;
 
 /* ---------- TODAY ---------- */
 function renderToday(){
   const d=DATA[cur.theme], s=STATE[cur.state], n=d.next;
   const bol = n.bol?`<div class="meta-row" style="border-top:1px solid #EFF1F5;margin-top:10px;padding-top:12px;"><span class="it">${t('bolLabel')} <b class="mono">${n.bol}</b></span><span class="it">CDF <b class="mono">${n.cdf}</b></span></div>`:'';
+  const hbCls=isTruck()?'ready':s.banner, hbSl=isTruck()?t('heroTruckTodo'):t(s.sl), hbBadge=isTruck()?t('badgeTruckTodo'):t(s.badge);
   let h=`<div class="card">
-    <div class="hero-banner ${s.banner}"><div style="min-width:0;"><div class="sl">${t(s.sl)}</div><div class="ref mono">#${n.ref}</div></div><span class="badge-w">${t(s.badge)}</span></div>
+    <div class="hero-banner ${hbCls}"><div style="min-width:0;"><div class="sl">${hbSl}</div><div class="ref mono">#${n.ref}</div></div><span class="badge-w">${hbBadge}</span></div>
     <div class="hero-body">
       <div class="pax"><div class="avatar">${n.initials}</div><div style="min-width:0;"><div class="nm">${n.who}</div><div class="pp">${tx(n.purpose)}</div></div></div>
       <div class="route">
@@ -472,17 +497,17 @@ function renderToday(){
         ${bol}
       </div>
     </div></div>
-    <a class="link" style="padding:0 4px;display:inline-flex;align-items:center;gap:4px;" data-goto="detail">${t('tripDetails')} ${I.chev}</a>`;
+    <a class="link" style="padding:0 4px;display:inline-flex;align-items:center;gap:4px;" data-goto="detail" data-ref="${n.ref}">${t('tripDetails')} ${I.chev}</a>`;
   if(d.later.length){
     h+=`<div class="card"><div class="card-head"><span class="ttl">${t('laterToday')}</span></div><div class="rows">`;
-    d.later.forEach(r=>h+=`<a class="row" data-goto="detail"><span class="rref mono">${r.ref}</span><span class="rmid"><div class="rt">${r.who}</div><div class="rs">${tx(r.s)}</div></span><span class="rtime mono">${r.time}</span><span class="chev">${I.chev}</span></a>`);
+    d.later.forEach(r=>h+=`<a class="row" data-goto="detail" data-ref="${r.ref}"><span class="rref mono">${r.ref}</span><span class="rmid"><div class="rt">${r.who}</div><div class="rs">${tx(r.s)}</div></span><span class="rtime mono">${r.time}</span><span class="chev">${I.chev}</span></a>`);
     h+=`</div></div>`;
   }
   h+=`<div class="card"><div class="card-head"><span class="ttl">${t('myVehicles')}</span><span class="meta">${t('carsCount')(d.vehicles.length)}</span></div>`;
   d.vehicles.forEach(v=>h+=`<div class="veh"><div class="vico">${vIcon()}</div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:7px;"><span class="vp mono">${v.plate}</span>${v.active?`<span class="bdg info">${t('inUse')}</span>`:''}</div><div class="vm">${v.model}</div><div class="vd"><span style="display:inline-flex;align-items:center;gap:4px;">${I.fuel}${fuelTxt(v.fuel)}</span><span>·</span><span>${t('tripCount')(v.trips)}</span><span>·</span><span>${t('lastDriven')} ${lastTxt(v.last)}</span></div></div></div>`);
   h+=`</div>`;
   h+=`<div class="card"><div class="card-head"><span class="ttl">${t('recentTrips')}</span><a class="link" data-tab="tripsMine">${t('viewAll')}</a></div><div class="rows">`;
-  d.recent.forEach(r=>h+=`<a class="row" data-goto="detail"><span class="rref mono">${r.ref}</span><span class="rmid"><div class="rt">${r.who} <span class="mono" style="font-size:11px;color:var(--text-faint);">· ${r.plate}</span></div><div class="rs">${tx(r.s)}</div></span><span class="rtime mono">${r.date}<br><span style="color:var(--text-faint);">${r.time}</span></span><span class="chev">${I.chev}</span></a>`);
+  d.recent.forEach(r=>h+=`<a class="row" data-goto="detail" data-ref="${r.ref}"><span class="rref mono">${r.ref}</span><span class="rmid"><div class="rt">${r.who} <span class="mono" style="font-size:11px;color:var(--text-faint);">· ${r.plate}</span></div><div class="rs">${tx(r.s)}</div></span><span class="rtime mono">${r.date}<br><span style="color:var(--text-faint);">${r.time}</span></span><span class="chev">${I.chev}</span></a>`);
   h+=`</div></div>`;
   return h;
 }
@@ -491,11 +516,15 @@ function renderToday(){
 function renderTrips(){
   const d=DATA[cur.theme];
   const list = cur.tripTab==='ongoing'?d.tripsOngoing:d.tripsDone;
+  const tabA=isTruck()?t('truckTabTodo'):t('tabOngoing'), tabB=isTruck()?t('truckTabDone'):t('tabCompleted');
   let h=`<div class="scrn-title">${t('tripsTitle')}</div>
-    <div class="subtabs"><button data-ttab="ongoing" class="${cur.tripTab==='ongoing'?'on':''}">${t('tabOngoing')}</button><button data-ttab="completed" class="${cur.tripTab==='completed'?'on':''}">${t('tabCompleted')}</button></div>`;
+    <div class="subtabs"><button data-ttab="ongoing" class="${cur.tripTab==='ongoing'?'on':''}">${tabA}</button><button data-ttab="completed" class="${cur.tripTab==='completed'?'on':''}">${tabB}</button></div>`;
   if(!list.length){ h+=`<div class="card"><div style="padding:40px 20px;text-align:center;"><div style="font-size:15px;font-weight:700;">${t('emptyTitle')}</div><div style="font-size:12.5px;color:var(--text-faint);margin-top:6px;">${t('emptyDesc')}</div></div></div>`; return h; }
-  list.forEach(r=>{ const tone=STONE[r.st];
-    h+=`<a class="tcard" data-goto="detail"><div class="top"><div class="avatar sm">${initials(r.who)}</div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;"><div style="min-width:0;"><div class="tref mono">${r.ref}</div><div class="tnm">${r.who}</div></div><span class="bdg ${tone}">${t('s_'+r.st)}</span></div>
+  list.forEach(r=>{
+    const badge = isTruck()
+      ? (cur.tripTab==='ongoing' ? `<span class="bdg info">${t('tkToComplete')}</span>` : `<span class="bdg neutral">${t('s_COMPLETED')}</span>`)
+      : `<span class="bdg ${STONE[r.st]}">${t('s_'+r.st)}</span>`;
+    h+=`<a class="tcard" data-goto="detail" data-ref="${r.ref}"><div class="top"><div class="avatar sm">${initials(r.who)}</div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;"><div style="min-width:0;"><div class="tref mono">${r.ref}</div><div class="tnm">${r.who}</div></div>${badge}</div>
       <div class="trt">${tx(r.s)}</div><div class="tmeta"><span class="mono">${r.time}</span><span style="color:var(--text-faint);">·</span><span class="mono">${r.plate}</span></div></div></div></a>`; });
   return h;
 }
@@ -524,6 +553,52 @@ function renderExpenseNew(){
   return h;
 }
 
+/* ---------- DETAIL: chuyến đã hoàn thành (truck) — xem lại chi phí đã nhập ---------- */
+function renderDetailDone(tr){
+  const c=tr.cost;
+  const otherRows = (c.others||[]).map(o=>`<div class="kv"><span class="k" style="padding-left:10px;">· ${tx(o.name)}</span><span class="v mono">${o.value}</span></div>`).join('');
+  const otherHead = (c.others&&c.others.length)?`<div class="kv"><span class="k" style="font-weight:600;color:var(--text);">${t('fOtherSection')}</span><span class="v" style="color:var(--text-faint);font-weight:500;">${c.others.length}</span></div>`:'';
+  return `<div class="backlink" data-tab="tripsMine">${I.back} ${t('navTrips')}</div>
+  <div class="status-row"><span class="bdg neutral">${t('s_COMPLETED')}</span><span class="when">${I.cal} ${tr.time}</span></div>
+  <div class="sec"><div class="sttl">${t('routeTitle')}</div>
+    <div style="font-size:14.5px;font-weight:700;line-height:1.4;">${tr.who}</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-top:3px;">${tx(tr.s)}</div>
+    <div class="meta-row" style="margin-top:10px;"><span class="it">${I.truck}<b class="mono">${tr.plate}</b></span></div></div>
+  <div class="sec"><div class="sttl">${t('tripCostTitle')}</div>
+    <div class="kv"><span class="k">${t('timeRange')}</span><span class="v mono">${c.start} – ${c.end}</span></div>
+    <div class="kv"><span class="k">${t('fOdometer')}</span><span class="v mono">${c.odo}</span></div>
+    <div class="kv"><span class="k">${t('fFuel')}</span><span class="v mono">${c.fuel}</span></div>
+    <div class="kv"><span class="k">${t('fToll')}</span><span class="v mono">${c.toll}</span></div>
+    ${otherHead}${otherRows}
+    <div class="kv" style="background:var(--surface-2);"><span class="k" style="font-weight:700;color:var(--text);">${t('totalCost')}</span><span class="v mono" style="color:var(--accent);font-size:15px;">${c.total} ₫</span></div>
+  </div>`;
+}
+
+/* ---------- TRIP COMPLETE (truck) ---------- */
+function renderTripComplete(){
+  const n=DATA[cur.theme].next;
+  if(!cur.otherCosts) cur.otherCosts=[{name:t('ocSampleParking'),value:'50.000'},{name:t('ocSampleWash'),value:'30.000'}];
+  return `<div class="backlink" data-tab="today">${I.back} ${t('backTrip')}</div>
+  <div class="scrn-title">${t('completeTitle')}</div><div class="scrn-sub">${t('completeSub')}</div>
+  <div class="card" style="padding:13px 15px;"><div style="display:flex;align-items:center;gap:11px;"><div class="avatar sm">${n.initials}</div><div style="min-width:0;"><div style="font-size:14px;font-weight:700;">${n.who} <span class="mono" style="font-size:11px;color:var(--text-faint);">· #${n.ref}</span></div><div style="font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${tx(n.from)} → ${tx(n.to)}</div></div></div></div>
+  <div style="display:flex;gap:10px;">
+    <div class="field" style="flex:1;"><label>${t('fStartTime')}</label><input class="amount mono" style="font-size:18px;" value="06:00"></div>
+    <div class="field" style="flex:1;"><label>${t('fEndTime')}</label><input class="amount mono" style="font-size:18px;" value="07:30"></div>
+  </div>
+  <div class="field"><label>${t('fOdometer')}</label><input class="amount mono" placeholder="0" value="124.580"></div>
+  <div class="field"><label>${t('fFuel')}</label><input class="amount mono" placeholder="0" value="28"></div>
+  <div class="field"><label>${t('fToll')}</label><input class="amount mono" placeholder="0" value="350.000"></div>
+  <div class="field"><label>${t('fOtherSection')}</label>
+    <div id="ocList">${ cur.otherCosts.map((o,i)=>`
+      <div class="oc-row">
+        <input class="ocn" data-oc="${i}" data-ocf="name" placeholder="${t('fOtherNamePh')}" value="${o.name||''}">
+        <input class="ocv mono" data-oc="${i}" data-ocf="value" placeholder="${t('fOtherValuePh')}" value="${o.value||''}">
+        <button class="oc-del" data-ocdel="${i}" title="Xoá">${I.x}</button>
+      </div>`).join('') }</div>
+    <button class="oc-add" data-ocadd="1">${I.plus} ${t('addOther')}</button>
+  </div>`;
+}
+
 /* ---------- ME ---------- */
 function renderMe(){
   const m=DATA[cur.theme].me;
@@ -545,8 +620,11 @@ function renderMe(){
 function renderDetail(){
   const d=DATA[cur.theme], s=STATE[cur.state], n=d.next;
   const bol = n.bol?`<div class="sec"><div class="sttl">${t('shipDocs')}</div><div class="prop">${I.receipt}<span>${t('bolLabel')}: <span class="mono">${n.bol}</span></span></div><div class="prop">${I.receipt}<span>${t('cdfLabel')}: <span class="mono">${n.cdf}</span></span></div></div>`:'';
+  const dt=doneTripByRef();
+  if(dt) return renderDetailDone(dt);
+  const pill = isTruck()?`<span class="bdg info">${t('tkToComplete')}</span>`:`<span class="bdg ${s.pill}">${t(s.long)}</span>`;
   return `<div class="backlink" data-tab="today">${I.back} ${t('backToday')}</div>
-  <div class="status-row"><span class="bdg ${s.pill}">${t(s.long)}</span><span class="when">${I.cal} ${n.time} · ${t('todayWord')}</span></div>
+  <div class="status-row">${pill}<span class="when">${I.cal} ${n.time} · ${t('todayWord')}</span></div>
   <div class="map"><div class="ln"></div><div class="pin a">${I.pin}</div><div class="pin b">${I.pin}</div><span class="tag">${t('mapTag')}</span></div>
   <div class="sec"><div class="sttl">${t('routeTitle')}</div><div class="route">
     <div class="step from"><div class="dot">${I.pin}</div><div style="min-width:0;"><div class="lbl">${fromL()}</div><div class="val">${tx(n.from)}</div></div></div>
@@ -561,22 +639,27 @@ function renderDetail(){
 function renderActionBar(){
   const s=STATE[cur.state];
   if(cur.screen==='today'||cur.screen==='detail'){
+    if(isTruck()) return (cur.screen==='today' || doneTripByRef()) ? '' : `<div class="actionbar"><button class="btn primary" data-goto="tripComplete">${I.check} ${t('actComplete')}</button></div>`;
     let inner='';
     if(s.act==='confirm') inner=`<div class="ab-2"><button class="btn danger">${I.x} ${t('actReject')}</button><button class="btn primary" style="flex:1.4;">${I.check} ${t('actAccept')}</button></div>`;
     else if(s.act==='ready') inner=`<button class="btn primary">${I.play} ${t('actStart')}</button>`;
     else if(s.act==='active') inner=`<button class="btn dark">${I.stop} ${t('actEnd')}</button><button class="btn ghost">${I.receipt} ${t('actExpense')}</button>`;
     return `<div class="actionbar">${inner}</div>`;
   }
+  if(cur.screen==='tripComplete') return `<div class="actionbar"><button class="btn primary" data-goto="today">${I.check} ${t('submitComplete')}</button></div>`;
   if(cur.screen==='expenseNew') return `<div class="actionbar"><button class="btn primary">${I.check} ${t('submitExp')}</button></div>`;
   return '';
 }
 
 /* ---------- tabs ---------- */
 const TABS = [ {key:'today',l:'navToday',ic:I.calclock},{key:'tripsMine',l:'navTrips',ic:I.clipboard},{key:'expensesNew',l:'navExpenses',ic:I.receipt},{key:'me',l:'navMe',ic:I.user} ];
-const SCREEN_TAB = { today:'today',detail:'today',tripsMine:'tripsMine',expensesNew:'expensesNew',expenseNew:'expensesNew',me:'me' };
+const SCREEN_TAB = { today:'today',detail:'today',tripComplete:'today',tripsMine:'tripsMine',expensesNew:'expensesNew',expenseNew:'expensesNew',me:'me' };
+/* Truck driver: chi phí nhập tại form kết thúc chuyến → bỏ tab 'Ghi nhận chi phí' (3 tab). Car giữ 4 tab. */
+function tabsFor(){ return isTruck() ? TABS.filter(x=>x.key!=='expensesNew') : TABS; }
 function renderTabs(){
-  const a=SCREEN_TAB[cur.screen];
-  document.getElementById('tabnav').innerHTML = TABS.map(x=>`<button class="tab ${x.key===a?'on':''}" data-tab="${x.key}">${x.ic}<span>${t(x.l)}</span></button>`).join('');
+  const a=SCREEN_TAB[cur.screen], tabs=tabsFor(), nav=document.getElementById('tabnav');
+  nav.style.gridTemplateColumns=`repeat(${tabs.length},1fr)`;
+  nav.innerHTML = tabs.map(x=>`<button class="tab ${x.key===a?'on':''}" data-tab="${x.key}">${x.ic}<span>${t(x.l)}</span></button>`).join('');
 }
 
 /* ---------- static labels (controls + appbar) ---------- */
@@ -587,10 +670,13 @@ function applyStatic(){
   document.getElementById('brandSub').textContent = `${t('driverRole')} · ${cur.theme==='truck'?t('vTruck'):t('vCar')}`;
   document.querySelectorAll('#langSeg button').forEach(b=>b.classList.toggle('on',b.dataset.lang===cur.lang));
   document.querySelectorAll('#langMenu button').forEach(b=>b.classList.toggle('on',b.dataset.lang===cur.lang));
+  document.getElementById('stateSeg').style.display = cur.theme==='truck' ? 'none' : 'inline-flex';
 }
 
 /* ---------- mount ---------- */
 function render(){
+  /* Truck không có màn chi phí độc lập → nếu đang ở đó mà chuyển sang truck thì về Hôm nay */
+  if(isTruck() && (cur.screen==='expensesNew'||cur.screen==='expenseNew')) cur.screen='today';
   document.body.setAttribute('data-theme',cur.theme);
   document.documentElement.lang = cur.lang;
   document.getElementById('logo').textContent = DATA[cur.theme].logo;
@@ -602,17 +688,23 @@ function render(){
   else if(cur.screen==='tripsMine') b.innerHTML=renderTrips();
   else if(cur.screen==='expensesNew') b.innerHTML=renderExpenses();
   else if(cur.screen==='expenseNew') b.innerHTML=renderExpenseNew();
+  else if(cur.screen==='tripComplete') b.innerHTML=renderTripComplete();
   else if(cur.screen==='me') b.innerHTML=renderMe();
 
-  document.getElementById('actionMount').innerHTML=renderActionBar();
+  const am=document.getElementById('actionMount');
+  am.innerHTML=renderActionBar();
+  am.querySelectorAll('[data-goto]').forEach(el=>el.addEventListener('click',()=>{cur.screen=el.dataset.goto;render();}));
   renderTabs();
   b.scrollTop=0;
 
-  b.querySelectorAll('[data-goto]').forEach(el=>el.addEventListener('click',e=>{e.preventDefault();cur.screen=el.dataset.goto;render();}));
+  b.querySelectorAll('[data-goto]').forEach(el=>el.addEventListener('click',e=>{e.preventDefault();if(el.dataset.ref!==undefined)cur.detailRef=el.dataset.ref||null;cur.screen=el.dataset.goto;render();}));
   b.querySelectorAll('[data-tab]').forEach(el=>el.addEventListener('click',e=>{e.preventDefault();cur.screen=el.dataset.tab;render();}));
   b.querySelectorAll('[data-ttab]').forEach(el=>el.addEventListener('click',()=>{cur.tripTab=el.dataset.ttab==='ongoing'?'ongoing':'completed';render();}));
   b.querySelectorAll('[data-etype]').forEach(el=>el.addEventListener('click',()=>{cur.expType=el.dataset.etype;render();}));
   b.querySelectorAll('[data-setlang]').forEach(el=>el.addEventListener('click',()=>setLang(el.dataset.setlang)));
+  b.querySelectorAll('[data-ocadd]').forEach(el=>el.addEventListener('click',()=>{cur.otherCosts.push({name:'',value:''});render();}));
+  b.querySelectorAll('[data-ocdel]').forEach(el=>el.addEventListener('click',()=>{cur.otherCosts.splice(+el.dataset.ocdel,1);render();}));
+  b.querySelectorAll('[data-oc]').forEach(el=>el.addEventListener('input',()=>{cur.otherCosts[+el.dataset.oc][el.dataset.ocf]=el.value;}));
 }
 
 function setLang(lg){ if(!L[lg])return; cur.lang=lg; document.getElementById('langMenu').style.display='none'; render(); }
@@ -630,8 +722,9 @@ document.addEventListener('click',()=>{document.getElementById('langMenu').style
 (function(){const hp=new URLSearchParams(location.hash.slice(1));
   if(['car','truck'].includes(hp.get('theme')))cur.theme=hp.get('theme');
   if(['confirm','ready','active'].includes(hp.get('state')))cur.state=hp.get('state');
-  if(['today','detail','tripsMine','expensesNew','expenseNew','me'].includes(hp.get('screen')))cur.screen=hp.get('screen');
+  if(['today','detail','tripComplete','tripsMine','expensesNew','expenseNew','me'].includes(hp.get('screen')))cur.screen=hp.get('screen');
   if(['vi','en','ko'].includes(hp.get('lang')))cur.lang=hp.get('lang');
+  if(hp.get('ref'))cur.detailRef=hp.get('ref');
   document.querySelectorAll('#themeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.theme===cur.theme));
   document.querySelectorAll('#stateSeg button').forEach(x=>x.classList.toggle('on',x.dataset.state===cur.state));
 })();
