@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Driver App Prototype · Amoeba Fleet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     Driver App Prototype — Amoeba Fleet (car-manager-v2)
+     Mobile/PWA driver UI. Theme: Car (blue) / Truck (orange).
+     i18n: VI / EN / KO — UI labels from messages/{vi,en,ko}.json,
+     sample content translated inline.
+     Menu mirrors nav-items.ts DRIVER: today · tripsMine · expensesNew · me
+     ============================================================ */
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{
+    --bg:#F8FAFC; --surface:#FFFFFF; --surface-2:#F1F3F8;
+    --border:#E2E5EB; --border-strong:#CBD2DC;
+    --text:#0F172A; --text-muted:#475569; --text-faint:#64748B;
+    --success:#15A36E; --success-soft:#E3F7EE;
+    --warning:#F59E0B; --warning-soft:#FEF3C7; --warning-ink:#B45309;
+    --danger:#EF4444;  --danger-soft:#FEE2E2;
+    --info:#0EA5E9;    --info-soft:#E0F2FE;
+    --neutral-soft:#F1F3F8; --neutral-ink:#475569;
+    --accent:#0369A1; --accent-strong:#025d8a; --accent-soft:#E0F2FE;
+  }
+  body[data-theme="truck"]{ --accent:#C2410C; --accent-strong:#9A3412; --accent-soft:#FBEADF; }
+  body{font-family:'Be Vietnam Pro',system-ui,-apple-system,sans-serif;background:#E2E8F0;color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;padding:24px 16px 48px;}
+  .mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;}
+
+  .controls{max-width:920px;margin:0 auto 24px;display:flex;flex-direction:column;gap:14px;align-items:center;}
+  .controls h1{font-size:20px;font-weight:800;letter-spacing:-.02em;}
+  .controls p{font-size:13px;color:#475569;text-align:center;max-width:600px;line-height:1.5;}
+  .ctl-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+  .seg{display:inline-flex;background:#fff;border:1px solid var(--border);border-radius:10px;padding:4px;gap:4px;box-shadow:0 1px 3px rgba(15,23,42,.06);}
+  .seg button{border:none;background:transparent;font:600 13px/1 'Be Vietnam Pro';color:#64748B;padding:9px 16px;border-radius:7px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .15s;}
+  .seg button.on{background:var(--accent);color:#fff;box-shadow:0 1px 2px rgba(15,23,42,.18);}
+  .seg.small button{padding:7px 12px;font-size:12px;}
+  .seg.small button.on{background:var(--text);color:#fff;}
+
+  .phone{width:390px;max-width:100%;height:800px;margin:0 auto;background:var(--bg);border-radius:38px;border:11px solid #0F172A;box-shadow:0 24px 60px -18px rgba(15,23,42,.5);overflow:hidden;position:relative;display:flex;flex-direction:column;}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:150px;height:26px;background:#0F172A;border-radius:0 0 16px 16px;z-index:60;}
+
+  .appbar{flex-shrink:0;height:74px;padding:18px 18px 8px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:40;position:relative;}
+  .brand{display:flex;align-items:center;gap:10px;min-width:0;}
+  .brand .logo{height:34px;width:34px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;}
+  .brand .t1{font-size:11px;color:var(--text-faint);font-weight:500;line-height:1.1;}
+  .brand .t2{font-size:15px;font-weight:800;letter-spacing:-.01em;line-height:1.15;white-space:nowrap;}
+  .lang{font-size:12px;font-weight:700;color:var(--text-muted);border:1px solid var(--border);border-radius:8px;padding:7px 10px;cursor:pointer;display:flex;align-items:center;gap:5px;background:var(--surface);}
+  .lang:hover{border-color:var(--accent);color:var(--accent);}
+  .langmenu{position:absolute;top:64px;right:18px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px -8px rgba(15,23,42,.25);padding:5px;z-index:80;min-width:130px;}
+  .langmenu button{width:100%;text-align:left;border:none;background:transparent;font:600 13px/1 'Be Vietnam Pro';color:var(--text);padding:10px 12px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .langmenu button:hover{background:var(--surface-2);}
+  .langmenu button.on{color:var(--accent);}
+
+  .body{flex:1;overflow-y:auto;padding:16px 16px 200px;display:flex;flex-direction:column;gap:14px;}
+  .body::-webkit-scrollbar{width:0;}
+  .body>*{flex-shrink:0;}
+  .scrn-title{font-size:19px;font-weight:800;letter-spacing:-.01em;padding:2px 2px 0;}
+  .scrn-sub{font-size:12.5px;color:var(--text-faint);padding:0 2px 4px;margin-top:-6px;}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.04);overflow:hidden;}
+  .card-head{padding:13px 16px;border-bottom:1px solid #EFF1F5;display:flex;align-items:center;justify-content:space-between;}
+  .card-head .ttl{font-size:14px;font-weight:700;}
+  .card-head .meta{font-size:11.5px;color:var(--text-faint);}
+  .link{font-size:12px;font-weight:600;color:var(--accent);text-decoration:none;cursor:pointer;}
+
+  .bdg{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap;}
+  .bdg.warning{background:var(--warning-soft);color:var(--warning-ink);}
+  .bdg.success{background:var(--success-soft);color:var(--success);}
+  .bdg.info{background:var(--info-soft);color:#0369A1;}
+  .bdg.neutral{background:var(--neutral-soft);color:var(--neutral-ink);}
+  .bdg.danger{background:var(--danger-soft);color:var(--danger);}
+
+  .hero-banner{padding:15px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;color:#fff;}
+  .hero-banner.confirm{background:linear-gradient(135deg,var(--warning),var(--info));}
+  .hero-banner.ready{background:linear-gradient(135deg,var(--accent),var(--info));}
+  .hero-banner.active{background:linear-gradient(135deg,var(--info),var(--accent) 60%,var(--info));}
+  .hero-banner .sl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.92;}
+  .hero-banner .ref{font-size:18px;font-weight:800;margin-top:2px;}
+  .badge-w{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:11px;font-weight:700;padding:5px 11px;border-radius:999px;white-space:nowrap;}
+
+  .hero-body{padding:16px 18px;}
+  .pax{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+  .avatar{height:44px;width:44px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0;}
+  .avatar.sm{height:38px;width:38px;font-size:13px;}
+  .pax .nm{font-size:15px;font-weight:700;}
+  .pax .pp{font-size:13px;color:var(--text-muted);margin-top:1px;}
+
+  .route{padding-top:15px;display:flex;flex-direction:column;gap:14px;}
+  .step{display:flex;align-items:flex-start;gap:12px;}
+  .step .dot{height:36px;width:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .step.from .dot{background:var(--accent-soft);color:var(--accent);}
+  .step.to .dot{background:var(--success-soft);color:var(--success);}
+  .step .lbl{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);}
+  .step .val{font-size:15px;font-weight:700;line-height:1.3;margin-top:2px;}
+  .meta-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:6px;font-size:13px;color:var(--text-muted);}
+  .meta-row .it{display:inline-flex;align-items:center;gap:6px;}
+  .meta-row .it b{color:var(--text);font-weight:700;}
+
+  .rows{display:flex;flex-direction:column;}
+  .row{display:flex;align-items:center;gap:11px;padding:12px 16px;border-bottom:1px solid #EFF1F5;text-decoration:none;color:inherit;cursor:pointer;}
+  .row:last-child{border-bottom:none;}
+  .row .rref{font-size:11px;color:var(--text-faint);flex-shrink:0;width:58px;}
+  .row .rmid{flex:1;min-width:0;}
+  .row .rmid .rt{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .row .rmid .rs{font-size:11.5px;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .row .rtime{font-size:11.5px;color:var(--text-muted);text-align:right;flex-shrink:0;}
+  .chev{color:var(--text-faint);flex-shrink:0;}
+
+  .veh{display:flex;align-items:center;gap:11px;padding:11px 14px;border:1px solid var(--border);border-radius:10px;margin:0 12px 8px;}
+  .veh:first-of-type{margin-top:12px;}
+  .veh .vico{height:38px;width:38px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .veh .vp{font-size:13.5px;font-weight:700;}
+  .veh .vm{font-size:11.5px;color:var(--text-muted);margin-top:1px;}
+  .veh .vd{font-size:10.5px;color:var(--text-faint);margin-top:3px;display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+
+  .subtabs{display:inline-flex;background:var(--surface-2);border-radius:9px;padding:4px;gap:3px;}
+  .subtabs button{border:none;background:transparent;font:600 13px/1 'Be Vietnam Pro';color:var(--text-muted);padding:9px 16px;border-radius:6px;cursor:pointer;}
+  .subtabs button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(15,23,42,.1);}
+  .tcard{display:block;border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:13px 14px;text-decoration:none;color:inherit;cursor:pointer;}
+  .tcard+.tcard{margin-top:10px;}
+  .tcard .top{display:flex;align-items:flex-start;gap:11px;}
+  .tcard .tref{font-size:10.5px;color:var(--text-faint);}
+  .tcard .tnm{font-size:14.5px;font-weight:700;line-height:1.2;}
+  .tcard .trt{margin-top:7px;font-size:12px;color:var(--text-muted);line-height:1.4;}
+  .tcard .tmeta{margin-top:6px;font-size:11.5px;color:var(--text-muted);display:flex;gap:7px;align-items:center;}
+
+  .ecard{display:flex;align-items:flex-start;gap:11px;border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:13px 14px;}
+  .ecard+.ecard{margin-top:9px;}
+  .ecard .eico{height:36px;width:36px;border-radius:50%;background:var(--surface-2);color:var(--text-muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ecard .etp{font-size:14px;font-weight:700;}
+  .ecard .edt{font-size:11.5px;color:var(--text-faint);margin-top:1px;}
+  .ecard .eamt{font-size:15px;font-weight:800;text-align:right;}
+  .ecard .enote{font-size:11.5px;color:var(--danger);margin-top:6px;line-height:1.4;}
+  .btn-block{width:100%;height:48px;border:1.5px dashed var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:12px;font:700 14px/1 'Be Vietnam Pro';display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;}
+
+  .field{margin-bottom:16px;}
+  .field>label{display:block;font-size:12.5px;font-weight:700;color:var(--text-muted);margin-bottom:8px;}
+  .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .chip{border:2px solid var(--border);background:var(--surface);border-radius:12px;padding:10px 4px;min-height:78px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;text-align:center;}
+  .chip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
+  .chip .cic{height:36px;width:36px;border-radius:50%;background:var(--surface-2);color:var(--text-muted);display:flex;align-items:center;justify-content:center;}
+  .chip.on .cic{background:var(--accent);color:#fff;}
+  .chip span{font-size:11px;font-weight:600;line-height:1.1;}
+  .amount{width:100%;height:56px;border:1.5px solid var(--border);border-radius:12px;padding:0 16px;font:800 22px/1 'JetBrains Mono';color:var(--text);background:var(--surface);}
+  .amount::placeholder{color:var(--border-strong);}
+  textarea.note{width:100%;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;font:500 14px/1.4 'Be Vietnam Pro';resize:none;color:var(--text);background:var(--surface);}
+  .receipt{border:1.5px dashed var(--border-strong);border-radius:12px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text-faint);text-align:center;}
+
+  .prof{display:flex;align-items:center;gap:14px;padding:18px;}
+  .prof .pav{height:56px;width:56px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;flex-shrink:0;}
+  .prof .pn{font-size:17px;font-weight:800;}
+  .prof .pe{font-size:12.5px;color:var(--text-faint);margin-top:2px;}
+  .kv{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #EFF1F5;font-size:13.5px;gap:12px;}
+  .kv:last-child{border-bottom:none;}
+  .kv .k{color:var(--text-muted);}
+  .kv .v{font-weight:600;text-align:right;}
+  .langopts{display:flex;gap:8px;padding:14px 16px;}
+  .langopts button{flex:1;border:1.5px solid var(--border);background:var(--surface);border-radius:9px;padding:10px;font:600 13px/1 'Be Vietnam Pro';color:var(--text-muted);cursor:pointer;}
+  .langopts button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 16px;}
+  .tg{width:42px;height:24px;border-radius:999px;position:relative;flex-shrink:0;}
+  .tg.on{background:var(--accent);}.tg.off{background:#D1D5DB;}
+  .tg span{position:absolute;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;}
+  .tg.on span{right:2px;}.tg.off span{left:2px;}
+  .logout{margin:4px 0;width:100%;height:50px;border:1.5px solid #FCA5A5;background:#fff;color:var(--danger);border-radius:12px;font:700 15px/1 'Be Vietnam Pro';display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;}
+
+  .status-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .when{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;}
+  .map{height:188px;border-radius:14px;border:1px solid var(--border);background:linear-gradient(0deg,rgba(255,255,255,.4),rgba(255,255,255,.4)),repeating-linear-gradient(45deg,#E8EEF4 0 14px,#EEF3F8 14px 28px);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+  .map .pin{position:absolute;display:flex;flex-direction:column;align-items:center;}
+  .map .pin.a{top:34%;left:26%;color:var(--accent);}
+  .map .pin.b{top:58%;left:64%;color:var(--success);}
+  .map .ln{position:absolute;top:42%;left:30%;width:40%;height:24%;border-bottom:3px dashed var(--accent);border-right:3px dashed var(--accent);border-radius:0 0 30px 0;opacity:.5;}
+  .map .tag{background:rgba(255,255,255,.9);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--text-muted);z-index:2;}
+  .sec{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;}
+  .sec .sttl{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:12px;}
+  .contact-btns{display:flex;gap:8px;flex-wrap:wrap;}
+  .cbtn{display:inline-flex;align-items:center;gap:7px;border-radius:9px;padding:9px 13px;font-size:13px;font-weight:600;text-decoration:none;min-height:42px;}
+  .cbtn.call{border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);}
+  .cbtn.mail{border:1px solid var(--border);background:var(--surface-2);color:var(--text);}
+  .prop{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px;}
+  .prop:last-child{margin-bottom:0;}
+  .backlink{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;padding:2px;}
+
+  .actionbar{position:absolute;left:0;right:0;bottom:58px;z-index:50;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--border);box-shadow:0 -6px 20px -10px rgba(15,23,42,.18);padding:13px 16px;display:flex;flex-direction:column;gap:9px;}
+  .btn{width:100%;height:54px;border:none;border-radius:12px;font:700 16px/1 'Be Vietnam Pro';cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;}
+  .btn.primary{background:var(--accent);color:#fff;}
+  .btn.dark{background:var(--text);color:#fff;}
+  .btn.danger{background:#fff;border:1.5px solid #FCA5A5;color:var(--danger);height:48px;font-size:15px;}
+  .btn.ghost{background:var(--surface-2);color:var(--text-muted);height:46px;font-size:14px;}
+  .ab-2{display:flex;gap:9px;}.ab-2 .btn{flex:1;}
+
+  .tabnav{position:absolute;left:0;right:0;bottom:0;height:58px;z-index:55;background:var(--surface);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(4,1fr);}
+  .tab{border:none;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--text-faint);font:600 9.5px/1.1 'Be Vietnam Pro';position:relative;padding:0 2px;text-align:center;}
+  .tab.on{color:var(--accent);}
+  .tab.on::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:30px;height:2.5px;border-radius:2px;background:var(--accent);}
+  svg{display:block;}
+</style>
+</head>
+<body data-theme="car">
+
+  <div class="controls">
+    <h1>Driver App — Prototype</h1>
+    <p id="introP"></p>
+    <div class="ctl-row">
+      <div class="seg" id="themeSeg">
+        <button data-theme="car" class="on">🚗 <span data-i="vCar"></span></button>
+        <button data-theme="truck">🚚 <span data-i="vTruck"></span></button>
+      </div>
+      <div class="seg" id="langSeg">
+        <button data-lang="vi" class="on">Tiếng Việt</button>
+        <button data-lang="en">English</button>
+        <button data-lang="ko">한국어</button>
+      </div>
+    </div>
+    <div class="seg small" id="stateSeg">
+      <button data-state="ready" class="on" data-i="badgeReadyShort"></button>
+      <button data-state="confirm" data-i="badgeConfirmShort"></button>
+      <button data-state="active" data-i="badgeActiveShort"></button>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="appbar">
+      <div class="brand">
+        <div class="logo" id="logo">XC</div>
+        <div>
+          <div class="t1">Amoeba Fleet</div>
+          <div class="t2" id="brandSub">Tài xế · Xe con</div>
+        </div>
+      </div>
+      <div class="lang" id="langBtn"><span id="langLabel">VI</span> ▾</div>
+      <div class="langmenu" id="langMenu" style="display:none;">
+        <button data-lang="vi">Tiếng Việt <span>VI</span></button>
+        <button data-lang="en">English <span>EN</span></button>
+        <button data-lang="ko">한국어 <span>KO</span></button>
+      </div>
+    </div>
+
+    <div class="body" id="appBody"></div>
+    <div id="actionMount"></div>
+    <div class="tabnav" id="tabnav"></div>
+  </div>
+
+<script>
+/* ============================== ICONS ============================== */
+const I = {
+  clock:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  pin:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+  car:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M3 17l1.5-5A2 2 0 0 1 6.4 10.6h11.2a2 2 0 0 1 1.9 1.4L21 17"/><path d="M5 17v2M19 17v2"/></svg>',
+  truck:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17V5H1.8a.8.8 0 0 0-.8.8V17h2"/><path d="M14 17h-4M22 17h-2"/><path d="M10 9h6.5a2 2 0 0 1 1.7 1l2.3 3.5V17"/><circle cx="6" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg>',
+  fuel:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v18M3 12h10"/><path d="M16 7l3 3v8a2 2 0 0 1-4 0v-4"/></svg>',
+  chev:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+  back:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
+  phone:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/></svg>',
+  mail:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>',
+  user:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+  cal:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+  calclock:'<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="18" cy="18" r="4"/><path d="M18 16.5V18l1 1"/></svg>',
+  clipboard:'<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/></svg>',
+  receipt:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>',
+  check:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  x:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  play:'<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>',
+  stop:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor"/></svg>',
+  plus:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
+  camera:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  droplet:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7 6.3 9a8 8 0 1 0 11.4 0Z"/></svg>',
+  meal:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 2v20M16 2a4 4 0 0 0-4 4v6h4m0-10v20"/></svg>',
+  wrench:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.2 5L3 17.8 6.2 21l6.5-6.5a4 4 0 0 0 5-5.2l-2.7 2.7-2.3-2.3 2.7-2.7Z"/></svg>',
+  parking:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></svg>',
+  coins:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.1 10.4a6 6 0 1 1-8 8M7 6h1v4M16.7 14H17v4"/></svg>',
+  shield:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8 8 11 4.5-3 8-6 8-11V5Z"/><path d="M12 8v4M12 16h.01"/></svg>',
+  inspect:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m8 12 3 3 5-6"/></svg>',
+  logout:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',
+  id:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2.5"/><path d="M14 10h4M14 14h4"/></svg>',
+  bell:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>',
+  globe:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"/></svg>',
+};
+
+/* ============================== i18n DICT ============================== */
+const L = {
+  vi:{
+    intro:'UI cho <b>role Tài xế</b> (PWA mobile-only) của Amoeba Fleet. Menu khớp nav-items.ts của car-manager-v2 (DRIVER: Hôm nay · Chuyến của tôi · Ghi nhận chi phí · Tôi). Đổi loại xe &amp; ngôn ngữ để xem nội dung tương ứng.',
+    driverRole:'Tài xế', vCar:'Xe con', vTruck:'Xe tải',
+    laterToday:'Còn lại hôm nay', myVehicles:'Phương tiện của tôi', recentTrips:'Chuyến gần đây',
+    viewAll:'Xem tất cả', tripDetails:'Chi tiết chuyến', inUse:'Đang dùng', lastDriven:'Lái gần nhất',
+    todayWord:'Hôm nay',
+    fromCar:'Điểm đón', toCar:'Điểm trả', fromTruck:'Điểm lấy hàng', toTruck:'Điểm giao hàng',
+    paxCar:'Hành khách', paxTruck:'Khách hàng', contactSuffix:' & liên hệ', emailBtn:'Email',
+    routeTitle:'Lộ trình', mapTag:'Bản đồ lộ trình', shipDocs:'Chứng từ vận chuyển', bolLabel:'Vận đơn (BOL)', cdfLabel:'Số CDF',
+    heroConfirm:'Chờ xác nhận của bạn', heroReady:'Sẵn sàng bắt đầu · còn 20 phút', heroActive:'Đang chạy',
+    badgeConfirm:'CHỜ XÁC NHẬN', badgeReady:'ĐÃ XÁC NHẬN', badgeActive:'ĐANG ĐI',
+    badgeConfirmShort:'Chờ xác nhận', badgeReadyShort:'Sẵn sàng', badgeActiveShort:'Đang chạy',
+    stReadyLong:'Đã xác nhận', stConfirmLong:'Chờ tài xế xác nhận', stActiveLong:'Đang đi',
+    tripsTitle:'Chuyến của tôi', tabOngoing:'Đang xử lý', tabCompleted:'Hoàn tất',
+    emptyTitle:'Không có chuyến nào', emptyDesc:'Khi điều phối phân công, chuyến sẽ hiện ở đây.',
+    s_PENDING_DRIVER_CONFIRMATION:'Chờ tài xế', s_CONFIRMED:'Đã xác nhận', s_IN_PROGRESS:'Đang đi', s_COMPLETED:'Hoàn tất', s_CANCELLED:'Đã huỷ', s_REJECTED_BY_DRIVER:'Từ chối',
+    expTitle:'Ghi nhận chi phí', expSub:'Lịch sử chi phí bạn đã gửi · kèm ảnh chứng từ', expNewBtn:'Ghi nhận chi phí mới',
+    e_PENDING:'Chờ duyệt', e_APPROVED:'Đã duyệt', e_AUTO_APPROVED:'Tự duyệt', e_REJECTED:'Từ chối',
+    t_FUEL:'Xăng dầu', t_OIL:'Dầu nhớt', t_MEAL:'Ăn uống', t_REPAIR:'Sửa chữa', t_PARKING:'Đỗ xe', t_TOLL:'Phí cầu đường', t_ACCIDENT:'Tai nạn', t_INSPECTION:'Đăng kiểm',
+    fType:'Loại chi phí', fAmount:'Số tiền (VND)', fTrip:'Chuyến liên quan (tùy chọn)', fNote:'Ghi chú', fNotePh:'Mô tả ngắn (tùy chọn)', fReceipt:'Ảnh chứng từ', fReceiptCta:'Chụp / tải ảnh hoá đơn', fReceiptHint:'JPG/PNG/PDF · tối đa 10MB',
+    submitExp:'Gửi chi phí', backExpenses:'Chi phí', backToday:'Hôm nay', tripRelated:c=>c==='truck'?'Vận đơn #C-815':'Chuyến #T-2048',
+    meTitle:'Tôi', meSub:'Thông tin cá nhân, ngôn ngữ và đăng xuất', profileHint:'Tên và email được đồng bộ từ amoeba management.',
+    licTitle:'Bằng lái', licNo:'Số bằng', licClass:'Hạng', licExpiry:'Ngày hết hạn', licPhone:'Điện thoại', langTitle:'Ngôn ngữ',
+    pushTitle:'Thông báo đẩy', pushDesc:'Nhận thông báo chuyến mới &amp; cập nhật', logout:'Đăng xuất',
+    actReject:'Từ chối', actAccept:'Chấp nhận', actStart:'Bắt đầu chuyến', actEnd:'Kết thúc chuyến', actExpense:'Ghi nhận chi phí',
+    navToday:'Hôm nay', navTrips:'Chuyến của tôi', navExpenses:'Ghi nhận chi phí', navMe:'Tôi',
+    tripCount:n=>n+' chuyến', carsCount:n=>n+' xe', daysLeft:n=>'Còn '+n+' ngày',
+    fuelPetrol:'Xăng', fuelDiesel:'Dầu',
+  },
+  en:{
+    intro:'UI for the <b>Driver role</b> (PWA mobile-only) of Amoeba Fleet. Menu mirrors car-manager-v2 nav-items.ts (DRIVER: Today · My trips · Record expense · Me). Switch vehicle type &amp; language to see matching content.',
+    driverRole:'Driver', vCar:'Car', vTruck:'Truck',
+    laterToday:'Later today', myVehicles:'My vehicles', recentTrips:'Recent trips',
+    viewAll:'View all', tripDetails:'Trip details', inUse:'In use', lastDriven:'Last driven',
+    todayWord:'Today',
+    fromCar:'Pickup', toCar:'Drop-off', fromTruck:'Pickup point', toTruck:'Delivery point',
+    paxCar:'Passenger', paxTruck:'Customer', contactSuffix:' & contact', emailBtn:'Email',
+    routeTitle:'Route', mapTag:'Route map', shipDocs:'Shipping documents', bolLabel:'Bill of Lading (BOL)', cdfLabel:'CDF no.',
+    heroConfirm:'Waiting for you', heroReady:'Ready to start · in 20 min', heroActive:'On the road',
+    badgeConfirm:'AWAITING', badgeReady:'CONFIRMED', badgeActive:'IN PROGRESS',
+    badgeConfirmShort:'Awaiting', badgeReadyShort:'Ready', badgeActiveShort:'On the road',
+    stReadyLong:'Confirmed', stConfirmLong:'Awaiting driver', stActiveLong:'In progress',
+    tripsTitle:'My trips', tabOngoing:'Ongoing', tabCompleted:'Completed',
+    emptyTitle:'No trips', emptyDesc:'Once dispatch assigns a trip, it will show up here.',
+    s_PENDING_DRIVER_CONFIRMATION:'Pending driver', s_CONFIRMED:'Confirmed', s_IN_PROGRESS:'In progress', s_COMPLETED:'Completed', s_CANCELLED:'Cancelled', s_REJECTED_BY_DRIVER:'Rejected',
+    expTitle:'Record expense', expSub:'Your submitted expenses · with receipts', expNewBtn:'Record a new expense',
+    e_PENDING:'Pending', e_APPROVED:'Approved', e_AUTO_APPROVED:'Auto-approved', e_REJECTED:'Rejected',
+    t_FUEL:'Fuel', t_OIL:'Oil', t_MEAL:'Meal', t_REPAIR:'Repair', t_PARKING:'Parking', t_TOLL:'Toll', t_ACCIDENT:'Accident', t_INSPECTION:'Inspection',
+    fType:'Expense type', fAmount:'Amount (VND)', fTrip:'Related trip (optional)', fNote:'Note', fNotePh:'Short description (optional)', fReceipt:'Receipt photo', fReceiptCta:'Take / upload receipt photo', fReceiptHint:'JPG/PNG/PDF · max 10MB',
+    submitExp:'Submit expense', backExpenses:'Expenses', backToday:'Today', tripRelated:c=>c==='truck'?'BOL #C-815':'Trip #T-2048',
+    meTitle:'Me', meSub:'Profile, language, and sign-out', profileHint:'Name and email are synced from amoeba management.',
+    licTitle:'Driver license', licNo:'License no.', licClass:'Class', licExpiry:'Expiry date', licPhone:'Phone', langTitle:'Language',
+    pushTitle:'Push notifications', pushDesc:'Get alerts on new trips &amp; updates', logout:'Sign out',
+    actReject:'Reject', actAccept:'Accept', actStart:'Start trip', actEnd:'End trip', actExpense:'Record expense',
+    navToday:'Today', navTrips:'My trips', navExpenses:'Record expense', navMe:'Me',
+    tripCount:n=>n+' trips', carsCount:n=>n+' cars', daysLeft:n=>n+' days left',
+    fuelPetrol:'Petrol', fuelDiesel:'Diesel',
+  },
+  ko:{
+    intro:'Amoeba Fleet의 <b>기사 역할</b>(PWA 모바일 전용) UI. 메뉴는 car-manager-v2 nav-items.ts 기준 (기사: 오늘 · 내 운행 · 비용 기록 · 나). 차량 유형 &amp; 언어를 전환해 해당 콘텐츠를 확인하세요.',
+    driverRole:'기사', vCar:'승용차', vTruck:'트럭',
+    laterToday:'오늘 남은 운행', myVehicles:'내 차량', recentTrips:'최근 운행',
+    viewAll:'전체 보기', tripDetails:'운행 상세', inUse:'운행 중', lastDriven:'최근 운행',
+    todayWord:'오늘',
+    fromCar:'승차 지점', toCar:'하차 지점', fromTruck:'상차 지점', toTruck:'하차 지점',
+    paxCar:'승객', paxTruck:'고객', contactSuffix:' & 연락처', emailBtn:'이메일',
+    routeTitle:'경로', mapTag:'경로 지도', shipDocs:'운송 서류', bolLabel:'선하증권 (BOL)', cdfLabel:'CDF 번호',
+    heroConfirm:'확인 대기 중', heroReady:'출발 준비됨 · 20분 후', heroActive:'운행 중',
+    badgeConfirm:'확인 대기', badgeReady:'확정됨', badgeActive:'진행 중',
+    badgeConfirmShort:'확인 대기', badgeReadyShort:'준비됨', badgeActiveShort:'운행 중',
+    stReadyLong:'확정', stConfirmLong:'기사 확인 대기', stActiveLong:'진행 중',
+    tripsTitle:'내 운행', tabOngoing:'진행 중', tabCompleted:'완료',
+    emptyTitle:'운행 없음', emptyDesc:'배정되면 여기에 표시됩니다.',
+    s_PENDING_DRIVER_CONFIRMATION:'기사 대기', s_CONFIRMED:'확정', s_IN_PROGRESS:'진행 중', s_COMPLETED:'완료', s_CANCELLED:'취소', s_REJECTED_BY_DRIVER:'거절',
+    expTitle:'비용 기록', expSub:'제출한 비용 내역 · 영수증 포함', expNewBtn:'새 비용 기록',
+    e_PENDING:'대기 중', e_APPROVED:'승인됨', e_AUTO_APPROVED:'자동 승인', e_REJECTED:'거절됨',
+    t_FUEL:'주유', t_OIL:'오일', t_MEAL:'식사', t_REPAIR:'수리', t_PARKING:'주차', t_TOLL:'통행료', t_ACCIDENT:'사고', t_INSPECTION:'검사',
+    fType:'비용 유형', fAmount:'금액 (VND)', fTrip:'관련 운행 (선택)', fNote:'메모', fNotePh:'간단한 설명 (선택)', fReceipt:'영수증 사진', fReceiptCta:'영수증 촬영 / 업로드', fReceiptHint:'JPG/PNG/PDF · 최대 10MB',
+    submitExp:'비용 제출', backExpenses:'비용', backToday:'오늘', tripRelated:c=>c==='truck'?'선하증권 #C-815':'운행 #T-2048',
+    meTitle:'나', meSub:'프로필, 언어, 로그아웃', profileHint:'이름과 이메일은 amoeba management에서 동기화됩니다.',
+    licTitle:'운전면허', licNo:'면허 번호', licClass:'종류', licExpiry:'만료일', licPhone:'전화', langTitle:'언어',
+    pushTitle:'푸시 알림', pushDesc:'새 운행 &amp; 업데이트 알림 받기', logout:'로그아웃',
+    actReject:'거절', actAccept:'수락', actStart:'운행 시작', actEnd:'운행 종료', actExpense:'비용 기록',
+    navToday:'오늘', navTrips:'내 운행', navExpenses:'비용 기록', navMe:'나',
+    tripCount:n=>n+'회 운행', carsCount:n=>n+'대', daysLeft:n=>n+'일 남음',
+    fuelPetrol:'휘발유', fuelDiesel:'경유',
+  },
+};
+const LANG_LABEL = { vi:'VI', en:'EN', ko:'KO' };
+
+/* ============================== DATA (translatable = {vi,en,ko}) ============================== */
+const DATA = {
+  car:{
+    logo:'XC',
+    next:{ ref:'T-2048', who:'Nguyễn Văn An', initials:'NA', time:'08:30', plate:'51A-128.45', paxPhone:'0901 234 567', paxEmail:'an.nguyen@amoeba.group',
+      purpose:{vi:'Đón sân bay · Giám đốc',en:'Airport pickup · Director',ko:'공항 픽업 · 이사'},
+      from:{vi:'VP Amoeba, 12 Nguyễn Huệ, Q.1',en:'Amoeba Office, 12 Nguyen Hue, Dist.1',ko:'아메바 사무실, 12 응우옌후에, 1군'},
+      to:{vi:'Ga quốc tế T2 — Sân bay Tân Sơn Nhất',en:'Terminal T2 — Tan Son Nhat Airport',ko:'T2 터미널 — 떤선녓 공항'},
+      dur:{vi:'≈ 45 phút',en:'≈ 45 min',ko:'≈ 45분'} },
+    later:[ {ref:'T-2049',who:'Trần Thị Bình',time:'13:30',s:{vi:'Q.1 → Khu CN Tân Bình',en:'Dist.1 → Tan Binh IZ',ko:'1군 → 떤빈 산업단지'}},
+            {ref:'T-2051',who:'Lê Minh Cường',time:'16:00',s:{vi:'Q.7 → Q.3',en:'Dist.7 → Dist.3',ko:'7군 → 3군'}} ],
+    vehicles:[ {plate:'51A-128.45',model:'Toyota Camry · 2022',fuel:'petrol',trips:42,last:'today',active:true},
+               {plate:'51F-902.18',model:'Kia Carnival · 2023',fuel:'diesel',trips:11,last:'02/06',active:false} ],
+    recent:[ {ref:'T-2041',who:'Phạm Thu Hà',plate:'51A-128.45',date:'14/06',time:'09:10',s:{vi:'Q.1 → Q.2',en:'Dist.1 → Dist.2',ko:'1군 → 2군'}},
+             {ref:'T-2038',who:'Võ Quốc Đạt',plate:'51A-128.45',date:'13/06',time:'05:40',s:{vi:'Q.3 → Sân bay',en:'Dist.3 → Airport',ko:'3군 → 공항'}},
+             {ref:'T-2035',who:'Đỗ Khánh Linh',plate:'51F-902.18',date:'11/06',time:'14:20',s:{vi:'Q.7 → Bình Dương',en:'Dist.7 → Binh Duong',ko:'7군 → 빈즈엉'}} ],
+    tripsOngoing:[ {ref:'T-2048',who:'Nguyễn Văn An',time:'08:30',plate:'51A-128.45',st:'CONFIRMED',s:{vi:'Q.1 → Sân bay Tân Sơn Nhất',en:'Dist.1 → Tan Son Nhat Airport',ko:'1군 → 떤선녓 공항'}},
+                   {ref:'T-2049',who:'Trần Thị Bình',time:'13:30',plate:'51A-128.45',st:'PENDING_DRIVER_CONFIRMATION',s:{vi:'Q.1 → Khu CN Tân Bình',en:'Dist.1 → Tan Binh IZ',ko:'1군 → 떤빈 산업단지'}},
+                   {ref:'T-2051',who:'Lê Minh Cường',time:'16:00',plate:'51F-902.18',st:'IN_PROGRESS',s:{vi:'Q.7 → Q.3',en:'Dist.7 → Dist.3',ko:'7군 → 3군'}} ],
+    tripsDone:[ {ref:'T-2041',who:'Phạm Thu Hà',time:'14/06 · 09:10',plate:'51A-128.45',st:'COMPLETED',s:{vi:'Q.1 → Q.2',en:'Dist.1 → Dist.2',ko:'1군 → 2군'}},
+                {ref:'T-2038',who:'Võ Quốc Đạt',time:'13/06 · 05:40',plate:'51A-128.45',st:'COMPLETED',s:{vi:'Q.3 → Sân bay',en:'Dist.3 → Airport',ko:'3군 → 공항'}},
+                {ref:'T-2035',who:'Đỗ Khánh Linh',time:'11/06 · 14:20',plate:'51F-902.18',st:'CANCELLED',s:{vi:'Q.7 → Bình Dương',en:'Dist.7 → Binh Duong',ko:'7군 → 빈즈엉'}} ],
+    expenses:[ {type:'FUEL',amt:'850.000₫',date:'15/06/2025',ref:'T-2048',st:'APPROVED'},
+               {type:'TOLL',amt:'120.000₫',date:'15/06/2025',ref:'T-2048',st:'AUTO_APPROVED'},
+               {type:'MEAL',amt:'65.000₫',date:'14/06/2025',ref:'T-2041',st:'PENDING'},
+               {type:'PARKING',amt:'30.000₫',date:'13/06/2025',ref:'',st:'APPROVED'},
+               {type:'REPAIR',amt:'1.250.000₫',date:'10/06/2025',ref:'',st:'REJECTED',note:{vi:'Cần báo giá garage trước khi sửa.',en:'Need a garage quote before repair.',ko:'수리 전 정비소 견적이 필요합니다.'}} ],
+    me:{ name:'Nguyễn Văn Tài',email:'tai.nguyen@amoeba.group',initials:'NT',lic:'79-123456789',cls:'B2',exp:'15/08/2027',daysLeft:426,phone:'0901 112 223' },
+    amountSample:'850.000',
+  },
+  truck:{
+    logo:'XT',
+    next:{ ref:'C-815', who:'ACME Corp', initials:'AC', time:'06:00', plate:'50E-324.07', paxPhone:'0987 654 321', paxEmail:'logistics@acme.com.vn', bol:'BOL-2024-0815', cdf:'CDF-0815',
+      purpose:{vi:'Giao hàng · 12 pallet',en:'Delivery · 12 pallets',ko:'배송 · 12 팔레트'},
+      from:{vi:'Kho HCM — KCN Tân Tạo, Bình Tân',en:'HCMC Warehouse — Tan Tao IZ, Binh Tan',ko:'HCMC 창고 — 떤따오 산업단지, 빈딴'},
+      to:{vi:'Nhà máy ACME — KCN VSIP, Bình Dương',en:'ACME Factory — VSIP IZ, Binh Duong',ko:'ACME 공장 — VSIP 산업단지, 빈즈엉'},
+      dur:{vi:'≈ 1h30',en:'≈ 1h30',ko:'≈ 1시간 30분'} },
+    later:[ {ref:'C-816',who:'Vinamilk JSC',time:'14:00',s:{vi:'Bình Dương → Kho HCM',en:'Binh Duong → HCMC Warehouse',ko:'빈즈엉 → HCMC 창고'}} ],
+    vehicles:[ {plate:'50E-324.07',model:'Hyundai HD120 · 8T',fuel:'diesel',trips:128,last:'today',active:true},
+               {plate:'51C-771.92',model:'Isuzu FVR · 15T',fuel:'diesel',trips:64,last:'05/06',active:false} ],
+    recent:[ {ref:'C-808',who:'ACME Corp',plate:'50E-324.07',date:'14/06',time:'06:10',s:{vi:'Kho HCM → Bình Dương',en:'HCMC Wh → Binh Duong',ko:'HCMC 창고 → 빈즈엉'}},
+             {ref:'C-805',who:'Vinamilk JSC',plate:'50E-324.07',date:'13/06',time:'07:30',s:{vi:'Bình Dương → Long An',en:'Binh Duong → Long An',ko:'빈즈엉 → 롱안'}},
+             {ref:'C-801',who:'Pepsico VN',plate:'51C-771.92',date:'10/06',time:'05:50',s:{vi:'Kho HCM → Đồng Nai',en:'HCMC Wh → Dong Nai',ko:'HCMC 창고 → 동나이'}} ],
+    tripsOngoing:[ {ref:'C-815',who:'ACME Corp',time:'06:00',plate:'50E-324.07',st:'IN_PROGRESS',s:{vi:'Kho HCM → KCN VSIP Bình Dương',en:'HCMC Wh → VSIP IZ Binh Duong',ko:'HCMC 창고 → VSIP 산업단지 빈즈엉'}},
+                   {ref:'C-816',who:'Vinamilk JSC',time:'14:00',plate:'50E-324.07',st:'CONFIRMED',s:{vi:'Bình Dương → Kho HCM',en:'Binh Duong → HCMC Wh',ko:'빈즈엉 → HCMC 창고'}} ],
+    tripsDone:[ {ref:'C-808',who:'ACME Corp',time:'14/06 · 06:10',plate:'50E-324.07',st:'COMPLETED',s:{vi:'Kho HCM → Bình Dương',en:'HCMC Wh → Binh Duong',ko:'HCMC 창고 → 빈즈엉'}},
+                {ref:'C-805',who:'Vinamilk JSC',time:'13/06 · 07:30',plate:'50E-324.07',st:'COMPLETED',s:{vi:'Bình Dương → Long An',en:'Binh Duong → Long An',ko:'빈즈엉 → 롱안'}},
+                {ref:'C-801',who:'Pepsico VN',time:'10/06 · 05:50',plate:'51C-771.92',st:'COMPLETED',s:{vi:'Kho HCM → Đồng Nai',en:'HCMC Wh → Dong Nai',ko:'HCMC 창고 → 동나이'}} ],
+    expenses:[ {type:'FUEL',amt:'2.400.000₫',date:'15/06/2025',ref:'C-815',st:'APPROVED'},
+               {type:'TOLL',amt:'350.000₫',date:'15/06/2025',ref:'C-815',st:'AUTO_APPROVED'},
+               {type:'REPAIR',amt:'800.000₫',date:'14/06/2025',ref:'C-808',st:'PENDING'},
+               {type:'PARKING',amt:'50.000₫',date:'13/06/2025',ref:'',st:'APPROVED'},
+               {type:'ACCIDENT',amt:'3.500.000₫',date:'08/06/2025',ref:'',st:'REJECTED',note:{vi:'Bổ sung biên bản & ảnh hiện trường.',en:'Add the report & on-site photos.',ko:'사고 보고서 및 현장 사진을 추가하세요.'}} ],
+    me:{ name:'Trần Văn Tải',email:'tai.tran@amoeba.group',initials:'TT',lic:'50-987654321',cls:'FC',exp:'20/11/2026',daysLeft:157,phone:'0987 776 665' },
+    amountSample:'2.400.000',
+  },
+};
+
+const ETYPE_GRID = [
+  {id:'FUEL',ic:I.fuel},{id:'OIL',ic:I.droplet},{id:'MEAL',ic:I.meal},{id:'REPAIR',ic:I.wrench},
+  {id:'PARKING',ic:I.parking},{id:'TOLL',ic:I.coins},{id:'ACCIDENT',ic:I.shield},{id:'INSPECTION',ic:I.inspect},
+];
+const STATE = { confirm:{banner:'confirm',sl:'heroConfirm',badge:'badgeConfirm',pill:'warning',long:'stConfirmLong',act:'confirm'},
+                ready:{banner:'ready',sl:'heroReady',badge:'badgeReady',pill:'success',long:'stReadyLong',act:'ready'},
+                active:{banner:'active',sl:'heroActive',badge:'badgeActive',pill:'info',long:'stActiveLong',act:'active'} };
+const STONE = { PENDING_DRIVER_CONFIRMATION:'warning', CONFIRMED:'success', IN_PROGRESS:'info', COMPLETED:'neutral', CANCELLED:'danger', REJECTED_BY_DRIVER:'danger' };
+const ESTONE = { PENDING:'warning', APPROVED:'success', AUTO_APPROVED:'info', REJECTED:'danger' };
+
+let cur = { theme:'car', state:'ready', screen:'today', tripTab:'ongoing', expType:'FUEL', lang:'vi' };
+
+/* helpers */
+const t = k => { const v=L[cur.lang][k]; return v!==undefined?v:L.vi[k]; };
+const tx = o => typeof o==='string'?o:(o[cur.lang]||o.vi);
+const initials = name => name.split(' ').filter(Boolean).slice(-2).map(w=>w[0]).join('');
+const vIcon = ()=> cur.theme==='truck'?I.truck:I.car;
+const fromL = ()=> cur.theme==='truck'?t('fromTruck'):t('fromCar');
+const toL = ()=> cur.theme==='truck'?t('toTruck'):t('toCar');
+const paxL = ()=> cur.theme==='truck'?t('paxTruck'):t('paxCar');
+const lastTxt = v => v==='today'?t('todayWord'):v;
+const fuelTxt = f => f==='petrol'?t('fuelPetrol'):t('fuelDiesel');
+
+/* ---------- TODAY ---------- */
+function renderToday(){
+  const d=DATA[cur.theme], s=STATE[cur.state], n=d.next;
+  const bol = n.bol?`<div class="meta-row" style="border-top:1px solid #EFF1F5;margin-top:10px;padding-top:12px;"><span class="it">${t('bolLabel')} <b class="mono">${n.bol}</b></span><span class="it">CDF <b class="mono">${n.cdf}</b></span></div>`:'';
+  let h=`<div class="card">
+    <div class="hero-banner ${s.banner}"><div style="min-width:0;"><div class="sl">${t(s.sl)}</div><div class="ref mono">#${n.ref}</div></div><span class="badge-w">${t(s.badge)}</span></div>
+    <div class="hero-body">
+      <div class="pax"><div class="avatar">${n.initials}</div><div style="min-width:0;"><div class="nm">${n.who}</div><div class="pp">${tx(n.purpose)}</div></div></div>
+      <div class="route">
+        <div class="step from"><div class="dot">${I.pin}</div><div style="min-width:0;"><div class="lbl">${fromL()}</div><div class="val">${tx(n.from)}</div></div></div>
+        <div class="step to"><div class="dot">${I.pin}</div><div style="min-width:0;"><div class="lbl">${toL()}</div><div class="val">${tx(n.to)}</div></div></div>
+        <div class="meta-row"><span class="it">${I.clock}<b>${n.time}</b><span style="color:var(--text-faint);">· ${tx(n.dur)}</span></span><span class="it">${vIcon()}<b class="mono">${n.plate}</b></span></div>
+        ${bol}
+      </div>
+    </div></div>
+    <a class="link" style="padding:0 4px;display:inline-flex;align-items:center;gap:4px;" data-goto="detail">${t('tripDetails')} ${I.chev}</a>`;
+  if(d.later.length){
+    h+=`<div class="card"><div class="card-head"><span class="ttl">${t('laterToday')}</span></div><div class="rows">`;
+    d.later.forEach(r=>h+=`<a class="row" data-goto="detail"><span class="rref mono">${r.ref}</span><span class="rmid"><div class="rt">${r.who}</div><div class="rs">${tx(r.s)}</div></span><span class="rtime mono">${r.time}</span><span class="chev">${I.chev}</span></a>`);
+    h+=`</div></div>`;
+  }
+  h+=`<div class="card"><div class="card-head"><span class="ttl">${t('myVehicles')}</span><span class="meta">${t('carsCount')(d.vehicles.length)}</span></div>`;
+  d.vehicles.forEach(v=>h+=`<div class="veh"><div class="vico">${vIcon()}</div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:7px;"><span class="vp mono">${v.plate}</span>${v.active?`<span class="bdg info">${t('inUse')}</span>`:''}</div><div class="vm">${v.model}</div><div class="vd"><span style="display:inline-flex;align-items:center;gap:4px;">${I.fuel}${fuelTxt(v.fuel)}</span><span>·</span><span>${t('tripCount')(v.trips)}</span><span>·</span><span>${t('lastDriven')} ${lastTxt(v.last)}</span></div></div></div>`);
+  h+=`</div>`;
+  h+=`<div class="card"><div class="card-head"><span class="ttl">${t('recentTrips')}</span><a class="link" data-tab="tripsMine">${t('viewAll')}</a></div><div class="rows">`;
+  d.recent.forEach(r=>h+=`<a class="row" data-goto="detail"><span class="rref mono">${r.ref}</span><span class="rmid"><div class="rt">${r.who} <span class="mono" style="font-size:11px;color:var(--text-faint);">· ${r.plate}</span></div><div class="rs">${tx(r.s)}</div></span><span class="rtime mono">${r.date}<br><span style="color:var(--text-faint);">${r.time}</span></span><span class="chev">${I.chev}</span></a>`);
+  h+=`</div></div>`;
+  return h;
+}
+
+/* ---------- TRIPS ---------- */
+function renderTrips(){
+  const d=DATA[cur.theme];
+  const list = cur.tripTab==='ongoing'?d.tripsOngoing:d.tripsDone;
+  let h=`<div class="scrn-title">${t('tripsTitle')}</div>
+    <div class="subtabs"><button data-ttab="ongoing" class="${cur.tripTab==='ongoing'?'on':''}">${t('tabOngoing')}</button><button data-ttab="completed" class="${cur.tripTab==='completed'?'on':''}">${t('tabCompleted')}</button></div>`;
+  if(!list.length){ h+=`<div class="card"><div style="padding:40px 20px;text-align:center;"><div style="font-size:15px;font-weight:700;">${t('emptyTitle')}</div><div style="font-size:12.5px;color:var(--text-faint);margin-top:6px;">${t('emptyDesc')}</div></div></div>`; return h; }
+  list.forEach(r=>{ const tone=STONE[r.st];
+    h+=`<a class="tcard" data-goto="detail"><div class="top"><div class="avatar sm">${initials(r.who)}</div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;"><div style="min-width:0;"><div class="tref mono">${r.ref}</div><div class="tnm">${r.who}</div></div><span class="bdg ${tone}">${t('s_'+r.st)}</span></div>
+      <div class="trt">${tx(r.s)}</div><div class="tmeta"><span class="mono">${r.time}</span><span style="color:var(--text-faint);">·</span><span class="mono">${r.plate}</span></div></div></div></a>`; });
+  return h;
+}
+
+/* ---------- EXPENSES ---------- */
+function renderExpenses(){
+  const d=DATA[cur.theme];
+  let h=`<div class="scrn-title">${t('expTitle')}</div><div class="scrn-sub">${t('expSub')}</div>
+    <button class="btn-block" data-goto="expenseNew">${I.plus} ${t('expNewBtn')}</button>`;
+  d.expenses.forEach(e=>{ const tone=ESTONE[e.st]; const tm=ETYPE_GRID.find(x=>x.id===e.type);
+    h+=`<div class="ecard"><div class="eico">${tm?tm.ic:I.receipt}</div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;"><div style="min-width:0;"><div class="etp">${t('t_'+e.type)}</div><div class="edt">${e.date}${e.ref?` · <span class="mono">${e.ref}</span>`:''}</div></div><div style="text-align:right;flex-shrink:0;"><div class="eamt mono">${e.amt}</div><span class="bdg ${tone}" style="margin-top:5px;display:inline-block;">${t('e_'+e.st)}</span></div></div>${e.note?`<div class="enote">↳ ${tx(e.note)}</div>`:''}</div></div>`; });
+  return h;
+}
+
+/* ---------- EXPENSE NEW ---------- */
+function renderExpenseNew(){
+  const d=DATA[cur.theme];
+  let h=`<div class="backlink" data-tab="expensesNew">${I.back} ${t('backExpenses')}</div><div class="scrn-title">${t('expTitle')}</div>
+    <div class="field"><label>${t('fType')}</label><div class="chips">`;
+  ETYPE_GRID.forEach(x=>{ const on=cur.expType===x.id; h+=`<div class="chip ${on?'on':''}" data-etype="${x.id}"><span class="cic">${x.ic}</span><span>${t('t_'+x.id)}</span></div>`; });
+  h+=`</div></div>
+    <div class="field"><label>${t('fAmount')}</label><input class="amount mono" placeholder="0" value="${d.amountSample}"></div>
+    <div class="field"><label>${t('fTrip')}</label><div class="kv" style="border:1.5px solid var(--border);border-radius:12px;"><span class="k">${t('tripRelated')(cur.theme)}</span><span class="chev">${I.chev}</span></div></div>
+    <div class="field"><label>${t('fNote')}</label><textarea class="note" rows="2" placeholder="${t('fNotePh')}"></textarea></div>
+    <div class="field"><label>${t('fReceipt')}</label><div class="receipt">${I.camera}<div style="font-size:13px;font-weight:600;color:var(--text-muted);">${t('fReceiptCta')}</div><div style="font-size:11px;">${t('fReceiptHint')}</div></div></div>`;
+  return h;
+}
+
+/* ---------- ME ---------- */
+function renderMe(){
+  const m=DATA[cur.theme].me;
+  return `<div class="scrn-title">${t('meTitle')}</div><div class="scrn-sub">${t('meSub')}</div>
+  <div class="card"><div class="prof"><div class="pav">${m.initials}</div><div style="min-width:0;"><div class="pn">${m.name}</div><div class="pe">${m.email}</div><span class="bdg" style="background:var(--accent-soft);color:var(--accent);margin-top:6px;display:inline-block;">${t('driverRole')}</span></div></div>
+    <div style="padding:0 16px 12px;font-size:11px;color:var(--text-faint);">${t('profileHint')}</div></div>
+  <div class="card"><div class="card-head"><span class="ttl" style="display:flex;align-items:center;gap:8px;">${I.id} ${t('licTitle')}</span></div>
+    <div class="kv"><span class="k">${t('licNo')}</span><span class="v mono">${m.lic}</span></div>
+    <div class="kv"><span class="k">${t('licClass')}</span><span class="v">${m.cls}</span></div>
+    <div class="kv"><span class="k">${t('licExpiry')}</span><span class="v mono">${m.exp} <span class="bdg success" style="margin-left:6px;">${t('daysLeft')(m.daysLeft)}</span></span></div>
+    <div class="kv"><span class="k">${t('licPhone')}</span><span class="v mono">${m.phone}</span></div></div>
+  <div class="card"><div class="card-head"><span class="ttl" style="display:flex;align-items:center;gap:8px;">${I.globe} ${t('langTitle')}</span></div>
+    <div class="langopts"><button data-setlang="vi" class="${cur.lang==='vi'?'on':''}">Tiếng Việt</button><button data-setlang="en" class="${cur.lang==='en'?'on':''}">English</button><button data-setlang="ko" class="${cur.lang==='ko'?'on':''}">한국어</button></div></div>
+  <div class="card"><div class="toggle-row"><div style="display:flex;align-items:center;gap:9px;">${I.bell}<div><div style="font-size:14px;font-weight:600;">${t('pushTitle')}</div><div style="font-size:11.5px;color:var(--text-faint);">${t('pushDesc')}</div></div></div><div class="tg on"><span></span></div></div></div>
+  <button class="logout">${I.logout} ${t('logout')}</button>`;
+}
+
+/* ---------- DETAIL ---------- */
+function renderDetail(){
+  const d=DATA[cur.theme], s=STATE[cur.state], n=d.next;
+  const bol = n.bol?`<div class="sec"><div class="sttl">${t('shipDocs')}</div><div class="prop">${I.receipt}<span>${t('bolLabel')}: <span class="mono">${n.bol}</span></span></div><div class="prop">${I.receipt}<span>${t('cdfLabel')}: <span class="mono">${n.cdf}</span></span></div></div>`:'';
+  return `<div class="backlink" data-tab="today">${I.back} ${t('backToday')}</div>
+  <div class="status-row"><span class="bdg ${s.pill}">${t(s.long)}</span><span class="when">${I.cal} ${n.time} · ${t('todayWord')}</span></div>
+  <div class="map"><div class="ln"></div><div class="pin a">${I.pin}</div><div class="pin b">${I.pin}</div><span class="tag">${t('mapTag')}</span></div>
+  <div class="sec"><div class="sttl">${t('routeTitle')}</div><div class="route">
+    <div class="step from"><div class="dot">${I.pin}</div><div style="min-width:0;"><div class="lbl">${fromL()}</div><div class="val">${tx(n.from)}</div></div></div>
+    <div class="step to"><div class="dot">${I.pin}</div><div style="min-width:0;"><div class="lbl">${toL()}</div><div class="val">${tx(n.to)}</div></div></div>
+    <div class="meta-row"><span class="it">${I.clock}<b>${n.time}</b><span style="color:var(--text-faint);">· ${tx(n.dur)}</span></span><span class="it">${vIcon()}<b class="mono">${n.plate}</b></span></div></div></div>
+  ${bol}
+  <div class="sec"><div class="sttl">${paxL()}${t('contactSuffix')}</div><div class="prop">${I.user}<span>${n.who}</span></div>
+    <div class="contact-btns"><a class="cbtn call" href="tel:${n.paxPhone.replace(/\s/g,'')}">${I.phone}<span class="mono">${n.paxPhone}</span></a><a class="cbtn mail" href="mailto:${n.paxEmail}">${I.mail}<span>${t('emailBtn')}</span></a></div></div>`;
+}
+
+/* ---------- action bar ---------- */
+function renderActionBar(){
+  const s=STATE[cur.state];
+  if(cur.screen==='today'||cur.screen==='detail'){
+    let inner='';
+    if(s.act==='confirm') inner=`<div class="ab-2"><button class="btn danger">${I.x} ${t('actReject')}</button><button class="btn primary" style="flex:1.4;">${I.check} ${t('actAccept')}</button></div>`;
+    else if(s.act==='ready') inner=`<button class="btn primary">${I.play} ${t('actStart')}</button>`;
+    else if(s.act==='active') inner=`<button class="btn dark">${I.stop} ${t('actEnd')}</button><button class="btn ghost">${I.receipt} ${t('actExpense')}</button>`;
+    return `<div class="actionbar">${inner}</div>`;
+  }
+  if(cur.screen==='expenseNew') return `<div class="actionbar"><button class="btn primary">${I.check} ${t('submitExp')}</button></div>`;
+  return '';
+}
+
+/* ---------- tabs ---------- */
+const TABS = [ {key:'today',l:'navToday',ic:I.calclock},{key:'tripsMine',l:'navTrips',ic:I.clipboard},{key:'expensesNew',l:'navExpenses',ic:I.receipt},{key:'me',l:'navMe',ic:I.user} ];
+const SCREEN_TAB = { today:'today',detail:'today',tripsMine:'tripsMine',expensesNew:'expensesNew',expenseNew:'expensesNew',me:'me' };
+function renderTabs(){
+  const a=SCREEN_TAB[cur.screen];
+  document.getElementById('tabnav').innerHTML = TABS.map(x=>`<button class="tab ${x.key===a?'on':''}" data-tab="${x.key}">${x.ic}<span>${t(x.l)}</span></button>`).join('');
+}
+
+/* ---------- static labels (controls + appbar) ---------- */
+function applyStatic(){
+  document.getElementById('introP').innerHTML = t('intro');
+  document.querySelectorAll('[data-i]').forEach(el=>{ el.textContent = t(el.dataset.i); });
+  document.getElementById('langLabel').textContent = LANG_LABEL[cur.lang];
+  document.getElementById('brandSub').textContent = `${t('driverRole')} · ${cur.theme==='truck'?t('vTruck'):t('vCar')}`;
+  document.querySelectorAll('#langSeg button').forEach(b=>b.classList.toggle('on',b.dataset.lang===cur.lang));
+  document.querySelectorAll('#langMenu button').forEach(b=>b.classList.toggle('on',b.dataset.lang===cur.lang));
+}
+
+/* ---------- mount ---------- */
+function render(){
+  document.body.setAttribute('data-theme',cur.theme);
+  document.documentElement.lang = cur.lang;
+  document.getElementById('logo').textContent = DATA[cur.theme].logo;
+  applyStatic();
+
+  const b=document.getElementById('appBody');
+  if(cur.screen==='today') b.innerHTML=renderToday();
+  else if(cur.screen==='detail') b.innerHTML=renderDetail();
+  else if(cur.screen==='tripsMine') b.innerHTML=renderTrips();
+  else if(cur.screen==='expensesNew') b.innerHTML=renderExpenses();
+  else if(cur.screen==='expenseNew') b.innerHTML=renderExpenseNew();
+  else if(cur.screen==='me') b.innerHTML=renderMe();
+
+  document.getElementById('actionMount').innerHTML=renderActionBar();
+  renderTabs();
+  b.scrollTop=0;
+
+  b.querySelectorAll('[data-goto]').forEach(el=>el.addEventListener('click',e=>{e.preventDefault();cur.screen=el.dataset.goto;render();}));
+  b.querySelectorAll('[data-tab]').forEach(el=>el.addEventListener('click',e=>{e.preventDefault();cur.screen=el.dataset.tab;render();}));
+  b.querySelectorAll('[data-ttab]').forEach(el=>el.addEventListener('click',()=>{cur.tripTab=el.dataset.ttab==='ongoing'?'ongoing':'completed';render();}));
+  b.querySelectorAll('[data-etype]').forEach(el=>el.addEventListener('click',()=>{cur.expType=el.dataset.etype;render();}));
+  b.querySelectorAll('[data-setlang]').forEach(el=>el.addEventListener('click',()=>setLang(el.dataset.setlang)));
+}
+
+function setLang(lg){ if(!L[lg])return; cur.lang=lg; document.getElementById('langMenu').style.display='none'; render(); }
+
+/* ---------- controls ---------- */
+document.getElementById('themeSeg').addEventListener('click',e=>{const x=e.target.closest('button');if(!x)return;cur.theme=x.dataset.theme;document.querySelectorAll('#themeSeg button').forEach(z=>z.classList.toggle('on',z===x));render();});
+document.getElementById('stateSeg').addEventListener('click',e=>{const x=e.target.closest('button');if(!x)return;cur.state=x.dataset.state;document.querySelectorAll('#stateSeg button').forEach(z=>z.classList.toggle('on',z===x));render();});
+document.getElementById('langSeg').addEventListener('click',e=>{const x=e.target.closest('button');if(!x)return;setLang(x.dataset.lang);});
+document.getElementById('tabnav').addEventListener('click',e=>{const x=e.target.closest('.tab');if(!x)return;cur.screen=x.dataset.tab;render();});
+document.getElementById('langBtn').addEventListener('click',e=>{e.stopPropagation();const m=document.getElementById('langMenu');m.style.display=m.style.display==='none'?'block':'none';});
+document.getElementById('langMenu').addEventListener('click',e=>{const x=e.target.closest('button');if(!x)return;setLang(x.dataset.lang);});
+document.addEventListener('click',()=>{document.getElementById('langMenu').style.display='none';});
+
+/* deep link: #theme=truck&state=active&screen=tripsMine&lang=en */
+(function(){const hp=new URLSearchParams(location.hash.slice(1));
+  if(['car','truck'].includes(hp.get('theme')))cur.theme=hp.get('theme');
+  if(['confirm','ready','active'].includes(hp.get('state')))cur.state=hp.get('state');
+  if(['today','detail','tripsMine','expensesNew','expenseNew','me'].includes(hp.get('screen')))cur.screen=hp.get('screen');
+  if(['vi','en','ko'].includes(hp.get('lang')))cur.lang=hp.get('lang');
+  document.querySelectorAll('#themeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.theme===cur.theme));
+  document.querySelectorAll('#stateSeg button').forEach(x=>x.classList.toggle('on',x.dataset.state===cur.state));
+})();
+
+render();
+</script>
+</body>
+</html>
