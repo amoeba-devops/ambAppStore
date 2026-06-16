@@ -13,6 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:#F8FAFC;}
@@ -877,7 +878,7 @@
         <div style="font-size:11.5px;color:#94A3B8;font-weight:500;margin-bottom:5px;">Dữ liệu · Nhập từ Excel</div>
         <div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.1;white-space:nowrap;">Import Excel</div>
       </div>
-      <button style="height:38px;padding:0 14px;border:1px solid #E2E5EB;border-radius:8px;background:#fff;color:#475569;font:600 13px/1 inherit;cursor:pointer;display:flex;align-items:center;gap:7px;" style-hover="border-color:var(--accent,#C2410C);color:var(--accent,#C2410C);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Tải file mẫu</button>
+      <button style="height:38px;padding:0 14px;border:1px solid #E2E5EB;border-radius:8px;background:#fff;color:#475569;font:600 13px/1 inherit;cursor:pointer;display:flex;align-items:center;gap:7px;" style-hover="border-color:var(--accent,#C2410C);color:var(--accent,#C2410C);" onClick="{{ downloadTemplate }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Tải file mẫu</button>
     </header>
     <div style="flex:1;overflow:auto;padding:24px 28px;display:flex;flex-direction:column;gap:20px;">
       <!-- Upload area -->
@@ -1350,6 +1351,154 @@ class Component extends DCLogic {
     sc.forEach(([k])=>{ let v=this.state.editForm[k]; if(numKeys.includes(k)) v=parseFloat(String(v).replace(/[^\d.-]/g,''))||0; patch[k]=v; });
     this.setState(s=>({ ov:{...s.ov,[e.kind+':'+e.id]:patch}, edit:null })); }
   cancelEdit(){ this.setState({ edit:null }); }
+
+  // ---- download template ----
+  async downloadTemplate() {
+    try {
+      // Get current language from i18n system
+      const lang = (window.AppI18n && window.AppI18n.getCurrentLang) ? window.AppI18n.getCurrentLang() : 'vi';
+
+      // Translations for template content
+      const templateT = {
+        reportTitle: { vi: 'BÁO CÁO QUẢN LÝ XE TẢI', en: 'TRUCK MANAGEMENT REPORT', ko: '트럭 관리 보고서' },
+        plateNumber: { vi: 'Biển số xe:', en: 'Plate Number:', ko: '차량 번호:' },
+        enterPlate: { vi: '[Nhập biển số]', en: '[Enter plate number]', ko: '[번호판 입력]' },
+        driver: { vi: 'Tài xế:', en: 'Driver:', ko: '운전사:' },
+        enterDriver: { vi: '[Nhập tên tài xế]', en: '[Enter driver name]', ko: '[운전사 이름 입력]' },
+        month: { vi: 'Tháng:', en: 'Month:', ko: '월:' },
+        instructions: { vi: 'Hướng dẫn:', en: 'Instructions:', ko: '안내:' },
+        inst1: { vi: '- Nhập dữ liệu từ hàng 12 trở đi', en: '- Enter data from row 12 onwards', ko: '- 12행부터 데이터를 입력하세요' },
+        inst2: { vi: '- Không thay đổi thứ tự các cột', en: '- Do not change column order', ko: '- 열 순서를 변경하지 마세요' },
+        inst3: { vi: '- Định dạng ngày: DD/MM/YYYY hoặc YYYY-MM-DD', en: '- Date format: DD/MM/YYYY or YYYY-MM-DD', ko: '- 날짜 형식: DD/MM/YYYY 또는 YYYY-MM-DD' },
+        sheetName: { vi: 'Nhập Nhật ký', en: 'Trip Log Import', ko: '운행 일지 가져오기' },
+        instructionSheet: { vi: 'Hướng dẫn', en: 'Instructions', ko: '안내' },
+        instructionTitle: { vi: 'HƯỚNG DẪN IMPORT DỮ LIỆU', en: 'DATA IMPORT INSTRUCTIONS', ko: '데이터 가져오기 안내' },
+        column: { vi: 'Cột', en: 'Column', ko: '열' },
+        description: { vi: 'Mô tả', en: 'Description', ko: '설명' },
+        required: { vi: 'Bắt buộc', en: 'Required', ko: '필수' },
+        yes: { vi: 'Có', en: 'Yes', ko: '예' },
+        no: { vi: 'Không', en: 'No', ko: '아니오' },
+        // Column descriptions
+        descNo: { vi: 'Số thứ tự', en: 'Row number', ko: '행 번호' },
+        descDate: { vi: 'Ngày vận chuyển (DD/MM/YYYY)', en: 'Transport date (DD/MM/YYYY)', ko: '운송 날짜 (DD/MM/YYYY)' },
+        descStart: { vi: 'Giờ xuất phát (HH:MM)', en: 'Departure time (HH:MM)', ko: '출발 시간 (HH:MM)' },
+        descFinish: { vi: 'Giờ đến (HH:MM)', en: 'Arrival time (HH:MM)', ko: '도착 시간 (HH:MM)' },
+        descFrom: { vi: 'Điểm xuất phát', en: 'Departure location', ko: '출발지' },
+        descTo: { vi: 'Điểm đến', en: 'Destination', ko: '목적지' },
+        descStartKm: { vi: 'Km lúc xuất phát', en: 'Odometer at departure', ko: '출발 시 주행거리' },
+        descFinishKm: { vi: 'Km lúc đến', en: 'Odometer at arrival', ko: '도착 시 주행거리' },
+        descTotalKm: { vi: 'Tổng km (tự tính nếu có Start/Finish KM)', en: 'Total km (auto-calculated if Start/Finish KM provided)', ko: '총 km (Start/Finish KM 제공 시 자동 계산)' },
+        descCustomer: { vi: 'Tên khách hàng', en: 'Customer name', ko: '고객 이름' },
+        descBill: { vi: 'Số vận đơn (BOL)', en: 'Bill of Lading number', ko: '운송장 번호' },
+        descCdf: { vi: 'Số CDF', en: 'CDF number', ko: 'CDF 번호' },
+        descToll: { vi: 'Phí cầu đường (VND)', en: 'Toll fee (VND)', ko: '통행료 (VND)' },
+        descOther: { vi: 'Phí khác (VND)', en: 'Other fee (VND)', ko: '기타 비용 (VND)' },
+        descOtherNote: { vi: 'Ghi chú phí khác', en: 'Other fee note', ko: '기타 비용 메모' },
+        descOil: { vi: 'Chi phí nhiên liệu (VND)', en: 'Fuel cost (VND)', ko: '연료비 (VND)' },
+        descFuel: { vi: 'Số lít nhiên liệu (L)', en: 'Fuel quantity (L)', ko: '연료량 (L)' },
+        sampleOtherNote: { vi: 'Phí bãi', en: 'Parking fee', ko: '주차비' },
+        errorMsg: { vi: 'Không thể tải file mẫu. Vui lòng thử lại.', en: 'Failed to download template. Please try again.', ko: '템플릿 다운로드 실패. 다시 시도해주세요.' }
+      };
+      const t = (key) => templateT[key]?.[lang] || templateT[key]?.['vi'] || key;
+
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'Amoeba Fleet';
+      wb.created = new Date();
+
+      // Main sheet with data
+      const ws = wb.addWorksheet(t('sheetName'));
+
+      // Headers matching CR-Vietnam-Truck-v1 profile (row 11)
+      const headers = [
+        'NO', 'DATE', 'START', 'FINISH', 'FROM', 'TO', 'START (KM)', 'FINISH (KM)',
+        'TOTAL KM', 'CUSTOMER', 'BILL / BOOK', 'CDF', 'TOLL FEE', 'OTHER FEE',
+        'REMARK FOR OTHER FEE', 'OIL FEE', 'FUEL QUANTITY'
+      ];
+
+      // Get month label based on language
+      const monthLabel = lang === 'vi'
+        ? new Date().toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })
+        : lang === 'ko'
+        ? new Date().toLocaleDateString('ko-KR', { month: 'long', year: 'numeric' })
+        : new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+      // Add header info rows (1-10) with company template style
+      ws.addRow([t('reportTitle')]);
+      ws.getRow(1).font = { bold: true, size: 16 };
+      ws.addRow([]);
+      ws.addRow([t('plateNumber'), t('enterPlate')]);
+      ws.addRow([t('driver'), t('enterDriver')]);
+      ws.addRow([t('month'), monthLabel]);
+      ws.addRow([]);
+      ws.addRow([t('instructions')]);
+      ws.addRow([t('inst1')]);
+      ws.addRow([t('inst2')]);
+      ws.addRow([t('inst3')]);
+
+      // Header row (row 11)
+      ws.addRow(headers);
+      const headerRow = ws.getRow(11);
+      headerRow.font = { bold: true };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E5EB' } };
+      headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+
+      // Sample data row (row 12)
+      const sampleRow = [
+        1, '01/01/2025', '08:00', '12:00', 'HCM', 'Bình Dương',
+        100000, 100050, 50, 'ACME Corp', 'BOL-001', 'CDF-001',
+        50000, 20000, t('sampleOtherNote'), 500000, 20
+      ];
+      ws.addRow(sampleRow);
+      ws.getRow(12).font = { italic: true, color: { argb: 'FF6B7280' } };
+
+      // Set column widths
+      const colWidths = [6, 12, 10, 10, 18, 18, 12, 12, 10, 16, 16, 16, 12, 12, 20, 12, 14];
+      ws.columns = colWidths.map((w, i) => ({ key: headers[i], width: w }));
+
+      // Instructions sheet
+      const insWs = wb.addWorksheet(t('instructionSheet'));
+      insWs.addRow([t('instructionTitle')]);
+      insWs.getRow(1).font = { bold: true, size: 14 };
+      insWs.addRow([]);
+      insWs.addRow([t('column'), t('description'), t('required')]);
+      insWs.getRow(3).font = { bold: true };
+      insWs.addRow(['NO', t('descNo'), t('no')]);
+      insWs.addRow(['DATE', t('descDate'), t('yes')]);
+      insWs.addRow(['START', t('descStart'), t('no')]);
+      insWs.addRow(['FINISH', t('descFinish'), t('no')]);
+      insWs.addRow(['FROM', t('descFrom'), t('yes')]);
+      insWs.addRow(['TO', t('descTo'), t('yes')]);
+      insWs.addRow(['START (KM)', t('descStartKm'), t('no')]);
+      insWs.addRow(['FINISH (KM)', t('descFinishKm'), t('no')]);
+      insWs.addRow(['TOTAL KM', t('descTotalKm'), t('no')]);
+      insWs.addRow(['CUSTOMER', t('descCustomer'), t('no')]);
+      insWs.addRow(['BILL / BOOK', t('descBill'), t('no')]);
+      insWs.addRow(['CDF', t('descCdf'), t('no')]);
+      insWs.addRow(['TOLL FEE', t('descToll'), t('no')]);
+      insWs.addRow(['OTHER FEE', t('descOther'), t('no')]);
+      insWs.addRow(['REMARK FOR OTHER FEE', t('descOtherNote'), t('no')]);
+      insWs.addRow(['OIL FEE', t('descOil'), t('no')]);
+      insWs.addRow(['FUEL QUANTITY', t('descFuel'), t('no')]);
+      insWs.columns = [{ width: 20 }, { width: 50 }, { width: 12 }];
+
+      // Generate and download
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `trip-log-template-${new Date().toISOString().slice(0,10)}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download template error:', err);
+      const lang = (window.AppI18n && window.AppI18n.getCurrentLang) ? window.AppI18n.getCurrentLang() : 'vi';
+      const errorMsgs = { vi: 'Không thể tải file mẫu. Vui lòng thử lại.', en: 'Failed to download template. Please try again.', ko: '템플릿 다운로드 실패. 다시 시도해주세요.' };
+      alert(errorMsgs[lang] || errorMsgs['vi']);
+    }
+  }
 
   // ---- date helpers ----
   parseDMY(s){ const [d,m,y]=s.split('/').map(Number); return new Date(y, m-1, d); }
@@ -2078,6 +2227,7 @@ class Component extends DCLogic {
       navS:{ dashboard:this.navStyleFor('dashboard'), trips:this.navStyleFor('trips'), trucks:this.navStyleFor('trucks'), drivers:this.navStyleFor('drivers'), monthly:this.navStyleFor('monthly'), reports:this.navStyleFor('reports'), import:this.navStyleFor('import'), users:this.navStyleFor('users'), settings:this.navStyleFor('settings'), audit:this.navStyleFor('audit') },
       goDashboard:go('dashboard'), goTrips:go('trips'), goTrucks:go('trucks'), goDrivers:go('drivers'),
       goMonthly:go('monthly'), goReports:go('reports'), goImport:go('import'), goUsers:go('users'), goSettings:go('settings'), goAudit:go('audit'),
+      downloadTemplate:()=>this.downloadTemplate(),
       switchTruck:()=>this.setState({dept:'truck'}), switchCar:()=>this.setState({dept:'car'}),
       brandInit: S.dept==='truck'?'XT':'XC',
       deptTruckStyle:`flex:1;height:30px;border:none;border-radius:6px;cursor:pointer;font:600 12.5px/1 inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;${S.dept==='truck'?'background:#fff;color:#C2410C;box-shadow:0 1px 2px rgba(15,23,42,.12);':'background:transparent;color:#64748B;'}`,
