@@ -553,6 +553,7 @@
   let bottomNav = null;
   let mobileLangDropdown = null;
   let mobileLangBackdrop = null;
+  let localeSwitcherWrapper = null; // desktop switcher (attached to <body>, fixed)
 
   // ============ INIT ============
   function init() {
@@ -614,6 +615,38 @@
     if (currentLang !== 'vi') {
       applyTranslations(currentLang);
     }
+
+    // Keep translations applied across dc-runtime (React) re-renders
+    startI18nReapplyObserver();
+  }
+
+  // ============ RE-APPLY I18N AFTER dc-runtime RE-RENDERS ============
+  // support.js (dc-runtime) re-renders the DOM with React (hot-reload fetch,
+  // state ticks). Each re-render discards our injected nodes and reverts
+  // translated text. Watch the render root and re-apply the active language,
+  // debounced via rAF, disconnecting while we mutate so we never loop.
+  let i18nObserver = null;
+  let reapplyQueued = false;
+  function startI18nReapplyObserver() {
+    if (i18nObserver) return;
+    const root = document.getElementById('dc-root') || document.body;
+    const connect = () => i18nObserver.observe(root, { childList: true, subtree: true });
+    i18nObserver = new MutationObserver(() => {
+      // Nothing to re-apply while on the default language (Vietnamese template).
+      if (currentLang === 'vi' || reapplyQueued) return;
+      reapplyQueued = true;
+      requestAnimationFrame(() => {
+        reapplyQueued = false;
+        i18nObserver.disconnect();
+        try {
+          scanAndStoreTexts();
+          applyTranslations(currentLang);
+        } finally {
+          connect();
+        }
+      });
+    });
+    connect();
   }
 
   // ============ RESPONSIVE LAYOUT ============
@@ -624,6 +657,9 @@
       // MOBILE MODE
       if (sidebar) {
         sidebar.style.display = 'none';
+      }
+      if (localeSwitcherWrapper) {
+        localeSwitcherWrapper.style.display = 'none';
       }
       if (mainEl) {
         mainEl.style.paddingTop = '56px';
@@ -644,6 +680,9 @@
       // DESKTOP MODE
       if (sidebar) {
         sidebar.style.display = 'flex';
+      }
+      if (localeSwitcherWrapper) {
+        localeSwitcherWrapper.style.display = 'block';
       }
       if (mainEl) {
         mainEl.style.paddingTop = '0';
@@ -682,6 +721,10 @@
 
   // ============ TEXT SCANNING & TRANSLATION ============
   function scanAndStoreTexts() {
+    // Reset cache first — the dc-runtime (React) replaces DOM nodes on re-render,
+    // so any previously cached text nodes are stale and must be rebuilt.
+    originalTexts.clear();
+
     // Get all text nodes that match our translation keys
     const walker = document.createTreeWalker(
       document.body,
@@ -753,10 +796,9 @@
 
   // ============ LOCALE SWITCHER (Desktop) ============
   function createLocaleSwitcher() {
-    if (!sidebar) {
-      console.log('[i18n] createLocaleSwitcher: sidebar not found, skipping');
-      return;
-    }
+    // NOTE: the switcher is attached to <body> with position:fixed (NOT inside the
+    // React-rendered <aside>), so the dc-runtime (support.js) re-render cannot
+    // reconcile/remove it. Hence we no longer require `sidebar` to exist.
 
     // Check if locale switcher already exists
     if (document.getElementById('locale-switcher-wrapper')) {
@@ -770,10 +812,17 @@
     const wrapper = document.createElement('div');
     wrapper.id = 'locale-switcher-wrapper';
     wrapper.style.cssText = `
-      position: relative;
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 248px;
+      box-sizing: border-box;
       border-top: 1px solid #E2E5EB;
+      border-right: 1px solid #E2E5EB;
       padding: 8px;
       background: #fff;
+      z-index: 60;
+      display: ${isMobile ? 'none' : 'block'};
     `;
 
     // Create trigger button
@@ -847,15 +896,11 @@
     wrapper.appendChild(trigger);
     wrapper.appendChild(dropdown);
 
-    // Insert before user section (last child)
-    const userSection = sidebar.lastElementChild;
-    if (userSection) {
-      sidebar.insertBefore(wrapper, userSection);
-      console.log('[i18n] Locale switcher inserted before user section');
-    } else {
-      sidebar.appendChild(wrapper);
-      console.log('[i18n] Locale switcher appended to sidebar');
-    }
+    // Append to <body> (NOT the React-owned sidebar) so the dc-runtime re-render
+    // does not reconcile/remove it. Positioned fixed over the sidebar area.
+    document.body.appendChild(wrapper);
+    localeSwitcherWrapper = wrapper;
+    console.log('[i18n] Locale switcher appended to <body> (fixed)');
 
     // Event: toggle dropdown
     trigger.addEventListener('click', (e) => {
