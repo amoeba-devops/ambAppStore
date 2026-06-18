@@ -9,6 +9,8 @@ import { InstallPrompt } from '@/components/pwa/install-prompt';
 import { PushConfigProvider } from '@/components/pwa/push-config-context';
 import { PushPromptStrip } from '@/components/pwa/push-prompt-strip';
 import { BottomTabNav } from './bottom-tab-nav';
+import { DeptThemeEffect } from './dept-theme-effect';
+import type { FleetDept } from './nav-items';
 import { SidebarNav } from './sidebar-nav';
 import { TenantDisplayProvider } from './tenant-display-context';
 import { UserDisplayProvider } from './user-display-context';
@@ -17,6 +19,8 @@ const COLLAPSE_KEY = 'ccms.sidebar.collapsed';
 
 interface AppShellClientProps {
   role: LocalRole;
+  /** Fleet departments the user may enter (drives the dept switch + nav). */
+  fleetAccess: FleetDept[];
   /** Display name from AMA JWT (null if not provided). */
   userName: string | null;
   /** Email from AMA JWT (null if not provided). */
@@ -66,6 +70,7 @@ interface AppShellClientProps {
  * a numeric badge on the Trips nav item. 0 → no badge. */
 export function AppShellClient({
   role,
+  fleetAccess,
   userName,
   userEmail,
   pendingTripCount,
@@ -80,6 +85,9 @@ export function AppShellClient({
   children,
 }: AppShellClientProps) {
   const [collapsed, setCollapsed] = useState(false);
+  /* Truck drivers get the orange department theme app-wide (they have a single
+   * department and never visit the manager `/truck/*` routes that set it). */
+  const isTruckDriver = role === 'DRIVER' && fleetAccess.includes('TRUCK');
 
   useEffect(() => {
     try {
@@ -111,6 +119,7 @@ export function AppShellClient({
     >
       <UserDisplayProvider userName={userName} userEmail={userEmail} role={role} unreadNotifications={unreadNotificationCount}>
       <PushConfigProvider vapidPublicKey={vapidPublicKey} basePath={basePath}>
+        {isTruckDriver && <DeptThemeEffect dept="TRUCK" />}
         <div className="flex min-h-dvh bg-bg text-text">
           {/* Sidebar — hidden on mobile, replaced by BottomTabNav below.
            * Push enablement is surfaced via PushPromptStrip below (a top-of-
@@ -119,6 +128,7 @@ export function AppShellClient({
             <SidebarNav
               collapsed={collapsed}
               role={role}
+              fleetAccess={fleetAccess}
               userName={userName}
               userEmail={userEmail}
               pendingTripCount={pendingTripCount}
@@ -147,6 +157,7 @@ export function AppShellClient({
           </div>
           <BottomTabNav
             role={role}
+            fleetAccess={fleetAccess}
             pendingTripCount={pendingTripCount}
             todayExpenseCount={todayExpenseCount}
           />

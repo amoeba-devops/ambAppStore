@@ -1,7 +1,7 @@
 import 'server-only';
 import { and, asc, desc, eq, isNull, sql, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
-import { carTrips, carVehicles, type CarVehicle } from '@car-v2/db/schema';
+import { carTrips, carVehicles, type CarVehicle, type CarVehicleType } from '@car-v2/db/schema';
 
 export type VehicleDeletedFilter = 'active' | 'deleted' | 'all';
 
@@ -13,6 +13,8 @@ export interface VehicleListItem extends CarVehicle {
 export async function listVehicles(
   entId: string,
   deletedFilter: VehicleDeletedFilter = 'active',
+  /** Restrict to one fleet department (CAR/TRUCK). Omit for all. */
+  vehicleType?: CarVehicleType,
 ): Promise<VehicleListItem[]> {
   const filters: SQL[] = [eq(carVehicles.entId, entId)];
 
@@ -22,6 +24,8 @@ export async function listVehicles(
     filters.push(sql`${carVehicles.cvhDeletedAt} IS NOT NULL`);
   }
   /* 'all' includes both — no filter on cvhDeletedAt */
+
+  if (vehicleType) filters.push(eq(carVehicles.cvhType, vehicleType));
 
   const rows = await db
     .select()

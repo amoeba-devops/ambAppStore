@@ -1,6 +1,7 @@
 import { isNull } from 'drizzle-orm';
 import {
   char,
+  decimal,
   index,
   integer,
   pgEnum,
@@ -31,6 +32,15 @@ export const vehicleFuelEnum = pgEnum('car_vehicle_fuel', [
   'EV',
 ]);
 
+/**
+ * Fleet department discriminator (REQ-20260617 fleet-access). A vehicle belongs
+ * to exactly one fleet department — CAR (passenger dispatch) or TRUCK (cargo
+ * trip-log). Default 'CAR' keeps the existing single-fleet MVP intact; the
+ * column is the canonical tag that `withFleetScope` filters on, and that a
+ * driver's single-department membership is checked against.
+ */
+export const vehicleTypeEnum = pgEnum('car_vehicle_type', ['CAR', 'TRUCK']);
+
 export const carVehicles = pgTable(
   'car_vehicles',
   {
@@ -42,6 +52,12 @@ export const carVehicles = pgTable(
     cvhYear: smallint('cvh_year'),
     cvhColor: varchar('cvh_color', { length: 50 }),
     cvhFuelType: vehicleFuelEnum('cvh_fuel_type').notNull().default('PETROL'),
+    /* Fleet department: CAR (default, dispatch) | TRUCK (cargo trip-log). */
+    cvhType: vehicleTypeEnum('cvh_type').notNull().default('CAR'),
+    /* Truck-only attributes (nullable for cars). cvh_fuel_quota = định mức
+     * tiêu hao L/100km; cvh_tonnage = tải trọng (tấn). */
+    cvhTonnage: decimal('cvh_tonnage', { precision: 6, scale: 2 }),
+    cvhFuelQuota: decimal('cvh_fuel_quota', { precision: 6, scale: 2 }),
     cvhStatus: vehicleStatusEnum('cvh_status').notNull().default('AVAILABLE'),
     cvhOdometerKm: integer('cvh_odometer_km').notNull().default(0),
     cvhLastOilChangeKm: integer('cvh_last_oil_change_km'),
@@ -66,6 +82,8 @@ export const carVehicles = pgTable(
       .on(t.entId, t.cvhPlateNumber)
       .where(isNull(t.cvhDeletedAt)),
     idxEntStatus: index('idx_car_vehicles_ent_status').on(t.entId, t.cvhStatus),
+    /* Fleet-scoped listing ("vehicles in the TRUCK department"). */
+    idxEntType: index('idx_car_vehicles_ent_type').on(t.entId, t.cvhType),
   }),
 );
 
@@ -73,3 +91,4 @@ export type CarVehicle = typeof carVehicles.$inferSelect;
 export type CarVehicleInsert = typeof carVehicles.$inferInsert;
 export type CarVehicleStatus = (typeof vehicleStatusEnum.enumValues)[number];
 export type CarVehicleFuel = (typeof vehicleFuelEnum.enumValues)[number];
+export type CarVehicleType = (typeof vehicleTypeEnum.enumValues)[number];

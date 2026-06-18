@@ -34,7 +34,8 @@ import {
 import type { LocalRole } from '@car-v2/shared/auth';
 import { useAllDrafts, type DraftEntry } from '@/hooks/use-all-drafts';
 import { LogoutConfirmDialog } from '@/components/auth/logout-confirm-dialog';
-import { activeKeyFor, navItemsForRole, type NavKey } from './nav-items';
+import { DeptSwitch } from './dept-switch';
+import { activeKeyFor, deptForContext, navItemsForRole, type FleetDept, type NavKey } from './nav-items';
 import { SidebarLocaleSwitcher } from './sidebar-locale-switcher';
 import { useTenantDisplay } from './tenant-display-context';
 import { UserGuideDrawer } from './user-guide-drawer';
@@ -52,6 +53,9 @@ const ENTITY_SUB_ICON: Record<DraftEntry['entity'], LucideIcon> = {
 interface SidebarNavProps {
   collapsed: boolean;
   role: LocalRole;
+  /** Fleet departments the user may enter — drives the dept switch + which
+   * department's nav items show. */
+  fleetAccess: FleetDept[];
   /** Real user display name from AMA JWT. Fallback to email/role if null. */
   userName: string | null;
   /** Email from AMA JWT. Used as secondary text and Avatar fallback. */
@@ -76,7 +80,7 @@ const NAV_KEY_TO_ENTITY: Partial<Record<NavKey, DraftEntry['entity']>> = {
   costs: 'expense',
 };
 
-export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCount, todayExpenseCount }: SidebarNavProps) {
+export function SidebarNav({ collapsed, role, fleetAccess, userName, userEmail, pendingTripCount, todayExpenseCount }: SidebarNavProps) {
   const tNav   = useTranslations('nav');
   const tCo    = useTranslations('company');
   const tAct   = useTranslations('actions');
@@ -133,7 +137,10 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
    * already the canonical "current user" affordance on desktop (clicks open a
    * dropdown with Me + Sign out), so a separate row was redundant. Mobile keeps
    * the avatar in MobilePageHeader, which already links to /settings/me. */
-  const allItems = navItemsForRole(role);
+  /* Department context derived from the URL (truck workspace = /truck/*). The
+   * nav then shows that department's items + department-agnostic shared ones. */
+  const dept = deptForContext(role, fleetAccess, pathname ?? '/');
+  const allItems = navItemsForRole(role, { dept });
   const workspace = allItems.filter((i) => i.group === 'workspace' && i.key !== 'me');
   const admin = allItems.filter((i) => i.group === 'admin');
 
@@ -166,6 +173,12 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
             <div className="text-xs text-text-muted truncate" title={tenant.name}>{tenant.name}</div>
           </div>
         )}
+      </div>
+
+      {/* Fleet department switch — renders only for users with both
+       * departments (toggle) or a manager who can request truck access. */}
+      <div className="px-2 pt-2 empty:hidden">
+        <DeptSwitch role={role} fleetAccess={fleetAccess} collapsed={collapsed} />
       </div>
 
       {/* Nav */}

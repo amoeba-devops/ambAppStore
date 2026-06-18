@@ -1,6 +1,7 @@
 import { isNull } from 'drizzle-orm';
 import {
   char,
+  decimal,
   index,
   integer,
   pgEnum,
@@ -33,6 +34,14 @@ export const tripStatusEnum = pgEnum('car_trip_status', [
   'CANCELLED',
 ]);
 
+/**
+ * Trip kind discriminator (REQ-20260617 fleet-truck).
+ *   DISPATCH — passenger dispatch (CAR): full state machine, driver confirmation.
+ *   LOG      — cargo trip-log (TRUCK): auto-CONFIRMED on assign, driver completes.
+ * Default 'DISPATCH' keeps every existing car trip on the current flow.
+ */
+export const tripKindEnum = pgEnum('car_trip_kind', ['DISPATCH', 'LOG']);
+
 export const carTrips = pgTable(
   'car_trips',
   {
@@ -46,6 +55,8 @@ export const carTrips = pgTable(
     trpDriverId: char('trp_driver_id', { length: 36 }).references(() => carDrivers.drvId),
     trpVehicleId: char('trp_vehicle_id', { length: 36 }).references(() => carVehicles.cvhId),
     trpStatus: tripStatusEnum('trp_status').notNull().default('PENDING_ASSIGNMENT'),
+    /* Fleet discriminator: DISPATCH (car) | LOG (truck). */
+    trpKind: tripKindEnum('trp_kind').notNull().default('DISPATCH'),
     trpPickupAddress: text('trp_pickup_address').notNull(),
     trpDropoffAddress: text('trp_dropoff_address').notNull(),
     /* Optional contact phone for the passenger. Used by the driver's
@@ -62,6 +73,17 @@ export const carTrips = pgTable(
     trpEndedAt: timestamp('trp_ended_at', { withTimezone: true }),
     trpStartOdometer: integer('trp_start_odometer'),
     trpEndOdometer: integer('trp_end_odometer'),
+    /* ── Truck trip-log fields (trp_kind='LOG'), all nullable for car trips ──
+     * Pickup/dropoff reuse trp_pickup_address/trp_dropoff_address; start/finish
+     * reuse trp_started_at/trp_ended_at; odometer reuses trp_start/end_odometer.
+     * Money stored as DECIMAL(14,2) string (same convention as car_expenses). */
+    trpCustomer: varchar('trp_customer', { length: 255 }),
+    trpBol: varchar('trp_bol', { length: 64 }),
+    trpCdf: varchar('trp_cdf', { length: 64 }),
+    trpFuelLiters: decimal('trp_fuel_liters', { precision: 10, scale: 2 }),
+    trpFuelPrice: decimal('trp_fuel_price', { precision: 14, scale: 2 }),
+    trpTollFee: decimal('trp_toll_fee', { precision: 14, scale: 2 }),
+    trpRevenue: decimal('trp_revenue', { precision: 14, scale: 2 }),
     trpRejectReason: text('trp_reject_reason'),
     trpCancelReason: text('trp_cancel_reason'),
     trpCreatedAt: timestamp('trp_created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -77,6 +99,12 @@ export const carTrips = pgTable(
       t.trpStatus,
       t.trpScheduledAt,
     ),
+    /* Fleet-scoped trip listing ("truck trip log for this month"). */
+    idxEntKindScheduled: index('idx_car_trips_ent_kind_scheduled').on(
+      t.entId,
+      t.trpKind,
+      t.trpScheduledAt,
+    ),
     idxCreator: index('idx_car_trips_creator').on(t.trpCreatorId),
     idxDriver: index('idx_car_trips_driver').on(t.trpDriverId),
     idxVehicle: index('idx_car_trips_vehicle').on(t.trpVehicleId),
@@ -86,3 +114,4 @@ export const carTrips = pgTable(
 export type CarTrip = typeof carTrips.$inferSelect;
 export type CarTripInsert = typeof carTrips.$inferInsert;
 export type CarTripStatus = (typeof tripStatusEnum.enumValues)[number];
+export type CarTripKind = (typeof tripKindEnum.enumValues)[number];

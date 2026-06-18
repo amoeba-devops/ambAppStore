@@ -34,6 +34,9 @@ export async function createVehicleAction(input: unknown): Promise<ActionResult<
         cvhYear: data.year ?? null,
         cvhColor: data.color ?? null,
         cvhFuelType: data.fuel_type ?? 'PETROL',
+        cvhType: data.vehicle_type ?? 'CAR',
+        cvhTonnage: data.tonnage != null ? String(data.tonnage) : null,
+        cvhFuelQuota: data.fuel_quota != null ? String(data.fuel_quota) : null,
         cvhOdometerKm: data.odometer_km ?? 0,
         cvhOilIntervalKm: data.oil_interval_km ?? 5000,
         cvhOilIntervalMonths: data.oil_interval_months ?? 3,
@@ -82,6 +85,9 @@ export async function updateVehicleAction(id: string, input: unknown): Promise<A
     if (data.oil_interval_months !== undefined) patch.cvhOilIntervalMonths = data.oil_interval_months;
     if (data.home_base !== undefined) patch.cvhHomeBase = data.home_base;
     if (data.notes     !== undefined) patch.cvhNotes = data.notes;
+    if (data.vehicle_type !== undefined) patch.cvhType = data.vehicle_type;
+    if (data.tonnage    !== undefined) patch.cvhTonnage = data.tonnage != null ? String(data.tonnage) : null;
+    if (data.fuel_quota !== undefined) patch.cvhFuelQuota = data.fuel_quota != null ? String(data.fuel_quota) : null;
 
     const [updated] = await db
       .update(carVehicles)

@@ -3,15 +3,22 @@ import {
   ClipboardList,
   Car,
   IdCard,
+  KeyRound,
   LayoutDashboard,
   Receipt,
   ScrollText,
   Settings as SettingsIcon,
+  Truck,
+  Upload,
   UserCog,
   User as UserIcon,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import type { LocalRole } from '@car-v2/shared/auth';
+
+/** Fleet department context (REQ-20260617). Mirrors car_vehicles.cvh_type. */
+export type FleetDept = 'CAR' | 'TRUCK';
 
 export type NavKey =
   | 'today'
@@ -24,6 +31,13 @@ export type NavKey =
   | 'drivers'
   | 'users'
   | 'settings'
+  | 'fleetAccess'
+  | 'truckDashboard'
+  | 'truckTrips'
+  | 'truckFleet'
+  | 'truckPnl'
+  | 'truckImport'
+  | 'truckSettings'
   | 'me'
   | 'audit';
 
@@ -34,6 +48,9 @@ export interface NavItem {
   group: 'workspace' | 'admin';
   /** Roles allowed to see this nav item. */
   roles: readonly LocalRole[];
+  /** When set, the item only appears in this fleet department context.
+   * Items without `fleet` are department-agnostic (show in any context). */
+  fleet?: FleetDept;
   staticBadge?: string;
 }
 
@@ -70,13 +87,23 @@ export const NAV_ITEMS: NavItem[] = [
   /* Driver's trips list = filtered to "mine". Different label than admin trips. */
   { key: 'tripsMine',   href: '/trips',         Icon: ClipboardList,   group: 'workspace', roles: DRIVER },
   /* STAFF landing — Schedule Dashboard (calendar + booking + vehicle legend). */
-  { key: 'dashboard',   href: '/dashboard',     Icon: LayoutDashboard, group: 'workspace', roles: STAFF  },
+  { key: 'dashboard',   href: '/dashboard',     Icon: LayoutDashboard, group: 'workspace', roles: STAFF, fleet: 'CAR'  },
   /* Admin/Manager trips overview = full fleet — list/table view for drill-down. */
-  { key: 'trips',       href: '/trips',         Icon: ClipboardList,   group: 'workspace', roles: STAFF  },
+  { key: 'trips',       href: '/trips',         Icon: ClipboardList,   group: 'workspace', roles: STAFF, fleet: 'CAR'  },
   /* Driver expense home — list of their submissions. The submit form lives at
    * `/expenses/new` and is reached via the page's "+ New" button. */
-  { key: 'expensesNew', href: '/expenses',      Icon: Receipt,         group: 'workspace', roles: DRIVER },
-  { key: 'vehicles',    href: '/vehicles',      Icon: Car,             group: 'workspace', roles: STAFF  },
+  /* Car driver only — truck drivers record costs inside the trip completion
+   * form, so this tab is fleet:'CAR' (hidden for a truck driver → 3 tabs). */
+  { key: 'expensesNew', href: '/expenses',      Icon: Receipt,         group: 'workspace', roles: DRIVER, fleet: 'CAR' },
+  { key: 'vehicles',    href: '/vehicles',      Icon: Car,             group: 'workspace', roles: STAFF, fleet: 'CAR'  },
+  /* ── Truck workspace (fleet='TRUCK', shown only in the truck dept context) ── */
+  { key: 'truckDashboard', href: '/truck/dashboard', Icon: LayoutDashboard, group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
+  { key: 'truckTrips',  href: '/truck/trips',   Icon: ClipboardList,   group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
+  { key: 'truckFleet',  href: '/truck/fleet',   Icon: Truck,           group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
+  { key: 'truckPnl',    href: '/truck/pnl',     Icon: Wallet,          group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
+  { key: 'truckImport', href: '/truck/import',  Icon: Upload,          group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
+  { key: 'truckSettings', href: '/truck/settings', Icon: SettingsIcon, group: 'admin',     roles: STAFF, fleet: 'TRUCK' },
+  /* Drivers roster — shared across both fleet departments. */
   { key: 'drivers',     href: '/drivers',       Icon: IdCard,          group: 'workspace', roles: STAFF  },
   /* Profile / locale / logout — universal. Sidebar pulls this out into its
    * own tail block; mobile keeps it as the rightmost flat tab. Positioned
@@ -86,15 +113,45 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'me',          href: '/settings/me',   Icon: UserIcon,        group: 'workspace', roles: ALL    },
   /* Operating-cost ledger (Module 2). STAFF only — drivers see their own
    * history at `/expenses` via `expensesNew` instead. */
-  { key: 'costs',       href: '/costs',         Icon: Receipt,         group: 'workspace', roles: STAFF  },
+  { key: 'costs',       href: '/costs',         Icon: Receipt,         group: 'workspace', roles: STAFF, fleet: 'CAR'  },
   /* Admin-only tenant tools. */
   { key: 'users',       href: '/users',         Icon: UserCog,         group: 'admin',     roles: ADMIN  },
+  /* Fleet department access — grant/revoke CAR/TRUCK + approve manager requests. */
+  { key: 'fleetAccess', href: '/settings/fleet-access', Icon: KeyRound, group: 'admin',     roles: ADMIN  },
   { key: 'settings',    href: '/settings',      Icon: SettingsIcon,    group: 'admin',     roles: ADMIN  },
   { key: 'audit',       href: '/audit',         Icon: ScrollText,      group: 'admin',     roles: ADMIN  },
 ];
 
-export function navItemsForRole(role: LocalRole): NavItem[] {
-  return NAV_ITEMS.filter((item) => item.roles.includes(role));
+/**
+ * Items visible to a role, optionally filtered by the active fleet department.
+ * Backward-compatible: callers that omit `opts.dept` get no department
+ * filtering, so department-scoped items still appear (used until truck screens
+ * land). Pass `dept` to hide items belonging to the other department.
+ */
+export function navItemsForRole(role: LocalRole, opts?: { dept?: FleetDept }): NavItem[] {
+  return NAV_ITEMS.filter((item) => {
+    if (!item.roles.includes(role)) return false;
+    if (item.fleet && opts?.dept && item.fleet !== opts.dept) return false;
+    return true;
+  });
+}
+
+/** Active fleet department derived from the URL: truck workspace lives under
+ * `/truck/*`, everything else is the car workspace. */
+export function deptForPath(pathname: string): FleetDept {
+  return pathname.startsWith('/truck') ? 'TRUCK' : 'CAR';
+}
+
+/** Resolve the department context for nav filtering. Staff toggle workspaces via
+ * the URL (`/truck/*`); a driver belongs to exactly one department, so their
+ * context comes from their fleet membership instead. */
+export function deptForContext(
+  role: LocalRole,
+  fleetAccess: FleetDept[],
+  pathname: string,
+): FleetDept {
+  if (role === 'DRIVER') return fleetAccess.includes('TRUCK') ? 'TRUCK' : 'CAR';
+  return deptForPath(pathname);
 }
 
 /* Pick the active nav key for a given pathname; longest prefix wins. Falls

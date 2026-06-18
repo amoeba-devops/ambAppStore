@@ -14,6 +14,12 @@ export const createVehicleSchema = z.object({
   oil_interval_months: z.number().int().min(1).max(24).optional(),
   home_base: z.string().trim().max(100).optional(),
   notes: z.string().trim().max(2000).optional(),
+  /* Fleet department (REQ-20260617). Defaults to CAR server-side when omitted,
+   * so the existing car create form needs no change. */
+  vehicle_type: z.enum(['CAR', 'TRUCK']).optional(),
+  /* Truck-only attributes (tonnage in tons, fuel quota in L/100km). */
+  tonnage: z.number().nonnegative().max(100).optional(),
+  fuel_quota: z.number().nonnegative().max(200).optional(),
 });
 export type CreateVehicleInput = z.infer<typeof createVehicleSchema>;
 

@@ -20,10 +20,12 @@ import {
 import type { CarTripStatus } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { resolveFleetAccess } from '@/lib/auth/fleet-access';
 import { getDriverByUserId } from '@/server/queries/drivers.queries';
 import { listTrips, listTripsForDriver, type TripListItem } from '@/server/queries/trips.queries';
 import { listVehiclesForDriver, type DriverVehicleSummary } from '@/server/queries/vehicles.queries';
 import { DriverTodayView } from './_components/driver-today-view';
+import { TruckDriverToday } from './_components/truck-driver-today';
 import { SwitchDriverButton } from './_components/switch-driver-button';
 
 const TIME_FMT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -72,18 +74,22 @@ export default async function TodayPage() {
    * same component admins use — keeping the visual identity consistent across
    * roles per user feedback. */
   if (user.role === 'DRIVER') {
+    /* Truck drivers get a completion-oriented Today (no dispatch hero). */
+    const isTruckDriver = (await resolveFleetAccess(user)).includes('TRUCK');
     return (
       <>
         <PageHeader
           title={tT('title')}
           subtitle={`${tCo('currentUser')} · ${tT('subtitleTrips', { count: myTrips.filter((t) => isToday(t.trpScheduledAt)).length })}`}
           breadcrumbs={[{ label: tCo('tenant') }, { label: tT('title') }]}
-          actions={
-            <SwitchDriverButton label={tT('switchDriver')} />
-          }
+          actions={!isTruckDriver ? <SwitchDriverButton label={tT('switchDriver')} /> : undefined}
           mobileVariant="brand"
         />
-        <DriverTodayView trips={myTrips} vehicles={myVehicles} />
+        {isTruckDriver ? (
+          <TruckDriverToday trips={myTrips} />
+        ) : (
+          <DriverTodayView trips={myTrips} vehicles={myVehicles} />
+        )}
       </>
     );
   }

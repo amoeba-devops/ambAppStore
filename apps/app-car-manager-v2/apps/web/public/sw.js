@@ -30,7 +30,7 @@
  *          critical alert detection for cancel/accident events.
  * The `activate` handler nukes any cache whose name isn't in `keep`, so this
  * bump one-time-clears old caches without the sound file. */
-const CACHE_VERSION = 'fleet-v5';
+const CACHE_VERSION = 'fleet-v6';
 const TRIP_CACHE = CACHE_VERSION + '-trips';
 /* `_next/static/*` lives in its own cache so the size cap can trim it WITHOUT
  * risking the precached offline.html / manifest / icons (which share

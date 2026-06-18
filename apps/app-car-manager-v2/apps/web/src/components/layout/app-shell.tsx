@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { resolveFleetAccess } from '@/lib/auth/fleet-access';
 import { countTodayExpenses } from '@/server/queries/expenses.queries';
 import { countUnreadNotifications } from '@/server/queries/notifications.queries';
 import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
@@ -33,13 +34,16 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
    * entry is STAFF-only). Skip the query entirely for DRIVER to save a
    * round-trip on every page render. */
   const wantsTodayCost = user.role === 'ADMIN' || user.role === 'MANAGER';
-  const [pendingTripCount, todayExpenseCount, unreadNotificationCount, settings, tCo, tRoot] = await Promise.all([
+  const [pendingTripCount, todayExpenseCount, unreadNotificationCount, settings, fleetAccess, tCo, tRoot] = await Promise.all([
     countPendingTrips({ entId: user.entId, role: user.role, userId: user.userId }),
     wantsTodayCost ? countTodayExpenses(user.entId) : Promise.resolve(0),
     /* In-app inbox badge — all roles see it. Index on (ntfUserId, ntfReadAt)
      * keeps this lookup index-only even at high volume. */
     countUnreadNotifications(user.entId, user.userId),
     getTenantSettings(user.entId),
+    /* Fleet departments this user may enter — drives the dept switch +
+     * department-scoped nav. ADMIN → both; others → membership rows. */
+    resolveFleetAccess(user),
     getTranslations('company'),
     /* Root namespace — `appName` is a top-level i18n key (vi: "Fleet"). */
     getTranslations(),
@@ -60,6 +64,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <AppShellClient
       role={user.role}
+      fleetAccess={fleetAccess}
       userName={user.name}
       userEmail={user.email}
       pendingTripCount={pendingTripCount}
