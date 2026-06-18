@@ -36,7 +36,7 @@ export const vehicleFuelEnum = pgEnum('car_vehicle_fuel', [
  * Fleet department discriminator (REQ-20260617 fleet-access). A vehicle belongs
  * to exactly one fleet department — CAR (passenger dispatch) or TRUCK (cargo
  * trip-log). Default 'CAR' keeps the existing single-fleet MVP intact; the
- * column is the canonical tag that `withFleetScope` filters on, and that a
+ * column is the canonical tag that fleet-scoped queries filter on, and that a
  * driver's single-department membership is checked against.
  */
 export const vehicleTypeEnum = pgEnum('car_vehicle_type', ['CAR', 'TRUCK']);

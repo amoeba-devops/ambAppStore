@@ -42,7 +42,14 @@ export type NotificationEvent =
   | 'MAINTENANCE.OIL_OVERDUE'
   | 'MAINTENANCE.OIL_DUE_SOON'
   | 'MAINTENANCE.INSPECTION_OVERDUE'
-  | 'MAINTENANCE.INSPECTION_DUE_SOON';
+  | 'MAINTENANCE.INSPECTION_DUE_SOON'
+  | 'TRUCK_TRIP.ASSIGNED'
+  | 'TRUCK_TRIP.COMPLETED'
+  | 'FLEET.ACCESS_REQUESTED'
+  | 'FLEET.ACCESS_APPROVED'
+  | 'FLEET.ACCESS_REJECTED'
+  | 'FLEET.ACCESS_GRANTED'
+  | 'FLEET.ACCESS_REVOKED';
 
 export interface TemplateContext {
   /** Trip / vehicle / expense reference like "TR-1042" or "29A-123.45". */
@@ -109,6 +116,9 @@ function pickBodyKey(event: NotificationEvent, ctx: TemplateContext): BodyKey {
     return ctx.reason ? 'bodyDriverWithReason' : 'bodyDriver';
   }
   if ((event === 'TRIP.ASSIGNED' || event === 'TRIP.NEEDS_ASSIGNMENT') && ctx.route) {
+    return 'bodyWithRoute';
+  }
+  if ((event === 'TRUCK_TRIP.ASSIGNED' || event === 'TRUCK_TRIP.COMPLETED') && ctx.route) {
     return 'bodyWithRoute';
   }
   if ((event === 'TRIP.REJECTED' || event === 'TRIP.CANCELLED') && ctx.reason) {

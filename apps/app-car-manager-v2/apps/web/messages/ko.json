@@ -1424,6 +1424,25 @@
   "notifications": {
     "cta": "운행 보기",
     "events": {
+      "TRUCK_TRIP": {
+        "ASSIGNED": {
+          "subject": "트럭 운행이 배정되었습니다",
+          "body": "운행 {ref}을(를) 완료해 주세요.",
+          "bodyWithRoute": "운행 {ref} ({route})을(를) 완료해 주세요."
+        },
+        "COMPLETED": {
+          "subject": "트럭 운행 완료",
+          "body": "운행 {ref}이(가) 완료되었습니다.",
+          "bodyWithRoute": "운행 {ref} ({route})이(가) 완료되었습니다."
+        }
+      },
+      "FLEET": {
+        "ACCESS_REQUESTED": { "subject": "부서 접근 요청", "body": "승인 대기 중인 부서 접근 요청이 있습니다." },
+        "ACCESS_APPROVED": { "subject": "부서 접근 승인됨", "body": "부서 접근 요청이 승인되었습니다." },
+        "ACCESS_REJECTED": { "subject": "요청 거절됨", "body": "부서 접근 요청이 거절되었습니다." },
+        "ACCESS_GRANTED": { "subject": "부서 접근 권한 부여", "body": "관리자가 부서 접근 권한을 부여했습니다." },
+        "ACCESS_REVOKED": { "subject": "부서 접근 권한 회수", "body": "부서 접근 권한이 회수되었습니다." }
+      },
       "TRIP": {
         "ASSIGNED": {
           "subject": "새 운행이 배정되었습니다",

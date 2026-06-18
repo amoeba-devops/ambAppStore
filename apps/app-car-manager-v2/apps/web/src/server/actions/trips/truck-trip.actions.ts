@@ -19,12 +19,48 @@ import {
   updateTruckTripSchema,
   deleteTruckTripSchema,
 } from '@car-v2/shared/zod';
+import type { CarTrip } from '@car-v2/db/schema';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
-import { getDriverByUserId } from '@/server/queries/drivers.queries';
+import { getDriver, getDriverByUserId } from '@/server/queries/drivers.queries';
 import { nextTripRef } from '@/server/services/trip-ref.service';
 import { logAudit } from '@/server/services/audit-log.service';
+import { notifyUser } from '@/server/services/notification.service';
 import { runAction } from '../_helpers';
+
+/** Notify the assigned driver about a truck trip they must complete. */
+async function notifyTruckDriverAssigned(entId: string, trip: CarTrip): Promise<void> {
+  if (!trip.trpDriverId) return;
+  const driver = await getDriver(entId, trip.trpDriverId);
+  if (!driver) return;
+  const route = `${trip.trpPickupAddress} → ${trip.trpDropoffAddress}`;
+  await notifyUser({
+    entId,
+    userId: driver.drvUserId,
+    event: 'TRUCK_TRIP.ASSIGNED',
+    title: `Truck trip ${trip.trpRef}`,
+    body: route,
+    entityId: trip.trpId,
+    entityRef: trip.trpRef,
+    template: { ref: trip.trpRef, route, tripPath: `/trips/${trip.trpId}` },
+  });
+}
+
+/** Notify the trip creator (manager) that a truck trip was completed. */
+async function notifyTruckTripCompleted(entId: string, actorUserId: string, trip: CarTrip): Promise<void> {
+  if (trip.trpCreatorId === actorUserId) return;
+  const route = `${trip.trpPickupAddress} → ${trip.trpDropoffAddress}`;
+  await notifyUser({
+    entId,
+    userId: trip.trpCreatorId,
+    event: 'TRUCK_TRIP.COMPLETED',
+    title: `${trip.trpRef} completed`,
+    body: route,
+    entityId: trip.trpId,
+    entityRef: trip.trpRef,
+    template: { ref: trip.trpRef, route, tripPath: `/trips/${trip.trpId}` },
+  });
+}
 
 /** Postgres unique_violation — used to retry trip-ref generation on collision. */
 function isUniqueViolation(err: unknown): boolean {
@@ -96,6 +132,11 @@ export async function createTruckTripAction(input: unknown): Promise<ActionResul
       after: { customer: trip.trpCustomer, status: trip.trpStatus },
     });
 
+    /* Assigned but not yet completed → driver needs to complete it. */
+    if (trip.trpStatus === 'CONFIRMED' && trip.trpDriverId) {
+      await notifyTruckDriverAssigned(actor.entId, trip);
+    }
+
     revalidatePath('/truck/trips');
     return { id: trip.trpId };
   });
@@ -122,6 +163,8 @@ export async function assignTruckTripAction(input: unknown): Promise<ActionResul
       entityRef: trip.trpRef,
       after: { driverId: dto.driver_id, vehicleId: dto.vehicle_id },
     });
+
+    await notifyTruckDriverAssigned(actor.entId, trip);
 
     revalidatePath('/truck/trips');
     revalidatePath(`/truck/trips/${trip.trpId}`);
@@ -158,6 +201,8 @@ export async function completeTruckTripAction(input: unknown): Promise<ActionRes
       entityRef: res.trip.trpRef,
       after: { profit: res.breakdown.profit, totalCost: res.breakdown.totalCost },
     });
+
+    await notifyTruckTripCompleted(actor.entId, actor.userId, res.trip);
 
     revalidatePath('/truck/trips');
     revalidatePath(`/truck/trips/${res.trip.trpId}`);
@@ -203,6 +248,8 @@ export async function driverCompleteTruckTripAction(input: unknown): Promise<Act
       entityRef: res.trip.trpRef,
       after: { profit: res.breakdown.profit },
     });
+
+    await notifyTruckTripCompleted(actor.entId, actor.userId, res.trip);
 
     revalidatePath('/today');
     revalidatePath('/trips');

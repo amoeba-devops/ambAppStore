@@ -111,6 +111,7 @@ export async function requestFleetAccessAction(
           title: 'Fleet access request',
           body: `${actor.name ?? actor.email ?? 'A manager'} requested ${dto.vehicleType} access`,
           entityId: farId,
+          template: { ref: dto.vehicleType, tripPath: '/settings/fleet-access' },
         },
       );
     }
@@ -192,6 +193,7 @@ export async function decideFleetAccessAction(
       title: dto.decision === 'APPROVED' ? 'Fleet access approved' : 'Fleet access rejected',
       body: `Your ${req.farVehicleType} access request was ${dto.decision.toLowerCase()}`,
       entityId: req.farId,
+      template: { ref: req.farVehicleType, tripPath: '/settings/fleet-access' },
     });
 
     revalidateFleetAdmin();
@@ -252,6 +254,7 @@ export async function grantFleetAccessAction(
       event: 'FLEET.ACCESS_GRANTED',
       title: 'Fleet access granted',
       body: `You were granted ${dto.vehicleType} access`,
+      template: { ref: dto.vehicleType, tripPath: '/settings/fleet-access' },
     });
 
     revalidateFleetAdmin();
@@ -300,6 +303,7 @@ export async function revokeFleetAccessAction(
       event: 'FLEET.ACCESS_REVOKED',
       title: 'Fleet access revoked',
       body: `Your ${dto.vehicleType} access was revoked`,
+      template: { ref: dto.vehicleType, tripPath: '/settings/fleet-access' },
     });
 
     revalidateFleetAdmin();

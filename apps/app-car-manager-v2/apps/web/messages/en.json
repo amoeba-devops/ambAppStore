@@ -1424,6 +1424,25 @@
   "notifications": {
     "cta": "View trip",
     "events": {
+      "TRUCK_TRIP": {
+        "ASSIGNED": {
+          "subject": "You were assigned a truck trip",
+          "body": "Trip {ref} needs you to complete it.",
+          "bodyWithRoute": "Trip {ref} ({route}) needs you to complete it."
+        },
+        "COMPLETED": {
+          "subject": "Truck trip completed",
+          "body": "Trip {ref} has been completed.",
+          "bodyWithRoute": "Trip {ref} ({route}) has been completed."
+        }
+      },
+      "FLEET": {
+        "ACCESS_REQUESTED": { "subject": "Fleet access request", "body": "A fleet access request is awaiting your approval." },
+        "ACCESS_APPROVED": { "subject": "Fleet access approved", "body": "Your fleet access request was approved." },
+        "ACCESS_REJECTED": { "subject": "Request rejected", "body": "Your fleet access request was rejected." },
+        "ACCESS_GRANTED": { "subject": "Fleet access granted", "body": "An admin granted you access to a department." },
+        "ACCESS_REVOKED": { "subject": "Fleet access revoked", "body": "Your access to a department was revoked." }
+      },
       "TRIP": {
         "ASSIGNED": {
           "subject": "New trip assigned to you",

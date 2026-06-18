@@ -1424,6 +1424,25 @@
   "notifications": {
     "cta": "Xem chuyến",
     "events": {
+      "TRUCK_TRIP": {
+        "ASSIGNED": {
+          "subject": "Bạn được giao chuyến xe tải",
+          "body": "Chuyến {ref} cần bạn hoàn thành.",
+          "bodyWithRoute": "Chuyến {ref} ({route}) cần bạn hoàn thành."
+        },
+        "COMPLETED": {
+          "subject": "Chuyến xe tải đã hoàn thành",
+          "body": "Chuyến {ref} đã được hoàn thành.",
+          "bodyWithRoute": "Chuyến {ref} ({route}) đã được hoàn thành."
+        }
+      },
+      "FLEET": {
+        "ACCESS_REQUESTED": { "subject": "Yêu cầu quyền phòng ban", "body": "Có yêu cầu quyền truy cập phòng ban đang chờ bạn duyệt." },
+        "ACCESS_APPROVED": { "subject": "Quyền truy cập đã được duyệt", "body": "Yêu cầu quyền phòng ban của bạn đã được duyệt." },
+        "ACCESS_REJECTED": { "subject": "Yêu cầu bị từ chối", "body": "Yêu cầu quyền phòng ban của bạn đã bị từ chối." },
+        "ACCESS_GRANTED": { "subject": "Bạn được cấp quyền phòng ban", "body": "Quản trị viên đã cấp cho bạn quyền truy cập một phòng ban." },
+        "ACCESS_REVOKED": { "subject": "Quyền phòng ban bị thu hồi", "body": "Quyền truy cập một phòng ban của bạn đã bị thu hồi." }
+      },
       "TRIP": {
         "ASSIGNED": {
           "subject": "Bạn vừa được giao chuyến đi mới",
