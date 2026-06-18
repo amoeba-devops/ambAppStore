@@ -20,13 +20,32 @@ import {
   SelectValue,
   toast,
 } from '@car-v2/ui';
-import { createTruckTripAction } from '@/server/actions/trips/truck-trip.actions';
+import { createTruckTripAction, updateTruckTripAction } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
 
 export interface OptionItem {
   id: string;
   label: string;
 }
+
+export type TruckTripFormInitial = Partial<{
+  scheduledAt: string;
+  vehicleId: string;
+  driverId: string;
+  customer: string;
+  pickup: string;
+  dropoff: string;
+  bol: string;
+  cdf: string;
+  revenue: string;
+  fuelPrice: string;
+  startOdo: string;
+  endOdo: string;
+  fuelLiters: string;
+  toll: string;
+  otherAmount: string;
+  otherNote: string;
+}>;
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -53,12 +72,23 @@ const numF = (s: string) => (s.trim() === '' ? undefined : Number(s));
 const numI = (s: string) => (s.trim() === '' ? undefined : Math.trunc(Number(s)));
 const vnd = (n: number) => n.toLocaleString('vi-VN') + ' ₫';
 
-export function TruckTripForm({ vehicles, drivers }: { vehicles: OptionItem[]; drivers: OptionItem[] }) {
+export function TruckTripForm({
+  vehicles,
+  drivers,
+  tripId,
+  initial,
+}: {
+  vehicles: OptionItem[];
+  drivers: OptionItem[];
+  /** When set, the form edits this trip (calls updateTruckTripAction). */
+  tripId?: string;
+  initial?: TruckTripFormInitial;
+}) {
   const t = useTranslations('screens.truckTrips.form');
   const tErr = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [f, setF] = useState(EMPTY);
+  const [f, setF] = useState({ ...EMPTY, ...initial });
 
   const set =
     (k: keyof typeof EMPTY) =>
@@ -82,7 +112,7 @@ export function TruckTripForm({ vehicles, drivers }: { vehicles: OptionItem[]; d
     e.preventDefault();
     if (!dirty) return;
     startTransition(async () => {
-      const res = await createTruckTripAction({
+      const payload = {
         scheduled_at: f.scheduledAt,
         vehicle_id: f.vehicleId || undefined,
         driver_id: f.driverId || undefined,
@@ -100,13 +130,16 @@ export function TruckTripForm({ vehicles, drivers }: { vehicles: OptionItem[]; d
         toll_fee: numF(f.toll),
         other_amount: numF(f.otherAmount),
         other_note: f.otherNote.trim() || undefined,
-      });
+      };
+      const res = tripId
+        ? await updateTruckTripAction({ ...payload, trip_id: tripId })
+        : await createTruckTripAction(payload);
       if (!res.success) {
         toast.error(formatActionError(res.error, tErr));
         return;
       }
-      toast.success(t('createdToast'));
-      router.push('/truck/trips');
+      toast.success(tripId ? t('updatedToast') : t('createdToast'));
+      router.push(tripId ? `/truck/trips/${tripId}` : '/truck/trips');
       router.refresh();
     });
   };

@@ -86,7 +86,7 @@ export default async function TodayPage() {
           mobileVariant="brand"
         />
         {isTruckDriver ? (
-          <TruckDriverToday trips={myTrips} />
+          <TruckDriverToday trips={myTrips} vehicles={myVehicles} />
         ) : (
           <DriverTodayView trips={myTrips} vehicles={myVehicles} />
         )}

@@ -127,7 +127,11 @@
       "kpiProfit": "Net profit",
       "kpiTrips": "Trips",
       "recentTitle": "Recent trips",
-      "viewAll": "View all"
+      "viewAll": "View all",
+      "chartProfit": "Net profit by month",
+      "costStructure": "Cost structure",
+      "fleetStatus": "Fleet status",
+      "noData": "No data yet"
     },
     "truckPnl": {
       "title": "Cost & Profit",
@@ -178,7 +182,11 @@
       "total": "Total cost",
       "revenue": "Revenue",
       "profit": "Profit",
-      "notCompletable": "This trip can't be completed yet."
+      "notCompletable": "This trip can't be completed yet.",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this trip?",
+      "deletedToast": "Trip deleted"
     },
     "truckImport": {
       "title": "Import Excel",
@@ -218,6 +226,8 @@
       "title": "Truck trip log",
       "subtitle": "{count} trips",
       "addTrip": "New trip",
+      "export": "Export",
+      "searchPlaceholder": "Search customer / BOL / ref",
       "emptyTitle": "No trips yet",
       "emptyDesc": "Log your first truck trip.",
       "thDate": "Date",
@@ -233,6 +243,8 @@
       "newTitle": "New truck trip",
       "newSubtitle": "Log trip details",
       "newCrumb": "New",
+      "editTitle": "Edit trip",
+      "editCrumb": "Edit",
       "form": {
         "sectionTrip": "Trip info",
         "sectionMetrics": "Metrics & costs",
@@ -259,7 +271,8 @@
         "previewProfit": "Profit",
         "cancel": "Cancel",
         "save": "Save trip",
-        "createdToast": "Trip saved"
+        "createdToast": "Trip saved",
+        "updatedToast": "Trip updated"
       }
     },
     "truckFleet": {
@@ -271,9 +284,13 @@
       "statOdometer": "Odometer",
       "statTonnage": "Tonnage",
       "statQuota": "Fuel quota",
+      "statProfit": "Profit (month)",
+      "oilOverdue": "Oil change overdue by {km} km",
       "newTitle": "Add truck",
       "newSubtitle": "Register a new truck",
       "newCrumb": "New",
+      "editTitle": "Edit truck",
+      "editCrumb": "Edit",
       "form": {
         "title": "Truck details",
         "plate": "Plate",
@@ -287,7 +304,11 @@
         "homeBase": "Home base",
         "cancel": "Cancel",
         "save": "Save",
-        "createdToast": "Truck {plate} added"
+        "createdToast": "Truck {plate} added",
+        "updatedToast": "Truck {plate} updated",
+        "delete": "Delete",
+        "deleteConfirm": "Delete this truck?",
+        "deletedToast": "Truck deleted"
       }
     },
     "audit":         { "title": "Audit log",            "subtitle": "Every action across the platform" },
@@ -1329,7 +1350,8 @@
       "toComplete": "To complete",
       "completed": "Completed",
       "noTodo": "No trips to complete",
-      "noDone": "No completed trips yet"
+      "noDone": "No completed trips yet",
+      "myVehicles": "My vehicles"
     },
     "switchDriver": "Switch driver",
     "title": "Today",

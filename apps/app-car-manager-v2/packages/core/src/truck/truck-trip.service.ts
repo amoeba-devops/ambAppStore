@@ -220,3 +220,89 @@ export async function completeTruckTrip(
 
   return { trip: updated, breakdown };
 }
+
+export interface UpdateTruckTripInput {
+  scheduledAt: Date;
+  vehicleId?: string | null;
+  driverId?: string | null;
+  customer?: string | null;
+  pickupAddress: string;
+  dropoffAddress: string;
+  bol?: string | null;
+  cdf?: string | null;
+  fuelPrice?: number | null;
+  revenue?: number | null;
+  startOdometer?: number | null;
+  endOdometer?: number | null;
+  fuelLiters?: number | null;
+  tollFee?: number | null;
+  extraCosts: { name: string; amount: number }[];
+}
+
+/** Edit an existing truck trip-log (manager correction). Keeps the current
+ * status; replaces structured extra costs. */
+export async function updateTruckTrip(
+  actor: FleetActor,
+  tripId: string,
+  input: UpdateTruckTripInput,
+): Promise<{ trip: CarTrip; breakdown: TruckCostBreakdown }> {
+  const trip = await loadLogTrip(actor, tripId);
+  if (input.vehicleId) await assertTruckVehicle(actor, input.vehicleId);
+  if (input.driverId) await assertDriver(actor, input.driverId);
+
+  const [updated] = await db
+    .update(carTrips)
+    .set({
+      trpScheduledAt: input.scheduledAt,
+      trpDriverId: input.driverId ?? null,
+      trpVehicleId: input.vehicleId ?? null,
+      trpCustomer: input.customer ?? null,
+      trpPickupAddress: input.pickupAddress,
+      trpDropoffAddress: input.dropoffAddress,
+      trpBol: input.bol ?? null,
+      trpCdf: input.cdf ?? null,
+      trpFuelPrice: input.fuelPrice != null ? String(input.fuelPrice) : null,
+      trpRevenue: input.revenue != null ? String(input.revenue) : null,
+      trpStartOdometer: input.startOdometer ?? null,
+      trpEndOdometer: input.endOdometer ?? null,
+      trpFuelLiters: input.fuelLiters != null ? String(input.fuelLiters) : null,
+      trpTollFee: input.tollFee != null ? String(input.tollFee) : null,
+      trpUpdatedAt: new Date(),
+    })
+    .where(and(eq(carTrips.trpId, tripId), eq(carTrips.entId, actor.entId)))
+    .returning();
+  if (!updated) throw new CarError('CAR-E1004', 404, 'Trip vanished mid-update');
+
+  await db
+    .delete(carTripExtraCosts)
+    .where(and(eq(carTripExtraCosts.entId, actor.entId), eq(carTripExtraCosts.trpId, tripId)));
+  if (input.extraCosts.length > 0) {
+    await db.insert(carTripExtraCosts).values(
+      input.extraCosts.map((c) => ({
+        tecId: randomUUID(),
+        entId: actor.entId,
+        trpId: tripId,
+        tecName: c.name,
+        tecAmount: String(c.amount),
+      })),
+    );
+  }
+
+  const breakdown = computeTruckCost({
+    fuelLiters: parseAmount(updated.trpFuelLiters),
+    fuelPrice: parseAmount(updated.trpFuelPrice),
+    tollFee: parseAmount(updated.trpTollFee),
+    extraCosts: input.extraCosts.map((c) => c.amount),
+    revenue: parseAmount(updated.trpRevenue),
+  });
+  return { trip: updated, breakdown };
+}
+
+/** Soft-delete a truck trip-log. */
+export async function deleteTruckTrip(actor: FleetActor, tripId: string): Promise<void> {
+  const trip = await loadLogTrip(actor, tripId);
+  await db
+    .update(carTrips)
+    .set({ trpDeletedAt: new Date(), trpUpdatedAt: new Date() })
+    .where(and(eq(carTrips.trpId, trip.trpId), eq(carTrips.entId, actor.entId)));
+}

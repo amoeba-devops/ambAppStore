@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from 'next-intl/server';
 import { Badge, Card } from '@car-v2/ui';
 import type { TruckCostBreakdown } from '@car-v2/core/truck';
+import { MapPreview } from '@/components/inputs/map-preview';
 import { PageHeader } from '@/components/layout/page-header';
 import { TruckCompleteSection } from './truck-complete-section';
 
@@ -28,6 +29,13 @@ export interface TruckTripDetailProps {
   canComplete: boolean;
   /** Which completion action to call. */
   mode: 'driver' | 'staff';
+  /** Back link + parent breadcrumb (manager opens from /truck/trips). */
+  backHref?: string;
+  parentLabel?: string;
+  /** Header actions (manager: edit/delete). */
+  actions?: React.ReactNode;
+  /** Drivers don't see revenue/profit — only the cost total. */
+  hideFinancials?: boolean;
 }
 
 /** Truck (LOG) trip detail — read-only breakdown when completed, otherwise the
@@ -40,6 +48,8 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
   const locale = await getLocale();
   const loc = bcp47(locale);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
+  const backHref = props.backHref ?? '/trips';
+  const parentLabel = props.parentLabel ?? tNav('tripsMine');
 
   return (
     <>
@@ -48,10 +58,11 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
         subtitle={props.completed ? t('statusDone') : t('statusOpen')}
         breadcrumbs={[
           { label: tCo('tenant') },
-          { label: tNav('tripsMine'), href: '/trips' },
+          { label: parentLabel, href: backHref },
           { label: props.tripRef },
         ]}
-        back="/trips"
+        back={backHref}
+        actions={props.actions}
         mobileVariant="brand"
       />
 
@@ -64,6 +75,10 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
             {new Date(props.scheduledAt).toLocaleDateString(loc)}
           </span>
         </div>
+
+        {process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY && (
+          <MapPreview pickup={props.pickup} dropoff={props.dropoff} stopovers={[]} showFullscreenLink />
+        )}
 
         <section className="rounded-md border border-border divide-y divide-border">
           <InfoRow label={t('customer')} value={props.customer ?? '—'} />
@@ -83,13 +98,17 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
               <CostRow key={i} label={e.name} value={vnd(e.amount)} />
             ))}
             <CostRow label={t('total')} value={vnd(props.breakdown.totalCost)} strong />
-            <CostRow label={t('revenue')} value={vnd(props.breakdown.revenue)} />
-            <CostRow
-              label={t('profit')}
-              value={vnd(props.breakdown.profit)}
-              tone={props.breakdown.profit >= 0 ? 'success' : 'danger'}
-              strong
-            />
+            {!props.hideFinancials && (
+              <>
+                <CostRow label={t('revenue')} value={vnd(props.breakdown.revenue)} />
+                <CostRow
+                  label={t('profit')}
+                  value={vnd(props.breakdown.profit)}
+                  tone={props.breakdown.profit >= 0 ? 'success' : 'danger'}
+                  strong
+                />
+              </>
+            )}
           </Card>
         ) : props.canComplete ? (
           <TruckCompleteSection tripId={props.tripId} mode={props.mode} />

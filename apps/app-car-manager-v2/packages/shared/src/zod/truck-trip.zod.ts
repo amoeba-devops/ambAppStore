@@ -29,6 +29,13 @@ export const createTruckTripSchema = z.object({
 });
 export type CreateTruckTripInputDto = z.infer<typeof createTruckTripSchema>;
 
+export const updateTruckTripSchema = createTruckTripSchema.extend({
+  trip_id: z.string().uuid(),
+});
+export type UpdateTruckTripInputDto = z.infer<typeof updateTruckTripSchema>;
+
+export const deleteTruckTripSchema = z.object({ trip_id: z.string().uuid() });
+
 export const assignTruckTripSchema = z.object({
   trip_id: z.string().uuid(),
   driver_id: z.string().uuid(),

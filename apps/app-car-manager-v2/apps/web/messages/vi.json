@@ -127,7 +127,11 @@
       "kpiProfit": "Lợi nhuận ròng",
       "kpiTrips": "Số chuyến",
       "recentTitle": "Chuyến gần đây",
-      "viewAll": "Xem tất cả"
+      "viewAll": "Xem tất cả",
+      "chartProfit": "Lợi nhuận ròng theo tháng",
+      "costStructure": "Cơ cấu chi phí",
+      "fleetStatus": "Tình trạng đội xe",
+      "noData": "Chưa có dữ liệu"
     },
     "truckPnl": {
       "title": "Chi phí & Lợi nhuận",
@@ -178,7 +182,11 @@
       "total": "Tổng chi phí",
       "revenue": "Doanh thu",
       "profit": "Lợi nhuận",
-      "notCompletable": "Chuyến này chưa thể hoàn thành."
+      "notCompletable": "Chuyến này chưa thể hoàn thành.",
+      "edit": "Sửa",
+      "delete": "Xoá",
+      "deleteConfirm": "Xoá chuyến này?",
+      "deletedToast": "Đã xoá chuyến"
     },
     "truckImport": {
       "title": "Import Excel",
@@ -218,6 +226,8 @@
       "title": "Nhật ký chuyến (xe tải)",
       "subtitle": "{count} chuyến",
       "addTrip": "Tạo chuyến",
+      "export": "Xuất Excel",
+      "searchPlaceholder": "Tìm KH / BOL / mã",
       "emptyTitle": "Chưa có chuyến nào",
       "emptyDesc": "Ghi nhận chuyến xe tải đầu tiên.",
       "thDate": "Ngày",
@@ -233,6 +243,8 @@
       "newTitle": "Tạo chuyến xe tải",
       "newSubtitle": "Ghi nhận chi tiết chuyến đi",
       "newCrumb": "Tạo mới",
+      "editTitle": "Sửa chuyến",
+      "editCrumb": "Sửa",
       "form": {
         "sectionTrip": "Thông tin chuyến",
         "sectionMetrics": "Số liệu & chi phí",
@@ -259,7 +271,8 @@
         "previewProfit": "Lợi nhuận",
         "cancel": "Huỷ",
         "save": "Lưu chuyến",
-        "createdToast": "Đã lưu chuyến"
+        "createdToast": "Đã lưu chuyến",
+        "updatedToast": "Đã cập nhật chuyến"
       }
     },
     "truckFleet": {
@@ -271,9 +284,13 @@
       "statOdometer": "Đồng hồ",
       "statTonnage": "Tải trọng",
       "statQuota": "Định mức",
+      "statProfit": "Lợi nhuận tháng",
+      "oilOverdue": "Quá hạn thay dầu {km} km",
       "newTitle": "Thêm xe tải",
       "newSubtitle": "Khai báo thông tin xe tải mới",
       "newCrumb": "Thêm mới",
+      "editTitle": "Sửa xe tải",
+      "editCrumb": "Sửa",
       "form": {
         "title": "Thông tin xe tải",
         "plate": "Biển số",
@@ -287,7 +304,11 @@
         "homeBase": "Bãi đỗ",
         "cancel": "Huỷ",
         "save": "Lưu",
-        "createdToast": "Đã thêm xe tải {plate}"
+        "createdToast": "Đã thêm xe tải {plate}",
+        "updatedToast": "Đã cập nhật {plate}",
+        "delete": "Xoá",
+        "deleteConfirm": "Xoá xe tải này?",
+        "deletedToast": "Đã xoá xe tải"
       }
     },
     "audit":         { "title": "Nhật ký kiểm toán",    "subtitle": "Mọi thao tác trên hệ thống" },
@@ -1329,7 +1350,8 @@
       "toComplete": "Cần hoàn thành",
       "completed": "Đã hoàn thành",
       "noTodo": "Không có chuyến cần hoàn thành",
-      "noDone": "Chưa có chuyến hoàn thành"
+      "noDone": "Chưa có chuyến hoàn thành",
+      "myVehicles": "Phương tiện của tôi"
     },
     "switchDriver": "Đổi tài xế",
     "title": "Hôm nay",

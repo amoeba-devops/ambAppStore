@@ -1,7 +1,7 @@
 import 'server-only';
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, or, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
-import { carTrips, carTripExtraCosts, type CarTripStatus } from '@car-v2/db/schema';
+import { carTrips, carTripExtraCosts, carDrivers, carUsers, type CarTripStatus } from '@car-v2/db/schema';
 import { computeTruckCost, parseAmount, type TruckCostBreakdown } from '@car-v2/core/truck';
 
 export interface TruckTripRow {
@@ -16,13 +16,41 @@ export interface TruckTripRow {
   breakdown: TruckCostBreakdown;
 }
 
+export interface ListTruckTripsOpts {
+  /** Free-text on customer / BOL / ref. */
+  q?: string;
+  /** Restrict to one month, 'YYYY-MM'. */
+  month?: string;
+}
+
 /** Truck trip-log rows (newest first) with per-trip cost/profit computed from
- * the same core math the completion flow uses. */
-export async function listTruckTrips(entId: string): Promise<TruckTripRow[]> {
+ * the same core math the completion flow uses. Optional search + month filter. */
+export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {}): Promise<TruckTripRow[]> {
+  const filters: SQL[] = [
+    eq(carTrips.entId, entId),
+    eq(carTrips.trpKind, 'LOG'),
+    isNull(carTrips.trpDeletedAt),
+  ];
+  if (opts.month && /^\d{4}-\d{2}$/.test(opts.month)) {
+    const start = new Date(`${opts.month}-01T00:00:00.000Z`);
+    const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
+    filters.push(gte(carTrips.trpScheduledAt, start), lt(carTrips.trpScheduledAt, end));
+  }
+  const term = opts.q?.trim();
+  if (term) {
+    const like = `%${term}%`;
+    const search = or(
+      ilike(carTrips.trpCustomer, like),
+      ilike(carTrips.trpBol, like),
+      ilike(carTrips.trpRef, like),
+    );
+    if (search) filters.push(search);
+  }
+
   const trips = await db
     .select()
     .from(carTrips)
-    .where(and(eq(carTrips.entId, entId), eq(carTrips.trpKind, 'LOG'), isNull(carTrips.trpDeletedAt)))
+    .where(and(...filters))
     .orderBy(desc(carTrips.trpScheduledAt));
 
   const ids = trips.map((t) => t.trpId);
@@ -58,6 +86,36 @@ export async function listTruckTrips(entId: string): Promise<TruckTripRow[]> {
       revenue: parseAmount(t.trpRevenue),
     }),
   }));
+}
+
+/** Most recent driver per truck (derived from trip-log history) — keyed by
+ * vehicle id. Trucks aren't statically assigned a driver, so the fleet card
+ * shows whoever drove the latest logged trip. */
+export async function getLatestTruckDrivers(entId: string): Promise<Map<string, string>> {
+  const rows = await db
+    .select({
+      vehicleId: carTrips.trpVehicleId,
+      driverName: carUsers.usrName,
+      scheduledAt: carTrips.trpScheduledAt,
+    })
+    .from(carTrips)
+    .leftJoin(carDrivers, eq(carTrips.trpDriverId, carDrivers.drvId))
+    .leftJoin(carUsers, eq(carDrivers.drvUserId, carUsers.usrId))
+    .where(
+      and(
+        eq(carTrips.entId, entId),
+        eq(carTrips.trpKind, 'LOG'),
+        isNotNull(carTrips.trpVehicleId),
+        isNull(carTrips.trpDeletedAt),
+      ),
+    )
+    .orderBy(desc(carTrips.trpScheduledAt));
+
+  const map = new Map<string, string>();
+  for (const r of rows) {
+    if (r.vehicleId && r.driverName && !map.has(r.vehicleId)) map.set(r.vehicleId, r.driverName);
+  }
+  return map;
 }
 
 /** Structured extra-cost rows for one truck trip (detail breakdown). */

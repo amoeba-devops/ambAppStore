@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Trash2 } from 'lucide-react';
 import {
   Button,
   Card,
@@ -20,7 +20,11 @@ import {
   SelectValue,
   toast,
 } from '@car-v2/ui';
-import { createVehicleAction } from '@/server/actions/vehicles/vehicle.actions';
+import {
+  createVehicleAction,
+  updateVehicleAction,
+  deleteVehicleAction,
+} from '@/server/actions/vehicles/vehicle.actions';
 import { formatActionError } from '@/lib/format-action-error';
 
 const FUELS = ['DIESEL', 'PETROL', 'HYBRID', 'EV'] as const;
@@ -38,13 +42,20 @@ const EMPTY = {
   notes: '',
 };
 
-export function TruckVehicleForm() {
+export function TruckVehicleForm({
+  vehicleId,
+  initial,
+}: {
+  /** When set, the form edits this vehicle (calls updateVehicleAction). */
+  vehicleId?: string;
+  initial?: Partial<typeof EMPTY>;
+} = {}) {
   const t = useTranslations('screens.truckFleet.form');
   const tFuel = useTranslations('vehicles.fuel');
   const tErr = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [f, setF] = useState(EMPTY);
+  const [f, setF] = useState({ ...EMPTY, ...initial });
 
   const set =
     (k: keyof typeof EMPTY) =>
@@ -57,24 +68,41 @@ export function TruckVehicleForm() {
     e.preventDefault();
     if (!dirty) return;
     startTransition(async () => {
-      const res = await createVehicleAction({
+      const payload = {
         plate_number: f.plate.trim(),
         model: f.model.trim(),
         make: f.make.trim() || undefined,
         year: f.year ? Number(f.year) : undefined,
         fuel_type: f.fuelType as (typeof FUELS)[number],
-        vehicle_type: 'TRUCK',
+        vehicle_type: 'TRUCK' as const,
         tonnage: f.tonnage ? Number(f.tonnage) : undefined,
         fuel_quota: f.fuelQuota ? Number(f.fuelQuota) : undefined,
         odometer_km: f.odometer ? Number(f.odometer) : undefined,
         home_base: f.homeBase.trim() || undefined,
         notes: f.notes.trim() || undefined,
-      });
+      };
+      const res = vehicleId
+        ? await updateVehicleAction(vehicleId, payload)
+        : await createVehicleAction(payload);
       if (!res.success) {
         toast.error(formatActionError(res.error, tErr));
         return;
       }
-      toast.success(t('createdToast', { plate: f.plate.trim() }));
+      toast.success(t(vehicleId ? 'updatedToast' : 'createdToast', { plate: f.plate.trim() }));
+      router.push('/truck/fleet');
+      router.refresh();
+    });
+  };
+
+  const del = () => {
+    if (!vehicleId || !confirm(t('deleteConfirm'))) return;
+    startTransition(async () => {
+      const res = await deleteVehicleAction(vehicleId);
+      if (!res.success) {
+        toast.error(formatActionError(res.error, tErr));
+        return;
+      }
+      toast.success(t('deletedToast'));
       router.push('/truck/fleet');
       router.refresh();
     });
@@ -131,6 +159,19 @@ export function TruckVehicleForm() {
           </div>
 
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4 border-t border-border">
+            {vehicleId && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="lg"
+                onClick={del}
+                disabled={pending}
+                className="w-full sm:w-auto sm:mr-auto text-danger hover:text-danger hover:bg-danger-soft"
+                iconLeft={<Trash2 className="h-4 w-4" />}
+              >
+                {t('delete')}
+              </Button>
+            )}
             <Button type="button" variant="ghost" size="lg" onClick={() => router.push('/truck/fleet')} disabled={pending} className="w-full sm:w-auto">
               {t('cancel')}
             </Button>

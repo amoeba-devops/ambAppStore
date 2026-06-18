@@ -102,6 +102,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
         completed={completed}
         canComplete={canComplete}
         mode={user.role === 'DRIVER' ? 'driver' : 'staff'}
+        hideFinancials={user.role === 'DRIVER'}
       />
     );
   }

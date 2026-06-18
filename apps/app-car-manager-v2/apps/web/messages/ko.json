@@ -127,7 +127,11 @@
       "kpiProfit": "순이익",
       "kpiTrips": "운행 수",
       "recentTitle": "최근 운행",
-      "viewAll": "전체 보기"
+      "viewAll": "전체 보기",
+      "chartProfit": "월별 순이익",
+      "costStructure": "비용 구조",
+      "fleetStatus": "차량 현황",
+      "noData": "데이터 없음"
     },
     "truckPnl": {
       "title": "비용 & 이익",
@@ -178,7 +182,11 @@
       "total": "총 비용",
       "revenue": "매출",
       "profit": "이익",
-      "notCompletable": "아직 완료할 수 없는 운행입니다."
+      "notCompletable": "아직 완료할 수 없는 운행입니다.",
+      "edit": "편집",
+      "delete": "삭제",
+      "deleteConfirm": "이 운행을 삭제할까요?",
+      "deletedToast": "운행 삭제됨"
     },
     "truckImport": {
       "title": "엑셀 가져오기",
@@ -218,6 +226,8 @@
       "title": "트럭 운행 일지",
       "subtitle": "운행 {count}건",
       "addTrip": "운행 추가",
+      "export": "내보내기",
+      "searchPlaceholder": "고객 / BOL / 참조 검색",
       "emptyTitle": "운행 없음",
       "emptyDesc": "첫 트럭 운행을 기록하세요.",
       "thDate": "날짜",
@@ -233,6 +243,8 @@
       "newTitle": "트럭 운행 추가",
       "newSubtitle": "운행 상세 기록",
       "newCrumb": "추가",
+      "editTitle": "운행 편집",
+      "editCrumb": "편집",
       "form": {
         "sectionTrip": "운행 정보",
         "sectionMetrics": "수치 & 비용",
@@ -259,7 +271,8 @@
         "previewProfit": "이익",
         "cancel": "취소",
         "save": "운행 저장",
-        "createdToast": "운행 저장됨"
+        "createdToast": "운행 저장됨",
+        "updatedToast": "운행 수정됨"
       }
     },
     "truckFleet": {
@@ -271,9 +284,13 @@
       "statOdometer": "주행거리",
       "statTonnage": "적재량",
       "statQuota": "연료 기준",
+      "statProfit": "이번 달 이익",
+      "oilOverdue": "오일 교체 {km}km 초과",
       "newTitle": "트럭 추가",
       "newSubtitle": "새 트럭 등록",
       "newCrumb": "추가",
+      "editTitle": "트럭 편집",
+      "editCrumb": "편집",
       "form": {
         "title": "트럭 정보",
         "plate": "번호판",
@@ -287,7 +304,11 @@
         "homeBase": "차고지",
         "cancel": "취소",
         "save": "저장",
-        "createdToast": "트럭 {plate} 추가됨"
+        "createdToast": "트럭 {plate} 추가됨",
+        "updatedToast": "트럭 {plate} 수정됨",
+        "delete": "삭제",
+        "deleteConfirm": "이 트럭을 삭제할까요?",
+        "deletedToast": "트럭 삭제됨"
       }
     },
     "audit":         { "title": "감사 로그",             "subtitle": "플랫폼 전체 활동" },
@@ -1329,7 +1350,8 @@
       "toComplete": "완료 필요",
       "completed": "완료됨",
       "noTodo": "완료할 운행이 없습니다",
-      "noDone": "완료된 운행이 없습니다"
+      "noDone": "완료된 운행이 없습니다",
+      "myVehicles": "내 차량"
     },
     "switchDriver": "기사 변경",
     "title": "오늘",

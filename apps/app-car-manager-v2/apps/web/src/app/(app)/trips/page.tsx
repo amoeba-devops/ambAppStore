@@ -21,10 +21,12 @@ import type { CarTripStatus } from '@car-v2/db/schema';
 import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { resolveFleetAccess } from '@/lib/auth/fleet-access';
 import { getDriverByUserId, listDrivers } from '@/server/queries/drivers.queries';
 import { getTrip, listTrips, listTripsForBoard, listTripsForDriver, type TripListItem, type TripDeletedFilter } from '@/server/queries/trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { ClickableTableRow } from '@/components/clickable-table-row';
+import { TruckDriverToday } from './../today/_components/truck-driver-today';
 import { DriverTripsList } from './_components/driver-trips-list';
 import { TripPeekDrawer } from './_components/trip-peek-drawer';
 import { TripBoard } from './_components/trip-board';
@@ -88,13 +90,19 @@ export default async function TripsListPage({ searchParams }: PageProps) {
     const driverTrips = driver
       ? await listTripsForDriver(user.entId, driver.drvId, 100)
       : [];
+    /* Truck drivers get the to-complete/completed list (no dispatch statuses). */
+    const isTruckDriver = (await resolveFleetAccess(user)).includes('TRUCK');
     return (
       <>
         <PageHeader
           title={tDriver('title')}
           breadcrumbs={[{ label: tCo('tenant') }, { label: tDriver('title') }]}
         />
-        <DriverTripsList trips={driverTrips} />
+        {isTruckDriver ? (
+          <TruckDriverToday trips={driverTrips} />
+        ) : (
+          <DriverTripsList trips={driverTrips} />
+        )}
       </>
     );
   }
