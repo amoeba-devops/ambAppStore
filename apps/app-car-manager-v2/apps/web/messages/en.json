@@ -272,7 +272,11 @@
         "cancel": "Cancel",
         "save": "Save trip",
         "createdToast": "Trip saved",
-        "updatedToast": "Trip updated"
+        "updatedToast": "Trip updated",
+        "modeCompleted": "Completed (log)",
+        "modeCompletedHint": "Record a finished trip with full costs.",
+        "modeAssign": "Assign to driver",
+        "modeAssignHint": "The driver fills in km, fuel and costs on completion."
       }
     },
     "truckFleet": {
@@ -1423,6 +1427,7 @@
   },
   "notifications": {
     "cta": "View trip",
+    "ctaFleet": "View request",
     "events": {
       "TRUCK_TRIP": {
         "ASSIGNED": {

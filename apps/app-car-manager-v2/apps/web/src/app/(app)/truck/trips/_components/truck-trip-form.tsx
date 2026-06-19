@@ -18,6 +18,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Switch,
   toast,
 } from '@car-v2/ui';
 import { createTruckTripAction, updateTruckTripAction } from '@/server/actions/trips/truck-trip.actions';
@@ -45,6 +46,8 @@ export type TruckTripFormInitial = Partial<{
   toll: string;
   otherAmount: string;
   otherNote: string;
+  /** true = log a finished trip; false = assign to driver to complete later. */
+  markCompleted: boolean;
 }>;
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -89,6 +92,9 @@ export function TruckTripForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [f, setF] = useState({ ...EMPTY, ...initial });
+  /* true = log a finished trip (default); false = create assigned + let the
+   * driver complete it later (status stays CONFIRMED → driver's "to complete"). */
+  const [markCompleted, setMarkCompleted] = useState(initial?.markCompleted ?? true);
 
   const set =
     (k: keyof typeof EMPTY) =>
@@ -123,7 +129,7 @@ export function TruckTripForm({
         cdf: f.cdf.trim() || undefined,
         revenue: numF(f.revenue),
         fuel_price: numF(f.fuelPrice),
-        mark_completed: true,
+        mark_completed: markCompleted,
         start_odometer: numI(f.startOdo),
         end_odometer: numI(f.endOdo),
         fuel_liters: numF(f.fuelLiters),
@@ -203,49 +209,73 @@ export function TruckTripForm({
       </Card>
 
       <Card variant="elevated">
-        <CardHeader>
-          <CardHeaderText>
-            <CardTitle>{t('sectionMetrics')}</CardTitle>
-          </CardHeaderText>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label={t('startOdo')}>
-            <Input type="number" value={f.startOdo} onChange={set('startOdo')} />
-          </Field>
-          <Field label={t('endOdo')}>
-            <Input type="number" value={f.endOdo} onChange={set('endOdo')} />
-          </Field>
-          <Field label={t('fuelLiters')}>
-            <Input type="number" step="0.01" value={f.fuelLiters} onChange={set('fuelLiters')} />
-          </Field>
-          <Field label={t('fuelPrice')}>
-            <Input type="number" value={f.fuelPrice} onChange={set('fuelPrice')} />
-          </Field>
-          <Field label={t('toll')}>
-            <Input type="number" value={f.toll} onChange={set('toll')} />
-          </Field>
-          <Field label={t('revenue')}>
-            <Input type="number" value={f.revenue} onChange={set('revenue')} />
-          </Field>
-          <Field label={t('otherAmount')}>
-            <Input type="number" value={f.otherAmount} onChange={set('otherAmount')} />
-          </Field>
-          <Field label={t('otherNote')}>
-            <Input value={f.otherNote} onChange={set('otherNote')} />
-          </Field>
+        <CardContent className="space-y-4">
+          {/* Mode: log a finished trip vs assign to a driver to complete later. */}
+          <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-text">
+                {markCompleted ? t('modeCompleted') : t('modeAssign')}
+              </div>
+              <div className="text-xs text-text-muted">
+                {markCompleted ? t('modeCompletedHint') : t('modeAssignHint')}
+              </div>
+            </div>
+            <Switch checked={markCompleted} onCheckedChange={setMarkCompleted} />
+          </div>
+
+          {markCompleted ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label={t('startOdo')}>
+                <Input type="number" value={f.startOdo} onChange={set('startOdo')} />
+              </Field>
+              <Field label={t('endOdo')}>
+                <Input type="number" value={f.endOdo} onChange={set('endOdo')} />
+              </Field>
+              <Field label={t('fuelLiters')}>
+                <Input type="number" step="0.01" value={f.fuelLiters} onChange={set('fuelLiters')} />
+              </Field>
+              <Field label={t('fuelPrice')}>
+                <Input type="number" value={f.fuelPrice} onChange={set('fuelPrice')} />
+              </Field>
+              <Field label={t('toll')}>
+                <Input type="number" value={f.toll} onChange={set('toll')} />
+              </Field>
+              <Field label={t('revenue')}>
+                <Input type="number" value={f.revenue} onChange={set('revenue')} />
+              </Field>
+              <Field label={t('otherAmount')}>
+                <Input type="number" value={f.otherAmount} onChange={set('otherAmount')} />
+              </Field>
+              <Field label={t('otherNote')}>
+                <Input value={f.otherNote} onChange={set('otherNote')} />
+              </Field>
+            </div>
+          ) : (
+            /* Assign mode — manager sets economics; driver fills the rest. */
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label={t('fuelPrice')}>
+                <Input type="number" value={f.fuelPrice} onChange={set('fuelPrice')} />
+              </Field>
+              <Field label={t('revenue')}>
+                <Input type="number" value={f.revenue} onChange={set('revenue')} />
+              </Field>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Live profit preview */}
-      <div className="rounded-md border border-border bg-surface-2 p-4 grid grid-cols-3 gap-3 text-center">
-        <Metric label={t('previewFuelCost')} value={vnd(preview.fuelCost)} />
-        <Metric label={t('previewTotalCost')} value={vnd(preview.totalCost)} />
-        <Metric
-          label={t('previewProfit')}
-          value={vnd(preview.profit)}
-          tone={preview.profit >= 0 ? 'success' : 'danger'}
-        />
-      </div>
+      {/* Live profit preview — only meaningful when logging a finished trip. */}
+      {markCompleted && (
+        <div className="rounded-md border border-border bg-surface-2 p-4 grid grid-cols-3 gap-3 text-center">
+          <Metric label={t('previewFuelCost')} value={vnd(preview.fuelCost)} />
+          <Metric label={t('previewTotalCost')} value={vnd(preview.totalCost)} />
+          <Metric
+            label={t('previewProfit')}
+            value={vnd(preview.profit)}
+            tone={preview.profit >= 0 ? 'success' : 'danger'}
+          />
+        </div>
+      )}
 
       <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
         <Button type="button" variant="ghost" size="lg" onClick={() => router.push('/truck/trips')} disabled={pending} className="w-full sm:w-auto">

@@ -272,7 +272,11 @@
         "cancel": "Huỷ",
         "save": "Lưu chuyến",
         "createdToast": "Đã lưu chuyến",
-        "updatedToast": "Đã cập nhật chuyến"
+        "updatedToast": "Đã cập nhật chuyến",
+        "modeCompleted": "Đã hoàn thành (ghi log)",
+        "modeCompletedHint": "Ghi nhận chuyến đã chạy xong với đầy đủ chi phí.",
+        "modeAssign": "Giao tài xế hoàn thành",
+        "modeAssignHint": "Tài xế sẽ nhập km, nhiên liệu, chi phí khi hoàn thành chuyến."
       }
     },
     "truckFleet": {
@@ -1423,6 +1427,7 @@
   },
   "notifications": {
     "cta": "Xem chuyến",
+    "ctaFleet": "Xem yêu cầu",
     "events": {
       "TRUCK_TRIP": {
         "ASSIGNED": {

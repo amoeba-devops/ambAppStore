@@ -41,6 +41,7 @@ export default async function EditTruckTripPage({ params }: { params: Promise<{ 
     toll: trip.trpTollFee ?? '',
     otherAmount: otherTotal ? String(otherTotal) : '',
     otherNote: extras[0]?.name ?? '',
+    markCompleted: trip.trpStatus === 'COMPLETED',
   };
 
   return (

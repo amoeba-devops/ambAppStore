@@ -154,7 +154,8 @@ export async function renderNotification(
     description: ctx.description ?? '',
     actorName: ctx.actorName ?? '',
   });
-  const cta = t('cta');
+  /* Fleet-access notifications link to the access page, not a trip. */
+  const cta = t(event.startsWith('FLEET.') ? 'ctaFleet' : 'cta');
   const url = buildAppUrl(ctx.tripPath);
 
   /* Email HTML — intentionally minimalist (no React Email yet). Inline styles

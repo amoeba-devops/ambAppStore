@@ -272,7 +272,11 @@
         "cancel": "취소",
         "save": "운행 저장",
         "createdToast": "운행 저장됨",
-        "updatedToast": "운행 수정됨"
+        "updatedToast": "운행 수정됨",
+        "modeCompleted": "완료 (기록)",
+        "modeCompletedHint": "비용까지 모두 입력해 완료된 운행을 기록합니다.",
+        "modeAssign": "기사에게 배정",
+        "modeAssignHint": "기사가 완료 시 주행거리·연료·비용을 입력합니다."
       }
     },
     "truckFleet": {
@@ -1423,6 +1427,7 @@
   },
   "notifications": {
     "cta": "운행 보기",
+    "ctaFleet": "요청 보기",
     "events": {
       "TRUCK_TRIP": {
         "ASSIGNED": {
