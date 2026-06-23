@@ -126,7 +126,7 @@ export function TruckVehicleForm({
               <Input value={f.plate} onChange={set('plate')} placeholder="50E-32407" />
             </Field>
             <Field label={t('model')} required>
-              <Input value={f.model} onChange={set('model')} placeholder="Đông Feng 4.5T" />
+              <Input value={f.model} onChange={set('model')} placeholder="Dongfeng 4.5T" />
             </Field>
             <Field label={t('make')}>
               <Input value={f.make} onChange={set('make')} />
