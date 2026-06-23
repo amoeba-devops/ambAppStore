@@ -231,6 +231,7 @@ export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
               )}>{t('col.productEn')}</th>
               <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-left font-medium">{t('col.platform')}</th>
               <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.pv')}</th>
+              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.ctr')}</th>
               <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.cvr')}</th>
               <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.items')}</th>
               <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.gmv')}</th>
@@ -273,6 +274,7 @@ export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
                 )}></td>
                 <td className="sticky top-[37px] z-20 bg-neutral-100 border-b-2 border-neutral-300 px-3 py-3"></td>
                 <td className="sticky top-[37px] z-20 bg-neutral-100 border-b-2 border-neutral-300 px-3 py-3 text-right font-mono tabular-nums text-neutral-900">{fmtN(totals.pv)}</td>
+                <td className="sticky top-[37px] z-20 bg-neutral-100 border-b-2 border-neutral-300 px-3 py-3 text-right font-mono tabular-nums text-neutral-900">—</td>
                 <td className="sticky top-[37px] z-20 bg-neutral-100 border-b-2 border-neutral-300 px-3 py-3 text-right font-mono tabular-nums text-neutral-900">
                   {totals.pv > 0 ? fmtPct(totals.items / totals.pv) : '—'}
                 </td>
@@ -388,6 +390,11 @@ export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
                   </td>
                   <td className="px-3 py-3 text-right font-mono tabular-nums text-neutral-700">
                     {p.isShopWideAd || p.pv === 0 ? '—' : fmtN(p.pv)}
+                  </td>
+                  <td className="px-3 py-3 text-right font-mono tabular-nums text-neutral-700">
+                    {p.platform === 'TIKTOK' && !p.isGift && !p.isShopWideAd && p.ctr != null && p.ctr > 0
+                      ? fmtPct(p.ctr)
+                      : '—'}
                   </td>
                   <td className="px-3 py-3 text-right font-mono tabular-nums text-neutral-700">
                     {p.isGift || p.isShopWideAd || p.cvr === 0 ? '—' : fmtPct(p.cvr)}

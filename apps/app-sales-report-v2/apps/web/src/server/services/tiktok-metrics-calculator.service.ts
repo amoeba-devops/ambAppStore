@@ -36,11 +36,9 @@ export interface TikTokMetricsResult {
   /** Traffic metrics — only when Traffic xlsx provided. */
   traffic: {
     totalPageViews: number;
-    pvShopTab: number;
-    pvLive: number;
-    pvVideo: number;
-    pvProductCard: number;
     productCount: number;
+    pageViewsByProductName: Record<string, number>;
+    ctrByProductName: Record<string, number>;
   } | null;
   productBreakdown: Array<{
     productName: string;
@@ -56,8 +54,10 @@ export interface TikTokMetricsResult {
     primeCost: number;
     units: number;
     skuCount: number;
-    /** Page views matched from Traffic xlsx by productName. 0 when no match. */
+    /** Unique product impressions matched from Traffic xlsx by productName. 0 when no match. */
     pageViews: number;
+    /** Unique CTR (decimal 0..1) matched from Traffic xlsx by productName. 0 when no match. */
+    ctr: number;
   }>;
   giftBreakdown: Array<{
     productName: string;
@@ -66,8 +66,10 @@ export interface TikTokMetricsResult {
     primeCost: number;
     units: number;
     skuCount: number;
-    /** Page views matched from Traffic xlsx by productName. 0 when no match. */
+    /** Unique product impressions matched from Traffic xlsx by productName. 0 when no match. */
     pageViews: number;
+    /** Unique CTR (decimal 0..1) matched from Traffic xlsx by productName. 0 when no match. */
+    ctr: number;
   }>;
 }
 
@@ -318,12 +320,16 @@ export function computeTikTokMetrics(
     agg.skus.add(row.sellerSku);
   }
 
-  // Per-product page views from TikTok Traffic xlsx (match by productName, NFC-normalized)
+  // Per-product page views + CTR from TikTok Traffic xlsx
+  // (match by productName, NFC-normalized + whitespace collapsed)
+  const trafficNorm = (s: string) => s.normalize('NFC').replace(/\s+/g, ' ').trim();
   const pvByProduct = new Map<string, number>();
+  const ctrByProduct = new Map<string, number>();
   if (trafficRows) {
     for (const t of trafficRows) {
-      const key = t.productName.normalize('NFC').trim();
+      const key = trafficNorm(t.productName);
       pvByProduct.set(key, (pvByProduct.get(key) ?? 0) + t.pageViews);
+      if (!ctrByProduct.has(key)) ctrByProduct.set(key, t.ctr);
     }
   }
 
@@ -332,6 +338,7 @@ export function computeTikTokMetrics(
       // aggKey: `${productName}|${sellerSku}` — strip SKU half for display.
       const sepIdx = aggKey.lastIndexOf('|');
       const productName = sepIdx >= 0 ? aggKey.slice(0, sepIdx) : aggKey;
+      const nameKey = trafficNorm(productName);
       return {
         productName,
         productNameEn: agg.nameEn,
@@ -345,21 +352,26 @@ export function computeTikTokMetrics(
         primeCost: agg.primeCost,
         units: agg.units,
         skuCount: agg.skus.size,
-        pageViews: pvByProduct.get(productName.normalize('NFC').trim()) ?? 0,
+        pageViews: pvByProduct.get(nameKey) ?? 0,
+        ctr: ctrByProduct.get(nameKey) ?? 0,
       };
     })
     .sort((a, b) => b.gmv - a.gmv);
 
   const giftBreakdown = [...giftAgg.entries()]
-    .map(([productName, agg]) => ({
-      productName,
-      productNameEn: agg.nameEn,
-      representativeSku: [...agg.skus][0] ?? '',
-      primeCost: agg.primeCost,
-      units: agg.units,
-      skuCount: agg.skus.size,
-      pageViews: pvByProduct.get(productName.normalize('NFC').trim()) ?? 0,
-    }))
+    .map(([productName, agg]) => {
+      const nameKey = trafficNorm(productName);
+      return {
+        productName,
+        productNameEn: agg.nameEn,
+        representativeSku: [...agg.skus][0] ?? '',
+        primeCost: agg.primeCost,
+        units: agg.units,
+        skuCount: agg.skus.size,
+        pageViews: pvByProduct.get(nameKey) ?? 0,
+        ctr: ctrByProduct.get(nameKey) ?? 0,
+      };
+    })
     .sort((a, b) => b.primeCost - a.primeCost);
 
   return {

@@ -531,10 +531,19 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Page View — TikTok',
-        description: 'Look up from TikTok Traffic CSV',
-        dataSources: ['TikTok Traffic CSV'],
-        formula:
-          '{Lượt xem trang từ tab Cửa hàng} + {Lượt xem trang từ LIVE} + {Lượt xem trang từ video} + {Lượt xem trang từ thẻ sản phẩm}',
+        description:
+          'Look up from TikTok Traffic XLSX. TikTok consolidated 4 separate page-view sources (Tab Cửa hàng + LIVE + Video + Thẻ sản phẩm) into a single canonical column "Lượt hiển thị sản phẩm độc nhất" — unique product impressions.',
+        dataSources: ['TikTok Traffic XLSX'],
+        formula: '{Lượt hiển thị sản phẩm độc nhất}',
+        versions: 2,
+      },
+      {
+        metric: 'CTR — TikTok',
+        description:
+          'Look up from TikTok Traffic XLSX. Unique click-through rate per product.',
+        dataSources: ['TikTok Traffic XLSX'],
+        formula: '{CTR độc nhất}',
+        unit: '%',
         versions: 1,
       },
       {

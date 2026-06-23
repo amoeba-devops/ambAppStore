@@ -529,6 +529,7 @@ export function snapshotToProducts(
         platform: 'TIKTOK',
         pv,
         cvr: pv > 0 ? p.units / pv : 0,
+        ctr: (p as { ctr?: number }).ctr ?? 0,
         items: p.units,
         gmv: p.gmv,
         netGmv: p.netGmv,

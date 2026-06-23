@@ -151,7 +151,7 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
                     value={r.traffic.totalPageViews}
                     tone="info"
                     unit="views"
-                    hint={`${r.traffic.productCount} products · shop ${fmtCompact(r.traffic.pvShopTab)} + live ${fmtCompact(r.traffic.pvLive)} + video ${fmtCompact(r.traffic.pvVideo)} + card ${fmtCompact(r.traffic.pvProductCard)}`}
+                    hint={`${r.traffic.productCount} products · unique product impressions`}
                   />
                 </div>
               )}

@@ -19,7 +19,7 @@ const ALL_DATA_SOURCES = [
   'Shopee Off-Platform Ads CSV',
   'Shopee Affiliate CSV',
   'TikTok Sales CSV',
-  'TikTok Traffic CSV',
+  'TikTok Traffic XLSX',
   'TikTok Affiliate Creator XLSX',
   'TikTok Affiliate Partner XLSX',
   'TikTok Affiliate Non-collab XLSX',

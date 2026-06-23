@@ -369,6 +369,7 @@
         "productEn": "Product (EN)",
         "platform": "Platform",
         "pv": "PV",
+        "ctr": "CTR%",
         "cvr": "CVR%",
         "items": "Items",
         "gmv": "GMV",
