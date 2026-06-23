@@ -1727,6 +1727,14 @@
     "submit": "Sign in",
     "openAma": "Open AMA management",
     "devTitle": "Dev mode",
+    "devPersona": {
+      "admin": "Org admin",
+      "mgr-car": "Car fleet admin",
+      "mgr-truck": "Truck fleet admin",
+      "mgr-both": "Manager (both fleets)",
+      "drv-car": "Car driver",
+      "drv-truck": "Truck driver"
+    },
     "languageLabel": "Language",
     "errMissing": "Please enter both company code and email.",
     "errInvalid": "Wrong company code or email is not registered. Check: (1) company code must be uppercase (e.g. VN01); (2) email matches what the admin registered; (3) the account isn't suspended. Contact admin if it still fails.",

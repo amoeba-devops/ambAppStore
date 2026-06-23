@@ -159,7 +159,7 @@ export default async function LoginPage({
                 {DEV_PERSONAS.map((p) => (
                   <Button key={p.key} variant="secondary" size="md" asChild>
                     <a href={loginHrefFor(p)}>
-                      {p.name}
+                      {t(`devPersona.${p.key}`)}
                       <span className="font-semibold text-accent ml-1.5 text-xs uppercase">
                         {localRoleFor(p)}
                       </span>

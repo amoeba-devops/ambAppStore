@@ -1727,6 +1727,14 @@
     "submit": "Đăng nhập",
     "openAma": "Mở trang quản lý AMA",
     "devTitle": "Dev mode",
+    "devPersona": {
+      "admin": "Quản trị tổ chức",
+      "mgr-car": "Quản trị xe con",
+      "mgr-truck": "Quản trị xe tải",
+      "mgr-both": "Quản lý 2 đội xe",
+      "drv-car": "Tài xế xe con",
+      "drv-truck": "Tài xế xe tải"
+    },
     "languageLabel": "Ngôn ngữ",
     "errMissing": "Vui lòng nhập đầy đủ mã công ty và email.",
     "errInvalid": "Sai mã công ty hoặc email chưa được đăng ký. Kiểm tra: (1) mã công ty viết HOA chính xác (VD: VN01); (2) email đúng với email admin đã đăng ký; (3) tài khoản chưa bị tạm khoá. Liên hệ admin nếu vẫn lỗi.",
