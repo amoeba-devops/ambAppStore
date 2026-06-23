@@ -444,7 +444,7 @@ function NavGroup({
                   'group flex items-center gap-2.5 h-9 rounded px-2 text-sm font-medium transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   isActive
-                    ? 'bg-primary text-primary-fg'
+                    ? 'bg-accent text-accent-fg'
                     : 'text-text-muted hover:bg-surface-2 hover:text-text',
                   collapsed && 'justify-center',
                 )}
@@ -462,7 +462,7 @@ function NavGroup({
                         className={cn(
                           'text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full tabular shrink-0 inline-flex items-baseline gap-0.5',
                           isActive
-                            ? 'bg-primary-fg/15 text-primary-fg'
+                            ? 'bg-accent-fg/15 text-accent-fg'
                             : 'bg-info-soft text-info',
                         )}
                         title={
@@ -483,7 +483,7 @@ function NavGroup({
                         className={cn(
                           'text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full tabular shrink-0',
                           isActive
-                            ? 'bg-primary-fg/15 text-primary-fg'
+                            ? 'bg-accent-fg/15 text-accent-fg'
                             : 'bg-surface-2 text-text-muted',
                         )}
                       >
