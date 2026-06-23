@@ -43,14 +43,15 @@ export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
   const [currency, setCurrency] = useState<Currency>('VND');
   const [productLang, setProductLang] = useState<'vi' | 'en'>('vi');
 
-  // CTR column is TikTok-only — hide the entire column (header + body + footer)
-  // when the table contains no TikTok rows (e.g. Shopee-only channel filter).
-  const showCtrColumn = products.some((p) => p.platform === 'TIKTOK');
-  // TikTok-only view: PV column reads "Impression" (TikTok's traffic export
-  // exposes unique product impressions, not literal page views). Shopee +
-  // mixed views keep the "PV" label.
-  const isTikTokOnly = products.length > 0 && products.every((p) => p.platform === 'TIKTOK');
-  const pvColLabel = isTikTokOnly ? t('col.impression') : t('col.pv');
+  // Platform-specific traffic columns: Shopee gets "PV", TikTok gets
+  // "Impression" + "CTR". Each column is rendered only when there's at least
+  // one row of the matching platform — so Shopee-only filter hides Impression
+  // and CTR; TikTok-only filter hides PV; mixed (Total Platform) shows both.
+  const hasShopee = products.some((p) => p.platform === 'SHOPEE');
+  const hasTikTok = products.some((p) => p.platform === 'TIKTOK');
+  const showPvColumn = hasShopee;
+  const showImpressionColumn = hasTikTok;
+  const showCtrColumn = hasTikTok;
   // Refs for syncing top ruler + main table horizontal scroll (so admin can
   // scroll horizontally without first scrolling to the bottom of the table).
   const topScrollRef = useRef<HTMLDivElement>(null);
@@ -112,8 +113,21 @@ export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
         0,
       );
     const totalGmv = sum('gmv');
+    // `pv` field carries Shopee PV for Shopee rows and TikTok impression for
+    // TikTok rows. Split totals so the footer can render each column's own
+    // sum independently.
+    const shopeePv = filtered.reduce(
+      (a, b) => a + (b.platform === 'SHOPEE' && typeof b.pv === 'number' ? b.pv : 0),
+      0,
+    );
+    const tiktokImpression = filtered.reduce(
+      (a, b) => a + (b.platform === 'TIKTOK' && typeof b.pv === 'number' ? b.pv : 0),
+      0,
+    );
     return {
       pv: sum('pv'),
+      shopeePv,
+      tiktokImpression,
       items: sumExcludingGifts('items'),
       gmv: totalGmv,
       netGmv: sum('netGmv'),
@@ -239,7 +253,12 @@ export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
                 productLang === 'en' ? 'table-cell' : 'hidden',
               )}>{t('col.productEn')}</th>
               <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-left font-medium">{t('col.platform')}</th>
-              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{pvColLabel}</th>
+              {showPvColumn && (
+                <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.pv')}</th>
+              )}
+              {showImpressionColumn && (
+                <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.impression')}</th>
+              )}
               {showCtrColumn && (
                 <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.ctr')}</th>
               )}
@@ -266,7 +285,7 @@ export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
           <tbody className="divide-y divide-neutral-100">
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={showCtrColumn ? 24 : 23} className="px-5 py-8 text-center text-sm text-neutral-500">
+                <td colSpan={22 + (showPvColumn ? 1 : 0) + (showImpressionColumn ? 1 : 0) + (showCtrColumn ? 1 : 0)} className="px-5 py-8 text-center text-sm text-neutral-500">
                   {t('empty')}
                 </td>
               </tr>
@@ -284,7 +303,12 @@ export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
                   productLang === 'en' ? 'table-cell' : 'hidden',
                 )}></td>
                 <td className="sticky top-[37px] z-20 bg-neutral-100 border-b-2 border-neutral-300 px-3 py-3"></td>
-                <td className="sticky top-[37px] z-20 bg-neutral-100 border-b-2 border-neutral-300 px-3 py-3 text-right font-mono tabular-nums text-neutral-900">{fmtN(totals.pv)}</td>
+                {showPvColumn && (
+                  <td className="sticky top-[37px] z-20 bg-neutral-100 border-b-2 border-neutral-300 px-3 py-3 text-right font-mono tabular-nums text-neutral-900">{fmtN(totals.shopeePv)}</td>
+                )}
+                {showImpressionColumn && (
+                  <td className="sticky top-[37px] z-20 bg-neutral-100 border-b-2 border-neutral-300 px-3 py-3 text-right font-mono tabular-nums text-neutral-900">{fmtN(totals.tiktokImpression)}</td>
+                )}
                 {showCtrColumn && (
                   <td className="sticky top-[37px] z-20 bg-neutral-100 border-b-2 border-neutral-300 px-3 py-3 text-right font-mono tabular-nums text-neutral-900">—</td>
                 )}
@@ -401,9 +425,16 @@ export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
                   <td className="px-3 py-3">
                     <PlatformPill platform={p.platform} />
                   </td>
-                  <td className="px-3 py-3 text-right font-mono tabular-nums text-neutral-700">
-                    {p.isShopWideAd || p.pv === 0 ? '—' : fmtN(p.pv)}
-                  </td>
+                  {showPvColumn && (
+                    <td className="px-3 py-3 text-right font-mono tabular-nums text-neutral-700">
+                      {p.platform === 'SHOPEE' && !p.isShopWideAd && p.pv > 0 ? fmtN(p.pv) : '—'}
+                    </td>
+                  )}
+                  {showImpressionColumn && (
+                    <td className="px-3 py-3 text-right font-mono tabular-nums text-neutral-700">
+                      {p.platform === 'TIKTOK' && !p.isShopWideAd && p.pv > 0 ? fmtN(p.pv) : '—'}
+                    </td>
+                  )}
                   {showCtrColumn && (
                     <td className="px-3 py-3 text-right font-mono tabular-nums text-neutral-700">
                       {p.platform === 'TIKTOK' && !p.isGift && !p.isShopWideAd && p.ctr != null && p.ctr > 0
