@@ -42,10 +42,13 @@ import {
   type TikTokTrafficRow,
 } from '../services/tiktok-traffic-parser.service';
 import {
-  parseTikTokAffiliate,
-  TikTokAffiliateParseError,
-  type TikTokAffiliateRow,
-} from '../services/tiktok-affiliate-parser.service';
+  parseTikTokAffiliateCreator,
+  parseTikTokAffiliatePartner,
+  parseTikTokAffiliateNonCollab,
+  mergeTikTokAffiliateCosts,
+  TikTokAffiliateOrderParseError,
+  type TikTokAffOrderResult,
+} from '../services/tiktok-affiliate-orders-parser.service';
 import {
   computeTikTokMetrics,
   TIKTOK_METRIC_SPECS,
@@ -199,7 +202,9 @@ export async function previewTikTokMetricsAction(
 ): Promise<ActionResult<TikTokMetricsPreview>> {
   const salesFile = formData.get('sales');
   const trafficFile = formData.get('traffic');
-  const affiliateFile = formData.get('affiliate');
+  const affiliateCreatorFile = formData.get('affiliateCreator');
+  const affiliatePartnerFile = formData.get('affiliatePartner');
+  const affiliateNonCollabFile = formData.get('affiliateNonCollab');
   if (!(salesFile instanceof File)) {
     return {
       success: false,
@@ -208,23 +213,35 @@ export async function previewTikTokMetricsAction(
   }
   try {
     const user = await getCurrentUser();
-    const [buffer, master, trafficRows, affiliateRows] = await Promise.all([
+    const [buffer, master, trafficRows, affCreator, affPartner, affNonCollab] = await Promise.all([
       salesFile.arrayBuffer(),
       loadPrimeCostMaster(user.entId),
       trafficFile instanceof File
         ? parseTikTokTrafficBuffer(trafficFile)
         : Promise.resolve<TikTokTrafficRow[] | null>(null),
-      affiliateFile instanceof File
-        ? parseTikTokAffiliateBuffer(affiliateFile)
-        : Promise.resolve<TikTokAffiliateRow[] | null>(null),
+      affiliateCreatorFile instanceof File
+        ? parseTikTokAffiliateBuf(affiliateCreatorFile, parseTikTokAffiliateCreator)
+        : Promise.resolve<TikTokAffOrderResult | null>(null),
+      affiliatePartnerFile instanceof File
+        ? parseTikTokAffiliateBuf(affiliatePartnerFile, parseTikTokAffiliatePartner)
+        : Promise.resolve<TikTokAffOrderResult | null>(null),
+      affiliateNonCollabFile instanceof File
+        ? parseTikTokAffiliateBuf(affiliateNonCollabFile, parseTikTokAffiliateNonCollab)
+        : Promise.resolve<TikTokAffOrderResult | null>(null),
     ]);
     const rows = await parseTikTokSales(buffer);
     const result = computeTikTokMetrics(
       rows,
       master,
       trafficRows ?? undefined,
-      affiliateRows ?? undefined,
     );
+    // Merged affiliate cost (preview only — final ingest re-parses + persists).
+    const mergedAffiliate = mergeTikTokAffiliateCosts(
+      affCreator?.costByProductName,
+      affPartner?.costByProductName,
+      affNonCollab?.costByProductName,
+    );
+    void mergedAffiliate; // not surfaced in preview UI yet — placeholder for future preview card
     return {
       success: true,
       data: { result, specs: TIKTOK_METRIC_SPECS, master: { skuCount: master.size } },
@@ -236,7 +253,7 @@ export async function previewTikTokMetricsAction(
     if (err instanceof TikTokTrafficParseError) {
       return { success: false, error: { code: `SAL-TT-TRAFFIC-${err.code}`, message: `TikTok Traffic: ${err.message}` } };
     }
-    if (err instanceof TikTokAffiliateParseError) {
+    if (err instanceof TikTokAffiliateOrderParseError) {
       return { success: false, error: { code: `SAL-TT-AFF-${err.code}`, message: `TikTok Affiliate: ${err.message}` } };
     }
     if (err instanceof SalError) {
@@ -255,7 +272,10 @@ async function parseTikTokTrafficBuffer(file: File): Promise<TikTokTrafficRow[]>
   return parseTikTokTraffic(buf);
 }
 
-async function parseTikTokAffiliateBuffer(file: File): Promise<TikTokAffiliateRow[]> {
+async function parseTikTokAffiliateBuf(
+  file: File,
+  parser: (buf: ArrayBuffer) => Promise<TikTokAffOrderResult>,
+): Promise<TikTokAffOrderResult> {
   const buf = await file.arrayBuffer();
-  return parseTikTokAffiliate(buf);
+  return parser(buf);
 }

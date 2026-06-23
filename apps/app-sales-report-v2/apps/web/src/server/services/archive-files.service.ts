@@ -11,7 +11,9 @@ export type ArchiveFileType =
   | 'BRAND_ADS'
   | 'OFF_PLATFORM_ADS'
   | 'TRAFFIC'
-  | 'AFFILIATE';
+  | 'AFFILIATE'
+  | 'AFFILIATE_PARTNER'
+  | 'AFFILIATE_NONCOLLAB';
 export type ArchiveGranularity = 'WEEKLY' | 'MONTHLY';
 
 export interface ArchiveFileInput {

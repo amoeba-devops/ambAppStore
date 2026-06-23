@@ -127,7 +127,7 @@ export interface ShopeeMetricsResult {
   totalNmv: number;
   /** SUM(MAX(0, net_gmv_row − nmv_row)) for kept rows — per-row clamped. */
   totalSellerDiscount: number;
-  /** SUM(prime_cost × item_sold) for kept rows + free gift rows. */
+  /** SUM(prime_cost × item_sold) for kept rows only. Free Gift PC is tracked separately in `primeCostFreeGift` and displayed as its own report line. */
   totalPrimeCost: number;
   /** Split for reporting transparency. */
   primeCostKept: number;
@@ -179,6 +179,8 @@ export interface ShopeeMetricsResult {
     rowCount: number;
     orderCount: number;
     statusBreakdown: Record<string, number>;
+    /** SUM(chiPhi) per normalized product name — used for exact per-SKU attribution downstream. */
+    costByProductName: Record<string, number>;
   } | null;
   /** Counts. */
   rowsKept: number;
@@ -249,9 +251,9 @@ export const SHOPEE_METRIC_SPECS = {
   TOTAL_PRIME_COST_SHOPEE: {
     id: 'TOTAL_PRIME_COST_SHOPEE',
     name: 'Total Prime Cost — Shopee',
-    expression: 'SUM(prime_cost × item_sold) over kept + free_gift rows',
+    expression: 'SUM(prime_cost × item_sold) over kept rows only',
     requires: ['prime_costs.prime_cost'],
-    note: 'Free Gift prime cost IS included — allocated to non-gift SKUs by NMV contribution downstream (skill §2.4).',
+    note: 'Free Gift PC is NOT added here — it is reported separately in `primeCostFreeGift` and subtracted as a distinct CM line.',
   },
   TOTAL_SELLER_VOUCHERS_SHOPEE: {
     id: 'TOTAL_SELLER_VOUCHERS_SHOPEE',
@@ -565,7 +567,7 @@ export function computeShopeeMetrics(
     totalNetGmv,
     totalNmv,
     totalSellerDiscount,
-    totalPrimeCost: primeCostKept + primeCostFreeGift,
+    totalPrimeCost: primeCostKept,
     primeCostKept,
     primeCostFreeGift,
     totalSellerVouchers,

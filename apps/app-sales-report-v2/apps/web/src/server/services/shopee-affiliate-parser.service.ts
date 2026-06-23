@@ -205,16 +205,24 @@ function parseShopeeAffiliateXlsx(bytes: Uint8Array): ShopeeAffiliateRow[] {
   return rows;
 }
 
+/** Normalize a product name for matching against the breakdown product list. */
+function normalizeProductName(name: string): string {
+  return name.normalize('NFC').replace(/\s+/g, ' ').trim();
+}
+
 export function aggregateAffiliate(rows: ShopeeAffiliateRow[]) {
   let totalCost = 0;
   let totalPureCommission = 0;
   const orderIds = new Set<string>();
   const statusCounts = new Map<string, number>();
+  const costByProductName: Record<string, number> = {};
   for (const r of rows) {
     totalCost += r.chiPhi;
     totalPureCommission += r.productCommission;
     orderIds.add(r.orderId);
     statusCounts.set(r.status, (statusCounts.get(r.status) ?? 0) + 1);
+    const key = normalizeProductName(r.productName);
+    if (key) costByProductName[key] = (costByProductName[key] ?? 0) + r.chiPhi;
   }
   return {
     totalCost,
@@ -222,5 +230,12 @@ export function aggregateAffiliate(rows: ShopeeAffiliateRow[]) {
     rowCount: rows.length,
     orderCount: orderIds.size,
     statusBreakdown: Object.fromEntries(statusCounts),
+    /** Per-product-name affiliate cost map — used downstream to attribute
+     *  affComm exactly to each breakdown row (matched by normalized productName).
+     *  Unmatched product names are bucketed into an "Others" row to preserve
+     *  the exact platform total. */
+    costByProductName,
   };
 }
+
+export { normalizeProductName as normalizeAffiliateProductName };

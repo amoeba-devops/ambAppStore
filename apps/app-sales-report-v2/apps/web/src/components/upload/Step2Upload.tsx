@@ -15,13 +15,26 @@ export type ReportType =
   | 'BRAND_ADS'
   | 'OFF_PLATFORM_ADS'
   | 'TRAFFIC'
-  | 'AFFILIATE';
+  | 'AFFILIATE'
+  // TikTok-only: split affiliate export into 3 order-level reports. AFFILIATE
+  // is the "Creator" variant (kept for Shopee backward compat too).
+  | 'AFFILIATE_PARTNER'
+  | 'AFFILIATE_NONCOLLAB';
 
 export interface ReportSlot {
   channel: Channel;
   type: ReportType;
   /** i18n key suffix under `uploadWizard.step2.slot.*` — pair Label + Subtitle keys. */
-  slotKey: 'sales' | 'ads' | 'brandAds' | 'offPlatformAds' | 'traffic' | 'affiliate';
+  slotKey:
+    | 'sales'
+    | 'ads'
+    | 'brandAds'
+    | 'offPlatformAds'
+    | 'traffic'
+    | 'affiliate'
+    | 'affiliateCreator'
+    | 'affiliatePartner'
+    | 'affiliateNonCollab';
 }
 
 const SHOPEE_REPORTS: ReportSlot[] = [
@@ -36,7 +49,9 @@ const SHOPEE_REPORTS: ReportSlot[] = [
 const TIKTOK_REPORTS: ReportSlot[] = [
   { channel: 'TIKTOK', type: 'SALES', slotKey: 'sales' },
   { channel: 'TIKTOK', type: 'TRAFFIC', slotKey: 'traffic' },
-  { channel: 'TIKTOK', type: 'AFFILIATE', slotKey: 'affiliate' },
+  { channel: 'TIKTOK', type: 'AFFILIATE', slotKey: 'affiliateCreator' },
+  { channel: 'TIKTOK', type: 'AFFILIATE_PARTNER', slotKey: 'affiliatePartner' },
+  { channel: 'TIKTOK', type: 'AFFILIATE_NONCOLLAB', slotKey: 'affiliateNonCollab' },
 ];
 
 export function slotKey(slot: { channel: Channel; type: ReportType }): string {
@@ -46,7 +61,15 @@ export function slotKey(slot: { channel: Channel; type: ReportType }): string {
 interface ExistingFileInfo {
   arfId: string;
   channel: 'SHOPEE' | 'TIKTOK';
-  fileType: 'SALES' | 'ADS' | 'BRAND_ADS' | 'OFF_PLATFORM_ADS' | 'TRAFFIC' | 'AFFILIATE';
+  fileType:
+    | 'SALES'
+    | 'ADS'
+    | 'BRAND_ADS'
+    | 'OFF_PLATFORM_ADS'
+    | 'TRAFFIC'
+    | 'AFFILIATE'
+    | 'AFFILIATE_PARTNER'
+    | 'AFFILIATE_NONCOLLAB';
   filename: string;
   sizeBytes: number;
   rowCount: number | null;
