@@ -388,8 +388,8 @@
             "RETURN": "복귀 차고지 주소"
           },
           "km": "도착 시 주행거리 (km)",
-          "addAfterPickup": "경유지 추가 (하차 전)",
-          "addAfterDelivery": "경유지 추가 (하차 후)",
+          "addStop": "+ 경유지 추가",
+          "totalDistance": "총 거리",
           "remove": "경유지 삭제"
         }
       }

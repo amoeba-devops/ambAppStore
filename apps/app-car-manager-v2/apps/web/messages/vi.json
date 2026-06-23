@@ -388,8 +388,8 @@
             "RETURN": "Địa chỉ bãi về"
           },
           "km": "Km tại điểm",
-          "addAfterPickup": "Thêm điểm ghé (trước giao)",
-          "addAfterDelivery": "Thêm điểm ghé (sau giao)",
+          "addStop": "+ Thêm điểm",
+          "totalDistance": "Tổng quãng đường",
           "remove": "Xóa điểm này"
         }
       }

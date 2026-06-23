@@ -388,8 +388,8 @@
             "RETURN": "Return yard address"
           },
           "km": "Odometer at stop (km)",
-          "addAfterPickup": "Add stop (before delivery)",
-          "addAfterDelivery": "Add stop (after delivery)",
+          "addStop": "+ Add stop",
+          "totalDistance": "Total distance",
           "remove": "Remove stop"
         }
       }

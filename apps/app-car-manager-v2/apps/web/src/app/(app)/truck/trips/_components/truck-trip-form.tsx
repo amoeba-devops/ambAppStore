@@ -43,8 +43,6 @@ export type TruckTripFormInitial = Partial<{
   cdf: string;
   revenue: string;
   fuelPrice: string;
-  startOdo: string;
-  endOdo: string;
   fuelLiters: string;
   toll: string;
   otherAmount: string;
@@ -64,8 +62,6 @@ const EMPTY_FIELDS = {
   cdf: '',
   revenue: '',
   fuelPrice: '',
-  startOdo: '',
-  endOdo: '',
   fuelLiters: '',
   toll: '',
   otherAmount: '',
@@ -175,8 +171,8 @@ export function TruckTripForm({
         fuel_price: numF(f.fuelPrice),
         revenue: isDriver ? undefined : numF(f.revenue),
         mark_completed: isDriver ? false : markCompleted,
-        start_odometer: numI(f.startOdo),
-        end_odometer: numI(f.endOdo),
+        start_odometer: numI(stops.find((s) => s.type === 'ORIGIN')?.km ?? ''),
+        end_odometer: numI(stops.slice().reverse().find((s) => s.type === 'RETURN')?.km ?? stops[stops.length - 1]?.km ?? ''),
         fuel_liters: numF(f.fuelLiters),
         toll_fee: numF(f.toll),
         other_amount: isDriver ? undefined : numF(f.otherAmount),
@@ -261,7 +257,7 @@ export function TruckTripForm({
           </CardHeaderText>
         </CardHeader>
         <CardContent>
-          <StopBuilder stops={stops} onChange={setStops} showKm={false} />
+          <StopBuilder stops={stops} onChange={setStops} />
         </CardContent>
       </Card>
 
@@ -284,12 +280,6 @@ export function TruckTripForm({
 
           {(!isDriver && markCompleted) ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label={t('startOdo')}>
-                <Input type="number" value={f.startOdo} onChange={set('startOdo')} />
-              </Field>
-              <Field label={t('endOdo')}>
-                <Input type="number" value={f.endOdo} onChange={set('endOdo')} />
-              </Field>
               <Field label={t('fuelLiters')}>
                 <Input type="number" step="0.01" value={f.fuelLiters} onChange={set('fuelLiters')} />
               </Field>
