@@ -341,20 +341,17 @@ export function snapshotToProducts(
     const total = shopeeNmvSum;
     const breakdown = shopee.productBreakdown ?? [];
 
-    // Per-product affiliate cost lookup (exact attribution by product name
-    // instead of NMV-share allocation). Keys are already normalized by the
-    // affiliate parser; we mirror the normalization here.
+    // Per-product affiliate cost lookup straight from the file. Each breakdown
+    // row receives the full {Chi phí(₫)} for its product name — no NMV split,
+    // no allocation. Keys are already normalized by the affiliate parser; we
+    // mirror the normalization here. NOTE: for products with multi-variation
+    // breakdown rows (combo + regular, or multiple colours/sizes), each row
+    // will show the same product-level chiPhi; the Promotional Breakdown
+    // Total card stays accurate because it reads `totalAffiliateCommission`
+    // from the file (sum of unique product entries), not the sum of per-SKU
+    // rows in the table.
     const affCostByName = shopee.affiliateCostByProductName ?? {};
     const normalizeName = (s: string) => s.normalize('NFC').replace(/\s+/g, ' ').trim();
-
-    // For products with multiple SKU variations sharing one name, split the
-    // product's affiliate cost across variations by NMV within that product
-    // so per-SKU rows still sum to the exact product total.
-    const nmvByName = new Map<string, number>();
-    for (const p of breakdown) {
-      const k = normalizeName(p.productName);
-      nmvByName.set(k, (nmvByName.get(k) ?? 0) + p.nmv);
-    }
     const matchedAffNames = new Set<string>();
 
     for (const p of breakdown) {
@@ -366,14 +363,8 @@ export function snapshotToProducts(
       const offPlatformAds = shopee.totalOffPlatformAds * share;
       const nameKey = normalizeName(p.productName);
       const productAffCost = affCostByName[nameKey] ?? 0;
-      const productNmv = nmvByName.get(nameKey) ?? 0;
-      // Split product affiliate cost across same-name variations by NMV
-      // contribution. When all variations have NMV=0 (rare edge), skip — the
-      // cost will fall through to the Others bucket below.
-      const affComm = productNmv > 0 && productAffCost > 0
-        ? productAffCost * (p.nmv / productNmv)
-        : 0;
-      if (productAffCost > 0 && productNmv > 0) matchedAffNames.add(nameKey);
+      const affComm = productAffCost;
+      if (productAffCost > 0) matchedAffNames.add(nameKey);
       const affBook = shopeeAffBookingFee * share;
       const livestream = manualInputs.shopeeLivestreamFees * share;
       const platformFee = shopee.totalPlatformFee * share;

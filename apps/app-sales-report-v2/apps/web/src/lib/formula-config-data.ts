@@ -141,10 +141,10 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       {
         metric: 'Total Affiliate Commission — Shopee',
         description:
-          'Platform total = SUM of per-SKU {Affiliate Commission — Shopee}. Equivalent to SUM of {Chi phí(₫)} over all rows in the Shopee Affiliate file.',
-        dataSources: ['Calculated'],
-        formula: 'SUM of {Affiliate Commission — Shopee} over all SKUs',
-        versions: 2,
+          'Platform total đọc trực tiếp từ Shopee Affiliate file = SUM của {Chi phí(₫)} tất cả rows. Không nhân với NMV. Lưu ý: một product có nhiều SKU variations (combo + regular) → mỗi variation row trong Product Breakdown table hiển thị cùng product-level chiPhi; tổng các row trong table có thể > Total (vì duplicate per variation), nhưng Total platform-level luôn = file total.',
+        dataSources: ['Shopee Affiliate CSV'],
+        formula: 'SUM of {Chi phí(₫)} over all rows in Shopee Affiliate file',
+        versions: 3,
       },
       {
         metric: 'Total Affiliate Booking Fee — Shopee',
@@ -311,11 +311,10 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       {
         metric: 'Affiliate Commission — Shopee',
         description:
-          'Per-SKU value. Product-level cost = SUM of {Chi phí(₫)} over rows in Shopee Affiliate file matching {Tên sản phẩm} = P. Per-SKU = product-level × ({NMV — Shopee of SKU} / {Sum NMV — Shopee of all SKUs with same name P}). Tên không match Sales breakdown → rớt vào row "Others".',
-        dataSources: ['Shopee Affiliate CSV', 'Calculated'],
-        formula:
-          '(SUM of {Chi phí(₫)} WHERE {Tên sản phẩm} = P) × ({NMV — Shopee} / {Sum NMV — Shopee of same name})',
-        versions: 2,
+          'Per-SKU value = product-level chiPhi (SUM của {Chi phí(₫)} từ file mà {Tên sản phẩm} = P). Lấy thẳng từ file, không nhân NMV. Multi-variation cùng product → mỗi row nhận giá trị giống nhau. Tên không match Sales breakdown → rớt vào row "Others".',
+        dataSources: ['Shopee Affiliate CSV'],
+        formula: 'SUM of {Chi phí(₫)} WHERE {Tên sản phẩm} = P',
+        versions: 3,
       },
       {
         metric: 'Affiliate Booking Fee — Shopee',
