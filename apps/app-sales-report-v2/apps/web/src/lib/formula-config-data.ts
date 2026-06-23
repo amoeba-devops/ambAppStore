@@ -141,9 +141,9 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       {
         metric: 'Total Affiliate Commission — Shopee',
         description:
-          'Sum of per-row {Chi phí(₫)} from Shopee Affiliate file, grouped by {Tên sản phẩm}. Per-SKU attribution uses the per-product map (exact lookup, not NMV allocation).',
-        dataSources: ['Shopee Affiliate CSV'],
-        formula: 'SUM of {Chi phí(₫)}, grouped by {Tên sản phẩm}',
+          'Platform total = SUM of per-SKU {Affiliate Commission — Shopee}. Equivalent to SUM of {Chi phí(₫)} over all rows in the Shopee Affiliate file.',
+        dataSources: ['Calculated'],
+        formula: 'SUM of {Affiliate Commission — Shopee} over all SKUs',
         versions: 2,
       },
       {
@@ -311,10 +311,10 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       {
         metric: 'Affiliate Commission — Shopee',
         description:
-          'Exact per-product attribution. Affiliate cost của product P (lookup theo {Tên sản phẩm}) chia cho các SKU variation cùng tên theo NMV. Tên không match Sales breakdown → rớt vào row "Others".',
-        dataSources: ['Calculated'],
+          'Per-SKU value. Product-level cost = SUM of {Chi phí(₫)} over rows in Shopee Affiliate file matching {Tên sản phẩm} = P. Per-SKU = product-level × ({NMV — Shopee of SKU} / {Sum NMV — Shopee of all SKUs with same name P}). Tên không match Sales breakdown → rớt vào row "Others".',
+        dataSources: ['Shopee Affiliate CSV', 'Calculated'],
         formula:
-          '({Chi phí(₫) of product P}) × ({NMV — Shopee} / {Sum NMV — Shopee of all SKUs with name P})',
+          '(SUM of {Chi phí(₫)} WHERE {Tên sản phẩm} = P) × ({NMV — Shopee} / {Sum NMV — Shopee of same name})',
         versions: 2,
       },
       {
@@ -452,14 +452,9 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       {
         metric: 'Total Affiliate Commission — TikTok',
         description:
-          'Sum of per-row commission across 3 affiliate exports (Creator + Partner + Non-collab). Per row = ({Thanh toán hoa hồng tiêu chuẩn ước tính} | {Thanh toán hoa hồng ước tính}) + {Thanh toán hoa hồng Quảng cáo cửa hàng ước tính}. Whitelist filter: chỉ giữ rows có {Trạng thái đơn hàng} = "Đã quyết toán". Grouped by {Tên sản phẩm} → 3 maps merged.',
-        dataSources: [
-          'TikTok Affiliate Creator XLSX',
-          'TikTok Affiliate Partner XLSX',
-          'TikTok Affiliate Non-collab XLSX',
-        ],
-        formula:
-          'SUM over (Creator ∪ Partner ∪ Non-collab) WHERE {Trạng thái đơn hàng} = "Đã quyết toán" OF (({Thanh toán hoa hồng tiêu chuẩn ước tính} | {Thanh toán hoa hồng ước tính}) + {Thanh toán hoa hồng Quảng cáo cửa hàng ước tính})',
+          'Platform total = SUM of per-SKU {Affiliate Commission — TikTok} over all TikTok SKUs (including row "Others" for product names not in Sales breakdown).',
+        dataSources: ['Calculated'],
+        formula: 'SUM of {Affiliate Commission — TikTok} over all SKUs',
         versions: 2,
       },
       {
@@ -600,10 +595,15 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       {
         metric: 'Affiliate Commission — TikTok',
         description:
-          'Exact per-product attribution từ merged map (3 affiliate files). Affiliate cost của product P chia cho các SKU variation cùng tên theo NMV. Tên không match Sales breakdown → rớt vào row "Others".',
-        dataSources: ['Calculated'],
+          'Per-SKU value. Product-level cost = SUM over (Creator ∪ Partner ∪ Non-collab) WHERE {Trạng thái đơn hàng} = "Đã quyết toán" AND {Tên sản phẩm} = P, of (({Thanh toán hoa hồng tiêu chuẩn ước tính} | {Thanh toán hoa hồng ước tính}) + {Thanh toán hoa hồng Quảng cáo cửa hàng ước tính}). Per-SKU = product-level × ({NMV — TikTok of SKU} / {Sum NMV — TikTok of same name P}). Tên không match Sales breakdown → rớt vào row "Others".',
+        dataSources: [
+          'TikTok Affiliate Creator XLSX',
+          'TikTok Affiliate Partner XLSX',
+          'TikTok Affiliate Non-collab XLSX',
+          'Calculated',
+        ],
         formula:
-          '({Commission of product P from 3 files}) × ({NMV — TikTok} / {Sum NMV — TikTok of all SKUs with name P})',
+          '(SUM over 3 affiliate files WHERE {Trạng thái đơn hàng} = "Đã quyết toán" AND {Tên sản phẩm} = P OF (({Thanh toán hoa hồng tiêu chuẩn ước tính} | {Thanh toán hoa hồng ước tính}) + {Thanh toán hoa hồng Quảng cáo cửa hàng ước tính})) × ({NMV — TikTok} / {Sum NMV — TikTok of same name})',
         versions: 2,
       },
       {
