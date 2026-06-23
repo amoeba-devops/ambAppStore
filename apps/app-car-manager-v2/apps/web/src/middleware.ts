@@ -12,10 +12,6 @@ const PUBLIC_PATHS = [
   '/api/v1/cron/',
   '/session-expired',
   '/dev-login',
-  /* Dev-only test-account picker. Public so it's reachable without a session;
-   * the page itself 404s unless DEMO_AUTO_LOGIN=true, so it never leaks in
-   * staging/prod. */
-  '/dev-accounts',
   /* D-010 rev: phone-login page + API. Both public — driver/manager nhập
    * ent_code + phone tại /login → POST /api/auth/login proxy tới AMA.
    * D-011: silent refresh endpoint must be public (middleware triggers it

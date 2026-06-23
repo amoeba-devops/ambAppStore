@@ -1727,8 +1727,6 @@
     "submit": "로그인",
     "openAma": "AMA 관리 페이지 열기",
     "devTitle": "Dev 모드",
-    "devLoginAs": "Dev 로그인",
-    "devDeptAccounts": "부서별 테스트 계정 →",
     "languageLabel": "언어",
     "errMissing": "회사 코드와 이메일을 모두 입력하세요.",
     "errInvalid": "잘못된 회사 코드이거나 등록되지 않은 이메일입니다. 확인: (1) 회사 코드는 대문자(예: VN01); (2) 관리자가 등록한 이메일과 일치; (3) 계정이 정지되지 않음. 그래도 실패하면 관리자에게 문의.",
