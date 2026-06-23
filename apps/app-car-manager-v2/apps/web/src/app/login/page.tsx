@@ -163,6 +163,14 @@ export default async function LoginPage({
                   </Button>
                 ))}
               </div>
+              {/* Per-department personas (car/truck managers + drivers) live on
+               * the dedicated picker, which also seeds them on demand. */}
+              <a
+                href="/dev-accounts"
+                className="mt-3 inline-flex items-center justify-center w-full text-sm text-accent hover:underline"
+              >
+                {t('devDeptAccounts')}
+              </a>
             </div>
           )}
         </CardContent>

@@ -38,6 +38,8 @@ const EMPTY = {
   fuelQuota: '',
   fuelType: 'DIESEL',
   odometer: '',
+  oilIntervalKm: '8000',
+  lastOilChangeKm: '',
   homeBase: '',
   notes: '',
 };
@@ -78,6 +80,8 @@ export function TruckVehicleForm({
         tonnage: f.tonnage ? Number(f.tonnage) : undefined,
         fuel_quota: f.fuelQuota ? Number(f.fuelQuota) : undefined,
         odometer_km: f.odometer ? Number(f.odometer) : undefined,
+        oil_interval_km: f.oilIntervalKm ? Number(f.oilIntervalKm) : undefined,
+        last_oil_change_km: f.lastOilChangeKm ? Number(f.lastOilChangeKm) : undefined,
         home_base: f.homeBase.trim() || undefined,
         notes: f.notes.trim() || undefined,
       };
@@ -152,6 +156,12 @@ export function TruckVehicleForm({
             </Field>
             <Field label={t('odometer')}>
               <Input type="number" value={f.odometer} onChange={set('odometer')} placeholder="45000" />
+            </Field>
+            <Field label={t('oilIntervalKm')}>
+              <Input type="number" value={f.oilIntervalKm} onChange={set('oilIntervalKm')} placeholder="8000" />
+            </Field>
+            <Field label={t('lastOilChangeKm')}>
+              <Input type="number" value={f.lastOilChangeKm} onChange={set('lastOilChangeKm')} placeholder="135000" />
             </Field>
             <Field label={t('homeBase')}>
               <Input value={f.homeBase} onChange={set('homeBase')} />

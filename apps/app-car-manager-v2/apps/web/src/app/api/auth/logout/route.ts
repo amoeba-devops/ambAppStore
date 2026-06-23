@@ -32,6 +32,7 @@ async function doLogout(req: NextRequest): Promise<NextResponse> {
   res.cookies.delete(sessionCookie);
   res.cookies.delete('amb_ama_access');
   res.cookies.delete('amb_ama_refresh');
+  res.cookies.delete('ccms.fleet.dept');
   return res;
 }
 

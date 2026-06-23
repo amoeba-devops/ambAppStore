@@ -20,7 +20,8 @@
     "truckDashboard": "대시보드",
     "truckTrips": "운행 일지",
     "truckFleet": "트럭 차량",
-    "truckPnl": "손익",
+    "truckPnl": "비용/손익",
+    "truckDrivers": "트럭 기사",
     "truckImport": "엑셀 가져오기",
     "truckSettings": "트럭 설정",
     "drivers": "기사",
@@ -131,7 +132,29 @@
       "chartProfit": "월별 순이익",
       "costStructure": "비용 구조",
       "fleetStatus": "차량 현황",
-      "noData": "데이터 없음"
+      "noData": "데이터 없음",
+      "topTrucks": "TOP 트럭 (매출)",
+      "topDrivers": "TOP 기사 (매출)",
+      "tripsShort": "운행",
+      "period": {
+        "thisMonth": "이번 달",
+        "last3": "3개월",
+        "last6": "6개월",
+        "ytd": "올해",
+        "all": "12개월"
+      }
+    },
+    "truckDrivers": {
+      "title": "트럭 기사",
+      "subtitle": "트럭 부서 기사 {count}명",
+      "empty": "트럭 부서에 기사가 없습니다",
+      "license": "면허",
+      "status": {
+        "AVAILABLE": "대기",
+        "ON_TRIP": "운행 중",
+        "OFF_DUTY": "비번",
+        "UNAVAILABLE": "비활성"
+      }
     },
     "truckPnl": {
       "title": "비용 & 이익",
@@ -148,7 +171,30 @@
       "insurance": "보험",
       "fixed": "고정비 합계",
       "trips": "운행 수",
-      "netProfit": "순이익"
+      "netProfit": "순이익",
+      "monthLabel": "월",
+      "statusOpen": "열림",
+      "statusClosed": "마감됨",
+      "closeMonth": "마감",
+      "closeConfirm": "{month} 장부를 마감할까요? 마감 후 해당 월 운행이 잠깁니다.",
+      "closedToast": "{month} 장부를 마감했습니다",
+      "reopen": "재개",
+      "reopenReasonPlaceholder": "재개 사유…",
+      "reopenedToast": "{month} 재개됨",
+      "cancel": "취소",
+      "fuelLedger": "주유 영수증",
+      "avgPrice": "평균가",
+      "consumption": "연비",
+      "invoiceLiters": "영수증 리터",
+      "station": "주유소",
+      "liters": "리터",
+      "price": "단가",
+      "addInvoice": "추가",
+      "invoiceAdded": "영수증 추가됨",
+      "deleteInvoice": "영수증 삭제",
+      "lockedHint": "마감된 월 — 편집할 수 없습니다.",
+      "fixedCostsTitle": "{month} 고정비",
+      "noTrucks": "트럭 없음"
     },
     "truckComplete": {
       "completeCta": "운행 완료",
@@ -290,6 +336,8 @@
       "statQuota": "연료 기준",
       "statProfit": "이번 달 이익",
       "oilOverdue": "오일 교체 {km}km 초과",
+      "oilRemaining": "다음 오일 교체까지 {km}km",
+      "oilNotConfigured": "오일 교체 미설정",
       "newTitle": "트럭 추가",
       "newSubtitle": "새 트럭 등록",
       "newCrumb": "추가",
@@ -305,6 +353,8 @@
         "fuelQuota": "기준 (L/100km)",
         "fuelType": "연료",
         "odometer": "주행거리 (km)",
+        "oilIntervalKm": "오일 교체 주기 (km)",
+        "lastOilChangeKm": "최근 오일 교체 주행거리",
         "homeBase": "차고지",
         "cancel": "취소",
         "save": "저장",
@@ -1310,7 +1360,9 @@
       "car": "승용차",
       "truck": "트럭",
       "requestTruck": "트럭 권한 요청",
-      "requestSent": "요청 전송됨 — 관리자 승인 대기"
+      "requestSent": "요청 전송됨 — 관리자 승인 대기",
+      "deptAdminCar": "승용차 관리자",
+      "deptAdminTruck": "트럭 관리자"
     },
     "drafts": {
       "title": "진행 중",
@@ -1676,6 +1728,7 @@
     "openAma": "AMA 관리 페이지 열기",
     "devTitle": "Dev 모드",
     "devLoginAs": "Dev 로그인",
+    "devDeptAccounts": "부서별 테스트 계정 →",
     "languageLabel": "언어",
     "errMissing": "회사 코드와 이메일을 모두 입력하세요.",
     "errInvalid": "잘못된 회사 코드이거나 등록되지 않은 이메일입니다. 확인: (1) 회사 코드는 대문자(예: VN01); (2) 관리자가 등록한 이메일과 일치; (3) 계정이 정지되지 않음. 그래도 실패하면 관리자에게 문의.",

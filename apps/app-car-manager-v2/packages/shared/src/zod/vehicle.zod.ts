@@ -12,6 +12,9 @@ export const createVehicleSchema = z.object({
   odometer_km: z.number().int().nonnegative().optional(),
   oil_interval_km: z.number().int().min(1000).max(30000).optional(),
   oil_interval_months: z.number().int().min(1).max(24).optional(),
+  /* Odometer (km) at the last oil change — makes the "next oil due" figure a
+   * real configured value instead of a default-derived guess. */
+  last_oil_change_km: z.number().int().nonnegative().max(10000000).optional(),
   home_base: z.string().trim().max(100).optional(),
   notes: z.string().trim().max(2000).optional(),
   /* Fleet department (REQ-20260617). Defaults to CAR server-side when omitted,

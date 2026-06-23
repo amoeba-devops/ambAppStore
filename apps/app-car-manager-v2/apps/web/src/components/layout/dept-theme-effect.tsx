@@ -17,8 +17,10 @@ export function DeptThemeEffect({ dept }: { dept: FleetDept }) {
     } else {
       delete root.dataset.dept;
     }
+    /* Only undo what we added — avoids a flash in React Strict Mode's
+     * double-invoke where cleanup fires before the re-mount effect. */
     return () => {
-      delete root.dataset.dept;
+      if (dept === 'TRUCK') delete root.dataset.dept;
     };
   }, [dept]);
   return null;

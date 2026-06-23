@@ -6,8 +6,10 @@ import { computeTruckPnl } from '@car-v2/core/truck';
 import type { CarVehicleStatus } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { listTruckTrips } from '@/server/queries/truck-trips.queries';
+import { listTruckTrips, getTruckLeaderboard, type TruckLeaderRow } from '@/server/queries/truck-trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
+import { PeriodSelect } from './_components/period-select';
+import { isPeriodPreset, type PeriodPreset } from './_components/period-presets';
 
 function bcp47(locale: string): string {
   if (locale === 'vi') return 'vi-VN';
@@ -15,19 +17,61 @@ function bcp47(locale: string): string {
   return 'en-US';
 }
 
+const ym = (y: number, m: number): string =>
+  new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 7);
+
 function lastNMonths(n: number): string[] {
-  const out: string[] = [];
   const now = new Date();
-  for (let i = n - 1; i >= 0; i--) {
-    const dt = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
-    out.push(dt.toISOString().slice(0, 7));
-  }
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  const out: string[] = [];
+  for (let i = n - 1; i >= 0; i--) out.push(ym(y, m - i));
   return out;
 }
 
-export default async function TruckDashboardPage() {
+/** Month list for a period preset (newest last). */
+function monthsForPreset(p: PeriodPreset): string[] {
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  switch (p) {
+    case 'last3':
+      return lastNMonths(3);
+    case 'last6':
+      return lastNMonths(6);
+    case 'ytd': {
+      const out: string[] = [];
+      for (let i = 0; i <= m; i++) out.push(ym(y, i));
+      return out;
+    }
+    case 'all':
+      return lastNMonths(12);
+    default:
+      return [ym(y, m)]; // thisMonth
+  }
+}
+
+/** [from, to) for the selected months. */
+function rangeOf(months: string[]): { from: Date; to: Date } {
+  const first = months[0]!;
+  const last = months[months.length - 1]!;
+  const from = new Date(`${first}-01T00:00:00.000Z`);
+  const ld = new Date(`${last}-01T00:00:00.000Z`);
+  const to = new Date(Date.UTC(ld.getUTCFullYear(), ld.getUTCMonth() + 1, 1));
+  return { from, to };
+}
+
+export default async function TruckDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
   const user = await getCurrentUser();
+  const sp = await searchParams;
+  const preset: PeriodPreset = isPeriodPreset(sp.period) ? sp.period : 'thisMonth';
+
   const t = await getTranslations('screens.truckDashboard');
+  const tPeriod = await getTranslations('screens.truckDashboard.period');
   const tPnl = await getTranslations('screens.truckPnl');
   const tTrips = await getTranslations('screens.truckTrips');
   const tNav = await getTranslations('nav');
@@ -36,17 +80,36 @@ export default async function TruckDashboardPage() {
   const locale = await getLocale();
   const loc = bcp47(locale);
 
-  const months = lastNMonths(6);
-  const [pnlRows, trucks, allTrips] = await Promise.all([
-    computeTruckPnl(user, { months }),
+  const kpiMonths = monthsForPreset(preset);
+  const trendMonths = lastNMonths(6);
+  const { from, to } = rangeOf(kpiMonths);
+
+  const [kpiRows, trendRows, trucks, allTrips, board] = await Promise.all([
+    computeTruckPnl(user, { months: kpiMonths }),
+    computeTruckPnl(user, { months: trendMonths }),
     listVehicles(user.entId, 'active', 'TRUCK'),
     listTruckTrips(user.entId),
+    getTruckLeaderboard(user.entId, from, to),
   ]);
-  const cur = pnlRows[pnlRows.length - 1];
-  const revenue = cur?.revenue ?? 0;
-  const totalCost = (cur?.variableCost ?? 0) + (cur?.fixedCost ?? 0);
-  const netProfit = cur?.netProfit ?? 0;
-  const tripCount = cur?.tripCount ?? 0;
+
+  /* Sum the per-month rows across the selected period. */
+  const acc = kpiRows.reduce(
+    (a, r) => ({
+      revenue: a.revenue + r.revenue,
+      variableCost: a.variableCost + r.variableCost,
+      fixedCost: a.fixedCost + r.fixedCost,
+      netProfit: a.netProfit + r.netProfit,
+      tripCount: a.tripCount + r.tripCount,
+      fuelCost: a.fuelCost + r.fuelCost,
+      tollFee: a.tollFee + r.tollFee,
+      extraTotal: a.extraTotal + r.extraTotal,
+      salary: a.salary + r.salary,
+      depreciation: a.depreciation + r.depreciation,
+      insurance: a.insurance + r.insurance,
+    }),
+    { revenue: 0, variableCost: 0, fixedCost: 0, netProfit: 0, tripCount: 0, fuelCost: 0, tollFee: 0, extraTotal: 0, salary: 0, depreciation: 0, insurance: 0 },
+  );
+  const totalCost = acc.variableCost + acc.fixedCost;
   const recent = allTrips.slice(0, 5);
 
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
@@ -54,21 +117,17 @@ export default async function TruckDashboardPage() {
   const monthShort = (m: string) =>
     new Date(`${m}-01T00:00:00Z`).toLocaleDateString(loc, { month: 'short' });
 
-  /* Net profit per month (single series — stacking revenue+profit would be
-   * misleading). Scaled to millions for a readable Y-axis. */
-  const barData = pnlRows.map((r) => ({ month: monthShort(r.month), profit: Math.round((r.netProfit / 1e6) * 10) / 10 }));
+  const barData = trendRows.map((r) => ({ month: monthShort(r.month), profit: Math.round((r.netProfit / 1e6) * 10) / 10 }));
   const barSeries = [{ key: 'profit', name: tPnl('netProfit'), color: 'hsl(var(--c7))' }];
 
-  const donut = cur
-    ? [
-        { name: tPnl('fuel'), value: cur.fuelCost, color: 'hsl(var(--c1))' },
-        { name: tPnl('toll'), value: cur.tollFee, color: 'hsl(var(--c7))' },
-        { name: tPnl('other'), value: cur.extraTotal, color: 'hsl(var(--c3))' },
-        { name: tPnl('salary'), value: cur.salary, color: 'hsl(var(--c2))' },
-        { name: tPnl('depreciation'), value: cur.depreciation, color: 'hsl(var(--c4))' },
-        { name: tPnl('insurance'), value: cur.insurance, color: 'hsl(var(--c6))' },
-      ].filter((d) => d.value > 0)
-    : [];
+  const donut = [
+    { name: tPnl('fuel'), value: acc.fuelCost, color: 'hsl(var(--c1))' },
+    { name: tPnl('toll'), value: acc.tollFee, color: 'hsl(var(--c7))' },
+    { name: tPnl('other'), value: acc.extraTotal, color: 'hsl(var(--c3))' },
+    { name: tPnl('salary'), value: acc.salary, color: 'hsl(var(--c2))' },
+    { name: tPnl('depreciation'), value: acc.depreciation, color: 'hsl(var(--c4))' },
+    { name: tPnl('insurance'), value: acc.insurance, color: 'hsl(var(--c6))' },
+  ].filter((d) => d.value > 0);
 
   const statusOrder: CarVehicleStatus[] = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'RETIRED'];
   const statusCounts = statusOrder.map((s) => ({ status: s, n: trucks.filter((v) => v.cvhStatus === s).length }));
@@ -83,25 +142,35 @@ export default async function TruckDashboardPage() {
     <>
       <PageHeader
         title={t('title')}
-        subtitle={t('subtitle', { month: new Date(`${months[months.length - 1]}-01T00:00:00Z`).toLocaleDateString(loc, { month: 'long', year: 'numeric' }) })}
+        subtitle={tPeriod(preset)}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('truckDashboard') }]}
         actions={
-          <Link
-            href="/truck/trips/new"
-            className="inline-flex items-center gap-1.5 rounded-md bg-accent text-accent-fg px-3 py-2 text-sm font-semibold hover:opacity-90"
-          >
-            <Plus className="h-4 w-4" />
-            {tTrips('addTrip')}
-          </Link>
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:block">
+              <PeriodSelect current={preset} />
+            </div>
+            <Link
+              href="/truck/trips/new"
+              className="inline-flex items-center gap-1.5 rounded-md bg-accent text-accent-fg px-3 py-2 text-sm font-semibold hover:opacity-90"
+            >
+              <Plus className="h-4 w-4" />
+              {tTrips('addTrip')}
+            </Link>
+          </div>
         }
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-5">
+        {/* Period selector — own row on mobile (hidden in header there). */}
+        <div className="sm:hidden">
+          <PeriodSelect current={preset} />
+        </div>
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Kpi label={t('kpiRevenue')} value={vnd(revenue)} />
+          <Kpi label={t('kpiRevenue')} value={vnd(acc.revenue)} />
           <Kpi label={t('kpiCost')} value={vnd(totalCost)} />
-          <Kpi label={t('kpiProfit')} value={vnd(netProfit)} tone={netProfit >= 0 ? 'success' : 'danger'} />
-          <Kpi label={t('kpiTrips')} value={tripCount.toLocaleString(loc)} />
+          <Kpi label={t('kpiProfit')} value={vnd(acc.netProfit)} tone={acc.netProfit >= 0 ? 'success' : 'danger'} />
+          <Kpi label={t('kpiTrips')} value={acc.tripCount.toLocaleString(loc)} />
         </div>
 
         {/* Charts */}
@@ -131,6 +200,12 @@ export default async function TruckDashboardPage() {
               </div>
             )}
           </Card>
+        </div>
+
+        {/* TOP trucks + drivers (by revenue over the period) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TopCard title={t('topTrucks')} rows={board.trucks} vnd={vnd} loc={loc} empty={t('noData')} tripsWord={t('tripsShort')} />
+          <TopCard title={t('topDrivers')} rows={board.drivers} vnd={vnd} loc={loc} empty={t('noData')} tripsWord={t('tripsShort')} />
         </div>
 
         {/* Fleet status + recent */}
@@ -205,6 +280,53 @@ function Kpi({ label, value, tone }: { label: string; value: string; tone?: 'suc
       >
         {value}
       </div>
+    </Card>
+  );
+}
+
+function TopCard({
+  title,
+  rows,
+  vnd,
+  loc,
+  empty,
+  tripsWord,
+}: {
+  title: string;
+  rows: TruckLeaderRow[];
+  vnd: (n: number) => string;
+  loc: string;
+  empty: string;
+  tripsWord: string;
+}) {
+  const max = Math.max(1, ...rows.map((r) => r.revenue));
+  return (
+    <Card className="p-4">
+      <h2 className="text-sm font-semibold text-text mb-3">{title}</h2>
+      {rows.length === 0 ? (
+        <div className="h-[120px] flex items-center justify-center text-sm text-text-muted">{empty}</div>
+      ) : (
+        <ul className="space-y-2.5">
+          {rows.map((r, i) => (
+            <li key={r.id} className="space-y-1">
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <span className="inline-flex items-center gap-2 min-w-0">
+                  <span className="text-text-faint tabular w-4 text-right">{i + 1}</span>
+                  <span className="font-medium text-text truncate">{r.label}</span>
+                  {r.sub && <span className="text-xs text-text-faint truncate hidden sm:inline">{r.sub}</span>}
+                </span>
+                <span className="shrink-0 text-right">
+                  <span className="tabular text-text">{vnd(r.revenue)}</span>
+                  <span className="ml-1.5 text-xs text-text-faint">{r.trips.toLocaleString(loc)} {tripsWord}</span>
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden">
+                <div className="h-full bg-accent" style={{ width: `${Math.round((r.revenue / max) * 100)}%` }} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }

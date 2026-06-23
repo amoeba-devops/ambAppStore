@@ -1,7 +1,14 @@
 import 'server-only';
 import { and, asc, eq, ilike, isNotNull, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
-import { carDrivers, carUsers, type CarDriver, type CarUser } from '@car-v2/db/schema';
+import {
+  carDrivers,
+  carUsers,
+  carUserFleetAccess,
+  type CarDriver,
+  type CarUser,
+  type CarVehicleType,
+} from '@car-v2/db/schema';
 
 export interface DriverWithUser extends CarDriver {
   user: Pick<CarUser, 'usrName' | 'usrEmail'>;
@@ -11,6 +18,37 @@ export interface DriverWithUser extends CarDriver {
 
 /** Filter type for listing drivers. */
 type DriverListFilter = 'active' | 'deleted' | 'all';
+
+/**
+ * Active drivers belonging to one fleet department (REQ-20260622 audit G5).
+ * Joins the per-user fleet membership so the Xe tải workspace shows only its
+ * own drivers instead of the whole CCMS roster.
+ */
+export async function listFleetDrivers(
+  entId: string,
+  dept: CarVehicleType,
+): Promise<DriverWithUser[]> {
+  const rows = await db
+    .select({
+      driver: carDrivers,
+      user: { usrName: carUsers.usrName, usrEmail: carUsers.usrEmail },
+    })
+    .from(carDrivers)
+    .innerJoin(carUsers, eq(carDrivers.drvUserId, carUsers.usrId))
+    .innerJoin(
+      carUserFleetAccess,
+      and(
+        eq(carUserFleetAccess.usrId, carDrivers.drvUserId),
+        eq(carUserFleetAccess.entId, entId),
+        eq(carUserFleetAccess.ufaVehicleType, dept),
+        isNull(carUserFleetAccess.ufaDeletedAt),
+      ),
+    )
+    .where(and(eq(carDrivers.entId, entId), isNull(carDrivers.drvDeletedAt)))
+    .orderBy(asc(carUsers.usrName));
+
+  return rows.map((r) => ({ ...r.driver, user: r.user, isDeleted: false }));
+}
 
 /** List drivers trong 1 tenant, optional free-text search trên tên/email/license/phone.
  *  Ent_id filter là bắt buộc (multi-tenancy).

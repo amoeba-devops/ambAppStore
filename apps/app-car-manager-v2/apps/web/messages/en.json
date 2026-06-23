@@ -20,7 +20,8 @@
     "truckDashboard": "Dashboard",
     "truckTrips": "Trip log",
     "truckFleet": "Truck fleet",
-    "truckPnl": "P&L",
+    "truckPnl": "Costs & P&L",
+    "truckDrivers": "Truck drivers",
     "truckImport": "Import Excel",
     "truckSettings": "Truck settings",
     "drivers": "Drivers",
@@ -131,7 +132,29 @@
       "chartProfit": "Net profit by month",
       "costStructure": "Cost structure",
       "fleetStatus": "Fleet status",
-      "noData": "No data yet"
+      "noData": "No data yet",
+      "topTrucks": "TOP trucks (revenue)",
+      "topDrivers": "TOP drivers (revenue)",
+      "tripsShort": "trips",
+      "period": {
+        "thisMonth": "This month",
+        "last3": "3 months",
+        "last6": "6 months",
+        "ytd": "Year to date",
+        "all": "12 months"
+      }
+    },
+    "truckDrivers": {
+      "title": "Truck drivers",
+      "subtitle": "{count} drivers in the Truck dept",
+      "empty": "No drivers in the Truck department yet",
+      "license": "License",
+      "status": {
+        "AVAILABLE": "Available",
+        "ON_TRIP": "On trip",
+        "OFF_DUTY": "Off duty",
+        "UNAVAILABLE": "Unavailable"
+      }
     },
     "truckPnl": {
       "title": "Cost & Profit",
@@ -148,7 +171,30 @@
       "insurance": "Insurance",
       "fixed": "Fixed total",
       "trips": "Trips",
-      "netProfit": "Net profit"
+      "netProfit": "Net profit",
+      "monthLabel": "Month",
+      "statusOpen": "Open",
+      "statusClosed": "Closed",
+      "closeMonth": "Close book",
+      "closeConfirm": "Close the book for {month}? Trips in this month will be locked.",
+      "closedToast": "Closed the book for {month}",
+      "reopen": "Reopen",
+      "reopenReasonPlaceholder": "Reason to reopen…",
+      "reopenedToast": "Reopened {month}",
+      "cancel": "Cancel",
+      "fuelLedger": "Fuel invoices",
+      "avgPrice": "Avg price",
+      "consumption": "Consumption",
+      "invoiceLiters": "Invoice liters",
+      "station": "Station",
+      "liters": "Liters",
+      "price": "Unit price",
+      "addInvoice": "Add",
+      "invoiceAdded": "Invoice added",
+      "deleteInvoice": "Delete invoice",
+      "lockedHint": "Month is closed — editing is disabled.",
+      "fixedCostsTitle": "Fixed costs for {month}",
+      "noTrucks": "No trucks yet"
     },
     "truckComplete": {
       "completeCta": "Complete trip",
@@ -290,6 +336,8 @@
       "statQuota": "Fuel quota",
       "statProfit": "Profit (month)",
       "oilOverdue": "Oil change overdue by {km} km",
+      "oilRemaining": "{km} km until next oil change",
+      "oilNotConfigured": "Oil change not configured",
       "newTitle": "Add truck",
       "newSubtitle": "Register a new truck",
       "newCrumb": "New",
@@ -305,6 +353,8 @@
         "fuelQuota": "Quota (L/100km)",
         "fuelType": "Fuel",
         "odometer": "Odometer (km)",
+        "oilIntervalKm": "Oil change interval (km)",
+        "lastOilChangeKm": "Odometer at last oil change",
         "homeBase": "Home base",
         "cancel": "Cancel",
         "save": "Save",
@@ -1310,7 +1360,9 @@
       "car": "Car",
       "truck": "Truck",
       "requestTruck": "Request truck access",
-      "requestSent": "Request sent — awaiting admin"
+      "requestSent": "Request sent — awaiting admin",
+      "deptAdminCar": "Car fleet admin",
+      "deptAdminTruck": "Truck fleet admin"
     },
     "drafts": {
       "title": "In progress",
@@ -1676,6 +1728,7 @@
     "openAma": "Open AMA management",
     "devTitle": "Dev mode",
     "devLoginAs": "Dev sign-in",
+    "devDeptAccounts": "Department test accounts →",
     "languageLabel": "Language",
     "errMissing": "Please enter both company code and email.",
     "errInvalid": "Wrong company code or email is not registered. Check: (1) company code must be uppercase (e.g. VN01); (2) email matches what the admin registered; (3) the account isn't suspended. Contact admin if it still fails.",

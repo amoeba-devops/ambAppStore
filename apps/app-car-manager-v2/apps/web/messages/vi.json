@@ -19,7 +19,8 @@
     "truckDashboard": "Bảng điều khiển",
     "truckTrips": "Nhật ký chuyến",
     "truckFleet": "Đội xe tải",
-    "truckPnl": "Lợi nhuận",
+    "truckPnl": "Chi phí & Lợi nhuận",
+    "truckDrivers": "Tài xế xe tải",
     "truckImport": "Import Excel",
     "truckSettings": "Cấu hình xe tải",
     "drivers": "Tài xế",
@@ -131,7 +132,29 @@
       "chartProfit": "Lợi nhuận ròng theo tháng",
       "costStructure": "Cơ cấu chi phí",
       "fleetStatus": "Tình trạng đội xe",
-      "noData": "Chưa có dữ liệu"
+      "noData": "Chưa có dữ liệu",
+      "topTrucks": "TOP xe tải (doanh thu)",
+      "topDrivers": "TOP tài xế (doanh thu)",
+      "tripsShort": "chuyến",
+      "period": {
+        "thisMonth": "Tháng này",
+        "last3": "3 tháng",
+        "last6": "6 tháng",
+        "ytd": "Từ đầu năm",
+        "all": "12 tháng"
+      }
+    },
+    "truckDrivers": {
+      "title": "Tài xế xe tải",
+      "subtitle": "{count} tài xế phòng Xe tải",
+      "empty": "Chưa có tài xế nào thuộc phòng Xe tải",
+      "license": "Bằng lái",
+      "status": {
+        "AVAILABLE": "Sẵn sàng",
+        "ON_TRIP": "Đang chạy",
+        "OFF_DUTY": "Nghỉ ca",
+        "UNAVAILABLE": "Vô hiệu"
+      }
     },
     "truckPnl": {
       "title": "Chi phí & Lợi nhuận",
@@ -148,7 +171,30 @@
       "insurance": "Bảo hiểm",
       "fixed": "Tổng cố định",
       "trips": "Số chuyến",
-      "netProfit": "Lợi nhuận ròng"
+      "netProfit": "Lợi nhuận ròng",
+      "monthLabel": "Tháng",
+      "statusOpen": "Đang mở",
+      "statusClosed": "Đã chốt",
+      "closeMonth": "Chốt sổ",
+      "closeConfirm": "Chốt sổ tháng {month}? Sau khi chốt, các chuyến trong tháng sẽ bị khoá.",
+      "closedToast": "Đã chốt sổ tháng {month}",
+      "reopen": "Mở lại",
+      "reopenReasonPlaceholder": "Lý do mở lại…",
+      "reopenedToast": "Đã mở lại tháng {month}",
+      "cancel": "Huỷ",
+      "fuelLedger": "Hoá đơn xăng dầu",
+      "avgPrice": "Giá BQ",
+      "consumption": "Định mức",
+      "invoiceLiters": "Tổng lít HĐ",
+      "station": "Cây xăng",
+      "liters": "Số lít",
+      "price": "Đơn giá",
+      "addInvoice": "Thêm",
+      "invoiceAdded": "Đã thêm hoá đơn",
+      "deleteInvoice": "Xoá hoá đơn",
+      "lockedHint": "Tháng đã chốt — không thể chỉnh sửa.",
+      "fixedCostsTitle": "Chi phí cố định tháng {month}",
+      "noTrucks": "Chưa có xe tải"
     },
     "truckComplete": {
       "completeCta": "Hoàn thành chuyến đi",
@@ -290,6 +336,8 @@
       "statQuota": "Định mức",
       "statProfit": "Lợi nhuận tháng",
       "oilOverdue": "Quá hạn thay dầu {km} km",
+      "oilRemaining": "Còn {km} km tới hạn thay dầu",
+      "oilNotConfigured": "Chưa cấu hình thay dầu",
       "newTitle": "Thêm xe tải",
       "newSubtitle": "Khai báo thông tin xe tải mới",
       "newCrumb": "Thêm mới",
@@ -305,6 +353,8 @@
         "fuelQuota": "Định mức (L/100km)",
         "fuelType": "Nhiên liệu",
         "odometer": "Số km đồng hồ",
+        "oilIntervalKm": "Định mức thay dầu (km)",
+        "lastOilChangeKm": "Số km thay dầu gần nhất",
         "homeBase": "Bãi đỗ",
         "cancel": "Huỷ",
         "save": "Lưu",
@@ -1310,7 +1360,9 @@
       "car": "Xe con",
       "truck": "Xe tải",
       "requestTruck": "Yêu cầu quyền xe tải",
-      "requestSent": "Đã gửi yêu cầu, chờ admin duyệt"
+      "requestSent": "Đã gửi yêu cầu, chờ admin duyệt",
+      "deptAdminCar": "Quản trị xe con",
+      "deptAdminTruck": "Quản trị xe tải"
     },
     "drafts": {
       "title": "Đang dang dở",
@@ -1676,6 +1728,7 @@
     "openAma": "Mở trang quản lý AMA",
     "devTitle": "Dev mode",
     "devLoginAs": "Đăng nhập dev",
+    "devDeptAccounts": "Tài khoản test theo phòng ban →",
     "languageLabel": "Ngôn ngữ",
     "errMissing": "Vui lòng nhập đầy đủ mã công ty và email.",
     "errInvalid": "Sai mã công ty hoặc email chưa được đăng ký. Kiểm tra: (1) mã công ty viết HOA chính xác (VD: VN01); (2) email đúng với email admin đã đăng ký; (3) tài khoản chưa bị tạm khoá. Liên hệ admin nếu vẫn lỗi.",

@@ -4,10 +4,11 @@ import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { db } from '@car-v2/db/client';
 import { carTruckFixedCosts } from '@car-v2/db/schema';
-import { type ActionResult } from '@car-v2/shared/errors';
+import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import { upsertTruckFixedCostSchema } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
+import { isTruckMonthClosed } from '@/server/queries/truck-finance.queries';
 import { logAudit } from '@/server/services/audit-log.service';
 import { runAction } from '../_helpers';
 
@@ -22,6 +23,9 @@ export async function upsertTruckFixedCostAction(input: unknown): Promise<Action
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
     await requireFleet(actor, 'TRUCK');
     const dto = upsertTruckFixedCostSchema.parse(input);
+    if (await isTruckMonthClosed(actor.entId, dto.month)) {
+      throw new CarError('CAR-E1002', 409, 'Financial month is closed');
+    }
 
     await db
       .insert(carTruckFixedCosts)

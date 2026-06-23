@@ -2,14 +2,14 @@
 
 import { useTransition } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Car, Loader2, Plus, Truck, type LucideIcon } from 'lucide-react';
 import { cn, toast } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { requestFleetAccessAction } from '@/server/actions/fleet-access/fleet-access.actions';
 import { formatActionError } from '@/lib/format-action-error';
-import { deptForPath, type FleetDept } from './nav-items';
+import { useActiveDept } from './dept-context';
+import { type FleetDept } from './nav-items';
 
 interface Props {
   role: LocalRole;
@@ -22,12 +22,11 @@ const CAR_HOME = '/dashboard';
 const TRUCK_HOME = '/truck/dashboard';
 
 export function DeptSwitch({ role, fleetAccess, collapsed }: Props) {
-  const pathname = usePathname() ?? '/';
   const t = useTranslations('layout.dept');
   const tErr = useTranslations();
   const [pending, startTransition] = useTransition();
 
-  const current = deptForPath(pathname);
+  const current = useActiveDept();
   const hasCar = fleetAccess.includes('CAR');
   const hasTruck = fleetAccess.includes('TRUCK');
 
@@ -67,6 +66,26 @@ export function DeptSwitch({ role, fleetAccess, collapsed }: Props) {
         {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
         <span className="truncate">{t('requestTruck')}</span>
       </button>
+    );
+  }
+
+  /* Single-department user (one membership only: a department-scoped manager/
+   * admin, or a driver) → a non-interactive workspace badge so they always know
+   * which fleet they're operating on, even though there's nothing to switch to. */
+  if (hasCar || hasTruck) {
+    const Icon = current === 'TRUCK' ? Truck : Car;
+    return (
+      <div
+        className={cn(
+          'flex items-center gap-1.5 rounded-md bg-surface-2 px-2 py-1.5 text-xs font-semibold text-text-muted',
+          collapsed && 'justify-center',
+        )}
+        title={t(current === 'TRUCK' ? 'truck' : 'car')}
+        aria-label={t(current === 'TRUCK' ? 'truck' : 'car')}
+      >
+        <Icon className="h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
+        {!collapsed && <span className="truncate">{t(current === 'TRUCK' ? 'truck' : 'car')}</span>}
+      </div>
     );
   }
 

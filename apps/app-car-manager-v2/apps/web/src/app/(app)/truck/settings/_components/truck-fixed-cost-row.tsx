@@ -14,11 +14,13 @@ interface Props {
   model: string;
   month: string;
   initial: { salary: number; depreciation: number; insurance: number };
+  /** Month book is closed → read-only (server also rejects). */
+  locked?: boolean;
 }
 
 const numOrZero = (s: string) => (s.trim() === '' ? 0 : Number(s));
 
-export function TruckFixedCostRow({ vehicleId, plate, model, month, initial }: Props) {
+export function TruckFixedCostRow({ vehicleId, plate, model, month, initial, locked = false }: Props) {
   const t = useTranslations('screens.truckSettings');
   const tErr = useTranslations();
   const router = useRouter();
@@ -57,19 +59,19 @@ export function TruckFixedCostRow({ vehicleId, plate, model, month, initial }: P
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
           <Label>{t('salary')}</Label>
-          <Input type="number" className="mt-1.5" value={v.salary} onChange={(e) => setV((s) => ({ ...s, salary: e.target.value }))} />
+          <Input type="number" disabled={locked} className="mt-1.5" value={v.salary} onChange={(e) => setV((s) => ({ ...s, salary: e.target.value }))} />
         </div>
         <div>
           <Label>{t('depreciation')}</Label>
-          <Input type="number" className="mt-1.5" value={v.depreciation} onChange={(e) => setV((s) => ({ ...s, depreciation: e.target.value }))} />
+          <Input type="number" disabled={locked} className="mt-1.5" value={v.depreciation} onChange={(e) => setV((s) => ({ ...s, depreciation: e.target.value }))} />
         </div>
         <div>
           <Label>{t('insurance')}</Label>
-          <Input type="number" className="mt-1.5" value={v.insurance} onChange={(e) => setV((s) => ({ ...s, insurance: e.target.value }))} />
+          <Input type="number" disabled={locked} className="mt-1.5" value={v.insurance} onChange={(e) => setV((s) => ({ ...s, insurance: e.target.value }))} />
         </div>
       </div>
       <div className="flex justify-end mt-3">
-        <Button type="button" size="sm" variant="accent" disabled={pending} onClick={save}
+        <Button type="button" size="sm" variant="accent" disabled={pending || locked} onClick={save}
           iconLeft={pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}>
           {t('save')}
         </Button>

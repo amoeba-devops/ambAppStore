@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import { db } from '@car-v2/db/client';
 import { carAuditLogs } from '@car-v2/db/schema';
 
-export type AuditEntity = 'Trip' | 'Vehicle' | 'Driver' | 'Expense' | 'User' | 'System';
+export type AuditEntity = 'Trip' | 'Vehicle' | 'Driver' | 'Expense' | 'User' | 'System' | 'TruckMonth';
 
 interface LogAuditInput {
   entId: string;

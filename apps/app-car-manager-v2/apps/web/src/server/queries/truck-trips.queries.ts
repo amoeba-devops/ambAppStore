@@ -1,7 +1,7 @@
 import 'server-only';
 import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, or, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
-import { carTrips, carTripExtraCosts, carDrivers, carUsers, type CarTripStatus } from '@car-v2/db/schema';
+import { carTrips, carTripExtraCosts, carDrivers, carUsers, carVehicles, type CarTripStatus } from '@car-v2/db/schema';
 import { computeTruckCost, parseAmount, type TruckCostBreakdown } from '@car-v2/core/truck';
 
 export interface TruckTripRow {
@@ -116,6 +116,75 @@ export async function getLatestTruckDrivers(entId: string): Promise<Map<string, 
     if (r.vehicleId && r.driverName && !map.has(r.vehicleId)) map.set(r.vehicleId, r.driverName);
   }
   return map;
+}
+
+/** One ranked row in a dashboard "TOP" list (truck or driver). */
+export interface TruckLeaderRow {
+  id: string;
+  label: string;
+  sub: string | null;
+  revenue: number;
+  trips: number;
+}
+
+export interface TruckLeaderboard {
+  trucks: TruckLeaderRow[];
+  drivers: TruckLeaderRow[];
+}
+
+/**
+ * Top trucks + top drivers by revenue over a date range (REQ-20260622 audit G3).
+ * Ranks the truck trip-log within [from, to). Lightweight: ranks by revenue
+ * (no extra-cost join needed) — mirrors the design's "TOP" bars.
+ */
+export async function getTruckLeaderboard(
+  entId: string,
+  from: Date,
+  to: Date,
+): Promise<TruckLeaderboard> {
+  const rows = await db
+    .select({
+      vehId: carTrips.trpVehicleId,
+      plate: carVehicles.cvhPlateNumber,
+      model: carVehicles.cvhModel,
+      drvId: carTrips.trpDriverId,
+      drvName: carUsers.usrName,
+      revenue: carTrips.trpRevenue,
+    })
+    .from(carTrips)
+    .leftJoin(carVehicles, eq(carTrips.trpVehicleId, carVehicles.cvhId))
+    .leftJoin(carDrivers, eq(carTrips.trpDriverId, carDrivers.drvId))
+    .leftJoin(carUsers, eq(carDrivers.drvUserId, carUsers.usrId))
+    .where(
+      and(
+        eq(carTrips.entId, entId),
+        eq(carTrips.trpKind, 'LOG'),
+        isNull(carTrips.trpDeletedAt),
+        gte(carTrips.trpScheduledAt, from),
+        lt(carTrips.trpScheduledAt, to),
+      ),
+    );
+
+  const byVeh = new Map<string, TruckLeaderRow>();
+  const byDrv = new Map<string, TruckLeaderRow>();
+  for (const r of rows) {
+    const rev = parseAmount(r.revenue);
+    if (r.vehId) {
+      const e = byVeh.get(r.vehId) ?? { id: r.vehId, label: r.plate ?? '—', sub: r.model ?? null, revenue: 0, trips: 0 };
+      e.revenue += rev;
+      e.trips += 1;
+      byVeh.set(r.vehId, e);
+    }
+    if (r.drvId) {
+      const e = byDrv.get(r.drvId) ?? { id: r.drvId, label: r.drvName ?? '—', sub: null, revenue: 0, trips: 0 };
+      e.revenue += rev;
+      e.trips += 1;
+      byDrv.set(r.drvId, e);
+    }
+  }
+  const top = (m: Map<string, TruckLeaderRow>) =>
+    [...m.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+  return { trucks: top(byVeh), drivers: top(byDrv) };
 }
 
 /** Structured extra-cost rows for one truck trip (detail breakdown). */

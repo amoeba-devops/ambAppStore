@@ -23,6 +23,7 @@ import type { CarTrip } from '@car-v2/db/schema';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
 import { getDriver, getDriverByUserId } from '@/server/queries/drivers.queries';
+import { assertTruckMonthOpen } from '@/server/queries/truck-finance.queries';
 import { nextTripRef } from '@/server/services/trip-ref.service';
 import { logAudit } from '@/server/services/audit-log.service';
 import { notifyUser } from '@/server/services/notification.service';
@@ -79,6 +80,7 @@ export async function createTruckTripAction(input: unknown): Promise<ActionResul
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
     await requireFleet(actor, 'TRUCK');
     const dto = createTruckTripSchema.parse(input);
+    await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at));
 
     let trip;
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -148,6 +150,11 @@ export async function assignTruckTripAction(input: unknown): Promise<ActionResul
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
     await requireFleet(actor, 'TRUCK');
     const dto = assignTruckTripSchema.parse(input);
+    const asgTrip = await db.query.carTrips.findFirst({
+      where: and(eq(carTrips.trpId, dto.trip_id), eq(carTrips.entId, actor.entId)),
+      columns: { trpScheduledAt: true },
+    });
+    if (asgTrip) await assertTruckMonthOpen(actor.entId, asgTrip.trpScheduledAt);
 
     const trip = await assignTruckTrip(actor, dto.trip_id, {
       driverId: dto.driver_id,
@@ -182,6 +189,11 @@ export async function completeTruckTripAction(input: unknown): Promise<ActionRes
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
     await requireFleet(actor, 'TRUCK');
     const dto = completeTruckTripSchema.parse(input);
+    const finTrip = await db.query.carTrips.findFirst({
+      where: and(eq(carTrips.trpId, dto.trip_id), eq(carTrips.entId, actor.entId)),
+      columns: { trpScheduledAt: true },
+    });
+    if (finTrip) await assertTruckMonthOpen(actor.entId, finTrip.trpScheduledAt);
 
     const res = await completeTruckTrip(actor, dto.trip_id, {
       startedAt: dto.start_time ? new Date(dto.start_time) : null,
@@ -229,6 +241,7 @@ export async function driverCompleteTruckTripAction(input: unknown): Promise<Act
     if (!trip || trip.trpDriverId !== driver.drvId) {
       throw new CarError('CAR-E0403', 403, 'Not your trip');
     }
+    await assertTruckMonthOpen(actor.entId, trip.trpScheduledAt);
 
     const res = await completeTruckTrip(actor, dto.trip_id, {
       startedAt: dto.start_time ? new Date(dto.start_time) : null,
@@ -265,6 +278,14 @@ export async function updateTruckTripAction(input: unknown): Promise<ActionResul
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
     await requireFleet(actor, 'TRUCK');
     const dto = updateTruckTripSchema.parse(input);
+    /* Both the trip's current month and the target month must be open — block
+     * editing a trip out of (or into) a closed period. */
+    const curTrip = await db.query.carTrips.findFirst({
+      where: and(eq(carTrips.trpId, dto.trip_id), eq(carTrips.entId, actor.entId)),
+      columns: { trpScheduledAt: true },
+    });
+    if (curTrip) await assertTruckMonthOpen(actor.entId, curTrip.trpScheduledAt);
+    await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at));
 
     const extraCosts =
       dto.other_amount && dto.other_amount > 0
@@ -311,6 +332,11 @@ export async function deleteTruckTripAction(input: unknown): Promise<ActionResul
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
     await requireFleet(actor, 'TRUCK');
     const dto = deleteTruckTripSchema.parse(input);
+    const delTrip = await db.query.carTrips.findFirst({
+      where: and(eq(carTrips.trpId, dto.trip_id), eq(carTrips.entId, actor.entId)),
+      columns: { trpScheduledAt: true },
+    });
+    if (delTrip) await assertTruckMonthOpen(actor.entId, delTrip.trpScheduledAt);
     await deleteTruckTrip(actor, dto.trip_id);
     await logAudit({
       entId: actor.entId,

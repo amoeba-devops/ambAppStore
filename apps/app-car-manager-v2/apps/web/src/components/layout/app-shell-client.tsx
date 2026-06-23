@@ -9,7 +9,7 @@ import { InstallPrompt } from '@/components/pwa/install-prompt';
 import { PushConfigProvider } from '@/components/pwa/push-config-context';
 import { PushPromptStrip } from '@/components/pwa/push-prompt-strip';
 import { BottomTabNav } from './bottom-tab-nav';
-import { DeptThemeEffect } from './dept-theme-effect';
+import { DeptProvider } from './dept-context';
 import type { FleetDept } from './nav-items';
 import { SidebarNav } from './sidebar-nav';
 import { TenantDisplayProvider } from './tenant-display-context';
@@ -21,6 +21,8 @@ interface AppShellClientProps {
   role: LocalRole;
   /** Fleet departments the user may enter (drives the dept switch + nav). */
   fleetAccess: FleetDept[];
+  /** Server-resolved sticky workspace seed (cookie clamped to access). */
+  initialDept: FleetDept;
   /** Display name from AMA JWT (null if not provided). */
   userName: string | null;
   /** Email from AMA JWT (null if not provided). */
@@ -71,6 +73,7 @@ interface AppShellClientProps {
 export function AppShellClient({
   role,
   fleetAccess,
+  initialDept,
   userName,
   userEmail,
   pendingTripCount,
@@ -85,9 +88,6 @@ export function AppShellClient({
   children,
 }: AppShellClientProps) {
   const [collapsed, setCollapsed] = useState(false);
-  /* Truck drivers get the orange department theme app-wide (they have a single
-   * department and never visit the manager `/truck/*` routes that set it). */
-  const isTruckDriver = role === 'DRIVER' && fleetAccess.includes('TRUCK');
 
   useEffect(() => {
     try {
@@ -119,7 +119,7 @@ export function AppShellClient({
     >
       <UserDisplayProvider userName={userName} userEmail={userEmail} role={role} unreadNotifications={unreadNotificationCount}>
       <PushConfigProvider vapidPublicKey={vapidPublicKey} basePath={basePath}>
-        {isTruckDriver && <DeptThemeEffect dept="TRUCK" />}
+        <DeptProvider role={role} fleetAccess={fleetAccess} initialDept={initialDept}>
         <div className="flex min-h-dvh bg-bg text-text">
           {/* Sidebar — hidden on mobile, replaced by BottomTabNav below.
            * Push enablement is surfaced via PushPromptStrip below (a top-of-
@@ -157,7 +157,6 @@ export function AppShellClient({
           </div>
           <BottomTabNav
             role={role}
-            fleetAccess={fleetAccess}
             pendingTripCount={pendingTripCount}
             todayExpenseCount={todayExpenseCount}
           />
@@ -165,6 +164,7 @@ export function AppShellClient({
           <Toaster />
           <NotificationSound />
         </div>
+        </DeptProvider>
       </PushConfigProvider>
       </UserDisplayProvider>
     </TenantDisplayProvider>

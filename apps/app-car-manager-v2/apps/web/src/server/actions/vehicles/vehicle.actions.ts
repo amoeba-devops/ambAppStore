@@ -40,6 +40,7 @@ export async function createVehicleAction(input: unknown): Promise<ActionResult<
         cvhOdometerKm: data.odometer_km ?? 0,
         cvhOilIntervalKm: data.oil_interval_km ?? 5000,
         cvhOilIntervalMonths: data.oil_interval_months ?? 3,
+        cvhLastOilChangeKm: data.last_oil_change_km ?? null,
         cvhHomeBase: data.home_base ?? null,
         cvhNotes: data.notes ?? null,
       })
@@ -83,6 +84,7 @@ export async function updateVehicleAction(id: string, input: unknown): Promise<A
     if (data.odometer_km !== undefined) patch.cvhOdometerKm = data.odometer_km;
     if (data.oil_interval_km     !== undefined) patch.cvhOilIntervalKm = data.oil_interval_km;
     if (data.oil_interval_months !== undefined) patch.cvhOilIntervalMonths = data.oil_interval_months;
+    if (data.last_oil_change_km  !== undefined) patch.cvhLastOilChangeKm = data.last_oil_change_km;
     if (data.home_base !== undefined) patch.cvhHomeBase = data.home_base;
     if (data.notes     !== undefined) patch.cvhNotes = data.notes;
     if (data.vehicle_type !== undefined) patch.cvhType = data.vehicle_type;

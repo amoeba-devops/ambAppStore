@@ -34,8 +34,9 @@ import {
 import type { LocalRole } from '@car-v2/shared/auth';
 import { useAllDrafts, type DraftEntry } from '@/hooks/use-all-drafts';
 import { LogoutConfirmDialog } from '@/components/auth/logout-confirm-dialog';
+import { useActiveDept } from './dept-context';
 import { DeptSwitch } from './dept-switch';
-import { activeKeyFor, deptForContext, navItemsForRole, type FleetDept, type NavKey } from './nav-items';
+import { activeKeyFor, navItemsForRole, type FleetDept, type NavKey } from './nav-items';
 import { SidebarLocaleSwitcher } from './sidebar-locale-switcher';
 import { useTenantDisplay } from './tenant-display-context';
 import { UserGuideDrawer } from './user-guide-drawer';
@@ -85,6 +86,7 @@ export function SidebarNav({ collapsed, role, fleetAccess, userName, userEmail, 
   const tCo    = useTranslations('company');
   const tAct   = useTranslations('actions');
   const tRole  = useTranslations('settings.me.roles');
+  const tDept  = useTranslations('layout.dept');
   const tGroup = useTranslations();
   const pathname = usePathname();
   // locale + guide href no longer needed here — UserGuideDrawer reads locale +
@@ -97,7 +99,14 @@ export function SidebarNav({ collapsed, role, fleetAccess, userName, userEmail, 
    *   userName → email local part → "User"
    * Role uses i18n (Quản trị / Quản lý / Tài xế). */
   const displayName = userName?.trim() || userEmail?.split('@')[0] || 'User';
-  const displayRole = tRole(role);
+  /* Hướng B / B1: a manager scoped to a single fleet IS that department's
+   * admin (same workspace-only powers), so surface "Quản trị xe tải/xe con" as
+   * their title. Org admins keep "Quản trị viên"; 2-dept managers stay "Quản
+   * lý"; drivers unchanged. Label only — permissions are not affected. */
+  const displayRole =
+    role === 'MANAGER' && fleetAccess.length === 1
+      ? tDept(fleetAccess[0] === 'TRUCK' ? 'deptAdminTruck' : 'deptAdminCar')
+      : tRole(role);
   /* Email shown as secondary line if available + different from display name. */
   const showEmailLine = userEmail && userEmail !== displayName;
   /* Pass role so `/` correctly maps to `today` for drivers and `dashboard`/`trips`
@@ -137,9 +146,11 @@ export function SidebarNav({ collapsed, role, fleetAccess, userName, userEmail, 
    * already the canonical "current user" affordance on desktop (clicks open a
    * dropdown with Me + Sign out), so a separate row was redundant. Mobile keeps
    * the avatar in MobilePageHeader, which already links to /settings/me. */
-  /* Department context derived from the URL (truck workspace = /truck/*). The
-   * nav then shows that department's items + department-agnostic shared ones. */
-  const dept = deptForContext(role, fleetAccess, pathname ?? '/');
+  /* Sticky active workspace (from DeptProvider). The nav shows that
+   * department's items + department-agnostic shared ones, and — unlike the old
+   * URL-derived value — stays put when the user opens a shared admin page
+   * (drivers/users/settings/audit) instead of snapping back to car. */
+  const dept = useActiveDept();
   const allItems = navItemsForRole(role, { dept });
   const workspace = allItems.filter((i) => i.group === 'workspace' && i.key !== 'me');
   const admin = allItems.filter((i) => i.group === 'admin');

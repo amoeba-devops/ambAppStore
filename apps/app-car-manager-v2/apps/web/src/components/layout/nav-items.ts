@@ -36,6 +36,7 @@ export type NavKey =
   | 'truckTrips'
   | 'truckFleet'
   | 'truckPnl'
+  | 'truckDrivers'
   | 'truckImport'
   | 'truckSettings'
   | 'me'
@@ -101,10 +102,13 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'truckTrips',  href: '/truck/trips',   Icon: ClipboardList,   group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
   { key: 'truckFleet',  href: '/truck/fleet',   Icon: Truck,           group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
   { key: 'truckPnl',    href: '/truck/pnl',     Icon: Wallet,          group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
+  /* Truck drivers roster — department-scoped (REQ-20260622 audit G5). */
+  { key: 'truckDrivers', href: '/truck/drivers', Icon: IdCard,         group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
   { key: 'truckImport', href: '/truck/import',  Icon: Upload,          group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
-  { key: 'truckSettings', href: '/truck/settings', Icon: SettingsIcon, group: 'admin',     roles: STAFF, fleet: 'TRUCK' },
-  /* Drivers roster — shared across both fleet departments. */
-  { key: 'drivers',     href: '/drivers',       Icon: IdCard,          group: 'workspace', roles: STAFF  },
+  /* truckSettings folded into truckPnl ("Chi phí & Lợi nhuận") — REQ-20260623 G4. */
+  /* Car drivers roster (CCMS). Tagged CAR so the truck workspace shows its own
+   * `truckDrivers` instead (department separation). */
+  { key: 'drivers',     href: '/drivers',       Icon: IdCard,          group: 'workspace', roles: STAFF, fleet: 'CAR'   },
   /* Profile / locale / logout — universal. Sidebar pulls this out into its
    * own tail block; mobile keeps it as the rightmost flat tab. Positioned
    * BEFORE `costs` so the mobile `slice(0, 4)` retains `me` and drops
@@ -142,16 +146,24 @@ export function deptForPath(pathname: string): FleetDept {
   return pathname.startsWith('/truck') ? 'TRUCK' : 'CAR';
 }
 
-/** Resolve the department context for nav filtering. Staff toggle workspaces via
- * the URL (`/truck/*`); a driver belongs to exactly one department, so their
- * context comes from their fleet membership instead. */
-export function deptForContext(
-  role: LocalRole,
-  fleetAccess: FleetDept[],
-  pathname: string,
-): FleetDept {
-  if (role === 'DRIVER') return fleetAccess.includes('TRUCK') ? 'TRUCK' : 'CAR';
-  return deptForPath(pathname);
+/* Car-workspace URL roots. These pages belong unambiguously to the CAR
+ * department, so landing on one switches the active workspace to CAR. Every
+ * other non-`/truck` path (drivers/users/settings/audit/fleet-access/profile)
+ * is department-NEUTRAL: it must NOT change the active workspace, otherwise the
+ * sidebar "jumps" back to car the moment a truck-workspace user opens a shared
+ * admin page (BUG-20260622). */
+const CAR_PREFIXES = ['/dashboard', '/trips', '/vehicles', '/costs', '/expenses'] as const;
+
+/**
+ * The department a path UNAMBIGUOUSLY belongs to, or `null` when the path is
+ * department-neutral (shared across both workspaces). Used by the sticky
+ * workspace resolver: a clear dept updates + persists the active workspace; a
+ * neutral path keeps whatever workspace the user was already in.
+ */
+export function clearlyDept(pathname: string): FleetDept | null {
+  if (pathname.startsWith('/truck')) return 'TRUCK';
+  if (CAR_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return 'CAR';
+  return null;
 }
 
 /* Pick the active nav key for a given pathname; longest prefix wins. Falls

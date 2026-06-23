@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Be_Vietnam_Pro, Inter, JetBrains_Mono } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
+import { cookies } from 'next/headers';
 import { SWRegister } from '@/components/pwa/sw-register';
 import './globals.css';
 
@@ -61,6 +62,13 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
   const messages = await getMessages();
+  /* Read the sticky-workspace cookie server-side so the initial SSR HTML
+   * already carries data-dept="truck" when the user last left the truck
+   * workspace. DeptThemeEffect keeps it in sync on client navigations.
+   * suppressHydrationWarning on <html> handles the case where cookie + client
+   * state diverge (e.g. a different user logs in). */
+  const jar = await cookies();
+  const dataDept = jar.get('ccms.fleet.dept')?.value === 'TRUCK' ? 'truck' : undefined;
 
   return (
     /* suppressHydrationWarning trên <html> + <body> mute noise của browser
@@ -76,7 +84,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
      * functionality. Production users không có extension này sẽ không thấy.
      * Tài liệu trong README §10 troubleshooting để dev local biết cách bỏ
      * qua (Bitdefender → Safe Browsing → whitelist localhost). */
-    <html lang={locale} className={fontVariables} suppressHydrationWarning>
+    <html lang={locale} className={fontVariables} data-dept={dataDept} suppressHydrationWarning>
       <body className="min-h-screen" suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}

@@ -1,6 +1,8 @@
+import { cookies } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { resolveFleetAccess } from '@/lib/auth/fleet-access';
+import type { FleetDept } from './nav-items';
 import { countTodayExpenses } from '@/server/queries/expenses.queries';
 import { countUnreadNotifications } from '@/server/queries/notifications.queries';
 import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
@@ -61,10 +63,26 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   const defaultAppName = tRoot('appName');
   const resolvedAppName = settings?.tnsAppName?.trim() || defaultAppName;
 
+  /* Sticky workspace seed: remembered cookie clamped to what the user may
+   * enter; drivers are locked to their single membership. The client
+   * DeptProvider takes over from here, syncing as the user navigates. */
+  const cookieDept = (await cookies()).get('ccms.fleet.dept')?.value;
+  const initialDept: FleetDept =
+    user.role === 'DRIVER'
+      ? fleetAccess.includes('TRUCK')
+        ? 'TRUCK'
+        : 'CAR'
+      : cookieDept === 'TRUCK' && fleetAccess.includes('TRUCK')
+        ? 'TRUCK'
+        : cookieDept === 'CAR' && fleetAccess.includes('CAR')
+          ? 'CAR'
+          : (fleetAccess[0] ?? 'CAR');
+
   return (
     <AppShellClient
       role={user.role}
       fleetAccess={fleetAccess}
+      initialDept={initialDept}
       userName={user.name}
       userEmail={user.email}
       pendingTripCount={pendingTripCount}

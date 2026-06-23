@@ -5,13 +5,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
-import { deptForContext, navItemsForRole, type FleetDept, type NavKey } from './nav-items';
+import { useActiveDept } from './dept-context';
+import { navItemsForRole, type NavKey } from './nav-items';
 
 interface BottomTabNavProps {
   role: LocalRole;
-  /** Fleet departments the user may enter — for a driver this selects the
-   * department context (truck driver gets the 3-tab truck nav). */
-  fleetAccess: FleetDept[];
   /** Server-fed pending trips in the user's visibility scope. Drives the
    * red dot/numeric badge on the Trips tab. 0 hides the badge. */
   pendingTripCount: number;
@@ -43,7 +41,7 @@ interface BottomTabNavProps {
  * lights up reflects the post-redirect URL, not `/`.
  *
  * Hidden on md+ where the sidebar takes over. */
-export function BottomTabNav({ role, fleetAccess, pendingTripCount, todayExpenseCount }: BottomTabNavProps) {
+export function BottomTabNav({ role, pendingTripCount, todayExpenseCount }: BottomTabNavProps) {
   const pathname = usePathname() ?? '/';
   const tNav = useTranslations('nav');
   const tL   = useTranslations('layout');
@@ -55,7 +53,7 @@ export function BottomTabNav({ role, fleetAccess, pendingTripCount, todayExpense
     costs: todayExpenseCount,
   };
 
-  const dept = deptForContext(role, fleetAccess, pathname);
+  const dept = useActiveDept();
   const workspace = navItemsForRole(role, { dept }).filter((item) => item.group === 'workspace');
   const dashboardItem = workspace.find((i) => i.key === 'dashboard');
   /* Flat row excludes both `dashboard` (rendered as the elevated centre

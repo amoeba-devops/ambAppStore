@@ -22,9 +22,10 @@ function bcp47(locale: string): string {
   return 'en-US';
 }
 
-/** Km remaining until next oil change (negative = overdue). */
-function oilRemaining(v: VehicleListItem): number {
-  if (v.cvhLastOilChangeKm == null) return v.cvhOilIntervalKm;
+/** Km remaining until next oil change (negative = overdue), or null when the
+ * last-oil-change km hasn't been configured — so we never show a made-up figure. */
+function oilRemaining(v: VehicleListItem): number | null {
+  if (v.cvhLastOilChangeKm == null) return null;
   return v.cvhLastOilChangeKm + v.cvhOilIntervalKm - v.cvhOdometerKm;
 }
 
@@ -86,7 +87,6 @@ export default async function TruckFleetPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {trucks.map((v) => {
               const remaining = oilRemaining(v);
-              const overdue = remaining < 0;
               const profit = profitByVehicle.get(v.cvhId) ?? 0;
               const driver = drivers.get(v.cvhId) ?? null;
               return (
@@ -121,12 +121,18 @@ export default async function TruckFleetPage() {
                     <b className={profit >= 0 ? 'text-success' : 'text-danger'}>{vnd(profit)}</b>
                   </span>
                 </div>
-                {overdue && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 rounded bg-danger-soft text-danger text-xs px-2 py-1">
-                    <AlertTriangle className="h-3 w-3 shrink-0" />
-                    {t('oilOverdue', { km: Math.abs(remaining).toLocaleString() })}
-                  </div>
-                )}
+                <div className="mt-2 text-xs">
+                  {remaining == null ? (
+                    <span className="text-text-faint">{t('oilNotConfigured')}</span>
+                  ) : remaining < 0 ? (
+                    <span className="inline-flex items-center gap-1.5 rounded bg-danger-soft text-danger px-2 py-1">
+                      <AlertTriangle className="h-3 w-3 shrink-0" />
+                      {t('oilOverdue', { km: Math.abs(remaining).toLocaleString() })}
+                    </span>
+                  ) : (
+                    <span className="text-text-muted">{t('oilRemaining', { km: remaining.toLocaleString() })}</span>
+                  )}
+                </div>
               </Link>
               );
             })}
