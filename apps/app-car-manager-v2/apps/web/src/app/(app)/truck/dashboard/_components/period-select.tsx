@@ -3,8 +3,7 @@
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { cn } from '@car-v2/ui';
-import { PERIOD_PRESETS } from './period-presets';
-export type { PeriodPreset } from './period-presets';
+import { PERIOD_PRESETS, type PeriodPreset } from './period-presets';
 
 /** Segmented control that drives the dashboard period via the `?period=` query
  * param (server reads it + re-aggregates). */
