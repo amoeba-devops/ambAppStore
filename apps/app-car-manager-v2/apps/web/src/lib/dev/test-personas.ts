@@ -88,9 +88,21 @@ export function localRoleFor(p: DevPersona): 'ADMIN' | 'MANAGER' | 'DRIVER' {
   return p.loginRole === 'OWNER' ? 'ADMIN' : p.loginRole === 'MANAGER' ? 'MANAGER' : 'DRIVER';
 }
 
-/** `/dev-login` URL that signs in as this persona. */
+/** The dashboard this persona should land on, mirroring RootRedirect's logic
+ * (driver → /today; CAR-first when the user has car access; truck-only →
+ * /truck/dashboard). Landing here directly skips the `/` redirect hop, so the
+ * full-shell loading skeleton only renders ONCE instead of twice (no flash). */
+export function landingPathFor(p: DevPersona): string {
+  if (localRoleFor(p) === 'DRIVER') return '/today';
+  if (p.depts.includes('CAR')) return '/dashboard';
+  if (p.depts.includes('TRUCK')) return '/truck/dashboard';
+  return '/dashboard';
+}
+
+/** `/dev-login` URL that signs in as this persona, landing straight on the
+ * resolved dept dashboard (no `/` redirect hop → no double skeleton flash). */
 export function loginHrefFor(p: DevPersona): string {
-  const params = new URLSearchParams({ role: p.loginRole, next: '/' });
+  const params = new URLSearchParams({ role: p.loginRole, next: landingPathFor(p) });
   if (p.sub) {
     params.set('sub', p.sub);
     params.set('ent_id', DEV_ENT_ID);
