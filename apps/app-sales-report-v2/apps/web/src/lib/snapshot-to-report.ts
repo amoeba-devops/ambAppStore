@@ -171,14 +171,60 @@ export function snapshotToWeeklyReport(
   const shopeeAdRevenue = useShopee ? shopee.totalAdRevenue ?? 0 : 0;
   const shopeeAdCost = useShopee ? shopee.totalAdSpending : 0;
   const adRoas = shopeeAdCost > 0 ? shopeeAdRevenue / shopeeAdCost : 0;
+
+  // Split traffic rows by platform — Shopee uses page views, TikTok uses
+  // unique product impressions (different semantics → separate rows in
+  // mixed view). Conversion Rate likewise split.
+  const shopeePv = useShopee ? shopee.totalPageViews : 0;
+  const tiktokImpression = useTiktok ? tiktok.totalPageViews : 0;
+  const shopeeItems = useShopee ? shopee.totalItemSold ?? 0 : 0;
+  const tiktokItems = useTiktok ? tiktok.totalItemSold ?? 0 : 0;
+  const shopeeCvr = shopeePv > 0 ? shopeeItems / shopeePv : 0;
+  const tiktokCvr = tiktokImpression > 0 ? tiktokItems / tiktokImpression : 0;
+  // Append " — Shopee" / " — TikTok" suffix only when the report is mixed
+  // (channel === 'ALL'); single-channel view shows plain labels.
+  const isMixed = useShopee && useTiktok;
   const traffic: BreakdownItem[] = [
-    { label: 'Total Page Views', raw: pageViews, rawDisplay: pageViews.toLocaleString('en-US'), wowPct: null },
-    {
-      label: 'Conversion Rate',
-      raw: conversionRate,
-      rawDisplay: pageViews > 0 ? (conversionRate * 100).toFixed(2) + '%' : '—',
-      wowPct: null,
-    },
+    ...(useShopee
+      ? ([
+          {
+            label: isMixed ? 'Total Page Views — Shopee' : 'Total Page Views',
+            raw: shopeePv,
+            rawDisplay: shopeePv.toLocaleString('en-US'),
+            wowPct: null,
+          },
+        ] as BreakdownItem[])
+      : []),
+    ...(useTiktok
+      ? ([
+          {
+            label: isMixed ? 'Total Impression — TikTok' : 'Total Impression',
+            raw: tiktokImpression,
+            rawDisplay: tiktokImpression.toLocaleString('en-US'),
+            wowPct: null,
+          },
+        ] as BreakdownItem[])
+      : []),
+    ...(useShopee
+      ? ([
+          {
+            label: isMixed ? 'Conversion Rate — Shopee' : 'Conversion Rate',
+            raw: shopeeCvr,
+            rawDisplay: shopeePv > 0 ? (shopeeCvr * 100).toFixed(2) + '%' : '—',
+            wowPct: null,
+          },
+        ] as BreakdownItem[])
+      : []),
+    ...(useTiktok
+      ? ([
+          {
+            label: isMixed ? 'Conversion Rate — TikTok' : 'Conversion Rate',
+            raw: tiktokCvr,
+            rawDisplay: tiktokImpression > 0 ? (tiktokCvr * 100).toFixed(2) + '%' : '—',
+            wowPct: null,
+          },
+        ] as BreakdownItem[])
+      : []),
     ...(useShopee
       ? ([
           {
