@@ -1,21 +1,12 @@
 import { notFound } from 'next/navigation';
 import { DEV_PERSONAS, loginHrefFor, localRoleFor } from '@/lib/dev/test-personas';
 
-/**
- * Dev-only role picker (gated by DEMO_AUTO_LOGIN → 404 elsewhere).
- * One-click sign in as each role × department to exercise the access model.
- */
 export const dynamic = 'force-dynamic';
 
 const ROLE_LABEL: Record<'ADMIN' | 'MANAGER' | 'DRIVER', string> = {
   ADMIN: 'Admin',
   MANAGER: 'Quản lý',
   DRIVER: 'Tài xế',
-};
-
-const DEPT_LABEL: Record<string, string> = {
-  CAR: 'Xe con',
-  TRUCK: 'Xe tải',
 };
 
 export default function DevAccountsPage() {
@@ -44,18 +35,8 @@ export default function DevAccountsPage() {
                     <div className="text-sm font-semibold text-text group-hover:text-accent truncate">
                       {p.name}
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] font-medium text-text-muted">
-                        {ROLE_LABEL[role]}
-                      </span>
-                      {p.depts.map((d) => (
-                        <span
-                          key={d}
-                          className="rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] font-medium text-text-muted"
-                        >
-                          {DEPT_LABEL[d] ?? d}
-                        </span>
-                      ))}
+                    <div className="mt-0.5 text-[10.5px] font-medium text-text-muted">
+                      {ROLE_LABEL[role]}
                     </div>
                   </div>
                   <span className="text-xs text-text-faint group-hover:text-accent shrink-0">→</span>
