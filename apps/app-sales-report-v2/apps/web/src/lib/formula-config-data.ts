@@ -140,10 +140,11 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Total Affiliate Commission — Shopee',
-        description: 'Field Map — sum of {Chi phí(₫)}',
+        description:
+          'Sum of per-row {Chi phí(₫)} from Shopee Affiliate file, grouped by {Tên sản phẩm}. Per-SKU attribution uses the per-product map (exact lookup, not NMV allocation).',
         dataSources: ['Shopee Affiliate CSV'],
-        formula: 'Sum of {Chi phí(₫)}',
-        versions: 1,
+        formula: 'SUM of {Chi phí(₫)}, grouped by {Tên sản phẩm}',
+        versions: 2,
       },
       {
         metric: 'Total Affiliate Booking Fee — Shopee',
@@ -309,10 +310,12 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Affiliate Commission — Shopee',
-        description: 'Allocated',
+        description:
+          'Exact per-product attribution. Affiliate cost của product P (lookup theo {Tên sản phẩm}) chia cho các SKU variation cùng tên theo NMV. Tên không match Sales breakdown → rớt vào row "Others".',
         dataSources: ['Calculated'],
-        formula: '{Total Affiliate Commission — Shopee} × {NMV — Shopee} / {Total NMV — Shopee}',
-        versions: 1,
+        formula:
+          '({Chi phí(₫) of product P}) × ({NMV — Shopee} / {Sum NMV — Shopee of all SKUs with name P})',
+        versions: 2,
       },
       {
         metric: 'Affiliate Booking Fee — Shopee',
@@ -448,10 +451,16 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Total Affiliate Commission — TikTok',
-        description: 'Field Map — sum of {Hoa hồng ước tính}',
-        dataSources: ['TikTok Affiliate CSV'],
-        formula: 'Sum of {Hoa hồng ước tính}',
-        versions: 1,
+        description:
+          'Sum of per-row commission across 3 affiliate exports (Creator + Partner + Non-collab). Per row = ({Thanh toán hoa hồng tiêu chuẩn ước tính} | {Thanh toán hoa hồng ước tính}) + {Thanh toán hoa hồng Quảng cáo cửa hàng ước tính}. Whitelist filter: chỉ giữ rows có {Trạng thái đơn hàng} = "Đã quyết toán". Grouped by {Tên sản phẩm} → 3 maps merged.',
+        dataSources: [
+          'TikTok Affiliate Creator XLSX',
+          'TikTok Affiliate Partner XLSX',
+          'TikTok Affiliate Non-collab XLSX',
+        ],
+        formula:
+          'SUM over (Creator ∪ Partner ∪ Non-collab) WHERE {Trạng thái đơn hàng} = "Đã quyết toán" OF (({Thanh toán hoa hồng tiêu chuẩn ước tính} | {Thanh toán hoa hồng ước tính}) + {Thanh toán hoa hồng Quảng cáo cửa hàng ước tính})',
+        versions: 2,
       },
       {
         metric: 'Total Affiliate Booking Fee — TikTok',
@@ -590,10 +599,12 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Affiliate Commission — TikTok',
-        description: 'Allocated',
+        description:
+          'Exact per-product attribution từ merged map (3 affiliate files). Affiliate cost của product P chia cho các SKU variation cùng tên theo NMV. Tên không match Sales breakdown → rớt vào row "Others".',
         dataSources: ['Calculated'],
-        formula: '{Total Affiliate Commission — TikTok} × {NMV — TikTok} / {Total NMV — TikTok}',
-        versions: 1,
+        formula:
+          '({Commission of product P from 3 files}) × ({NMV — TikTok} / {Sum NMV — TikTok of all SKUs with name P})',
+        versions: 2,
       },
       {
         metric: 'Affiliate Booking Fee — TikTok',

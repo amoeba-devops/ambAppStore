@@ -18,7 +18,9 @@ const SHOPEE_OPTIONS = [
 const TIKTOK_OPTIONS = [
   'TikTok Sales CSV',
   'TikTok Traffic CSV',
-  'TikTok Affiliate CSV',
+  'TikTok Affiliate Creator XLSX',
+  'TikTok Affiliate Partner XLSX',
+  'TikTok Affiliate Non-collab XLSX',
 ];
 
 const OTHER_OPTIONS = ['Prime Cost Table', 'Manual Input', 'Calculated'];

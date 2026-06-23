@@ -103,7 +103,8 @@ export const FORMULA_GROUPS: FormulaGroup[] = [
       },
       {
         name: 'Affiliate Commission allocation',
-        value: 'Per SKU by NMV contribution',
+        value:
+          'Per-product lookup by {Tên sản phẩm} → NMV-split intra-product. Unmatched names go to "Others" row. (Replaces the previous NMV-only allocation.)',
         type: 'calculated',
       },
       {
