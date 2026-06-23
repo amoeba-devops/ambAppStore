@@ -306,7 +306,12 @@
     },
     "truckSettings": {
       "title": "트럭 설정",
-      "subtitle": "월별 고정비 (급여·감가상각·보험)",
+      "subtitle": "차고지 주소 및 월별 고정비",
+      "depotAddressTitle": "차고지 주소",
+      "depotAddressHint": "새 운행을 생성할 때 출발지/귀차지로 자동 입력됩니다.",
+      "depotAddressPlaceholder": "예: CargoRush 창고, 서울시 강남구 123",
+      "depotAddressSaved": "차고지 주소가 저장되었습니다",
+      "depotAddressClear": "주소 초기화",
       "monthLabel": "월",
       "emptyTitle": "트럭 없음",
       "emptyDesc": "고정비를 설정하려면 먼저 트럭을 추가하세요.",

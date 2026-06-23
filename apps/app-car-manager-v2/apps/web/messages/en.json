@@ -306,7 +306,12 @@
     },
     "truckSettings": {
       "title": "Truck settings",
-      "subtitle": "Monthly fixed costs (salary · depreciation · insurance)",
+      "subtitle": "Depot address and monthly fixed costs",
+      "depotAddressTitle": "Depot address",
+      "depotAddressHint": "Auto-filled as the Origin and Return stop when creating a new trip.",
+      "depotAddressPlaceholder": "E.g. CargoRush Warehouse, 123 Main Rd, District 1",
+      "depotAddressSaved": "Depot address saved",
+      "depotAddressClear": "Clear address",
       "monthLabel": "Month",
       "emptyTitle": "No trucks",
       "emptyDesc": "Add a truck first to configure fixed costs.",

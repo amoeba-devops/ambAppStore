@@ -306,7 +306,12 @@
     },
     "truckSettings": {
       "title": "Cấu hình xe tải",
-      "subtitle": "Chi phí cố định theo tháng (lương · khấu hao · bảo hiểm)",
+      "subtitle": "Địa chỉ bãi xe và chi phí cố định",
+      "depotAddressTitle": "Địa chỉ bãi xe",
+      "depotAddressHint": "Địa chỉ này sẽ tự động điền vào điểm Xuất phát và Về bãi khi tạo chuyến mới.",
+      "depotAddressPlaceholder": "Ví dụ: Kho CargoRush, 123 Quốc lộ 1A, Q.Bình Tân, TP.HCM",
+      "depotAddressSaved": "Đã lưu địa chỉ bãi",
+      "depotAddressClear": "Xoá địa chỉ",
       "monthLabel": "Tháng",
       "emptyTitle": "Chưa có xe tải",
       "emptyDesc": "Thêm xe tải trước để cấu hình chi phí cố định.",
