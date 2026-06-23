@@ -1,11 +1,25 @@
 import { z } from 'zod';
 
 /**
- * Truck trip-log inputs (REQ-20260617). Server Action inputs (RPC), camelCase
- * like the other action schemas. A manager typically logs an already-finished
- * trip (mark_completed=true with full metrics); an unassigned entry can be
- * created first and assigned/completed later.
+ * Truck trip-log inputs (REQ-20260617 + REQ-20260623 multi-stop).
+ * Server Action inputs (RPC), snake_case.
+ *
+ * Stopover list replaces the flat pickup_address / dropoff_address as the
+ * canonical route when present. The action still requires pickup_address +
+ * dropoff_address for backward compat (summary display, notification text).
  */
+
+export const stopTypeSchema = z.enum(['ORIGIN', 'PICKUP', 'DELIVERY', 'WAYPOINT', 'RETURN']);
+
+export const stopoverInputSchema = z.object({
+  type: stopTypeSchema,
+  address: z.string().trim().min(1).max(500),
+  km: z.number().int().nonnegative().optional(),
+  arrived_at: z.string().optional(),
+  notes: z.string().trim().max(500).optional(),
+});
+export type StopoverInputDto = z.infer<typeof stopoverInputSchema>;
+
 export const createTruckTripSchema = z.object({
   scheduled_at: z.string().min(1),
   vehicle_id: z.string().uuid().optional(),
@@ -26,6 +40,9 @@ export const createTruckTripSchema = z.object({
   toll_fee: z.number().nonnegative().optional(),
   other_amount: z.number().nonnegative().optional(),
   other_note: z.string().trim().max(255).optional(),
+  /** Multi-stop route (REQ-20260623). Max 20 stops. When present, stopovers
+   * are saved to car_trip_stopovers and form the canonical route display. */
+  stopovers: z.array(stopoverInputSchema).max(20).optional(),
 });
 export type CreateTruckTripInputDto = z.infer<typeof createTruckTripSchema>;
 
@@ -57,3 +74,14 @@ export const completeTruckTripSchema = z.object({
     .optional(),
 });
 export type CompleteTruckTripInputDto = z.infer<typeof completeTruckTripSchema>;
+
+/** Driver real-time stopover update (REQ-20260623): km + arrived_at + notes.
+ * Does NOT change type or address (those are set at create time). */
+export const updateStopoverSchema = z.object({
+  trip_id: z.string().uuid(),
+  stopover_id: z.string().uuid(),
+  km: z.number().int().nonnegative().optional(),
+  arrived_at: z.string().optional(),
+  notes: z.string().trim().max(500).optional(),
+});
+export type UpdateStopoverInputDto = z.infer<typeof updateStopoverSchema>;

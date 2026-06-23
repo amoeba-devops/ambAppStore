@@ -4,27 +4,42 @@ import { db } from '@car-v2/db/client';
 import {
   carTrips,
   carTripExtraCosts,
+  carTripStopovers,
   carDrivers,
   carVehicles,
   type CarTrip,
+  type CarStopType,
 } from '@car-v2/db/schema';
 import { CarError } from '@car-v2/shared/errors';
 import type { FleetActor } from '../types';
 import { computeTruckCost, parseAmount, type TruckCostBreakdown } from './truck-cost';
 
 /**
- * Truck trip-log lifecycle (REQ-20260617). Kept SEPARATE from the car
- * dispatch state machine (trip-state-machine.service.ts) so the live car flow
- * is untouched. Truck trips are `trp_kind='LOG'`:
+ * Truck trip-log lifecycle (REQ-20260617 + REQ-20260623 multi-stop). Kept
+ * SEPARATE from the car dispatch state machine (trip-state-machine.service.ts)
+ * so the live car flow is untouched. Truck trips are `trp_kind='LOG'`:
  *
  *   create (with driver+vehicle) → CONFIRMED   (auto-confirm, no driver accept)
  *   create (unassigned)          → PENDING_ASSIGNMENT
  *   assign                       → CONFIRMED
  *   complete                     → COMPLETED   (+ metrics + structured extra costs)
  *
+ * Stopovers: ordered list of stops (ORIGIN → PICKUP → WAYPOINTs → DELIVERY →
+ * WAYPOINTs → RETURN). Stored in car_trip_stopovers. upsertStopovers is a
+ * delete-then-insert (idempotent, compatible with Neon HTTP no-txn constraint).
+ *
  * Pure domain: ent-scoped DB ops only. Audit / notify / revalidate are the
  * caller (server action)'s responsibility.
  */
+
+export interface StopoverInput {
+  type: CarStopType;
+  address: string;
+  /** Odometer at this stop (km). Optional at create time; filled in real-time. */
+  km?: number | null;
+  arrivedAt?: Date | null;
+  notes?: string | null;
+}
 
 export interface CreateTruckTripInput {
   /** Caller-generated trip ref (use the app's trip-ref.service). */
@@ -43,6 +58,9 @@ export interface CreateTruckTripInput {
   /** Odometer at trip start (truck log). End odometer is set on completion. */
   startOdometer?: number | null;
   notes?: string | null;
+  /** Ordered stop list (REQ-20260623). When present, replaces the flat
+   * pickup/dropoff addresses as the canonical route. */
+  stopovers?: StopoverInput[];
 }
 
 export interface CompleteTruckTripInput {
@@ -53,6 +71,37 @@ export interface CompleteTruckTripInput {
   tollFee?: number | null;
   /** Structured "other costs": replaces any existing rows for the trip. */
   extraCosts: { name: string; amount: number }[];
+}
+
+/**
+ * Replace all stopovers for a trip. Delete-then-insert is idempotent and works
+ * with the Neon HTTP driver (no interactive transactions).
+ * Caller is responsible for ensuring `stops` is non-empty and correctly ordered.
+ */
+export async function upsertStopovers(
+  entId: string,
+  tripId: string,
+  stops: StopoverInput[],
+): Promise<void> {
+  await db
+    .delete(carTripStopovers)
+    .where(and(eq(carTripStopovers.tstTripId, tripId), eq(carTripStopovers.entId, entId)));
+
+  if (stops.length === 0) return;
+
+  await db.insert(carTripStopovers).values(
+    stops.map((s, i) => ({
+      tstId: randomUUID(),
+      entId,
+      tstTripId: tripId,
+      tstAddress: s.address,
+      tstOrder: i + 1,
+      tstType: s.type,
+      tstKm: s.km ?? null,
+      tstArrivedAt: s.arrivedAt ?? null,
+      tstNotes: s.notes ?? null,
+    })),
+  );
 }
 
 async function loadLogTrip(actor: FleetActor, tripId: string): Promise<CarTrip> {
@@ -127,6 +176,11 @@ export async function createTruckTrip(
     })
     .returning();
   if (!created) throw new CarError('CAR-E0500', 500, 'Insert returned no row');
+
+  if (input.stopovers && input.stopovers.length > 0) {
+    await upsertStopovers(actor.entId, created.trpId, input.stopovers);
+  }
+
   return created;
 }
 
@@ -237,6 +291,8 @@ export interface UpdateTruckTripInput {
   fuelLiters?: number | null;
   tollFee?: number | null;
   extraCosts: { name: string; amount: number }[];
+  /** When provided, replaces the full stopover list for this trip. */
+  stopovers?: StopoverInput[];
 }
 
 /** Edit an existing truck trip-log (manager correction). Keeps the current
@@ -286,6 +342,10 @@ export async function updateTruckTrip(
         tecAmount: String(c.amount),
       })),
     );
+  }
+
+  if (input.stopovers && input.stopovers.length > 0) {
+    await upsertStopovers(actor.entId, updated.trpId, input.stopovers);
   }
 
   const breakdown = computeTruckCost({

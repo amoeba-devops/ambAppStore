@@ -3,16 +3,21 @@ import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { listDrivers } from '@/server/queries/drivers.queries';
+import { getDriverByUserId } from '@/server/queries/drivers.queries';
+import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
 import { TruckTripForm } from '../_components/truck-trip-form';
 
 export default async function NewTruckTripPage() {
   const user = await getCurrentUser();
   const t = await getTranslations('screens.truckTrips');
 
-  const [vehicles, drivers] = await Promise.all([
+  const [vehicles, drivers, settings] = await Promise.all([
     listVehicles(user.entId, 'active', 'TRUCK'),
-    listDrivers(user.entId),
+    /* Managers see all drivers; drivers only need their own record (form locks it). */
+    user.role !== 'DRIVER' ? listDrivers(user.entId) : Promise.resolve([]),
+    getTenantSettings(user.entId),
   ]);
+
   const vehicleOptions = vehicles.map((v) => ({
     id: v.cvhId,
     label: `${v.cvhPlateNumber} · ${v.cvhModel}`,
@@ -33,7 +38,12 @@ export default async function NewTruckTripPage() {
         ]}
       />
       <div className="px-4 md:px-7 py-4 md:py-6 max-w-3xl mx-auto md:mx-0 w-full">
-        <TruckTripForm vehicles={vehicleOptions} drivers={driverOptions} />
+        <TruckTripForm
+          vehicles={vehicleOptions}
+          drivers={driverOptions}
+          role={user.role}
+          depotAddress={settings?.tnsDepotAddress}
+        />
       </div>
     </>
   );

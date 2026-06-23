@@ -86,19 +86,64 @@
     "thisWeek": "This week"
   },
   "screens": {
-    "tripsList":     { "title": "Trips",                "subtitle": "All trip requests across the fleet" },
-    "newTrip":       { "title": "New trip request",     "subtitle": "Schedule a vehicle for a passenger" },
-    "tripDetail":    { "title": "Trip detail",          "subtitle": "Full timeline + linked expenses" },
-    "vehicles":      { "title": "Fleet",                "subtitle": "3 vehicles · 1 in maintenance" },
-    "vehicleDetail": { "title": "Vehicle profile",      "subtitle": "Specs · documents · history" },
-    "newVehicle":    { "title": "Add vehicle",          "subtitle": "Register a new vehicle in the fleet" },
-    "drivers":       { "title": "Drivers",              "subtitle": "Roster + license + performance" },
-    "driverDetail":  { "title": "Driver profile",       "subtitle": "License · trips · documents" },
-    "newDriver":     { "title": "Add driver",           "subtitle": "Register a new driver profile", "emptyHeading": "No user is ready to become a driver", "emptyDesc": "Every user in the company is already linked to a driver, or the new user has not signed in to car-v2 yet. Invite the user on AMA, then ask them to sign in once so they show up here.", "createUserCta": "Invite user on AMA" },
-    "newUser":       { "title": "Add new member", "subtitle": "Create a sign-in account via email (AMA-managed)", "breadcrumbParent": "Users", "breadcrumbCurrent": "Add" },
-    "editUser":      { "title": "Edit member", "breadcrumbParent": "Users", "breadcrumbCurrent": "Edit" },
-    "users":         { "title": "Users & roles",        "subtitle": "Members + role assignment" },
-    "settings":      { "title": "Settings",             "subtitle": "Approval rules, integrations, policies" },
+    "tripsList": {
+      "title": "Trips",
+      "subtitle": "All trip requests across the fleet"
+    },
+    "newTrip": {
+      "title": "New trip request",
+      "subtitle": "Schedule a vehicle for a passenger"
+    },
+    "tripDetail": {
+      "title": "Trip detail",
+      "subtitle": "Full timeline + linked expenses"
+    },
+    "vehicles": {
+      "title": "Fleet",
+      "subtitle": "3 vehicles · 1 in maintenance"
+    },
+    "vehicleDetail": {
+      "title": "Vehicle profile",
+      "subtitle": "Specs · documents · history"
+    },
+    "newVehicle": {
+      "title": "Add vehicle",
+      "subtitle": "Register a new vehicle in the fleet"
+    },
+    "drivers": {
+      "title": "Drivers",
+      "subtitle": "Roster + license + performance"
+    },
+    "driverDetail": {
+      "title": "Driver profile",
+      "subtitle": "License · trips · documents"
+    },
+    "newDriver": {
+      "title": "Add driver",
+      "subtitle": "Register a new driver profile",
+      "emptyHeading": "No user is ready to become a driver",
+      "emptyDesc": "Every user in the company is already linked to a driver, or the new user has not signed in to car-v2 yet. Invite the user on AMA, then ask them to sign in once so they show up here.",
+      "createUserCta": "Invite user on AMA"
+    },
+    "newUser": {
+      "title": "Add new member",
+      "subtitle": "Create a sign-in account via email (AMA-managed)",
+      "breadcrumbParent": "Users",
+      "breadcrumbCurrent": "Add"
+    },
+    "editUser": {
+      "title": "Edit member",
+      "breadcrumbParent": "Users",
+      "breadcrumbCurrent": "Edit"
+    },
+    "users": {
+      "title": "Users & roles",
+      "subtitle": "Members + role assignment"
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Approval rules, integrations, policies"
+    },
     "fleetAccess": {
       "title": "Fleet access",
       "subtitle": "Grant car/truck access & approve requests",
@@ -112,7 +157,10 @@
       "fullAccess": "Full access",
       "approve": "Approve",
       "reject": "Reject",
-      "dept": { "CAR": "Car", "TRUCK": "Truck" },
+      "dept": {
+        "CAR": "Car",
+        "TRUCK": "Truck"
+      },
       "grantedToast": "Granted {dept} access",
       "revokedToast": "Revoked {dept} access",
       "approvedToast": "Request approved",
@@ -322,7 +370,28 @@
         "modeCompleted": "Completed (log)",
         "modeCompletedHint": "Record a finished trip with full costs.",
         "modeAssign": "Assign to driver",
-        "modeAssignHint": "The driver fills in km, fuel and costs on completion."
+        "modeAssignHint": "The driver fills in km, fuel and costs on completion.",
+        "sectionRoute": "Route",
+        "stops": {
+          "type": {
+            "ORIGIN": "Departure",
+            "PICKUP": "Pickup",
+            "DELIVERY": "Delivery",
+            "WAYPOINT": "Stop",
+            "RETURN": "Return to yard"
+          },
+          "placeholder": {
+            "ORIGIN": "Departure yard address",
+            "PICKUP": "Pickup location",
+            "DELIVERY": "Delivery location",
+            "WAYPOINT": "Stop address",
+            "RETURN": "Return yard address"
+          },
+          "km": "Odometer at stop (km)",
+          "addAfterPickup": "Add stop (before delivery)",
+          "addAfterDelivery": "Add stop (after delivery)",
+          "remove": "Remove stop"
+        }
       }
     },
     "truckFleet": {
@@ -365,8 +434,14 @@
         "deletedToast": "Truck deleted"
       }
     },
-    "audit":         { "title": "Audit log",            "subtitle": "Every action across the platform" },
-    "reports":       { "title": "Reports",              "subtitle": "Trip and cost analytics" }
+    "audit": {
+      "title": "Audit log",
+      "subtitle": "Every action across the platform"
+    },
+    "reports": {
+      "title": "Reports",
+      "subtitle": "Trip and cost analytics"
+    }
   },
   "phase": {
     "comingIn": "Coming in",
@@ -1407,7 +1482,9 @@
       "completed": "Completed",
       "noTodo": "No trips to complete",
       "noDone": "No completed trips yet",
-      "myVehicles": "My vehicles"
+      "myVehicles": "My vehicles",
+      "title": "Today's trips",
+      "newTrip": "New trip"
     },
     "switchDriver": "Switch driver",
     "title": "Today",
@@ -1494,11 +1571,26 @@
         }
       },
       "FLEET": {
-        "ACCESS_REQUESTED": { "subject": "Fleet access request", "body": "A fleet access request is awaiting your approval." },
-        "ACCESS_APPROVED": { "subject": "Fleet access approved", "body": "Your fleet access request was approved." },
-        "ACCESS_REJECTED": { "subject": "Request rejected", "body": "Your fleet access request was rejected." },
-        "ACCESS_GRANTED": { "subject": "Fleet access granted", "body": "An admin granted you access to a department." },
-        "ACCESS_REVOKED": { "subject": "Fleet access revoked", "body": "Your access to a department was revoked." }
+        "ACCESS_REQUESTED": {
+          "subject": "Fleet access request",
+          "body": "A fleet access request is awaiting your approval."
+        },
+        "ACCESS_APPROVED": {
+          "subject": "Fleet access approved",
+          "body": "Your fleet access request was approved."
+        },
+        "ACCESS_REJECTED": {
+          "subject": "Request rejected",
+          "body": "Your fleet access request was rejected."
+        },
+        "ACCESS_GRANTED": {
+          "subject": "Fleet access granted",
+          "body": "An admin granted you access to a department."
+        },
+        "ACCESS_REVOKED": {
+          "subject": "Fleet access revoked",
+          "body": "Your access to a department was revoked."
+        }
       },
       "TRIP": {
         "ASSIGNED": {

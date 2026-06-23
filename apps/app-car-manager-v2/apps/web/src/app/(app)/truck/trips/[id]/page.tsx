@@ -4,6 +4,7 @@ import { computeTruckCost, parseAmount } from '@car-v2/core/truck';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getTrip } from '@/server/queries/trips.queries';
 import { getTripExtraCosts } from '@/server/queries/truck-trips.queries';
+import { getTripStopovers } from '@/server/queries/stopovers.queries';
 import { TruckTripDetail } from '@/app/(app)/trips/[id]/_components/truck-trip-detail';
 import { TruckTripManageActions } from '../_components/truck-trip-manage-actions';
 
@@ -17,7 +18,10 @@ export default async function TruckTripDetailPage({ params }: { params: Promise<
   if (!trip || trip.trpKind !== 'LOG') notFound();
 
   const tNav = await getTranslations('nav');
-  const extras = await getTripExtraCosts(user.entId, trip.trpId);
+  const [extras, stopovers] = await Promise.all([
+    getTripExtraCosts(user.entId, trip.trpId),
+    getTripStopovers(user.entId, trip.trpId),
+  ]);
   const breakdown = computeTruckCost({
     fuelLiters: parseAmount(trip.trpFuelLiters),
     fuelPrice: parseAmount(trip.trpFuelPrice),
@@ -45,6 +49,7 @@ export default async function TruckTripDetailPage({ params }: { params: Promise<
       breakdown={breakdown}
       completed={completed}
       canComplete={canComplete}
+      stopovers={stopovers}
       mode="staff"
       backHref="/truck/trips"
       parentLabel={tNav('truckTrips')}

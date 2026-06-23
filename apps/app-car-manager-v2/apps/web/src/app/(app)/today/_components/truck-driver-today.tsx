@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { ChevronRight, ClipboardList, Truck } from 'lucide-react';
-import { Badge, Card } from '@car-v2/ui';
+import { ChevronRight, ClipboardList, Plus, Truck } from 'lucide-react';
+import { Badge, Button, Card } from '@car-v2/ui';
 import type { TripListItem } from '@/server/queries/trips.queries';
 import type { DriverVehicleSummary } from '@/server/queries/vehicles.queries';
 
@@ -24,6 +24,16 @@ export async function TruckDriverToday({
 
   return (
     <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-base font-semibold text-text">{t('title')}</h1>
+        <Link href="/truck/trips/new">
+          <Button variant="accent" size="sm" className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" />
+            {t('newTrip')}
+          </Button>
+        </Link>
+      </div>
+
       <Section title={t('toComplete')} trips={todo} empty={t('noTodo')} tone="warning" />
 
       {vehicles && vehicles.length > 0 && (
@@ -71,7 +81,7 @@ function Section({
           {trips.map((tr) => (
             <li key={tr.trpId}>
               <Link
-                href={`/trips/${tr.trpId}`}
+                href={`/today/truck/${tr.trpId}`}
                 className="flex items-center gap-3 rounded-md border border-border bg-surface px-4 py-3 hover:border-border-strong transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <ClipboardList className="h-4 w-4 text-text-faint shrink-0" />

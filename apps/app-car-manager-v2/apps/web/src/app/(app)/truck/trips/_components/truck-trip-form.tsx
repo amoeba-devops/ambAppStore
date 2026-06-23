@@ -21,8 +21,11 @@ import {
   Switch,
   toast,
 } from '@car-v2/ui';
+import type { LocalRole } from '@car-v2/shared/auth';
 import { createTruckTripAction, updateTruckTripAction } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
+import { StopBuilder, makeDefaultStops, type StopField } from './stop-builder';
+import type { CarTripStopover } from '@car-v2/db/schema';
 
 export interface OptionItem {
   id: string;
@@ -46,19 +49,17 @@ export type TruckTripFormInitial = Partial<{
   toll: string;
   otherAmount: string;
   otherNote: string;
-  /** true = log a finished trip; false = assign to driver to complete later. */
   markCompleted: boolean;
+  stopovers: CarTripStopover[];
 }>;
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
-const EMPTY = {
+const EMPTY_FIELDS = {
   scheduledAt: todayIso(),
   vehicleId: '',
   driverId: '',
   customer: '',
-  pickup: '',
-  dropoff: '',
   bol: '',
   cdf: '',
   revenue: '',
@@ -75,15 +76,33 @@ const numF = (s: string) => (s.trim() === '' ? undefined : Number(s));
 const numI = (s: string) => (s.trim() === '' ? undefined : Math.trunc(Number(s)));
 const vnd = (n: number) => n.toLocaleString('vi-VN') + ' ₫';
 
+/** Convert saved stopovers from DB into the form's StopField[] state. */
+function stopoversToFields(stopovers: CarTripStopover[]): StopField[] {
+  return stopovers
+    .slice()
+    .sort((a, b) => a.tstOrder - b.tstOrder)
+    .map((s) => ({
+      id: s.tstId,
+      type: s.tstType,
+      address: s.tstAddress,
+      km: s.tstKm != null ? String(s.tstKm) : '',
+    }));
+}
+
 export function TruckTripForm({
   vehicles,
   drivers,
+  role,
+  depotAddress,
   tripId,
   initial,
 }: {
   vehicles: OptionItem[];
   drivers: OptionItem[];
-  /** When set, the form edits this trip (calls updateTruckTripAction). */
+  /** Caller's role — DRIVER hides revenue and locks the driver field to self. */
+  role?: LocalRole;
+  /** Default depot address to pre-fill ORIGIN / RETURN stops. */
+  depotAddress?: string | null;
   tripId?: string;
   initial?: TruckTripFormInitial;
 }) {
@@ -91,17 +110,25 @@ export function TruckTripForm({
   const tErr = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [f, setF] = useState({ ...EMPTY, ...initial });
-  /* true = log a finished trip (default); false = create assigned + let the
-   * driver complete it later (status stays CONFIRMED → driver's "to complete"). */
+  const [f, setF] = useState({ ...EMPTY_FIELDS, ...initial });
   const [markCompleted, setMarkCompleted] = useState(initial?.markCompleted ?? true);
 
+  /* Stop builder state — initialised from saved stopovers or depot defaults. */
+  const [stops, setStops] = useState<StopField[]>(() => {
+    if (initial?.stopovers && initial.stopovers.length > 0) {
+      return stopoversToFields(initial.stopovers);
+    }
+    return makeDefaultStops(depotAddress);
+  });
+
+  const isDriver = role === 'DRIVER';
+
   const set =
-    (k: keyof typeof EMPTY) =>
+    (k: keyof typeof EMPTY_FIELDS) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setF((s) => ({ ...s, [k]: e.target.value }));
 
-  /* Live profit preview — mirrors core computeTruckCost. */
+  /* Live profit preview. */
   const preview = useMemo(() => {
     const fuelCost = Math.round((numF(f.fuelLiters) ?? 0) * (numF(f.fuelPrice) ?? 0));
     const toll = Math.round(numF(f.toll) ?? 0);
@@ -111,31 +138,50 @@ export function TruckTripForm({
     return { fuelCost, totalCost, profit: revenue - totalCost };
   }, [f.fuelLiters, f.fuelPrice, f.toll, f.otherAmount, f.revenue]);
 
-  const dirty =
-    f.vehicleId !== '' && f.driverId !== '' && f.pickup.trim() !== '' && f.dropoff.trim() !== '';
+  /* Extract pickup/dropoff from stops for the API (summary + notification). */
+  const pickupStop = stops.find((s) => s.type === 'PICKUP');
+  const dropoffStop = stops.find((s) => s.type === 'DELIVERY');
+  const pickupAddress = pickupStop?.address.trim() ?? '';
+  const dropoffAddress = dropoffStop?.address.trim() ?? '';
+
+  const stopsValid =
+    pickupAddress !== '' &&
+    dropoffAddress !== '' &&
+    stops.filter((s) => s.type === 'WAYPOINT').every((s) => s.address.trim() !== '');
+
+  const dirty = f.vehicleId !== '' && (isDriver || f.driverId !== '') && stopsValid;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!dirty) return;
     startTransition(async () => {
+      const stopoversPayload = stops
+        .filter((s) => s.address.trim() !== '' || s.type === 'PICKUP' || s.type === 'DELIVERY')
+        .map((s) => ({
+          type: s.type,
+          address: s.address.trim(),
+          km: s.km ? Number(s.km) : undefined,
+        }));
+
       const payload = {
         scheduled_at: f.scheduledAt,
         vehicle_id: f.vehicleId || undefined,
-        driver_id: f.driverId || undefined,
+        driver_id: isDriver ? undefined : (f.driverId || undefined),
         customer: f.customer.trim() || undefined,
-        pickup_address: f.pickup.trim(),
-        dropoff_address: f.dropoff.trim(),
+        pickup_address: pickupAddress,
+        dropoff_address: dropoffAddress,
         bol: f.bol.trim() || undefined,
         cdf: f.cdf.trim() || undefined,
-        revenue: numF(f.revenue),
         fuel_price: numF(f.fuelPrice),
-        mark_completed: markCompleted,
+        revenue: isDriver ? undefined : numF(f.revenue),
+        mark_completed: isDriver ? false : markCompleted,
         start_odometer: numI(f.startOdo),
         end_odometer: numI(f.endOdo),
         fuel_liters: numF(f.fuelLiters),
         toll_fee: numF(f.toll),
-        other_amount: numF(f.otherAmount),
-        other_note: f.otherNote.trim() || undefined,
+        other_amount: isDriver ? undefined : numF(f.otherAmount),
+        other_note: isDriver ? undefined : (f.otherNote.trim() || undefined),
+        stopovers: stopoversPayload,
       };
       const res = tripId
         ? await updateTruckTripAction({ ...payload, trip_id: tripId })
@@ -145,13 +191,16 @@ export function TruckTripForm({
         return;
       }
       toast.success(tripId ? t('updatedToast') : t('createdToast'));
-      router.push(tripId ? `/truck/trips/${tripId}` : '/truck/trips');
+      router.push(
+        isDriver ? '/today' : (tripId ? `/truck/trips/${tripId}` : '/truck/trips'),
+      );
       router.refresh();
     });
   };
 
   return (
     <form onSubmit={submit} className="space-y-4">
+      {/* Trip info */}
       <Card variant="elevated">
         <CardHeader>
           <CardHeaderText>
@@ -176,28 +225,24 @@ export function TruckTripForm({
               </SelectContent>
             </Select>
           </Field>
-          <Field label={t('driver')} required>
-            <Select value={f.driverId} onValueChange={(v) => setF((s) => ({ ...s, driverId: v }))}>
-              <SelectTrigger>
-                <SelectValue placeholder={t('selectDriver')} />
-              </SelectTrigger>
-              <SelectContent>
-                {drivers.map((o) => (
-                  <SelectItem key={o.id} value={o.id}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
+          {!isDriver && (
+            <Field label={t('driver')} required>
+              <Select value={f.driverId} onValueChange={(v) => setF((s) => ({ ...s, driverId: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t('selectDriver')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {drivers.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
           <Field label={t('customer')}>
             <Input value={f.customer} onChange={set('customer')} />
-          </Field>
-          <Field label={t('pickup')} required>
-            <Input value={f.pickup} onChange={set('pickup')} />
-          </Field>
-          <Field label={t('dropoff')} required>
-            <Input value={f.dropoff} onChange={set('dropoff')} />
           </Field>
           <Field label={t('bol')}>
             <Input value={f.bol} onChange={set('bol')} />
@@ -208,22 +253,36 @@ export function TruckTripForm({
         </CardContent>
       </Card>
 
+      {/* Route stops */}
+      <Card variant="elevated">
+        <CardHeader>
+          <CardHeaderText>
+            <CardTitle>{t('sectionRoute')}</CardTitle>
+          </CardHeaderText>
+        </CardHeader>
+        <CardContent>
+          <StopBuilder stops={stops} onChange={setStops} showKm={false} />
+        </CardContent>
+      </Card>
+
+      {/* Cost / completion */}
       <Card variant="elevated">
         <CardContent className="space-y-4">
-          {/* Mode: log a finished trip vs assign to a driver to complete later. */}
-          <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-text">
-                {markCompleted ? t('modeCompleted') : t('modeAssign')}
+          {!isDriver && (
+            <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-text">
+                  {markCompleted ? t('modeCompleted') : t('modeAssign')}
+                </div>
+                <div className="text-xs text-text-muted">
+                  {markCompleted ? t('modeCompletedHint') : t('modeAssignHint')}
+                </div>
               </div>
-              <div className="text-xs text-text-muted">
-                {markCompleted ? t('modeCompletedHint') : t('modeAssignHint')}
-              </div>
+              <Switch checked={markCompleted} onCheckedChange={setMarkCompleted} />
             </div>
-            <Switch checked={markCompleted} onCheckedChange={setMarkCompleted} />
-          </div>
+          )}
 
-          {markCompleted ? (
+          {(!isDriver && markCompleted) ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label={t('startOdo')}>
                 <Input type="number" value={f.startOdo} onChange={set('startOdo')} />
@@ -250,8 +309,7 @@ export function TruckTripForm({
                 <Input value={f.otherNote} onChange={set('otherNote')} />
               </Field>
             </div>
-          ) : (
-            /* Assign mode — manager sets economics; driver fills the rest. */
+          ) : (!isDriver && !markCompleted) ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label={t('fuelPrice')}>
                 <Input type="number" value={f.fuelPrice} onChange={set('fuelPrice')} />
@@ -260,12 +318,25 @@ export function TruckTripForm({
                 <Input type="number" value={f.revenue} onChange={set('revenue')} />
               </Field>
             </div>
+          ) : (
+            /* Driver mode: operational costs only — no revenue */
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label={t('fuelLiters')}>
+                <Input type="number" step="0.01" value={f.fuelLiters} onChange={set('fuelLiters')} />
+              </Field>
+              <Field label={t('fuelPrice')}>
+                <Input type="number" value={f.fuelPrice} onChange={set('fuelPrice')} />
+              </Field>
+              <Field label={t('toll')}>
+                <Input type="number" value={f.toll} onChange={set('toll')} />
+              </Field>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Live profit preview — only meaningful when logging a finished trip. */}
-      {markCompleted && (
+      {/* Live profit preview — manager mark-completed mode only */}
+      {!isDriver && markCompleted && (
         <div className="rounded-md border border-border bg-surface-2 p-4 grid grid-cols-3 gap-3 text-center">
           <Metric label={t('previewFuelCost')} value={vnd(preview.fuelCost)} />
           <Metric label={t('previewTotalCost')} value={vnd(preview.totalCost)} />
@@ -278,10 +349,23 @@ export function TruckTripForm({
       )}
 
       <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
-        <Button type="button" variant="ghost" size="lg" onClick={() => router.push('/truck/trips')} disabled={pending} className="w-full sm:w-auto">
+        <Button
+          type="button"
+          variant="ghost"
+          size="lg"
+          onClick={() => router.push(isDriver ? '/today' : '/truck/trips')}
+          disabled={pending}
+          className="w-full sm:w-auto"
+        >
           {t('cancel')}
         </Button>
-        <Button type="submit" variant="accent" size="lg" disabled={pending || !dirty} className="w-full sm:w-auto">
+        <Button
+          type="submit"
+          variant="accent"
+          size="lg"
+          disabled={pending || !dirty}
+          className="w-full sm:w-auto"
+        >
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           {t('save')}
         </Button>

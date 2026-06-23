@@ -86,19 +86,64 @@
     "thisWeek": "Tuần này"
   },
   "screens": {
-    "tripsList":     { "title": "Chuyến đi",            "subtitle": "Tất cả yêu cầu chuyến trên toàn đội xe" },
-    "newTrip":       { "title": "Yêu cầu chuyến mới",   "subtitle": "Đặt xe cho hành khách" },
-    "tripDetail":    { "title": "Chi tiết chuyến",      "subtitle": "Dòng thời gian + chi phí liên quan" },
-    "vehicles":      { "title": "Đội xe",               "subtitle": "3 xe · 1 đang bảo trì" },
-    "vehicleDetail": { "title": "Hồ sơ xe",             "subtitle": "Thông số · giấy tờ · lịch sử" },
-    "newVehicle":    { "title": "Thêm xe",              "subtitle": "Đăng ký xe mới vào đội" },
-    "drivers":       { "title": "Tài xế",               "subtitle": "Danh sách + bằng lái + hiệu suất" },
-    "driverDetail":  { "title": "Hồ sơ tài xế",         "subtitle": "Bằng lái · chuyến · giấy tờ" },
-    "newDriver":     { "title": "Thêm tài xế",          "subtitle": "Tạo hồ sơ tài xế mới", "emptyHeading": "Chưa có user nào sẵn sàng làm tài xế", "emptyDesc": "Mọi user trong công ty đã được link với tài xế, hoặc user mới chưa từng đăng nhập car-v2. Mời user mới trên AMA, sau đó nhờ họ đăng nhập car-v2 1 lần để xuất hiện ở đây.", "createUserCta": "Mời user trên AMA" },
-    "newUser":       { "title": "Thêm thành viên mới", "subtitle": "Tạo tài khoản đăng nhập bằng email (AMA quản lý)", "breadcrumbParent": "Người dùng", "breadcrumbCurrent": "Thêm mới" },
-    "editUser":      { "title": "Chỉnh sửa thành viên", "breadcrumbParent": "Người dùng", "breadcrumbCurrent": "Chỉnh sửa" },
-    "users":         { "title": "Người dùng & vai trò", "subtitle": "Thành viên + phân vai trò" },
-    "settings":      { "title": "Cài đặt",              "subtitle": "Quy tắc duyệt, tích hợp, chính sách" },
+    "tripsList": {
+      "title": "Chuyến đi",
+      "subtitle": "Tất cả yêu cầu chuyến trên toàn đội xe"
+    },
+    "newTrip": {
+      "title": "Yêu cầu chuyến mới",
+      "subtitle": "Đặt xe cho hành khách"
+    },
+    "tripDetail": {
+      "title": "Chi tiết chuyến",
+      "subtitle": "Dòng thời gian + chi phí liên quan"
+    },
+    "vehicles": {
+      "title": "Đội xe",
+      "subtitle": "3 xe · 1 đang bảo trì"
+    },
+    "vehicleDetail": {
+      "title": "Hồ sơ xe",
+      "subtitle": "Thông số · giấy tờ · lịch sử"
+    },
+    "newVehicle": {
+      "title": "Thêm xe",
+      "subtitle": "Đăng ký xe mới vào đội"
+    },
+    "drivers": {
+      "title": "Tài xế",
+      "subtitle": "Danh sách + bằng lái + hiệu suất"
+    },
+    "driverDetail": {
+      "title": "Hồ sơ tài xế",
+      "subtitle": "Bằng lái · chuyến · giấy tờ"
+    },
+    "newDriver": {
+      "title": "Thêm tài xế",
+      "subtitle": "Tạo hồ sơ tài xế mới",
+      "emptyHeading": "Chưa có user nào sẵn sàng làm tài xế",
+      "emptyDesc": "Mọi user trong công ty đã được link với tài xế, hoặc user mới chưa từng đăng nhập car-v2. Mời user mới trên AMA, sau đó nhờ họ đăng nhập car-v2 1 lần để xuất hiện ở đây.",
+      "createUserCta": "Mời user trên AMA"
+    },
+    "newUser": {
+      "title": "Thêm thành viên mới",
+      "subtitle": "Tạo tài khoản đăng nhập bằng email (AMA quản lý)",
+      "breadcrumbParent": "Người dùng",
+      "breadcrumbCurrent": "Thêm mới"
+    },
+    "editUser": {
+      "title": "Chỉnh sửa thành viên",
+      "breadcrumbParent": "Người dùng",
+      "breadcrumbCurrent": "Chỉnh sửa"
+    },
+    "users": {
+      "title": "Người dùng & vai trò",
+      "subtitle": "Thành viên + phân vai trò"
+    },
+    "settings": {
+      "title": "Cài đặt",
+      "subtitle": "Quy tắc duyệt, tích hợp, chính sách"
+    },
     "fleetAccess": {
       "title": "Phân quyền phòng ban",
       "subtitle": "Cấp quyền xe con/xe tải & duyệt yêu cầu",
@@ -112,7 +157,10 @@
       "fullAccess": "Toàn quyền",
       "approve": "Duyệt",
       "reject": "Từ chối",
-      "dept": { "CAR": "Xe con", "TRUCK": "Xe tải" },
+      "dept": {
+        "CAR": "Xe con",
+        "TRUCK": "Xe tải"
+      },
       "grantedToast": "Đã cấp quyền {dept}",
       "revokedToast": "Đã thu quyền {dept}",
       "approvedToast": "Đã duyệt yêu cầu",
@@ -322,7 +370,28 @@
         "modeCompleted": "Đã hoàn thành (ghi log)",
         "modeCompletedHint": "Ghi nhận chuyến đã chạy xong với đầy đủ chi phí.",
         "modeAssign": "Giao tài xế hoàn thành",
-        "modeAssignHint": "Tài xế sẽ nhập km, nhiên liệu, chi phí khi hoàn thành chuyến."
+        "modeAssignHint": "Tài xế sẽ nhập km, nhiên liệu, chi phí khi hoàn thành chuyến.",
+        "sectionRoute": "Lộ trình",
+        "stops": {
+          "type": {
+            "ORIGIN": "Xuất phát",
+            "PICKUP": "Lấy hàng",
+            "DELIVERY": "Giao hàng",
+            "WAYPOINT": "Điểm ghé",
+            "RETURN": "Về bãi"
+          },
+          "placeholder": {
+            "ORIGIN": "Địa chỉ bãi xuất phát",
+            "PICKUP": "Địa chỉ điểm lấy hàng",
+            "DELIVERY": "Địa chỉ điểm giao hàng",
+            "WAYPOINT": "Địa chỉ điểm ghé",
+            "RETURN": "Địa chỉ bãi về"
+          },
+          "km": "Km tại điểm",
+          "addAfterPickup": "Thêm điểm ghé (trước giao)",
+          "addAfterDelivery": "Thêm điểm ghé (sau giao)",
+          "remove": "Xóa điểm này"
+        }
       }
     },
     "truckFleet": {
@@ -365,8 +434,14 @@
         "deletedToast": "Đã xoá xe tải"
       }
     },
-    "audit":         { "title": "Nhật ký kiểm toán",    "subtitle": "Mọi thao tác trên hệ thống" },
-    "reports":       { "title": "Báo cáo",              "subtitle": "Thống kê chuyến đi và chi phí" }
+    "audit": {
+      "title": "Nhật ký kiểm toán",
+      "subtitle": "Mọi thao tác trên hệ thống"
+    },
+    "reports": {
+      "title": "Báo cáo",
+      "subtitle": "Thống kê chuyến đi và chi phí"
+    }
   },
   "phase": {
     "comingIn": "Sắp có ở",
@@ -1407,7 +1482,9 @@
       "completed": "Đã hoàn thành",
       "noTodo": "Không có chuyến cần hoàn thành",
       "noDone": "Chưa có chuyến hoàn thành",
-      "myVehicles": "Phương tiện của tôi"
+      "myVehicles": "Phương tiện của tôi",
+      "title": "Chuyến hôm nay",
+      "newTrip": "Tạo chuyến"
     },
     "switchDriver": "Đổi tài xế",
     "title": "Hôm nay",
@@ -1494,11 +1571,26 @@
         }
       },
       "FLEET": {
-        "ACCESS_REQUESTED": { "subject": "Yêu cầu quyền phòng ban", "body": "Có yêu cầu quyền truy cập phòng ban đang chờ bạn duyệt." },
-        "ACCESS_APPROVED": { "subject": "Quyền truy cập đã được duyệt", "body": "Yêu cầu quyền phòng ban của bạn đã được duyệt." },
-        "ACCESS_REJECTED": { "subject": "Yêu cầu bị từ chối", "body": "Yêu cầu quyền phòng ban của bạn đã bị từ chối." },
-        "ACCESS_GRANTED": { "subject": "Bạn được cấp quyền phòng ban", "body": "Quản trị viên đã cấp cho bạn quyền truy cập một phòng ban." },
-        "ACCESS_REVOKED": { "subject": "Quyền phòng ban bị thu hồi", "body": "Quyền truy cập một phòng ban của bạn đã bị thu hồi." }
+        "ACCESS_REQUESTED": {
+          "subject": "Yêu cầu quyền phòng ban",
+          "body": "Có yêu cầu quyền truy cập phòng ban đang chờ bạn duyệt."
+        },
+        "ACCESS_APPROVED": {
+          "subject": "Quyền truy cập đã được duyệt",
+          "body": "Yêu cầu quyền phòng ban của bạn đã được duyệt."
+        },
+        "ACCESS_REJECTED": {
+          "subject": "Yêu cầu bị từ chối",
+          "body": "Yêu cầu quyền phòng ban của bạn đã bị từ chối."
+        },
+        "ACCESS_GRANTED": {
+          "subject": "Bạn được cấp quyền phòng ban",
+          "body": "Quản trị viên đã cấp cho bạn quyền truy cập một phòng ban."
+        },
+        "ACCESS_REVOKED": {
+          "subject": "Quyền phòng ban bị thu hồi",
+          "body": "Quyền truy cập một phòng ban của bạn đã bị thu hồi."
+        }
       },
       "TRIP": {
         "ASSIGNED": {

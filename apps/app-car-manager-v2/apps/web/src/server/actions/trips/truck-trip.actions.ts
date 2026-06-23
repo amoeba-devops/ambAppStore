@@ -23,6 +23,7 @@ import type { CarTrip } from '@car-v2/db/schema';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
 import { getDriver, getDriverByUserId } from '@/server/queries/drivers.queries';
+import type { StopoverInput } from '@car-v2/core/truck';
 import { assertTruckMonthOpen } from '@/server/queries/truck-finance.queries';
 import { nextTripRef } from '@/server/services/trip-ref.service';
 import { logAudit } from '@/server/services/audit-log.service';
@@ -69,18 +70,42 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 /**
- * Create a truck trip-log entry. A manager usually logs an already-finished
- * trip (mark_completed=true with metrics) — the action creates it (auto-CONFIRMED
- * when driver+vehicle are set) then completes it in one flow. Unassigned entries
- * can be created and assigned/completed later.
+ * Create a truck trip-log entry.
+ *
+ * - ADMIN/MANAGER: full access, can assign any driver + set revenue.
+ * - DRIVER: allowed (REQ-20260623); driver_id is enforced to self; revenue is
+ *   stripped (manager fills it later for month close).
+ *
+ * A manager may log a finished trip in one step (mark_completed=true with
+ * metrics). Drivers create an open trip (CONFIRMED) and complete it separately.
  */
 export async function createTruckTripAction(input: unknown): Promise<ActionResult<{ id: string }>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
-    requireRole(actor.role, ['ADMIN', 'MANAGER']);
+    requireRole(actor.role, ['ADMIN', 'MANAGER', 'DRIVER']);
     await requireFleet(actor, 'TRUCK');
     const dto = createTruckTripSchema.parse(input);
     await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at));
+
+    /* DRIVER self-assign enforcement: driver_id must be the caller's own record. */
+    let enforcedDriverId = dto.driver_id ?? null;
+    if (actor.role === 'DRIVER') {
+      const driverRecord = await getDriverByUserId(actor.entId, actor.userId);
+      if (!driverRecord) throw new CarError('CAR-E0403', 403, 'No driver record found');
+      if (dto.driver_id && dto.driver_id !== driverRecord.drvId) {
+        throw new CarError('CAR-E0403', 403, 'Driver may only create trips for themselves');
+      }
+      enforcedDriverId = driverRecord.drvId;
+    }
+
+    /* Build stopover list from DTO (REQ-20260623). */
+    const stopovers: StopoverInput[] | undefined = dto.stopovers?.map((s) => ({
+      type: s.type,
+      address: s.address,
+      km: s.km ?? null,
+      arrivedAt: s.arrived_at ? new Date(s.arrived_at) : null,
+      notes: s.notes ?? null,
+    }));
 
     let trip;
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -90,16 +115,18 @@ export async function createTruckTripAction(input: unknown): Promise<ActionResul
           ref,
           scheduledAt: new Date(dto.scheduled_at),
           vehicleId: dto.vehicle_id ?? null,
-          driverId: dto.driver_id ?? null,
+          driverId: enforcedDriverId,
           customer: dto.customer ?? null,
           pickupAddress: dto.pickup_address,
           dropoffAddress: dto.dropoff_address,
           bol: dto.bol ?? null,
           cdf: dto.cdf ?? null,
           fuelPrice: dto.fuel_price ?? null,
-          revenue: dto.revenue ?? null,
+          /* DRIVER: strip revenue — manager fills later. */
+          revenue: actor.role === 'DRIVER' ? null : (dto.revenue ?? null),
           startOdometer: dto.start_odometer ?? null,
           notes: dto.notes ?? null,
+          stopovers,
         });
         break;
       } catch (err) {
@@ -110,7 +137,7 @@ export async function createTruckTripAction(input: unknown): Promise<ActionResul
     if (!trip) throw new CarError('CAR-E0500', 500, 'Failed to create truck trip');
 
     /* Log a finished trip in one step when the manager supplied metrics. */
-    if (dto.mark_completed && trip.trpDriverId && trip.trpVehicleId) {
+    if (actor.role !== 'DRIVER' && dto.mark_completed && trip.trpDriverId && trip.trpVehicleId) {
       const extraCosts =
         dto.other_amount && dto.other_amount > 0
           ? [{ name: dto.other_note?.trim() || 'Other', amount: dto.other_amount }]
@@ -131,15 +158,16 @@ export async function createTruckTripAction(input: unknown): Promise<ActionResul
       entity: 'Trip',
       entityId: trip.trpId,
       entityRef: trip.trpRef,
-      after: { customer: trip.trpCustomer, status: trip.trpStatus },
+      after: { customer: trip.trpCustomer, status: trip.trpStatus, createdByRole: actor.role },
     });
 
-    /* Assigned but not yet completed → driver needs to complete it. */
-    if (trip.trpStatus === 'CONFIRMED' && trip.trpDriverId) {
+    /* Notify driver if assigned by manager (driver creating own trip: skip self-notify). */
+    if (trip.trpStatus === 'CONFIRMED' && trip.trpDriverId && actor.role !== 'DRIVER') {
       await notifyTruckDriverAssigned(actor.entId, trip);
     }
 
     revalidatePath('/truck/trips');
+    revalidatePath('/today');
     return { id: trip.trpId };
   });
 }
@@ -291,6 +319,13 @@ export async function updateTruckTripAction(input: unknown): Promise<ActionResul
       dto.other_amount && dto.other_amount > 0
         ? [{ name: dto.other_note?.trim() || 'Other', amount: dto.other_amount }]
         : [];
+    const stopovers: StopoverInput[] | undefined = dto.stopovers?.map((s) => ({
+      type: s.type,
+      address: s.address,
+      km: s.km ?? null,
+      arrivedAt: s.arrived_at ? new Date(s.arrived_at) : null,
+      notes: s.notes ?? null,
+    }));
     const res = await updateTruckTrip(actor, dto.trip_id, {
       scheduledAt: new Date(dto.scheduled_at),
       vehicleId: dto.vehicle_id ?? null,
@@ -307,6 +342,7 @@ export async function updateTruckTripAction(input: unknown): Promise<ActionResul
       fuelLiters: dto.fuel_liters ?? null,
       tollFee: dto.toll_fee ?? null,
       extraCosts,
+      stopovers,
     });
 
     await logAudit({

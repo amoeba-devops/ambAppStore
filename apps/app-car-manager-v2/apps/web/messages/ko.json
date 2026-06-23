@@ -86,19 +86,64 @@
     "thisWeek": "이번 주"
   },
   "screens": {
-    "tripsList":     { "title": "운행",                  "subtitle": "전체 차량의 모든 운행 신청" },
-    "newTrip":       { "title": "새 운행 신청",          "subtitle": "승객을 위한 차량 예약" },
-    "tripDetail":    { "title": "운행 상세",             "subtitle": "전체 타임라인 + 연결된 비용" },
-    "vehicles":      { "title": "차량 목록",             "subtitle": "차량 3대 · 1대 정비 중" },
-    "vehicleDetail": { "title": "차량 프로필",           "subtitle": "제원 · 문서 · 이력" },
-    "newVehicle":    { "title": "차량 추가",             "subtitle": "차량을 새로 등록합니다" },
-    "drivers":       { "title": "기사",                  "subtitle": "명단 + 면허 + 성과" },
-    "driverDetail":  { "title": "기사 프로필",           "subtitle": "면허 · 운행 · 문서" },
-    "newDriver":     { "title": "기사 추가",             "subtitle": "기사 프로필을 새로 만듭니다", "emptyHeading": "기사로 등록할 수 있는 사용자가 없습니다", "emptyDesc": "회사의 모든 사용자가 이미 기사로 연결되어 있거나, 새 사용자가 아직 car-v2에 로그인하지 않았습니다. AMA에서 사용자를 초대한 뒤 car-v2에 한 번 로그인하도록 안내해 주세요.", "createUserCta": "AMA에서 사용자 초대" },
-    "newUser":       { "title": "새 멤버 추가", "subtitle": "이메일로 로그인 계정 생성 (AMA 관리)", "breadcrumbParent": "사용자", "breadcrumbCurrent": "추가" },
-    "editUser":      { "title": "멤버 편집", "breadcrumbParent": "사용자", "breadcrumbCurrent": "편집" },
-    "users":         { "title": "사용자 & 역할",         "subtitle": "멤버 + 역할 배정" },
-    "settings":      { "title": "설정",                  "subtitle": "승인 규칙·연동·정책" },
+    "tripsList": {
+      "title": "운행",
+      "subtitle": "전체 차량의 모든 운행 신청"
+    },
+    "newTrip": {
+      "title": "새 운행 신청",
+      "subtitle": "승객을 위한 차량 예약"
+    },
+    "tripDetail": {
+      "title": "운행 상세",
+      "subtitle": "전체 타임라인 + 연결된 비용"
+    },
+    "vehicles": {
+      "title": "차량 목록",
+      "subtitle": "차량 3대 · 1대 정비 중"
+    },
+    "vehicleDetail": {
+      "title": "차량 프로필",
+      "subtitle": "제원 · 문서 · 이력"
+    },
+    "newVehicle": {
+      "title": "차량 추가",
+      "subtitle": "차량을 새로 등록합니다"
+    },
+    "drivers": {
+      "title": "기사",
+      "subtitle": "명단 + 면허 + 성과"
+    },
+    "driverDetail": {
+      "title": "기사 프로필",
+      "subtitle": "면허 · 운행 · 문서"
+    },
+    "newDriver": {
+      "title": "기사 추가",
+      "subtitle": "기사 프로필을 새로 만듭니다",
+      "emptyHeading": "기사로 등록할 수 있는 사용자가 없습니다",
+      "emptyDesc": "회사의 모든 사용자가 이미 기사로 연결되어 있거나, 새 사용자가 아직 car-v2에 로그인하지 않았습니다. AMA에서 사용자를 초대한 뒤 car-v2에 한 번 로그인하도록 안내해 주세요.",
+      "createUserCta": "AMA에서 사용자 초대"
+    },
+    "newUser": {
+      "title": "새 멤버 추가",
+      "subtitle": "이메일로 로그인 계정 생성 (AMA 관리)",
+      "breadcrumbParent": "사용자",
+      "breadcrumbCurrent": "추가"
+    },
+    "editUser": {
+      "title": "멤버 편집",
+      "breadcrumbParent": "사용자",
+      "breadcrumbCurrent": "편집"
+    },
+    "users": {
+      "title": "사용자 & 역할",
+      "subtitle": "멤버 + 역할 배정"
+    },
+    "settings": {
+      "title": "설정",
+      "subtitle": "승인 규칙·연동·정책"
+    },
     "fleetAccess": {
       "title": "부서 접근 권한",
       "subtitle": "승용차/트럭 권한 부여 & 요청 승인",
@@ -112,7 +157,10 @@
       "fullAccess": "전체 권한",
       "approve": "승인",
       "reject": "거절",
-      "dept": { "CAR": "승용차", "TRUCK": "트럭" },
+      "dept": {
+        "CAR": "승용차",
+        "TRUCK": "트럭"
+      },
       "grantedToast": "{dept} 권한 부여됨",
       "revokedToast": "{dept} 권한 회수됨",
       "approvedToast": "요청 승인됨",
@@ -322,7 +370,28 @@
         "modeCompleted": "완료 (기록)",
         "modeCompletedHint": "비용까지 모두 입력해 완료된 운행을 기록합니다.",
         "modeAssign": "기사에게 배정",
-        "modeAssignHint": "기사가 완료 시 주행거리·연료·비용을 입력합니다."
+        "modeAssignHint": "기사가 완료 시 주행거리·연료·비용을 입력합니다.",
+        "sectionRoute": "경로",
+        "stops": {
+          "type": {
+            "ORIGIN": "출발지",
+            "PICKUP": "화물 상차",
+            "DELIVERY": "화물 하차",
+            "WAYPOINT": "경유지",
+            "RETURN": "차고지 복귀"
+          },
+          "placeholder": {
+            "ORIGIN": "출발 차고지 주소",
+            "PICKUP": "상차 위치",
+            "DELIVERY": "하차 위치",
+            "WAYPOINT": "경유지 주소",
+            "RETURN": "복귀 차고지 주소"
+          },
+          "km": "도착 시 주행거리 (km)",
+          "addAfterPickup": "경유지 추가 (하차 전)",
+          "addAfterDelivery": "경유지 추가 (하차 후)",
+          "remove": "경유지 삭제"
+        }
       }
     },
     "truckFleet": {
@@ -365,8 +434,14 @@
         "deletedToast": "트럭 삭제됨"
       }
     },
-    "audit":         { "title": "감사 로그",             "subtitle": "플랫폼 전체 활동" },
-    "reports":       { "title": "보고서",                "subtitle": "운행 및 비용 분석" }
+    "audit": {
+      "title": "감사 로그",
+      "subtitle": "플랫폼 전체 활동"
+    },
+    "reports": {
+      "title": "보고서",
+      "subtitle": "운행 및 비용 분석"
+    }
   },
   "phase": {
     "comingIn": "출시 예정",
@@ -1407,7 +1482,9 @@
       "completed": "완료됨",
       "noTodo": "완료할 운행이 없습니다",
       "noDone": "완료된 운행이 없습니다",
-      "myVehicles": "내 차량"
+      "myVehicles": "내 차량",
+      "title": "오늘의 운행",
+      "newTrip": "운행 추가"
     },
     "switchDriver": "기사 변경",
     "title": "오늘",
@@ -1494,11 +1571,26 @@
         }
       },
       "FLEET": {
-        "ACCESS_REQUESTED": { "subject": "부서 접근 요청", "body": "승인 대기 중인 부서 접근 요청이 있습니다." },
-        "ACCESS_APPROVED": { "subject": "부서 접근 승인됨", "body": "부서 접근 요청이 승인되었습니다." },
-        "ACCESS_REJECTED": { "subject": "요청 거절됨", "body": "부서 접근 요청이 거절되었습니다." },
-        "ACCESS_GRANTED": { "subject": "부서 접근 권한 부여", "body": "관리자가 부서 접근 권한을 부여했습니다." },
-        "ACCESS_REVOKED": { "subject": "부서 접근 권한 회수", "body": "부서 접근 권한이 회수되었습니다." }
+        "ACCESS_REQUESTED": {
+          "subject": "부서 접근 요청",
+          "body": "승인 대기 중인 부서 접근 요청이 있습니다."
+        },
+        "ACCESS_APPROVED": {
+          "subject": "부서 접근 승인됨",
+          "body": "부서 접근 요청이 승인되었습니다."
+        },
+        "ACCESS_REJECTED": {
+          "subject": "요청 거절됨",
+          "body": "부서 접근 요청이 거절되었습니다."
+        },
+        "ACCESS_GRANTED": {
+          "subject": "부서 접근 권한 부여",
+          "body": "관리자가 부서 접근 권한을 부여했습니다."
+        },
+        "ACCESS_REVOKED": {
+          "subject": "부서 접근 권한 회수",
+          "body": "부서 접근 권한이 회수되었습니다."
+        }
       },
       "TRIP": {
         "ASSIGNED": {
