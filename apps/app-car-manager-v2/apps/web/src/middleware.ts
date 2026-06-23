@@ -144,6 +144,11 @@ export async function middleware(req: NextRequest) {
     // D-006 (Step 4): forward optional info for ensureCarUser upsert in RSC layout
     if (claims.email) requestHeaders.set('x-user-email', claims.email);
     if (claims.name) requestHeaders.set('x-user-name', encodeURIComponent(claims.name));
+    /* Forward the app-relative path so the root layout can pre-render
+     * data-dept from the URL (truck pages → orange) on first paint — before
+     * the sticky `ccms.fleet.dept` cookie exists. Kills the blue→orange theme
+     * flash on first login / deep-link into a /truck/* page. */
+    requestHeaders.set('x-pathname', pathname);
     return NextResponse.next({ request: { headers: requestHeaders } });
   } catch (err) {
     // D-011 Silent refresh: cookie present but JWT verify failed (expired).

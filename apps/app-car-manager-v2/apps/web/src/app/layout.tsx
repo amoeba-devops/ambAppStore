@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import { Be_Vietnam_Pro, Inter, JetBrains_Mono } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { clearlyDept } from '@/components/layout/nav-items';
 import { SWRegister } from '@/components/pwa/sw-register';
 import './globals.css';
 
@@ -62,13 +63,21 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
   const messages = await getMessages();
-  /* Read the sticky-workspace cookie server-side so the initial SSR HTML
-   * already carries data-dept="truck" when the user last left the truck
-   * workspace. DeptThemeEffect keeps it in sync on client navigations.
-   * suppressHydrationWarning on <html> handles the case where cookie + client
-   * state diverge (e.g. a different user logs in). */
-  const jar = await cookies();
-  const dataDept = jar.get('ccms.fleet.dept')?.value === 'TRUCK' ? 'truck' : undefined;
+  /* Pre-render data-dept server-side so the FIRST paint already carries the
+   * correct accent (truck → orange, car → blue) with no flash:
+   *   1. URL is authoritative — `/truck/*` is always the truck workspace, even
+   *      on first login before the sticky cookie exists (middleware forwards
+   *      the app-relative path via x-pathname).
+   *   2. Department-NEUTRAL pages (drivers/users/settings/audit) fall back to
+   *      the `ccms.fleet.dept` cookie so a truck-workspace user keeps orange.
+   * DeptThemeEffect keeps it in sync on client navigations; the cookie is set
+   * by DeptProvider.persist(). suppressHydrationWarning on <html> covers the
+   * transient case where cookie + client state diverge (e.g. a new user logs in). */
+  const [jar, hdrs] = await Promise.all([cookies(), headers()]);
+  const pathname = hdrs.get('x-pathname') ?? '';
+  const cookieDept = jar.get('ccms.fleet.dept')?.value;
+  const dept = clearlyDept(pathname) ?? (cookieDept === 'TRUCK' ? 'TRUCK' : 'CAR');
+  const dataDept = dept === 'TRUCK' ? 'truck' : undefined;
 
   return (
     /* suppressHydrationWarning trên <html> + <body> mute noise của browser
