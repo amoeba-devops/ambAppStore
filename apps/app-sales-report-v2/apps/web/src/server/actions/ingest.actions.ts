@@ -108,12 +108,11 @@ export async function commitIngestAction(
       tiktokLivestreamFees: numFromForm(formData, 'tiktokLivestreamFees') ?? 0,
       tiktokAdsSpending: numFromForm(formData, 'tiktokAdsSpending') ?? 0,
     };
-    // TikTok platform fee rate: 24% until 2026-05-07, then 26% from 2026-05-08
+    // TikTok platform fee rate: 24% until 2026-05-08, then 26% from 2026-05-09
     // onwards (per TikTok Shop policy update communicated by client).
-    // Use periodStart as the cutoff — boundary aligns with weekly Mon-Sun, so
-    // weeks fall cleanly on one rate or the other. Caller can still override
-    // via formData if needed.
-    const defaultTiktokRate = periodStartIso >= '2026-05-08' ? 26 : 24;
+    // Use periodStart as the cutoff. Caller can still override via formData if
+    // TikTok publishes a new rate mid-period.
+    const defaultTiktokRate = periodStartIso >= '2026-05-09' ? 26 : 24;
     const tiktokPlatformFeeRatePct =
       numFromForm(formData, 'tiktokPlatformFeeRatePct') ?? defaultTiktokRate;
 

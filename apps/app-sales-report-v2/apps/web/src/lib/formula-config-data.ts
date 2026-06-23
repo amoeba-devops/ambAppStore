@@ -473,11 +473,12 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Platform Fee Rate — TikTok',
-        description: 'Constant — set once in Formula Config',
+        description:
+          'Constant set by TikTok Shop policy. 24% until 2026-05-08, then 26% from 2026-05-09 onwards (current rate). Operator can override per ingest if TikTok issues a new rate.',
         dataSources: ['Constant'],
-        formula: '24',
+        formula: '26',
         unit: '%',
-        versions: 1,
+        versions: 2,
       },
       {
         metric: 'Total Platform Fee — TikTok',
