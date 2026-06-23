@@ -46,6 +46,11 @@ export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
   // CTR column is TikTok-only — hide the entire column (header + body + footer)
   // when the table contains no TikTok rows (e.g. Shopee-only channel filter).
   const showCtrColumn = products.some((p) => p.platform === 'TIKTOK');
+  // TikTok-only view: PV column reads "Impression" (TikTok's traffic export
+  // exposes unique product impressions, not literal page views). Shopee +
+  // mixed views keep the "PV" label.
+  const isTikTokOnly = products.length > 0 && products.every((p) => p.platform === 'TIKTOK');
+  const pvColLabel = isTikTokOnly ? t('col.impression') : t('col.pv');
   // Refs for syncing top ruler + main table horizontal scroll (so admin can
   // scroll horizontally without first scrolling to the bottom of the table).
   const topScrollRef = useRef<HTMLDivElement>(null);
@@ -234,7 +239,7 @@ export function WeeklyProductBreakdownTable({ products, krwRate }: Props) {
                 productLang === 'en' ? 'table-cell' : 'hidden',
               )}>{t('col.productEn')}</th>
               <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-left font-medium">{t('col.platform')}</th>
-              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.pv')}</th>
+              <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{pvColLabel}</th>
               {showCtrColumn && (
                 <th className="sticky top-0 z-30 bg-neutral-50 px-3 py-2.5 text-right font-medium">{t('col.ctr')}</th>
               )}

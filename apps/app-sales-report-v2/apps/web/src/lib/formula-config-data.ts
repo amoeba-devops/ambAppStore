@@ -370,17 +370,20 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
     title: 'Platform-Level Formulas — TikTok',
     items: [
       {
-        metric: 'Total Page View — TikTok',
+        metric: 'Total Impression — TikTok',
+        description:
+          'Platform total = SUM of per-SKU {Impression — TikTok}. TikTok\'s metric is unique product impressions (Lượt hiển thị sản phẩm độc nhất); it replaces the previous "Page View" naming.',
         dataSources: ['Calculated'],
-        formula: 'Sum of {Page View — TikTok}',
-        versions: 2,
+        formula: 'Sum of {Impression — TikTok}',
+        versions: 3,
       },
       {
         metric: 'Conversion Rate — TikTok',
+        description: 'Item Sold ÷ Impression (unique product impressions).',
         dataSources: ['Calculated'],
-        formula: '{Total Item Sold — TikTok} / {Total Page View — TikTok}',
+        formula: '{Total Item Sold — TikTok} / {Total Impression — TikTok}',
         unit: '%',
-        versions: 1,
+        versions: 2,
       },
       {
         metric: 'Total Item Sold — TikTok',
@@ -530,12 +533,12 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
         versions: 1,
       },
       {
-        metric: 'Page View — TikTok',
+        metric: 'Impression — TikTok',
         description:
-          'Look up from TikTok Traffic XLSX. TikTok consolidated 4 separate page-view sources (Tab Cửa hàng + LIVE + Video + Thẻ sản phẩm) into a single canonical column "Lượt hiển thị sản phẩm độc nhất" — unique product impressions.',
+          'Per-SKU unique product impressions, looked up from the TikTok Traffic XLSX. Replaces the previous "Page View — TikTok" metric — TikTok consolidated 4 separate page-view sources (Tab Cửa hàng + LIVE + Video + Thẻ sản phẩm) into a single canonical column "Lượt hiển thị sản phẩm độc nhất".',
         dataSources: ['TikTok Traffic XLSX'],
         formula: '{Lượt hiển thị sản phẩm độc nhất}',
-        versions: 2,
+        versions: 3,
       },
       {
         metric: 'CTR — TikTok',
@@ -548,10 +551,11 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Conversion Rate per Product — TikTok',
+        description: 'Item Sold ÷ Impression (unique product impressions).',
         dataSources: ['Calculated'],
-        formula: '{Item Sold — TikTok} / {Page View — TikTok}',
+        formula: '{Item Sold — TikTok} / {Impression — TikTok}',
         unit: '%',
-        versions: 1,
+        versions: 2,
       },
       {
         metric: 'Item Sold — TikTok',
