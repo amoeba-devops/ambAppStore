@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { SignJWT } from 'jose';
 import { absoluteUrl } from '@/lib/request-origin';
+import { provisionDevPersona } from '@/lib/dev/provision-dev-persona';
 
 // Local dev only — gated by DEMO_AUTO_LOGIN=true. Mints an HS256 JWT with
 // the same shape AMA would issue, then drops it into the session cookie.
@@ -56,6 +57,12 @@ export async function GET(req: NextRequest) {
     MEMBER:  '00000000-0000-4000-8000-000000000003',
   };
   const sub = subOverride ?? DEFAULT_SUB_BY_ROLE[role];
+
+  /* Make dept-scoped personas self-sufficient: ensure their fleet-access (+
+   * driver) rows exist so MANAGER/DRIVER get the right CAR/TRUCK access on
+   * first login. No-op for unknown subs / non-dev entity. Replaces the old
+   * seed button removed in the login-page consolidation. */
+  await provisionDevPersona(sub, entityId);
 
   /* AMA `OwnEntityGuard` (apps/api/src/domain/auth/guard/own-entity.guard.ts)
    * chỉ accept `user.role === 'MASTER' || 'ADMIN'` cho USER_LEVEL. Token với
