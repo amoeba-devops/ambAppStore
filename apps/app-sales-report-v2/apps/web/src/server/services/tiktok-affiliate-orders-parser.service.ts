@@ -56,10 +56,8 @@ interface VariantConfig {
   variant: 'creator' | 'partner' | 'noncollab';
   /** Vietnamese label of the product-name column. */
   productNameLabel: string;
-  /** Vietnamese label of the order-status column (used for cancellation filter). */
+  /** Vietnamese label of the order-/commission-status column used for the settled filter. */
   statusLabel: string;
-  /** Aliases for the "refunded" column (NonCollab uses different wording). */
-  refundedLabels: readonly string[];
   /**
    * Per row, the row's affiliate cost is `SUM` of one value from each amount
    * field. Each amount field is an alias list — the first alias resolved in
@@ -88,7 +86,6 @@ const CREATOR_CONFIG: VariantConfig = {
   variant: 'creator',
   productNameLabel: 'Tên sản phẩm',
   statusLabel: 'Trạng thái đơn hàng',
-  refundedLabels: ['Đã trả hàng hoặc hoàn tiền đầy đủ'],
   amountFields: [STANDARD_COMMISSION_ALIASES, SHOP_ADS_COMMISSION_ALIASES],
 };
 
@@ -96,7 +93,6 @@ const PARTNER_CONFIG: VariantConfig = {
   variant: 'partner',
   productNameLabel: 'Tên sản phẩm',
   statusLabel: 'Trạng thái đơn hàng',
-  refundedLabels: ['Đã trả hàng hoặc hoàn tiền đầy đủ'],
   amountFields: [SHOP_ADS_COMMISSION_ALIASES, STANDARD_COMMISSION_ALIASES],
 };
 
@@ -104,26 +100,32 @@ const NONCOLLAB_CONFIG: VariantConfig = {
   variant: 'noncollab',
   productNameLabel: 'Tên sản phẩm',
   statusLabel: 'Trạng thái đơn hàng',
-  // NonCollab file uses different refund column names — accept any alias.
-  refundedLabels: ['Trả hàng & hoàn tiền', 'Đã trả hàng hoặc hoàn tiền đầy đủ', 'Hoàn tiền'],
   amountFields: [SHOP_ADS_COMMISSION_ALIASES, STANDARD_COMMISSION_ALIASES],
 };
 
-const CANCELLED_STATUS_VALUES = new Set(['đã hủy', 'da huy', 'cancelled']);
-const REFUNDED_TRUE_VALUES = new Set(['có', 'co', 'yes', 'true', '1']);
+/**
+ * Whitelist filter — only rows whose status column equals "Đã quyết toán"
+ * (commission settled / finalized payout) count toward the total. Everything
+ * else is excluded:
+ *   - "Không đủ điều kiện" (not eligible)
+ *   - "Chờ xử lý" (pending)
+ *   - "Khách hàng chưa thanh toán" (customer not yet paid)
+ *   - "Đã hủy" / "Đã hoàn thành" / "Đang xử lý" (order-status values, present
+ *     in the Non-collab file which lacks a commission-settlement status column)
+ * Net effect on the sample fixtures: Creator 3035 rows, Partner 60 rows,
+ * NonCollab 0 rows.
+ */
+const SETTLED_STATUS_VALUES = new Set([
+  'đã quyết toán'.normalize('NFC'),
+]);
 
 /** Normalize a product name for cross-file matching (NFC + collapse whitespace + trim). */
 function normalizeProductName(s: string): string {
   return s.normalize('NFC').replace(/\s+/g, ' ').trim();
 }
 
-function isCancelled(statusCell: string): boolean {
-  return CANCELLED_STATUS_VALUES.has(statusCell.trim().toLowerCase().normalize('NFC'));
-}
-
-function isRefunded(refundedCell: string): boolean {
-  if (!refundedCell) return false;
-  return REFUNDED_TRUE_VALUES.has(refundedCell.trim().toLowerCase().normalize('NFC'));
+function isSettled(statusCell: string): boolean {
+  return SETTLED_STATUS_VALUES.has(statusCell.trim().toLowerCase().normalize('NFC'));
 }
 
 function parseGeneric(buffer: ArrayBuffer, config: VariantConfig): TikTokAffOrderResult {
@@ -181,7 +183,6 @@ function parseGeneric(buffer: ArrayBuffer, config: VariantConfig): TikTokAffOrde
 
   const productNameCol = colByLabel.get(config.productNameLabel.normalize('NFC'));
   const statusCol = colByLabel.get(config.statusLabel.normalize('NFC'));
-  const refundedCol = resolveAliases(config.refundedLabels); // optional — null-safe below
   const amountCols = config.amountFields.map((aliases) => ({ aliases, col: resolveAliases(aliases) }));
 
   // Required columns must resolve. Amount fields each need at least one alias
@@ -218,11 +219,7 @@ function parseGeneric(buffer: ArrayBuffer, config: VariantConfig): TikTokAffOrde
     if (!productName) continue; // skip blank rows
 
     const statusText = cellText(row.get(statusColFinal));
-    if (isCancelled(statusText)) {
-      rowsExcluded++;
-      continue;
-    }
-    if (refundedCol != null && isRefunded(cellText(row.get(refundedCol)))) {
+    if (!isSettled(statusText)) {
       rowsExcluded++;
       continue;
     }

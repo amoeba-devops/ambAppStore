@@ -26,8 +26,9 @@ status: ready
 | TC-11 | 1 product, 3 rows → 1 entry map | Value = SUM(3 rows) | FR-02 |
 | TC-12 | Cell U hoặc Y rỗng/dash → coi như 0 | Không throw, không NaN | FR-02 |
 | TC-13 | "Tên sản phẩm" có double-space hoặc trailing whitespace | Key normalized → same group | NFR-02 |
-| TC-14 | Cancelled order (cột "Trạng thái đơn hàng" = "Đã hủy") **bị filter** | Per-row affComm = 0 effective. Total không gồm. | NFR-05 |
-| TC-14b | Refunded order (cột "Đã trả hàng hoặc hoàn tiền đầy đủ" = "Có") bị filter | Per-row affComm = 0 effective. Total không gồm. | NFR-05 |
+| TC-14 | **Whitelist filter**: chỉ rows có `Trạng thái đơn hàng = "Đã quyết toán"` được giữ | Row "Đã quyết toán" → kept. Row "Đã hủy" / "Không đủ điều kiện" / "Chờ xử lý" / "Khách hàng chưa thanh toán" / "Đã hoàn thành" / "Đang xử lý" → excluded. | NFR-05 |
+| TC-14b | Sample fixture Creator: 3035 kept / 1098 excluded → totalCost ≈ 72.7M VND | Verify count + total | NFR-05 |
+| TC-14c | Sample fixture Non-collab: 0 kept / 33 excluded → totalCost = 0 | File này có status semantics khác → whitelist không match → đúng theo NFR-06 | NFR-06 |
 | TC-15 | `totalCost = SUM(values của map) = SUM(col U + col Y across all rows)` | Exact, không leak | FR-06 |
 
 ## 3. Affiliate Partner parser (Phase 2)

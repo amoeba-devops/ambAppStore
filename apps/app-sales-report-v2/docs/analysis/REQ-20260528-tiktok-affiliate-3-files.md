@@ -25,7 +25,8 @@ status: ready
 | NFR-02 | Header row autodetect: 1 hoặc 2 tùy file có Note prefix | Robustness |
 | NFR-03 | Backward compat: snapshot cũ thiếu `affiliateCostByProductName` → default `{}` → tất cả vào Others (an toàn, exact total bằng 0 vì legacy không gửi data) | Compat |
 | NFR-04 | Old `parseTikTokAffiliate` (creator-aggregated) **xóa file + import** sau khi ingest đã rewire | Cleanup |
-| NFR-05 | Filter rows ở cả 3 parser: bỏ `Trạng thái đơn hàng = Đã hủy` và `Đã trả hàng hoặc hoàn tiền đầy đủ = Có` (refunded) | Business |
+| NFR-05 | Filter rows ở cả 3 parser: **whitelist** — chỉ giữ rows có `Trạng thái đơn hàng = "Đã quyết toán"` (commission settled). Mọi status khác (Không đủ điều kiện / Chờ xử lý / Khách hàng chưa thanh toán / Đã hủy / Đã hoàn thành / Đang xử lý) đều bị loại. | Business |
+| NFR-06 | File Non-collab dùng "Trạng thái đơn hàng" mang nghĩa **order status** (Đã hoàn thành / Đã hủy / Đang xử lý) chứ không phải commission settlement → áp dụng filter literally → expected 0 rows kept cho non-collab cho tới khi TikTok bổ sung settlement status. | Edge case |
 
 ## 2. AS-IS 현황 분석
 
@@ -172,7 +173,8 @@ Weekly Report → reads snapshot.tiktok.affiliateCostByProductName
 | Cả 3 file đều thiếu | tiktok.totalAffiliateCommission = 0, không Others row, không error |
 | 1 file empty (0 data row) | Parser trả empty map, không error |
 | Header không nhận diện được (file đổi format) | Throw rõ ràng: "Cột 'Tên sản phẩm' không tìm thấy ở row 1-3" |
-| Cancelled / refunded rows | **Filter ra**: bỏ `Trạng thái đơn hàng = Đã hủy` và `Đã trả hàng hoặc hoàn tiền đầy đủ = Có`. Commission ghi nhận trong file nhưng không tính vào tổng. |
+| Non-settled rows | **Whitelist only**: chỉ rows có `Trạng thái đơn hàng = "Đã quyết toán"` được tính vào tổng. Tất cả status khác excluded (commission chưa quyết toán không tính, kể cả "Đã hoàn thành" / "Không đủ điều kiện" / "Chờ xử lý"). |
+| Non-collab status semantics | Cột "Trạng thái đơn hàng" trong file Non-collab mang nghĩa **order status** chứ không phải commission settlement → tất cả rows excluded. Để tính được, TikTok phải bổ sung settlement column hoặc đổi semantics. Đây là tình trạng kỳ vọng (expected) ở thời điểm hiện tại. |
 | Product name không match Sales breakdown | Cộng vào Others row, exact total bảo toàn |
 | File 2 có Note ở row 1 | Auto-detect header tại row 2 |
 
