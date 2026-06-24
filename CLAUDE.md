@@ -1,10 +1,10 @@
-# ambAppStore - Claude Code 지침
+# ambAppStore - Claude Code 지침 / Guidelines
 
-## 프로젝트 개요
+## 프로젝트 개요 / Project Overview
 AMA(AI Management Assistant) 생태계 위에서 동작하는 파트너 앱 플랫폼.
 단일 도메인(`apps.amoeba.site`) 아래 4개 독립 앱을 개발·배포한다.
 
-### 앱 목록
+### 앱 목록 / App List
 | App | Slug | DB | BE Port | FE Port |
 |-----|------|----|---------|---------|
 | 플랫폼 (구독관리) | `/` | `db_app_platform` | :3100 | :5200 |
@@ -13,7 +13,7 @@ AMA(AI Management Assistant) 생태계 위에서 동작하는 파트너 앱 플�
 | 매출리포트 | `/app-sales-report` | `db_app_sales` | :3103 | :5203 |
 | 재고관리 | `/app-stock-management` | `db_app_stock` | :3104 | :5204 |
 
-## 기술 스택
+## 기술 스택 / Tech Stack
 - **Frontend**: React 18 + TypeScript 5 + TailwindCSS 3 + Vite 5
 - **Backend**: NestJS 10 + TypeORM 0.3.x + MySQL 8.0
 - **State**: Zustand (global) + React Query 5 (server) + React Hook Form + Zod
@@ -23,7 +23,7 @@ AMA(AI Management Assistant) 생태계 위에서 동작하는 파트너 앱 플�
 - **모노레포**: npm workspaces + Turborepo
 - **Icons**: lucide-react
 
-## 프로젝트 구조
+## 프로젝트 구조 / Project Structure
 ```
 ambAppStore/
 ├── apps/
@@ -57,19 +57,19 @@ ambAppStore/
 
 각 앱(`apps/{app-slug}/`)은 **완전 격리**: 독립 DB, 독립 Docker 컨테이너, 독립 빌드.
 
-## AMA 연동
+## AMA 연동 / AMA Integration
 - 모든 앱은 `ama.amoeba.site` Entity 사용자가 앱 서비스 안내 페이지에서 신청
 - AMA Entity Code(`ent_id`) 별로 앱 사용 → 멀티테넌시 격리
 - 인증: AMA JWT SSO Passthrough (앱별 자체 회원가입 없음)
 - 모든 주요 데이터 테이블에 `ent_id` 컬럼 필수 포함
 
-## Amoeba 표준 레퍼런스 (반드시 준수)
+## Amoeba 표준 레퍼런스 / Amoeba Standard Reference (반드시 준수 / MUST)
 아래 3개 문서를 **반드시 참조**하고 코드 작성 시 준수한다:
 - `reference/amoeba_code_convention_v2.md` — **코드 컨벤션 (최우선 준수)**
 - `reference/amoeba_basic_skill_v2.md` — 개발 스킬 가이드
 - `reference/amoeba-spec-generator-SKILL-v3.1.md` — SDLC 문서 생성 스킬
 
-## 아키텍처 원칙
+## 아키텍처 원칙 / Architecture Principles
 
 ### Clean Architecture (4-Layer) (MUST)
 ```
@@ -82,7 +82,7 @@ Domain Layer         (Entity, Value Object, Repository Interface)
 Infrastructure Layer (Repository Impl, External API, Cache, DB)
 ```
 
-### 레이어 규칙 (MUST NOT 위반)
+### 레이어 규칙 / Layer Rules (MUST NOT 위반)
 | 레이어 | 허용 | 금지 |
 |--------|------|------|
 | Controller | → Service 호출 | → Repository 직접 호출 |
@@ -90,14 +90,14 @@ Infrastructure Layer (Repository Impl, External API, Cache, DB)
 | Entity | 순수 도메인 로직 | → Service, Controller import |
 | Repository | → Entity | → Controller import |
 
-### DDD (도메인 주도 설계)
+### DDD (도메인 주도 설계 / Domain-Driven Design)
 - 모든 코드는 도메인 모듈 단위로 구성
 - 도메인 간 직접 참조 금지 (순환 참조 시 `forwardRef` 사용)
 - 공통 코드는 `common/` 디렉토리에 도메인 중립적으로 배치
 
-## 코드 컨벤션 (amoeba_code_convention_v2 기준)
+## 코드 컨벤션 / Code Convention (amoeba_code_convention_v2 기준)
 
-### DB 네이밍 (MySQL 8.0) (MUST)
+### DB 네이밍 / DB Naming (MySQL 8.0) (MUST)
 | 유형 | 규칙 | 예시 |
 |------|------|------|
 | DB 이름 | `db_app_{slug}` | `db_app_car`, `db_app_platform` |
@@ -113,7 +113,7 @@ Infrastructure Layer (Repository Impl, External API, Cache, DB)
 | ENUM | 대문자 SCREAMING_SNAKE_CASE | `AVAILABLE`, `IN_USE` |
 | Index | `idx_{table}_{column(s)}` | `idx_car_vehicles_ent_status` |
 
-### Backend 규칙 (NestJS) (MUST)
+### Backend 규칙 / Backend Rules (NestJS) (MUST)
 
 **도메인 모듈 구조:**
 ```
@@ -147,7 +147,7 @@ domain/{name}/
 - static 메서드 패턴: `toResponse()`, `toListResponse()`
 - Entity 프로퍼티명 → Response camelCase 필드 변환
 
-### API 규칙 (MUST)
+### API 규칙 / API Rules (MUST)
 | 구분 | 케이스 | 예시 |
 |------|--------|------|
 | Base Path | `/api/v1` | `/api/v1/vehicles` |
@@ -158,7 +158,7 @@ domain/{name}/
 | Resource Segment | kebab-case | `/trip-logs/:id` |
 | 표준 응답 | `{ success, data, error?, timestamp }` | |
 
-### Frontend 규칙 (React) (MUST)
+### Frontend 규칙 / Frontend Rules (React) (MUST)
 1. **도메인 기반 모듈화** — 페이지/컴포넌트/훅/서비스를 도메인별 정리
 2. **UI, 로직, 데이터 패칭 분리** — 컴포넌트 내부 axios/fetch 직접 호출 금지 → Service 경유
 3. **모든 UI 텍스트 i18n 처리** — 컴포넌트 하드코딩 금지
@@ -172,7 +172,7 @@ domain/{name}/
 | 로컬 상태 | useState | 컴포넌트 전용 |
 | 폼 상태 | React Hook Form + Zod | 폼 검증 |
 
-### 파일 네이밍 (MUST)
+### 파일 네이밍 / File Naming (MUST)
 | 유형 | 규칙 | 예시 |
 |------|------|------|
 | 페이지 | PascalCase + `Page` | `VehicleListPage.tsx` |
@@ -189,11 +189,11 @@ domain/{name}/
 | Controller (BE) | `{domain}.controller.ts` | `vehicle.controller.ts` |
 | Module (BE) | `{domain}.module.ts` | `vehicle.module.ts` |
 
-### 에러 코드 체계
+### 에러 코드 체계 / Error Code System
 - 앱별 prefix: `CAR-E{4자리}`, `HSC-E{4자리}`, `SAL-E{4자리}`, `STK-E{4자리}`
 - 플랫폼: `PLT-E{4자리}`
 
-### 구현 체크리스트 (매 작업 시 확인)
+### 구현 체크리스트 / Implementation Checklist (매 작업 시 확인)
 
 **Backend:**
 - [ ] `@Auth()` 데코레이터 적용
@@ -216,14 +216,17 @@ domain/{name}/
 - [ ] `ent_id` FK 포함 (멀티테넌시)
 - [ ] Soft Delete `{prefix}_deleted_at`
 
-## 버그 리포트 규칙
-- "버그" 또는 "bug" 키워드가 포함된 요청 시:
-  1. 버그 원인 확인
-  2. 수정 방안 작성
-  3. `docs/bug-fix/BUG-{YYMMDD}-{버그제목}.md` 파일로 저장
-  4. 수정 후 커밋/배포
+## 버그 수정 워크플로우 / Bug Fix Workflow
+버그 수정 요청 시 아래 순서로 진행한다:
 
-## 주요 명령어
+1. **원인 분석 / Root Cause** — 에러 로그·재현 경로 기반 근본 원인 파악
+2. **해결 방안 제시 / Proposed Fix** — 수정 방법과 영향 범위 설명
+3. **코드 수정 / Implementation** — 원인에 맞는 최소 범위 수정 적용
+4. **버그 수정 보고서 / Fix Report** → `docs/bug-fix/FIX-{YYMMDD}-{버그제목}.md`
+   - 증상, 원인 분석, 수정 내용, 변경 파일 목록, 재발 방지 패턴
+5. **커밋/배포 / Commit & Deploy**
+
+## 주요 명령어 / Key Commands
 ```bash
 npm run dev          # Turborepo — 전체 앱 동시 실행
 npm run build        # 전체 빌드
@@ -231,7 +234,7 @@ npm run lint         # 린트 검사
 npm run format       # Prettier 포맷팅
 ```
 
-### 앱별 개발 서버 (apps/platform/ 기준)
+### 앱별 개발 서버 / Dev Server by App (apps/platform/ 기준)
 ```bash
 cd apps/platform/backend && npm run dev     # 백엔드 (포트 3100)
 cd apps/platform/frontend && npm run dev    # 프론트엔드 (포트 5200)
@@ -242,7 +245,7 @@ cd apps/platform/frontend && npm run dev    # 프론트엔드 (포트 5200)
 cd apps/platform && docker compose -f docker-compose.platform.yml up -d   # MySQL + 앱 컨테이너
 ```
 
-## 환경 변수
+## 환경 변수 / Environment Variables
 - 환경변수 템플릿: `apps/platform/.env.staging.example`
 - Staging: `.env` 파일 (git 미포함, 서버에 직접 관리)
 - 주요 변수:
@@ -252,9 +255,9 @@ cd apps/platform && docker compose -f docker-compose.platform.yml up -d   # MySQ
   - `VITE_API_BASE_URL=/api` (프론트엔드 빌드 시점 인라인)
   - `VITE_AMA_LOGIN_URL` (AMA 로그인 페이지)
 
-## Git 브랜치 전략
+## Git 브랜치 전략 / Git Branch Strategy
 
-### 브랜치 구조
+### 브랜치 구조 / Branch Structure
 | 브랜치 | 용도 | 배포 환경 | 보호 |
 |--------|------|-----------|------|
 | `production` | 프로덕션 릴리즈 | 프로덕션 서버 (AWS 싱가포르) | PR 필수, 1명 승인 |
@@ -262,18 +265,18 @@ cd apps/platform && docker compose -f docker-compose.platform.yml up -d   # MySQ
 | `feature/*` | 기능 개발 | 로컬 | - |
 | `hotfix/*` | 긴급 버그 수정 | - | - |
 
-### 개발 플로우
+### 개발 플로우 / Development Flow
 1. `main`에서 `feature/{이름}` 브랜치 생성
 2. 작업 완료 후 `main`으로 PR → Squash Merge
 3. 스테이징 테스트 후 `main` → `production` PR → Merge Commit
 4. Hotfix: `production`에서 분기 → `production` + `main` 둘 다 머지
 
-### 배포 원칙 (반드시 준수)
+### 배포 원칙 / Deployment Principles (반드시 준수 / MUST)
 - **스테이징 먼저**: 모든 배포는 반드시 스테이징(stg-apps.amoeba.site)에 먼저 배포
 - **프로덕션 직접 배포 금지**: 스테이징에서 테스트 완료된 사항만 프로덕션(apps.amoeba.site)에 배포
 - **플로우**: `git push main` → 스테이징 배포 → 테스트 → `main→production PR` → 프로덕션 배포
 
-### 커밋 메시지 규칙
+### 커밋 메시지 규칙 / Commit Message Rules
 ```
 {type}: {설명}
 
@@ -281,15 +284,15 @@ type: feat | fix | docs | style | refactor | test | chore | hotfix
 예: feat: 법인차량 등록 API 구현
 ```
 
-## 인프라 및 배포
+## 인프라 및 배포 / Infrastructure & Deployment
 
-### 서버 정보
+### 서버 정보 / Server Info
 | 환경 | 도메인 | IP | SSH | 프로젝트 경로 |
 |------|--------|-----|-----|------------|
 | **스테이징** | `stg-apps.amoeba.site` | `14.161.40.143` | `ssh ambAppStore@stg-apps.amoeba.site` | `~/ambAppStore` |
 | **프로덕션** | `apps.amoeba.site` | `18.138.206.18` (AWS) | `ssh amoeba-shop` | `/var/www/apps_amoeba` |
 
-### 환경별 접속 정보
+### 환경별 접속 정보 / Environment Access Info
 | 환경 | Web | API | DB |
 |------|-----|-----|----|
 | **개발** | http://localhost:5200 | http://localhost:3100 | localhost:3306 (MySQL) |
@@ -306,7 +309,7 @@ type: feat | fix | docs | style | refactor | test | chore | hotfix
 | `/app-sales-report/*` | 별도 BFF (3103) | 매출리포트 앱 |
 | `/app-stock-management/*` | 별도 BFF (3104) | 재고관리 앱 |
 
-### 배포
+### 배포 / Deployment
 ```bash
 # 스테이징 배포 (SSH → 서버에서 실행)
 ssh ambAppStore@stg-apps.amoeba.site "cd ~/ambAppStore && git pull origin main && bash platform/scripts/deploy-staging.sh"
@@ -324,28 +327,29 @@ ssh ambAppStore@stg-apps.amoeba.site "cd ~/ambAppStore && bash platform/scripts/
 - **금지**: 프로덕션 서버에 직접 배포 금지 → 반드시 스테이징 먼저
 - **VITE 변수**: `VITE_*` 환경변수는 빌드 시점 인라인이므로 변경 시 이미지 재빌드 필수
 
-## 요구사항 작업 워크플로우
+## 요구사항 작업 워크플로우 / Requirements Workflow
 `[요구사항]` 타이틀로 요청된 건은 반드시 아래 순서로 진행한다:
 
-### 문서 파일명 규칙
-| 문서 유형 | 파일명 패턴 | 저장 경로 |
+### 문서 파일명 규칙 / Document Naming Rules
+| 문서 유형 / Type | 파일명 패턴 / Pattern | 저장 경로 / Path |
 |-----------|------------|----------|
-| 요구사항분석서 | `REQ-{YYYYMMDD}-{제목}.md` | `docs/analysis/` |
-| 작업계획서 | `PLAN-{YYYYMMDD}-{제목}.md` | `docs/plan/` |
-| 테스트케이스 | `TC-{YYYYMMDD}-{제목}.md` | `docs/test/` |
-| 테스트완료보고서 | `TR-{YYYYMMDD}-{제목}.md` | `docs/test/` |
-| 작업완료보고서 | `RPT-{YYYYMMDD}-{제목}.md` | `docs/implementation/` |
+| 요구사항분석서 / Requirements | `REQ-{YYMMDD}-{work title}.md` | `docs/analysis/` |
+| 작업계획서 / Work Plan | `PLN-{YYMMDD}-{work title}.md` | `docs/plan/` |
+| 테스트케이스 / Test Case | `TC-{YYMMDD}-{work title}.md` | `docs/test/` |
+| 테스트완료보고서 / Test Report | `TR-{YYMMDD}-{work title}.md` | `docs/test/` |
+| 작업완료보고서 / Work Report | `RPT-{YYMMDD}-{work title}.md` | `docs/implementation/` |
 
-### 워크플로우 순서 (반드시 순서 엄수, 단계 건너뛰기 금지)
-1. **요구사항분석서** → `docs/analysis/REQ-{YYYYMMDD}-{제목}.md`
-2. **작업계획서** → `docs/plan/PLAN-{YYYYMMDD}-{제목}.md`
-3. **테스트케이스** → `docs/test/TC-{YYYYMMDD}-{제목}.md`
-4. **구현** → 작업계획서에 따른 코드 구현
-5. **테스트 수행** → 테스트케이스 기반 검증
-6. **테스트완료보고서** → `docs/test/TR-{YYYYMMDD}-{제목}.md`
-7. **작업완료보고서** → `docs/implementation/RPT-{YYYYMMDD}-{제목}.md`
+### 워크플로우 순서 / Workflow Order (반드시 순서 엄수, 단계 건너뛰기 금지 / MUST follow in order)
+1. **요구사항분석서 / Requirements** → `docs/analysis/REQ-{YYMMDD}-{work title}.md`
+2. **작업계획서 / Work Plan** → `docs/plan/PLN-{YYMMDD}-{work title}.md`
+3. **테스트케이스 / Test Case** → `docs/test/TC-{YYMMDD}-{work title}.md`
+   - **⚠️ 사용자 승인 게이트 / User Approval Gate**: 1~3단계(분석/계획/TC) 완료 후 **반드시 사용자 확인 및 진행 지시를 받은 뒤에** 구현 단계로 넘어간다. 자동으로 구현을 시작하지 않는다. 사용자가 "진행해", "구현해" 등 명시적 지시를 해야만 코드 구현을 시작한다.
+4. **구현 / Implementation** → 작업계획서에 따른 코드 구현 (사용자 진행 지시 후)
+5. **테스트 수행 / Testing** → 테스트케이스 기반 검증
+6. **테스트완료보고서 / Test Report** → `docs/test/TR-{YYMMDD}-{work title}.md`
+7. **작업완료보고서 / Work Report** → `docs/implementation/RPT-{YYMMDD}-{work title}.md`
 
-### 요구사항분석서 필수 섹션 (순서 엄수)
+### 요구사항분석서 필수 섹션 / Requirements Doc Required Sections (순서 엄수)
 > **특징**: 관련 기존 코드·DB 스키마·API를 반드시 탐색한 후 **정확한 현황 기반**으로 작성
 
 | # | 섹션 | 내용 |
@@ -357,7 +361,7 @@ ssh ambAppStore@stg-apps.amoeba.site "cd ~/ambAppStore && bash platform/scripts/
 | 5 | 사용자 플로우 | Step-by-Step 시나리오, 조건별 분기 (ASCII 흐름도) |
 | 6 | 기술 제약사항 | 호환성, 성능, 보안 (GDPR 등) |
 
-### 작업계획서 필수 섹션 (순서 엄수)
+### 작업계획서 필수 섹션 / Work Plan Required Sections (순서 엄수)
 
 | # | 섹션 | 내용 |
 |---|------|------|
@@ -367,11 +371,11 @@ ssh ambAppStore@stg-apps.amoeba.site "cd ~/ambAppStore && bash platform/scripts/
 | 4 | 사이드 임팩트 분석 | 영향 범위 테이블 (범위×위험도×설명) |
 | 5 | DB 마이그레이션 | 필요 시 수동 SQL 명시 (스테이징/프로덕션은 synchronize 비활성) |
 
-## 대화 기록 및 데일리 리포트
+## 대화 기록 및 데일리 리포트 / Conversation Log & Daily Report
 
 세션 간 작업 연속성을 위해 모든 대화 내용을 로컬에 기록한다.
 
-### 대화 로그 기록
+### 대화 로그 기록 / Conversation Log
 - **경로**: `docs/log/YYYY-MM-DD/`
 - **파일명**: `{HH}_{순번}_{작업요약}.md` (예: `14_01_차량관리앱구현.md`)
 - **기록 시점**: 세션 시작 시 자동으로 로그 파일을 생성하고, 주요 작업 단위마다 기록을 갱신한다
@@ -383,7 +387,7 @@ ssh ambAppStore@stg-apps.amoeba.site "cd ~/ambAppStore && bash platform/scripts/
   - 미완료 항목 (다음 세션에서 이어갈 내용)
 - **git 제외**: `docs/log/` 폴더는 `.gitignore`에 등록되어 git에 동기화하지 않음
 
-### 데일리 작업 리포트
+### 데일리 작업 리포트 / Daily Work Report
 - **경로**: `docs/log/YYYY-MM-DD/DAILY-REPORT.md`
 - **생성 시점**: 해당 날짜의 마지막 세션 종료 시 또는 사용자 요청 시
 - **내용**: 당일 모든 세션의 작업 내용을 통합 요약
@@ -392,9 +396,19 @@ ssh ambAppStore@stg-apps.amoeba.site "cd ~/ambAppStore && bash platform/scripts/
   - 배포 상태
   - 미해결 이슈 / 다음 작업 예정
 
-## i18n 규칙
+## i18n 규칙 / i18n Rules
 - 프론트엔드 UI 텍스트는 반드시 번역 파일(`locales/`)을 사용하고, 컴포넌트에 직접 하드코딩 금지
 - 번역 키는 `useTranslation()` 훅의 `t()` 함수로 사용
 - 새 네임스페이스 추가 시 `i18n.ts`에 등록 필요
 - 번역 3개 언어: ko / en / vi
 - 백엔드 에러 메시지는 영어 고정 (프론트에서 에러 코드 기반 번역)
+- AI 에이전트 응답 언어는 `Accept-Language` 헤더로 제어
+
+## UX 규칙: 버튼 동작 피드백 필수 / UX Rule: Button Action Feedback (MUST)
+- **모든 버튼 동작 후 반드시 모달(`AlertModal`)로 결과 안내 표시**
+  - 성공 시: 성공 안내 모달 (자동 닫힘 3초)
+  - 실패 시: 에러 상세 메시지 모달 (수동 닫기)
+- 버튼 클릭 후 진행 상태 안내가 없으면 사용자가 중복 클릭하거나 동작 실패로 오해함
+- 사용 컴포넌트: `@/components/ui/AlertModal`
+- 모달 상태 관리: `ModalState` 인터페이스 (`{ isOpen, type, title, message }`)
+- 모달 텍스트는 반드시 i18n 키 사용 (`modal_*` prefix)

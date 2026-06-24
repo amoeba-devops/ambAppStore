@@ -1,0 +1,63 @@
+{
+  "progress": {
+    "title": "Đang tra cứu mã HS",
+    "steps": {
+      "normalize": "1. Chuẩn hóa & tạo hash",
+      "internal": "2. Khớp ERP nội bộ",
+      "external": "3. Tra cứu dữ liệu chính thức",
+      "ai": "4. Gọi đề xuất AI",
+      "rank": "5. Xếp hạng & áp dụng quy tắc thuế"
+    },
+    "status": {
+      "wait": "Đang chờ",
+      "running": "Đang chạy",
+      "done": "Xong",
+      "skipped": "Bỏ qua",
+      "error": "Thất bại"
+    },
+    "warning": {
+      "external_degraded": "Adapter ngoại bị suy giảm — fallback cache (độ tin cậy -0,2)",
+      "ai_disabled": "AI thất bại — chỉ dùng dữ liệu ngoại",
+      "ai_hallucinated": "AI đề xuất mã không có trong ngữ cảnh — đã loại ({{count}})",
+      "skipped_external": "Nội bộ đủ tin cậy — đã bỏ qua ngoại / AI",
+      "no_adapter": "Không có adapter cho quốc gia nhập đã chọn"
+    },
+    "start": "Bắt đầu khớp",
+    "view_candidates": "Xem đề xuất"
+  },
+  "candidates": {
+    "title": "Đề xuất mã HS",
+    "subtitle": "{{exportCountry}} → {{importCountry}}",
+    "rank_label": "Hạng {{rank}}",
+    "confidence": "Độ tin cậy",
+    "basic_tariff": "Thuế cơ bản",
+    "fta_tariff": "Thuế FTA",
+    "fta_agreement": "Hiệp định",
+    "source": "Nguồn",
+    "past_adoption": "Đã áp dụng x {{count}}",
+    "no_past_adoption": "Chưa áp dụng trước đây",
+    "ai_reasoning": "Lý giải AI",
+    "citations": "Trích dẫn nguồn",
+    "select": "Chọn",
+    "selected": "Đã chọn",
+    "rationale_required": "Khác với lần áp dụng trước — vui lòng nhập lý do (bắt buộc khi xác nhận ở Phase 4)",
+    "rationale_placeholder": "Lý do chọn (ví dụ: áp dụng chính sách mới / ngoại lệ một lần)",
+    "empty": "Không có đề xuất",
+    "flag": {
+      "conservative": "Áp dụng thuế suất bảo thủ",
+      "sample_recommended": "Đề nghị phân tích mẫu",
+      "sample_required": "Yêu cầu phân tích mẫu",
+      "disputed_history": "Có lịch sử tranh chấp"
+    },
+    "source_label": {
+      "INTERNAL": "Nội bộ",
+      "EXTERNAL": "Ngoại",
+      "AI": "AI",
+      "MIXED": "Kết hợp"
+    },
+    "confirm_disabled_hint": "Xác nhận sẽ được bật ở Phase 4 — màn hình hiện tại chỉ *hiển thị*"
+  },
+  "modal": {
+    "no_items": "Inquiry này chưa có item — vui lòng hoàn tất bước nhập trước"
+  }
+}

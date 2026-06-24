@@ -1,0 +1,48 @@
+/**
+ * HS Code Manager 에러 코드 체계 — HSC-E{4자리}
+ * 코드 대역:
+ *   E01XX  인증/권한
+ *   E02XX  마스터 데이터 (수입국/수출국/Exporter/FTA)
+ *   E03XX  Inquiry / Intake
+ *   E04XX  Classification / 컨펌
+ *   E05XX  Verification
+ *   E06XX  Expert Review / Escalation
+ *   E07XX  Admin / Policy
+ *   E08XX  외부 어댑터 / AI
+ *   E99XX  시스템
+ */
+export const HscodeErrorCode = {
+  // 인증/권한
+  AUTH_UNAUTHORIZED: 'HSC-E0101',
+  AUTH_TOKEN_EXPIRED: 'HSC-E0102',
+  AUTH_TOKEN_TAMPERED: 'HSC-E0103',
+  AUTH_INSUFFICIENT_ROLE: 'HSC-E0104',
+  AUTH_ENTITY_SCOPE_REQUIRED: 'HSC-E0105',
+
+  // 마스터 데이터
+  COUNTRY_DUPLICATE_CODE: 'HSC-E0201',
+  COUNTRY_INVALID_STATUS_TRANSITION: 'HSC-E0210',
+  COUNTRY_ADAPTER_NOT_REGISTERED: 'HSC-E0211',
+  EXPORTER_NOT_FOUND: 'HSC-E0220',
+  FTA_DUPLICATE_KEY: 'HSC-E0230',
+
+  // Inquiry / Intake
+  INQUIRY_NOT_SUPPORTED_COUNTRY: 'HSC-E0301',
+  INQUIRY_INVALID_STATUS_TRANSITION: 'HSC-E0310',
+  INTAKE_CAS_SUM_OUT_OF_RANGE: 'HSC-E0320',
+  INTAKE_PHOTO_REQUIRED: 'HSC-E0321',
+  INTAKE_EXCEL_ROW_LIMIT: 'HSC-E0330',
+  INTAKE_EXCEL_MISSING_COLUMNS: 'HSC-E0331',
+  INTAKE_EXCEL_FORMAT: 'HSC-E0332',
+
+  // Classification
+  CLASSIFICATION_RATIONALE_REQUIRED: 'HSC-E0401',
+  CLASSIFICATION_IMMUTABLE: 'HSC-E0410',
+  CLASSIFICATION_DUPLICATE: 'HSC-E0420',
+
+  // 시스템
+  INTERNAL_ERROR: 'HSC-E9999',
+} as const;
+
+export type HscodeErrorCodeType =
+  (typeof HscodeErrorCode)[keyof typeof HscodeErrorCode];

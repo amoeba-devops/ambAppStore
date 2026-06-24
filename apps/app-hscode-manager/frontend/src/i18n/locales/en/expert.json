@@ -1,0 +1,70 @@
+{
+  "queue": {
+    "title": "Escalation queue (Expert review)",
+    "subtitle": "{{role}} — assigned to you",
+    "verdict_filter": "Status",
+    "verdict": {
+      "PENDING": "Pending",
+      "APPROVE": "Approved",
+      "REVISE": "Revise",
+      "REJECT": "Rejected"
+    },
+    "role": {
+      "EXPERT_LOCAL": "Local expert (Mr. Nguyen)",
+      "EXPERT_INTERNAL": "Internal expert (Ms. Hau)"
+    },
+    "columns": {
+      "requested_at": "Requested",
+      "route": "Export→Import",
+      "hs": "HS Code",
+      "item": "Item",
+      "triggers": "Triggers",
+      "verdict": "Status"
+    },
+    "trigger": {
+      "LOW_CONFIDENCE": "Low confidence",
+      "MULTIPLE_CANDIDATES": "Multiple candidates",
+      "PROHIBITED_KEYWORD": "Prohibited keyword",
+      "PAST_SEIZURE": "Past seizure",
+      "CUSTOMER_REQUEST": "Customer request",
+      "AMOUNT_THRESHOLD": "Amount threshold",
+      "OTHER_CATEGORY": "Other category",
+      "CUSTOMS_SEIZURE_AUTO": "Seizure auto-trigger"
+    },
+    "empty": "No pending reviews"
+  },
+  "detail": {
+    "title": "Expert Review",
+    "back": "Back to queue",
+    "context": {
+      "title": "Classification context",
+      "hs": "HS Code",
+      "item": "Item",
+      "category": "Category",
+      "import": "Import",
+      "export": "Export"
+    },
+    "triggers_title": "Triggered",
+    "trigger_notes": "Trigger detail notes (auto-generated)",
+    "respond": {
+      "title": "Respond",
+      "verdict": "Verdict",
+      "verdict_options": {
+        "APPROVE": "Approve",
+        "REVISE": "Revise",
+        "REJECT": "Reject"
+      },
+      "verdict_hint": {
+        "APPROVE": "Keep classification — Inquiry returns to RESPONDED if no other pending reviews",
+        "REVISE": "Re-confirm required — Inquiry returns to MATCHING",
+        "REJECT": "Rejected — classification DISPUTED + Inquiry DISPUTED"
+      },
+      "notes": "Reply notes",
+      "submit": "Submit reply"
+    },
+    "modal": {
+      "responded": "Reply submitted",
+      "already_resolved": "This review is already resolved"
+    }
+  }
+}
