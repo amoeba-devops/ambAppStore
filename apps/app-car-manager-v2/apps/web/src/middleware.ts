@@ -55,6 +55,11 @@ const IS_PROD = process.env.NODE_ENV === 'production';
  * through. Same idea for `/trips/new`. */
 function isDriverAllowed(pathname: string): boolean {
   if (pathname === '/today') return true;
+  /* Truck driver flow (REQ-20260623): both driver-facing truck screens live
+   * under /today/* — self-service trip creation at /today/truck/new and the
+   * real-time stop-update at /today/truck/:id. The /truck/* subtree stays
+   * manager-only (its layout redirects drivers to /today anyway). */
+  if (pathname.startsWith('/today/')) return true;
   if (pathname === '/trips') return true;
   if (pathname.startsWith('/trips/')) {
     if (pathname === '/trips/new') return false;

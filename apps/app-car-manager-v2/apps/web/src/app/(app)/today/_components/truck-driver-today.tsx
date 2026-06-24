@@ -26,7 +26,7 @@ export async function TruckDriverToday({
     <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-base font-semibold text-text">{t('title')}</h1>
-        <Link href="/truck/trips/new">
+        <Link href="/today/truck/new">
           <Button variant="accent" size="sm" className="gap-1.5">
             <Plus className="h-3.5 w-3.5" />
             {t('newTrip')}

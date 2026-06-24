@@ -59,7 +59,7 @@ export default async function EditTruckTripPage({ params }: { params: Promise<{ 
         ]}
         back={`/truck/trips/${trip.trpId}`}
       />
-      <div className="px-4 md:px-7 py-4 md:py-6 max-w-3xl mx-auto md:mx-0 w-full">
+      <div className="px-4 md:px-7 py-4 md:py-6 max-w-7xl mx-auto w-full">
         <TruckTripForm
           vehicles={vehicleOptions}
           drivers={driverOptions}

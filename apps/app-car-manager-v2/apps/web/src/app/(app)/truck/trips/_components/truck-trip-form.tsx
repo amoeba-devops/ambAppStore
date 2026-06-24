@@ -3,29 +3,26 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Loader2, Save } from 'lucide-react';
+import { ClipboardList, FileText, Loader2, Plus, Route, Save, Truck, User, Wallet } from 'lucide-react';
 import {
   Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardHeaderText,
-  CardTitle,
   Input,
-  Label,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Switch,
+  Tabs,
+  TabsList,
+  TabsTrigger,
   toast,
 } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { createTruckTripAction, updateTruckTripAction } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
+import { FormField } from '@/components/forms/form-section';
 import { StopBuilder, makeDefaultStops, type StopField } from './stop-builder';
-import type { CarTripStopover } from '@car-v2/db/schema';
+import type { CarStopType, CarTripStopover } from '@car-v2/db/schema';
 
 export interface OptionItem {
   id: string;
@@ -119,6 +116,15 @@ export function TruckTripForm({
 
   const isDriver = role === 'DRIVER';
 
+  /* Optional fields stay collapsed by default to keep the form light — they
+   * auto-expand on edit when the trip already carries that data. */
+  const [showDocs, setShowDocs] = useState(
+    () => !!(initial?.customer || initial?.bol || initial?.cdf),
+  );
+  const [showOther, setShowOther] = useState(
+    () => !!(initial?.otherAmount || initial?.otherNote),
+  );
+
   const set =
     (k: keyof typeof EMPTY_FIELDS) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -131,7 +137,7 @@ export function TruckTripForm({
     const other = Math.round(numF(f.otherAmount) ?? 0);
     const revenue = Math.round(numF(f.revenue) ?? 0);
     const totalCost = fuelCost + toll + other;
-    return { fuelCost, totalCost, profit: revenue - totalCost };
+    return { fuelCost, totalCost, revenue, profit: revenue - totalCost };
   }, [f.fuelLiters, f.fuelPrice, f.toll, f.otherAmount, f.revenue]);
 
   /* Extract pickup/dropoff from stops for the API (summary + notification). */
@@ -146,6 +152,14 @@ export function TruckTripForm({
     stops.filter((s) => s.type === 'WAYPOINT').every((s) => s.address.trim() !== '');
 
   const dirty = f.vehicleId !== '' && (isDriver || f.driverId !== '') && stopsValid;
+
+  /* Derived summary data. */
+  const vehicleLabel = vehicles.find((v) => v.id === f.vehicleId)?.label ?? null;
+  const driverLabel = drivers.find((d) => d.id === f.driverId)?.label ?? null;
+  const kmNums = stops.map((s) => (s.km.trim() ? Number(s.km) : null));
+  const firstKm = kmNums.find((v) => v != null);
+  const lastKm = [...kmNums].reverse().find((v) => v != null);
+  const totalKm = firstKm != null && lastKm != null && lastKm > firstKm ? lastKm - firstKm : null;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,150 +209,166 @@ export function TruckTripForm({
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4">
-      {/* Trip info */}
-      <Card variant="elevated">
-        <CardHeader>
-          <CardHeaderText>
-            <CardTitle>{t('sectionTrip')}</CardTitle>
-          </CardHeaderText>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label={t('date')} required>
-            <Input type="date" value={f.scheduledAt} onChange={set('scheduledAt')} />
-          </Field>
-          <Field label={t('vehicle')} required>
-            <Select value={f.vehicleId} onValueChange={(v) => setF((s) => ({ ...s, vehicleId: v }))}>
-              <SelectTrigger>
-                <SelectValue placeholder={t('selectVehicle')} />
-              </SelectTrigger>
-              <SelectContent>
-                {vehicles.map((o) => (
-                  <SelectItem key={o.id} value={o.id}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          {!isDriver && (
-            <Field label={t('driver')} required>
-              <Select value={f.driverId} onValueChange={(v) => setF((s) => ({ ...s, driverId: v }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('selectDriver')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {drivers.map((o) => (
-                    <SelectItem key={o.id} value={o.id}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          )}
-          <Field label={t('customer')}>
-            <Input value={f.customer} onChange={set('customer')} />
-          </Field>
-          <Field label={t('bol')}>
-            <Input value={f.bol} onChange={set('bol')} />
-          </Field>
-          <Field label={t('cdf')}>
-            <Input value={f.cdf} onChange={set('cdf')} />
-          </Field>
-        </CardContent>
-      </Card>
-
-      {/* Route stops */}
-      <Card variant="elevated">
-        <CardHeader>
-          <CardHeaderText>
-            <CardTitle>{t('sectionRoute')}</CardTitle>
-          </CardHeaderText>
-        </CardHeader>
-        <CardContent>
-          <StopBuilder stops={stops} onChange={setStops} />
-        </CardContent>
-      </Card>
-
-      {/* Cost / completion */}
-      <Card variant="elevated">
-        <CardContent className="space-y-4">
-          {!isDriver && (
-            <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
-              <div className="min-w-0">
-                <div className="text-sm font-medium text-text">
-                  {markCompleted ? t('modeCompleted') : t('modeAssign')}
-                </div>
-                <div className="text-xs text-text-muted">
-                  {markCompleted ? t('modeCompletedHint') : t('modeAssignHint')}
-                </div>
-              </div>
-              <Switch checked={markCompleted} onCheckedChange={setMarkCompleted} />
-            </div>
-          )}
-
-          {(!isDriver && markCompleted) ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label={t('fuelLiters')}>
-                <Input type="number" step="0.01" value={f.fuelLiters} onChange={set('fuelLiters')} />
-              </Field>
-              <Field label={t('fuelPrice')}>
-                <Input type="number" value={f.fuelPrice} onChange={set('fuelPrice')} />
-              </Field>
-              <Field label={t('toll')}>
-                <Input type="number" value={f.toll} onChange={set('toll')} />
-              </Field>
-              <Field label={t('revenue')}>
-                <Input type="number" value={f.revenue} onChange={set('revenue')} />
-              </Field>
-              <Field label={t('otherAmount')}>
-                <Input type="number" value={f.otherAmount} onChange={set('otherAmount')} />
-              </Field>
-              <Field label={t('otherNote')}>
-                <Input value={f.otherNote} onChange={set('otherNote')} />
-              </Field>
-            </div>
-          ) : (!isDriver && !markCompleted) ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label={t('fuelPrice')}>
-                <Input type="number" value={f.fuelPrice} onChange={set('fuelPrice')} />
-              </Field>
-              <Field label={t('revenue')}>
-                <Input type="number" value={f.revenue} onChange={set('revenue')} />
-              </Field>
-            </div>
-          ) : (
-            /* Driver mode: operational costs only — no revenue */
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label={t('fuelLiters')}>
-                <Input type="number" step="0.01" value={f.fuelLiters} onChange={set('fuelLiters')} />
-              </Field>
-              <Field label={t('fuelPrice')}>
-                <Input type="number" value={f.fuelPrice} onChange={set('fuelPrice')} />
-              </Field>
-              <Field label={t('toll')}>
-                <Input type="number" value={f.toll} onChange={set('toll')} />
-              </Field>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Live profit preview — manager mark-completed mode only */}
-      {!isDriver && markCompleted && (
-        <div className="rounded-md border border-border bg-surface-2 p-4 grid grid-cols-3 gap-3 text-center">
-          <Metric label={t('previewFuelCost')} value={vnd(preview.fuelCost)} />
-          <Metric label={t('previewTotalCost')} value={vnd(preview.totalCost)} />
-          <Metric
-            label={t('previewProfit')}
-            value={vnd(preview.profit)}
-            tone={preview.profit >= 0 ? 'success' : 'danger'}
-          />
+    <form
+      onSubmit={submit}
+      className="space-y-4 lg:space-y-6 lg:[&_input]:h-11 lg:[&_input]:text-[15px] lg:[&_label]:text-[13px]"
+    >
+      {/* Record-type segmented control — manager only, drives the whole form. */}
+      {!isDriver && (
+        <div className="rounded-lg border border-border bg-surface p-4 lg:p-5">
+          <Tabs value={markCompleted ? 'log' : 'assign'} onValueChange={(v) => setMarkCompleted(v === 'log')}>
+            <TabsList className="w-full max-w-md">
+              <TabsTrigger value="assign" className="flex-1">{t('modeAssignShort')}</TabsTrigger>
+              <TabsTrigger value="log" className="flex-1">{t('modeCompletedShort')}</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <p className="mt-2 text-xs text-text-muted">
+            {markCompleted ? t('modeCompletedHint') : t('modeAssignHint')}
+          </p>
         </div>
       )}
 
-      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
+      <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_380px] xl:gap-10 xl:items-start">
+        {/* ── LEFT: form fields ── */}
+        <div className="min-w-0 space-y-4 lg:space-y-6 mb-5 xl:mb-0">
+          {/* Trip info */}
+          <SectionCard icon={<ClipboardList className="h-4 w-4" />} title={t('sectionTrip')}>
+            <div className={GRID}>
+              <FormField label={t('date')} required inline>
+                <Input type="date" value={f.scheduledAt} onChange={set('scheduledAt')} />
+              </FormField>
+              <FormField label={t('vehicle')} required inline>
+                <Select value={f.vehicleId} onValueChange={(v) => setF((s) => ({ ...s, vehicleId: v }))}>
+                  <SelectTrigger className="w-full lg:h-11 lg:text-[15px]">
+                    <SelectValue placeholder={t('selectVehicle')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vehicles.map((o) => (
+                      <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+              {!isDriver && (
+                <FormField label={t('driver')} required inline className="sm:col-span-2">
+                  <Select value={f.driverId} onValueChange={(v) => setF((s) => ({ ...s, driverId: v }))}>
+                    <SelectTrigger className="w-full lg:h-11 lg:text-[15px]">
+                      <SelectValue placeholder={t('selectDriver')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {drivers.map((o) => (
+                        <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+              )}
+            </div>
+          </SectionCard>
+
+          {/* Route — km inputs only when logging a completed trip. */}
+          <SectionCard icon={<Route className="h-4 w-4" />} title={t('sectionRoute')}>
+            <StopBuilder stops={stops} onChange={setStops} showKm={!isDriver && markCompleted} />
+          </SectionCard>
+
+          {/* Customer & documents — optional, collapsed by default. */}
+          {showDocs ? (
+            <SectionCard icon={<FileText className="h-4 w-4" />} title={t('sectionDocs')}>
+              <div className={GRID}>
+                <FormField label={t('customer')} inline>
+                  <Input value={f.customer} onChange={set('customer')} />
+                </FormField>
+                <FormField label={t('bol')} inline>
+                  <Input value={f.bol} onChange={set('bol')} />
+                </FormField>
+                <FormField label={t('cdf')} inline className="sm:col-span-2">
+                  <Input value={f.cdf} onChange={set('cdf')} />
+                </FormField>
+              </div>
+            </SectionCard>
+          ) : (
+            <DisclosureButton label={t('addDocs')} onClick={() => setShowDocs(true)} />
+          )}
+
+          {/* Costs — three role/mode shapes. */}
+          {isDriver ? (
+            <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionCost')}>
+              <div className={GRID}>
+                <FormField label={t('fuelLiters')} inline>
+                  <Input type="number" step="0.01" value={f.fuelLiters} onChange={set('fuelLiters')} />
+                </FormField>
+                <FormField label={t('fuelPrice')} inline>
+                  <Input type="number" value={f.fuelPrice} onChange={set('fuelPrice')} />
+                </FormField>
+                <FormField label={t('toll')} inline className="sm:col-span-2">
+                  <Input type="number" value={f.toll} onChange={set('toll')} />
+                </FormField>
+              </div>
+            </SectionCard>
+          ) : markCompleted ? (
+            <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionCostRevenue')}>
+              <div className={GRID}>
+                <FormField label={t('fuelLiters')} inline>
+                  <Input type="number" step="0.01" value={f.fuelLiters} onChange={set('fuelLiters')} />
+                </FormField>
+                <FormField label={t('fuelPrice')} inline>
+                  <Input type="number" value={f.fuelPrice} onChange={set('fuelPrice')} />
+                </FormField>
+                <FormField label={t('toll')} inline>
+                  <Input type="number" value={f.toll} onChange={set('toll')} />
+                </FormField>
+                <FormField label={t('revenue')} inline>
+                  <Input type="number" value={f.revenue} onChange={set('revenue')} />
+                </FormField>
+                {showOther ? (
+                  <>
+                    <FormField label={t('otherAmount')} inline>
+                      <Input type="number" value={f.otherAmount} onChange={set('otherAmount')} />
+                    </FormField>
+                    <FormField label={t('otherNote')} inline>
+                      <Input value={f.otherNote} onChange={set('otherNote')} />
+                    </FormField>
+                  </>
+                ) : (
+                  <div className="flex items-end sm:col-span-2">
+                    <DisclosureButton label={t('addOtherCost')} onClick={() => setShowOther(true)} bare />
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          ) : (
+            <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionPlan')} hint={t('sectionPlanHint')}>
+              <div className={GRID}>
+                <FormField label={t('fuelPrice')} inline>
+                  <Input type="number" value={f.fuelPrice} onChange={set('fuelPrice')} />
+                </FormField>
+                <FormField label={t('revenue')} inline>
+                  <Input type="number" value={f.revenue} onChange={set('revenue')} />
+                </FormField>
+              </div>
+            </SectionCard>
+          )}
+        </div>
+
+        {/* ── RIGHT: live summary (sticky 2-col on wide screens, stacks below otherwise) ── */}
+        <aside className="xl:sticky xl:top-4">
+          <TripSummary
+            t={t}
+            stops={stops}
+            vehicleLabel={vehicleLabel}
+            driverLabel={isDriver ? null : driverLabel}
+            totalKm={totalKm}
+            showProfit={!isDriver && markCompleted}
+            showCostOnly={isDriver}
+            revenue={preview.revenue}
+            totalCost={preview.totalCost}
+            profit={preview.profit}
+          />
+        </aside>
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-border">
         <Button
           type="button"
           variant="ghost"
@@ -349,13 +379,7 @@ export function TruckTripForm({
         >
           {t('cancel')}
         </Button>
-        <Button
-          type="submit"
-          variant="accent"
-          size="lg"
-          disabled={pending || !dirty}
-          className="w-full sm:w-auto"
-        >
+        <Button type="submit" variant="accent" size="lg" disabled={pending || !dirty} className="w-full sm:w-auto">
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           {t('save')}
         </Button>
@@ -364,29 +388,159 @@ export function TruckTripForm({
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+const GRID = 'grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-3 lg:gap-y-4';
+
+/** Titled white card with an accent icon — the visual unit of the form. */
+function SectionCard({
+  icon,
+  title,
+  hint,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div>
-      <Label>
-        {label} {required && <span className="text-danger">*</span>}
-      </Label>
-      <div className="mt-1.5">{children}</div>
+    <section className="rounded-lg border border-border bg-surface p-4 lg:p-6">
+      <div className="mb-4 flex items-baseline gap-2">
+        <span className="text-accent translate-y-0.5 [&_svg]:h-5 [&_svg]:w-5">{icon}</span>
+        <h3 className="text-sm lg:text-base font-medium text-text">{title}</h3>
+        {hint && <span className="text-xs text-text-faint">· {hint}</span>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** Ghost "+ add" affordance that reveals an optional field group. `bare` drops
+ * the card border (used inline inside another section). */
+function DisclosureButton({ label, onClick, bare }: { label: string; onClick: () => void; bare?: boolean }) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      onClick={onClick}
+      className={
+        'h-9 gap-1.5 text-xs text-text-muted hover:text-text ' +
+        (bare ? '' : 'w-full justify-start rounded-lg border border-dashed border-border-strong')
+      }
+    >
+      <Plus className="h-3.5 w-3.5" />
+      {label}
+    </Button>
+  );
+}
+
+const DOT_COLOR: Record<CarStopType, string> = {
+  ORIGIN: 'bg-accent',
+  PICKUP: 'bg-warning',
+  DELIVERY: 'bg-success',
+  WAYPOINT: 'bg-text-faint',
+  RETURN: 'bg-accent',
+};
+
+/** Live trip summary — route preview, distance, and the money story. */
+function TripSummary({
+  t,
+  stops,
+  vehicleLabel,
+  driverLabel,
+  totalKm,
+  showProfit,
+  showCostOnly,
+  revenue,
+  totalCost,
+  profit,
+}: {
+  t: (key: string) => string;
+  stops: StopField[];
+  vehicleLabel: string | null;
+  driverLabel: string | null;
+  totalKm: number | null;
+  showProfit: boolean;
+  showCostOnly: boolean;
+  revenue: number;
+  totalCost: number;
+  profit: number;
+}) {
+  const filled = stops.filter((s) => s.address.trim() !== '');
+  const hasChips = !!vehicleLabel || !!driverLabel;
+
+  return (
+    <div className="rounded-lg border border-border bg-surface p-4 lg:p-5 space-y-3.5">
+      <div className="text-sm lg:text-base font-medium text-text">{t('summaryTitle')}</div>
+
+      {/* Route preview */}
+      {filled.length > 0 ? (
+        <ul className="space-y-2">
+          {filled.map((s) => (
+            <li key={s.id} className="flex items-center gap-2.5 text-sm">
+              <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${DOT_COLOR[s.type]}`} />
+              <span className="truncate text-text-muted">{s.address.trim()}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-text-faint">{t('summaryEmpty')}</p>
+      )}
+
+      {/* Vehicle / driver chips */}
+      {hasChips && (
+        <div className="flex flex-wrap gap-1.5">
+          {vehicleLabel && <Chip icon={<Truck className="h-3 w-3" />} text={vehicleLabel} />}
+          {driverLabel && <Chip icon={<User className="h-3 w-3" />} text={driverLabel} />}
+        </div>
+      )}
+
+      {/* Stats */}
+      {(totalKm != null || showProfit || showCostOnly) && (
+        <div className="border-t border-border pt-3 space-y-2">
+          {totalKm != null && (
+            <StatRow label={t('stops.totalDistance')} value={`${totalKm.toLocaleString('vi-VN')} km`} />
+          )}
+          {showProfit && (
+            <>
+              <StatRow label={t('revenue')} value={vnd(revenue)} />
+              <StatRow label={t('previewTotalCost')} value={vnd(totalCost)} />
+              <div
+                className={
+                  'mt-1.5 flex items-center justify-between rounded-md px-3.5 py-3 ' +
+                  (profit >= 0 ? 'bg-success-soft' : 'bg-danger-soft')
+                }
+              >
+                <span className={'text-sm ' + (profit >= 0 ? 'text-success' : 'text-danger')}>
+                  {t('previewProfit')}
+                </span>
+                <span className={'text-xl font-bold tabular ' + (profit >= 0 ? 'text-success' : 'text-danger')}>
+                  {vnd(profit)}
+                </span>
+              </div>
+            </>
+          )}
+          {showCostOnly && <StatRow label={t('previewTotalCost')} value={vnd(totalCost)} />}
+        </div>
+      )}
     </div>
   );
 }
 
-function Metric({ label, value, tone }: { label: string; value: string; tone?: 'success' | 'danger' }) {
+function Chip({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div>
-      <div className="text-xs text-text-faint">{label}</div>
-      <div
-        className={
-          'mt-0.5 text-sm font-bold tabular ' +
-          (tone === 'success' ? 'text-success' : tone === 'danger' ? 'text-danger' : 'text-text')
-        }
-      >
-        {value}
-      </div>
+    <span className="inline-flex items-center gap-1 rounded-md bg-surface-2 px-2 py-1 text-xs text-text-muted max-w-full">
+      <span className="shrink-0">{icon}</span>
+      <span className="truncate">{text}</span>
+    </span>
+  );
+}
+
+function StatRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-text-muted">{label}</span>
+      <span className="tabular text-text">{value}</span>
     </div>
   );
 }

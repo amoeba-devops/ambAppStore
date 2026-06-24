@@ -48,9 +48,13 @@ export function makeDefaultStops(depotAddress?: string | null): StopField[] {
 interface StopBuilderProps {
   stops: StopField[];
   onChange: (stops: StopField[]) => void;
+  /** Show the per-stop odometer (km) input + total-distance preview. Only
+   * meaningful when recording a finished trip — hidden while planning a trip
+   * so the route stays a clean list of addresses. */
+  showKm?: boolean;
 }
 
-export function StopBuilder({ stops, onChange }: StopBuilderProps) {
+export function StopBuilder({ stops, onChange, showKm = false }: StopBuilderProps) {
   const t = useTranslations('screens.truckTrips.form.stops');
 
   const update = (id: string, patch: Partial<StopField>) =>
@@ -138,17 +142,19 @@ export function StopBuilder({ stops, onChange }: StopBuilderProps) {
                 required={stop.type === 'PICKUP' || stop.type === 'DELIVERY'}
               />
 
-              {/* Odometer */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-text-faint shrink-0 w-24">{t('km')}</span>
-                <Input
-                  type="number"
-                  value={stop.km}
-                  onChange={(e) => update(stop.id, { km: e.target.value })}
-                  placeholder="—"
-                  className="text-sm w-36 h-8"
-                />
-              </div>
+              {/* Odometer — only when recording a finished trip. */}
+              {showKm && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-text-faint shrink-0 w-24">{t('km')}</span>
+                  <Input
+                    type="number"
+                    value={stop.km}
+                    onChange={(e) => update(stop.id, { km: e.target.value })}
+                    placeholder="—"
+                    className="text-sm w-36 h-8"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Remove button — middle stops only */}
@@ -187,7 +193,7 @@ export function StopBuilder({ stops, onChange }: StopBuilderProps) {
       )}
 
       {/* Total distance preview */}
-      {totalKm != null && (
+      {showKm && totalKm != null && (
         <div className="pl-9 pt-2">
           <div className="inline-flex items-center gap-2 rounded-md bg-surface-2 border border-border px-3 py-1.5 text-sm">
             <span className="text-text-muted">{t('totalDistance')}</span>
