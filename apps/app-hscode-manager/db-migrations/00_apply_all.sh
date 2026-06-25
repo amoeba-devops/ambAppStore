@@ -87,6 +87,12 @@ if [ "${SEED_DEMO_DATA:-false}" = "true" ]; then
   mysql_exec "$SCRIPT_DIR/seed-phase3-authority-extended.sql"
 fi
 
+# Phase 4a — Base entity tables (classifications / verification_events / expert_reviews)
+# These are declared by TypeORM entities but were missing from migrations (only
+# created via synchronize in dev). Must exist before the Phase 4/5 ALTERs.
+log "=== Phase 4a: base entity tables ==="
+mysql_exec "$SCRIPT_DIR/2026-05-13_phase4a_base-entity-tables.sql"
+
 # Phase 4 — Classification + Audit
 # ALTER 는 컬럼 존재 검증 후 적용 (idempotent 보장)
 log "=== Phase 4: ALTER classifications ==="
