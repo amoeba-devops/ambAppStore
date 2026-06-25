@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { neon } from '@neondatabase/serverless';
 import { mapAmaRoleToLocal } from '@car-v2/shared/auth';
 import { verifyAmaJwt } from '@/lib/auth/verify-jwt';
 import { absoluteUrl } from '@/lib/request-origin';
@@ -85,6 +86,48 @@ const cookieAttrs = {
   path: '/',
 };
 
+/* Department (fleet) gate for MANAGER — which fleet a path belongs to.
+ * Enforced HERE in middleware (hard 307) because RSC layout/page redirect() is
+ * unreliable under streaming (see (app)/layout.tsx note + truck/layout.tsx).
+ * ADMIN bypasses (both fleets); DRIVER is already deflected by isDriverAllowed.
+ *
+ * Shared resource pages — /drivers/:id detail + edit — are intentionally NOT
+ * gated: the truck roster links its drivers to the shared /drivers/:id surface.
+ * Only the CAR roster *list* (/drivers, /drivers/new) is CAR-scoped. */
+function requiredFleet(pathname: string): 'CAR' | 'TRUCK' | null {
+  if (pathname === '/truck' || pathname.startsWith('/truck/')) return 'TRUCK';
+  if (pathname === '/drivers' || pathname === '/drivers/new') return 'CAR';
+  if (
+    pathname === '/dashboard' || pathname.startsWith('/dashboard/') ||
+    pathname === '/trips' || pathname.startsWith('/trips/') ||
+    pathname === '/vehicles' || pathname.startsWith('/vehicles/') ||
+    pathname === '/costs' || pathname.startsWith('/costs/') ||
+    pathname === '/reports' || pathname.startsWith('/reports/')
+  ) {
+    return 'CAR';
+  }
+  return null;
+}
+
+/* Live TRUCK/CAR memberships for a user. Lightweight raw query (no Drizzle) so
+ * it stays edge-bundle-safe. Fail-open on misconfig/transient error: never lock
+ * a manager out of their own workspace over a blip — data stays ent-scoped. */
+async function managerFleets(entId: string, userId: string): Promise<string[]> {
+  const url = process.env.DATABASE_URL;
+  if (!url) return ['CAR', 'TRUCK'];
+  try {
+    const sql = neon(url);
+    const rows = (await sql`
+      SELECT ufa_vehicle_type AS t
+      FROM car_user_fleet_access
+      WHERE ent_id = ${entId} AND usr_id = ${userId} AND ufa_deleted_at IS NULL
+    `) as Array<{ t: string }>;
+    return rows.map((r) => r.t);
+  } catch {
+    return ['CAR', 'TRUCK'];
+  }
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname, searchParams } = req.nextUrl;
 
@@ -131,6 +174,25 @@ export async function middleware(req: NextRequest) {
     const localRole = mapAmaRoleToLocal(claims.role);
     if (localRole === 'DRIVER' && !isDriverAllowed(pathname)) {
       return NextResponse.redirect(absoluteUrl(req, '/today'));
+    }
+
+    /* Fleet (department) gate — MANAGER only. ADMIN sees both; DRIVER handled
+     * above. Bounces a manager who lacks the path's department to their own
+     * workspace home, so a TRUCK-only manager can't open CAR pages and vice
+     * versa (cross-department data isolation). */
+    if (localRole === 'MANAGER') {
+      const required = requiredFleet(pathname);
+      if (required) {
+        const fleets = await managerFleets(claims.ent_id, claims.sub);
+        if (!fleets.includes(required)) {
+          const home = fleets.includes('CAR')
+            ? '/dashboard'
+            : fleets.includes('TRUCK')
+              ? '/truck/dashboard'
+              : '/settings/me';
+          return NextResponse.redirect(absoluteUrl(req, home));
+        }
+      }
     }
 
     // MUST propagate as REQUEST headers (not response headers) so RSC's

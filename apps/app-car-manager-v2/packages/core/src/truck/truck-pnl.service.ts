@@ -1,6 +1,12 @@
 import { and, eq, gte, lt, isNull, inArray } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
-import { carTrips, carTripExtraCosts, carTruckFixedCosts } from '@car-v2/db/schema';
+import {
+  carTrips,
+  carTripExtraCosts,
+  carTruckFixedCosts,
+  carDrivers,
+  carUserFleetAccess,
+} from '@car-v2/db/schema';
 import type { FleetActor } from '../types';
 import { parseAmount } from './truck-cost';
 
@@ -24,6 +30,9 @@ export interface TruckPnlRow {
   salary: number;
   depreciation: number;
   insurance: number;
+  /** Sum of truck drivers' fixed monthly salary (fleet-level; 0 when filtered
+   * to a single vehicle since driver salary isn't per-vehicle). */
+  driverSalary: number;
   fixedCost: number;
   tripCount: number;
   netProfit: number;
@@ -46,6 +55,7 @@ function emptyRow(month: string): TruckPnlRow {
     salary: 0,
     depreciation: 0,
     insurance: 0,
+    driverSalary: 0,
     fixedCost: 0,
     tripCount: 0,
     netProfit: 0,
@@ -120,6 +130,27 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
       ),
     );
 
+  /* Driver fixed salary — fleet-level monthly recurring cost. Only attributed
+   * in the all-trucks view; a single-vehicle filter leaves it 0 because driver
+   * salary isn't tied to a specific vehicle. */
+  let driverSalaryTotal = 0;
+  if (!q.vehicleId) {
+    const drvRows = await db
+      .select({ salary: carDrivers.drvFixedSalary })
+      .from(carDrivers)
+      .innerJoin(
+        carUserFleetAccess,
+        and(
+          eq(carUserFleetAccess.usrId, carDrivers.drvUserId),
+          eq(carUserFleetAccess.entId, actor.entId),
+          eq(carUserFleetAccess.ufaVehicleType, 'TRUCK'),
+          isNull(carUserFleetAccess.ufaDeletedAt),
+        ),
+      )
+      .where(and(eq(carDrivers.entId, actor.entId), isNull(carDrivers.drvDeletedAt)));
+    driverSalaryTotal = drvRows.reduce((s, r) => s + Math.round(parseAmount(r.salary)), 0);
+  }
+
   const rows = new Map<string, TruckPnlRow>();
   for (const m of months) rows.set(m, emptyRow(m));
 
@@ -142,8 +173,9 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
   }
 
   for (const row of rows.values()) {
+    row.driverSalary = driverSalaryTotal;
     row.variableCost = row.fuelCost + row.tollFee + row.extraTotal;
-    row.fixedCost = row.salary + row.depreciation + row.insurance;
+    row.fixedCost = row.salary + row.depreciation + row.insurance + row.driverSalary;
     row.netProfit = row.revenue - row.variableCost - row.fixedCost;
   }
 

@@ -7,7 +7,7 @@ import { getTripExtraCosts } from '@/server/queries/truck-trips.queries';
 import { getTripStopovers } from '@/server/queries/stopovers.queries';
 import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
-import { listDrivers } from '@/server/queries/drivers.queries';
+import { listFleetDrivers } from '@/server/queries/drivers.queries';
 import { TruckTripForm } from '../../_components/truck-trip-form';
 
 export default async function EditTruckTripPage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,7 +19,7 @@ export default async function EditTruckTripPage({ params }: { params: Promise<{ 
   const t = await getTranslations('screens.truckTrips');
   const [vehicles, drivers, extras, stopovers, settings] = await Promise.all([
     listVehicles(user.entId, 'active', 'TRUCK'),
-    listDrivers(user.entId),
+    listFleetDrivers(user.entId, 'TRUCK'),
     getTripExtraCosts(user.entId, trip.trpId),
     getTripStopovers(user.entId, trip.trpId),
     getTenantSettings(user.entId),

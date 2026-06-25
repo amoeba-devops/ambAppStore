@@ -16,6 +16,24 @@ export interface DriverWithUser extends CarDriver {
   isDeleted?: boolean;
 }
 
+/** Whether a driver's user has a live TRUCK fleet membership — drives the
+ * dept-specific salary field on the shared edit form. */
+export async function isTruckDriver(entId: string, userId: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: carUserFleetAccess.ufaId })
+    .from(carUserFleetAccess)
+    .where(
+      and(
+        eq(carUserFleetAccess.entId, entId),
+        eq(carUserFleetAccess.usrId, userId),
+        eq(carUserFleetAccess.ufaVehicleType, 'TRUCK'),
+        isNull(carUserFleetAccess.ufaDeletedAt),
+      ),
+    )
+    .limit(1);
+  return rows.length > 0;
+}
+
 /** Filter type for listing drivers. */
 type DriverListFilter = 'active' | 'deleted' | 'all';
 
@@ -45,6 +63,38 @@ export async function listFleetDrivers(
       ),
     )
     .where(and(eq(carDrivers.entId, entId), isNull(carDrivers.drvDeletedAt)))
+    .orderBy(asc(carUsers.usrName));
+
+  return rows.map((r) => ({ ...r.driver, user: r.user, isDeleted: false }));
+}
+
+/**
+ * Drivers in the tenant who do NOT have a live TRUCK fleet membership — used by
+ * CAR-side driver pickers (trip assignment) so a car trip can't pick a truck
+ * driver. Unlike TRUCK (explicit membership), car/untagged drivers stay visible
+ * because the car create flow doesn't grant a CAR membership row (BUG-260624).
+ */
+export async function listNonTruckDrivers(entId: string): Promise<DriverWithUser[]> {
+  const rows = await db
+    .select({
+      driver: carDrivers,
+      user: { usrName: carUsers.usrName, usrEmail: carUsers.usrEmail },
+    })
+    .from(carDrivers)
+    .innerJoin(carUsers, eq(carDrivers.drvUserId, carUsers.usrId))
+    .where(
+      and(
+        eq(carDrivers.entId, entId),
+        isNull(carDrivers.drvDeletedAt),
+        sql`NOT EXISTS (
+          SELECT 1 FROM car_user_fleet_access f
+          WHERE f.usr_id = ${carDrivers.drvUserId}
+            AND f.ent_id = ${entId}
+            AND f.ufa_vehicle_type = 'TRUCK'
+            AND f.ufa_deleted_at IS NULL
+        )`,
+      ),
+    )
     .orderBy(asc(carUsers.usrName));
 
   return rows.map((r) => ({ ...r.driver, user: r.user, isDeleted: false }));

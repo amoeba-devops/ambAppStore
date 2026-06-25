@@ -49,6 +49,7 @@ const METRICS: MetricDef[] = [
   { key: 'salary', labelKey: 'salary' },
   { key: 'depreciation', labelKey: 'depreciation' },
   { key: 'insurance', labelKey: 'insurance' },
+  { key: 'driverSalary', labelKey: 'driverSalary' },
   { key: 'fixedCost', labelKey: 'fixed', kind: 'subtotal' },
   { key: 'tripCount', labelKey: 'trips', kind: 'count' },
   { key: 'netProfit', labelKey: 'netProfit', kind: 'profit' },

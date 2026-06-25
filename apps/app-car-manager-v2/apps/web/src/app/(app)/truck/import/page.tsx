@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
-import { listDrivers } from '@/server/queries/drivers.queries';
+import { listFleetDrivers } from '@/server/queries/drivers.queries';
 import { TruckImportPanel } from './_components/truck-import-panel';
 
 export default async function TruckImportPage() {
@@ -13,7 +13,7 @@ export default async function TruckImportPage() {
 
   const [vehicles, drivers] = await Promise.all([
     listVehicles(user.entId, 'active', 'TRUCK'),
-    listDrivers(user.entId),
+    listFleetDrivers(user.entId, 'TRUCK'),
   ]);
   const vehicleOptions = vehicles.map((v) => ({ id: v.cvhId, label: `${v.cvhPlateNumber} · ${v.cvhModel}` }));
   const driverOptions = drivers.map((d) => ({ id: d.drvId, label: d.user.usrName ?? d.user.usrEmail ?? d.drvId }));

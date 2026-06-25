@@ -21,7 +21,7 @@ import { MapPreview } from '@/components/inputs/map-preview';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listAuditForEntity } from '@/server/queries/audit.queries';
-import { listDrivers, getDriverByUserId } from '@/server/queries/drivers.queries';
+import { listNonTruckDrivers, getDriverByUserId } from '@/server/queries/drivers.queries';
 import { getTrip } from '@/server/queries/trips.queries';
 import { getTripExtraCosts } from '@/server/queries/truck-trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
@@ -109,7 +109,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
 
   const isStaff = user.role === 'ADMIN' || user.role === 'MANAGER';
   const [drivers, vehicles, auditRows] = await Promise.all([
-    isStaff ? listDrivers(user.entId) : Promise.resolve([]),
+    isStaff ? listNonTruckDrivers(user.entId) : Promise.resolve([]),
     isStaff ? listVehicles(user.entId) : Promise.resolve([]),
     listAuditForEntity(user.entId, 'Trip', id),
   ]);

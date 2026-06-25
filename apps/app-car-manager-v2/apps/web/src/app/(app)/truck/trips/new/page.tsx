@@ -2,8 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
-import { listDrivers } from '@/server/queries/drivers.queries';
-import { getDriverByUserId } from '@/server/queries/drivers.queries';
+import { listFleetDrivers } from '@/server/queries/drivers.queries';
 import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
 import { TruckTripForm } from '../_components/truck-trip-form';
 
@@ -13,8 +12,9 @@ export default async function NewTruckTripPage() {
 
   const [vehicles, drivers, settings] = await Promise.all([
     listVehicles(user.entId, 'active', 'TRUCK'),
-    /* Managers see all drivers; drivers only need their own record (form locks it). */
-    user.role !== 'DRIVER' ? listDrivers(user.entId) : Promise.resolve([]),
+    /* Managers pick from TRUCK-fleet drivers only — consistent with the truck
+     * roster (/truck/drivers). Drivers self-create (form locks to self). */
+    user.role !== 'DRIVER' ? listFleetDrivers(user.entId, 'TRUCK') : Promise.resolve([]),
     getTenantSettings(user.entId),
   ]);
 

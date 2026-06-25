@@ -22,7 +22,7 @@ import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { resolveFleetAccess } from '@/lib/auth/fleet-access';
-import { getDriverByUserId, listDrivers } from '@/server/queries/drivers.queries';
+import { getDriverByUserId, listNonTruckDrivers } from '@/server/queries/drivers.queries';
 import { getTrip, listTrips, listTripsForBoard, listTripsForDriver, type TripListItem, type TripDeletedFilter } from '@/server/queries/trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { ClickableTableRow } from '@/components/clickable-table-row';
@@ -181,7 +181,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
   if (peekTrip) {
     if (user.role === 'ADMIN' || user.role === 'MANAGER') {
       const [drivers, vehicles] = await Promise.all([
-        listDrivers(user.entId),
+        listNonTruckDrivers(user.entId),
         listVehicles(user.entId),
       ]);
       peekDrivers = drivers.map((d) => ({

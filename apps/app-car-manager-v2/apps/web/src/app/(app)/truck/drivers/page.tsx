@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { ChevronRight, IdCard } from 'lucide-react';
-import { Badge, Card } from '@car-v2/ui';
+import { ChevronRight, IdCard, Plus } from 'lucide-react';
+import { Badge, Button, Card } from '@car-v2/ui';
 import type { CarDriverStatus } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
@@ -24,8 +24,11 @@ export default async function TruckDriversPage() {
   const t = await getTranslations('screens.truckDrivers');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
+  const tA = await getTranslations('actions');
 
   const drivers = await listFleetDrivers(user.entId, 'TRUCK');
+  /* The /truck layout already blocks DRIVER role — anyone here is ADMIN/MANAGER. */
+  const canCreate = user.role === 'ADMIN' || user.role === 'MANAGER';
 
   return (
     <>
@@ -33,12 +36,24 @@ export default async function TruckDriversPage() {
         title={t('title')}
         subtitle={t('subtitle', { count: drivers.length })}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('truckDrivers') }]}
+        actions={
+          canCreate ? (
+            <Button variant="accent" size="md" asChild>
+              <Link href="/truck/drivers/new"><Plus />{t('addDriver')}</Link>
+            </Button>
+          ) : undefined
+        }
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6">
         {drivers.length === 0 ? (
-          <Card variant="outline" className="p-8 text-center text-sm text-text-muted">
-            {t('empty')}
+          <Card variant="outline" className="p-8 text-center space-y-4">
+            <div className="text-sm text-text-muted">{t('empty')}</div>
+            {canCreate && (
+              <Button variant="accent" size="md" asChild>
+                <Link href="/truck/drivers/new"><Plus />{t('addDriver')}</Link>
+              </Button>
+            )}
           </Card>
         ) : (
           <Card variant="outline" className="divide-y divide-border">
