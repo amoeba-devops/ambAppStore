@@ -1,5 +1,12 @@
-import type { NextConfig } from 'next';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import createNextIntlPlugin from 'next-intl/plugin';
+
+// `.mjs` (not `.ts`) on purpose: `next start` loads next.config at runtime, and
+// the Docker runner stage runs `npm prune --omit=dev` which strips typescript —
+// a `.ts` config then fails to load and the container crash-loops trying to
+// auto-install typescript. Plain ESM needs no compiler at runtime.
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -10,7 +17,8 @@ const amaOrigin = process.env.NEXT_PUBLIC_AMA_ORIGIN ?? 'https://*.amoeba.site';
 // Leave empty for standalone dev (http://localhost:3000/).
 const basePath = process.env.BASE_PATH || undefined;
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   basePath,
   transpilePackages: ['@v2/db', '@v2/shared', '@v2/ui'],
   outputFileTracingRoot: __dirname,
