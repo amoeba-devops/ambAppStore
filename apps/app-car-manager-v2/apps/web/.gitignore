@@ -1,0 +1,5 @@
+
+# Large font files for PDF generation
+src/server/lib/fonts/*.otf
+src/server/lib/fonts/*.ttf
+

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- ko-full-translation -->
+  <title>비용 관리 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — 사용 안내서 홈" aria-label="Amoeba Car Manager v2 — 사용 안내서 홈">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 사용 안내서</span></span><span class="header__brand-mobile">사용 안내서</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="안내서 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" class="is-active" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="150" height="100" fill="#fff"/><g transform="translate(75,50) rotate(-56.31)"><circle r="25" fill="#C60C30"/><path d="M0,-25 A25,25 0 0,1 0,25 A12.5,12.5 0 0,1 0,0 A12.5,12.5 0 0,0 0,-25 Z" fill="#003478"/></g><g fill="#000"><g transform="translate(37.5,25) rotate(-56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,25) rotate(56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g><g transform="translate(37.5,75) rotate(56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,75) rotate(-56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g></g></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">소개</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">화면 탐색</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림함</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">용어집</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">관리자</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-dashboard.html">대시보드</a>
+        <a class="sidebar__link" href="02-quan-ly-xe.html">차량 관리</a>
+        <a class="sidebar__link" href="03-quan-ly-tai-xe.html">기사 관리</a>
+        <a class="sidebar__link" href="04-quan-ly-nguoi-dung.html">사용자</a>
+        <a class="sidebar__link" href="05-quan-ly-chuyen-di.html">운행</a>
+        <a class="sidebar__link" href="06-quan-ly-chi-phi.html">비용 관리</a>
+        <a class="sidebar__link" href="07-canh-bao-bao-duong.html">정비 알림</a>
+        <a class="sidebar__link" href="08-bao-cao.html">보고서</a>
+        <a class="sidebar__link" href="09-cau-hinh-he-thong.html">시스템 설정</a>
+        <a class="sidebar__link" href="10-audit-log.html">감사 로그</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">홈</a> · 관리자 · 비용 관리</div>
+        <h1>전사 비용 장부</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/costs" target="_parent" rel="noopener">
+            <span>앱에서 이 페이지 열기</span>
+            <span class="app-link-cta__route">/costs</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>URL</dt><dd><code>/costs</code></dd>
+            <dt>범위</dt><dd>조직 내 모든 비용 — 제출자에 관계없이</dd>
+            <dt>권한</dt><dd>조직의 모든 비용 조회 · 신규 비용 기록 · CSV 내보내기 (Admin과 매니저 동일; 기사는 이 페이지 접근 불가)</dd>
+          </dl>
+        </div>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">📜</div>
+          <div class="callout__body">
+            <p><strong>이전 버전의 "계층적 승인" 기능 제거됨 (PRD revision 3)</strong> — Admin/매니저가 기준 금액 초과 비용을 승인하는 플로우가 있었습니다. PRD revision 3에서 <strong>승인 플로우가 제거</strong>되어, 모든 비용은 자동으로 기록됩니다. Admin은 <em>검토 후 잘못된 경우에만 수정</em>합니다.</p>
+          </div>
+        </div>
+
+        <h2>전사 비용 장부</h2>
+        <figure>
+          <img src="../../assets/img/screenshots/ko/admin/06-costs-admin.png" alt="전사 비용 장부 Admin">
+          <figcaption>비용 장부 — 왼쪽 목록 + 오른쪽 상세 패널 (영수증 이미지, 메모, 운행 링크)</figcaption>
+        </figure>
+
+        <h2>비용 장부 구성</h2>
+        <ul>
+          <li><strong>왼쪽 목록</strong> — 조직의 모든 비용을 최신순으로 표시. 각 행: 유형 아이콘 + 차량 번호판, 금액, 출처 라벨(기사 / 백오피스 직원) + 이름 + 제출 시각.</li>
+          <li><strong>오른쪽 패널 (데스크톱)</strong> — 행을 클릭하면 읽기 전용 상세 표시: 금액, 유형, 연결된 운행, 차량, 기사, 메모, 영수증 이미지. 모바일에서는 행 클릭 시 별도 상세 페이지가 열립니다.</li>
+        </ul>
+        <p>이 페이지에는 현재 <strong>화면 필터가 없습니다</strong> — 모든 비용이 나열됩니다. 유형 / 날짜 / 차량별 분석이 필요하면 <strong>CSV 내보내기</strong> 후 Excel/Google Sheets에서 필터링하세요.</p>
+
+        <h2>회계용 CSV 내보내기</h2>
+        <ol>
+          <li>오른쪽 상단 <strong>"CSV 내보내기"</strong> 클릭 — 전체 비용 장부 내보내기 (최신 최대 1000행)</li>
+          <li>다운로드 파일 열 구성: 비용 코드, 유형, 상태, 금액, 통화, 발생일, 제출 시각, 기사, 차량, 운행 코드, 메모</li>
+          <li>Excel/Google Sheets로 열기 — UTF-8 인코딩 적용, 한글 표시 정상</li>
+        </ol>
+
+        <nav class="pager">
+          <a class="pager__prev" href="05-quan-ly-chuyen-di.html"><span>← 이전</span><strong>운행</strong></a>
+          <a class="pager__next" href="07-canh-bao-bao-duong.html"><span>다음 →</span><strong>정비 알림</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">업데이트: 2026-05-24 · 피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

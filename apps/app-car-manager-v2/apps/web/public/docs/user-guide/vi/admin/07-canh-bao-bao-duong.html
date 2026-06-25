@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — Cảnh báo bảo dưỡng — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — Trang chủ hướng dẫn" aria-label="Amoeba Car Manager v2 — Trang chủ hướng dẫn">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span><span class="header__brand-mobile">Hướng dẫn</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="150" height="100" fill="#fff"/><g transform="translate(75,50) rotate(-56.31)"><circle r="25" fill="#C60C30"/><path d="M0,-25 A25,25 0 0,1 0,25 A12.5,12.5 0 0,1 0,0 A12.5,12.5 0 0,0 0,-25 Z" fill="#003478"/></g><g fill="#000"><g transform="translate(37.5,25) rotate(-56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,25) rotate(56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g><g transform="translate(37.5,75) rotate(56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,75) rotate(-56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g></g></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Quản trị viên</div>
+        <a class="sidebar__link" href="00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="01-dashboard.html">Dashboard</a>
+        <a class="sidebar__link" href="02-quan-ly-xe.html">Quản lý xe</a>
+        <a class="sidebar__link" href="03-quan-ly-tai-xe.html">Quản lý tài xế</a>
+        <a class="sidebar__link" href="04-quan-ly-nguoi-dung.html">Người dùng</a>
+        <a class="sidebar__link" href="05-quan-ly-chuyen-di.html">Chuyến đi</a>
+        <a class="sidebar__link" href="06-quan-ly-chi-phi.html">Quản lý chi phí</a>
+        <a class="sidebar__link" href="07-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="08-bao-cao.html">Báo cáo</a>
+        <a class="sidebar__link" href="09-cau-hinh-he-thong.html">Cấu hình hệ thống</a>
+        <a class="sidebar__link" href="10-audit-log.html">Audit log</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">Trang chủ</a> · Quản trị viên · Cảnh báo bảo dưỡng</div>
+        <h1>Cảnh báo bảo dưỡng (Maintenance Alerts)</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/vehicles" target="_parent" rel="noopener">
+            <span>Mở trang trong app</span>
+            <span class="app-link-cta__route">/vehicles</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>Trigger</dt><dd>Tác vụ định kỳ (cron) quét toàn bộ xe hằng ngày để sinh cảnh báo</dd>
+            <dt>Xuất hiện ở</dt><dd>Hộp thư <code>/inbox</code> + banner trên card xe trong <code>/vehicles</code></dd>
+            <dt>Trách nhiệm xử lý</dt><dd>Admin (đặt lịch + ghi chi phí OIL/INSPECTION khi xong)</dd>
+          </dl>
+        </div>
+
+        <h2>4 loại cảnh báo</h2>
+        <table>
+          <thead><tr><th>Mã</th><th>Trigger</th><th>Mức độ</th></tr></thead>
+          <tbody>
+            <tr><td><code>OIL_DUE_SOON</code></td><td>Đã chạy ≥ 95% chu kỳ km (vd 4.750/5.000 km) hoặc còn ≤ ~1 tuần đến hạn theo tháng (vd 2.75/3 tháng)</td><td>WARNING</td></tr>
+            <tr><td><code>OIL_OVERDUE</code></td><td>Xe đã vượt chu kỳ thay dầu (theo km hoặc theo tháng)</td><td>CRITICAL</td></tr>
+            <tr><td><code>INSPECTION_DUE_SOON</code></td><td>Còn ≤ 7 ngày đến hạn đăng kiểm</td><td>WARNING</td></tr>
+            <tr><td><code>INSPECTION_OVERDUE</code></td><td>Đã quá hạn đăng kiểm</td><td>CRITICAL</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Quy trình xử lý</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>Mở <code>/inbox</code> hoặc <code>/vehicles</code>, xác định xe có alert (icon ⚠ trên card xe).</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p>Liên hệ tài xế phụ trách xe → xếp lịch mang xe đi gara/trung tâm đăng kiểm.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Đổi trạng thái xe sang <code>MAINTENANCE</code> trong <a href="02-quan-ly-xe.html">/vehicles/[id]/edit</a> để chặn gán chuyến mới.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">4</div>
+          <div class="step__body">
+            <p>Bấm <strong>"Xác nhận"</strong> (acknowledge) trên cảnh báo trong <code>/inbox</code> để đánh dấu đã tiếp nhận.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">5</div>
+          <div class="step__body">
+            <p>Sau khi đã thay dầu / đăng kiểm xong, cập nhật <strong>mốc bảo dưỡng</strong> của xe tại <code>/vehicles/[id]/edit</code>:</p>
+            <ul>
+              <li>Với dầu → nhập <strong>"Lần thay dầu gần nhất"</strong> (ngày + số km mới)</li>
+              <li>Với đăng kiểm → cập nhật <strong>ngày đăng kiểm kế tiếp</strong></li>
+            </ul>
+            <p>Nhờ đó cron các ngày sau tính lại và không cảnh báo cho đến chu kỳ mới.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">6</div>
+          <div class="step__body">
+            <p>(Tùy chọn) Ghi chi phí loại <strong>OIL</strong> hoặc <strong>INSPECTION</strong> tại <code>/expenses/new</code> để vào sổ chi phí. <strong>Lưu ý:</strong> ghi chi phí <em>không</em> tự động reset chu kỳ bảo dưỡng — phải cập nhật mốc ở bước 5.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">7</div>
+          <div class="step__body">
+            <p>Đổi trạng thái xe về <code>AVAILABLE</code> để Tài xế/Manager có thể đặt chuyến lại.</p>
+          </div>
+        </div>
+
+        <figure>
+          <img src="../../assets/img/screenshots/vi/admin/07-maintenance-tab.png" alt="Tab Bảo dưỡng trong chi tiết xe">
+          <figcaption>Tab "Bảo dưỡng" trên trang chi tiết xe — hiển thị lịch sử thay dầu + đăng kiểm</figcaption>
+        </figure>
+
+        <h2>Cấu hình chu kỳ bảo dưỡng</h2>
+        <p>Mỗi xe có thể cấu hình riêng tại <code>/vehicles/[id]/edit</code>:</p>
+        <ul>
+          <li><strong>Chu kỳ dầu (km)</strong> — mặc định 5.000 km</li>
+          <li><strong>Chu kỳ dầu (tháng)</strong> — mặc định 3 tháng</li>
+          <li><strong>Chu kỳ đăng kiểm (tháng)</strong> — mặc định 12 tháng (chỉnh riêng theo từng xe)</li>
+        </ul>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">⏰</div>
+          <div class="callout__body">
+            <p><strong>Idempotency window</strong>: Cron không gửi alert trùng trong vòng 24 giờ. Tránh spam khi cron chạy nhiều lần/ngày.</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="06-quan-ly-chi-phi.html"><span>← Trước</span><strong>Quản lý chi phí</strong></a>
+          <a class="pager__next" href="08-bao-cao.html"><span>Tiếp theo →</span><strong>Báo cáo</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">Cập nhật 24-05-2026 · Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

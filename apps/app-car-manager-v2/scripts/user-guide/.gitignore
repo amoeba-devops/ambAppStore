@@ -1,0 +1,5 @@
+node_modules/
+shots-output/
+playwright-report/
+test-results/
+.playwright-cache/

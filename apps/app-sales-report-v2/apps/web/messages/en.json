@@ -1,0 +1,1266 @@
+{
+  "app": {
+    "name": "FIRGI · Sales Ops",
+    "version": "v0.1.0 · MVP"
+  },
+  "nav": {
+    "section": {
+      "dataIngest": "Data Ingest",
+      "rfrData": "RFR Data",
+      "reports": "Reports",
+      "audit": "Activity Log",
+      "settings": "Settings"
+    },
+    "item": {
+      "dashboard": "Dashboard",
+      "uploadReports": "Upload Reports",
+      "rawArchive": "Raw Archive",
+      "productList": "Product List",
+      "primeCost": "Prime Cost",
+      "sellingPrice": "Selling Price",
+      "listingPrice": "Listing Price",
+      "weeklyReport": "Weekly Report",
+      "monthlyReport": "Monthly Report",
+      "trendingReport": "Trending Report",
+      "activityLog": "Activity Log",
+      "userManagement": "User Management",
+      "formulaConfig": "Formula Config"
+    },
+    "badge": {
+      "pendingApproval": "{count} pending approval"
+    }
+  },
+  "pageTitle": {
+    "dashboard": "Dashboard",
+    "upload": "Upload Reports",
+    "rawArchive": "Raw Archive",
+    "manualInput": "Manual Cost Input",
+    "productList": "Product List",
+    "primeCost": "Prime Cost",
+    "sellingPrice": "Selling Price",
+    "listingPrice": "Listing Price",
+    "weeklyReport": "Weekly Report",
+    "monthlyReport": "Monthly Report",
+    "trendingReport": "Trending Report",
+    "activityLog": "Activity Log",
+    "userManagement": "User Management",
+    "formulaConfig": "Formula Config",
+    "fallback": "Sales Report"
+  },
+  "header": {
+    "language": {
+      "label": "Language",
+      "en": "English",
+      "ko": "Korean"
+    }
+  },
+  "weekPicker": {
+    "showAll": "Show all {count} weeks",
+    "collapse": "Collapse",
+    "prevYear": "Previous year",
+    "nextYear": "Next year",
+    "prevYearTitle": "Go to {year}",
+    "nextYearTitle": "Go to {year}"
+  },
+  "periodStatus": {
+    "open": "Open",
+    "active": "Active",
+    "finalized": "Finalized",
+    "locked": "Locked"
+  },
+  "common": {
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "all": "All",
+    "search": "Search",
+    "actions": "Actions",
+    "createdAt": "Created at",
+    "dash": "—",
+    "currentUser": "Current user",
+    "change": "Change",
+    "empty": "No results",
+    "fxCaption": "1 KRW = {rate} VND",
+    "saving": "Saving…",
+    "fxEdit": "Edit FX rate (preview only — syncs across RFR Data pages)",
+    "fxReset": "Reset to default rate",
+    "fxOverrideActive": "Using your override — click reset to revert"
+  },
+  "role": {
+    "admin": "Admin",
+    "manager": "Manager",
+    "operator": "Operator",
+    "unassigned": "Not assigned"
+  },
+  "userStatus": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "usersPage": {
+    "title": "Settings",
+    "subtitle": "User management and formula configuration — Admin only",
+    "accounts": {
+      "title": "User Accounts",
+      "subtitle": "FR-22 — Role-based access control",
+      "searchPlaceholder": "Search users…",
+      "filterRoleAll": "All roles",
+      "filterStatusAll": "All status",
+      "addUser": "Add User",
+      "empty": "No users match your filters.",
+      "amaPrefix": "AMA: {role}",
+      "column": {
+        "user": "User",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status",
+        "lastLogin": "Last Login",
+        "loginCount": "Login count",
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "action": {
+        "edit": "Edit",
+        "resetPwd": "Reset pwd",
+        "activate": "Activate",
+        "deactivate": "Deactivate",
+        "syncFromAma": "Sync from AMA"
+      },
+      "confirm": {
+        "deactivate": "Deactivate {target}? They won't be able to access this app.",
+        "resetPwd": "Send password reset reminder for {email}?\nNote: Passwords are managed by AMA. This logs the request only.",
+        "syncFromAma": "Bulk sync from AMA — new members will be added as INACTIVE for your review, and members no longer in AMA will be deactivated. Proceed?"
+      },
+      "toast": {
+        "deactivated": "User deactivated",
+        "activated": "User activated",
+        "assignRoleFirst": "Assign a role before activating — click Edit to pick OPERATOR / MANAGER / ADMIN.",
+        "resetMock": "Reset request logged (mock). Direct user to ama.amoeba.site",
+        "resetReal": "Reset request logged. Direct user to ama.amoeba.site",
+        "updated": "User updated",
+        "added": "User added",
+        "synced": "Sync complete · New: {inserted} · Updated: {updated} · Deactivated: {deactivated}"
+      }
+    },
+    "form": {
+      "titleAdd": "Add user",
+      "titleEdit": "Edit user",
+      "titleGrantAma": "Grant access — AMA member",
+      "addNote": "Identity is managed by AMA. Pre-staged users will be linked to their real AMA account on their first login to this app.",
+      "grantAmaNote": "Granting <mono>{email}</mono> access to the app. Identity stays managed by AMA — picking a role here just records the local permission.",
+      "labelEmail": "Email",
+      "labelName": "Name",
+      "labelRole": "Role",
+      "labelStatus": "Status",
+      "emailPlaceholder": "user@socialbean.vn",
+      "namePlaceholder": "Truc Hoang",
+      "roleOption": {
+        "operator": "Operator — upload files, edit data",
+        "manager": "Manager — view + approve",
+        "admin": "Admin — full control"
+      },
+      "statusActive": "Active",
+      "statusActiveDesc": "Can sign in immediately",
+      "statusInactive": "Inactive",
+      "statusInactiveDesc": "Grant role but block sign-in",
+      "errorEmailRequired": "Email is required",
+      "submitAdd": "Add user",
+      "submitSave": "Save"
+    },
+    "permissions": {
+      "title": "Role Permission Matrix",
+      "subtitle": "Click a cell to toggle. Admin column is locked — Admin always retains all permissions.",
+      "lastEdited": " · Last edited {at} by {by}",
+      "resetButton": "Reset to defaults",
+      "confirmReset": "Reset all role permissions to defaults? This will discard your overrides.",
+      "feedback": {
+        "granted": "Granted \"{label}\" for {role}",
+        "revoked": "Revoked \"{label}\" for {role}",
+        "resetAll": "All permissions reset to defaults"
+      },
+      "permissionColHeader": "Permission",
+      "tooltip": {
+        "adminLocked": "Admin always retains all permissions",
+        "revokeFor": "Revoke for {role}",
+        "grantFor": "Grant for {role}"
+      },
+      "row": {
+        "upload": "Upload CSV files",
+        "manual": "Input / edit manual data",
+        "view_reports": "View reports",
+        "download_reports": "Download reports",
+        "edit_prime_cost": "Edit Prime Cost / COGS",
+        "view_activity_log": "View Activity Log",
+        "manage_users": "Manage users",
+        "configure_formulas": "Configure formulas"
+      }
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "{name}, here's where Socialbean Vietnam stands today.",
+    "subtitleNoName": "Here's where Socialbean Vietnam stands today.",
+    "emptyTitle": "No snapshots yet",
+    "emptyBody": "Upload your first set of reports through the Upload wizard — KPIs and the recent activity feed will populate as soon as the first ingest finishes.",
+    "uploadCta": "Go to Upload",
+    "kpi": {
+      "sectionTitle": "Latest week",
+      "noDelta": "—",
+      "viaPeriod": "Period {label}",
+      "vsPrev": "vs prev",
+      "netGmv": "Net GMV",
+      "totalCm": "Total CM",
+      "cmPct": "CM %",
+      "orders": "Orders"
+    },
+    "actions": {
+      "sectionTitle": "Quick actions",
+      "upload": "Upload reports",
+      "uploadDesc": "Add raw exports for a new week or month",
+      "rawArchive": "Raw Archive",
+      "rawArchiveDesc": "Browse ingested periods + approvals",
+      "weekly": "Weekly report",
+      "weeklyDesc": "WoW performance + breakdowns",
+      "monthly": "Monthly report",
+      "monthlyDesc": "MoM performance for the latest month",
+      "trending": "Trending report",
+      "trendingDesc": "Cross-period growth + charts",
+      "primeCost": "Prime Cost master",
+      "primeCostDesc": "Maintain COGS per SKU",
+      "users": "User management",
+      "usersDesc": "Roles + permissions",
+      "formulaConfig": "Formula config",
+      "formulaConfigDesc": "Edit 48 formula parameters",
+      "activityLog": "Activity log",
+      "activityLogDesc": "Audit trail of every action"
+    },
+    "activity": {
+      "sectionTitle": "Recent activity",
+      "viewAll": "View all",
+      "empty": "No activity recorded yet."
+    }
+  },
+  "trendingReport": {
+    "title": "Trends",
+    "subtitle": "Compare growth across weeks and months. Reports are computed against locked Master Data snapshots.",
+    "weekOverWeek": "Week over Week",
+    "monthOverMonth": "Month over Month",
+    "currency": {
+      "vnd": "VND",
+      "krw": "KRW"
+    },
+    "export": "Export",
+    "metricLabel": "Metric",
+    "channel": {
+      "shopee": "Shopee",
+      "tiktok": "TikTok Shop",
+      "total": "Total Platform"
+    },
+    "card": {
+      "thisWeek": "This week",
+      "thisMonth": "This month",
+      "fourWeekAvg": "4-wk avg",
+      "fourMonthAvg": "4-mo avg",
+      "wowSuffix": "WoW",
+      "momSuffix": "MoM",
+      "secondaryWow": "WoW: {value}",
+      "secondaryMom": "MoM: {value}"
+    },
+    "select": {
+      "removeTitle": "Remove {label}",
+      "removeAria": "Remove {label}",
+      "removeDisabledTitle": "At least one metric is required",
+      "maxLabel": "Max {max}",
+      "addMetric": "Add metric",
+      "selectedOfMax": "{count} / {max} selected",
+      "close": "Close",
+      "limitReached": "Limit reached. Deselect a metric to choose another.",
+      "group": {
+        "volume": "Volume",
+        "margin": "Margin",
+        "discount": "Discount Costs",
+        "promo": "Promotional Costs",
+        "traffic": "Traffic"
+      }
+    },
+    "breakdown": {
+      "titleWeekly": "Week-over-week breakdown",
+      "titleMonthly": "Month-over-month breakdown",
+      "col": {
+        "metric": "Metric",
+        "value": "value"
+      },
+      "section": {
+        "amount": "Amount",
+        "ratio": "Ratio (of Net GMV)",
+        "traffic": "Traffic"
+      }
+    }
+  },
+  "monthlyReport": {
+    "title": "Monthly Report",
+    "subtitle": "Month-over-month performance",
+    "badge": {
+      "realDataTooltip": "Showing real ingested data from your uploaded files",
+      "noDataTooltip": "No snapshot for this month yet — upload files via the Upload wizard"
+    },
+    "pickMonth": "Pick the month"
+  },
+  "weeklyReport": {
+    "title": "Weekly Report",
+    "subtitle": "Week-over-week performance",
+    "badge": {
+      "loading": "Loading…",
+      "realData": "Real data",
+      "noData": "No data",
+      "realDataTooltip": "Showing real ingested data from your uploaded files",
+      "noDataTooltip": "No snapshot for this week yet — upload files via the Upload wizard"
+    },
+    "channel": {
+      "all": "Total Platform",
+      "shopee": "Shopee",
+      "tiktok": "TikTok"
+    },
+    "krwRate": {
+      "prefix": "1 KRW =",
+      "suffix": "VND"
+    },
+    "export": "Export",
+    "pickWeek": "Pick the week",
+    "section": {
+      "discount": "Discount Breakdown",
+      "promotional": "Promotional Breakdown",
+      "trafficAndAds": "Traffic and Ads",
+      "traffic": "Traffic",
+      "sales": "Sales"
+    },
+    "overview": {
+      "title": "Overview",
+      "comparison": "— {current} vs {prev}"
+    },
+    "table": {
+      "metric": "Metric",
+      "vnd": "VND",
+      "krw": "KRW",
+      "pctNetGmv": "% Net GMV",
+      "wow": "WoW",
+      "mom": "MoM"
+    },
+    "productBreakdown": {
+      "title": "Product Breakdown",
+      "legend": {
+        "allocated": "Allocated",
+        "calculated": "Calculated"
+      },
+      "searchPlaceholder": "Search SKU or product…",
+      "empty": "No products match.",
+      "total": "TOTAL",
+      "comboBadge": "Combo",
+      "col": {
+        "no": "No",
+        "sku": "SKU",
+        "productVi": "Product (VI)",
+        "productEn": "Product (EN)",
+        "platform": "Platform",
+        "pv": "PV",
+        "impression": "Impression",
+        "ctr": "CTR%",
+        "cvr": "CVR%",
+        "items": "Items",
+        "gmv": "GMV",
+        "netGmv": "Net GMV",
+        "nmv": "NMV",
+        "voucher": "Voucher",
+        "sellerDisc": "Seller Disc",
+        "freeGift": "Free Gift",
+        "adSpend": "AD Spend",
+        "brandAds": "Brand Ads",
+        "offPlatformAds": "Off-Platform Ads",
+        "affComm": "Aff.Comm",
+        "affBook": "Aff.Book",
+        "livestream": "Livestream",
+        "platformFee": "Platform Fee",
+        "primeCost": "Prime Cost",
+        "cm": "CM",
+        "cmPct": "CM%"
+      }
+    }
+  },
+  "uploadWizard": {
+    "header": {
+      "title": "Upload reports",
+      "subtitle": "Add raw exports from Shopee Seller Center and TikTok Shop Seller. Files stay archived for audit."
+    },
+    "stepperLabels": {
+      "1": "Period",
+      "2": "Upload files",
+      "3": "Manual Input",
+      "4": "Review",
+      "5": "Validate",
+      "6": "Ingest"
+    },
+    "nav": {
+      "back": "Back",
+      "continue": "Continue"
+    },
+    "step1": {
+      "title": "Step 1 · Select period",
+      "subtitle": "Choose the granularity, then pick the period this upload belongs to.",
+      "label1": "1. Granularity",
+      "label2Week": "2. Pick the week",
+      "label2Month": "2. Pick the month",
+      "card": {
+        "weekly": "Weekly report",
+        "weeklyDesc": "Friday → Thursday (e.g. 27 Mar – 2 Apr)",
+        "monthly": "Monthly report",
+        "monthlyDesc": "Full calendar month (e.g. 01-31 Mar)"
+      },
+      "banner": {
+        "finalizedTitle": "Period {label} has been finalized by Admin",
+        "finalizedBody": "Admin must unfinalize this period in Raw Archive before new files can be uploaded.",
+        "activeTitle": "Period {label} already has data",
+        "activeBody": "Manual Input will be preloaded from the existing snapshot. Uploading new files will overwrite the current snapshot — skip the upload step if you only want to update Manual Input.",
+        "selectedTitle": "Selected period"
+      },
+      "tips": {
+        "button": "Tips",
+        "title": "Period status guide",
+        "open": "Open",
+        "openDesc": "Never ingested — ready for the first upload.",
+        "active": "Active",
+        "activeDesc": "Just ingested, awaiting Manager approval — can still re-upload / edit.",
+        "finalized": "Finalized",
+        "finalizedDesc": "Approved by Manager — report data is locked. Must unfinalize before editing.",
+        "locked": "Locked",
+        "lockedDesc": "Locked manually by Manager — re-upload / edit no longer allowed."
+      },
+      "pill": {
+        "lockedTitle": "{label} is Locked — period closed, no re-uploads allowed."
+      }
+    },
+    "step2": {
+      "title": "Step 2 · Upload files",
+      "subtitle": "Drop the raw export for each report type. Skip any you don't have — partial uploads are allowed.",
+      "fileCount": "{uploaded} / {total} files",
+      "fileTag": "Files will be tagged with",
+      "previouslyUploaded": "Previously uploaded ({count} files)",
+      "previouslyUploadedBody": "Skip Step 2 entirely to keep these files + only update Manual Input. Upload a new file in any slot below to <b>replace</b> the existing one.",
+      "willReplace": "Will replace",
+      "rowsCount": "{count} rows",
+      "errorMissing": "{count} reports missing — upload required to continue",
+      "errorMissingSingular": "1 report missing — upload required to continue",
+      "shopee": "Shopee",
+      "tiktok": "TikTok Shop",
+      "selected": "{count}/{total} selected",
+      "slot": {
+        "salesLabel": "Sales report",
+        "salesSubtitle": "Order-level transactions",
+        "adsLabel": "Ads report",
+        "adsSubtitle": "Sponsored product spend",
+        "brandAdsLabel": "Brand Ads report",
+        "brandAdsSubtitle": "Awareness-objective spend",
+        "offPlatformAdsLabel": "Off Platform Ads report",
+        "offPlatformAdsSubtitle": "Off-site ads spend",
+        "trafficLabel": "Traffic report",
+        "trafficSubtitle": "Sessions, PV, conversion",
+        "affiliateLabel": "Affiliate report",
+        "affiliateSubtitle": "Commission payments",
+        "affiliateCreatorLabel": "Affiliate · Creator Order",
+        "affiliateCreatorSubtitle": "Standard + shop-ads commission",
+        "affiliatePartnerLabel": "Affiliate · Partner Order",
+        "affiliatePartnerSubtitle": "Partner-collab commission",
+        "affiliateNonCollabLabel": "Affiliate · Non-collaboration Order",
+        "affiliateNonCollabSubtitle": "Self-attributed commission"
+      },
+      "fileSlot": {
+        "required": "required",
+        "dropHere": "Drop here",
+        "dragDrop": "Drag & drop or click to browse",
+        "fileSpec": ".csv or .xlsx — up to 100 MB",
+        "ready": "Ready",
+        "replace": "Replace",
+        "remove": "Remove",
+        "errorTooBig": "File exceeds 100 MB limit",
+        "errorBadExt": "Only .csv and .xlsx are accepted"
+      }
+    },
+    "step3": {
+      "title": "Step 3 · Manual Input",
+      "subtitle": "Enter the costs that aren't captured in the uploaded raw files. All amounts in VND.",
+      "banner": "Manual costs apply to",
+      "errorMissing": "{count} fields missing — fill all to continue",
+      "errorMissingSingular": "1 field missing — fill all to continue",
+      "field": {
+        "affiliateBookingFees": "Total Affiliate Booking Fee",
+        "shopeeLivestreamFees": "Total Livestream Fee — Shopee",
+        "tiktokLivestreamFees": "Total Livestream Fee — TikTok",
+        "tiktokAdsSpending": "Total Ad Spending — TikTok"
+      },
+      "hint": {
+        "affiliateBookingFees": "Affiliate booking fee shared across Shopee + TikTok"
+      },
+      "group": {
+        "totalPlatform": "Total Platform",
+        "shopee": "Shopee",
+        "tiktok": "TikTok Shop"
+      }
+    },
+    "step4": {
+      "title": "Step 4 · Review",
+      "subtitle": "Verify formula configuration before ingest. Edit if needed — changes apply to this ingest only.",
+      "banner": "Formulas apply to"
+    },
+    "step5": {
+      "title": "Step 5 · Validate",
+      "subtitle": "Static analysis of every formula: syntax, missing references, circular deps, divide-by-zero risk, datatype compatibility.",
+      "rerun": "Re-run validation",
+      "banner": "Validating formulas applied to",
+      "allValid": "All {total} formulas valid — safe to proceed",
+      "failed": "Validation failed — {count} errors must be fixed before ingest",
+      "failedSingular": "Validation failed — 1 error must be fixed before ingest",
+      "summary": "{valid}/{total} valid · {errors} errors · {warnings} warnings",
+      "summarySingular": "{valid}/{total} valid · {errors} error · {warnings} warning",
+      "lastRun": " · last run {time}",
+      "stat": {
+        "valid": "Valid",
+        "errors": "Errors",
+        "warnings": "Warnings"
+      },
+      "empty": {
+        "errors": "🎉 No errors. All formulas pass strict validation.",
+        "warnings": "No warnings.",
+        "fallback": "No results match this filter."
+      },
+      "metricCount": "{count} metrics",
+      "metricCountSingular": "1 metric",
+      "issueCount": "{count} issues",
+      "issueCountSingular": "1 issue",
+      "noIssues": "No issues",
+      "passed": "All checks passed.",
+      "pill": {
+        "valid": "Valid",
+        "warning": "Warning",
+        "invalid": "Invalid"
+      }
+    },
+    "step6": {
+      "ingestingTitle": "Integrating files…",
+      "ingestingBody": "Parsing {totalFiles} files for period {periodLabel}, computing metrics, persisting snapshot.",
+      "readyTitle": "Ready to ingest",
+      "readyBody": "Will parse {totalFiles} files, compute Shopee + TikTok metrics, and save a snapshot for period {periodLabel}.",
+      "readyBodySingular": "Will parse {totalFiles} file, compute Shopee + TikTok metrics, and save a snapshot for period {periodLabel}.",
+      "confirm": "Confirm ingest",
+      "errorNoPeriod": "No period selected — go back to Step 1",
+      "completeTagNew": "Integration Complete",
+      "completeTagUpdate": "Snapshot Updated",
+      "completeTitle": "Period <mono>{periodLabel}</mono> is live",
+      "completeBody": "Snapshot persisted to DB. Reports recomputed from your real upload.",
+      "viewArchive": "View raw archive",
+      "openWeekly": "Open Weekly Detail",
+      "openMonthly": "Open Monthly Detail",
+      "tile": {
+        "shopeeNetGmv": "Shopee Net GMV",
+        "tiktokNetGmv": "TikTok Net GMV",
+        "totalNetGmv": "Total Net GMV",
+        "totalCm": "Total CM (estimate)"
+      },
+      "cmNote": "<b>CM estimate</b> excludes per-product allocation (Phase B v2). Shopee includes Brand Ads / Off-Platform / Vouchers; TikTok uses rate-based Platform Fee + manual Ad Spending + Livestream."
+    },
+    "preview": {
+      "shopee": {
+        "title": "Shopee metrics preview",
+        "subtitle": "Quick sanity-check from the Sales file + Prime Cost master. No DB writes.",
+        "uploadFirst": "Upload the Shopee Sales file first to enable preview."
+      },
+      "tiktok": {
+        "title": "TikTok metrics preview",
+        "subtitle": "Sales file (OrderSKUList) + Prime Cost master. Formula differs from Shopee — uses listing_price for GMV, full-or-nothing item_sold.",
+        "uploadFirst": "Upload the TikTok Sales file (OrderSKUList) to enable preview."
+      },
+      "compute": "Compute preview",
+      "computing": "Computing…",
+      "recompute": "Recompute",
+      "section": {
+        "revenueCost": "Revenue & cost",
+        "perOrder": "Per-order (Group A — MAX dedupe by Order ID)",
+        "marketingCosts": "Marketing costs",
+        "traffic": "Traffic",
+        "affiliate": "Affiliate"
+      },
+      "hint": {
+        "uploadShopeeAds": "💡 Upload the Shopee Ads CSV to enable Total Ad Spending.",
+        "uploadShopeeBrandAds": "💡 Upload the Shopee Brand Ads CSV to enable Total Brand Ads.",
+        "uploadShopeeOffPlatform": "💡 Upload the Shopee Off-Platform Ads CSV to enable Total Off-Platform Ads.",
+        "uploadShopeeTraffic": "💡 Upload the Shopee Traffic xlsx to enable Total Page Views.",
+        "uploadShopeeAffiliate": "💡 Upload the Shopee Affiliate CSV to enable Total Affiliate Commission.",
+        "uploadTikTokTraffic": "💡 Upload the TikTok Traffic xlsx (product_list) to enable Total Page Views.",
+        "uploadTikTokAffiliate": "💡 Upload the TikTok Affiliate xlsx (Creator_List) to enable Total Affiliate Commission."
+      },
+      "stat": {
+        "rowsKept": "Rows kept",
+        "cancelled": "Cancelled rows",
+        "returned": "Returned rows",
+        "freeGift": "Free gift rows",
+        "orders": "Orders"
+      },
+      "freeGiftDetected": "Free gift products detected ({count})",
+      "freeGiftProducts": "Free gift products ({count})",
+      "missingFromMaster": "{count} SKUs sold but missing from Prime Cost master — Net GMV / Prime Cost can't include these",
+      "missingFromMasterTikTok": "{count} SKUs missing from master",
+      "missingFromMasterSingular": "1 SKU sold but missing from Prime Cost master — Net GMV / Prime Cost can't include these",
+      "missingFromMasterTikTokSingular": "1 SKU missing from master",
+      "andMore": "… and {count} more",
+      "showFormulas": "Show formula specs + per-product breakdown",
+      "hideFormulas": "Hide formula specs + per-product breakdown",
+      "loadedSkus": "Loaded {count} SKUs from Prime Cost master.",
+      "loadedSummaryTikTok": "{kept} kept + {excluded} excluded. Master: {sku} SKUs.",
+      "breakdown": {
+        "title": "Per-product breakdown ({count} products)",
+        "col": {
+          "num": "#",
+          "product": "Product",
+          "units": "Units",
+          "gmv": "GMV",
+          "netGmv": "Net GMV",
+          "nmv": "NMV",
+          "sellerDiscount": "Sel.Disc",
+          "primeCost": "PrimeCost"
+        }
+      },
+      "formulaSpecs": {
+        "shopeeTitle": "Formulas (Cách A — text-based engine)",
+        "tiktokTitle": "Formulas — TikTok (Cách A)",
+        "derived": "Derived per row",
+        "exclusions": "Exclusions"
+      }
+    }
+  },
+  "rawArchive": {
+    "pageTitle": "Raw archive",
+    "pageSubtitle": "Every uploaded report, archived immutably for audit. Originals are preserved exactly as ingested — no edits possible.",
+    "stat": {
+      "files": "Files in archive",
+      "filesSub": "Across {count} periods",
+      "filesSubSingular": "Across {count} period",
+      "rows": "Total rows ingested",
+      "rowsSub": "Compressed footprint {size}",
+      "activePeriod": "Active period",
+      "activePeriodSub": "{count} files · re-ingestable",
+      "activePeriodEmpty": "No active period",
+      "retention": "Retention",
+      "retentionValue": "5 years",
+      "retentionSub": "Per Vietnam tax regulation"
+    },
+    "filter": {
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "all": "All",
+      "searchPlaceholder": "Filename…"
+    },
+    "empty": "No files match the current filters.",
+    "section": {
+      "fileCount": "{count} files",
+      "rowCount": "{count} rows",
+      "openDetail": "Open detail"
+    },
+    "fileColumn": {
+      "file": "File",
+      "channel": "Channel",
+      "type": "Type",
+      "rows": "Rows",
+      "size": "Size",
+      "uploaded": "Uploaded",
+      "by": "By"
+    },
+    "manualSection": {
+      "title": "Manual Input",
+      "fieldCount": " · {count} fields · total ",
+      "editable": "Editable",
+      "locked": "Locked",
+      "show": "Show values",
+      "hide": "Hide values",
+      "editHint": "Click <link>Open detail</link> to edit these values."
+    },
+    "status": {
+      "active": "Active",
+      "locked": "Locked",
+      "finalized": "Finalized",
+      "draft": "Draft"
+    },
+    "iconBtn": {
+      "download": "Download original file",
+      "priorVersions": "{count} prior version(s)",
+      "noPriorVersions": "No prior versions"
+    },
+    "detail": {
+      "back": "Back to Raw Archive",
+      "periodTitle": "Period {label}",
+      "snapshotSuffix": " · {gran} snapshot",
+      "weeklySnapshot": "Weekly",
+      "monthlySnapshot": "Monthly",
+      "tile": {
+        "files": "Files",
+        "filesSub": "{shopee} Shopee · {tiktok} TikTok",
+        "rows": "Rows",
+        "rowsSub": "parsed successfully",
+        "reuploads": "Re-uploads",
+        "reuploadsNone": "none",
+        "reuploadsSome": "see file history",
+        "formulaConfig": "Formula Config",
+        "formulaConfigSub": "snapshot at ingest"
+      },
+      "filesArchived": "Files archived",
+      "filesStoredAt": "stored at",
+      "bulkDownload": "Bulk download · {count} files",
+      "bulkDownloadTooltip": "Bundle all files for this period into a single download",
+      "fileToggleAria": "Toggle history",
+      "rowsSuffix": "rows",
+      "priorVersionInline": "{count} prior version",
+      "priorVersionsInline": "{count} prior versions",
+      "priorVersionsTitle": "Prior versions (replaced)",
+      "rowsCount": "{count} rows",
+      "download": "Download",
+      "manualEdit": "Edit",
+      "manualHint": {
+        "unfinalize": "Unfinalize to edit",
+        "adminOverride": "Admin override required"
+      },
+      "formulaSnapshot": "Formula Config snapshot",
+      "formulaSnapshotSub": "{version} — snapshot taken at {at}",
+      "formulaSnapshotBody": "Read-only view of formula state when this period was ingested. Edits to Formula Config after ingest do NOT retroactively affect this snapshot (NFR-08).",
+      "viewFormulaSnapshot": "View formula snapshot",
+      "activityLog": "Activity log",
+      "activityEntries": "{count} entries",
+      "sidebar": {
+        "ingested": "Ingested",
+        "finalized": "Finalized",
+        "periodClose": "Period close",
+        "downstreamReports": "Downstream reports",
+        "lockedItems": {
+          "1": "Reports finalized — no recomputation",
+          "2": "Raw files cannot be deleted",
+          "3": "Formula changes after lock do not affect retroactively",
+          "4": "Manual Input cannot be edited"
+        },
+        "finalizedItems": {
+          "1": "Snapshot finalized by Manager",
+          "2": "Awaiting full lock (post-review)"
+        },
+        "draftItems": {
+          "1": "Draft — pending Manager approval",
+          "2": "Raw files preserved (NFR-06)"
+        },
+        "finalizedFootnote": "Use the Approval card above to lock this period manually, or unfinalize to reopen."
+      }
+    },
+    "approval": {
+      "draft": {
+        "title": "Pending Manager Approval",
+        "subtitle": "This period is in <mono>Draft</mono>. Manager review required before reports can be shared externally.",
+        "noteLabel": "Note",
+        "noteOptional": "(optional)",
+        "notePlaceholder": "e.g. All files validated, approving for week",
+        "reject": "Reject — back to Operator",
+        "approve": "Approve & Finalize",
+        "confirmApprove": "Approve {label}? Reports will be marked Finalized and shared.",
+        "confirmYes": "Yes, approve"
+      },
+      "rejected": {
+        "title": "Rejected by Manager",
+        "reasonLabel": "Reason",
+        "operatorAction": "<b>Operator action:</b> address the issue (re-upload files, fix manual input, or adjust formula), then click Resubmit so the Manager can re-review.",
+        "resubmit": "Resubmit for review",
+        "confirmResubmit": "Resubmit clears the rejection and sends this period back to Manager review.",
+        "confirmYes": "Yes, resubmit"
+      },
+      "finalized": {
+        "title": "Finalized",
+        "subtitle": "Approved by <mono>{by}</mono> on <mono>{at}</mono>. Reports are locked for this period.",
+        "unfinalize": "Unfinalize",
+        "lock": "Lock period",
+        "unfinalizeReason": {
+          "header": "Reason required. Unfinalizing reopens this period for edits. Action is logged with your user + reason in the audit trail.",
+          "placeholder": "Why are you reopening this period?"
+        },
+        "lockReason": {
+          "header": "Locking is permanent for daily operations. No more re-uploads or edits on this period. Only Admin can unlock later (with super audit log). Reason optional.",
+          "placeholder": "e.g. Period closed for accounting"
+        }
+      },
+      "rejectForm": {
+        "header": "Reason required. Rejection is logged. The Operator will see this note and address it before resubmitting.",
+        "placeholder": "e.g. Shopee Sales file W18 is missing 2 days of data",
+        "submit": "Reject — send back to Operator"
+      },
+      "cancel": "Cancel"
+    },
+    "inlineActions": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "resubmit": "Resubmit",
+      "unfinalize": "Unfinalize",
+      "lock": "Lock",
+      "reasonRequiredHint": "A reason is required to continue."
+    },
+    "manualEdit": {
+      "header": "Edit Manual Input",
+      "periodLabel": "Period {label}",
+      "close": "Close",
+      "missing": "{count} fields missing — fill all to save.",
+      "missingSingular": "1 field missing — fill all to save.",
+      "group": {
+        "totalPlatform": "Total Platform",
+        "shopee": "Shopee",
+        "tiktok": "TikTok"
+      },
+      "wasValue": "was {value}",
+      "noChanges": "No changes yet",
+      "changedCount": "{count} fields changed",
+      "changedCountSingular": "1 field changed",
+      "cancel": "Cancel",
+      "save": "Save changes"
+    },
+"downstreamLink": {
+      "weekly": "Weekly Report {label}",
+      "monthly": "Monthly Report {label}"
+    },
+    "fileHistory": {
+      "title": "File version history",
+      "close": "Close",
+      "versionCount": "{count} version",
+      "versionCountPlural": "{count} versions",
+      "latestReupload": "Latest re-upload: {at}",
+      "current": "Current",
+      "replaced": "Replaced",
+      "labelRows": "Rows",
+      "labelSize": "Size",
+      "labelChecksum": "SHA-256",
+      "noPriorVersions": "No prior versions — this file has only been uploaded once."
+    }
+  },
+  "primeCost": {
+    "pageTitle": "RFR Data",
+    "pageSubtitle": "Prime Cost master tables",
+    "searchPlaceholder": "Search product name or SKU...",
+    "badge": "Prime Cost",
+    "download": "Download",
+    "downloading": "Preparing…",
+    "downloadedCount": "Downloaded {count} rows",
+    "upload": "Upload",
+    "uploading": "Importing…",
+    "uploadTooltip": "CSV bulk upload (upsert by SKU)",
+    "addRow": "Add row",
+    "fileTooLarge": "File too large (max 5MB for CSV import)",
+    "rowDeleted": "Row deleted",
+    "rowAdded": "Row added",
+    "rowUpdated": "Row updated",
+    "confirmDelete": "Delete \"{name}\" ({sku})?",
+    "column": {
+      "productId": "Product ID",
+      "variationId": "Variation ID",
+      "productVi": "Product (VI)",
+      "productEn": "Product (EN)",
+      "sku": "SKU",
+      "primeCostVnd": "Prime Cost (VND)",
+      "krw": "KRW",
+      "sellingPrice": "Selling Price",
+      "listingPrice": "Listing Price",
+      "effectiveFrom": "Effective From",
+      "effectivePrime": "Prime Eff.",
+      "effectiveSelling": "Sell Eff.",
+      "effectiveListing": "List Eff.",
+      "versionCount": "{count} versions",
+      "lastUpdated": "Last updated",
+      "actions": "Actions"
+    },
+    "row": {
+      "edit": "Edit",
+      "versions": "Versions",
+      "delete": "Delete",
+      "deleting": "Deleting…"
+    },
+    "version": {
+      "add": "Add new version",
+      "effectiveFrom": "Effective From",
+      "effectiveFromDesc": "Orders placed on/after this date will use this value. Cannot be more than 30 days in the future.",
+      "sourceNote": "Source / Note",
+      "tab": {
+        "prime": "Prime Cost",
+        "selling": "Selling",
+        "listing": "Listing"
+      },
+      "history": {
+        "title": "Version history",
+        "empty": "No versions yet.",
+        "latestBadge": "Latest"
+      },
+      "breakdown": {
+        "title": "Cost breakdown (optional)",
+        "cogs": "COGS",
+        "logistic": "Logistic",
+        "warehouse": "Warehouse / day",
+        "fulfillment": "Fulfillment"
+      },
+      "delete": {
+        "confirm": "Delete version effective from {date}? This cannot be undone.",
+        "lastWarning": "Cannot delete the only version. Add a replacement first."
+      },
+      "flag": {
+        "disabledNotice": "Adding a version applies to new ingests of Draft periods only. Finalized periods stay unchanged."
+      },
+      "error": {
+        "primeCostInvalid": "Prime Cost must be a non-negative number."
+      }
+    },
+    "empty": {
+      "search": "No rows match your search.",
+      "initial": "No prime cost rows yet. Click \"+ Add row\" to start."
+    },
+    "footer": {
+      "count": "{visible} of {total} records",
+      "versionControl": "Version-controlled · Changes logged automatically"
+    },
+    "import": {
+      "title": "Import result",
+      "inserted": "Inserted",
+      "updated": "Updated",
+      "versionsAdded": "Versions",
+      "primeVersionsAdded": "Prime versions",
+      "sellingVersionsAdded": "Selling versions",
+      "listingVersionsAdded": "Listing versions",
+      "errors": "Errors",
+      "rowsSkipped": "Rows skipped",
+      "rowPrefix": "Row {index}",
+      "close": "Close"
+    },
+    "form": {
+      "titleAdd": "Add SKU",
+      "titleEdit": "Edit SKU",
+      "titleDuplicate": "Duplicate SKU",
+      "labelProductId": "Product ID",
+      "labelVariationId": "Variation ID",
+      "labelVariationName": "Variation Name",
+      "labelProductVi": "Product name (VI) *",
+      "labelProductEn": "Product name (EN)",
+      "labelSku": "SKU *",
+      "labelGtin": "GTIN (barcode)",
+      "labelHsCode": "HS Code",
+      "advancedSection": "Advanced information",
+      "advancedSectionHint": "GTIN + HS Code — optional, for customs / barcode systems.",
+      "labelPrimeCost": "Prime Cost (VND) *",
+      "labelSellingPrice": "Selling Price (VND)",
+      "labelListingPrice": "Listing Price (VND)",
+      "labelIsCombo": "Mark as Combo / Bundle",
+      "hintIsCombo": "Splits this SKU into its own row in Product Breakdown.",
+      "comboMetaHint": "Optional reference data — Phase 1: not used by the calculator yet.",
+      "labelComboComponentSkus": "Component SKUs",
+      "hintComboComponentSkus": "Separated by underscore (_). E.g. SAFG26U0004_SAFG26U0003",
+      "krwHint": "≈ {value} KRW (rate 17.543)",
+      "errorPrimeCost": "Prime Cost is required and must be a valid number",
+      "errorRequired": "Product name (VI) and SKU are required",
+      "cancel": "Cancel",
+      "submitAdd": "Add row",
+      "submitEdit": "Save changes",
+      "saving": "Saving…"
+    }
+  },
+  "productList": {
+    "title": "Product List",
+    "subtitle": "All SKUs with GTIN, HS Code, prices, and latest update.",
+    "searchPlaceholder": "SKU, GTIN, HS Code, product name…",
+    "comboFilter": {
+      "all": "All",
+      "combo": "Combo only",
+      "nonCombo": "Non-combo only"
+    },
+    "filter": {
+      "updatedFrom": "From",
+      "updatedTo": "To",
+      "clearDates": "Clear date range",
+      "updatedByAll": "All updaters"
+    },
+    "badge": {
+      "skuCount": "{count} SKUs",
+      "combo": "Combo"
+    },
+    "action": {
+      "addSku": "Add SKU",
+      "duplicateSku": "Duplicate — pre-fill a new SKU from this row"
+    },
+    "column": {
+      "sku": "SKU",
+      "gtin": "GTIN",
+      "hsCode": "HS Code",
+      "productVi": "Product (VI)",
+      "productEn": "Product (EN)",
+      "variation": "Variation",
+      "primeCost": "Prime Cost",
+      "sellingPrice": "Selling Price",
+      "listingPrice": "Listing Price",
+      "recordedAt": "Last Updated",
+      "updatedBy": "Updated By",
+      "sourceNote": "Source / Note"
+    },
+    "empty": {
+      "search": "No SKUs match your search.",
+      "initial": "No products yet. Click \"+ Add SKU\" to start."
+    },
+    "footer": {
+      "count": "{shown} of {total} SKUs"
+    }
+  },
+  "priceVersion": {
+    "title": {
+      "prime": "Prime Cost",
+      "selling": "Selling Price",
+      "listing": "Listing Price"
+    },
+    "subtitle": {
+      "prime": "All prime-cost version changes across SKUs, newest first. Each row shows the value, when it took effect, and when it was last updated.",
+      "selling": "All selling-price version changes across SKUs, newest first. Used by Shopee Net GMV calculation per order date.",
+      "listing": "All listing-price version changes across SKUs, newest first. Used by TikTok GMV calculation per order date."
+    },
+    "field": {
+      "prime": "Prime Cost",
+      "selling": "Selling Price",
+      "listing": "Listing Price"
+    },
+    "searchPlaceholder": "SKU, product name…",
+    "comboFilter": {
+      "all": "All",
+      "combo": "Combo only",
+      "nonCombo": "Non-combo only"
+    },
+    "badge": {
+      "versionCount": "{count} versions",
+      "combo": "Combo"
+    },
+    "action": {
+      "addSku": "Add SKU",
+      "addVersion": "Add Version",
+      "editSku": "Edit",
+      "duplicateSku": "Duplicate — pre-fill a new SKU from this row",
+      "deleteVersion": "Delete"
+    },
+    "column": {
+      "sku": "SKU",
+      "productVi": "Product (VI)",
+      "variationName": "Variation",
+      "vnd": "VND",
+      "krw": "KRW",
+      "effectiveFrom": "Effective From",
+      "createdAt": "Last Updated",
+      "updatedBy": "Updated By",
+      "sourceNote": "Source / Note"
+    },
+    "footer": {
+      "count": "Showing {visible} of {total} versions",
+      "groupedCount": "{skus} SKUs · {versions} versions"
+    },
+    "group": {
+      "expand": "Show {count} versions",
+      "collapse": "Collapse",
+      "versionCount": "{count} versions",
+      "versionLabel": "↳ older version"
+    },
+    "empty": {
+      "search": "No versions match your search.",
+      "initial": "No versions yet. Click \"+ Add Version\" or \"+ Add SKU\" to start."
+    },
+    "delete": {
+      "confirm": "Delete version of {sku} effective from {date}? This cannot be undone.",
+      "success": "Version deleted."
+    },
+    "error": {
+      "skuRequired": "Pick a SKU first."
+    },
+    "addModal": {
+      "title": "Add {field} Version",
+      "sku": "SKU",
+      "skuSearch": "Search SKU or product name…"
+    }
+  },
+  "activityLog": {
+    "pageTitle": "Activity log",
+    "pageSubtitle": "Every action — uploads, edits, approvals, formula changes — is recorded here. Entries are immutable.",
+    "searchPlaceholder": "user, file, action…",
+    "filter": "Filter",
+    "filterCategories": "Categories",
+    "clearAll": "Clear all",
+    "dateFilter": {
+      "label": "Date",
+      "presets": "Quick range",
+      "custom": "Custom range",
+      "from": "From",
+      "to": "To",
+      "fromShort": "From {date}",
+      "toShort": "Until {date}",
+      "clear": "Clear",
+      "done": "Done",
+      "preset": {
+        "today": "Today",
+        "last7": "Last 7 days",
+        "last30": "Last 30 days",
+        "thisMonth": "This month"
+      }
+    },
+    "export": "Export",
+    "exporting": "Exporting…",
+    "empty": "No actions logged yet. Actions you take (uploads, edits, exports) will appear here.",
+    "dayHeader": {
+      "today": "Today · {date}",
+      "yesterday": "Yesterday · {date}"
+    },
+    "dayActionCount": "{count} actions",
+    "column": {
+      "time": "Time",
+      "category": "Category",
+      "user": "User",
+      "action": "Action",
+      "target": "Target",
+      "details": "Details"
+    },
+    "category": {
+      "UPLOAD": "Upload",
+      "APPROVAL": "Approval",
+      "MANUAL_INPUT": "Manual input",
+      "MASTER_DATA": "Master data",
+      "FORMULA": "Formula",
+      "REPORT": "Report",
+      "EXPORT": "Export",
+      "OTHER": "Other"
+    },
+    "pagination": {
+      "rowsPerPage": "Rows per page",
+      "range": "{start}–{end}",
+      "of": "of",
+      "totalSuffix": " ({total} total)",
+      "firstPage": "First page",
+      "prevPage": "Previous page",
+      "nextPage": "Next page",
+      "lastPage": "Last page",
+      "loadMore": "Load more from server",
+      "loadingMore": "Loading…"
+    }
+  },
+  "formulaConfig": {
+    "pageTitle": "Settings",
+    "pageSubtitle": "User management and formula configuration — Admin only",
+    "title": "Formula Configuration",
+    "subtitle": "Changes are auto-saved to your browser",
+    "legend": {
+      "rawColumn": "raw column",
+      "calculated": "calculated",
+      "unknown": "unknown",
+      "editable": "[editable]",
+      "editableHint": "Editable parameter / literal value"
+    },
+    "export": "Export",
+    "exportJson": "Export as JSON",
+    "exportCsv": "Export as CSV",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "filter": {
+      "searchPlaceholder": "Search metric by name…",
+      "section": "Section",
+      "dataSource": "Data Source",
+      "showing": "Showing {visible} / {total}",
+      "clear": "Clear filters"
+    },
+    "empty": "No metrics match the current filters.",
+    "table": {
+      "metric": "Metric",
+      "dataSource": "Data Source",
+      "formulaValue": "Formula / Value",
+      "unit": "Unit",
+      "edit": "Edit",
+      "history": "History",
+      "formulaCount": "{count} formulas",
+      "save": "Save",
+      "saved": "Saved",
+      "resetToDefault": "Reset to default (catalog seed)",
+      "viewHistoryAria": "View version history for {metric}"
+    },
+    "section": {
+      "shopee-platform": "Platform-Level Formulas — Shopee",
+      "shopee-product": "Product-Level Formulas — Shopee",
+      "tiktok-platform": "Platform-Level Formulas — TikTok",
+      "tiktok-product": "Product-Level Formulas — TikTok",
+      "aggregated": "Aggregated Metrics — Both Platforms",
+      "currency-period": "Currency & Period Comparison",
+      "order-exclusion": "Order Exclusion Rules",
+      "cost-master": "Cost Master"
+    },
+    "dataSource": {
+      "group": {
+        "shopee": "Shopee",
+        "tiktok": "TikTok",
+        "other": "Other",
+        "calculated": "Calculated Fields"
+      },
+      "searchPlaceholder": "Search…",
+      "add": "Add",
+      "removeAria": "Remove {source}"
+    },
+    "formulaInput": {
+      "bracketHint": "Values in <code>[brackets]</code> are editable parameters / literals — change to tune the formula.",
+      "emptyAutocomplete": "Select a data source to see available fields.",
+      "title": {
+        "calculated": "Calculated metric: {field}",
+        "rawColumn": "Raw column: {field}",
+        "unknown": "Unknown field: \"{field}\". Add a matching data source.",
+        "param": "Editable parameter: {value}. Change to any number.",
+        "literal": "Literal value: \"{value}\". Edit if the underlying category/status is renamed."
+      }
+    },
+    "newVersion": {
+      "title": "New Version",
+      "diff": {
+        "before": "Before",
+        "after": "After",
+        "empty": "(empty)"
+      },
+      "impact": {
+        "title": "Impact Analysis",
+        "affected": "{count} affected",
+        "reports": "Impacted Reports",
+        "sections": "Impacted Report Sections",
+        "charts": "Impacted Charts"
+      },
+      "effectiveFrom": "Effective From",
+      "retroactive": "Apply retroactively",
+      "retroactiveHint": "(overrides historical reports)",
+      "retroactiveWarningTitle": "Warning: this will recalculate all historical reports that depend on this metric.",
+      "retroactiveWarningBody": "Numbers on already-downloaded reports will diverge from in-app values. This breaks audit trail. Only proceed if the previous formula was clearly wrong.",
+      "changeReason": "Change Reason",
+      "reasonPlaceholder": "Describe why this formula is being changed...",
+      "reasonRequired": "Required — explain the rationale.",
+      "cancel": "Cancel",
+      "submit": "Create New Version"
+    },
+    "history": {
+      "title": "Version History",
+      "close": "Close",
+      "versionCount": "{count} version",
+      "versionCountPlural": "{count} versions",
+      "latestChange": "Latest change: {at}",
+      "col": {
+        "num": "#",
+        "metric": "Metric",
+        "formula": "Formula Value",
+        "reason": "Reason",
+        "effective": "Effective Period",
+        "changedBy": "Changed By",
+        "status": "Status"
+      },
+      "unit": "unit:",
+      "noReason": "—"
+    }
+  }
+}

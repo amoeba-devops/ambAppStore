@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- ko-full-translation -->
+  <title>감사 로그 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — 사용 안내서 홈" aria-label="Amoeba Car Manager v2 — 사용 안내서 홈">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 사용 안내서</span></span><span class="header__brand-mobile">사용 안내서</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="안내서 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" class="is-active" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="150" height="100" fill="#fff"/><g transform="translate(75,50) rotate(-56.31)"><circle r="25" fill="#C60C30"/><path d="M0,-25 A25,25 0 0,1 0,25 A12.5,12.5 0 0,1 0,0 A12.5,12.5 0 0,0 0,-25 Z" fill="#003478"/></g><g fill="#000"><g transform="translate(37.5,25) rotate(-56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,25) rotate(56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g><g transform="translate(37.5,75) rotate(56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,75) rotate(-56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g></g></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">소개</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">화면 탐색</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림함</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">용어집</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">관리자</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-dashboard.html">대시보드</a>
+        <a class="sidebar__link" href="02-quan-ly-xe.html">차량 관리</a>
+        <a class="sidebar__link" href="03-quan-ly-tai-xe.html">기사 관리</a>
+        <a class="sidebar__link" href="04-quan-ly-nguoi-dung.html">사용자</a>
+        <a class="sidebar__link" href="05-quan-ly-chuyen-di.html">운행</a>
+        <a class="sidebar__link" href="06-quan-ly-chi-phi.html">비용 관리</a>
+        <a class="sidebar__link" href="07-canh-bao-bao-duong.html">정비 알림</a>
+        <a class="sidebar__link" href="08-bao-cao.html">보고서</a>
+        <a class="sidebar__link" href="09-cau-hinh-he-thong.html">시스템 설정</a>
+        <a class="sidebar__link" href="10-audit-log.html">감사 로그</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">홈</a> · 관리자 · 감사 로그</div>
+        <h1>감사 로그 (Audit Log)</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/audit" target="_parent" rel="noopener">
+            <span>앱에서 이 페이지 열기</span>
+            <span class="app-link-cta__route">/audit</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>URL</dt><dd><code>/audit</code></dd>
+            <dt>권한</dt><dd>관리자만 조회 가능</dd>
+            <dt>특성</dt><dd><strong>추가 전용 (Append-only)</strong> — 수정/삭제 불가. 5년 보관 (<a href="09-cau-hinh-he-thong.html">/settings</a>에서 설정).</dd>
+          </dl>
+        </div>
+
+        <p>감사 로그는 <strong>데이터 변경을 수반하는 모든 작업을 기록</strong>합니다: 누가 어떤 운행을 생성/수정/삭제했는지, 누가 사용자 역할을 변경했는지, 누가 시스템 설정을 수정했는지. 문제 발생 시 추적을 위한 유일한 기록입니다.</p>
+
+        <figure>
+          <img src="../../assets/img/screenshots/ko/admin/10-audit-log.png" alt="감사 로그 테이블">
+          <figcaption>감사 로그 — 시간순 테이블, 실행자/작업/참조 검색 및 필터, CSV 내보내기</figcaption>
+        </figure>
+
+        <h2>표시 열 구성</h2>
+        <table>
+          <thead><tr><th>열</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td><strong>시각</strong></td><td>ISO 타임스탬프, Asia/Ho_Chi_Minh 시간대</td></tr>
+            <tr><td><strong>실행자</strong></td><td>사용자 아바타 + 이름, 크론 자동 실행 시 "system"</td></tr>
+            <tr><td><strong>작업</strong></td><td>이벤트 코드 배지 (TRIP.CREATE, EXPENSE.SUBMITTED, ROLE_SYNC, …)</td></tr>
+            <tr><td><strong>엔티티</strong></td><td>대상 유형 (Trip, Vehicle, User, Expense, …)</td></tr>
+            <tr><td><strong>식별자</strong></td><td>ID 또는 참조값 (예: <code>TR-1042</code>, 차량 번호판)</td></tr>
+            <tr><td><strong>IP</strong></td><td>요청 IP — 비정상 작업 탐지에 활용</td></tr>
+          </tbody>
+        </table>
+
+        <h2>작업 유형별 배지 색상</h2>
+        <p>배지 색상은 작업 코드에 포함된 <em>키워드</em>로 결정됩니다:</p>
+        <ul>
+          <li>🟢 <strong>Success</strong> — <code>ACCEPT</code> 포함</li>
+          <li>🔵 <strong>Accent</strong> — <code>ASSIGN</code> 또는 <code>UPDATE</code> 포함</li>
+          <li>🟣 <strong>Info</strong> — <code>START</code> 또는 <code>END</code> 포함</li>
+          <li>🟡 <strong>Warning</strong> — <code>ALERT</code> 또는 <code>WARN</code> 포함</li>
+          <li>🔴 <strong>Danger</strong> — <code>REJECT</code>, <code>CANCEL</code> 또는 <code>DELETE</code> 포함</li>
+          <li>⚪ <strong>Neutral</strong> — 그 외 (<code>CREATE</code>, <code>SUBMITTED</code>, <code>OIL_RESET</code>, <code>ROLE_SYNC</code>, <code>PROVISIONED</code>…)</li>
+        </ul>
+
+        <h2>필터</h2>
+        <ul>
+          <li><strong>실행자 / 작업 / 대상 참조 검색</strong> — 검색창에 입력</li>
+          <li><strong>실행자별 필터</strong> — 이벤트를 생성한 적 있는 사용자만 드롭다운에 표시</li>
+        </ul>
+
+        <h2>CSV 내보내기</h2>
+        <p>오른쪽 상단 <strong>"CSV 내보내기"</strong>를 클릭하면 현재 필터가 적용된 전체 이벤트를 다운로드할 수 있습니다 — Excel/Python 분석에 적합한 형식입니다.</p>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">🔒</div>
+          <div class="callout__body">
+            <p><strong>감사 로그는 앱에서 삭제할 수 없습니다</strong> — raw SQL 권한을 가진 DB 관리자만 (예외적으로) 가능합니다. 이는 규정 준수 필수 기능입니다.</p>
+          </div>
+        </div>
+
+        <h2>주요 이벤트 코드</h2>
+        <table>
+          <thead><tr><th>코드</th><th>의미</th></tr></thead>
+          <tbody>
+            <tr><td><code>TRIP.CREATE</code></td><td>새 운행 생성</td></tr>
+            <tr><td><code>TRIP.UPDATE</code></td><td>운행 정보 수정</td></tr>
+            <tr><td><code>TRIP.ASSIGN</code></td><td>관리자가 기사 및 차량 배정</td></tr>
+            <tr><td><code>TRIP.REASSIGN</code></td><td>기사 거절 후 관리자 재배정</td></tr>
+            <tr><td><code>TRIP.ACCEPT</code></td><td>기사 수락</td></tr>
+            <tr><td><code>TRIP.REJECT</code></td><td>기사 거절 (사유 포함)</td></tr>
+            <tr><td><code>TRIP.START</code></td><td>기사가 '시작' 버튼 클릭</td></tr>
+            <tr><td><code>TRIP.END</code></td><td>기사가 '종료' 버튼 클릭</td></tr>
+            <tr><td><code>TRIP.CANCEL</code></td><td>운행 취소 (관리자 또는 생성자)</td></tr>
+            <tr><td><code>EXPENSE.SUBMITTED</code></td><td>새 비용 기록 (모든 비용 자동 승인 — 승인 단계 없음)</td></tr>
+            <tr><td><code>DRIVER.CREATE</code> / <code>DRIVER.UPDATE</code></td><td>기사 프로필 생성 / 수정</td></tr>
+            <tr><td><code>VEHICLE.CREATE</code> / <code>VEHICLE.UPDATE</code> / <code>VEHICLE.DELETE</code></td><td>차량 생성 / 수정 / 삭제</td></tr>
+            <tr><td><code>VEHICLE.OIL_RESET</code></td><td>오일 교환 후 주기 초기화</td></tr>
+            <tr><td><code>SETTINGS.UPDATE</code></td><td>시스템 설정 변경</td></tr>
+            <tr><td><code>MAINTENANCE.ACKNOWLEDGED</code></td><td>관리자가 정비 알림 처리 확인</td></tr>
+            <tr><td><code>MAINTENANCE.CRON_EVALUATED</code></td><td>크론이 매일 정비 일정 평가 (시스템)</td></tr>
+            <tr><td><code>PROVISIONED</code></td><td>로그인 시 사용자 최초 생성 (시스템)</td></tr>
+            <tr><td><code>ROLE_SYNC</code></td><td>로그인 시 역할 자동 동기화 (시스템)</td></tr>
+          </tbody>
+        </table>
+
+        <nav class="pager">
+          <a class="pager__prev" href="09-cau-hinh-he-thong.html"><span>← 이전</span><strong>시스템 설정</strong></a>
+          <a class="pager__next" href="../index.html"><span>완료 →</span><strong>홈으로 돌아가기</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">업데이트: 2026-05-24 · 피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

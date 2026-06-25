@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- ko-full-translation -->
+  <title>관리자 — 운행 관리 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — 사용 안내서 홈" aria-label="Amoeba Car Manager v2 — 사용 안내서 홈">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 사용 안내서</span></span><span class="header__brand-mobile">사용 안내서</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="안내서 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" class="is-active" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="150" height="100" fill="#fff"/><g transform="translate(75,50) rotate(-56.31)"><circle r="25" fill="#C60C30"/><path d="M0,-25 A25,25 0 0,1 0,25 A12.5,12.5 0 0,1 0,0 A12.5,12.5 0 0,0 0,-25 Z" fill="#003478"/></g><g fill="#000"><g transform="translate(37.5,25) rotate(-56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,25) rotate(56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g><g transform="translate(37.5,75) rotate(56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,75) rotate(-56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g></g></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">소개</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">화면 탐색</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림함</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">용어집</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">관리자</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-dashboard.html">대시보드</a>
+        <a class="sidebar__link" href="02-quan-ly-xe.html">차량 관리</a>
+        <a class="sidebar__link" href="03-quan-ly-tai-xe.html">기사 관리</a>
+        <a class="sidebar__link" href="04-quan-ly-nguoi-dung.html">사용자</a>
+        <a class="sidebar__link" href="05-quan-ly-chuyen-di.html">운행 관리</a>
+        <a class="sidebar__link" href="06-quan-ly-chi-phi.html">비용 관리</a>
+        <a class="sidebar__link" href="07-canh-bao-bao-duong.html">정비 알림</a>
+        <a class="sidebar__link" href="08-bao-cao.html">보고서</a>
+        <a class="sidebar__link" href="09-cau-hinh-he-thong.html">시스템 설정</a>
+        <a class="sidebar__link" href="10-audit-log.html">감사 로그</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">홈</a> · 관리자 · 운행 관리</div>
+        <h1>운행 관리 (Trips)</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/trips" target="_parent" rel="noopener">
+            <span>앱에서 이 페이지 열기</span>
+            <span class="app-link-cta__route">/trips</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>URL</dt><dd><code>/trips</code> · <code>/trips/new</code> · <code>/trips/[id]</code></dd>
+            <dt>관리자 권한</dt><dd>배정 대기 중인 운행에 <strong>기사·차량 배정</strong> · 기사가 거절한 경우 <strong>재배정</strong> · 모든 운행을 <strong>취소</strong> 가능</dd>
+          </dl>
+        </div>
+
+        <h2>새 운행 생성</h2>
+        <p>매니저와 동일한 방식으로 생성합니다 — 자세한 절차는 <a href="../manager/02-dat-xe.html">차량 신청 (매니저)</a> 문서를 참고하세요. 필수 입력 항목: 출발지, 도착지, 출발 시각.</p>
+
+        <p><strong>매니저와의 차이점</strong>: 관리자는 <strong>임의의 사용자</strong>를 승객으로 지정할 수 있으며, 본인 계정으로 제한되지 않습니다.</p>
+
+        <h2>PENDING_ASSIGNMENT 상태의 운행에 기사·차량 배정</h2>
+        <figure>
+          <img src="../../assets/img/screenshots/ko/admin/05-trip-assign.png" alt="배정 대기 상태 운행 상세 화면">
+          <figcaption>TR-1040 운행이 배정 대기 중 — 관리자는 기사와 차량을 지정할 수 있는 드롭다운 2개를 사용합니다</figcaption>
+        </figure>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body"><p><strong>"배정 대기"</strong>(PENDING_ASSIGNMENT) 상태의 운행을 엽니다.</p></div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body"><p>페이지 상단의 <strong>"Quick Actions"</strong> 영역에서 다음 항목을 선택합니다.</p>
+            <ul>
+              <li><strong>기사</strong> — AVAILABLE 상태의 기사 목록 드롭다운</li>
+              <li><strong>차량</strong> — AVAILABLE 상태의 차량 드롭다운</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p><strong>"배정"</strong>을 클릭합니다. 운행이 <code>PENDING_DRIVER_CONFIRMATION</code> 상태로 전환되며, 기사에게 알림이 전송되고 기사가 확인을 진행해야 합니다.</p>
+          </div>
+        </div>
+
+        <h2>운행 중 모니터링</h2>
+        <figure>
+          <img src="../../assets/img/screenshots/ko/admin/05-trip-monitor.png" alt="운행 중 상태 운행 상세 화면">
+          <figcaption>TR-1042 운행이 진행 중 — 관리자는 실시간 활동 피드를 확인할 수 있습니다</figcaption>
+        </figure>
+
+        <p>IN_PROGRESS 상태의 상세 페이지에는 다음 정보가 표시됩니다.</p>
+        <ul>
+          <li><strong>경로 지도</strong></li>
+          <li><strong>승객 · 기사 · 차량 정보</strong></li>
+          <li><strong>활동 피드</strong> — 누가 언제 CREATE, ASSIGN, ACCEPT, START 했는지 타임스탬프와 함께 표시</li>
+          <li>전체 <a href="10-audit-log.html">감사 로그</a> 페이지로 이동하는 <strong>감사 링크</strong></li>
+        </ul>
+
+        <h2>운행 취소</h2>
+        <ul>
+          <li>관리자는 <em>아직 완료되지 않은</em> 모든 상태의 운행을 취소할 수 있습니다 (COMPLETED·CANCELLED·REJECTED 상태는 취소 불가).</li>
+          <li>하단의 <strong>"운행 취소"</strong> 버튼(빨간색)을 클릭한 뒤, 사유를 입력(필수)하고 확정합니다.</li>
+          <li>기사와 승객에게 알림이 전송됩니다.</li>
+        </ul>
+
+        <h2>기사 거절 시 재배정</h2>
+        <p>기사가 사유와 함께 "거절"을 누르면 운행은 <code>REJECTED_BY_DRIVER</code> 상태로 전환됩니다. 관리자는 해당 운행을 다시 열어 <strong>"재배정"</strong>을 클릭하고 다른 기사를 선택합니다. 운행은 다시 <code>PENDING_DRIVER_CONFIRMATION</code> 상태로 돌아갑니다.</p>
+
+        <nav class="pager">
+          <a class="pager__prev" href="04-quan-ly-nguoi-dung.html"><span>← 이전</span><strong>사용자</strong></a>
+          <a class="pager__next" href="06-quan-ly-chi-phi.html"><span>다음 →</span><strong>비용 관리</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">최종 업데이트 2026-05-24 · 피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

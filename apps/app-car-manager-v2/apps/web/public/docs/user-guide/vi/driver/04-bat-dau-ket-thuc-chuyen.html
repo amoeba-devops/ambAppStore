@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bắt đầu / kết thúc chuyến — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — Trang chủ hướng dẫn" aria-label="Amoeba Car Manager v2 — Trang chủ hướng dẫn">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span><span class="header__brand-mobile">Hướng dẫn</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" class="is-active" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a>
+          <a href="#" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="150" height="100" fill="#fff"/><g transform="translate(75,50) rotate(-56.31)"><circle r="25" fill="#C60C30"/><path d="M0,-25 A25,25 0 0,1 0,25 A12.5,12.5 0 0,1 0,0 A12.5,12.5 0 0,0 0,-25 Z" fill="#003478"/></g><g fill="#000"><g transform="translate(37.5,25) rotate(-56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,25) rotate(56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g><g transform="translate(37.5,75) rotate(56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,75) rotate(-56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g></g></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a>
+        </span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Tài xế</div>
+        <a class="sidebar__link" href="00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="01-cai-pwa.html">Cài đặt PWA</a>
+        <a class="sidebar__link" href="02-today-screen.html">Màn hình Hôm nay</a>
+        <a class="sidebar__link" href="03-xac-nhan-chuyen.html">Xác nhận chuyến</a>
+        <a class="sidebar__link" href="04-bat-dau-ket-thuc-chuyen.html">Bắt đầu / kết thúc chuyến</a>
+        <a class="sidebar__link" href="05-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="06-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="07-ngoai-tuyen.html">Hành vi ngoại tuyến</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">Trang chủ</a> · Tài xế · Bắt đầu / kết thúc
+        </div>
+        <h1>Bắt đầu và kết thúc chuyến</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/today" target="_parent" rel="noopener">
+            <span>Mở trang trong app</span>
+            <span class="app-link-cta__route">/today</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>Trước đó</dt><dd>Chuyến phải ở trạng thái "Đã xác nhận" (xem <a href="03-xac-nhan-chuyen.html">Xác nhận chuyến</a>)</dd>
+            <dt>Thời gian</dt><dd>~10 giây mỗi lần</dd>
+            <dt>Tự động ghi nhận</dt><dd>Thời điểm + số odometer + người thao tác</dd>
+          </dl>
+        </div>
+
+        <p>Hai thao tác này tạo nên <strong>khung thời gian thực</strong> cho chuyến đi — dữ liệu được dùng cho báo cáo
+        km, tính phí, và tự động đồng bộ km với chu kỳ bảo dưỡng.</p>
+
+        <h2>Bắt đầu chuyến (xuất phát)</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>Trước khi rời chỗ đậu xe, mở app, vào chi tiết chuyến đã xác nhận.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p>Cuộn xuống dưới cùng, bấm nút <strong>"▶ Bắt đầu chuyến"</strong> (màu xanh, full width).</p>
+            <figure>
+              <img src="../../assets/img/screenshots/vi/driver/04-trip-start.png" alt="Nút Bắt đầu chuyến">
+              <figcaption>Chuyến TR-2002 — trạng thái "Đã xác nhận", nút "Bắt đầu chuyến" sẵn sàng</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Hệ thống ghi nhận: thời điểm bắt đầu = thời điểm bạn bấm nút. Trạng thái chuyến chuyển sang <strong>"Đang đi"</strong>.
+            Banner xanh trên Hôm nay sẽ thay thế bằng chuyến này.</p>
+          </div>
+        </div>
+
+        <h2>Kết thúc chuyến (đến nơi)</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>Sau khi đỗ xe tại điểm đến, mở app, vào chi tiết chuyến đang chạy (banner xanh trên Hôm nay).</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p>Bấm nút <strong>"⏹ Kết thúc chuyến"</strong> (xanh dương) ở dưới cùng.</p>
+            <figure>
+              <img src="../../assets/img/screenshots/vi/driver/04-trip-end.png" alt="Nút Kết thúc chuyến">
+              <figcaption>Chuyến TR-1042 — đang chạy, nút "Kết thúc chuyến" để chốt</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Trạng thái chuyến chuyển sang <strong>"Đã hoàn tất"</strong>. Thời điểm kết thúc được ghi nhận.</p>
+          </div>
+        </div>
+
+        <h2>Số km (odometer) được cập nhật khi nào?</h2>
+        <p>Hiện tại hệ thống đang dùng số km trên hồ sơ xe — tự động cộng dồn theo chuyến. Trong các phiên bản tới, bạn sẽ được yêu cầu nhập số km hiển thị trên đồng hồ xe tại 2 thời điểm:</p>
+        <ul>
+          <li><strong>Bắt đầu</strong>: ghi số km ban đầu (để tính tổng km chuyến)</li>
+          <li><strong>Kết thúc</strong>: ghi số km kết thúc (để cộng vào odometer xe)</li>
+        </ul>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">⚠️</div>
+          <div class="callout__body">
+            <p><strong>Đừng quên bấm Kết thúc.</strong> Nếu để chuyến ở trạng thái "Đang đi" qua đêm, Admin sẽ nhận cảnh báo
+            và phải chốt chuyến tay — gây sai lệch giờ làm việc của bạn trong báo cáo.</p>
+          </div>
+        </div>
+
+        <h2>Lỡ tay bấm sai?</h2>
+        <table>
+          <thead><tr><th>Tình huống</th><th>Cách xử lý</th></tr></thead>
+          <tbody>
+            <tr><td>Bấm "Bắt đầu" nhưng chưa xuất phát</td><td>Liên hệ Admin để hủy + tạo lại — bạn không tự sửa được</td></tr>
+            <tr><td>Quên bấm "Kết thúc", đã về nhà</td><td>Vẫn bấm "Kết thúc" được; thời điểm sẽ là lúc bạn bấm, không phải lúc đến nơi thực sự — ghi chú vào trường "Ghi chú" để Admin biết</td></tr>
+            <tr><td>Bấm "Kết thúc" rồi mới phát hiện đi tiếp</td><td>Tạo chuyến mới hoặc liên hệ Admin — không thể "khởi động lại" chuyến đã hoàn tất</td></tr>
+          </tbody>
+        </table>
+
+        <nav class="pager">
+          <a class="pager__prev" href="03-xac-nhan-chuyen.html">
+            <span>← Trước</span>
+            <strong>Xác nhận chuyến</strong>
+          </a>
+          <a class="pager__next" href="05-ghi-chi-phi.html">
+            <span>Tiếp theo →</span>
+            <strong>Ghi chi phí</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        Cập nhật 24-05-2026 ·
+        Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

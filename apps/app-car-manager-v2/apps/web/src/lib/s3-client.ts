@@ -1,0 +1,51 @@
+import 'server-only';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+let cached: S3Client | null = null;
+
+/* Lazy singleton S3 client. Construction reads env (AWS_REGION + key pair),
+ * cached so we don't re-instantiate on every action invocation.
+ *
+ * Why lazy: the env vars only need to exist when expense-related code runs.
+ * Eager construction at module import would force `AWS_*` to be present in
+ * any dev that doesn't touch expenses (worth the slight complexity). */
+export function getS3Client(): S3Client {
+  if (cached) return cached;
+  const region = process.env.AWS_REGION;
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+  if (!region || !accessKeyId || !secretAccessKey) {
+    throw new Error(
+      'S3 client unavailable: set AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY.',
+    );
+  }
+  cached = new S3Client({ region, credentials: { accessKeyId, secretAccessKey } });
+  return cached;
+}
+
+export function getS3Bucket(): string {
+  const bucket = process.env.AWS_S3_BUCKET;
+  if (!bucket) throw new Error('AWS_S3_BUCKET is required for receipt uploads.');
+  return bucket;
+}
+
+/* Sign a short-lived GET URL for a receipt object.
+ *
+ * Used by RSC detail pages to surface images inline without exposing the
+ * bucket or burning a route handler per attachment. Default TTL 15 min — long
+ * enough that a user keeping the page open won't see broken images, short
+ * enough that a leaked URL has limited replay value. Caller can override (eg.
+ * a printable PDF view that needs a longer window).
+ *
+ * Returns null if the S3 client isn't configured — caller can degrade to the
+ * old "metadata only" rendering instead of a hard crash on dev branches
+ * without AWS creds. */
+export async function getSignedGetUrl(key: string, expiresIn = 900): Promise<string | null> {
+  try {
+    const cmd = new GetObjectCommand({ Bucket: getS3Bucket(), Key: key });
+    return await getSignedUrl(getS3Client(), cmd, { expiresIn });
+  } catch {
+    return null;
+  }
+}

@@ -3,14 +3,16 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Pencil, Save, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Ban, Pencil, Save, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 import { PageHeader } from '@/components/common/PageHeader';
 import { StatusBadge, getStatusVariant } from '@/components/common/StatusBadge';
+import { tripLogStatusLabel } from '@/lib/trip-log-status';
 import { useVehicles } from '@/hooks/useVehicles';
 import { useDrivers } from '@/hooks/useDrivers';
-import { useTripLog, useUpdateTripLog, useSubmitTripLog } from '@/hooks/useTripLogs';
+import { useTripLog, useUpdateTripLog, useSubmitTripLog, useVoidTripLog } from '@/hooks/useTripLogs';
+import { useToastStore } from '@/stores/toast.store';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 const MINUTES = ['00', '15', '30', '45'];
@@ -68,6 +70,10 @@ export function TripLogDetailPage() {
 
   const [editing, setEditing] = useState(false);
   const [fuelUnitPrice, setFuelUnitPrice] = useState<number>(0);
+  const [voidModalOpen, setVoidModalOpen] = useState(false);
+  const [voidReason, setVoidReason] = useState('');
+  const voidMutation = useVoidTripLog();
+  const showToast = useToastStore((s) => s.showToast);
 
   const tripLog = data?.data;
 
@@ -148,11 +154,29 @@ export function TripLogDetailPage() {
     refetch();
   };
 
+  const handleVoidConfirm = async () => {
+    try {
+      await voidMutation.mutateAsync({ id: id!, reason: voidReason.trim() });
+      showToast(t('tripLog.voidSuccess'), 'success');
+      setVoidModalOpen(false);
+      setVoidReason('');
+      refetch();
+    } catch (err) {
+      showToast(`${t('tripLog.voidError')}: ${(err as Error).message}`, 'error');
+    }
+  };
+
   if (isLoading) return <div className="py-16 text-center text-gray-400">{t('common.loading')}</div>;
   if (!tripLog) return <div className="py-16 text-center text-gray-400">{t('common.noData')}</div>;
 
-  const canEdit = tripLog.status !== 'VERIFIED';
   const status = tripLog.status as string;
+  const isVoided = status === 'VOIDED';
+  const canEdit = status !== 'VERIFIED' && !isVoided;
+  const canVoid = status === 'IN_PROGRESS' || status === 'COMPLETED';
+  const voidedAt = tripLog.voidedAt ? new Date(tripLog.voidedAt as string) : null;
+  const voidedByName = (tripLog.voidedByName as string) || '';
+  const voidedReason = (tripLog.voidedReason as string) || '';
+  const reasonValid = voidReason.trim().length >= 5 && voidReason.trim().length <= 500;
 
   return (
     <div>
@@ -161,7 +185,7 @@ export function TripLogDetailPage() {
         breadcrumb={['app-car-manager', 'trip-logs', t('tripLog.detailTitle')]}
         actions={
           <div className="flex items-center gap-2">
-            <StatusBadge variant={getStatusVariant(status)} label={status} />
+            <StatusBadge variant={getStatusVariant(status)} label={tripLogStatusLabel(status, t)} />
             {canEdit && !editing && (
               <button
                 onClick={() => setEditing(true)}
@@ -190,6 +214,15 @@ export function TripLogDetailPage() {
                 </button>
               </>
             )}
+            {canVoid && !editing && (
+              <button
+                onClick={() => setVoidModalOpen(true)}
+                className="flex items-center gap-1 rounded-md border border-red-300 bg-white px-3 py-1.5 text-[12px] font-medium text-red-600 hover:bg-red-50"
+              >
+                <Ban className="h-3.5 w-3.5" />
+                {t('tripLog.void')}
+              </button>
+            )}
             <button
               onClick={() => navigate('/trip-logs')}
               className="flex items-center gap-1.5 rounded-md border border-[#d4d8e0] bg-[#f0f2f5] px-3 py-1.5 text-[13px] font-medium text-gray-600 hover:text-gray-900"
@@ -202,6 +235,28 @@ export function TripLogDetailPage() {
       />
 
       <div className="p-6">
+        {isVoided && (
+          <div className="mx-auto mb-4 max-w-3xl rounded-lg border border-red-200 bg-red-50 p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-red-700">
+              <AlertTriangle className="h-4 w-4" />
+              {t('tripLog.voidedBadge')}
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-xs text-gray-700">
+              <div>
+                <div className="text-gray-500">{t('tripLog.voidedAt')}</div>
+                <div className="font-medium">{voidedAt ? voidedAt.toLocaleString() : '-'}</div>
+              </div>
+              <div>
+                <div className="text-gray-500">{t('tripLog.voidedBy')}</div>
+                <div className="font-medium">{voidedByName || '-'}</div>
+              </div>
+              <div>
+                <div className="text-gray-500">{t('tripLog.voidedReason')}</div>
+                <div className="font-medium">{voidedReason || '-'}</div>
+              </div>
+            </div>
+          </div>
+        )}
         <form className="mx-auto max-w-3xl space-y-6">
           {/* 기본 정보 */}
           <Section title={t('tripLog.sectionBasic')}>
@@ -359,7 +414,7 @@ export function TripLogDetailPage() {
           </Section>
 
           {/* 상태 변경 */}
-          {!editing && (
+          {!editing && !isVoided && (
             <div className="flex flex-wrap gap-2 pt-2">
               {status === 'IN_PROGRESS' && (
                 <button
@@ -385,6 +440,50 @@ export function TripLogDetailPage() {
           )}
         </form>
       </div>
+
+      {voidModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="mb-2 flex items-center gap-2 text-lg font-semibold text-gray-900">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              {t('tripLog.voidTitle')}
+            </h3>
+            <p className="mb-4 text-sm text-gray-600">{t('tripLog.voidWarning')}</p>
+            <label className="mb-1 block text-xs font-medium text-gray-500">
+              {t('tripLog.voidReasonLabel')}
+            </label>
+            <textarea
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              rows={3}
+              maxLength={500}
+              placeholder={t('tripLog.voidReasonPlaceholder')}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-red-400 focus:outline-none"
+            />
+            <div className="mt-1 flex justify-between text-[11px] text-gray-400">
+              <span>{!reasonValid && voidReason.length > 0 && t('tripLog.voidReasonMin')}</span>
+              <span>{voidReason.length} / 500</span>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setVoidModalOpen(false); setVoidReason(''); }}
+                className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleVoidConfirm}
+                disabled={!reasonValid || voidMutation.isPending}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+              >
+                {t('common.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

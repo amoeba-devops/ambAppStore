@@ -93,6 +93,18 @@ export class TripLogEntity {
   @Column({ name: 'ctl_submitted_at', type: 'datetime', nullable: true })
   ctlSubmittedAt: Date | null;
 
+  @Column({ name: 'ctl_voided_at', type: 'datetime', nullable: true })
+  ctlVoidedAt: Date | null;
+
+  @Column({ name: 'ctl_voided_by', type: 'char', length: 36, nullable: true })
+  ctlVoidedBy: string | null;
+
+  @Column({ name: 'ctl_voided_by_name', type: 'varchar', length: 100, nullable: true })
+  ctlVoidedByName: string | null;
+
+  @Column({ name: 'ctl_voided_reason', type: 'varchar', length: 500, nullable: true })
+  ctlVoidedReason: string | null;
+
   @CreateDateColumn({ name: 'ctl_created_at' })
   ctlCreatedAt: Date;
 

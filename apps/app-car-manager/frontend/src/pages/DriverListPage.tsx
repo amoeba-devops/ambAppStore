@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus } from 'lucide-react';
+import { AlertTriangle, Plus, Pencil, Trash2 } from 'lucide-react';
 
-import { useDrivers } from '@/hooks/useDrivers';
+import { useDrivers, useDeleteDriver } from '@/hooks/useDrivers';
+import { useToastStore } from '@/stores/toast.store';
 import { PageHeader } from '@/components/common/PageHeader';
 import { FilterBar, type FilterItem } from '@/components/common/FilterBar';
-import { DriverFormModal } from '@/components/driver/DriverFormModal';
+import { DriverFormModal, type DriverFormInitial } from '@/components/driver/DriverFormModal';
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-700',
@@ -17,7 +18,12 @@ export function DriverListPage() {
   const { t } = useTranslation('car');
   const [statusFilter, setStatusFilter] = useState('');
   const [showDriverForm, setShowDriverForm] = useState(false);
+  const [editingDriver, setEditingDriver] = useState<DriverFormInitial | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [confirmText, setConfirmText] = useState('');
   const { data, isLoading } = useDrivers(statusFilter ? { status: statusFilter } : undefined);
+  const deleteMut = useDeleteDriver();
+  const showToast = useToastStore((s) => s.showToast);
 
   const drivers = data?.data || [];
 
@@ -27,6 +33,53 @@ export function DriverListPage() {
     { key: 'ON_LEAVE', label: t('driver.statusOnLeave') },
     { key: 'INACTIVE', label: t('driver.statusInactive') },
   ];
+
+  const handleEdit = (d: Record<string, unknown>) => {
+    setEditingDriver({
+      driverId: d.driverId as string,
+      amaUserId: d.amaUserId as string,
+      driverName: (d.driverName as string) ?? null,
+      driverEmail: (d.driverEmail as string) ?? null,
+      role: d.role as string,
+      note: (d.note as string) ?? null,
+    });
+  };
+
+  // Normalize NBSP → space then trim. Stored names can carry invisible
+  // whitespace (DB import, copy-paste); span padding hides it so the user
+  // can never type a matching string.
+  const normalizeName = (s: string) => s.replace(/\u00A0/g, ' ').trim();
+
+  const openDeleteConfirm = (d: Record<string, unknown>) => {
+    const raw = (d.driverName as string) || (d.amaUserId as string);
+    setDeleteTarget({ id: d.driverId as string, name: normalizeName(raw) });
+    setConfirmText('');
+  };
+
+  const closeDeleteConfirm = () => {
+    setDeleteTarget(null);
+    setConfirmText('');
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteMut.mutateAsync(deleteTarget.id);
+      showToast(t('driver.deleted'), 'success');
+      closeDeleteConfirm();
+    } catch (err) {
+      showToast(`${t('driver.deleteFailed')}: ${(err as Error).message}`, 'error');
+    }
+  };
+
+  const handleCloseForm = () => {
+    setShowDriverForm(false);
+    setEditingDriver(null);
+  };
+
+  const deleteConfirmValid =
+    deleteTarget !== null &&
+    normalizeName(confirmText) === deleteTarget.name;
 
   return (
     <div>
@@ -71,6 +124,7 @@ export function DriverListPage() {
                   <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t('driver.role')}</th>
                   <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t('driver.assignedVehicle')}</th>
                   <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t('driver.status')}</th>
+                  <th className="px-3.5 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -91,6 +145,29 @@ export function DriverListPage() {
                         {d.status as string}
                       </span>
                     </td>
+                    <td className="px-3.5 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(d)}
+                          title={t('common.edit')}
+                          aria-label={t('common.edit')}
+                          className="rounded p-1.5 text-gray-500 transition-colors hover:bg-orange-50 hover:text-orange-600"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openDeleteConfirm(d)}
+                          disabled={deleteMut.isPending}
+                          title={t('common.delete')}
+                          aria-label={t('common.delete')}
+                          className="rounded p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -100,9 +177,54 @@ export function DriverListPage() {
       </div>
 
       <DriverFormModal
-        open={showDriverForm}
-        onClose={() => setShowDriverForm(false)}
+        open={showDriverForm || !!editingDriver}
+        onClose={handleCloseForm}
+        driver={editingDriver ?? undefined}
       />
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="mb-2 flex items-center gap-2 text-lg font-semibold text-gray-900">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              {t('driver.deleteTitle')}
+            </h3>
+            <p className="mb-3 text-sm text-gray-600">{t('driver.deleteWarning')}</p>
+            <p className="mb-1 text-xs text-gray-500">
+              {t('driver.deleteTypeNameToConfirm')}
+              <span className="ml-1 rounded bg-red-50 px-1.5 py-0.5 font-mono text-red-700">
+                {deleteTarget.name}
+              </span>
+            </p>
+            <input
+              type="text"
+              autoFocus
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={deleteTarget.name}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-red-400 focus:outline-none"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeDeleteConfirm}
+                disabled={deleteMut.isPending}
+                className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                disabled={!deleteConfirmValid || deleteMut.isPending}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+              >
+                {t('common.delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

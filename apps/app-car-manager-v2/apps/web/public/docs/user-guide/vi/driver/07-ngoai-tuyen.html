@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hành vi ngoại tuyến — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — Trang chủ hướng dẫn" aria-label="Amoeba Car Manager v2 — Trang chủ hướng dẫn">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span><span class="header__brand-mobile">Hướng dẫn</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" class="is-active" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a>
+          <a href="#" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="150" height="100" fill="#fff"/><g transform="translate(75,50) rotate(-56.31)"><circle r="25" fill="#C60C30"/><path d="M0,-25 A25,25 0 0,1 0,25 A12.5,12.5 0 0,1 0,0 A12.5,12.5 0 0,0 0,-25 Z" fill="#003478"/></g><g fill="#000"><g transform="translate(37.5,25) rotate(-56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,25) rotate(56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g><g transform="translate(37.5,75) rotate(56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,75) rotate(-56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g></g></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a>
+        </span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Tài xế</div>
+        <a class="sidebar__link" href="00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="01-cai-pwa.html">Cài đặt PWA</a>
+        <a class="sidebar__link" href="02-today-screen.html">Màn hình Hôm nay</a>
+        <a class="sidebar__link" href="03-xac-nhan-chuyen.html">Xác nhận chuyến</a>
+        <a class="sidebar__link" href="04-bat-dau-ket-thuc-chuyen.html">Bắt đầu / kết thúc chuyến</a>
+        <a class="sidebar__link" href="05-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="06-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="07-ngoai-tuyen.html">Hành vi ngoại tuyến</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">Trang chủ</a> · Tài xế · Hành vi ngoại tuyến
+        </div>
+        <h1>Khi mạng yếu hoặc mất sóng</h1>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">🚧</div>
+          <div class="callout__body">
+            <p><strong>Tính năng đang chuẩn bị</strong> — Chế độ ngoại tuyến đầy đủ (xem chuyến + ghi chi phí khi không có mạng) sẽ được triển khai ở phiên bản tiếp theo. Trang này mô tả hành vi hiện tại + kế hoạch sắp tới.</p>
+          </div>
+        </div>
+
+        <h2>Hiện tại (chưa có chế độ ngoại tuyến)</h2>
+
+        <p>App là một <strong>PWA</strong> — khi mất mạng, bạn vẫn có thể <strong>mở app</strong> (icon vẫn vào được), nhưng các thao tác sau sẽ thất bại:</p>
+
+        <table>
+          <thead><tr><th>Thao tác</th><th>Hành vi khi mất mạng</th></tr></thead>
+          <tbody>
+            <tr><td>Mở app từ Màn hình chính</td><td>✅ Mở được, hiển thị shell + dữ liệu cuối cùng đã load</td></tr>
+            <tr><td>Cuộn xem dữ liệu đã load trước đó</td><td>✅ Xem được trong vài phút (cache của trình duyệt)</td></tr>
+            <tr><td>Mở lại chi tiết chuyến vừa xem gần đây</td><td>✅ Phục vụ từ cache offline (PWA lưu các trang chuyến bạn đã mở)</td></tr>
+            <tr><td>Bấm "Bắt đầu chuyến", "Kết thúc chuyến"</td><td>❌ Lỗi "Không kết nối"; phải có sóng để bấm</td></tr>
+            <tr><td>Ghi chi phí mới (kể cả chỉ form)</td><td>❌ Upload thất bại; form không lưu local</td></tr>
+            <tr><td>Xem chi tiết chuyến <em>chưa</em> mở lần nào</td><td>❌ Trang trắng / lỗi 503</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Mẹo xử lý khi mất sóng (hiện tại)</h2>
+
+        <ul>
+          <li><strong>Chụp ảnh hoá đơn bằng camera điện thoại</strong> (không qua app) trước. Khi có sóng, mở form chi phí, chọn ảnh từ thư viện.</li>
+          <li><strong>Ghi nhớ giờ bấm Bắt đầu/Kết thúc</strong> — khi có sóng, vào chi tiết chuyến và bấm. Hệ thống sẽ ghi thời điểm bạn bấm, không phải giờ thực tế xuất phát. Ghi chú thêm ở trường Notes nếu cần.</li>
+          <li><strong>Tránh khu vực mất sóng kéo dài</strong> — nếu chuyến đi vào vùng yếu sóng (đèo, hầm), hãy bấm các nút trước khi vào.</li>
+        </ul>
+
+        <h2>Kế hoạch chế độ ngoại tuyến (P5+)</h2>
+
+        <p>Trong phiên bản tới, hệ thống sẽ hỗ trợ:</p>
+
+        <ul>
+          <li><strong>Cache thông tin chuyến hôm nay</strong> ngay khi mở app — cuộn xem được dù mất mạng</li>
+          <li><strong>Queue ghi chi phí offline</strong> — form được lưu local, tự động đồng bộ khi có sóng trở lại</li>
+          <li><strong>Queue thao tác Bắt đầu/Kết thúc</strong> — ghi nhận giờ thực tế, sync sau</li>
+          <li><strong>Hiển thị banner "Đang ngoại tuyến"</strong> trên đầu màn hình để bạn biết</li>
+        </ul>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">📅</div>
+          <div class="callout__body">
+            <p><strong>Dự kiến phát hành</strong>: Phiên bản 2.1, khoảng tháng 7/2026. Sẽ được cập nhật tự động qua PWA — bạn không cần làm gì.</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="06-canh-bao-bao-duong.html">
+            <span>← Trước</span>
+            <strong>Cảnh báo bảo dưỡng</strong>
+          </a>
+          <a class="pager__next" href="../manager/00-tong-quan.html">
+            <span>Tiếp theo →</span>
+            <strong>Hướng dẫn Quản lý</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        Cập nhật 24-05-2026 ·
+        Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

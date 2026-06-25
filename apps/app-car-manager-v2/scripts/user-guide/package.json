@@ -1,0 +1,24 @@
+{
+  "name": "@car-v2/user-guide-pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Playwright pipeline that auto-captures annotated screenshots for the bilingual (vi/ko) user guide HTML site.",
+  "type": "module",
+  "scripts": {
+    "shots": "playwright test",
+    "shots:vi": "playwright test --project=vi-desktop --project=vi-mobile",
+    "shots:ko": "playwright test --project=ko-desktop --project=ko-mobile",
+    "shots:headed": "playwright test --headed",
+    "annotate": "tsx annotate.ts",
+    "install:browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.1",
+    "@types/node": "20.10.0",
+    "js-yaml": "4.1.0",
+    "@types/js-yaml": "4.0.9",
+    "sharp": "0.33.5",
+    "tsx": "4.19.2",
+    "typescript": "5.7.2"
+  }
+}

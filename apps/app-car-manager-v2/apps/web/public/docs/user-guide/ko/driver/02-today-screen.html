@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- ko-full-translation -->
+  <title>오늘 화면 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — 사용 안내서 홈" aria-label="Amoeba Car Manager v2 — 사용 안내서 홈">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 사용 안내서</span></span><span class="header__brand-mobile">사용 안내서</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="안내서 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a>
+          <a href="#" class="is-active" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="150" height="100" fill="#fff"/><g transform="translate(75,50) rotate(-56.31)"><circle r="25" fill="#C60C30"/><path d="M0,-25 A25,25 0 0,1 0,25 A12.5,12.5 0 0,1 0,0 A12.5,12.5 0 0,0 0,-25 Z" fill="#003478"/></g><g fill="#000"><g transform="translate(37.5,25) rotate(-56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,25) rotate(56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g><g transform="translate(37.5,75) rotate(56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,75) rotate(-56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g></g></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a>
+        </span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">소개</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">화면 탐색</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림함</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">용어집</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">기사</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-cai-pwa.html">PWA 설치</a>
+        <a class="sidebar__link" href="02-today-screen.html">오늘 화면</a>
+        <a class="sidebar__link" href="03-xac-nhan-chuyen.html">운행 확인</a>
+        <a class="sidebar__link" href="04-bat-dau-ket-thuc-chuyen.html">운행 시작/종료</a>
+        <a class="sidebar__link" href="05-ghi-chi-phi.html">비용 기록</a>
+        <a class="sidebar__link" href="06-canh-bao-bao-duong.html">정비 알림</a>
+        <a class="sidebar__link" href="07-ngoai-tuyen.html">오프라인 동작</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">홈</a> · 기사 · 오늘
+        </div>
+        <h1>"오늘" 화면</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/today" target="_parent" rel="noopener">
+            <span>앱에서 이 페이지 열기</span>
+            <span class="app-link-cta__route">/today</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>대상</dt><dd>기사</dd>
+            <dt>URL</dt><dd><code>/today</code> — 기사 권한으로 로그인했을 때 표시되는 기본 페이지입니다</dd>
+            <dt>업데이트</dt><dd>새 운행이 배정되거나 상태가 바뀌면 자동으로 갱신됩니다</dd>
+          </dl>
+        </div>
+
+        <p>"오늘" 화면은 기사의 메인 페이지입니다. 앱을 열자마자 진행 중인 운행, 다음 예정 운행, 그리고 본인 운행에 연결된 차량을 한눈에 확인할 수 있습니다.</p>
+
+        <h2>화면 구성</h2>
+
+        <figure>
+          <img src="../../assets/img/screenshots/ko/driver/02-today-overview.png" alt="오늘 화면">
+          <figcaption>오늘 화면 — 상태 배너 + 진행 중인 운행 상세 + 오늘 중 운행 목록</figcaption>
+        </figure>
+
+        <h3>운행 중 영역 (초록색 배너)</h3>
+        <p><code>IN_PROGRESS</code> 상태의 운행이 있으면, 화면 상단의 초록색 배너에 다음 정보가 표시됩니다.</p>
+        <ul>
+          <li>운행 번호 (예: <code>TR-1042</code>)</li>
+          <li>승객 이름과 운행 목적</li>
+          <li>출발지 / 도착지</li>
+          <li>출발 시각, 소요 시간, 차량 번호판</li>
+          <li>"운행 상세 →" 링크 — 탭하면 전체 정보 확인 및 종료 작업이 가능합니다</li>
+        </ul>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">ℹ️</div>
+          <div class="callout__body">
+            <p><strong>표시 우선순위</strong>: IN_PROGRESS (운행 중) → PENDING_DRIVER_CONFIRMATION (기사 확인 대기) → CONFIRMED (확인 완료). 시스템이 가장 적합한 운행을 자동으로 선택해 보여줍니다.</p>
+          </div>
+        </div>
+
+        <h3>"오늘 중" 영역</h3>
+        <p>같은 날짜의 다른 운행이 출발 시각 순서대로 정렬되어 표시됩니다. 항목을 탭하면 상세 정보를 볼 수 있습니다.</p>
+
+        <h3>"내 차량" 영역</h3>
+        <p>본인이 <strong>운행한(또는 운행 중인)</strong> 차량이 표시됩니다 — 이 목록은 운행 이력에서 도출됩니다(v2는 기사에게 차량을 고정 배정하지 않습니다). 항목을 탭하면 번호판, 모델, 주행거리 등 차량 정보를 확인할 수 있습니다.</p>
+
+        <h3>"내 운행" 탭 — 전체 이력 보기</h3>
+        <p>하단 탐색 바의 <strong>내 운행</strong> 탭을 탭하면 본인에게 배정된 모든 운행(완료/진행 중/예정)을 출발 시각 순서대로 볼 수 있습니다.</p>
+        <figure>
+          <img src="../../assets/img/screenshots/ko/driver/02-trips-list.png" alt="내 운행 목록">
+          <figcaption>"내 운행" 탭 — 운행 번호, 상태, 시간이 표시된 카드 목록</figcaption>
+        </figure>
+
+        <h3>하단 탐색 바</h3>
+        <p>화면 맨 아래에 고정된 4개의 탭으로 구성됩니다.</p>
+        <table>
+          <thead><tr><th>탭</th><th>경로</th><th>사용 시점</th></tr></thead>
+          <tbody>
+            <tr><td><strong>오늘</strong></td><td>/today</td><td>메인 화면, 가장 먼저 확인하는 페이지</td></tr>
+            <tr><td><strong>내 운행</strong></td><td>/trips</td><td>완료/진행 중/예정인 모든 운행 확인</td></tr>
+            <tr><td><strong>비용</strong></td><td>/expenses</td><td>비용 신규 등록 및 기록 이력 조회</td></tr>
+            <tr><td><strong>나</strong></td><td>/settings/me</td><td>언어 변경, 로그아웃, 운전면허 확인</td></tr>
+          </tbody>
+        </table>
+
+        <h2>시스템이 이 화면으로 이동시키는 시점</h2>
+        <ul>
+          <li>하루 중 처음 로그인했을 때</li>
+          <li>휴대폰에서 푸시 알림을 탭했을 때 (오늘 운행과 관련된 내용인 경우)</li>
+          <li>홈 화면 아이콘에서 PWA를 실행했을 때</li>
+        </ul>
+
+        <nav class="pager">
+          <a class="pager__prev" href="01-cai-pwa.html">
+            <span>← 이전</span>
+            <strong>PWA 설치</strong>
+          </a>
+          <a class="pager__next" href="03-xac-nhan-chuyen.html">
+            <span>다음 →</span>
+            <strong>운행 확인</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        최종 업데이트 2026-05-24 ·
+        피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

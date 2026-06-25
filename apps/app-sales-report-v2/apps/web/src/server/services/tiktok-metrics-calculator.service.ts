@@ -1,0 +1,415 @@
+import 'server-only';
+import type { TikTokSaleRow } from './tiktok-sales-parser.service';
+import { findPrimeCost, findListingPrice, type PrimeCostMap } from './gmv-calculator.service';
+import {
+  aggregateTikTokTraffic,
+  type TikTokTrafficRow,
+} from './tiktok-traffic-parser.service';
+
+export interface TikTokMetricsResult {
+  /** SUM(item_sold) for kept rows. */
+  totalItemSold: number;
+  /** SUM(listing_price × item_sold) for kept rows — TikTok uses LISTING (not original). */
+  totalGmv: number;
+  /** SUM(original_price × item_sold) for kept rows — TikTok Net GMV uses ORIGINAL. */
+  totalNetGmv: number;
+  /** SUM(net_gmv − seller_discount) for kept rows. */
+  totalNmv: number;
+  /** SUM(per-row clamped SUM(MAX(0, SKU Seller Discount − (GMV − Net GMV)))). */
+  totalSellerDiscount: number;
+  /** SUM({SKU Platform Discount}) for kept rows — reference-only, not deducted from CM. */
+  totalPlatformDiscount: number;
+  /** SUM((gmv − seller_discount) × rate) for kept rows — TikTok platform fee. */
+  totalPlatformFee: number;
+  /** Platform fee rate used for computation (percent). */
+  platformFeeRatePct: number;
+  /** SUM(prime_cost × item_sold) for kept rows only. Free Gift PC is tracked separately in `primeCostFreeGift` and displayed as its own report line. */
+  totalPrimeCost: number;
+  primeCostKept: number;
+  primeCostFreeGift: number;
+  rowsKept: number;
+  rowsExcluded: { cancelled: number; returned: number; freeGift: number };
+  /** Distinct order counts (by Order ID). */
+  orderCounts: { totalDistinct: number; cancelled: number; nonCancelled: number };
+  freeGiftProducts: string[];
+  missingFromMaster: Array<{ sku: string; productName: string; units: number; gmvContribution: number }>;
+  /** Traffic metrics — only when Traffic xlsx provided. */
+  traffic: {
+    totalPageViews: number;
+    productCount: number;
+    pageViewsByProductName: Record<string, number>;
+    ctrByProductName: Record<string, number>;
+  } | null;
+  productBreakdown: Array<{
+    productName: string;
+    productNameEn: string;
+    variationName: string;
+    representativeSku: string;
+    /** True when this row aggregates combo / bundle SKUs (split from parent product). */
+    isCombo: boolean;
+    gmv: number;
+    netGmv: number;
+    nmv: number;
+    sellerDiscount: number;
+    primeCost: number;
+    units: number;
+    skuCount: number;
+    /** Unique product impressions matched from Traffic xlsx by productName. 0 when no match. */
+    pageViews: number;
+    /** Unique CTR (decimal 0..1) matched from Traffic xlsx by productName. 0 when no match. */
+    ctr: number;
+  }>;
+  giftBreakdown: Array<{
+    productName: string;
+    productNameEn: string;
+    representativeSku: string;
+    primeCost: number;
+    units: number;
+    skuCount: number;
+    /** Unique product impressions matched from Traffic xlsx by productName. 0 when no match. */
+    pageViews: number;
+    /** Unique CTR (decimal 0..1) matched from Traffic xlsx by productName. 0 when no match. */
+    ctr: number;
+  }>;
+}
+
+/**
+ * Formula descriptors for TikTok metrics (Cách A — text-based engine).
+ * Differs from Shopee: uses listing_price for GMV, original_price for Net GMV,
+ * full-or-nothing item_sold (no partial returns), AND+substatus for cancelled.
+ * Reference: cm-calculator skill §4.
+ */
+export const TIKTOK_METRIC_SPECS = {
+  TOTAL_GMV_TIKTOK: {
+    id: 'TOTAL_GMV_TIKTOK',
+    name: 'Total GMV — TikTok',
+    expression:
+      'SUM(listing_price × item_sold) WHERE NOT excluded.  item_sold = IF({Quantity} = {Sku Quantity of return}, 0, {Quantity}). listing_price from prime_cost master.',
+    requires: ['prime_costs.listing_price'],
+    note: 'TikTok GMV uses LISTING price (not original — opposite of Shopee).',
+  },
+  TOTAL_NET_GMV_TIKTOK: {
+    id: 'TOTAL_NET_GMV_TIKTOK',
+    name: 'Total Net GMV — TikTok',
+    expression: 'SUM({SKU Subtotal Before Discount} − {SKU Seller Discount}) per kept row',
+    note: 'Per-row: Net GMV = revenue at original price minus the seller-funded discount.',
+  },
+  TOTAL_NMV_TIKTOK: {
+    id: 'TOTAL_NMV_TIKTOK',
+    name: 'Total NMV — TikTok',
+    expression: 'SUM(net_gmv_row − seller_discount_row) per kept row',
+  },
+  TOTAL_SELLER_DISCOUNT_TIKTOK: {
+    id: 'TOTAL_SELLER_DISCOUNT_TIKTOK',
+    name: 'Total Seller Discount — TikTok',
+    expression: 'SUM({SKU Seller Discount}) per kept row (raw, no clamping)',
+  },
+  TOTAL_PLATFORM_DISCOUNT_TIKTOK: {
+    id: 'TOTAL_PLATFORM_DISCOUNT_TIKTOK',
+    name: 'Total Platform Discount — TikTok',
+    expression: 'SUM({SKU Platform Discount}) per kept row',
+    note: 'TikTok platform-funded discount (reference-only display). Not deducted from CM since cost is borne by TikTok, not seller.',
+  },
+  TOTAL_PRIME_COST_TIKTOK: {
+    id: 'TOTAL_PRIME_COST_TIKTOK',
+    name: 'Total Prime Cost — TikTok',
+    expression: 'SUM(prime_cost × item_sold) over kept rows only',
+    requires: ['prime_costs.prime_cost'],
+    note: 'Free Gift PC is NOT added here — it is reported separately in `primeCostFreeGift` and subtracted as a distinct CM line.',
+  },
+  TOTAL_PAGE_VIEWS_TIKTOK: {
+    id: 'TOTAL_PAGE_VIEWS_TIKTOK',
+    name: 'Total Page Views — TikTok',
+    expression:
+      'SUM_per_product( {Lượt xem trang từ tab Cửa hàng} + {Lượt xem trang từ LIVE} + {Lượt xem trang từ video} + {Lượt xem trang từ thẻ sản phẩm} )',
+    requires: ['tiktok_traffic_xlsx'],
+    note: 'TikTok page_view = sum of 4 sources per skill §4. Data row per product.',
+  },
+  TOTAL_AFFILIATE_COMMISSION_TIKTOK: {
+    id: 'TOTAL_AFFILIATE_COMMISSION_TIKTOK',
+    name: 'Total Affiliate Commission — TikTok',
+    expression:
+      'SUM(per-row commission payouts across 3 affiliate exports: Creator + Partner + Non-collaboration). Per row = (Thanh toán hoa hồng tiêu chuẩn ước tính | Thanh toán hoa hồng ước tính) + Thanh toán hoa hồng Quảng cáo cửa hàng ước tính',
+    requires: [
+      'tiktok_affiliate_creator_xlsx',
+      'tiktok_affiliate_partner_xlsx',
+      'tiktok_affiliate_noncollab_xlsx',
+    ],
+    note: 'Cancelled + refunded rows excluded. Grouped by "Tên sản phẩm" so per-SKU attribution downstream can be exact (NMV-split intra-product, Others bucket for unmatched).',
+  },
+  TOTAL_PLATFORM_FEE_TIKTOK: {
+    id: 'TOTAL_PLATFORM_FEE_TIKTOK',
+    name: 'Total Platform Fee — TikTok',
+    expression:
+      'SUM_PER_ROW( (gmv − sku_seller_discount) × platform_fee_rate_pct / 100 ) over kept rows',
+    note: 'Per-row platform fee derived from listing-based GMV minus seller discount, times configurable rate (default 24%).',
+  },
+  EXCLUSIONS_TIKTOK: {
+    rules: [
+      { code: 'CANCELLED', expression: '{Order Status} = "Đã hủy" AND {Order Substatus} = "Đã hủy"' },
+      { code: 'RETURNED', expression: 'net_gmv == 0 AND NOT is_free_gift' },
+      { code: 'FREE_GIFT', expression: '{Product Name} STARTS_WITH "[GIFT]"  OR  (net_gmv == 0 AND original_price == 0)' },
+    ],
+  },
+} as const;
+
+export function computeTikTokMetrics(
+  rows: TikTokSaleRow[],
+  primeCosts: PrimeCostMap,
+  trafficRows?: TikTokTrafficRow[] | null,
+  platformFeeRatePct: number = 24,
+): TikTokMetricsResult {
+  let totalItemSold = 0;
+  let totalGmv = 0;
+  let totalNetGmv = 0;
+  let totalNmv = 0;
+  let totalSellerDiscount = 0;
+  let totalPlatformDiscount = 0;
+  let totalPlatformFee = 0;
+  const feeRate = platformFeeRatePct / 100;
+  let primeCostKept = 0;
+  let primeCostFreeGift = 0;
+  let cancelled = 0;
+  let returned = 0;
+  let freeGift = 0;
+  let kept = 0;
+  const freeGiftProducts = new Set<string>();
+  const missingByProduct = new Map<string, { sku: string; productName: string; units: number; gmvContribution: number }>();
+  const productAgg = new Map<
+    string,
+    { gmv: number; netGmv: number; nmv: number; sellerDiscount: number; primeCost: number; units: number; skus: Set<string>; nameEn: string; variationName: string; isCombo: boolean }
+  >();
+  const giftAgg = new Map<
+    string,
+    { primeCost: number; units: number; skus: Set<string>; nameEn: string }
+  >();
+  // Track distinct orders — orderId → allCancelled flag (mirrors Shopee).
+  const orderAgg = new Map<string, { allCancelled: boolean }>();
+  // Per-order Net GMV total (sum of kept rows). Orders with total = 0 are
+  // excluded from Total Orders count even if individual rows had netGmv > 0
+  // that cancelled out across rows.
+  const orderNetGmvSum = new Map<string, number>();
+
+  for (const row of rows) {
+    // Track order — register before any exclusion + flip allCancelled when a
+    // non-fully-cancelled row appears.
+    const rowAllCancelled =
+      row.orderStatus === 'Đã hủy' && row.orderSubstatus === 'Đã hủy';
+    let oAgg = orderAgg.get(row.orderId);
+    if (!oAgg) {
+      oAgg = { allCancelled: rowAllCancelled };
+      orderAgg.set(row.orderId, oAgg);
+    } else if (!rowAllCancelled) {
+      oAgg.allCancelled = false;
+    }
+
+    // TikTok cancelled: status AND substatus BOTH "Đã hủy"
+    if (rowAllCancelled) {
+      cancelled++;
+      continue;
+    }
+
+    // Full return → exclude
+    const isFullReturn = row.quantity === row.quantityReturn;
+    if (isFullReturn) {
+      returned++;
+      continue;
+    }
+    const itemSold = row.quantity;
+
+    // Free Gift detection — [GIFT] prefix in product name
+    const isGift = row.productName.startsWith('[GIFT]');
+
+    const master = primeCosts.get(row.sellerSku);
+    // Date-aware listing price (TikTok GMV) + prime cost — both apply the
+    // version active at the order's createTime. Empty `row.orderDate` (legacy
+    // file without "Created Time" column) falls back to the latest cached value.
+    const listingPrice = findListingPrice(master, row.orderDate);
+    const primeCost = findPrimeCost(master, row.orderDate);
+    const gmv = listingPrice * itemSold;
+
+    if (isGift) {
+      freeGift++;
+      freeGiftProducts.add(row.productName);
+      const giftPc = primeCost * itemSold;
+      primeCostFreeGift += giftPc;
+      let gAgg = giftAgg.get(row.productName);
+      if (!gAgg) {
+        gAgg = { primeCost: 0, units: 0, skus: new Set(), nameEn: master?.productNameEn ?? '' };
+        giftAgg.set(row.productName, gAgg);
+      } else if (!gAgg.nameEn && master?.productNameEn) {
+        gAgg.nameEn = master.productNameEn;
+      }
+      gAgg.primeCost += giftPc;
+      gAgg.units += itemSold;
+      gAgg.skus.add(row.sellerSku);
+      continue;
+    }
+
+    // Net GMV per row (new formula: SBD − SSD). If 0 (full seller discount, etc.)
+    // and not a tagged gift, treat as returned/zero-revenue → exclude.
+    const netGmvRow = row.skuSubtotalBeforeDiscount - row.skuSellerDiscount;
+    if (netGmvRow === 0) {
+      returned++;
+      continue;
+    }
+
+    if (!master) {
+      const prev = missingByProduct.get(row.sellerSku) ?? {
+        sku: row.sellerSku,
+        productName: row.productName,
+        units: 0,
+        gmvContribution: 0,
+      };
+      prev.units += itemSold;
+      prev.gmvContribution += gmv;
+      missingByProduct.set(row.sellerSku, prev);
+    }
+
+    // Per Formula Config (new chain):
+    //   Net GMV     = {SKU Subtotal Before Discount} − {SKU Seller Discount}  (already computed above)
+    //   Seller Disc = {SKU Seller Discount}
+    //   NMV         = Net GMV − Seller Discount
+    const sellerDiscountRow = row.skuSellerDiscount;
+    const netGmv = netGmvRow;
+    const nmvRow = netGmv - sellerDiscountRow;
+    const primeCostLine = primeCost * itemSold;
+    // Per Formula Config: Platform Fee — TikTok = (GMV − Seller Discount) × Platform Fee Rate
+    const platformFeeRow = (gmv - sellerDiscountRow) * feeRate;
+
+    totalItemSold += itemSold;
+    totalGmv += gmv;
+    totalNetGmv += netGmv;
+    totalNmv += nmvRow;
+    totalSellerDiscount += sellerDiscountRow;
+    totalPlatformDiscount += row.skuPlatformDiscount;
+    totalPlatformFee += platformFeeRow;
+    primeCostKept += primeCostLine;
+    orderNetGmvSum.set(row.orderId, (orderNetGmvSum.get(row.orderId) ?? 0) + netGmv);
+    kept++;
+
+    // Group same-product regular SKUs into one row, combo SKUs into another.
+    // Aggregation key = `${productName}|${combo|regular}`.
+    const isCombo = master?.isCombo ?? false;
+    const aggKey = `${row.productName}|${isCombo ? 'combo' : 'regular'}`;
+    let agg = productAgg.get(aggKey);
+    if (!agg) {
+      agg = {
+        gmv: 0,
+        netGmv: 0,
+        nmv: 0,
+        sellerDiscount: 0,
+        primeCost: 0,
+        units: 0,
+        skus: new Set(),
+        nameEn: master?.productNameEn ?? '',
+        variationName: master?.variationName ?? '',
+        isCombo,
+      };
+      productAgg.set(aggKey, agg);
+    } else {
+      if (!agg.nameEn && master?.productNameEn) agg.nameEn = master.productNameEn;
+      if (!agg.variationName && master?.variationName) agg.variationName = master.variationName;
+    }
+    agg.gmv += gmv;
+    agg.netGmv += netGmv;
+    agg.nmv += nmvRow;
+    agg.sellerDiscount += sellerDiscountRow;
+    agg.primeCost += primeCostLine;
+    agg.units += itemSold;
+    agg.skus.add(row.sellerSku);
+  }
+
+  // Per-product page views + CTR from TikTok Traffic xlsx
+  // (match by productName, NFC-normalized + whitespace collapsed)
+  const trafficNorm = (s: string) => s.normalize('NFC').replace(/\s+/g, ' ').trim();
+  const pvByProduct = new Map<string, number>();
+  const ctrByProduct = new Map<string, number>();
+  if (trafficRows) {
+    for (const t of trafficRows) {
+      const key = trafficNorm(t.productName);
+      pvByProduct.set(key, (pvByProduct.get(key) ?? 0) + t.pageViews);
+      if (!ctrByProduct.has(key)) ctrByProduct.set(key, t.ctr);
+    }
+  }
+
+  const productBreakdown = [...productAgg.entries()]
+    .map(([aggKey, agg]) => {
+      // aggKey: `${productName}|${sellerSku}` — strip SKU half for display.
+      const sepIdx = aggKey.lastIndexOf('|');
+      const productName = sepIdx >= 0 ? aggKey.slice(0, sepIdx) : aggKey;
+      const nameKey = trafficNorm(productName);
+      return {
+        productName,
+        productNameEn: agg.nameEn,
+        variationName: agg.variationName,
+        representativeSku: [...agg.skus][0] ?? '',
+        isCombo: agg.isCombo,
+        gmv: agg.gmv,
+        netGmv: agg.netGmv,
+        nmv: agg.nmv,
+        sellerDiscount: agg.sellerDiscount,
+        primeCost: agg.primeCost,
+        units: agg.units,
+        skuCount: agg.skus.size,
+        pageViews: pvByProduct.get(nameKey) ?? 0,
+        ctr: ctrByProduct.get(nameKey) ?? 0,
+      };
+    })
+    .sort((a, b) => b.gmv - a.gmv);
+
+  const giftBreakdown = [...giftAgg.entries()]
+    .map(([productName, agg]) => {
+      const nameKey = trafficNorm(productName);
+      return {
+        productName,
+        productNameEn: agg.nameEn,
+        representativeSku: [...agg.skus][0] ?? '',
+        primeCost: agg.primeCost,
+        units: agg.units,
+        skuCount: agg.skus.size,
+        pageViews: pvByProduct.get(nameKey) ?? 0,
+        ctr: ctrByProduct.get(nameKey) ?? 0,
+      };
+    })
+    .sort((a, b) => b.primeCost - a.primeCost);
+
+  return {
+    totalItemSold,
+    totalGmv,
+    totalNetGmv,
+    totalNmv,
+    totalSellerDiscount,
+    totalPlatformDiscount,
+    totalPlatformFee,
+    platformFeeRatePct,
+    totalPrimeCost: primeCostKept,
+    primeCostKept,
+    primeCostFreeGift,
+    rowsKept: kept,
+    rowsExcluded: { cancelled, returned, freeGift },
+    orderCounts: (() => {
+      let cancelledOrders = 0;
+      for (const o of orderAgg.values()) {
+        if (o.allCancelled) cancelledOrders++;
+      }
+      // nonCancelled = orders whose TOTAL Net GMV across kept rows is > 0.
+      // Excludes orders that were: fully cancelled, fully returned, free-gift
+      // only, or had per-row netGmv cancelling out to 0 at order level.
+      let validOrders = 0;
+      for (const sum of orderNetGmvSum.values()) {
+        if (sum > 0) validOrders++;
+      }
+      return {
+        totalDistinct: orderAgg.size,
+        cancelled: cancelledOrders,
+        nonCancelled: validOrders,
+      };
+    })(),
+    freeGiftProducts: [...freeGiftProducts],
+    missingFromMaster: [...missingByProduct.values()].sort((a, b) => b.gmvContribution - a.gmvContribution),
+    traffic: trafficRows ? aggregateTikTokTraffic(trafficRows) : null,
+    productBreakdown,
+    giftBreakdown,
+  };
+}

@@ -11,8 +11,16 @@ coverage/
 .nyc_output/
 *.pem
 .claude/
+# Un-ignore v2 apps' .claude (skills + memory are committed project context)
+!apps/app-sales-report-v2/.claude/
+!apps/app-sales-report-v2/.claude/**
+!apps/app-car-manager-v2/.claude/
+!apps/app-car-manager-v2/.claude/**
 *.tsbuildinfo
 
 # Binary / temp files
 *.xlsx
 ~\
+
+# ambManagement
+ambManagement/

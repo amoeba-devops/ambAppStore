@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- ko-full-translation -->
+  <title>PWA 설치 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — 사용 안내서 홈" aria-label="Amoeba Car Manager v2 — 사용 안내서 홈">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 사용 안내서</span></span><span class="header__brand-mobile">사용 안내서</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="안내서 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a>
+          <a href="#" class="is-active" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="150" height="100" fill="#fff"/><g transform="translate(75,50) rotate(-56.31)"><circle r="25" fill="#C60C30"/><path d="M0,-25 A25,25 0 0,1 0,25 A12.5,12.5 0 0,1 0,0 A12.5,12.5 0 0,0 0,-25 Z" fill="#003478"/></g><g fill="#000"><g transform="translate(37.5,25) rotate(-56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,25) rotate(56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g><g transform="translate(37.5,75) rotate(56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,75) rotate(-56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g></g></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a>
+        </span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">소개</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">화면 탐색</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림함</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">용어집</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">기사</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-cai-pwa.html">PWA 설치</a>
+        <a class="sidebar__link" href="02-today-screen.html">오늘 화면</a>
+        <a class="sidebar__link" href="03-xac-nhan-chuyen.html">운행 확인</a>
+        <a class="sidebar__link" href="04-bat-dau-ket-thuc-chuyen.html">운행 시작/종료</a>
+        <a class="sidebar__link" href="05-ghi-chi-phi.html">비용 기록</a>
+        <a class="sidebar__link" href="06-canh-bao-bao-duong.html">정비 알림</a>
+        <a class="sidebar__link" href="07-ngoai-tuyen.html">오프라인 동작</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">홈</a> · 기사 · PWA 설치
+        </div>
+        <h1>모바일에 PWA 설치</h1>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>대상</dt><dd>기사 (1회만 수행)</dd>
+            <dt>소요 시간</dt><dd>~30초</dd>
+            <dt>장점</dt><dd>홈 화면에서 앱 실행 (브라우저 불필요); 푸시 알림 수신 가능</dd>
+          </dl>
+        </div>
+
+        <p>PWA (Progressive Web App)를 이용하면 Amoeba Car Manager를 <strong>네이티브 앱</strong>처럼 스마트폰에 설치할 수 있습니다.
+        홈 화면에 전용 아이콘이 생기고, 전체 화면으로 실행되며, 푸시 알림도 수신할 수 있습니다. 앱 스토어 없이 설치 — 저장 공간도 거의 차지하지 않습니다.</p>
+
+        <h2>방법 1 — iPhone (Safari)</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p><strong>Safari</strong>를 엽니다 (Chrome/Firefox 불가 — iPhone에서는 반드시 Safari 사용).</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p><code>https://apps.amoeba.site/app-car-manager-v2</code>에 접속하여 평소대로 로그인합니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Safari 하단 툴바에서 <strong>'공유' 아이콘</strong> (사각형 + 위쪽 화살표)을 탭합니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">4</div>
+          <div class="step__body">
+            <p>아래로 스크롤하여 <strong>"홈 화면에 추가"</strong>를 선택 → 오른쪽 상단의 <strong>추가</strong>를 탭합니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">5</div>
+          <div class="step__body">
+            <p>홈 화면에 Amoeba Car 아이콘이 나타납니다. 탭하면 앱이 전체 화면으로 실행되며 주소 표시줄이 없습니다.</p>
+          </div>
+        </div>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">⚠️</div>
+          <div class="callout__body">
+            <p><strong>iPhone 푸시 알림</strong>은 <em>PWA 설치 후</em>에만 작동합니다. 일반 Safari 브라우저로 접속하면 알림을 받을 수 없습니다.</p>
+          </div>
+        </div>
+
+        <h2>방법 2 — Android (Chrome)</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>Android에서 <strong>Chrome</strong>을 엽니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p>앱 URL에 접속하여 로그인합니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>Chrome이 화면 하단에 <strong>"Amoeba Car 설치"</strong> 배너를 자동으로 표시합니다. <strong>설치</strong>를 탭합니다.</p>
+            <p>또는 오른쪽 상단 메뉴 (점 3개) → <strong>"홈 화면에 추가"</strong>를 선택합니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">4</div>
+          <div class="step__body">
+            <p>홈 화면에 아이콘이 나타납니다. 탭하여 앱을 실행합니다.</p>
+          </div>
+        </div>
+
+        <h2>설치 제거</h2>
+        <p>iPhone: 아이콘을 길게 탭 → 앱 삭제. Android: 아이콘을 길게 탭 → 제거. 앱 내 데이터는 사라지지만 서버 데이터는 그대로 보존됩니다 — 다시 로그인하면 모두 복구됩니다.</p>
+
+        <nav class="pager">
+          <a class="pager__prev" href="00-tong-quan.html">
+            <span>← 이전</span>
+            <strong>개요</strong>
+          </a>
+          <a class="pager__next" href="02-today-screen.html">
+            <span>다음 →</span>
+            <strong>'오늘' 화면</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        업데이트: 2026-05-24 ·
+        피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

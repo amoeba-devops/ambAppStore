@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- ko-full-translation -->
+  <title>운행 확인 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — 사용 안내서 홈" aria-label="Amoeba Car Manager v2 — 사용 안내서 홈">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 사용 안내서</span></span><span class="header__brand-mobile">사용 안내서</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="안내서 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a>
+          <a href="#" class="is-active" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="150" height="100" fill="#fff"/><g transform="translate(75,50) rotate(-56.31)"><circle r="25" fill="#C60C30"/><path d="M0,-25 A25,25 0 0,1 0,25 A12.5,12.5 0 0,1 0,0 A12.5,12.5 0 0,0 0,-25 Z" fill="#003478"/></g><g fill="#000"><g transform="translate(37.5,25) rotate(-56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,25) rotate(56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g><g transform="translate(37.5,75) rotate(56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,75) rotate(-56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g></g></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a>
+        </span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">소개</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">화면 탐색</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림함</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">용어집</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">기사</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-cai-pwa.html">PWA 설치</a>
+        <a class="sidebar__link" href="02-today-screen.html">오늘 화면</a>
+        <a class="sidebar__link" href="03-xac-nhan-chuyen.html">운행 확인</a>
+        <a class="sidebar__link" href="04-bat-dau-ket-thuc-chuyen.html">운행 시작/종료</a>
+        <a class="sidebar__link" href="05-ghi-chi-phi.html">비용 기록</a>
+        <a class="sidebar__link" href="06-canh-bao-bao-duong.html">정비 알림</a>
+        <a class="sidebar__link" href="07-ngoai-tuyen.html">오프라인 동작</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">홈</a> · 기사 · 운행 확인
+        </div>
+        <h1>새 운행 확인 / 거절</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/today" target="_parent" rel="noopener">
+            <span>앱에서 이 페이지 열기</span>
+            <span class="app-link-cta__route">/today</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>시기</dt><dd>관리자가 새 운행을 배정하면 푸시 알림과 이메일을 받게 됩니다</dd>
+            <dt>기한</dt><dd>엄격한 기한은 없지만, 빠르게 응답할수록 일정이 맞지 않을 때 관리자가 다른 기사에게 재배정하기 쉬워집니다</dd>
+            <dt>결과</dt><dd>수락 시 → 해당 운행이 본인에게 "확정"됩니다 · 거절 시 → 관리자가 알림을 받고 다른 기사를 배정합니다</dd>
+          </dl>
+        </div>
+
+        <h2>확인 방법</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>푸시 알림을 통해 앱을 열거나, <strong>내 운행</strong> 탭으로 이동해 <strong>"기사 확인 대기"</strong> 라벨이 붙은 운행을 찾습니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p>해당 운행을 탭해 상세 화면을 열고 다음 항목을 꼼꼼히 확인합니다.</p>
+            <ul>
+              <li><strong>출발지</strong>와 <strong>도착지</strong> — 지도가 함께 표시됩니다</li>
+              <li><strong>출발 시각</strong>과 <strong>예상 소요 시간</strong></li>
+              <li><strong>승객</strong>과 <strong>운행 목적</strong></li>
+              <li>배정된 <strong>차량</strong> (번호판, 모델)</li>
+            </ul>
+            <figure>
+              <img src="../../assets/img/screenshots/ko/driver/03-trip-pending-confirm.png" alt="확인 대기 중인 운행 상세 화면">
+              <figcaption>운행 TR-2001 — 모든 정보가 표시되고 하단에 "수락" / "거절" 버튼 2개가 고정되어 있습니다</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>운행을 맡을 경우 <strong>"✓ 수락"</strong> 버튼(초록색)을 탭합니다.
+            맡을 수 없을 경우 <strong>"✗ 거절"</strong> 버튼(빨간색)을 탭하면 시스템이 <strong>거절 사유</strong> 입력을 요구합니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">4</div>
+          <div class="step__body">
+            <p>수락하면 운행 상태가 <strong>"확인 완료"</strong>로 바뀌고, 관리자와 승객에게 알림이 발송됩니다. 해당 운행은 오늘 화면의 운행 중 배너 또는 "오늘 중" 영역에 표시됩니다.</p>
+          </div>
+        </div>
+
+        <h2>거절해야 하는 경우</h2>
+        <table>
+          <thead><tr><th>상황</th><th>거절 권장 여부</th></tr></thead>
+          <tbody>
+            <tr><td>휴가 또는 정기 건강검진 일정과 겹침</td><td>✅ 권장 — 사유를 명확히 기재</td></tr>
+            <tr><td>배정된 차량이 고장 나 시동이 걸리지 않음</td><td>✅ 권장 — 관리자에게 다른 차량 재배정 요청</td></tr>
+            <tr><td>경로가 익숙하지 않아 부담스러움</td><td>❌ 비권장 — 관리자에게 문의하거나 GPS 사용</td></tr>
+            <tr><td>출발 시각이 근무 교대 시간보다 너무 이르거나 늦음</td><td>✅ 권장 — 관리자가 일정을 조정하거나 다른 기사를 배정</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">⚠️</div>
+          <div class="callout__body">
+            <p><strong>거절 사유는 감사 로그에 기록</strong>되며 관리자가 확인합니다. <strong>구체적이고 정중하게</strong> 작성하세요. "모름" 또는 "안 함" 같은 표현은 피해야 합니다.</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="02-today-screen.html">
+            <span>← 이전</span>
+            <strong>오늘 화면</strong>
+          </a>
+          <a class="pager__next" href="04-bat-dau-ket-thuc-chuyen.html">
+            <span>다음 →</span>
+            <strong>운행 시작/종료</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        최종 업데이트 2026-05-24 ·
+        피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

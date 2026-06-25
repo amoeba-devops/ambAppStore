@@ -1,5 +1,6 @@
 import { VehicleEntity } from '../entity/vehicle.entity';
 import { VehicleResponse, VehicleDetailResponse } from '../dto/response/vehicle.response';
+import { toDateString } from '../../../common/utils/date.util';
 
 export class VehicleMapper {
   static toResponse(entity: VehicleEntity): VehicleResponse {
@@ -19,10 +20,10 @@ export class VehicleMapper {
       status: entity.cvhStatus,
       isDedicated: entity.cvhIsDedicated,
       dedicatedDept: entity.cvhDedicatedDept,
-      dedicatedStart: entity.cvhDedicatedStart?.toISOString().split('T')[0] ?? null,
-      dedicatedEnd: entity.cvhDedicatedEnd?.toISOString().split('T')[0] ?? null,
-      insuranceExpiry: entity.cvhInsuranceExpiry?.toISOString().split('T')[0] ?? null,
-      inspectionDate: entity.cvhInspectionDate?.toISOString().split('T')[0] ?? null,
+      dedicatedStart: toDateString(entity.cvhDedicatedStart),
+      dedicatedEnd: toDateString(entity.cvhDedicatedEnd),
+      insuranceExpiry: toDateString(entity.cvhInsuranceExpiry),
+      inspectionDate: toDateString(entity.cvhInspectionDate),
       note: entity.cvhNote,
       createdAt: entity.cvhCreatedAt.toISOString(),
     };
@@ -35,7 +36,7 @@ export class VehicleMapper {
       vin: entity.cvhVin,
       displacement: entity.cvhDisplacement,
       purchaseType: entity.cvhPurchaseType,
-      purchaseDate: entity.cvhPurchaseDate?.toISOString().split('T')[0] ?? null,
+      purchaseDate: toDateString(entity.cvhPurchaseDate),
       purchasePrice: entity.cvhPurchasePrice ? Number(entity.cvhPurchasePrice) : null,
       statusReason: entity.cvhStatusReason,
     };

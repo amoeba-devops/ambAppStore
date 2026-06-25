@@ -1,0 +1,11 @@
+# /settings/me — content area has Profile, Language, Push, Logout cards.
+# Card column starts around x≈530, ends x≈1150 (varies by viewport).
+caption: "Bấm vào ô ngôn ngữ mong muốn (VI / EN / KO) — giao diện tự đổi ngay."
+
+annotations:
+  # Highlight the entire Language card
+  - { type: box, rect: [515, 257, 645, 152], color: '#3182F6', width: 3 }
+
+  # Point at VI button specifically
+  - { type: arrow, from: [400, 367], to: [535, 367], color: '#FF3B30', width: 4 }
+  - { type: label, at: [240, 374], text: 'Đang chọn', color: '#FF3B30', size: 14 }

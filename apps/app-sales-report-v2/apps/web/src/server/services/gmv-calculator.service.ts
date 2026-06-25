@@ -1,0 +1,589 @@
+import 'server-only';
+import type { ShopeeSaleRow } from './shopee-sales-parser.service';
+import { aggregateAds, type ShopeeAdsRow } from './shopee-ads-parser.service';
+import { aggregateBrandAds, type ShopeeBrandAdsRow } from './shopee-brand-ads-parser.service';
+import {
+  aggregateOffPlatformAds,
+  type ShopeeOffPlatformAdsRow,
+} from './shopee-off-platform-ads-parser.service';
+import { aggregateTraffic, type ShopeeTrafficRow } from './shopee-traffic-parser.service';
+import {
+  aggregateAffiliate,
+  type ShopeeAffiliateRow,
+} from './shopee-affiliate-parser.service';
+
+export type ExclusionReason = 'CANCELLED' | 'RETURNED' | 'FREE_GIFT_GIFT_PREFIX' | 'FREE_GIFT_NMV_FALLBACK';
+
+/** One row from `sal_prime_cost_versions` flattened for in-memory lookup. */
+export interface PrimeCostVersion {
+  /** ISO `YYYY-MM-DD` — version becomes active on this date (inclusive). */
+  effectiveFrom: string;
+  /** Per-unit prime cost in VND for this version. */
+  primeCost: number;
+  /** Optional cost components captured by Operator (cogs/logistic/warehouse/fulfillment/notes). */
+  breakdown: Record<string, unknown> | null;
+}
+
+/** One row from `sal_selling_price_versions` or `sal_listing_price_versions`. */
+export interface PriceVersion {
+  /** ISO `YYYY-MM-DD`. */
+  effectiveFrom: string;
+  /** Per-unit price in VND. */
+  valueVnd: number;
+}
+
+/** Prime cost master keyed by SKU code — passed in from caller (DB lookup). */
+export interface PrimeCostMaster {
+  /**
+   * Per-unit prime cost in VND of the LATEST effective version. Kept for UI
+   * callers that don't care about per-order pricing (e.g. master table display,
+   * preview cards). Calculators should use `findPrimeCost(master, orderDate)`
+   * to honour versioning instead of reading this field directly.
+   */
+  primeCost: number;
+  /** Latest effective selling price in VND. Calculators must use `findSellingPrice` to honour versioning. */
+  sellingPrice: number;
+  /** Latest effective listing price in VND. Calculators must use `findListingPrice` to honour versioning. */
+  listingPrice: number;
+  /** English product name (for Product Breakdown display). May be empty. */
+  productNameEn: string;
+  /** Shopee option / variation name (e.g. "Hồng san hô,Nhỏ"). May be empty. */
+  variationName: string;
+  /**
+   * Combo / bundle flag. When true, Product Breakdown renders this SKU as a
+   * separate row from the parent product (it's split out of the regular-option
+   * aggregation). Set via the "Mark as combo" checkbox in RFR Data → SKU edit.
+   */
+  isCombo: boolean;
+  /** Prime cost versions sorted DESC by `effectiveFrom`. ≥1 row when SKU exists. */
+  versions: PrimeCostVersion[];
+  /** Selling-price versions sorted DESC by `effectiveFrom`. May be empty (SKU never had selling). */
+  sellingVersions: PriceVersion[];
+  /** Listing-price versions sorted DESC by `effectiveFrom`. May be empty (SKU never had listing). */
+  listingVersions: PriceVersion[];
+}
+export type PrimeCostMap = Map<string, PrimeCostMaster>;
+
+/**
+ * Resolve the per-unit prime cost for a row given the order's createDate.
+ * - Master missing → 0 (no SKU configured)
+ * - `orderDate` empty (legacy file without "Ngày đặt hàng"/"Created Time") →
+ *   latest version (master.primeCost)
+ * - `orderDate` earlier than the oldest version → latest version (best-effort
+ *   fallback; per migration, every SKU has a sentinel 2020-01-01 version so
+ *   this branch is almost never hit)
+ * - otherwise → cost of the first version where `effectiveFrom <= orderDate`
+ *   (versions are DESC-sorted so this scans newest → oldest, picking the
+ *   latest-applicable).
+ */
+export function findPrimeCost(master: PrimeCostMaster | undefined, orderDate: string): number {
+  if (!master) return 0;
+  if (!orderDate || master.versions.length === 0) return master.primeCost;
+  for (const v of master.versions) {
+    if (v.effectiveFrom <= orderDate) return v.primeCost;
+  }
+  return master.primeCost;
+}
+
+/**
+ * Resolve the per-unit selling price for a Shopee row given the order date.
+ * Mirrors {@link findPrimeCost}: scans DESC, returns the latest version whose
+ * `effectiveFrom <= orderDate`. Empty version list or missing date → falls
+ * back to the master's flat `sellingPrice` (which is the latest cached value).
+ */
+export function findSellingPrice(
+  master: PrimeCostMaster | undefined,
+  orderDate: string,
+): number {
+  if (!master) return 0;
+  if (!orderDate || master.sellingVersions.length === 0) return master.sellingPrice;
+  for (const v of master.sellingVersions) {
+    if (v.effectiveFrom <= orderDate) return v.valueVnd;
+  }
+  return master.sellingPrice;
+}
+
+/** TikTok-equivalent of {@link findSellingPrice} for listing price. */
+export function findListingPrice(
+  master: PrimeCostMaster | undefined,
+  orderDate: string,
+): number {
+  if (!master) return 0;
+  if (!orderDate || master.listingVersions.length === 0) return master.listingPrice;
+  for (const v of master.listingVersions) {
+    if (v.effectiveFrom <= orderDate) return v.valueVnd;
+  }
+  return master.listingPrice;
+}
+
+export interface ShopeeMetricsResult {
+  /** SUM(item_sold) for kept rows. */
+  totalItemSold: number;
+  /** SUM(original_price × item_sold) for kept rows. */
+  totalGmv: number;
+  /** SUM(selling_price × item_sold) for kept rows. */
+  totalNetGmv: number;
+  /** SUM(nmv col) for kept rows. */
+  totalNmv: number;
+  /** SUM(MAX(0, net_gmv_row − nmv_row)) for kept rows — per-row clamped. */
+  totalSellerDiscount: number;
+  /** SUM(prime_cost × item_sold) for kept rows only. Free Gift PC is tracked separately in `primeCostFreeGift` and displayed as its own report line. */
+  totalPrimeCost: number;
+  /** Split for reporting transparency. */
+  primeCostKept: number;
+  primeCostFreeGift: number;
+  /** Sum of MAX(shopVoucher + shopCombo) per non-cancelled order. */
+  totalSellerVouchers: number;
+  /** Sum of MAX(fixedFee + serviceFee + paymentFee) per non-cancelled order. */
+  totalPlatformFee: number;
+  /** Sum of MAX(shopeeVoucher) per non-cancelled order — platform-funded discount, reference only. */
+  totalPlatformDiscount: number;
+  /** Distinct order counts for transparency. */
+  orderCounts: { totalDistinct: number; cancelled: number; nonCancelled: number };
+  /** Ads spending — only populated when Ads CSV is provided. */
+  ads: {
+    totalCost: number;
+    totalRevenue: number;
+    shopWideCost: number;
+    shopGmvMaxCost: number;
+    shopAdsCost: number;
+    productSpecificCost: number;
+    campaignCount: number;
+    productSpecificCount: number;
+    perProduct: Array<{ productId: string; campaignName: string; cost: number; sold: number; revenue: number }>;
+  } | null;
+  /** Brand Ads spending — only populated when Brand Ads CSV is provided. */
+  brandAds: {
+    totalCost: number;
+    campaignCount: number;
+    activeCampaignCount: number;
+  } | null;
+  /** Off-Platform Ads spending — only populated when Off-Platform Ads CSV is provided. */
+  offPlatformAds: {
+    totalCost: number;
+    totalGmv: number;
+    totalOrders: number;
+    dayCount: number;
+  } | null;
+  /** Traffic metrics — only populated when Traffic xlsx is provided. */
+  traffic: {
+    totalPageViews: number;
+    totalProductViews: number;
+    totalVisitors: number;
+    productCount: number;
+  } | null;
+  /** Affiliate commission — only populated when Affiliate CSV is provided. */
+  affiliate: {
+    totalCost: number;
+    totalPureCommission: number;
+    rowCount: number;
+    orderCount: number;
+    statusBreakdown: Record<string, number>;
+    /** SUM(chiPhi) per normalized product name — used for exact per-SKU attribution downstream. */
+    costByProductName: Record<string, number>;
+  } | null;
+  /** Counts. */
+  rowsKept: number;
+  rowsExcluded: { cancelled: number; returned: number; freeGift: number };
+  /** Distinct product names detected as free gift. */
+  freeGiftProducts: string[];
+  /** Per-product GMV breakdown, sorted desc by gmv. */
+  productBreakdown: Array<{
+    productName: string;
+    productNameEn: string;
+    variationName: string;
+    representativeSku: string;
+    /** True when this row aggregates combo / bundle SKUs (split from parent product). */
+    isCombo: boolean;
+    gmv: number;
+    netGmv: number;
+    nmv: number;
+    sellerDiscount: number;
+    primeCost: number;
+    units: number;
+    skuCount: number;
+    /** Page views matched from Traffic xlsx by productName. 0 when no match. */
+    pageViews: number;
+  }>;
+  /** Per-gift-product breakdown (revenue is 0; only Prime Cost + units accumulated). */
+  giftBreakdown: Array<{
+    productName: string;
+    productNameEn: string;
+    representativeSku: string;
+    primeCost: number;
+    units: number;
+    skuCount: number;
+    /** Page views matched from Traffic xlsx by productName. 0 when no match. */
+    pageViews: number;
+  }>;
+  /** SKUs sold but missing from prime cost master — Net GMV / Prime Cost skip these. */
+  missingFromMaster: Array<{ sku: string; productName: string; units: number; gmvContribution: number }>;
+}
+
+/**
+ * Formula descriptors (Cách A — text-based engine).
+ * Exposed to UI for "view formula" + Admin edit screens.
+ * Reference: cm-calculator skill §3 + §2.4.
+ */
+export const SHOPEE_METRIC_SPECS = {
+  TOTAL_GMV_SHOPEE: {
+    id: 'TOTAL_GMV_SHOPEE',
+    name: 'Total GMV — Shopee',
+    expression: 'SUM(original_price × item_sold) WHERE NOT excluded',
+  },
+  TOTAL_NET_GMV_SHOPEE: {
+    id: 'TOTAL_NET_GMV_SHOPEE',
+    name: 'Total Net GMV — Shopee',
+    expression: 'SUM(selling_price × item_sold) WHERE NOT excluded',
+    requires: ['prime_costs.selling_price'],
+  },
+  TOTAL_NMV_SHOPEE: {
+    id: 'TOTAL_NMV_SHOPEE',
+    name: 'Total NMV — Shopee',
+    expression: 'SUM(nmv col) WHERE NOT excluded',
+  },
+  TOTAL_SELLER_DISCOUNT_SHOPEE: {
+    id: 'TOTAL_SELLER_DISCOUNT_SHOPEE',
+    name: 'Total Seller Discount — Shopee',
+    expression: 'SUM( MAX(0, net_gmv_row − nmv_row) ) WHERE NOT excluded',
+    note: 'Per-row clamped to 0 (negative rows zeroed before summing). Not the same as Total Net GMV − Total NMV.',
+  },
+  TOTAL_PRIME_COST_SHOPEE: {
+    id: 'TOTAL_PRIME_COST_SHOPEE',
+    name: 'Total Prime Cost — Shopee',
+    expression: 'SUM(prime_cost × item_sold) over kept rows only',
+    requires: ['prime_costs.prime_cost'],
+    note: 'Free Gift PC is NOT added here — it is reported separately in `primeCostFreeGift` and subtracted as a distinct CM line.',
+  },
+  TOTAL_SELLER_VOUCHERS_SHOPEE: {
+    id: 'TOTAL_SELLER_VOUCHERS_SHOPEE',
+    name: 'Total Seller Vouchers — Shopee',
+    expression: 'SUM_PER_ORDER( MAX({Mã giảm giá của Shop} + {Giảm giá từ Combo của Shop}) ) WHERE {Trạng Thái Đơn Hàng} != "Đã hủy"',
+    note: 'Per-order values duplicated across SKU lines — dedupe by Order ID with MAX, then sum. Returned-only orders STILL count (Shopee charges fees on delivered+returned).',
+  },
+  TOTAL_PLATFORM_FEE_SHOPEE: {
+    id: 'TOTAL_PLATFORM_FEE_SHOPEE',
+    name: 'Total Platform Fee — Shopee',
+    expression: 'SUM_PER_ORDER( MAX({Phí cố định} + {Phí Dịch Vụ} + {Phí thanh toán}) ) WHERE {Trạng Thái Đơn Hàng} != "Đã hủy"',
+    note: 'Same per-order MAX dedupe rule as Seller Vouchers. Components: fixed fee + service fee + payment fee.',
+  },
+  TOTAL_AD_SPENDING_SHOPEE: {
+    id: 'TOTAL_AD_SPENDING_SHOPEE',
+    name: 'Total Ad Spending — Shopee',
+    expression: 'SUM({Chi phí}) over all campaigns in Shopee Ads CSV',
+    requires: ['shopee_ads_csv'],
+    note: 'Includes both shop-wide (Shop GMV Max) and product-specific campaigns. Per-product allocation TBD.',
+  },
+  TOTAL_BRAND_ADS_SHOPEE: {
+    id: 'TOTAL_BRAND_ADS_SHOPEE',
+    name: 'Total Brand Ads — Shopee',
+    expression: 'SUM({Chi phí}) over all campaigns in Shopee Brand Consideration Ads CSV',
+    requires: ['shopee_brand_ads_csv'],
+    note: 'Platform-level total. Per-product allocation by NMV contribution (skill §6).',
+  },
+  TOTAL_OFF_PLATFORM_ADS_SHOPEE: {
+    id: 'TOTAL_OFF_PLATFORM_ADS_SHOPEE',
+    name: 'Total Off-Platform Ads — Shopee',
+    expression: 'SUM({Chi phí(VND)}) over daily rows in Shopee Off-Platform Ads CSV',
+    requires: ['shopee_off_platform_ads_csv'],
+    note: 'Daily-aggregated file (1 row per day). Platform-level total. Per-product allocation by NMV contribution.',
+  },
+  TOTAL_PAGE_VIEWS_SHOPEE: {
+    id: 'TOTAL_PAGE_VIEWS_SHOPEE',
+    name: 'Total Page Views — Shopee',
+    expression: 'SUM({Lượt xem trang sản phẩm}) at product-level rows (where {SKU phân loại} = "-")',
+    requires: ['shopee_traffic_xlsx'],
+    note: 'Traffic file (parentskudetail) — only product-level rows have traffic metrics; variation rows are sales-only.',
+  },
+  TOTAL_AFFILIATE_COMMISSION_SHOPEE: {
+    id: 'TOTAL_AFFILIATE_COMMISSION_SHOPEE',
+    name: 'Total Affiliate Commission — Shopee',
+    expression: 'SUM({Chi phí(₫)}) over all rows in Shopee Affiliate (Seller Conversion) CSV',
+    requires: ['shopee_affiliate_csv'],
+    note: 'Includes pure commission + Shopee 8% processing fee. All statuses (pending/completed/cancelled) included.',
+  },
+  TOTAL_PLATFORM_DISCOUNT_SHOPEE: {
+    id: 'TOTAL_PLATFORM_DISCOUNT_SHOPEE',
+    name: 'Total Platform Discount — Shopee',
+    expression:
+      'SUM_PER_ORDER( MAX({Mã giảm giá của Shopee}) ) WHERE {Trạng Thái Đơn Hàng} != "Đã hủy"',
+    note: 'Shopee-funded discount (reference-only display). Not deducted from CM since cost is borne by Shopee, not seller.',
+  },
+  EXCLUSIONS: {
+    id: 'SHOPEE_EXCLUSIONS',
+    rules: [
+      { code: 'CANCELLED', expression: 'order_status == "Đã hủy"' },
+      { code: 'RETURNED', expression: 'gmv == 0  // item_sold == 0 because quantity_returned == quantity' },
+      { code: 'FREE_GIFT', expression: 'product_name STARTS_WITH "[GIFT]"  OR  (nmv == 0 AND original_price > 0)' },
+    ],
+  },
+  DERIVED: {
+    item_sold: 'quantity − quantity_returned',
+    gmv: 'original_price × item_sold',
+    net_gmv: 'selling_price × item_sold  // selling_price from prime_costs master',
+  },
+} as const;
+
+/**
+ * Compute all 5 Shopee metrics from parsed sales rows + prime cost master.
+ * Pure function — no IO, deterministic.
+ */
+export function computeShopeeMetrics(
+  rows: ShopeeSaleRow[],
+  primeCosts: PrimeCostMap,
+  adsRows?: ShopeeAdsRow[] | null,
+  brandAdsRows?: ShopeeBrandAdsRow[] | null,
+  offPlatformAdsRows?: ShopeeOffPlatformAdsRow[] | null,
+  trafficRows?: ShopeeTrafficRow[] | null,
+  affiliateRows?: ShopeeAffiliateRow[] | null,
+): ShopeeMetricsResult {
+  let totalItemSold = 0;
+  let totalGmv = 0;
+  let totalNetGmv = 0;
+  let totalNmv = 0;
+  let totalSellerDiscount = 0;
+  let primeCostKept = 0;
+  let primeCostFreeGift = 0;
+  let cancelled = 0;
+  let returned = 0;
+  let freeGift = 0;
+  let kept = 0;
+  const freeGiftProducts = new Set<string>();
+  const missingByProduct = new Map<string, { sku: string; productName: string; units: number; gmvContribution: number }>();
+  const productAgg = new Map<
+    string,
+    { gmv: number; netGmv: number; nmv: number; sellerDiscount: number; primeCost: number; units: number; skus: Set<string>; nameEn: string; variationName: string; isCombo: boolean }
+  >();
+  const giftAgg = new Map<
+    string,
+    { primeCost: number; units: number; skus: Set<string>; nameEn: string }
+  >();
+  // Per-order accumulator (MAX dedupe) — see [[per-order-vs-per-row-metrics]]
+  const orderMaxes = new Map<
+    string,
+    {
+      allCancelled: boolean;
+      shopVoucher: number;
+      shopCombo: number;
+      fixedFee: number;
+      serviceFee: number;
+      paymentFee: number;
+      shopeeVoucher: number;
+      shopeeCombo: number;
+    }
+  >();
+
+  for (const row of rows) {
+    // Defensive: parser already skips blank rows, but guard against any
+    // future caller that passes rows with empty orderId (would otherwise
+    // create a phantom '' order key and inflate orderCounts.nonCancelled).
+    if (!row.orderId) continue;
+    // Track per-order maxes for ALL rows — cancelled rows have 0 fees so they
+    // don't affect the MAX; what matters is whether the order has ANY non-cancelled row.
+    let orderAgg = orderMaxes.get(row.orderId);
+    if (!orderAgg) {
+      orderAgg = {
+        allCancelled: true,
+        shopVoucher: 0,
+        shopCombo: 0,
+        fixedFee: 0,
+        serviceFee: 0,
+        paymentFee: 0,
+        shopeeVoucher: 0,
+        shopeeCombo: 0,
+      };
+      orderMaxes.set(row.orderId, orderAgg);
+    }
+    if (row.orderStatus !== 'Đã hủy') orderAgg.allCancelled = false;
+    orderAgg.shopVoucher = Math.max(orderAgg.shopVoucher, row.shopVoucher);
+    orderAgg.shopCombo = Math.max(orderAgg.shopCombo, row.shopCombo);
+    orderAgg.fixedFee = Math.max(orderAgg.fixedFee, row.fixedFee);
+    orderAgg.serviceFee = Math.max(orderAgg.serviceFee, row.serviceFee);
+    orderAgg.paymentFee = Math.max(orderAgg.paymentFee, row.paymentFee);
+    orderAgg.shopeeVoucher = Math.max(orderAgg.shopeeVoucher, row.shopeeVoucher);
+    orderAgg.shopeeCombo = Math.max(orderAgg.shopeeCombo, row.shopeeCombo);
+
+    if (row.orderStatus === 'Đã hủy') {
+      cancelled++;
+      continue;
+    }
+    const itemSold = row.quantity - row.quantityReturned;
+    const gmv = row.originalPrice * itemSold;
+    if (gmv === 0) {
+      returned++;
+      continue;
+    }
+    const isGiftPrefix = row.productName.startsWith('[GIFT]');
+    const isNmvFallback = row.nmv === 0 && row.originalPrice > 0;
+    const master = primeCosts.get(row.varSku);
+    // Date-aware prime cost: applies the version active at the order's
+    // createDate. Empty `row.orderDate` (legacy file) falls back to latest.
+    const rowPrimeCost = findPrimeCost(master, row.orderDate);
+
+    if (isGiftPrefix || isNmvFallback) {
+      freeGift++;
+      freeGiftProducts.add(row.productName);
+      const giftPc = master ? rowPrimeCost * itemSold : 0;
+      if (master) primeCostFreeGift += giftPc;
+      let gAgg = giftAgg.get(row.productName);
+      if (!gAgg) {
+        gAgg = { primeCost: 0, units: 0, skus: new Set(), nameEn: master?.productNameEn ?? '' };
+        giftAgg.set(row.productName, gAgg);
+      } else if (!gAgg.nameEn && master?.productNameEn) {
+        gAgg.nameEn = master.productNameEn;
+      }
+      gAgg.primeCost += giftPc;
+      gAgg.units += itemSold;
+      gAgg.skus.add(row.varSku);
+      continue;
+    }
+
+    // Track SKU missing from master (Net GMV / Prime Cost can't be computed)
+    if (!master) {
+      const key = row.varSku;
+      const prev = missingByProduct.get(key) ?? {
+        sku: row.varSku,
+        productName: row.productName,
+        units: 0,
+        gmvContribution: 0,
+      };
+      prev.units += itemSold;
+      prev.gmvContribution += gmv;
+      missingByProduct.set(key, prev);
+    }
+
+    const sellingPrice = findSellingPrice(master, row.orderDate);
+    const primeCost = rowPrimeCost;
+    const netGmvRow = sellingPrice * itemSold;
+    const primeCostRow = primeCost * itemSold;
+    const sellerDiscountRow = Math.max(0, netGmvRow - row.nmv);
+
+    totalItemSold += itemSold;
+    totalGmv += gmv;
+    totalNmv += row.nmv;
+    totalNetGmv += netGmvRow;
+    totalSellerDiscount += sellerDiscountRow;
+    primeCostKept += primeCostRow;
+    kept++;
+
+    // Each SKU renders as a separate row in Product Breakdown — even when
+    // multiple SKUs share the same product name (typical for Shopee
+    // variations). Aggregation key = `productName|varSku`. Combo flag still
+    // surfaces as a visual badge on the row.
+    const isCombo = master?.isCombo ?? false;
+    const aggKey = `${row.productName}|${row.varSku}`;
+    let agg = productAgg.get(aggKey);
+    if (!agg) {
+      agg = {
+        gmv: 0,
+        netGmv: 0,
+        nmv: 0,
+        sellerDiscount: 0,
+        primeCost: 0,
+        units: 0,
+        skus: new Set(),
+        nameEn: master?.productNameEn ?? '',
+        variationName: master?.variationName ?? '',
+        isCombo,
+      };
+      productAgg.set(aggKey, agg);
+    } else {
+      if (!agg.nameEn && master?.productNameEn) agg.nameEn = master.productNameEn;
+      if (!agg.variationName && master?.variationName) agg.variationName = master.variationName;
+    }
+    agg.gmv += gmv;
+    agg.netGmv += netGmvRow;
+    agg.nmv += row.nmv;
+    agg.sellerDiscount += sellerDiscountRow;
+    agg.primeCost += primeCostRow;
+    agg.units += itemSold;
+    agg.skus.add(row.varSku);
+  }
+
+  // Per-product page views from Traffic xlsx (match by productName, NFC-normalized)
+  const pvByProduct = new Map<string, number>();
+  if (trafficRows) {
+    for (const t of trafficRows) {
+      const key = t.productName.normalize('NFC').trim();
+      pvByProduct.set(key, (pvByProduct.get(key) ?? 0) + t.pageViews);
+    }
+  }
+
+  const productBreakdown = [...productAgg.entries()]
+    .map(([aggKey, agg]) => {
+      // aggKey shape: `${productName}|${combo|regular}` — strip the suffix.
+      const sepIdx = aggKey.lastIndexOf('|');
+      const productName = sepIdx >= 0 ? aggKey.slice(0, sepIdx) : aggKey;
+      return {
+        productName,
+        productNameEn: agg.nameEn,
+        variationName: agg.variationName,
+        representativeSku: [...agg.skus][0] ?? '',
+        isCombo: agg.isCombo,
+        gmv: agg.gmv,
+        netGmv: agg.netGmv,
+        nmv: agg.nmv,
+        sellerDiscount: agg.sellerDiscount,
+        primeCost: agg.primeCost,
+        units: agg.units,
+        skuCount: agg.skus.size,
+        pageViews: pvByProduct.get(productName.normalize('NFC').trim()) ?? 0,
+      };
+    })
+    .sort((a, b) => b.gmv - a.gmv);
+
+  const giftBreakdown = [...giftAgg.entries()]
+    .map(([productName, agg]) => ({
+      productName,
+      productNameEn: agg.nameEn,
+      representativeSku: [...agg.skus][0] ?? '',
+      primeCost: agg.primeCost,
+      units: agg.units,
+      skuCount: agg.skus.size,
+      pageViews: pvByProduct.get(productName.normalize('NFC').trim()) ?? 0,
+    }))
+    .sort((a, b) => b.primeCost - a.primeCost);
+
+  // Per-order metrics: sum MAX values across non-cancelled orders only
+  let totalSellerVouchers = 0;
+  let totalPlatformFee = 0;
+  let totalPlatformDiscount = 0;
+  let cancelledOrders = 0;
+  let nonCancelledOrders = 0;
+  for (const o of orderMaxes.values()) {
+    if (o.allCancelled) {
+      cancelledOrders++;
+      continue;
+    }
+    nonCancelledOrders++;
+    totalSellerVouchers += o.shopVoucher + o.shopCombo;
+    totalPlatformFee += o.fixedFee + o.serviceFee + o.paymentFee;
+    totalPlatformDiscount += o.shopeeVoucher;
+  }
+
+  return {
+    totalItemSold,
+    totalGmv,
+    totalNetGmv,
+    totalNmv,
+    totalSellerDiscount,
+    totalPrimeCost: primeCostKept,
+    primeCostKept,
+    primeCostFreeGift,
+    totalSellerVouchers,
+    totalPlatformFee,
+    totalPlatformDiscount,
+    orderCounts: { totalDistinct: orderMaxes.size, cancelled: cancelledOrders, nonCancelled: nonCancelledOrders },
+    ads: adsRows && adsRows.length > 0 ? aggregateAds(adsRows) : null,
+    brandAds: brandAdsRows ? aggregateBrandAds(brandAdsRows) : null,
+    offPlatformAds: offPlatformAdsRows ? aggregateOffPlatformAds(offPlatformAdsRows) : null,
+    traffic: trafficRows ? aggregateTraffic(trafficRows) : null,
+    affiliate: affiliateRows ? aggregateAffiliate(affiliateRows) : null,
+    rowsKept: kept,
+    rowsExcluded: { cancelled, returned, freeGift },
+    freeGiftProducts: [...freeGiftProducts],
+    productBreakdown,
+    giftBreakdown,
+    missingFromMaster: [...missingByProduct.values()].sort((a, b) => b.gmvContribution - a.gmvContribution),
+  };
+}

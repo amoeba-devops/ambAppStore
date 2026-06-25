@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <!-- ko-full-translation -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>운행 시작/종료 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — 사용 안내서 홈" aria-label="Amoeba Car Manager v2 — 사용 안내서 홈">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 사용 안내서</span></span><span class="header__brand-mobile">사용 안내서</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="안내서 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a>
+          <a href="#" class="is-active" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="150" height="100" fill="#fff"/><g transform="translate(75,50) rotate(-56.31)"><circle r="25" fill="#C60C30"/><path d="M0,-25 A25,25 0 0,1 0,25 A12.5,12.5 0 0,1 0,0 A12.5,12.5 0 0,0 0,-25 Z" fill="#003478"/></g><g fill="#000"><g transform="translate(37.5,25) rotate(-56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,25) rotate(56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g><g transform="translate(37.5,75) rotate(56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,75) rotate(-56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g></g></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a>
+        </span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">소개</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">화면 탐색</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림함</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">용어집</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">기사</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-cai-pwa.html">PWA 설치</a>
+        <a class="sidebar__link" href="02-today-screen.html">오늘 화면</a>
+        <a class="sidebar__link" href="03-xac-nhan-chuyen.html">운행 확인</a>
+        <a class="sidebar__link" href="04-bat-dau-ket-thuc-chuyen.html">운행 시작/종료</a>
+        <a class="sidebar__link" href="05-ghi-chi-phi.html">비용 기록</a>
+        <a class="sidebar__link" href="06-canh-bao-bao-duong.html">정비 알림</a>
+        <a class="sidebar__link" href="07-ngoai-tuyen.html">오프라인 동작</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">홈</a> · 기사 · 운행 시작/종료
+        </div>
+        <h1>운행 시작 및 종료</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/today" target="_parent" rel="noopener">
+            <span>앱에서 이 페이지 열기</span>
+            <span class="app-link-cta__route">/today</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>사전 단계</dt><dd>운행이 "확인 완료" 상태여야 합니다 (<a href="03-xac-nhan-chuyen.html">운행 확인</a> 참조)</dd>
+            <dt>소요 시간</dt><dd>한 번에 약 10초</dd>
+            <dt>자동 기록 항목</dt><dd>시각, 주행거리계 수치, 조작자 정보</dd>
+          </dl>
+        </div>
+
+        <p>이 두 가지 조작이 운행의 <strong>실시간 타임라인</strong>을 만듭니다. 기록된 데이터는 주행거리 보고서, 비용 계산, 정비 주기와의 자동 동기화에 사용됩니다.</p>
+
+        <h2>운행 시작 (출발할 때)</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>주차 위치를 떠나기 전에 앱을 열고, 확인 완료된 운행의 상세 화면으로 이동합니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p>화면 맨 아래까지 스크롤한 뒤 <strong>"▶ 운행 시작"</strong> 버튼(녹색, 전체 폭)을 탭합니다.</p>
+            <figure>
+              <img src="../../assets/img/screenshots/ko/driver/04-trip-start.png" alt="운행 시작 버튼">
+              <figcaption>운행 TR-2002 — "확인 완료" 상태, "운행 시작" 버튼이 활성화된 화면</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>시스템이 버튼을 탭한 시각을 운행 시작 시각으로 기록합니다. 운행 상태는 <strong>"운행 중"</strong>으로 바뀌고,
+            오늘 화면의 녹색 배너가 이번 운행으로 교체됩니다.</p>
+          </div>
+        </div>
+
+        <h2>운행 종료 (도착했을 때)</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>목적지에 차량을 주차한 뒤 앱을 열고, 진행 중인 운행 상세 화면(오늘 화면의 녹색 배너)으로 이동합니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p>화면 맨 아래의 <strong>"⏹ 운행 종료"</strong> 버튼(파란색)을 탭합니다.</p>
+            <figure>
+              <img src="../../assets/img/screenshots/ko/driver/04-trip-end.png" alt="운행 종료 버튼">
+              <figcaption>운행 TR-1042 — 운행 중 상태, 마무리용 "운행 종료" 버튼</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p>운행 상태가 <strong>"완료"</strong>로 바뀌고, 운행 종료 시각이 기록됩니다.</p>
+          </div>
+        </div>
+
+        <h2>주행거리는 언제 갱신되나요?</h2>
+        <p>현재 시스템은 차량 정보에 등록된 주행거리를 사용하며, 운행에 따라 자동으로 누적됩니다. 다음 버전에서는 다음 두 시점에 차량 계기판에 표시된 주행거리계 수치를 직접 입력하도록 안내할 예정입니다.</p>
+        <ul>
+          <li><strong>운행 시작 시</strong>: 시작 시점의 주행거리계 수치 입력 (운행 총 주행거리 계산용)</li>
+          <li><strong>운행 종료 시</strong>: 종료 시점의 주행거리계 수치 입력 (차량 누적 주행거리에 합산)</li>
+        </ul>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">🔭</div>
+          <div class="callout__body">
+            <p><strong>다음 버전 예정 기능 안내</strong> — 위 주행거리계 수치 입력은 향후 업데이트에서 적용될 예정입니다. 현재 버전에서는 표시되지 않습니다.</p>
+          </div>
+        </div>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">⚠️</div>
+          <div class="callout__body">
+            <p><strong>"운행 종료" 탭을 잊지 마세요.</strong> 운행을 "운행 중" 상태로 밤새 놔두면 관리자에게 경고가 전달되고,
+            관리자가 수동으로 마감 처리해야 합니다. 그 결과 보고서의 근무 시간이 부정확해질 수 있습니다.</p>
+          </div>
+        </div>
+
+        <h2>실수로 잘못 탭했다면?</h2>
+        <table>
+          <thead><tr><th>상황</th><th>처리 방법</th></tr></thead>
+          <tbody>
+            <tr><td>"운행 시작"을 탭했지만 아직 출발하지 않은 경우</td><td>관리자에게 연락해 취소 후 다시 생성하도록 요청해야 합니다. 사용자가 직접 수정할 수 없습니다.</td></tr>
+            <tr><td>"운행 종료"를 잊고 이미 귀가한 경우</td><td>나중에라도 "운행 종료"를 탭하면 됩니다. 다만 기록되는 시각은 실제 도착 시각이 아니라 탭한 시각이므로, "메모" 필드에 사유를 남겨 관리자가 확인할 수 있도록 합니다.</td></tr>
+            <tr><td>"운행 종료"를 탭한 뒤에 다시 이동해야 하는 상황이 발생한 경우</td><td>새 운행을 생성하거나 관리자에게 연락하세요. 이미 완료된 운행은 "재시작"할 수 없습니다.</td></tr>
+          </tbody>
+        </table>
+
+        <nav class="pager">
+          <a class="pager__prev" href="03-xac-nhan-chuyen.html">
+            <span>← 이전</span>
+            <strong>운행 확인</strong>
+          </a>
+          <a class="pager__next" href="05-ghi-chi-phi.html">
+            <span>다음 →</span>
+            <strong>비용 기록</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        최종 업데이트 2026-05-24 ·
+        피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

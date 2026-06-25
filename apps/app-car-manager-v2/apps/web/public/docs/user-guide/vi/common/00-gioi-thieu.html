@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Giới thiệu — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <!-- HEADER ───────────────────────────────────────────────────────────── -->
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — Trang chủ hướng dẫn" aria-label="Amoeba Car Manager v2 — Trang chủ hướng dẫn">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span><span class="header__brand-mobile">Hướng dẫn</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" class="is-active" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a>
+          <a href="#" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="150" height="100" fill="#fff"/><g transform="translate(75,50) rotate(-56.31)"><circle r="25" fill="#C60C30"/><path d="M0,-25 A25,25 0 0,1 0,25 A12.5,12.5 0 0,1 0,0 A12.5,12.5 0 0,0 0,-25 Z" fill="#003478"/></g><g fill="#000"><g transform="translate(37.5,25) rotate(-56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,25) rotate(56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g><g transform="translate(37.5,75) rotate(56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,75) rotate(-56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g></g></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a>
+        </span>
+      </div>
+    </header>
+
+    <!-- SIDEBAR (BEGIN) — same partial across all VI pages ────────────────── -->
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Quản trị viên</div>
+        <a class="sidebar__link" href="../admin/00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="../admin/01-dashboard.html">Dashboard</a>
+        <a class="sidebar__link" href="../admin/02-quan-ly-xe.html">Quản lý xe</a>
+        <a class="sidebar__link" href="../admin/03-quan-ly-tai-xe.html">Quản lý tài xế</a>
+        <a class="sidebar__link" href="../admin/04-quan-ly-nguoi-dung.html">Người dùng</a>
+        <a class="sidebar__link" href="../admin/05-quan-ly-chuyen-di.html">Chuyến đi</a>
+        <a class="sidebar__link" href="../admin/06-quan-ly-chi-phi.html">Quản lý chi phí</a>
+        <a class="sidebar__link" href="../admin/07-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="../admin/08-bao-cao.html">Báo cáo</a>
+        <a class="sidebar__link" href="../admin/09-cau-hinh-he-thong.html">Cấu hình hệ thống</a>
+        <a class="sidebar__link" href="../admin/10-audit-log.html">Audit log</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Quản lý</div>
+        <a class="sidebar__link" href="../manager/00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="../manager/01-dashboard.html">Dashboard</a>
+        <a class="sidebar__link" href="../manager/02-dat-xe.html">Đặt xe</a>
+        <a class="sidebar__link" href="../manager/03-theo-doi-chuyen-di.html">Theo dõi chuyến đi</a>
+        <a class="sidebar__link" href="../manager/04-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="../manager/05-so-chi-phi.html">Sổ chi phí</a>
+        <a class="sidebar__link" href="../manager/06-bao-cao-ca-nhan.html">Báo cáo cá nhân</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Tài xế</div>
+        <a class="sidebar__link" href="../driver/00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="../driver/01-cai-pwa.html">Cài đặt PWA</a>
+        <a class="sidebar__link" href="../driver/02-today-screen.html">Màn hình Hôm nay</a>
+        <a class="sidebar__link" href="../driver/03-xac-nhan-chuyen.html">Xác nhận chuyến</a>
+        <a class="sidebar__link" href="../driver/04-bat-dau-ket-thuc-chuyen.html">Bắt đầu / kết thúc chuyến</a>
+        <a class="sidebar__link" href="../driver/05-ghi-chi-phi.html">Ghi chi phí</a>
+        <a class="sidebar__link" href="../driver/06-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="../driver/07-ngoai-tuyen.html">Hành vi ngoại tuyến</a>
+      </div>
+    </aside>
+    <!-- SIDEBAR (END) ──────────────────────────────────────────────────────── -->
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">Trang chủ</a> · Chung · Giới thiệu
+        </div>
+        <h1>Giới thiệu hệ thống</h1>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>Đối tượng</dt><dd>Mọi vai trò (Admin, Quản lý, Tài xế)</dd>
+            <dt>Thời gian đọc</dt><dd>~3 phút</dd>
+            <dt>Phiên bản</dt><dd>v2 — MVP go-live 17/05/2026</dd>
+          </dl>
+        </div>
+
+        <p>
+          <strong>Amoeba Car Manager v2</strong> là hệ thống quản lý điều xe & kiểm soát chi phí nội bộ
+          của doanh nghiệp, được phát triển trên nền tảng <em>Amoeba App Store</em>. Hệ thống hỗ trợ
+          ba luồng nghiệp vụ chính: <strong>điều xe</strong>, <strong>theo dõi chi phí</strong>, và
+          <strong>cảnh báo bảo dưỡng tự động</strong>.
+        </p>
+
+        <h2>Ba vai trò người dùng</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Vai trò</th>
+              <th>Đặc điểm</th>
+              <th>Thiết bị chính</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Quản trị viên</strong></td>
+              <td>Toàn quyền hệ thống — cấu hình, quản lý chi phí, gán xe, xem báo cáo, kiểm tra nhật ký</td>
+              <td>Trình duyệt web</td>
+            </tr>
+            <tr>
+              <td><strong>Quản lý / Giám đốc</strong></td>
+              <td>Đặt xe cho bản thân hoặc nhóm, theo dõi lịch sử, hủy chuyến của mình, ghi và xem chi phí</td>
+              <td>Web + điện thoại</td>
+            </tr>
+            <tr>
+              <td><strong>Tài xế</strong></td>
+              <td>Xác nhận lịch, cập nhật trạng thái chuyến, ghi chi phí phát sinh</td>
+              <td>Điện thoại (PWA)</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Chín nhóm chức năng</h2>
+        <p>Hệ thống được tổ chức thành chín nhóm chức năng (module). Mỗi module có hướng dẫn riêng cho từng vai trò ở các trang tiếp theo.</p>
+
+        <ol>
+          <li><strong>Quản lý xe</strong> — đăng ký phương tiện, chu kỳ thay dầu, đăng kiểm</li>
+          <li><strong>Quản lý tài xế</strong> — danh sách, bằng lái, hạn bằng</li>
+          <li><strong>Quản lý người dùng</strong> — phân vai trò app, chặn truy cập (mời member trên AMA)</li>
+          <li><strong>Chuyến đi</strong> — đặt, gán, theo dõi, hủy (luồng máy trạng thái 7 bước)</li>
+          <li><strong>Chi phí</strong> — 8 loại (xăng, dầu, đỗ, phí đường, ăn, sửa chữa, tai nạn, đăng kiểm)</li>
+          <li><strong>Cảnh báo bảo dưỡng</strong> — tự động dựa trên km và thời gian</li>
+          <li><strong>Báo cáo</strong> — xuất Excel/PDF theo nhiều chiều</li>
+          <li><strong>Cấu hình hệ thống</strong> — tên tổ chức, tiền tệ, múi giờ, thời hạn lưu trữ, tùy chọn thông báo</li>
+          <li><strong>Audit log</strong> — nhật ký kiểm toán không thể sửa, lưu 5 năm</li>
+        </ol>
+
+        <h2>Cách thông tin chảy qua hệ thống</h2>
+        <p>Sơ đồ vận hành tóm tắt:</p>
+        <pre style="background:var(--c-surface);border:1px solid var(--c-border);padding:16px;border-radius:8px;font-family:var(--font-mono);font-size:13px;line-height:1.5;overflow-x:auto"><code>Quản lý đặt chuyến  →  Admin gán xe + tài xế  →  Tài xế xác nhận
+                                                  ↓
+        Báo cáo  ←  Audit log  ←  Tài xế ghi chi phí + chốt km
+                                                  ↓
+                                Hệ thống tự bật cảnh báo bảo dưỡng</code></pre>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">ℹ️</div>
+          <div class="callout__body">
+            <p><strong>Đăng nhập một lần (SSO)</strong> — Bạn không cần tài khoản riêng cho app này.
+            Khi đã đăng nhập <code>ama.amoeba.site</code>, click vào icon app trong "Ứng dụng của tôi"
+            sẽ tự động đưa bạn vào, không cần nhập lại mật khẩu.</p>
+          </div>
+        </div>
+
+        <h2>Bước tiếp theo</h2>
+        <p>Tiếp theo, hãy xem hướng dẫn <a href="01-dang-nhap.html">Đăng nhập</a> để biết cách truy cập hệ thống.</p>
+
+        <nav class="pager">
+          <a class="pager__prev" href="../index.html">
+            <span>← Trang chủ</span>
+            <strong>Chọn vai trò</strong>
+          </a>
+          <a class="pager__next" href="01-dang-nhap.html">
+            <span>Tiếp theo →</span>
+            <strong>Đăng nhập</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        Cập nhật 24-05-2026 ·
+        Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+</body>
+</html>

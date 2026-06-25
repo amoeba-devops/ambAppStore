@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — Audit log — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — Trang chủ hướng dẫn" aria-label="Amoeba Car Manager v2 — Trang chủ hướng dẫn">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span><span class="header__brand-mobile">Hướng dẫn</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="150" height="100" fill="#fff"/><g transform="translate(75,50) rotate(-56.31)"><circle r="25" fill="#C60C30"/><path d="M0,-25 A25,25 0 0,1 0,25 A12.5,12.5 0 0,1 0,0 A12.5,12.5 0 0,0 0,-25 Z" fill="#003478"/></g><g fill="#000"><g transform="translate(37.5,25) rotate(-56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,25) rotate(56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g><g transform="translate(37.5,75) rotate(56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,75) rotate(-56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g></g></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">Giới thiệu</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">Điều hướng</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">Thông báo</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">Thuật ngữ</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Quản trị viên</div>
+        <a class="sidebar__link" href="00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="01-dashboard.html">Dashboard</a>
+        <a class="sidebar__link" href="02-quan-ly-xe.html">Quản lý xe</a>
+        <a class="sidebar__link" href="03-quan-ly-tai-xe.html">Quản lý tài xế</a>
+        <a class="sidebar__link" href="04-quan-ly-nguoi-dung.html">Người dùng</a>
+        <a class="sidebar__link" href="05-quan-ly-chuyen-di.html">Chuyến đi</a>
+        <a class="sidebar__link" href="06-quan-ly-chi-phi.html">Quản lý chi phí</a>
+        <a class="sidebar__link" href="07-canh-bao-bao-duong.html">Cảnh báo bảo dưỡng</a>
+        <a class="sidebar__link" href="08-bao-cao.html">Báo cáo</a>
+        <a class="sidebar__link" href="09-cau-hinh-he-thong.html">Cấu hình hệ thống</a>
+        <a class="sidebar__link" href="10-audit-log.html">Audit log</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">Trang chủ</a> · Quản trị viên · Audit log</div>
+        <h1>Nhật ký kiểm toán (Audit Log)</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/audit" target="_parent" rel="noopener">
+            <span>Mở trang trong app</span>
+            <span class="app-link-cta__route">/audit</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>URL</dt><dd><code>/audit</code></dd>
+            <dt>Quyền</dt><dd>Chỉ Admin xem được</dd>
+            <dt>Đặc tính</dt><dd><strong>Append-only</strong> — không thể sửa hoặc xoá. Lưu 5 năm (cấu hình ở <a href="09-cau-hinh-he-thong.html">/settings</a>).</dd>
+          </dl>
+        </div>
+
+        <p>Audit log ghi lại <strong>mọi thao tác làm thay đổi dữ liệu</strong>: ai tạo/sửa/xoá trip nào, ai đổi vai trò user, ai sửa cấu hình hệ thống. Đây là nguồn duy nhất để truy vết khi có vấn đề.</p>
+
+        <figure>
+          <img src="../../assets/img/screenshots/vi/admin/10-audit-log.png" alt="Audit log table">
+          <figcaption>Audit log — bảng theo thứ tự thời gian, search + filter actor, xuất CSV</figcaption>
+        </figure>
+
+        <h2>Các cột hiển thị</h2>
+        <table>
+          <thead><tr><th>Cột</th><th>Mô tả</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Thời điểm</strong></td><td>Timestamp ISO, múi giờ Asia/Ho_Chi_Minh</td></tr>
+            <tr><td><strong>Người thực hiện</strong></td><td>Avatar + tên user, hoặc "system" nếu cron tự động</td></tr>
+            <tr><td><strong>Hành động</strong></td><td>Badge mã sự kiện (TRIP.CREATE, EXPENSE.SUBMITTED, ROLE_SYNC, …)</td></tr>
+            <tr><td><strong>Thực thể</strong></td><td>Loại đối tượng (Trip, Vehicle, User, Expense, …)</td></tr>
+            <tr><td><strong>Mã</strong></td><td>ID hoặc tham chiếu (vd <code>TR-1042</code>, biển số xe)</td></tr>
+            <tr><td><strong>IP</strong></td><td>IP request — giúp phát hiện thao tác bất thường</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Màu badge theo loại hành động</h2>
+        <p>Màu badge suy ra từ <em>từ khóa</em> trong mã hành động:</p>
+        <ul>
+          <li>🟢 <strong>Success</strong> — mã chứa <code>ACCEPT</code></li>
+          <li>🔵 <strong>Accent</strong> — mã chứa <code>ASSIGN</code> hoặc <code>UPDATE</code></li>
+          <li>🟣 <strong>Info</strong> — mã chứa <code>START</code> hoặc <code>END</code></li>
+          <li>🟡 <strong>Warning</strong> — mã chứa <code>ALERT</code> hoặc <code>WARN</code></li>
+          <li>🔴 <strong>Danger</strong> — mã chứa <code>REJECT</code>, <code>CANCEL</code> hoặc <code>DELETE</code></li>
+          <li>⚪ <strong>Neutral</strong> — còn lại (<code>CREATE</code>, <code>SUBMITTED</code>, <code>OIL_RESET</code>, <code>ROLE_SYNC</code>, <code>PROVISIONED</code>…)</li>
+        </ul>
+
+        <h2>Bộ lọc</h2>
+        <ul>
+          <li><strong>Tìm theo actor / hành động / mã thực thể</strong> — gõ vào ô search</li>
+          <li><strong>Lọc theo người thực hiện</strong> — dropdown chỉ hiện user nào đã từng tạo event</li>
+        </ul>
+
+        <h2>Xuất CSV</h2>
+        <p>Bấm <strong>"Xuất CSV"</strong> ở góc trên phải để tải toàn bộ event (kèm bộ lọc) — định dạng phù hợp cho phân tích bằng Excel/Python.</p>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">🔒</div>
+          <div class="callout__body">
+            <p><strong>Không thể xoá audit log</strong> — chỉ DB admin với quyền raw SQL mới làm được. Đây là tính năng compliance bắt buộc.</p>
+          </div>
+        </div>
+
+        <h2>Các mã event thường gặp</h2>
+        <table>
+          <thead><tr><th>Mã</th><th>Ý nghĩa</th></tr></thead>
+          <tbody>
+            <tr><td><code>TRIP.CREATE</code></td><td>Tạo chuyến mới</td></tr>
+            <tr><td><code>TRIP.UPDATE</code></td><td>Sửa thông tin chuyến</td></tr>
+            <tr><td><code>TRIP.ASSIGN</code></td><td>Admin gán driver + vehicle</td></tr>
+            <tr><td><code>TRIP.REASSIGN</code></td><td>Admin gán lại sau khi tài xế từ chối</td></tr>
+            <tr><td><code>TRIP.ACCEPT</code></td><td>Tài xế chấp nhận</td></tr>
+            <tr><td><code>TRIP.REJECT</code></td><td>Tài xế từ chối (kèm lý do)</td></tr>
+            <tr><td><code>TRIP.START</code></td><td>Tài xế bấm "Bắt đầu"</td></tr>
+            <tr><td><code>TRIP.END</code></td><td>Tài xế bấm "Kết thúc"</td></tr>
+            <tr><td><code>TRIP.CANCEL</code></td><td>Hủy chuyến (Admin hoặc người tạo)</td></tr>
+            <tr><td><code>EXPENSE.SUBMITTED</code></td><td>Ghi nhận chi phí mới (mọi chi phí tự động duyệt — không có bước phê duyệt)</td></tr>
+            <tr><td><code>DRIVER.CREATE</code> / <code>DRIVER.UPDATE</code></td><td>Tạo / sửa hồ sơ tài xế</td></tr>
+            <tr><td><code>VEHICLE.CREATE</code> / <code>VEHICLE.UPDATE</code> / <code>VEHICLE.DELETE</code></td><td>Tạo / sửa / xoá xe</td></tr>
+            <tr><td><code>VEHICLE.OIL_RESET</code></td><td>Reset chu kỳ thay dầu sau khi đã thay</td></tr>
+            <tr><td><code>SETTINGS.UPDATE</code></td><td>Đổi cấu hình hệ thống</td></tr>
+            <tr><td><code>MAINTENANCE.ACKNOWLEDGED</code></td><td>Admin xác nhận đã xử lý alert bảo dưỡng</td></tr>
+            <tr><td><code>MAINTENANCE.CRON_EVALUATED</code></td><td>Cron đánh giá lịch bảo dưỡng hằng ngày (system)</td></tr>
+            <tr><td><code>PROVISIONED</code></td><td>Tạo user lần đầu khi đăng nhập (system)</td></tr>
+            <tr><td><code>ROLE_SYNC</code></td><td>Auto-sync vai trò khi user login (system)</td></tr>
+          </tbody>
+        </table>
+
+        <nav class="pager">
+          <a class="pager__prev" href="09-cau-hinh-he-thong.html"><span>← Trước</span><strong>Cấu hình hệ thống</strong></a>
+          <a class="pager__next" href="../index.html"><span>Hoàn tất →</span><strong>Quay về trang chủ</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">Cập nhật 24-05-2026 · Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

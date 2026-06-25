@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- ko-full-translation -->
+  <title>시스템 설정 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — 사용 안내서 홈" aria-label="Amoeba Car Manager v2 — 사용 안내서 홈">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 사용 안내서</span></span><span class="header__brand-mobile">사용 안내서</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="안내서 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" class="is-active" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="150" height="100" fill="#fff"/><g transform="translate(75,50) rotate(-56.31)"><circle r="25" fill="#C60C30"/><path d="M0,-25 A25,25 0 0,1 0,25 A12.5,12.5 0 0,1 0,0 A12.5,12.5 0 0,0 0,-25 Z" fill="#003478"/></g><g fill="#000"><g transform="translate(37.5,25) rotate(-56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,25) rotate(56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g><g transform="translate(37.5,75) rotate(56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,75) rotate(-56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g></g></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">소개</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">화면 탐색</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림함</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">용어집</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">관리자</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-dashboard.html">대시보드</a>
+        <a class="sidebar__link" href="02-quan-ly-xe.html">차량 관리</a>
+        <a class="sidebar__link" href="03-quan-ly-tai-xe.html">기사 관리</a>
+        <a class="sidebar__link" href="04-quan-ly-nguoi-dung.html">사용자</a>
+        <a class="sidebar__link" href="05-quan-ly-chuyen-di.html">운행</a>
+        <a class="sidebar__link" href="06-quan-ly-chi-phi.html">비용 관리</a>
+        <a class="sidebar__link" href="07-canh-bao-bao-duong.html">정비 알림</a>
+        <a class="sidebar__link" href="08-bao-cao.html">보고서</a>
+        <a class="sidebar__link" href="09-cau-hinh-he-thong.html">시스템 설정</a>
+        <a class="sidebar__link" href="10-audit-log.html">감사 로그</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">홈</a> · 관리자 · 시스템 설정</div>
+        <h1>시스템 설정 (Settings)</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/settings" target="_parent" rel="noopener">
+            <span>앱에서 이 페이지 열기</span>
+            <span class="app-link-cta__route">/settings</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>URL</dt><dd><code>/settings</code></dd>
+            <dt>대상</dt><dd>관리자만 수정 가능. 매니저는 읽기 전용으로 조회.</dd>
+            <dt>저장</dt><dd>자동 저장 (auto-save) — 저장 버튼 없음</dd>
+          </dl>
+        </div>
+
+        <figure>
+          <img src="../../assets/img/screenshots/ko/admin/09-settings.png" alt="시스템 설정">
+          <figcaption>설정 페이지 — 카드 3개 (일반, 알림, 데이터 보관)</figcaption>
+        </figure>
+
+        <h2>카드 1 — 일반 (General)</h2>
+        <table>
+          <thead><tr><th>항목</th><th>설명</th><th>기본값</th></tr></thead>
+          <tbody>
+            <tr><td><strong>앱 이름</strong></td><td>사이드바에 표시되는 이름 (예: "Amoeba Car")</td><td>"Fleet" (i18n)</td></tr>
+            <tr><td><strong>조직명</strong></td><td>브랜드 하단에 표시되는 회사명</td><td>AMA에서 가져옴</td></tr>
+            <tr><td><strong>통화</strong></td><td>VND / KRW / USD</td><td>VND</td></tr>
+            <tr><td><strong>시간대</strong></td><td>Asia/Ho_Chi_Minh / Asia/Seoul</td><td>Asia/Ho_Chi_Minh</td></tr>
+          </tbody>
+        </table>
+
+        <h2>카드 2 — 알림 (Notifications)</h2>
+        <p>조직 전체 알림 채널 켜기/끄기:</p>
+        <ul>
+          <li><strong>In-app</strong> — 알림함 /inbox</li>
+          <li><strong>이메일</strong> — 등록된 이메일로 발송</li>
+          <li><strong>Daily Digest</strong> — 일일 요약 이메일</li>
+        </ul>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">⚠️</div>
+          <div class="callout__body">
+            <p><strong>In-app 끄기</strong>를 설정하면 모든 사용자가 앱 내 알림을 받지 못합니다. 명확한 이유가 있을 때만 비활성화하세요 (예: 점검 기간 중 스팸 방지).</p>
+          </div>
+        </div>
+
+        <h2>카드 3 — 데이터 보관 (Data Retention)</h2>
+        <table>
+          <thead><tr><th>항목</th><th>옵션</th><th>기본값</th></tr></thead>
+          <tbody>
+            <tr><td><strong>운행 기록 보관</strong></td><td>1 / 3 / 5 / 7년</td><td>5년</td></tr>
+            <tr><td><strong>감사 로그 보관</strong></td><td>3 / 5년 / 무기한</td><td>5년</td></tr>
+          </tbody>
+        </table>
+
+        <p>운행 기록과 감사 로그에 대해 조직이 정하는 보관 정책입니다 (규정 준수를 위해 기본 5년).</p>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">💾</div>
+          <div class="callout__body">
+            <p>값을 변경하는 즉시 자동으로 저장됩니다. "저장" 버튼을 누를 필요가 없습니다. 저장 확인을 위해 잠시 "✓ 저장됨" 토스트가 표시됩니다.</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="08-bao-cao.html"><span>← 이전</span><strong>보고서</strong></a>
+          <a class="pager__next" href="10-audit-log.html"><span>다음 →</span><strong>감사 로그</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">업데이트: 2026-05-24 · 피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- ko-full-translation -->
+  <title>차량 신청 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — 사용 안내서 홈" aria-label="Amoeba Car Manager v2 — 사용 안내서 홈">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 사용 안내서</span></span><span class="header__brand-mobile">사용 안내서</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="안내서 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" class="is-active" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="150" height="100" fill="#fff"/><g transform="translate(75,50) rotate(-56.31)"><circle r="25" fill="#C60C30"/><path d="M0,-25 A25,25 0 0,1 0,25 A12.5,12.5 0 0,1 0,0 A12.5,12.5 0 0,0 0,-25 Z" fill="#003478"/></g><g fill="#000"><g transform="translate(37.5,25) rotate(-56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,25) rotate(56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g><g transform="translate(37.5,75) rotate(56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,75) rotate(-56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g></g></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">소개</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">화면 탐색</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림함</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">용어집</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">매니저</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-dashboard.html">대시보드</a>
+        <a class="sidebar__link" href="02-dat-xe.html">차량 신청</a>
+        <a class="sidebar__link" href="03-theo-doi-chuyen-di.html">운행 추적</a>
+        <a class="sidebar__link" href="04-ghi-chi-phi.html">비용 기록</a>
+        <a class="sidebar__link" href="05-so-chi-phi.html">비용 장부</a>
+        <a class="sidebar__link" href="06-bao-cao-ca-nhan.html">개인 보고서</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">홈</a> · 매니저 · 차량 신청</div>
+        <h1>차량 신청 — 새 운행 만들기</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/trips/new" target="_parent" rel="noopener">
+            <span>앱에서 이 페이지 열기</span>
+            <span class="app-link-cta__route">/trips/new</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>URL</dt><dd><code>/trips/new</code></dd>
+            <dt>필수</dt><dd>출발지, 도착지, 출발 시각</dd>
+            <dt>선택</dt><dd>승객 (기본값 = 본인 계정), 기사, 차량, 목적, 경유지, 메모</dd>
+            <dt>자동 저장</dt><dd>5초마다 자동 저장 — 새로 고침해도 초안 유지</dd>
+          </dl>
+        </div>
+
+        <h2>폼 열기</h2>
+        <p>3가지 방법으로 폼을 열 수 있습니다:</p>
+        <ul>
+          <li>대시보드 우측 상단의 <strong>"+ 새 운행 만들기"</strong> 버튼 클릭</li>
+          <li>사이드바 → <strong>운행</strong> → <strong>"+ 새로 만들기"</strong> 버튼 클릭</li>
+          <li>직접 <code>/trips/new</code>로 이동</li>
+        </ul>
+
+        <figure>
+          <img src="../../assets/img/screenshots/ko/manager/02-trip-new-empty.png" alt="빈 운행 생성 폼">
+          <figcaption>운행 생성 폼 — 필수 항목은 빨간 * 표시, 선택 항목은 회색</figcaption>
+        </figure>
+
+        <h2>입력 항목</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p><strong>출발지</strong> (필수) — 주소를 입력합니다. 예: <code>비텍스코 파이낸셜 타워, 호치민시 1군</code>. Google Maps API가 설정된 경우 자동 추천이 제공됩니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p><strong>도착지</strong> (필수) — 출발지와 같은 방식으로 입력합니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p><strong>출발 시각</strong> (필수) — 날짜와 시간을 선택합니다. 기본값은 오늘 + 2시간 후입니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">4</div>
+          <div class="step__body">
+            <p><strong>승객</strong> (선택) — 기본값은 본인입니다. 대신 신청하는 경우 동료로 변경할 수 있습니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">5</div>
+          <div class="step__body">
+            <p><strong>기사</strong> + <strong>차량</strong> (선택) — 비워두면 관리자가 나중에 배정합니다. 누가/어떤 차량이 갈지 이미 알고 있다면 여기서 바로 선택할 수도 있습니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">6</div>
+          <div class="step__body">
+            <p><strong>목적</strong> (선택이지만 강력 권장) — 간략하게 입력합니다. 예: <code>Samsung Vietnam 파트너 미팅</code>. 목적은 보고서와 감사 로그에 표시됩니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">7</div>
+          <div class="step__body">
+            <p><strong>경유지</strong> (선택, 최대 10개) — 중간에 들러야 하는 장소가 있는 경우 추가합니다. 각 경유지에 이름과 메모를 입력할 수 있습니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">8</div>
+          <div class="step__body">
+            <p>하단의 <strong>"운행 만들기"</strong> (파란색 버튼)를 클릭합니다. 운행이 성공적으로 생성되면 상세 페이지로 이동합니다.</p>
+            <figure>
+              <img src="../../assets/img/screenshots/ko/manager/02-trip-new-filled.png" alt="입력 완료된 폼">
+              <figcaption>필수 항목 3개 입력 완료 — 제출 준비 완료</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <h2>운행 생성 후 상태</h2>
+        <table>
+          <thead><tr><th>선택 여부</th><th>즉시 전환되는 상태</th></tr></thead>
+          <tbody>
+            <tr><td>기사를 선택하지 않은 경우</td><td><strong>배정 대기</strong> — 관리자가 기사/차량을 배정해야 함</td></tr>
+            <tr><td>기사 + 차량을 선택한 경우</td><td><strong>기사 확인 대기</strong> — 기사에게 알림 발송</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">💡</div>
+          <div class="callout__body">
+            <p><strong>팁:</strong> 미리 신청하세요 — 특히 급한 경우에는 더욱 중요합니다. 시스템이 별도로 승인하지는 않지만, 기사는 확인하고 차량을 준비하는 데 시간이 필요합니다.</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="01-dashboard.html"><span>← 이전</span><strong>대시보드</strong></a>
+          <a class="pager__next" href="03-theo-doi-chuyen-di.html"><span>다음 →</span><strong>운행 추적</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">최종 업데이트 2026-05-24 · 피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

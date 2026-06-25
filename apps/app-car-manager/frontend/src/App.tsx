@@ -20,6 +20,7 @@ import { TripLogListPage } from '@/pages/TripLogListPage';
 import { TripLogFormPage } from '@/pages/TripLogFormPage';
 import { TripLogDetailPage } from '@/pages/TripLogDetailPage';
 import { DriverListPage } from '@/pages/DriverListPage';
+import { HelpPage } from '@/pages/HelpPage';
 import { useAuthStore } from '@/stores/auth.store';
 import type { User } from '@/stores/auth.store';
 import {
@@ -178,6 +179,7 @@ function App() {
               <Route path="/trip-logs/new" element={<TripLogFormPage />} />
               <Route path="/trip-logs/:id" element={<TripLogDetailPage />} />
               <Route path="/drivers" element={<DriverListPage />} />
+              <Route path="/help" element={<HelpPage />} />
             </Routes>
           </AppLayout>
         </AmaTokenHandler>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <!-- ko-full-translation -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>비용 기록 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2 — 사용 안내서 홈" aria-label="Amoeba Car Manager v2 — 사용 안내서 홈">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 사용 안내서</span></span><span class="header__brand-mobile">사용 안내서</span>
+      </a>
+      <div class="header__tools">
+                <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="안내서 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch">
+          <a href="#" data-lang="vi"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#DA251D"/><polygon points="15,5.5 16.2,9 19.85,9 17,11.05 18.1,14.5 15,12.5 11.9,14.5 13,11.05 10.15,9 13.8,9" fill="#FFFF00"/></svg></span><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a>
+          <a href="#" class="is-active" data-lang="ko"><span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><rect width="150" height="100" fill="#fff"/><g transform="translate(75,50) rotate(-56.31)"><circle r="25" fill="#C60C30"/><path d="M0,-25 A25,25 0 0,1 0,25 A12.5,12.5 0 0,1 0,0 A12.5,12.5 0 0,0 0,-25 Z" fill="#003478"/></g><g fill="#000"><g transform="translate(37.5,25) rotate(-56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,25) rotate(56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="24" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g><g transform="translate(37.5,75) rotate(56.31)"><rect x="-12" y="-9" width="24" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="24" height="3"/></g><g transform="translate(112.5,75) rotate(-56.31)"><rect x="-12" y="-9" width="10" height="3"/><rect x="2" y="-9" width="10" height="3"/><rect x="-12" y="-1.5" width="10" height="3"/><rect x="2" y="-1.5" width="10" height="3"/><rect x="-12" y="6" width="10" height="3"/><rect x="2" y="6" width="10" height="3"/></g></g></svg></span><span class="lang-name">한국어</span><span class="lang-code">KO</span></a>
+        </span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/00-gioi-thieu.html">소개</a>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/02-dieu-huong.html">화면 탐색</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림함</a>
+        <a class="sidebar__link" href="../common/99-thuat-ngu.html">용어집</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">기사</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-cai-pwa.html">PWA 설치</a>
+        <a class="sidebar__link" href="02-today-screen.html">오늘 화면</a>
+        <a class="sidebar__link" href="03-xac-nhan-chuyen.html">운행 확인</a>
+        <a class="sidebar__link" href="04-bat-dau-ket-thuc-chuyen.html">운행 시작/종료</a>
+        <a class="sidebar__link" href="05-ghi-chi-phi.html">비용 기록</a>
+        <a class="sidebar__link" href="06-canh-bao-bao-duong.html">정비 알림</a>
+        <a class="sidebar__link" href="07-ngoai-tuyen.html">오프라인 동작</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb">
+          <a href="../index.html">홈</a> · 기사 · 비용 기록
+        </div>
+        <h1>발생 비용 기록</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/expenses/new" target="_parent" rel="noopener">
+            <span>앱에서 이 페이지 열기</span>
+            <span class="app-link-cta__route">/expenses/new</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro">
+          <dl class="intro__row">
+            <dt>기록 시점</dt><dd>지출 직후 — 가능한 한 빨리 기록</dd>
+            <dt>준비물</dt><dd>유형 + 금액 + 차량. 영수증 사진은 권장되지만 <strong>필수는 아닙니다</strong></dd>
+            <dt>승인 방식</dt><dd><strong>승인 불필요</strong> — 모든 비용이 즉시 기록됩니다 (현재 버전은 승인 플로우를 제거함)</dd>
+          </dl>
+        </div>
+
+        <h2>8가지 비용 유형</h2>
+
+        <table>
+          <thead>
+            <tr><th>유형</th><th>예시</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>주유 (FUEL)</strong></td><td>연료 가득 주유</td></tr>
+            <tr><td><strong>오일 (OIL)</strong></td><td>정기 엔진오일 교환</td></tr>
+            <tr><td><strong>식사 (MEAL)</strong></td><td>오후 교대 식사</td></tr>
+            <tr><td><strong>정비 (REPAIR)</strong></td><td>타이어 교체, 전기 계통 수리</td></tr>
+            <tr><td><strong>주차 (PARKING)</strong></td><td>빈콤(Vincom) 주차료</td></tr>
+            <tr><td><strong>통행료 (TOLL)</strong></td><td>고속도로 BOT 통행료</td></tr>
+            <tr><td><strong>사고 (ACCIDENT)</strong></td><td>경미한 접촉으로 도색 비용 발생</td></tr>
+            <tr><td><strong>자동차 검사 (INSPECTION)</strong></td><td>정기 자동차 검사 수수료</td></tr>
+          </tbody>
+        </table>
+        <p>모든 유형이 동일하게 기록됩니다 — 별도 승인이 필요한 유형은 없습니다.</p>
+
+        <h2>비용 기록 방법</h2>
+
+        <div class="step">
+          <div class="step__num">1</div>
+          <div class="step__body">
+            <p>하단 탐색 바에서 <strong>비용</strong> 탭을 엽니다. 오른쪽 아래의 둥근 <strong>"+"</strong> 버튼을 탭합니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__body">
+            <p><strong>비용 유형</strong>을 선택합니다. 8개의 아이콘 칸(라디오 그리드) 중 하나를 탭하며, 한 번에 하나만 선택할 수 있습니다.</p>
+            <figure>
+              <img src="../../assets/img/screenshots/ko/driver/05-expense-new-empty.png" alt="비용 기록 폼 — 8개 유형 그리드">
+              <figcaption>비용 기록 폼 — 8개 유형 그리드, 금액 입력란, 날짜, 증빙 사진</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__body">
+            <p><strong>금액</strong>을 입력합니다 (단위: VND, 구분 기호 없이 숫자만 입력하면 시스템이 자동으로 형식을 맞춰 줍니다).</p>
+            <figure>
+              <img src="../../assets/img/screenshots/ko/driver/05-expense-new-fuel-selected.png" alt="FUEL 선택 — 파란색 테두리">
+              <figcaption><strong>주유 (FUEL)</strong>를 선택한 상태 — 테두리가 진한 파란색으로 바뀌고, 다른 칸은 흐려집니다</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">4</div>
+          <div class="step__body">
+            <p><strong>지출 날짜</strong>를 선택합니다 (기본값은 오늘이며, 미래 날짜는 선택할 수 없지만 과거 날짜는 선택 가능합니다).</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">5</div>
+          <div class="step__body">
+            <p><strong>"차량 선택"</strong>을 탭하여 관련 차량(51K-238.91 등)을 선택합니다. 운행 중인 경우에는 해당 운행에 자동으로 연결됩니다.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">6</div>
+          <div class="step__body">
+            <p><strong>"📷 촬영 / 사진 선택"</strong>을 탭하여 영수증 사진을 촬영하거나 갤러리에서 선택합니다.
+            최대 <strong>5장</strong>까지 첨부할 수 있으며, 각 사진은 10MB 이하여야 합니다 (PNG/JPG/HEIC/WebP).</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">7</div>
+          <div class="step__body">
+            <p>(선택) 추가 설명이 필요한 경우 <strong>메모</strong>를 입력합니다 (예: "주행 중 연료 소진으로 임시로 20만 원 주유").</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step__num">8</div>
+          <div class="step__body">
+            <p><strong>"기록"</strong> 버튼을 탭합니다. 시스템이 사진을 업로드하고 DB에 저장한 뒤, 완료되면 ✓ "기록 완료" 메시지가 표시됩니다.</p>
+          </div>
+        </div>
+
+        <h2>제출한 비용 다시 보기</h2>
+
+        <figure>
+          <img src="../../assets/img/screenshots/ko/driver/05-expense-list.png" alt="기사 비용 목록">
+          <figcaption>"비용" 탭 — 본인이 제출한 비용 목록과 상태 라벨</figcaption>
+        </figure>
+
+        <p><strong>비용</strong> 탭에는 사용자 본인이 제출한 비용 내역만 표시됩니다 (동료의 비용은 보이지 않습니다). 각 항목에는 다음 정보가 표시됩니다.</p>
+        <ul>
+          <li><strong>유형</strong> + 아이콘</li>
+          <li><strong>금액</strong> (VND)</li>
+          <li><strong>날짜</strong> + 연결된 운행 번호 (연결된 경우)</li>
+          <li><strong>상태 라벨</strong> — 기록한 비용은 항상 <span style="color:var(--c-info)">자동 승인</span>으로 표시됩니다 (자동 기록, 승인 불필요).</li>
+        </ul>
+
+        <div class="callout callout--warn">
+          <div class="callout__icon">⚠️</div>
+          <div class="callout__body">
+            <p><strong>"기록"을 누르기 전에 꼼꼼히 확인하세요.</strong> 현재 버전에는 기록 후 비용을 수정하는 기능이 없습니다 (기사·관리자 모두). 처음부터 정확하고 충분한 정보를 입력해 두세요. 잘못 기록한 경우 관리자에게 알리세요.</p>
+          </div>
+        </div>
+
+        <nav class="pager">
+          <a class="pager__prev" href="04-bat-dau-ket-thuc-chuyen.html">
+            <span>← 이전</span>
+            <strong>운행 시작/종료</strong>
+          </a>
+          <a class="pager__next" href="06-canh-bao-bao-duong.html">
+            <span>다음 →</span>
+            <strong>정비 알림</strong>
+          </a>
+        </nav>
+      </article>
+
+      <footer class="footer">
+        최종 업데이트 2026-05-24 ·
+        피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

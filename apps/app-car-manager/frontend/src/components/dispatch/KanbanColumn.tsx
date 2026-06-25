@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 interface KanbanColumnProps {
   title: string;
   count: number;
-  color: 'yellow' | 'blue' | 'green';
+  color: 'yellow' | 'blue' | 'green' | 'gray';
   children: React.ReactNode;
 }
 
@@ -19,6 +19,10 @@ const COLUMN_STYLES: Record<KanbanColumnProps['color'], { header: string; countB
   green: {
     header: 'border-b-2 border-green-500',
     countBg: 'bg-green-100 text-green-800',
+  },
+  gray: {
+    header: 'border-b-2 border-gray-400',
+    countBg: 'bg-gray-200 text-gray-600',
   },
 };
 
