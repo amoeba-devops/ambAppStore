@@ -29,5 +29,16 @@ export function getRequestOrigin(req: NextRequest): string {
 
 export function absoluteUrl(req: NextRequest, path: string): URL {
   const safePath = path.startsWith('/') && !path.startsWith('//') ? path : '/';
-  return new URL(safePath, getRequestOrigin(req));
+  // Auto-prepend basePath so callers can use app-relative paths ('/', '/session-expired')
+  // without knowing the deployment prefix. Reads from env directly because
+  // req.nextUrl.basePath is not always populated in middleware/route-handler contexts.
+  // Without this, NextResponse.redirect drops the prefix and bounces the user to the
+  // platform catalog instead of the app (e.g. /session-expired → platform SPA 200).
+  // Defensive against double-prepend when caller already included basePath.
+  const basePath = process.env.BASE_PATH || '';
+  const fullPath =
+    basePath && safePath !== basePath && !safePath.startsWith(basePath + '/')
+      ? basePath + safePath
+      : safePath;
+  return new URL(fullPath, getRequestOrigin(req));
 }

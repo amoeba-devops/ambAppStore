@@ -13,6 +13,7 @@ import {
   toast,
 } from '@car-v2/ui';
 import { dispatchPushStateChanged } from '@/hooks/push-event';
+import { apiPath } from '@/lib/base-path';
 
 type SubState = 'unknown' | 'unsupported' | 'subscribed' | 'unsubscribed' | 'denied';
 
@@ -75,7 +76,7 @@ export function MePushCard() {
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(vapidPub),
         });
-        const res = await fetch('/api/v1/push/subscribe', {
+        const res = await fetch(apiPath('/api/v1/push/subscribe'), {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify(sub.toJSON()),
@@ -105,7 +106,7 @@ export function MePushCard() {
           /* Tell the server first so we don't keep firing pushes after
            * unsubscribe completes locally (race: server fan-out + UA
            * already-revoked subscription would return 410 anyway). */
-          await fetch('/api/v1/push/unsubscribe', {
+          await fetch(apiPath('/api/v1/push/unsubscribe'), {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ endpoint: sub.endpoint }),

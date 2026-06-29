@@ -28,17 +28,17 @@ export async function GET(req: NextRequest) {
   }
 
   const key = new TextEncoder().encode(secret);
+  // Mirror AMA's real iframe-token payload shape (camelCase entityId/appCode,
+  // no iss/aud) so the dev token passes the same verify path as production.
   const token = await new SignJWT({
     sub: '00000000-0000-0000-0000-000000000001',
-    ent_id: '00000000-0000-0000-0000-000000000010',
+    entityId: '00000000-0000-0000-0000-000000000010',
     role,
     email: `demo-${role.toLowerCase()}@dev.firgi.local`,
     name: `Demo ${role}`,
-    app_code: 'sales-report-v2',
+    appCode: 'sales-report-v2',
   })
     .setProtectedHeader({ alg: 'HS256' })
-    .setIssuer('amb-management')
-    .setAudience('sales-report-v2')
     .setIssuedAt()
     .setExpirationTime('8h')
     .sign(key);
