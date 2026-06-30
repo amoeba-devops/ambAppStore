@@ -82,7 +82,20 @@ export interface PeriodSnapshotMetrics {
   };
   /** Constants captured at ingest time. */
   constants: {
+    /**
+     * Legacy field — TikTok platform fee rate at the time of ingest. Kept for
+     * backward compat with snapshots written before FR-23. New ingests still
+     * populate this from `formulaConfig.tiktok_platform_fee_rate_pct` so
+     * downstream code can read either source.
+     */
     tiktokPlatformFeeRatePct: number;
+    /**
+     * Generic snapshot of all formula-config params active at ingest time.
+     * Mirrors `loadFormulaConfig(entId, periodStart)` output. Frozen at ingest
+     * so re-rendering an old report uses the rates active at that time even
+     * if Admin has since updated them.
+     */
+    formulaConfig?: Record<string, { value: string; valueType: string }>;
   };
   computedAt: string;
 }

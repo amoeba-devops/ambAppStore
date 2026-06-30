@@ -19,6 +19,26 @@ import type {
 import type { PeriodSnapshotMetrics } from '@/server/services/period-snapshot.service';
 import { getMetricFormula } from './formula-lookup';
 
+/**
+ * Resolve a formula param from snapshot.constants. Prefers the new generic
+ * `formulaConfig` map (FR-23); falls back to the legacy named field
+ * `tiktokPlatformFeeRatePct` for snapshots written before the formula-config
+ * persistence rollout.
+ */
+function resolveSnapshotParam(
+  constants: PeriodSnapshotMetrics['constants'] | undefined,
+  key: string,
+  legacyValue: number | undefined,
+  defaultValue: number,
+): number {
+  const fromCfg = constants?.formulaConfig?.[key]?.value;
+  if (fromCfg != null) {
+    const n = Number(fromCfg);
+    if (Number.isFinite(n)) return n;
+  }
+  return legacyValue ?? defaultValue;
+}
+
 export function snapshotToWeeklyReport(
   snap: PeriodSnapshotMetrics,
   channel: WeeklyChannel,
@@ -41,10 +61,15 @@ export function snapshotToWeeklyReport(
   // TikTok Platform Fee = Sum of per-row (GMV − Seller Discount) × Rate.
   // Computed in calculator and persisted in snapshot. Falls back to legacy
   // formula for snapshots saved before this field was added.
+  const tiktokRatePct = resolveSnapshotParam(
+    constants,
+    'tiktok_platform_fee_rate_pct',
+    constants?.tiktokPlatformFeeRatePct,
+    24,
+  );
   const tiktokPlatformFee =
     tiktok.totalPlatformFee ??
-    (tiktok.totalGmv - tiktok.totalSellerDiscount) *
-      ((constants?.tiktokPlatformFeeRatePct ?? 24) / 100);
+    (tiktok.totalGmv - tiktok.totalSellerDiscount) * (tiktokRatePct / 100);
 
   // Per-platform CM (per Formula Config — Free Gift is a separate line in addition
   // to Total Prime Cost, matching FINAL REPORT structure).
@@ -372,10 +397,15 @@ export function snapshotToProducts(
       : 0;
 
   // TikTok Platform Fee — use persisted per-row sum; fallback for legacy snapshots
+  const tiktokRatePct = resolveSnapshotParam(
+    constants,
+    'tiktok_platform_fee_rate_pct',
+    constants?.tiktokPlatformFeeRatePct,
+    24,
+  );
   const tiktokPlatformFee =
     tiktok.totalPlatformFee ??
-    (tiktok.totalGmv - tiktok.totalSellerDiscount) *
-      ((constants?.tiktokPlatformFeeRatePct ?? 24) / 100);
+    (tiktok.totalGmv - tiktok.totalSellerDiscount) * (tiktokRatePct / 100);
 
   // Platform totals for NMV-based allocation
   const shopeeNmvSum = (shopee.productBreakdown ?? []).reduce((a, p) => a + p.nmv, 0);
@@ -524,7 +554,12 @@ export function snapshotToProducts(
 
   if (useTiktok) {
     const total = tiktokNmvSum;
-    const ratePct = constants?.tiktokPlatformFeeRatePct ?? 24;
+    const ratePct = resolveSnapshotParam(
+      constants,
+      'tiktok_platform_fee_rate_pct',
+      constants?.tiktokPlatformFeeRatePct,
+      24,
+    );
     const tiktokBreakdown = tiktok.productBreakdown ?? [];
 
     // Mirror Shopee — exact per-SKU affiliate attribution by product name,

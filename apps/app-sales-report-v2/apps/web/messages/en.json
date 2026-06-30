@@ -514,7 +514,18 @@
     "step4": {
       "title": "Step 4 · Review",
       "subtitle": "Verify formula configuration before ingest. Edit if needed — changes apply to this ingest only.",
-      "banner": "Formulas apply to"
+      "banner": "Formulas apply to",
+      "unknownSkusBannerTitle": "Product master issues detected in uploaded files",
+      "unknownSkusBannerBody": "{unknownCount, plural, =0 {} =1 {1 unknown SKU} other {# unknown SKUs}}{renameCount, plural, =0 {} =1 { · 1 possible rename} other { · # possible renames}}{incompleteCount, plural, =0 {} =1 { · 1 incomplete price} other { · # incomplete prices}}. These rows will produce wrong Net GMV / Prime Cost — check with partner + fix Product List before continuing.",
+      "unknownSection": "Unknown products ({count})",
+      "renameSection": "Possible SKU renames ({count})",
+      "incompleteSection": "Incomplete master data ({count})",
+      "field": {
+        "primeCost": "Prime Cost",
+        "sellingPrice": "Selling Price",
+        "listingPrice": "Listing Price"
+      },
+      "andMore": "… and {count} more"
     },
     "step5": {
       "title": "Step 5 · Validate",
@@ -615,6 +626,17 @@
       "missingFromMasterTikTok": "{count} SKUs missing from master",
       "missingFromMasterSingular": "1 SKU sold but missing from Prime Cost master — Net GMV / Prime Cost can't include these",
       "missingFromMasterTikTokSingular": "1 SKU missing from master",
+      "missingUnknown": "{count} unknown products — not registered in Product List. Check with partner + add to master",
+      "missingUnknownSingular": "1 unknown product — not registered in Product List. Check with partner + add to master",
+      "missingRename": "{count} possible SKU renames — product name matches a known SKU, but the SKU code is new",
+      "missingRenameSingular": "1 possible SKU rename — product name matches a known SKU, but the SKU code is new",
+      "missingIncomplete": "{count} SKUs with incomplete master data — registered but one or more prices is 0. Net GMV / Prime Cost will be wrong",
+      "missingIncompleteSingular": "1 SKU with incomplete master data — registered but one or more prices is 0. Net GMV / Prime Cost will be wrong",
+      "field": {
+        "primeCost": "Prime Cost",
+        "sellingPrice": "Selling Price",
+        "listingPrice": "Listing Price"
+      },
       "andMore": "… and {count} more",
       "showFormulas": "Show formula specs + per-product breakdown",
       "hideFormulas": "Hide formula specs + per-product breakdown",
@@ -1234,6 +1256,8 @@
         "charts": "Impacted Charts"
       },
       "effectiveFrom": "Effective From",
+      "backdatedWarningTitle": "Backdated effective date",
+      "backdatedWarningBody": "The new value applies only to future ingests. Periods already ingested keep their previous value — re-ingest those periods if the new value should apply to past data, or tick \"Apply retroactively\" below to recalculate.",
       "retroactive": "Apply retroactively",
       "retroactiveHint": "(overrides historical reports)",
       "retroactiveWarningTitle": "Warning: this will recalculate all historical reports that depend on this metric.",

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import { FORMULA_SECTIONS } from '@/lib/formula-config-data';
 import { FormulaSection } from './FormulaSection';
+import { EditableParamsSection } from './EditableParamsSection';
 import { exportFormulaConfig } from '@/lib/formula-export';
 
 const VALUES_KEY = 'formula-config-values';
@@ -37,6 +38,14 @@ interface FormulaConfigClientProps {
   showExport?: boolean;
   /** Start with all sections collapsed instead of expanded. Default false. */
   defaultCollapsed?: boolean;
+  /**
+   * Show the live editable params panel at the top of the page. Default true.
+   * Embedded contexts (e.g. Upload wizard Step 4 Review) pass false to hide
+   * the editor since operators shouldn't change config mid-ingest.
+   */
+  showEditableParams?: boolean;
+  /** When true, the editable panel renders inputs; otherwise read-only. Default true. */
+  canEdit?: boolean;
 }
 
 export function FormulaConfigClient({
@@ -44,6 +53,8 @@ export function FormulaConfigClient({
   showFilters = true,
   showExport = true,
   defaultCollapsed = false,
+  showEditableParams = true,
+  canEdit = true,
 }: FormulaConfigClientProps = {}) {
   const t = useTranslations('formulaConfig');
   const [values, setValues] = useState<Record<string, string>>({});
@@ -218,6 +229,8 @@ export function FormulaConfigClient({
           </div>
         </>
       )}
+
+      {showEditableParams && <EditableParamsSection canEdit={canEdit} />}
 
       {showFilters && (
         <div className="rounded-lg border border-neutral-200 bg-white p-3 flex flex-wrap items-center gap-3">

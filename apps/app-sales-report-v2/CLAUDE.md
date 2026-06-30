@@ -218,7 +218,7 @@ Theo root [CLAUDE.md](../../CLAUDE.md), khi tag `[요구사항]` / `[requirement
 - ❌ **Overwrite hoặc modify raw upload file** (NFR-06) — re-upload phải archive bản cũ
 - ❌ **UPDATE/DELETE trên 3 bảng activity log** (NFR-13) — DB trigger DENY, kể cả Admin
 - ❌ **Retro thay đổi finalized report** (NFR-08) — Prime Cost master đổi không được tác động report đã download
-- ❌ **Hard-code 48 formula params** — phải đọc từ `sal_formula_configs` (FR-23, NFR-07)
+- ❌ **Hard-code formula params được khai báo trong `FORMULA_PARAM_REGISTRY`** — phải đọc từ `sal_formula_configs` qua `loadFormulaConfig()`. Registry là single source of truth; thêm param mới = thêm entry registry + seed default migration. (FR-23 implemented Phase 1+2 commit `e7db124`.)
 - ❌ **Apply Shopee CM formula cho TikTok** — TikTok không có Brand Ads, Off-Platform, Seller Vouchers
 - ❌ Quên `Item Sold = Quantity − Quantity Returned` cho Shopee, hoặc `IF(Q=return, 0, Q)` cho TikTok
 - ❌ Cộng Free Gift Prime Cost vào `Total Prime Cost` — Free Gift PC phải track riêng ở `primeCostFreeGift` và được trừ trong CM như một dòng tách biệt (tránh double-subtract). `Total Prime Cost` chỉ gồm `kept rows`; revenue của Free Gift vẫn exclude.

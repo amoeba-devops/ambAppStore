@@ -60,6 +60,7 @@ import {
   type ArchiveChannel,
   type ArchiveFileType,
 } from '@/server/services/archive-files.service';
+import { loadFormulaConfig } from '@/server/services/formula-config.service';
 
 export interface CommitIngestResult {
   pspId: string;
@@ -108,13 +109,17 @@ export async function commitIngestAction(
       tiktokLivestreamFees: numFromForm(formData, 'tiktokLivestreamFees') ?? 0,
       tiktokAdsSpending: numFromForm(formData, 'tiktokAdsSpending') ?? 0,
     };
-    // TikTok platform fee rate: 24% until 2026-05-08, then 26% from 2026-05-09
-    // onwards (per TikTok Shop policy update communicated by client).
-    // Use periodStart as the cutoff. Caller can still override via formData if
-    // TikTok publishes a new rate mid-period.
-    const defaultTiktokRate = periodStartIso >= '2026-05-09' ? 26 : 24;
+    // TikTok platform fee rate — loaded from sal_formula_configs (FR-23).
+    // Loader picks the row with the latest effective_from ≤ periodStart, so
+    // periods before / after the rate change auto-resolve to the right value
+    // without any hardcoded date in this file. Caller can still override via
+    // FormData for ad-hoc per-ingest tweaks (rare).
+    const formulaConfigSnapshot = await loadFormulaConfig(user.entId, new Date(periodStartIso));
+    const loadedTiktokRate = Number(
+      formulaConfigSnapshot['tiktok_platform_fee_rate_pct']?.value ?? '24',
+    );
     const tiktokPlatformFeeRatePct =
-      numFromForm(formData, 'tiktokPlatformFeeRatePct') ?? defaultTiktokRate;
+      numFromForm(formData, 'tiktokPlatformFeeRatePct') ?? loadedTiktokRate;
 
     // Re-ingest support: when a slot is empty in the form payload, fall back
     // to the most-recent archived file for the same (period, channel, type).
@@ -337,7 +342,15 @@ export async function commitIngestAction(
       const updated: PeriodSnapshotMetrics = {
         ...existing,
         manualInputs,
-        constants: { tiktokPlatformFeeRatePct },
+        constants: {
+          tiktokPlatformFeeRatePct,
+          formulaConfig: Object.fromEntries(
+            Object.entries(formulaConfigSnapshot).map(([k, v]) => [
+              k,
+              { value: v.value, valueType: v.valueType },
+            ]),
+          ),
+        },
         computedAt: new Date().toISOString(),
       };
       const { pspId, isNew } = await savePeriodSnapshot({
