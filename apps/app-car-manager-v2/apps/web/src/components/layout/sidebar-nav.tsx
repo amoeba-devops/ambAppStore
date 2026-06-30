@@ -67,6 +67,9 @@ interface SidebarNavProps {
    * "N hôm nay" badge on the Chi phí nav item. STAFF only — passed as 0
    * for DRIVER (the costs nav item isn't in their role anyway). */
   todayExpenseCount: number;
+  /** Server-fed: truck reports created since the user last opened the list.
+   * Drives the "Mới" badge on the truck Reports nav item. 0 hides it. */
+  newReportCount: number;
 }
 
 /** Map NavKey → metric counts. Keys absent or 0 → no badge. */
@@ -81,7 +84,7 @@ const NAV_KEY_TO_ENTITY: Partial<Record<NavKey, DraftEntry['entity']>> = {
   costs: 'expense',
 };
 
-export function SidebarNav({ collapsed, role, fleetAccess, userName, userEmail, pendingTripCount, todayExpenseCount }: SidebarNavProps) {
+export function SidebarNav({ collapsed, role, fleetAccess, userName, userEmail, pendingTripCount, todayExpenseCount, newReportCount }: SidebarNavProps) {
   const tNav   = useTranslations('nav');
   const tCo    = useTranslations('company');
   const tAct   = useTranslations('actions');
@@ -130,6 +133,7 @@ export function SidebarNav({ collapsed, role, fleetAccess, userName, userEmail, 
   const metricCounts: MetricCounts = {
     trips: pendingTripCount,
     costs: todayExpenseCount,
+    truckReports: newReportCount,
   };
 
   /* Passed to the confirm dialog as `perform` — runs AFTER the client wipes
@@ -154,6 +158,18 @@ export function SidebarNav({ collapsed, role, fleetAccess, userName, userEmail, 
   const allItems = navItemsForRole(role, { dept });
   const workspace = allItems.filter((i) => i.group === 'workspace' && i.key !== 'me');
   const admin = allItems.filter((i) => i.group === 'admin');
+
+  /* Workspace renders as a single group (car: items have no `section`) or as
+   * the truck IA sub-sections. Fixed display order; empty sections self-hide
+   * (NavGroup returns null for 0 items). Labels live at i18n root. */
+  const SECTION_ORDER = ['workspace', 'operations', 'finance', 'data', 'reports'] as const;
+  const sectionLabelKey: Record<string, string> = {
+    workspace: 'workspace',
+    operations: 'navSections.operations',
+    finance: 'navSections.finance',
+    data: 'navSections.data',
+    reports: 'navSections.reports',
+  };
 
   return (
     <aside
@@ -194,16 +210,19 @@ export function SidebarNav({ collapsed, role, fleetAccess, userName, userEmail, 
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-5">
-        <NavGroup
-          label={tGroup('workspace')}
-          items={workspace}
-          activeKey={active}
-          collapsed={collapsed}
-          draftsByNavKey={draftsByNavKey}
-          metricCounts={metricCounts}
-          onRemoveDraft={removeDraft}
-          t={(key: NavKey) => tNav(key === 'audit' ? 'auditLog' : key)}
-        />
+        {SECTION_ORDER.map((sec) => (
+          <NavGroup
+            key={sec}
+            label={tGroup(sectionLabelKey[sec])}
+            items={workspace.filter((i) => (i.section ?? 'workspace') === sec)}
+            activeKey={active}
+            collapsed={collapsed}
+            draftsByNavKey={draftsByNavKey}
+            metricCounts={metricCounts}
+            onRemoveDraft={removeDraft}
+            t={(key: NavKey) => tNav(key === 'audit' ? 'auditLog' : key)}
+          />
+        ))}
         <NavGroup
           label={tGroup('admin')}
           items={admin}

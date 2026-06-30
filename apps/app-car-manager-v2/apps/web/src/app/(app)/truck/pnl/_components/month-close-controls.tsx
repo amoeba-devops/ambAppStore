@@ -11,8 +11,20 @@ import {
 } from '@/server/actions/settings/truck-finance.actions';
 import { formatActionError } from '@/lib/format-action-error';
 
-/** Close / reopen the financial period for a month (REQ-20260623 G1). */
-export function MonthCloseControls({ month, closed }: { month: string; closed: boolean }) {
+/**
+ * Close / reopen the financial period for a month (REQ-20260623 G1).
+ * Closing is ADMIN|MANAGER; reopening is ADMIN only (`canReopen`) — it rewrites
+ * an official P&L (REQ-20260629). Server action enforces the same gate.
+ */
+export function MonthCloseControls({
+  month,
+  closed,
+  canReopen,
+}: {
+  month: string;
+  closed: boolean;
+  canReopen: boolean;
+}) {
   const t = useTranslations('screens.truckPnl');
   const tErr = useTranslations();
   const router = useRouter();
@@ -51,7 +63,9 @@ export function MonthCloseControls({ month, closed }: { month: string; closed: b
         {closed ? t('statusClosed') : t('statusOpen')}
       </Badge>
       {closed ? (
-        reopening ? (
+        !canReopen ? (
+          <span className="text-xs text-text-faint">{t('reopenAdminOnly')}</span>
+        ) : reopening ? (
           <>
             <Input
               value={reason}

@@ -9,7 +9,7 @@ import { carTruckMonthClose, carTruckFuelInvoices } from '@car-v2/db/schema';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
-import { isTruckMonthClosed } from '@/server/queries/truck-finance.queries';
+import { getTruckFuelStats, isTruckMonthClosed } from '@/server/queries/truck-finance.queries';
 import { logAudit } from '@/server/services/audit-log.service';
 import { runAction } from '../_helpers';
 
@@ -18,6 +18,7 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function revalidateFinance(): void {
   revalidatePath('/truck/pnl');
+  revalidatePath('/truck/finance');
   revalidatePath('/truck/dashboard');
   revalidatePath('/truck/trips');
 }
@@ -33,12 +34,24 @@ export async function closeTruckMonthAction(input: unknown): Promise<ActionResul
     if (await isTruckMonthClosed(actor.entId, month)) {
       throw new CarError('CAR-E0409', 409, 'Month already closed');
     }
+
+    /* Freeze the month-end fuel snapshot (avg price + consumption) so each
+     * trip's official fuel cost = km × consumption × avgPrice is deterministic
+     * (REQ-20260629). Only store it when computable (have invoices + driven km);
+     * otherwise leave NULL so the P&L falls back to the trips' liters × price. */
+    const snap = await getTruckFuelStats(actor.entId, month);
+    const hasSnapshot = snap.totalKm > 0 && snap.invoiceLiters > 0 && snap.avgPrice > 0;
+
     await db.insert(carTruckMonthClose).values({
       tmcId: randomUUID(),
       entId: actor.entId,
       tmcVehicleType: 'TRUCK',
       tmcMonth: month,
       tmcClosedBy: actor.userId,
+      tmcAvgPrice: hasSnapshot ? String(snap.avgPrice) : null,
+      tmcConsumption: hasSnapshot ? String(snap.consumption) : null,
+      tmcTotalLiters: hasSnapshot ? String(snap.invoiceLiters) : null,
+      tmcTotalKm: hasSnapshot ? String(snap.totalKm) : null,
     });
     await logAudit({
       entId: actor.entId,
@@ -47,7 +60,9 @@ export async function closeTruckMonthAction(input: unknown): Promise<ActionResul
       entity: 'TruckMonth',
       entityId: month,
       entityRef: month,
-      after: { month },
+      after: hasSnapshot
+        ? { month, avgPrice: snap.avgPrice, consumption: snap.consumption, totalLiters: snap.invoiceLiters, totalKm: snap.totalKm }
+        : { month },
     });
     revalidateFinance();
     return { ok: true as const };
@@ -58,7 +73,9 @@ export async function closeTruckMonthAction(input: unknown): Promise<ActionResul
 export async function reopenTruckMonthAction(input: unknown): Promise<ActionResult<{ ok: true }>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
-    requireRole(actor.role, ['ADMIN', 'MANAGER']);
+    /* Reopen rewrites an official, reported P&L → ADMIN only (design:
+     * "Chỉ Quản trị viên"). Closing stays ADMIN|MANAGER. */
+    requireRole(actor.role, ['ADMIN']);
     await requireFleet(actor, 'TRUCK');
     const { month, reason } = z
       .object({ month: z.string().regex(MONTH), reason: z.string().trim().min(3).max(500) })

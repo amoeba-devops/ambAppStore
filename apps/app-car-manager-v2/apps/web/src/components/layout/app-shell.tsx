@@ -7,6 +7,7 @@ import { countTodayExpenses } from '@/server/queries/expenses.queries';
 import { countUnreadNotifications } from '@/server/queries/notifications.queries';
 import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
 import { countPendingTrips } from '@/server/queries/trips.queries';
+import { countNewTruckReports } from '@/server/queries/truck-report.queries';
 import { AppShellClient } from './app-shell-client';
 
 /**
@@ -51,6 +52,14 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
     getTranslations(),
   ]);
 
+  /* "Mới" badge on the truck Reports nav — only for staff who can enter the
+   * truck workspace, so non-truck users never pay for the query. Depends on
+   * resolved fleetAccess, so it runs after the parallel batch. */
+  const newReportCount =
+    (user.role === 'ADMIN' || user.role === 'MANAGER') && fleetAccess.includes('TRUCK')
+      ? await countNewTruckReports(user.entId, user.userId)
+      : 0;
+
   const defaultTenantName = tCo('tenantDefault');
   /* Resolution order: DB-stored tenant name → JWT-issued entity name →
    * i18n default. Each is checked for non-empty content so a "  " whitespace
@@ -87,6 +96,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       userEmail={user.email}
       pendingTripCount={pendingTripCount}
       todayExpenseCount={todayExpenseCount}
+      newReportCount={newReportCount}
       unreadNotificationCount={unreadNotificationCount}
       vapidPublicKey={process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC}
       basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''}

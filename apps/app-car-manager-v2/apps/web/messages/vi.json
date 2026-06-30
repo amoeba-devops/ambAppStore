@@ -19,7 +19,7 @@
     "truckDashboard": "Bảng điều khiển",
     "truckTrips": "Nhật ký chuyến",
     "truckFleet": "Đội xe tải",
-    "truckPnl": "Chi phí & Lợi nhuận",
+    "truckPnl": "P&L tháng & Chốt sổ",
     "truckDrivers": "Tài xế xe tải",
     "truckImport": "Import Excel",
     "truckSettings": "Cấu hình xe tải",
@@ -39,7 +39,10 @@
     "pendingCountTitle": "{n} chuyến đang chờ xử lý",
     "pendingBadgeLabel": "chờ",
     "todayCountTitle": "{n} chi phí ghi nhận hôm nay",
-    "todayBadgeLabel": "hôm nay"
+    "todayBadgeLabel": "hôm nay",
+    "truckFinance": "Chi phí & Lợi nhuận",
+    "truckReports": "Danh sách báo cáo",
+    "truckReportCreate": "Lập báo cáo"
   },
   "actions": {
     "new": "Tạo mới",
@@ -177,7 +180,7 @@
       "kpiTrips": "Số chuyến",
       "recentTitle": "Chuyến gần đây",
       "viewAll": "Xem tất cả",
-      "chartProfit": "Lợi nhuận ròng theo tháng",
+      "chartProfit": "Doanh thu & lợi nhuận theo tháng",
       "costStructure": "Cơ cấu chi phí",
       "fleetStatus": "Tình trạng đội xe",
       "noData": "Chưa có dữ liệu",
@@ -189,8 +192,16 @@
         "last3": "3 tháng",
         "last6": "6 tháng",
         "ytd": "Từ đầu năm",
-        "all": "12 tháng"
-      }
+        "all": "12 tháng",
+        "quickAccess": "Truy cập nhanh",
+        "customRange": "Khoảng tùy chọn",
+        "apply": "Áp dụng"
+      },
+      "vsPrev": "so kỳ trước",
+      "kpiCostSub": "Lương · KH · xăng · bãi · cầu đường",
+      "kpiTripsSub": "Tổng hợp từ nhật ký chuyến",
+      "perTrip": "theo chuyến",
+      "perMonth": "theo tháng"
     },
     "truckDrivers": {
       "title": "Tài xế xe tải",
@@ -203,7 +214,17 @@
         "ON_TRIP": "Đang chạy",
         "OFF_DUTY": "Nghỉ ca",
         "UNAVAILABLE": "Vô hiệu"
-      }
+      },
+      "thDriver": "Tài xế",
+      "thVehicle": "Phương tiện",
+      "thLicense": "Số bằng lái",
+      "thClass": "Hạng",
+      "thExpiry": "Ngày hết hạn",
+      "thPhone": "Điện thoại",
+      "thEmergency": "Liên hệ khẩn cấp",
+      "thStatus": "Trạng thái",
+      "thUpdated": "Cập nhật",
+      "thNotes": "Ghi chú"
     },
     "truckPnl": {
       "title": "Chi phí & Lợi nhuận",
@@ -244,7 +265,23 @@
       "deleteInvoice": "Xoá hoá đơn",
       "lockedHint": "Tháng đã chốt — không thể chỉnh sửa.",
       "fixedCostsTitle": "Chi phí cố định tháng {month}",
-      "noTrucks": "Chưa có xe tải"
+      "noTrucks": "Chưa có xe tải",
+      "tabOverview": "Tổng quan P&L",
+      "tabInvoices": "Hoá đơn & Chốt tháng",
+      "provisionalBanner": "Kỳ đang chọn có tháng chưa chốt — chi phí biến đổi & lợi nhuận là số tạm tính.",
+      "goCloseMonth": "Đi chốt tháng →",
+      "variableTitle": "Chi phí biến đổi",
+      "variableHint": "Phát sinh theo từng chuyến. Chỉ chính xác khi cuối tháng đủ hoá đơn xăng & tổng km.",
+      "fixedTitle": "Chi phí cố định",
+      "fixedHint": "Cố định hàng tháng, không phụ thuộc số chuyến.",
+      "monthEndTitle": "Tổng hợp cuối tháng",
+      "totalKm": "Tổng km trong tháng",
+      "totalFuel": "Tổng tiền xăng tháng",
+      "monthEndFormula": "Định mức = tổng lít ÷ tổng km. Tiền xăng mỗi chuyến = định mức × km chuyến × giá bình quân.",
+      "adjustmentHistory": "Lịch sử điều chỉnh",
+      "reopenedEntry": "Đã mở lại tháng",
+      "reasonLabel": "Lý do",
+      "reopenAdminOnly": "Chỉ Quản trị viên mới được mở lại"
     },
     "truckComplete": {
       "completeCta": "Hoàn thành chuyến đi",
@@ -304,7 +341,36 @@
       "runImport": "Nhập dữ liệu",
       "importedToast": "Đã nhập {count} chuyến",
       "noRows": "Không tìm thấy dòng dữ liệu hợp lệ",
-      "parseError": "Không đọc được file"
+      "parseError": "Không đọc được file",
+      "dropHere": "Kéo & thả file Excel vào đây",
+      "dropHint": "Hỗ trợ .xls / .xlsx — mỗi xe một file, mỗi tháng một sheet",
+      "sheetLabel": "Sheet (mỗi sheet = 1 tháng)",
+      "mappingTitle": "Ánh xạ cột",
+      "mappingHint": "Khớp cột Excel với trường hệ thống. Đã tự đoán theo tiêu đề — chỉnh nếu cần.",
+      "colUnused": "(không dùng)",
+      "colN": "Cột {n}",
+      "validRows": "{n} dòng hợp lệ",
+      "invalidRows": "{n} dòng lỗi",
+      "rowInvalid": "Thiếu ngày",
+      "importSheet": "Nhập {n} dòng",
+      "f": {
+        "date": "Ngày",
+        "start_time": "Giờ bắt đầu",
+        "end_time": "Giờ kết thúc",
+        "customer": "Khách hàng",
+        "pickup": "Điểm lấy hàng",
+        "dropoff": "Điểm giao hàng",
+        "odo_start": "Đồng hồ đầu",
+        "odo_end": "Đồng hồ cuối",
+        "fuel_liters": "Lượng nhiên liệu (L)",
+        "fuel_price": "Đơn giá (đ/L)",
+        "toll": "Phí cầu đường",
+        "other_amount": "Phát sinh khác",
+        "other_note": "Ghi chú phát sinh",
+        "bol": "Số BOL",
+        "cdf": "Số CDF",
+        "revenue": "Doanh thu"
+      }
     },
     "truckSettings": {
       "title": "Cấu hình xe tải",
@@ -334,8 +400,8 @@
       "thDate": "Ngày",
       "thCustomer": "Khách hàng · BOL",
       "thKm": "Km",
-      "thFuel": "Nhiên liệu",
-      "thOther": "Khác",
+      "thFuel": "Phí nhiên liệu",
+      "thOther": "Chi phí phát sinh",
       "thRevenue": "Doanh thu",
       "thProfit": "Lợi nhuận",
       "thStatus": "Trạng thái",
@@ -412,7 +478,16 @@
           "totalDistance": "Tổng quãng đường",
           "remove": "Xóa điểm này"
         }
-      }
+      },
+      "provisional": "Tạm tính",
+      "thVehicle": "Phương tiện",
+      "thDriver": "Tài xế",
+      "thToll": "Phí cầu đường",
+      "thUpdated": "Cập nhật",
+      "allVehicles": "Tất cả phương tiện",
+      "allStatus": "Tất cả trạng thái",
+      "template": "Tải template",
+      "importExcel": "Import Excel"
     },
     "truckFleet": {
       "title": "Đội xe tải",
@@ -451,8 +526,21 @@
         "updatedToast": "Đã cập nhật {plate}",
         "delete": "Xoá",
         "deleteConfirm": "Xoá xe tải này?",
-        "deletedToast": "Đã xoá xe tải"
-      }
+        "deletedToast": "Đã xoá xe tải",
+        "code": "Mã xe",
+        "notes": "Ghi chú",
+        "notesPlaceholder": "Ghi chú thêm…"
+      },
+      "thCode": "Mã xe",
+      "thPlate": "Biển số",
+      "thModel": "Tên / Mô tả",
+      "thConsumption": "Định mức tiêu hao",
+      "thDepreciation": "Khấu hao",
+      "thDriver": "Tài xế",
+      "thOdometer": "Số km đồng hồ",
+      "thStatus": "Trạng thái",
+      "thUpdated": "Cập nhật",
+      "thNotes": "Ghi chú"
     },
     "audit": {
       "title": "Nhật ký kiểm toán",
@@ -461,6 +549,73 @@
     "reports": {
       "title": "Báo cáo",
       "subtitle": "Thống kê chuyến đi và chi phí"
+    },
+    "truckFinance": {
+      "title": "Chi phí & Lợi nhuận",
+      "subtitle": "{count} chuyến trong tháng",
+      "export": "Xuất Excel",
+      "emptyTitle": "Chưa có chuyến nào",
+      "emptyDesc": "Tháng này chưa có chuyến hoàn thành để tính chi phí & lợi nhuận.",
+      "provisional": "Tạm tính",
+      "finalized": "Đã chốt",
+      "allTrucks": "Tất cả phương tiện",
+      "sumRevenue": "Doanh thu tháng",
+      "sumFuel": "Phí xăng dầu",
+      "sumToll": "Phí cầu đường",
+      "sumOther": "Tổng phí phát sinh",
+      "sumDriverSalary": "Lương tài xế",
+      "sumFixed": "Chi phí cố định",
+      "sumNet": "Lợi nhuận ròng",
+      "thDate": "Ngày",
+      "thVehicle": "Phương tiện",
+      "thDriver": "Tài xế",
+      "thCustomer": "Khách hàng",
+      "thKm": "Tổng km",
+      "thToll": "Cầu đường",
+      "thOther": "Phát sinh",
+      "thUnitPrice": "Đơn giá",
+      "thLiters": "Lít",
+      "thFuel": "Phí xăng",
+      "thRevenue": "Doanh thu",
+      "thProfit": "Lợi nhuận",
+      "thStatus": "Trạng thái",
+      "searchPlaceholder": "Tìm BOL / CDF / khách hàng",
+      "tabTrips": "Theo chuyến",
+      "tabOverview": "Tổng quan P&L",
+      "tabInvoices": "Hoá đơn & Chốt tháng"
+    },
+    "truckReports": {
+      "title": "Danh sách báo cáo",
+      "subtitle": "{count} báo cáo",
+      "createBtn": "Lập báo cáo",
+      "emptyTitle": "Chưa có báo cáo",
+      "emptyDesc": "Lập báo cáo tháng đầu tiên cho đội xe tải.",
+      "groupCount": "{count} báo cáo",
+      "thName": "Tên báo cáo",
+      "thFormat": "Định dạng",
+      "thCreated": "Thời gian tạo",
+      "thBy": "Người tạo",
+      "thDownload": "Tải xuống",
+      "newBadge": "Mới",
+      "download": "Tải",
+      "createTitle": "Lập báo cáo",
+      "createSubtitle": "Chọn tháng và loại báo cáo cần tạo",
+      "selectMonth": "Tháng báo cáo",
+      "selectTypes": "Loại báo cáo",
+      "type_PNL": "Chi phí & lợi nhuận",
+      "type_TRIP_LOG": "Nhật ký chuyến",
+      "type_VEHICLE": "Phương tiện",
+      "createHint": "Mỗi loại đã chọn sẽ tạo một file Excel và lưu vào danh sách báo cáo.",
+      "generateBtn": "Lập báo cáo",
+      "generatedToast": "Đã tạo {count} báo cáo",
+      "filterByMonth": "Lọc theo tháng",
+      "allMonths": "Tất cả các tháng",
+      "step1Title": "Bước 1 · Chọn tháng",
+      "step1Hint": "Chọn kỳ báo cáo. Hệ thống lập cho mọi phương tiện có chuyến trong tháng.",
+      "step2Title": "Bước 2 · Loại báo cáo",
+      "monthN": "Tháng {n}",
+      "exported": "Đã xuất",
+      "open": "Mở"
     }
   },
   "phase": {
@@ -1880,5 +2035,11 @@
     "loading": "Đang tải hướng dẫn…",
     "localeNote": "Hiển thị bản {locale} · UI: {uiLocale}",
     "viewIndex": "Xem mục lục"
+  },
+  "navSections": {
+    "operations": "Vận hành",
+    "finance": "Tài chính",
+    "data": "Dữ liệu",
+    "reports": "Báo cáo"
   }
 }

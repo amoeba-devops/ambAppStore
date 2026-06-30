@@ -1,16 +1,28 @@
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { ChevronRight, IdCard, Plus } from 'lucide-react';
-import { Badge, Button, Card } from '@car-v2/ui';
+import { Plus } from 'lucide-react';
+import {
+  Badge,
+  Button,
+  Card,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@car-v2/ui';
 import type { CarDriverStatus } from '@car-v2/db/schema';
+import { ClickableTableRow } from '@/components/clickable-table-row';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listFleetDrivers } from '@/server/queries/drivers.queries';
+import { getLatestVehiclesByDriver } from '@/server/queries/truck-trips.queries';
 
 /**
- * Truck-department driver roster (REQ-20260622 audit G5). Lists drivers with a
- * TRUCK fleet membership — the design surfaces a per-department "Tài xế" screen
- * rather than the shared CCMS roster. Rows link to the existing driver detail.
+ * Truck-department driver roster (REQ-20260622 audit G5; design table layout
+ * REQ-20260629). Lists drivers with a TRUCK fleet membership. Rows link to the
+ * shared driver detail.
  */
 const STATUS_TONE: Record<CarDriverStatus, 'success' | 'info' | 'neutral' | 'warning'> = {
   AVAILABLE: 'success',
@@ -19,14 +31,25 @@ const STATUS_TONE: Record<CarDriverStatus, 'success' | 'info' | 'neutral' | 'war
   UNAVAILABLE: 'warning',
 };
 
+function bcp47(locale: string): string {
+  if (locale === 'vi') return 'vi-VN';
+  if (locale === 'ko') return 'ko-KR';
+  return 'en-US';
+}
+
 export default async function TruckDriversPage() {
   const user = await getCurrentUser();
   const t = await getTranslations('screens.truckDrivers');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
-  const tA = await getTranslations('actions');
+  const locale = await getLocale();
+  const loc = bcp47(locale);
+  const date = (d: string | Date) => new Date(d).toLocaleDateString(loc);
 
-  const drivers = await listFleetDrivers(user.entId, 'TRUCK');
+  const [drivers, vehicleByDriver] = await Promise.all([
+    listFleetDrivers(user.entId, 'TRUCK'),
+    getLatestVehiclesByDriver(user.entId),
+  ]);
   /* The /truck layout already blocks DRIVER role — anyone here is ADMIN/MANAGER. */
   const canCreate = user.role === 'ADMIN' || user.role === 'MANAGER';
 
@@ -56,32 +79,50 @@ export default async function TruckDriversPage() {
             )}
           </Card>
         ) : (
-          <Card variant="outline" className="divide-y divide-border">
-            {drivers.map((d) => (
-              <Link
-                key={d.drvId}
-                href={`/drivers/${d.drvId}`}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <span className="h-9 w-9 shrink-0 rounded-full bg-surface-2 flex items-center justify-center text-text-faint">
-                  <IdCard className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium text-text truncate">{d.user.usrName ?? '—'}</div>
-                  <div className="text-xs text-text-faint truncate">
-                    {d.user.usrEmail ?? d.drvLicenseNumber}
-                  </div>
-                </div>
-                <div className="hidden sm:block text-right shrink-0">
-                  <div className="text-xs text-text-muted">{t('license')}</div>
-                  <div className="text-sm font-mono text-text">{d.drvLicenseNumber}</div>
-                </div>
-                <Badge tone={STATUS_TONE[d.drvStatus]} size="sm">
-                  {t(`status.${d.drvStatus}`)}
-                </Badge>
-                <ChevronRight className="h-4 w-4 text-text-faint shrink-0" />
-              </Link>
-            ))}
+          <Card variant="outline" className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('thDriver')}</TableHead>
+                  <TableHead>{t('thVehicle')}</TableHead>
+                  <TableHead>{t('thLicense')}</TableHead>
+                  <TableHead>{t('thClass')}</TableHead>
+                  <TableHead className="whitespace-nowrap">{t('thExpiry')}</TableHead>
+                  <TableHead>{t('thPhone')}</TableHead>
+                  <TableHead>{t('thEmergency')}</TableHead>
+                  <TableHead>{t('thStatus')}</TableHead>
+                  <TableHead className="whitespace-nowrap">{t('thUpdated')}</TableHead>
+                  <TableHead>{t('thNotes')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {drivers.map((d) => (
+                  <ClickableTableRow key={d.drvId} href={`/drivers/${d.drvId}`}>
+                    <TableCell>
+                      <div className="font-medium text-text">{d.user.usrName ?? '—'}</div>
+                      {d.user.usrEmail && <div className="text-xs text-text-faint truncate">{d.user.usrEmail}</div>}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-mono text-text-muted">
+                      {vehicleByDriver.get(d.drvId) ?? '—'}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-mono text-text">{d.drvLicenseNumber}</TableCell>
+                    <TableCell className="text-text-muted">{d.drvLicenseClass}</TableCell>
+                    <TableCell className="whitespace-nowrap tabular text-text-muted">{date(d.drvLicenseExpiry)}</TableCell>
+                    <TableCell className="whitespace-nowrap tabular text-text-muted">{d.drvPhone ?? '—'}</TableCell>
+                    <TableCell className="whitespace-nowrap tabular text-text-muted">{d.drvEmergencyContact ?? '—'}</TableCell>
+                    <TableCell>
+                      <Badge tone={STATUS_TONE[d.drvStatus]} size="sm">
+                        {t(`status.${d.drvStatus}`)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs text-text-faint tabular">
+                      {d.drvUpdatedAt ? date(d.drvUpdatedAt) : '—'}
+                    </TableCell>
+                    <TableCell className="max-w-[180px] truncate text-text-muted">{d.drvNotes ?? '—'}</TableCell>
+                  </ClickableTableRow>
+                ))}
+              </TableBody>
+            </Table>
           </Card>
         )}
       </div>

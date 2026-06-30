@@ -20,12 +20,17 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const q = url.searchParams.get('q') ?? undefined;
   const month = url.searchParams.get('month') ?? undefined;
-  const trips = await listTruckTrips(user.entId, { q, month });
+  const vehicle = url.searchParams.get('vehicle') ?? undefined;
+  const statusRaw = url.searchParams.get('status');
+  const status = statusRaw === 'complete' || statusRaw === 'ongoing' ? statusRaw : undefined;
+  const trips = await listTruckTrips(user.entId, { q, month, vehicleId: vehicle, status });
 
-  const header = ['Ref', 'Ngày', 'Khách hàng', 'BOL', 'CDF', 'Km', 'Nhiên liệu', 'Cầu đường', 'Khác', 'Doanh thu', 'Lợi nhuận', 'Trạng thái'];
+  const header = ['Ref', 'Ngày', 'Phương tiện', 'Tài xế', 'Khách hàng', 'BOL', 'CDF', 'Km', 'Nhiên liệu', 'Cầu đường', 'Khác', 'Doanh thu', 'Lợi nhuận', 'Trạng thái'];
   const rows = trips.map((t) => [
     t.ref,
     new Date(t.scheduledAt).toISOString().slice(0, 10),
+    t.plate ?? '',
+    t.driver ?? '',
     t.customer ?? '',
     t.bol ?? '',
     '',

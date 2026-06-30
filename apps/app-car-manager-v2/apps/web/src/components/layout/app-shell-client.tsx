@@ -33,6 +33,9 @@ interface AppShellClientProps {
    * sidebar + mobile bottom-tab render a small badge on the Chi phí entry
    * when this is > 0. 0 for DRIVER (badge is STAFF-only). */
   todayExpenseCount: number;
+  /** Server-counted truck reports created since this user last opened the
+   * reports list — "Mới" badge on the truck Reports nav. 0 hides it. */
+  newReportCount: number;
   /** Server-counted unread inbox notifications for this user. Drives the
    * red badge on the header notification bell (desktop + mobile). */
   unreadNotificationCount: number;
@@ -78,6 +81,7 @@ export function AppShellClient({
   userEmail,
   pendingTripCount,
   todayExpenseCount,
+  newReportCount,
   unreadNotificationCount,
   vapidPublicKey,
   basePath,
@@ -133,6 +137,7 @@ export function AppShellClient({
               userEmail={userEmail}
               pendingTripCount={pendingTripCount}
               todayExpenseCount={todayExpenseCount}
+              newReportCount={newReportCount}
             />
           </div>
           {/* Main: reserve bottom space on mobile for the fixed bottom-tab

@@ -31,6 +31,7 @@ const FUELS = ['DIESEL', 'PETROL', 'HYBRID', 'EV'] as const;
 
 const EMPTY = {
   plate: '',
+  code: '',
   model: '',
   make: '',
   year: '',
@@ -72,6 +73,7 @@ export function TruckVehicleForm({
     startTransition(async () => {
       const payload = {
         plate_number: f.plate.trim(),
+        code: f.code.trim() || undefined,
         model: f.model.trim(),
         make: f.make.trim() || undefined,
         year: f.year ? Number(f.year) : undefined,
@@ -125,6 +127,9 @@ export function TruckVehicleForm({
             <Field label={t('plate')} required>
               <Input value={f.plate} onChange={set('plate')} placeholder="50E-32407" />
             </Field>
+            <Field label={t('code')}>
+              <Input value={f.code} onChange={set('code')} placeholder="160-99362141" />
+            </Field>
             <Field label={t('model')} required>
               <Input value={f.model} onChange={set('model')} placeholder="Dongfeng 4.5T" />
             </Field>
@@ -167,6 +172,10 @@ export function TruckVehicleForm({
               <Input value={f.homeBase} onChange={set('homeBase')} />
             </Field>
           </div>
+
+          <Field label={t('notes')}>
+            <Input value={f.notes} onChange={set('notes')} placeholder={t('notesPlaceholder')} />
+          </Field>
 
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4 border-t border-border">
             {vehicleId && (

@@ -17,6 +17,9 @@ export const carUsers = pgTable(
     usrLocalRole: localRoleEnum('usr_local_role').notNull().default('DRIVER'),
     usrAmaRoleSnapshot: varchar('usr_ama_role_snapshot', { length: 32 }),
     usrPreferredLocale: varchar('usr_preferred_locale', { length: 8 }),
+    /* Last time the user opened the truck reports list — drives the "Mới" (new)
+     * badge: reports created after this mark count as new (REQ-20260629, R8). */
+    usrTruckReportsSeenAt: timestamp('usr_truck_reports_seen_at', { withTimezone: true }),
     usrLastLoginAt: timestamp('usr_last_login_at', { withTimezone: true }),
     usrCreatedAt: timestamp('usr_created_at', { withTimezone: true }).defaultNow().notNull(),
     usrUpdatedAt: timestamp('usr_updated_at', { withTimezone: true }),

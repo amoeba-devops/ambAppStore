@@ -1,8 +1,18 @@
 import 'server-only';
-import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, or, type SQL } from 'drizzle-orm';
+import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, ne, or, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
-import { carTrips, carTripExtraCosts, carDrivers, carUsers, carVehicles, type CarTripStatus } from '@car-v2/db/schema';
-import { computeTruckCost, parseAmount, type TruckCostBreakdown } from '@car-v2/core/truck';
+import {
+  carTrips,
+  carTripExtraCosts,
+  carTruckMonthClose,
+  carDrivers,
+  carUsers,
+  carVehicles,
+  type CarTripStatus,
+} from '@car-v2/db/schema';
+import { computeTruckCost, parseAmount, truckTripFuelCost, type TruckCostBreakdown } from '@car-v2/core/truck';
+
+const monthKey = (d: Date): string => d.toISOString().slice(0, 7);
 
 export interface TruckTripRow {
   trpId: string;
@@ -11,9 +21,17 @@ export interface TruckTripRow {
   customer: string | null;
   bol: string | null;
   status: CarTripStatus;
+  /** Vehicle plate / driver name for the trip-log table (design columns). */
+  plate: string | null;
+  driver: string | null;
   /** Distance = end − start odometer when both present. */
   km: number | null;
   breakdown: TruckCostBreakdown;
+  updatedAt: Date | null;
+  /** true once the trip's month is closed → fuel/profit are the official
+   * month-end figures; false → provisional (liters × price). Lets list views
+   * flag "Tạm tính" and keeps profit consistent with the finance/P&L screens. */
+  finalized: boolean;
 }
 
 export interface ListTruckTripsOpts {
@@ -21,6 +39,10 @@ export interface ListTruckTripsOpts {
   q?: string;
   /** Restrict to one month, 'YYYY-MM'. */
   month?: string;
+  /** Restrict to one vehicle. */
+  vehicleId?: string;
+  /** 'complete' = COMPLETED only · 'ongoing' = not completed · else all. */
+  status?: 'all' | 'complete' | 'ongoing';
 }
 
 /** Truck trip-log rows (newest first) with per-trip cost/profit computed from
@@ -46,6 +68,9 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
     );
     if (search) filters.push(search);
   }
+  if (opts.vehicleId) filters.push(eq(carTrips.trpVehicleId, opts.vehicleId));
+  if (opts.status === 'complete') filters.push(eq(carTrips.trpStatus, 'COMPLETED'));
+  else if (opts.status === 'ongoing') filters.push(ne(carTrips.trpStatus, 'COMPLETED'));
 
   const trips = await db
     .select()
@@ -67,25 +92,97 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
     extraByTrip.set(e.trpId, arr);
   }
 
-  return trips.map((t) => ({
-    trpId: t.trpId,
-    ref: t.trpRef,
-    scheduledAt: t.trpScheduledAt,
-    customer: t.trpCustomer,
-    bol: t.trpBol,
-    status: t.trpStatus,
-    km:
+  /* Plate + driver name for the table columns — batch lookups keep the main
+   * query a flat select. */
+  const vehIds = [...new Set(trips.map((t) => t.trpVehicleId).filter((v): v is string => !!v))];
+  const plateByVeh = new Map<string, string>();
+  if (vehIds.length) {
+    const vrows = await db
+      .select({ id: carVehicles.cvhId, plate: carVehicles.cvhPlateNumber })
+      .from(carVehicles)
+      .where(and(eq(carVehicles.entId, entId), inArray(carVehicles.cvhId, vehIds)));
+    for (const v of vrows) plateByVeh.set(v.id, v.plate);
+  }
+  const drvIds = [...new Set(trips.map((t) => t.trpDriverId).filter((v): v is string => !!v))];
+  const driverByDrv = new Map<string, string>();
+  if (drvIds.length) {
+    const drows = await db
+      .select({ id: carDrivers.drvId, name: carUsers.usrName })
+      .from(carDrivers)
+      .innerJoin(carUsers, eq(carDrivers.drvUserId, carUsers.usrId))
+      .where(and(eq(carDrivers.entId, entId), inArray(carDrivers.drvId, drvIds)));
+    for (const d of drows) if (d.name) driverByDrv.set(d.id, d.name);
+  }
+
+  /* Month-end fuel snapshot per closed month covered by the result. Closed
+   * months use km × consumption × avg price (official) so per-trip profit
+   * matches the finance/P&L screens; open months stay liters × price. */
+  const monthsInResult = [...new Set(trips.map((t) => monthKey(t.trpScheduledAt)))];
+  const closeRows = monthsInResult.length
+    ? await db
+        .select({
+          m: carTruckMonthClose.tmcMonth,
+          avgPrice: carTruckMonthClose.tmcAvgPrice,
+          consumption: carTruckMonthClose.tmcConsumption,
+        })
+        .from(carTruckMonthClose)
+        .where(
+          and(
+            eq(carTruckMonthClose.entId, entId),
+            eq(carTruckMonthClose.tmcVehicleType, 'TRUCK'),
+            inArray(carTruckMonthClose.tmcMonth, monthsInResult),
+            isNull(carTruckMonthClose.tmcDeletedAt),
+          ),
+        )
+    : [];
+  const snapByMonth = new Map<string, { avgPrice: number; consumption: number }>();
+  for (const c of closeRows) {
+    if (c.avgPrice != null && c.consumption != null) {
+      snapByMonth.set(c.m, { avgPrice: parseAmount(c.avgPrice), consumption: parseAmount(c.consumption) });
+    }
+  }
+
+  return trips.map((t) => {
+    const km =
       t.trpStartOdometer != null && t.trpEndOdometer != null
         ? t.trpEndOdometer - t.trpStartOdometer
-        : null,
-    breakdown: computeTruckCost({
-      fuelLiters: parseAmount(t.trpFuelLiters),
-      fuelPrice: parseAmount(t.trpFuelPrice),
-      tollFee: parseAmount(t.trpTollFee),
-      extraCosts: extraByTrip.get(t.trpId) ?? [],
-      revenue: parseAmount(t.trpRevenue),
-    }),
-  }));
+        : null;
+    const extraCosts = extraByTrip.get(t.trpId) ?? [];
+    const snap = snapByMonth.get(monthKey(t.trpScheduledAt));
+
+    let breakdown: TruckCostBreakdown;
+    if (snap) {
+      const fuelCost = truckTripFuelCost({ km: km ?? 0, consumption: snap.consumption, avgPrice: snap.avgPrice });
+      const tollFee = Math.round(parseAmount(t.trpTollFee));
+      const extraTotal = Math.round(extraCosts.reduce((s, n) => s + (n || 0), 0));
+      const revenue = Math.round(parseAmount(t.trpRevenue));
+      const totalCost = fuelCost + tollFee + extraTotal;
+      breakdown = { fuelCost, tollFee, extraTotal, totalCost, revenue, profit: revenue - totalCost };
+    } else {
+      breakdown = computeTruckCost({
+        fuelLiters: parseAmount(t.trpFuelLiters),
+        fuelPrice: parseAmount(t.trpFuelPrice),
+        tollFee: parseAmount(t.trpTollFee),
+        extraCosts,
+        revenue: parseAmount(t.trpRevenue),
+      });
+    }
+
+    return {
+      trpId: t.trpId,
+      ref: t.trpRef,
+      scheduledAt: t.trpScheduledAt,
+      customer: t.trpCustomer,
+      bol: t.trpBol,
+      status: t.trpStatus,
+      plate: t.trpVehicleId ? plateByVeh.get(t.trpVehicleId) ?? null : null,
+      driver: t.trpDriverId ? driverByDrv.get(t.trpDriverId) ?? null : null,
+      km,
+      breakdown,
+      updatedAt: t.trpUpdatedAt,
+      finalized: !!snap,
+    };
+  });
 }
 
 /** Most recent driver per truck (derived from trip-log history) — keyed by
@@ -118,73 +215,34 @@ export async function getLatestTruckDrivers(entId: string): Promise<Map<string, 
   return map;
 }
 
-/** One ranked row in a dashboard "TOP" list (truck or driver). */
-export interface TruckLeaderRow {
-  id: string;
-  label: string;
-  sub: string | null;
-  revenue: number;
-  trips: number;
-}
-
-export interface TruckLeaderboard {
-  trucks: TruckLeaderRow[];
-  drivers: TruckLeaderRow[];
-}
-
-/**
- * Top trucks + top drivers by revenue over a date range (REQ-20260622 audit G3).
- * Ranks the truck trip-log within [from, to). Lightweight: ranks by revenue
- * (no extra-cost join needed) — mirrors the design's "TOP" bars.
- */
-export async function getTruckLeaderboard(
-  entId: string,
-  from: Date,
-  to: Date,
-): Promise<TruckLeaderboard> {
+/** Most recent vehicle plate per driver (from trip-log history) — keyed by
+ * driver id. Drivers aren't statically assigned a truck, so the roster shows
+ * the latest one they drove. */
+export async function getLatestVehiclesByDriver(entId: string): Promise<Map<string, string>> {
   const rows = await db
     .select({
-      vehId: carTrips.trpVehicleId,
+      driverId: carTrips.trpDriverId,
       plate: carVehicles.cvhPlateNumber,
-      model: carVehicles.cvhModel,
-      drvId: carTrips.trpDriverId,
-      drvName: carUsers.usrName,
-      revenue: carTrips.trpRevenue,
+      scheduledAt: carTrips.trpScheduledAt,
     })
     .from(carTrips)
     .leftJoin(carVehicles, eq(carTrips.trpVehicleId, carVehicles.cvhId))
-    .leftJoin(carDrivers, eq(carTrips.trpDriverId, carDrivers.drvId))
-    .leftJoin(carUsers, eq(carDrivers.drvUserId, carUsers.usrId))
     .where(
       and(
         eq(carTrips.entId, entId),
         eq(carTrips.trpKind, 'LOG'),
+        isNotNull(carTrips.trpDriverId),
+        isNotNull(carTrips.trpVehicleId),
         isNull(carTrips.trpDeletedAt),
-        gte(carTrips.trpScheduledAt, from),
-        lt(carTrips.trpScheduledAt, to),
       ),
-    );
+    )
+    .orderBy(desc(carTrips.trpScheduledAt));
 
-  const byVeh = new Map<string, TruckLeaderRow>();
-  const byDrv = new Map<string, TruckLeaderRow>();
+  const map = new Map<string, string>();
   for (const r of rows) {
-    const rev = parseAmount(r.revenue);
-    if (r.vehId) {
-      const e = byVeh.get(r.vehId) ?? { id: r.vehId, label: r.plate ?? '—', sub: r.model ?? null, revenue: 0, trips: 0 };
-      e.revenue += rev;
-      e.trips += 1;
-      byVeh.set(r.vehId, e);
-    }
-    if (r.drvId) {
-      const e = byDrv.get(r.drvId) ?? { id: r.drvId, label: r.drvName ?? '—', sub: null, revenue: 0, trips: 0 };
-      e.revenue += rev;
-      e.trips += 1;
-      byDrv.set(r.drvId, e);
-    }
+    if (r.driverId && r.plate && !map.has(r.driverId)) map.set(r.driverId, r.plate);
   }
-  const top = (m: Map<string, TruckLeaderRow>) =>
-    [...m.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
-  return { trucks: top(byVeh), drivers: top(byDrv) };
+  return map;
 }
 
 /** Structured extra-cost rows for one truck trip (detail breakdown). */

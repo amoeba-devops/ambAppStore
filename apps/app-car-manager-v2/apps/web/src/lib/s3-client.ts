@@ -1,5 +1,5 @@
 import 'server-only';
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 let cached: S3Client | null = null;
@@ -48,4 +48,18 @@ export async function getSignedGetUrl(key: string, expiresIn = 900): Promise<str
   } catch {
     return null;
   }
+}
+
+/* Server-side upload of a generated file (e.g. a report workbook). Unlike
+ * receipts — which the browser PUTs straight to S3 via a presigned URL — these
+ * are built on the server, so we push the bytes directly. Throws if S3 isn't
+ * configured (caller surfaces a clear error). */
+export async function putObject(key: string, body: Uint8Array, contentType: string): Promise<void> {
+  const cmd = new PutObjectCommand({
+    Bucket: getS3Bucket(),
+    Key: key,
+    Body: body,
+    ContentType: contentType,
+  });
+  await getS3Client().send(cmd);
 }

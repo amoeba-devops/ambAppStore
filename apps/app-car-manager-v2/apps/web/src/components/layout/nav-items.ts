@@ -2,6 +2,9 @@ import {
   CalendarClock,
   ClipboardList,
   Car,
+  Coins,
+  FilePlus,
+  FileText,
   IdCard,
   KeyRound,
   LayoutDashboard,
@@ -9,10 +12,8 @@ import {
   ScrollText,
   Settings as SettingsIcon,
   Truck,
-  Upload,
   UserCog,
   User as UserIcon,
-  Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import type { LocalRole } from '@car-v2/shared/auth';
@@ -35,18 +36,26 @@ export type NavKey =
   | 'truckDashboard'
   | 'truckTrips'
   | 'truckFleet'
-  | 'truckPnl'
+  | 'truckFinance'
   | 'truckDrivers'
-  | 'truckImport'
+  | 'truckReportCreate'
+  | 'truckReports'
   | 'truckSettings'
   | 'me'
   | 'audit';
+
+/** Sub-section within the workspace group. Truck workspace nav is organized
+ * into these labeled sections to match the design IA (Vận hành / Tài chính /
+ * Dữ liệu / Báo cáo). Car workspace items omit `section` → single group. */
+export type NavSection = 'operations' | 'finance' | 'data' | 'reports';
 
 export interface NavItem {
   key: NavKey;
   href: string;
   Icon: LucideIcon;
   group: 'workspace' | 'admin';
+  /** Optional sub-section heading within the workspace group (truck IA). */
+  section?: NavSection;
   /** Roles allowed to see this nav item. */
   roles: readonly LocalRole[];
   /** When set, the item only appears in this fleet department context.
@@ -97,15 +106,24 @@ export const NAV_ITEMS: NavItem[] = [
    * form, so this tab is fleet:'CAR' (hidden for a truck driver → 3 tabs). */
   { key: 'expensesNew', href: '/expenses',      Icon: Receipt,         group: 'workspace', roles: DRIVER, fleet: 'CAR' },
   { key: 'vehicles',    href: '/vehicles',      Icon: Car,             group: 'workspace', roles: STAFF, fleet: 'CAR'  },
-  /* ── Truck workspace (fleet='TRUCK', shown only in the truck dept context) ── */
-  { key: 'truckDashboard', href: '/truck/dashboard', Icon: LayoutDashboard, group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
-  { key: 'truckTrips',  href: '/truck/trips',   Icon: ClipboardList,   group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
-  { key: 'truckFleet',  href: '/truck/fleet',   Icon: Truck,           group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
-  { key: 'truckPnl',    href: '/truck/pnl',     Icon: Wallet,          group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
-  /* Truck drivers roster — department-scoped (REQ-20260622 audit G5). */
-  { key: 'truckDrivers', href: '/truck/drivers', Icon: IdCard,         group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
-  { key: 'truckImport', href: '/truck/import',  Icon: Upload,          group: 'workspace', roles: STAFF, fleet: 'TRUCK' },
-  /* truckSettings folded into truckPnl ("Chi phí & Lợi nhuận") — REQ-20260623 G4. */
+  /* ── Truck workspace (fleet='TRUCK', shown only in the truck dept context).
+   *    Organized into 4 sections matching the design IA (REQ-20260629):
+   *    Vận hành · Tài chính · Dữ liệu · Báo cáo. Order within = display order. ── */
+  /* Vận hành */
+  { key: 'truckDashboard', href: '/truck/dashboard', Icon: LayoutDashboard, group: 'workspace', section: 'operations', roles: STAFF, fleet: 'TRUCK' },
+  { key: 'truckTrips',  href: '/truck/trips',   Icon: ClipboardList,   group: 'workspace', section: 'operations', roles: STAFF, fleet: 'TRUCK' },
+  { key: 'truckFleet',  href: '/truck/fleet',   Icon: Truck,           group: 'workspace', section: 'operations', roles: STAFF, fleet: 'TRUCK' },
+  { key: 'truckDrivers', href: '/truck/drivers', Icon: IdCard,         group: 'workspace', section: 'operations', roles: STAFF, fleet: 'TRUCK' },
+  /* Tài chính — single menu (design wires only "Chi phí và Lợi nhuận"). The
+   * P&L overview + month close live under /truck/pnl as tabs of this same menu
+   * (shared FinanceTabs), so there's no separate nav item. */
+  { key: 'truckFinance', href: '/truck/finance', Icon: Coins,          group: 'workspace', section: 'finance', roles: STAFF, fleet: 'TRUCK' },
+  /* Import Excel has NO sidebar menu (design IA) — reached from the trip-log
+   * header button. The /truck/import route + wizard stay. */
+  /* Báo cáo (REQ-20260629 R8): lập báo cáo + danh sách lưu trữ (badge "Mới"). */
+  { key: 'truckReportCreate', href: '/truck/reports/new', Icon: FilePlus, group: 'workspace', section: 'reports', roles: STAFF, fleet: 'TRUCK' },
+  { key: 'truckReports', href: '/truck/reports', Icon: FileText,       group: 'workspace', section: 'reports', roles: STAFF, fleet: 'TRUCK' },
+  /* truckSettings folded into truckPnl — REQ-20260623 G4. */
   /* Car drivers roster (CCMS). Tagged CAR so the truck workspace shows its own
    * `truckDrivers` instead (department separation). */
   { key: 'drivers',     href: '/drivers',       Icon: IdCard,          group: 'workspace', roles: STAFF, fleet: 'CAR'   },
@@ -172,6 +190,11 @@ export function clearlyDept(pathname: string): FleetDept | null {
 export function activeKeyFor(pathname: string, role?: LocalRole): NavKey {
   const fallback: NavKey = role === 'DRIVER' ? 'today' : 'dashboard';
   if (pathname === '/') return fallback;
+  /* P&L overview + month close are tabs of the "Chi phí và Lợi nhuận" menu
+   * (truckFinance) but live under /truck/pnl — keep that menu highlighted. */
+  if (pathname.startsWith('/truck/pnl')) return 'truckFinance';
+  /* Import has no sidebar menu — it's a sub-flow of the trip log; keep Trips lit. */
+  if (pathname.startsWith('/truck/import')) return 'truckTrips';
   let bestKey: NavKey = fallback;
   let bestLen = 0;
   for (const item of NAV_ITEMS) {

@@ -10,18 +10,18 @@ import {
   deleteFuelInvoiceAction,
 } from '@/server/actions/settings/truck-finance.actions';
 import { formatActionError } from '@/lib/format-action-error';
-import type { FuelInvoiceRow, FuelStats } from '@/server/queries/truck-finance.queries';
+import type { FuelInvoiceRow } from '@/server/queries/truck-finance.queries';
 
-/** Monthly fuel-invoice ledger + derived avg price / consumption (REQ-20260623 P3). */
+/** Monthly fuel-invoice ledger + add form. The derived month-end snapshot
+ * (avg price / consumption / total fuel) is shown by the page's computation
+ * card; this panel just manages the invoice rows (REQ-20260629). */
 export function FuelInvoicePanel({
   month,
   invoices,
-  stats,
   locked,
 }: {
   month: string;
   invoices: FuelInvoiceRow[];
-  stats: FuelStats;
   locked: boolean;
 }) {
   const t = useTranslations('screens.truckPnl');
@@ -61,11 +61,6 @@ export function FuelInvoicePanel({
   return (
     <Card variant="outline" className="p-4 space-y-3">
       <h2 className="text-sm font-semibold text-text">{t('fuelLedger')}</h2>
-      <div className="grid grid-cols-3 gap-2">
-        <Stat label={t('avgPrice')} value={vnd(stats.avgPrice)} />
-        <Stat label={t('consumption')} value={`${stats.consumption.toFixed(3)} L/km`} />
-        <Stat label={t('invoiceLiters')} value={`${stats.invoiceLiters.toLocaleString('vi-VN')} L`} />
-      </div>
       {invoices.length > 0 && (
         <ul className="divide-y divide-border rounded-md border border-border">
           {invoices.map((i) => (
@@ -103,14 +98,5 @@ export function FuelInvoicePanel({
         </div>
       )}
     </Card>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md bg-surface-2 px-3 py-2">
-      <div className="text-xs text-text-muted">{label}</div>
-      <div className="font-semibold text-text tabular text-sm">{value}</div>
-    </div>
   );
 }

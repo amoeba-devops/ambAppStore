@@ -29,6 +29,7 @@ export async function createVehicleAction(input: unknown): Promise<ActionResult<
         cvhId: randomUUID(),
         entId: actor.entId,
         cvhPlateNumber: data.plate_number,
+        cvhCode: data.code ?? null,
         cvhModel: data.model,
         cvhMake: data.make ?? null,
         cvhYear: data.year ?? null,
@@ -58,6 +59,7 @@ export async function createVehicleAction(input: unknown): Promise<ActionResult<
     });
 
     revalidatePath('/vehicles');
+    revalidatePath('/truck/fleet');
     return created;
   });
 }
@@ -75,6 +77,7 @@ export async function updateVehicleAction(id: string, input: unknown): Promise<A
 
     const patch: Partial<typeof carVehicles.$inferInsert> = { cvhUpdatedAt: new Date() };
     if (data.plate_number !== undefined) patch.cvhPlateNumber = data.plate_number;
+    if (data.code        !== undefined) patch.cvhCode = data.code;
     if (data.model       !== undefined) patch.cvhModel = data.model;
     if (data.make        !== undefined) patch.cvhMake = data.make;
     if (data.year        !== undefined) patch.cvhYear = data.year;
@@ -111,6 +114,7 @@ export async function updateVehicleAction(id: string, input: unknown): Promise<A
 
     revalidatePath('/vehicles');
     revalidatePath(`/vehicles/${id}`);
+    revalidatePath('/truck/fleet');
     return updated;
   });
 }

@@ -1,5 +1,14 @@
 import { isNull } from 'drizzle-orm';
-import { pgTable, char, varchar, text, timestamp, uniqueIndex, index } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  char,
+  varchar,
+  text,
+  decimal,
+  timestamp,
+  uniqueIndex,
+  index,
+} from 'drizzle-orm/pg-core';
 import { vehicleTypeEnum } from './vehicles.schema';
 
 /**
@@ -24,6 +33,14 @@ export const carTruckMonthClose = pgTable(
     tmcMonth: varchar('tmc_month', { length: 7 }).notNull(),
     tmcClosedBy: char('tmc_closed_by', { length: 36 }),
     tmcClosedAt: timestamp('tmc_closed_at', { withTimezone: true }).defaultNow().notNull(),
+    /* Month-end fuel snapshot, computed & frozen at close (REQ-20260629). The
+     * official per-trip fuel cost = trip km × tmc_consumption × tmc_avg_price
+     * (customer SRS netcost.txt). NULL on rows closed before 0016 → P&L falls
+     * back to the trip's own liters × price. Set again on each re-close. */
+    tmcAvgPrice: decimal('tmc_avg_price', { precision: 14, scale: 2 }),
+    tmcConsumption: decimal('tmc_consumption', { precision: 10, scale: 6 }),
+    tmcTotalLiters: decimal('tmc_total_liters', { precision: 12, scale: 2 }),
+    tmcTotalKm: decimal('tmc_total_km', { precision: 12, scale: 2 }),
     /* Reopen audit (mandatory reason captured at reopen). */
     tmcReopenReason: text('tmc_reopen_reason'),
     tmcReopenedBy: char('tmc_reopened_by', { length: 36 }),

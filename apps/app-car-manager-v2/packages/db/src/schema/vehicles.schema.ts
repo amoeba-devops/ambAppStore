@@ -47,6 +47,9 @@ export const carVehicles = pgTable(
     cvhId: char('cvh_id', { length: 36 }).primaryKey(),
     entId: char('ent_id', { length: 36 }).notNull(),
     cvhPlateNumber: varchar('cvh_plate_number', { length: 20 }).notNull(),
+    /* Free-text internal code / registration ("Mã xe") shown in the truck fleet
+     * table (REQ-20260629). Nullable. */
+    cvhCode: varchar('cvh_code', { length: 120 }),
     cvhModel: varchar('cvh_model', { length: 100 }).notNull(),
     cvhMake: varchar('cvh_make', { length: 50 }),
     cvhYear: smallint('cvh_year'),

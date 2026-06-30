@@ -4,11 +4,12 @@ import {
   carTrips,
   carTripExtraCosts,
   carTruckFixedCosts,
+  carTruckMonthClose,
   carDrivers,
   carUserFleetAccess,
 } from '@car-v2/db/schema';
 import type { FleetActor } from '../types';
-import { parseAmount } from './truck-cost';
+import { parseAmount, truckTripFuelCost } from './truck-cost';
 
 /**
  * Monthly P&L per truck (REQ-20260617, customer SRS §2.3):
@@ -86,6 +87,8 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
       scheduledAt: carTrips.trpScheduledAt,
       fuelLiters: carTrips.trpFuelLiters,
       fuelPrice: carTrips.trpFuelPrice,
+      startOdometer: carTrips.trpStartOdometer,
+      endOdometer: carTrips.trpEndOdometer,
       tollFee: carTrips.trpTollFee,
       revenue: carTrips.trpRevenue,
     })
@@ -130,6 +133,36 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
       ),
     );
 
+  /* Month-end fuel snapshot per closed month (REQ-20260629). The close is
+   * dept-wide (ent, TRUCK, month) so the same avg price + consumption apply to
+   * every truck's trips regardless of the vehicle filter. A month with a live
+   * close row AND non-null snapshot → official fuel cost = km × consumption ×
+   * avg price; otherwise the trip's own liters × price (fallback below). */
+  const closeRows = await db
+    .select({
+      month: carTruckMonthClose.tmcMonth,
+      avgPrice: carTruckMonthClose.tmcAvgPrice,
+      consumption: carTruckMonthClose.tmcConsumption,
+    })
+    .from(carTruckMonthClose)
+    .where(
+      and(
+        eq(carTruckMonthClose.entId, actor.entId),
+        eq(carTruckMonthClose.tmcVehicleType, 'TRUCK'),
+        inArray(carTruckMonthClose.tmcMonth, months),
+        isNull(carTruckMonthClose.tmcDeletedAt),
+      ),
+    );
+  const snapByMonth = new Map<string, { avgPrice: number; consumption: number }>();
+  for (const c of closeRows) {
+    if (c.avgPrice != null && c.consumption != null) {
+      snapByMonth.set(c.month, {
+        avgPrice: parseAmount(c.avgPrice),
+        consumption: parseAmount(c.consumption),
+      });
+    }
+  }
+
   /* Driver fixed salary — fleet-level monthly recurring cost. Only attributed
    * in the all-trucks view; a single-vehicle filter leaves it 0 because driver
    * salary isn't tied to a specific vehicle. */
@@ -155,10 +188,18 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
   for (const m of months) rows.set(m, emptyRow(m));
 
   for (const t of trips) {
-    const row = rows.get(monthKey(t.scheduledAt));
+    const mk = monthKey(t.scheduledAt);
+    const row = rows.get(mk);
     if (!row) continue;
     row.revenue += Math.round(parseAmount(t.revenue));
-    row.fuelCost += Math.round(parseAmount(t.fuelLiters) * parseAmount(t.fuelPrice));
+    const snap = snapByMonth.get(mk);
+    if (snap) {
+      const km =
+        t.startOdometer != null && t.endOdometer != null ? t.endOdometer - t.startOdometer : 0;
+      row.fuelCost += truckTripFuelCost({ km, consumption: snap.consumption, avgPrice: snap.avgPrice });
+    } else {
+      row.fuelCost += Math.round(parseAmount(t.fuelLiters) * parseAmount(t.fuelPrice));
+    }
     row.tollFee += Math.round(parseAmount(t.tollFee));
     row.extraTotal += Math.round(extraByTrip.get(t.trpId) ?? 0);
     row.tripCount += 1;

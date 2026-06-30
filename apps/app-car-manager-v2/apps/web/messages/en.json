@@ -20,7 +20,7 @@
     "truckDashboard": "Dashboard",
     "truckTrips": "Trip log",
     "truckFleet": "Truck fleet",
-    "truckPnl": "Costs & P&L",
+    "truckPnl": "Monthly P&L & Close",
     "truckDrivers": "Truck drivers",
     "truckImport": "Import Excel",
     "truckSettings": "Truck settings",
@@ -39,7 +39,10 @@
     "pendingCountTitle": "{n} trips pending action",
     "pendingBadgeLabel": "pending",
     "todayCountTitle": "{n} expenses recorded today",
-    "todayBadgeLabel": "today"
+    "todayBadgeLabel": "today",
+    "truckFinance": "Cost & Profit",
+    "truckReports": "Reports",
+    "truckReportCreate": "Create report"
   },
   "actions": {
     "new": "New",
@@ -177,7 +180,7 @@
       "kpiTrips": "Trips",
       "recentTitle": "Recent trips",
       "viewAll": "View all",
-      "chartProfit": "Net profit by month",
+      "chartProfit": "Revenue & profit by month",
       "costStructure": "Cost structure",
       "fleetStatus": "Fleet status",
       "noData": "No data yet",
@@ -189,8 +192,16 @@
         "last3": "3 months",
         "last6": "6 months",
         "ytd": "Year to date",
-        "all": "12 months"
-      }
+        "all": "12 months",
+        "quickAccess": "Quick access",
+        "customRange": "Custom range",
+        "apply": "Apply"
+      },
+      "vsPrev": "vs prev",
+      "kpiCostSub": "Salary · Deprec · Fuel · Parking · Toll",
+      "kpiTripsSub": "Aggregated from trip log",
+      "perTrip": "per trip",
+      "perMonth": "per month"
     },
     "truckDrivers": {
       "title": "Truck drivers",
@@ -203,7 +214,17 @@
         "ON_TRIP": "On trip",
         "OFF_DUTY": "Off duty",
         "UNAVAILABLE": "Unavailable"
-      }
+      },
+      "thDriver": "Driver",
+      "thVehicle": "Vehicle",
+      "thLicense": "License no.",
+      "thClass": "Class",
+      "thExpiry": "Expiry",
+      "thPhone": "Phone",
+      "thEmergency": "Emergency contact",
+      "thStatus": "Status",
+      "thUpdated": "Updated",
+      "thNotes": "Notes"
     },
     "truckPnl": {
       "title": "Cost & Profit",
@@ -244,7 +265,23 @@
       "deleteInvoice": "Delete invoice",
       "lockedHint": "Month is closed — editing is disabled.",
       "fixedCostsTitle": "Fixed costs for {month}",
-      "noTrucks": "No trucks yet"
+      "noTrucks": "No trucks yet",
+      "tabOverview": "P&L overview",
+      "tabInvoices": "Invoices & month close",
+      "provisionalBanner": "The selected period has an unclosed month — variable cost & profit are provisional.",
+      "goCloseMonth": "Go to month close →",
+      "variableTitle": "Variable cost",
+      "variableHint": "Accrues per trip. Final only once the month has all fuel invoices & total km.",
+      "fixedTitle": "Fixed cost",
+      "fixedHint": "Fixed monthly, independent of trip count.",
+      "monthEndTitle": "Month-end summary",
+      "totalKm": "Total km this month",
+      "totalFuel": "Total fuel this month",
+      "monthEndFormula": "Consumption = total litres ÷ total km. Fuel per trip = consumption × trip km × average price.",
+      "adjustmentHistory": "Adjustment history",
+      "reopenedEntry": "Month reopened",
+      "reasonLabel": "Reason",
+      "reopenAdminOnly": "Only an Admin can reopen"
     },
     "truckComplete": {
       "completeCta": "Complete trip",
@@ -304,7 +341,36 @@
       "runImport": "Import",
       "importedToast": "Imported {count} trips",
       "noRows": "No valid data rows found",
-      "parseError": "Could not read the file"
+      "parseError": "Could not read the file",
+      "dropHere": "Drag & drop your Excel file here",
+      "dropHint": ".xls / .xlsx — one file per vehicle, one sheet per month",
+      "sheetLabel": "Sheet (each = 1 month)",
+      "mappingTitle": "Column mapping",
+      "mappingHint": "Match Excel columns to system fields. Auto-guessed from headers — adjust if needed.",
+      "colUnused": "(unused)",
+      "colN": "Column {n}",
+      "validRows": "{n} valid",
+      "invalidRows": "{n} invalid",
+      "rowInvalid": "Missing date",
+      "importSheet": "Import {n} rows",
+      "f": {
+        "date": "Date",
+        "start_time": "Start time",
+        "end_time": "End time",
+        "customer": "Customer",
+        "pickup": "Pickup",
+        "dropoff": "Drop-off",
+        "odo_start": "Odo start",
+        "odo_end": "Odo end",
+        "fuel_liters": "Fuel (L)",
+        "fuel_price": "Unit price",
+        "toll": "Toll",
+        "other_amount": "Other cost",
+        "other_note": "Other note",
+        "bol": "BOL",
+        "cdf": "CDF",
+        "revenue": "Revenue"
+      }
     },
     "truckSettings": {
       "title": "Truck settings",
@@ -334,8 +400,8 @@
       "thDate": "Date",
       "thCustomer": "Customer · BOL",
       "thKm": "Km",
-      "thFuel": "Fuel",
-      "thOther": "Other",
+      "thFuel": "Fuel cost",
+      "thOther": "Other costs",
       "thRevenue": "Revenue",
       "thProfit": "Profit",
       "thStatus": "Status",
@@ -412,7 +478,16 @@
           "totalDistance": "Total distance",
           "remove": "Remove stop"
         }
-      }
+      },
+      "provisional": "Provisional",
+      "thVehicle": "Vehicle",
+      "thDriver": "Driver",
+      "thToll": "Toll",
+      "thUpdated": "Updated",
+      "allVehicles": "All vehicles",
+      "allStatus": "All statuses",
+      "template": "Template",
+      "importExcel": "Import Excel"
     },
     "truckFleet": {
       "title": "Truck fleet",
@@ -451,8 +526,21 @@
         "updatedToast": "Truck {plate} updated",
         "delete": "Delete",
         "deleteConfirm": "Delete this truck?",
-        "deletedToast": "Truck deleted"
-      }
+        "deletedToast": "Truck deleted",
+        "code": "Vehicle code",
+        "notes": "Notes",
+        "notesPlaceholder": "Additional notes…"
+      },
+      "thCode": "Code",
+      "thPlate": "Plate",
+      "thModel": "Name / Description",
+      "thConsumption": "Consumption",
+      "thDepreciation": "Depreciation",
+      "thDriver": "Driver",
+      "thOdometer": "Odometer",
+      "thStatus": "Status",
+      "thUpdated": "Updated",
+      "thNotes": "Notes"
     },
     "audit": {
       "title": "Audit log",
@@ -461,6 +549,73 @@
     "reports": {
       "title": "Reports",
       "subtitle": "Trip and cost analytics"
+    },
+    "truckFinance": {
+      "title": "Cost & Profit",
+      "subtitle": "{count} trips this month",
+      "export": "Export Excel",
+      "emptyTitle": "No trips yet",
+      "emptyDesc": "No completed trips this month to compute cost & profit.",
+      "provisional": "Provisional",
+      "finalized": "Closed",
+      "allTrucks": "All vehicles",
+      "sumRevenue": "Monthly revenue",
+      "sumFuel": "Fuel cost",
+      "sumToll": "Toll",
+      "sumOther": "Other costs",
+      "sumDriverSalary": "Driver salary",
+      "sumFixed": "Fixed cost",
+      "sumNet": "Net profit",
+      "thDate": "Date",
+      "thVehicle": "Vehicle",
+      "thDriver": "Driver",
+      "thCustomer": "Customer",
+      "thKm": "Total km",
+      "thToll": "Toll",
+      "thOther": "Other",
+      "thUnitPrice": "Unit price",
+      "thLiters": "Litres",
+      "thFuel": "Fuel",
+      "thRevenue": "Revenue",
+      "thProfit": "Profit",
+      "thStatus": "Status",
+      "searchPlaceholder": "Search BOL / CDF / customer",
+      "tabTrips": "By trip",
+      "tabOverview": "P&L overview",
+      "tabInvoices": "Invoices & close"
+    },
+    "truckReports": {
+      "title": "Reports",
+      "subtitle": "{count} reports",
+      "createBtn": "Create report",
+      "emptyTitle": "No reports yet",
+      "emptyDesc": "Create the first monthly report for the truck fleet.",
+      "groupCount": "{count} reports",
+      "thName": "Report name",
+      "thFormat": "Format",
+      "thCreated": "Created at",
+      "thBy": "Created by",
+      "thDownload": "Download",
+      "newBadge": "New",
+      "download": "Download",
+      "createTitle": "Create report",
+      "createSubtitle": "Pick a month and the report types to generate",
+      "selectMonth": "Report month",
+      "selectTypes": "Report types",
+      "type_PNL": "Cost & profit",
+      "type_TRIP_LOG": "Trip log",
+      "type_VEHICLE": "Vehicles",
+      "createHint": "Each selected type generates one Excel file saved to the reports list.",
+      "generateBtn": "Create report",
+      "generatedToast": "Created {count} report(s)",
+      "filterByMonth": "Filter by month",
+      "allMonths": "All months",
+      "step1Title": "Step 1 · Pick month",
+      "step1Hint": "Pick the report period. Covers every vehicle with trips that month.",
+      "step2Title": "Step 2 · Report type",
+      "monthN": "Month {n}",
+      "exported": "Exported",
+      "open": "Open"
     }
   },
   "phase": {
@@ -1880,5 +2035,11 @@
     "loading": "Loading guide…",
     "localeNote": "Showing {locale} version · UI: {uiLocale}",
     "viewIndex": "View index"
+  },
+  "navSections": {
+    "operations": "Operations",
+    "finance": "Finance",
+    "data": "Data",
+    "reports": "Reports"
   }
 }

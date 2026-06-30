@@ -20,7 +20,7 @@
     "truckDashboard": "대시보드",
     "truckTrips": "운행 일지",
     "truckFleet": "트럭 차량",
-    "truckPnl": "비용/손익",
+    "truckPnl": "월 손익 & 마감",
     "truckDrivers": "트럭 기사",
     "truckImport": "엑셀 가져오기",
     "truckSettings": "트럭 설정",
@@ -39,7 +39,10 @@
     "pendingCountTitle": "{n}건의 운행이 대기 중",
     "pendingBadgeLabel": "대기",
     "todayCountTitle": "오늘 기록된 비용 {n}건",
-    "todayBadgeLabel": "오늘"
+    "todayBadgeLabel": "오늘",
+    "truckFinance": "비용 및 손익",
+    "truckReports": "보고서 목록",
+    "truckReportCreate": "보고서 작성"
   },
   "actions": {
     "new": "신규",
@@ -177,7 +180,7 @@
       "kpiTrips": "운행 수",
       "recentTitle": "최근 운행",
       "viewAll": "전체 보기",
-      "chartProfit": "월별 순이익",
+      "chartProfit": "월별 매출 및 손익",
       "costStructure": "비용 구조",
       "fleetStatus": "차량 현황",
       "noData": "데이터 없음",
@@ -189,8 +192,16 @@
         "last3": "3개월",
         "last6": "6개월",
         "ytd": "올해",
-        "all": "12개월"
-      }
+        "all": "12개월",
+        "quickAccess": "빠른 선택",
+        "customRange": "사용자 지정 기간",
+        "apply": "적용"
+      },
+      "vsPrev": "전기 대비",
+      "kpiCostSub": "급여 · 감가 · 연료 · 주차 · 통행료",
+      "kpiTripsSub": "운행 일지 집계",
+      "perTrip": "운행별",
+      "perMonth": "월별"
     },
     "truckDrivers": {
       "title": "트럭 기사",
@@ -203,7 +214,17 @@
         "ON_TRIP": "운행 중",
         "OFF_DUTY": "비번",
         "UNAVAILABLE": "비활성"
-      }
+      },
+      "thDriver": "기사",
+      "thVehicle": "차량",
+      "thLicense": "면허 번호",
+      "thClass": "종별",
+      "thExpiry": "만료일",
+      "thPhone": "전화",
+      "thEmergency": "비상 연락처",
+      "thStatus": "상태",
+      "thUpdated": "수정",
+      "thNotes": "비고"
     },
     "truckPnl": {
       "title": "비용 & 이익",
@@ -244,7 +265,23 @@
       "deleteInvoice": "영수증 삭제",
       "lockedHint": "마감된 월 — 편집할 수 없습니다.",
       "fixedCostsTitle": "{month} 고정비",
-      "noTrucks": "트럭 없음"
+      "noTrucks": "트럭 없음",
+      "tabOverview": "손익 개요",
+      "tabInvoices": "전표 & 월 마감",
+      "provisionalBanner": "선택한 기간에 마감되지 않은 월이 있어 변동비·이익은 잠정값입니다.",
+      "goCloseMonth": "월 마감하러 가기 →",
+      "variableTitle": "변동비",
+      "variableHint": "운행별로 발생. 월말에 주유 전표와 총 km가 모두 있어야 확정됩니다.",
+      "fixedTitle": "고정비",
+      "fixedHint": "운행 수와 무관한 월 고정비.",
+      "monthEndTitle": "월말 집계",
+      "totalKm": "당월 총 km",
+      "totalFuel": "당월 총 연료비",
+      "monthEndFormula": "연비 = 총 리터 ÷ 총 km. 운행별 연료비 = 연비 × 운행 km × 평균 단가.",
+      "adjustmentHistory": "조정 이력",
+      "reopenedEntry": "월 재오픈됨",
+      "reasonLabel": "사유",
+      "reopenAdminOnly": "관리자만 재오픈할 수 있습니다"
     },
     "truckComplete": {
       "completeCta": "운행 완료",
@@ -304,7 +341,36 @@
       "runImport": "가져오기",
       "importedToast": "{count}건 가져옴",
       "noRows": "유효한 데이터 행이 없습니다",
-      "parseError": "파일을 읽을 수 없습니다"
+      "parseError": "파일을 읽을 수 없습니다",
+      "dropHere": "엑셀 파일을 여기에 끌어다 놓으세요",
+      "dropHint": ".xls / .xlsx — 차량당 파일 1개, 월당 시트 1개",
+      "sheetLabel": "시트 (각 = 1개월)",
+      "mappingTitle": "열 매핑",
+      "mappingHint": "엑셀 열을 시스템 필드에 매핑하세요. 헤더로 자동 추정됨 — 필요시 조정.",
+      "colUnused": "(사용 안 함)",
+      "colN": "{n}번 열",
+      "validRows": "유효 {n}건",
+      "invalidRows": "오류 {n}건",
+      "rowInvalid": "날짜 없음",
+      "importSheet": "{n}건 가져오기",
+      "f": {
+        "date": "날짜",
+        "start_time": "시작 시간",
+        "end_time": "종료 시간",
+        "customer": "고객",
+        "pickup": "상차지",
+        "dropoff": "하차지",
+        "odo_start": "시작 주행",
+        "odo_end": "종료 주행",
+        "fuel_liters": "연료(L)",
+        "fuel_price": "단가",
+        "toll": "통행료",
+        "other_amount": "기타 비용",
+        "other_note": "기타 메모",
+        "bol": "BOL",
+        "cdf": "CDF",
+        "revenue": "매출"
+      }
     },
     "truckSettings": {
       "title": "트럭 설정",
@@ -334,8 +400,8 @@
       "thDate": "날짜",
       "thCustomer": "고객 · BOL",
       "thKm": "Km",
-      "thFuel": "연료",
-      "thOther": "기타",
+      "thFuel": "연료비",
+      "thOther": "기타 비용",
       "thRevenue": "매출",
       "thProfit": "이익",
       "thStatus": "상태",
@@ -412,7 +478,16 @@
           "totalDistance": "총 거리",
           "remove": "경유지 삭제"
         }
-      }
+      },
+      "provisional": "잠정",
+      "thVehicle": "차량",
+      "thDriver": "기사",
+      "thToll": "통행료",
+      "thUpdated": "수정",
+      "allVehicles": "전체 차량",
+      "allStatus": "전체 상태",
+      "template": "양식",
+      "importExcel": "엑셀 가져오기"
     },
     "truckFleet": {
       "title": "트럭 차량",
@@ -451,8 +526,21 @@
         "updatedToast": "트럭 {plate} 수정됨",
         "delete": "삭제",
         "deleteConfirm": "이 트럭을 삭제할까요?",
-        "deletedToast": "트럭 삭제됨"
-      }
+        "deletedToast": "트럭 삭제됨",
+        "code": "차량 코드",
+        "notes": "비고",
+        "notesPlaceholder": "추가 메모…"
+      },
+      "thCode": "차량 코드",
+      "thPlate": "번호판",
+      "thModel": "이름 / 설명",
+      "thConsumption": "연비",
+      "thDepreciation": "감가상각",
+      "thDriver": "기사",
+      "thOdometer": "주행거리",
+      "thStatus": "상태",
+      "thUpdated": "수정",
+      "thNotes": "비고"
     },
     "audit": {
       "title": "감사 로그",
@@ -461,6 +549,73 @@
     "reports": {
       "title": "보고서",
       "subtitle": "운행 및 비용 분석"
+    },
+    "truckFinance": {
+      "title": "비용 및 손익",
+      "subtitle": "당월 운행 {count}건",
+      "export": "엑셀 내보내기",
+      "emptyTitle": "운행 없음",
+      "emptyDesc": "당월에 비용·손익을 계산할 완료된 운행이 없습니다.",
+      "provisional": "잠정",
+      "finalized": "마감됨",
+      "allTrucks": "전체 차량",
+      "sumRevenue": "당월 매출",
+      "sumFuel": "연료비",
+      "sumToll": "통행료",
+      "sumOther": "기타 비용",
+      "sumDriverSalary": "기사 급여",
+      "sumFixed": "고정비",
+      "sumNet": "순이익",
+      "thDate": "날짜",
+      "thVehicle": "차량",
+      "thDriver": "기사",
+      "thCustomer": "고객",
+      "thKm": "총 km",
+      "thToll": "통행료",
+      "thOther": "기타",
+      "thUnitPrice": "단가",
+      "thLiters": "리터",
+      "thFuel": "연료비",
+      "thRevenue": "매출",
+      "thProfit": "이익",
+      "thStatus": "상태",
+      "searchPlaceholder": "BOL / CDF / 고객 검색",
+      "tabTrips": "운행별",
+      "tabOverview": "손익 개요",
+      "tabInvoices": "전표 & 마감"
+    },
+    "truckReports": {
+      "title": "보고서 목록",
+      "subtitle": "보고서 {count}건",
+      "createBtn": "보고서 작성",
+      "emptyTitle": "보고서 없음",
+      "emptyDesc": "트럭 차량의 첫 월간 보고서를 작성하세요.",
+      "groupCount": "보고서 {count}건",
+      "thName": "보고서 이름",
+      "thFormat": "형식",
+      "thCreated": "생성 시각",
+      "thBy": "작성자",
+      "thDownload": "다운로드",
+      "newBadge": "신규",
+      "download": "다운로드",
+      "createTitle": "보고서 작성",
+      "createSubtitle": "월과 보고서 유형을 선택하세요",
+      "selectMonth": "보고서 월",
+      "selectTypes": "보고서 유형",
+      "type_PNL": "비용 및 손익",
+      "type_TRIP_LOG": "운행 일지",
+      "type_VEHICLE": "차량",
+      "createHint": "선택한 유형마다 엑셀 파일을 생성해 보고서 목록에 저장합니다.",
+      "generateBtn": "보고서 작성",
+      "generatedToast": "{count}건의 보고서를 생성했습니다",
+      "filterByMonth": "월 필터",
+      "allMonths": "전체 월",
+      "step1Title": "1단계 · 월 선택",
+      "step1Hint": "보고 기간을 선택하세요. 해당 월에 운행한 모든 차량 포함.",
+      "step2Title": "2단계 · 보고서 유형",
+      "monthN": "{n}월",
+      "exported": "출력됨",
+      "open": "열림"
     }
   },
   "phase": {
@@ -1880,5 +2035,11 @@
     "loading": "가이드 로딩 중…",
     "localeNote": "{locale} 버전 표시 · UI: {uiLocale}",
     "viewIndex": "목차 보기"
+  },
+  "navSections": {
+    "operations": "운영",
+    "finance": "재무",
+    "data": "데이터",
+    "reports": "보고서"
   }
 }

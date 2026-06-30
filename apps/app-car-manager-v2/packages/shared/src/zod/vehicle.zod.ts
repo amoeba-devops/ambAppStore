@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 export const createVehicleSchema = z.object({
   plate_number: z.string().trim().min(1).max(20),
+  code: z.string().trim().max(120).optional(),
   model: z.string().trim().min(1).max(100),
   make: z.string().trim().max(50).optional(),
   year: z.number().int().min(1990).max(2100).optional(),

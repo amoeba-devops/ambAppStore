@@ -1,13 +1,25 @@
 import { getLocale, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { AlertTriangle, Fuel, Gauge, Plus, Truck, User, Weight } from 'lucide-react';
-import { Badge, Button, Card, EmptyState } from '@car-v2/ui';
-import { computeTruckPnl } from '@car-v2/core/truck';
+import { Plus, Truck } from 'lucide-react';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@car-v2/ui';
 import type { CarVehicleStatus } from '@car-v2/db/schema';
+import { ClickableTableRow } from '@/components/clickable-table-row';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { listVehicles, type VehicleListItem } from '@/server/queries/vehicles.queries';
+import { listVehicles } from '@/server/queries/vehicles.queries';
 import { getLatestTruckDrivers } from '@/server/queries/truck-trips.queries';
+import { getTruckFixedCostsByMonth } from '@/server/queries/truck-fixed-cost.queries';
 
 const STATUS_TONE: Record<CarVehicleStatus, 'success' | 'info' | 'warning' | 'neutral'> = {
   AVAILABLE: 'success',
@@ -22,13 +34,6 @@ function bcp47(locale: string): string {
   return 'en-US';
 }
 
-/** Km remaining until next oil change (negative = overdue), or null when the
- * last-oil-change km hasn't been configured — so we never show a made-up figure. */
-function oilRemaining(v: VehicleListItem): number | null {
-  if (v.cvhLastOilChangeKm == null) return null;
-  return v.cvhLastOilChangeKm + v.cvhOilIntervalKm - v.cvhOdometerKm;
-}
-
 export default async function TruckFleetPage() {
   const user = await getCurrentUser();
   const t = await getTranslations('screens.truckFleet');
@@ -36,19 +41,16 @@ export default async function TruckFleetPage() {
   const tCo = await getTranslations('company');
   const tStatus = await getTranslations('vehicles.status');
   const locale = await getLocale();
-  const vnd = (n: number) => n.toLocaleString(bcp47(locale)) + ' ₫';
+  const loc = bcp47(locale);
+  const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
+  const date = (d: Date) => new Date(d).toLocaleDateString(loc);
 
   const trucks = await listVehicles(user.entId, 'active', 'TRUCK');
   const month = new Date().toISOString().slice(0, 7);
-  const [drivers, profits] = await Promise.all([
+  const [drivers, fixedMap] = await Promise.all([
     getLatestTruckDrivers(user.entId),
-    Promise.all(
-      trucks.map((v) =>
-        computeTruckPnl(user, { vehicleId: v.cvhId, months: [month] }).then((r) => r[0]?.netProfit ?? 0),
-      ),
-    ),
+    getTruckFixedCostsByMonth(user.entId, month),
   ]);
-  const profitByVehicle = new Map(trucks.map((v, i) => [v.cvhId, profits[i] ?? 0]));
 
   return (
     <>
@@ -84,72 +86,56 @@ export default async function TruckFleetPage() {
             />
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {trucks.map((v) => {
-              const remaining = oilRemaining(v);
-              const profit = profitByVehicle.get(v.cvhId) ?? 0;
-              const driver = drivers.get(v.cvhId) ?? null;
-              return (
-              <Link
-                key={v.cvhId}
-                href={`/truck/fleet/${v.cvhId}/edit`}
-                className="block rounded-md border border-border bg-surface p-5 hover:border-border-strong hover:shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="inline-flex items-center gap-2 text-text-muted">
-                    <Truck className="h-4 w-4" />
-                    <span className="font-mono font-semibold text-text">{v.cvhPlateNumber}</span>
-                  </div>
-                  <Badge tone={STATUS_TONE[v.cvhStatus]}>{tStatus(v.cvhStatus)}</Badge>
-                </div>
-                <div className="mt-3 text-lg font-semibold text-text leading-tight">{v.cvhModel}</div>
-                <div className="text-sm text-text-muted">{[v.cvhMake, v.cvhYear].filter(Boolean).join(' · ') || '—'}</div>
-
-                <div className="mt-4 grid grid-cols-3 gap-3 text-sm pt-4 border-t border-border">
-                  <Stat icon={<Gauge />} label={t('statOdometer')} value={`${v.cvhOdometerKm.toLocaleString()} km`} />
-                  <Stat icon={<Weight />} label={t('statTonnage')} value={v.cvhTonnage ? `${v.cvhTonnage} t` : '—'} />
-                  <Stat icon={<Fuel />} label={t('statQuota')} value={v.cvhFuelQuota ? `${v.cvhFuelQuota} L/100km` : '—'} />
-                </div>
-
-                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between gap-2 text-xs">
-                  <span className="inline-flex items-center gap-1.5 text-text-muted min-w-0 truncate">
-                    <User className="h-3.5 w-3.5 shrink-0" />
-                    {driver ?? '—'}
-                  </span>
-                  <span className="text-text-muted shrink-0">
-                    {t('statProfit')}:{' '}
-                    <b className={profit >= 0 ? 'text-success' : 'text-danger'}>{vnd(profit)}</b>
-                  </span>
-                </div>
-                <div className="mt-2 text-xs">
-                  {remaining == null ? (
-                    <span className="text-text-faint">{t('oilNotConfigured')}</span>
-                  ) : remaining < 0 ? (
-                    <span className="inline-flex items-center gap-1.5 rounded bg-danger-soft text-danger px-2 py-1">
-                      <AlertTriangle className="h-3 w-3 shrink-0" />
-                      {t('oilOverdue', { km: Math.abs(remaining).toLocaleString() })}
-                    </span>
-                  ) : (
-                    <span className="text-text-muted">{t('oilRemaining', { km: remaining.toLocaleString() })}</span>
-                  )}
-                </div>
-              </Link>
-              );
-            })}
-          </div>
+          <Card variant="outline" className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('thCode')}</TableHead>
+                  <TableHead>{t('thPlate')}</TableHead>
+                  <TableHead>{t('thModel')}</TableHead>
+                  <TableHead className="text-right">{t('thConsumption')}</TableHead>
+                  <TableHead className="text-right">{t('thDepreciation')}</TableHead>
+                  <TableHead>{t('thDriver')}</TableHead>
+                  <TableHead className="text-right">{t('thOdometer')}</TableHead>
+                  <TableHead>{t('thStatus')}</TableHead>
+                  <TableHead className="whitespace-nowrap">{t('thUpdated')}</TableHead>
+                  <TableHead>{t('thNotes')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {trucks.map((v) => {
+                  const driver = drivers.get(v.cvhId) ?? null;
+                  const deprec = fixedMap.get(v.cvhId)?.depreciation ?? 0;
+                  return (
+                    <ClickableTableRow key={v.cvhId} href={`/truck/fleet/${v.cvhId}/edit`}>
+                      <TableCell className="whitespace-nowrap font-mono text-text-muted">{v.cvhCode ?? '—'}</TableCell>
+                      <TableCell className="whitespace-nowrap font-mono font-semibold text-text">{v.cvhPlateNumber}</TableCell>
+                      <TableCell className="text-text">{v.cvhModel}</TableCell>
+                      <TableCell className="text-right tabular text-text-muted">
+                        {v.cvhFuelQuota ? `${v.cvhFuelQuota} L/100km` : '—'}
+                      </TableCell>
+                      <TableCell className="text-right tabular text-text-muted">
+                        {deprec > 0 ? vnd(deprec) : '—'}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-text-muted">{driver ?? '—'}</TableCell>
+                      <TableCell className="text-right tabular">{v.cvhOdometerKm.toLocaleString(loc)} km</TableCell>
+                      <TableCell>
+                        <Badge tone={STATUS_TONE[v.cvhStatus]} size="sm">
+                          {tStatus(v.cvhStatus)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs text-text-faint tabular">
+                        {v.cvhUpdatedAt ? date(v.cvhUpdatedAt) : '—'}
+                      </TableCell>
+                      <TableCell className="max-w-[180px] truncate text-text-muted">{v.cvhNotes ?? '—'}</TableCell>
+                    </ClickableTableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Card>
         )}
       </div>
     </>
-  );
-}
-
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div>
-      <div className="inline-flex items-center gap-1 text-xs text-text-faint [&_svg]:h-3 [&_svg]:w-3">
-        {icon} <span>{label}</span>
-      </div>
-      <div className="mt-0.5 text-sm font-medium tabular text-text">{value}</div>
-    </div>
   );
 }
