@@ -30,6 +30,7 @@ export function NewVersionModal({ metric, oldFormula, newFormula, onCancel, onCo
   const impact = getImpactAnalysis(metric);
   const totalAffected = impact.reports.length + impact.sections.length + impact.charts.length;
   const canSubmit = reason.trim().length > 0 && effectiveDate.length > 0;
+  const isBackdated = effectiveDate < today;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -117,9 +118,19 @@ export function NewVersionModal({ metric, oldFormula, newFormula, onCancel, onCo
               type="date"
               value={effectiveDate}
               onChange={(e) => setEffectiveDate(e.target.value)}
-              min={today}
               className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:border-info-500"
             />
+            {isBackdated && !retroactive && (
+              <div className="mt-2 rounded-md border border-warning-500/30 bg-warning-500/10 px-3 py-2.5">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-warning-500" />
+                  <div className="text-xs text-warning-500 leading-relaxed">
+                    <p className="font-semibold">{t('backdatedWarningTitle')}</p>
+                    <p className="mt-1">{t('backdatedWarningBody')}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Retroactive checkbox */}

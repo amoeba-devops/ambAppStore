@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Edit3, History, Loader2, X } from 'lucide-react';
+import { AlertTriangle, Check, Edit3, History, Loader2, X } from 'lucide-react';
 import { cn } from '@v2/ui';
 import type { FormulaParamSpec } from '@v2/shared';
 import { updateFormulaConfigAction } from '@/server/actions/formula-config.actions';
@@ -36,6 +36,8 @@ export function FormulaParamRow({ spec, currentValue, effectiveFrom, canEdit, on
 
   const displayValue = formatDisplay(spec, currentValue);
   const effectiveDate = new Date(effectiveFrom).toISOString().slice(0, 10);
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const isBackdated = draftEffective < todayIso;
 
   const onCancel = () => {
     setEditing(false);
@@ -170,6 +172,16 @@ export function FormulaParamRow({ spec, currentValue, effectiveFrom, canEdit, on
                 className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm focus:border-info-500 focus:outline-none"
               />
             </label>
+            {isBackdated && (
+              <div className="col-span-full flex items-start gap-2 rounded-md border border-warning-500 bg-warning-50 px-3 py-2 text-xs text-warning-500">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  Backdated effective date. The new value applies only to <strong>future ingests</strong>.
+                  Periods already ingested keep their original value — re-ingest those periods if the
+                  new value needs to apply retroactively.
+                </span>
+              </div>
+            )}
             {error && (
               <div className="col-span-full rounded-md border border-error-500 bg-error-50 px-3 py-2 text-xs text-error-500">
                 {error}

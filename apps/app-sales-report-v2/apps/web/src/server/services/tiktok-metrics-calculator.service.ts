@@ -1,6 +1,12 @@
 import 'server-only';
 import type { TikTokSaleRow } from './tiktok-sales-parser.service';
-import { findPrimeCost, findListingPrice, type PrimeCostMap } from './gmv-calculator.service';
+import {
+  findPrimeCost,
+  findListingPrice,
+  buildMasterNameIndex,
+  classifyMissing,
+  type PrimeCostMap,
+} from './gmv-calculator.service';
 import {
   aggregateTikTokTraffic,
   type TikTokTrafficRow,
@@ -32,7 +38,16 @@ export interface TikTokMetricsResult {
   /** Distinct order counts (by Order ID). */
   orderCounts: { totalDistinct: number; cancelled: number; nonCancelled: number };
   freeGiftProducts: string[];
-  missingFromMaster: Array<{ sku: string; productName: string; units: number; gmvContribution: number }>;
+  /** See `gmv-calculator.ShopeeMetricsResult.missingFromMaster` for matchType semantics. */
+  missingFromMaster: Array<{
+    sku: string;
+    productName: string;
+    units: number;
+    gmvContribution: number;
+    matchType: 'unknown' | 'name_match' | 'incomplete_master';
+    possibleMasterSku?: string;
+    missingFields?: Array<'primeCost' | 'sellingPrice' | 'listingPrice'>;
+  }>;
   /** Traffic metrics — only when Traffic xlsx provided. */
   traffic: {
     totalPageViews: number;
@@ -174,7 +189,19 @@ export function computeTikTokMetrics(
   let freeGift = 0;
   let kept = 0;
   const freeGiftProducts = new Set<string>();
-  const missingByProduct = new Map<string, { sku: string; productName: string; units: number; gmvContribution: number }>();
+  const missingByProduct = new Map<
+    string,
+    {
+      sku: string;
+      productName: string;
+      units: number;
+      gmvContribution: number;
+      matchType: 'unknown' | 'name_match' | 'incomplete_master';
+      possibleMasterSku?: string;
+      missingFields?: Array<'primeCost' | 'sellingPrice' | 'listingPrice'>;
+    }
+  >();
+  const masterNameIndex = buildMasterNameIndex(primeCosts);
   const productAgg = new Map<
     string,
     { gmv: number; netGmv: number; nmv: number; sellerDiscount: number; primeCost: number; units: number; skus: Set<string>; nameEn: string; variationName: string; isCombo: boolean }
@@ -254,12 +281,16 @@ export function computeTikTokMetrics(
       continue;
     }
 
-    if (!master) {
+    const missingEntry = classifyMissing(master, masterNameIndex, row.sellerSku, row.productName);
+    if (missingEntry) {
       const prev = missingByProduct.get(row.sellerSku) ?? {
         sku: row.sellerSku,
         productName: row.productName,
         units: 0,
         gmvContribution: 0,
+        matchType: missingEntry.matchType,
+        possibleMasterSku: missingEntry.possibleMasterSku,
+        missingFields: missingEntry.missingFields,
       };
       prev.units += itemSold;
       prev.gmvContribution += gmv;

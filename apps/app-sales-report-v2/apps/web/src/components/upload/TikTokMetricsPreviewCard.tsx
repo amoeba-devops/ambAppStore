@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { Calculator, AlertCircle, ChevronDown, Loader2, Gift, AlertTriangle } from 'lucide-react';
+import { useEffect, useState, useTransition } from 'react';
+import { Calculator, AlertCircle, ChevronDown, Loader2, Gift } from 'lucide-react';
+import { MissingMasterPanel, type MissingMasterRow } from './MissingMasterPanel';
 import { useTranslations } from 'next-intl';
 import { cn } from '@v2/ui';
 import {
@@ -16,13 +17,20 @@ interface Props {
   trafficFile?: File | null;
   /** Optional TikTok Affiliate xlsx — enables Total Affiliate Commission. */
   affiliateFile?: File | null;
+  /** See `TotalGmvPreviewCard.onMissingMasterChange` — same purpose. */
+  onMissingMasterChange?: (rows: MissingMasterRow[]) => void;
 }
 
 const fmtVnd = (n: number) =>
   n.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' VND';
 const fmtCompact = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 0 });
 
-export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFile = null }: Props) {
+export function TikTokMetricsPreviewCard({
+  file,
+  trafficFile = null,
+  affiliateFile = null,
+  onMissingMasterChange,
+}: Props) {
   const t = useTranslations('uploadWizard.preview');
   const [pending, startTransition] = useTransition();
   const [preview, setPreview] = useState<TikTokMetricsPreview | null>(null);
@@ -48,6 +56,10 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
   };
 
   const r = preview?.result;
+
+  useEffect(() => {
+    onMissingMasterChange?.(r?.missingFromMaster ?? []);
+  }, [r?.missingFromMaster, onMissingMasterChange]);
 
   return (
     <div className="rounded-md border border-neutral-900/30 bg-neutral-50 p-4">
@@ -167,30 +179,12 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
                   will show a separate affiliate summary card once that UI is
                   designed. See REQ-20260528-tiktok-affiliate-3-files. */}
 
-              {r.missingFromMaster.length > 0 && (
-                <details open className="rounded-md border border-warning-500/30 bg-warning-500/5 px-3 py-2 text-xs">
-                  <summary className="cursor-pointer font-medium text-warning-500">
-                    <AlertTriangle className="mr-1 inline h-3 w-3" />
-                    {r.missingFromMaster.length === 1
-                      ? t('missingFromMasterTikTokSingular')
-                      : t('missingFromMasterTikTok', { count: r.missingFromMaster.length })}
-                  </summary>
-                  <ul className="mt-2 space-y-1 text-neutral-700">
-                    {r.missingFromMaster.slice(0, 10).map((m) => (
-                      <li key={m.sku} className="flex items-baseline gap-2">
-                        <span className="font-mono text-[10px] text-warning-500">{m.sku}</span>
-                        <span className="text-[10px] text-neutral-500">({m.units}u)</span>
-                        <span className="line-clamp-1 flex-1 text-[11px]">{m.productName}</span>
-                      </li>
-                    ))}
-                    {r.missingFromMaster.length > 10 && (
-                      <li className="text-[10px] text-neutral-500">
-                        {t('andMore', { count: r.missingFromMaster.length - 10 })}
-                      </li>
-                    )}
-                  </ul>
-                </details>
-              )}
+              <MissingMasterPanel
+                rows={r.missingFromMaster}
+                fmt={(n) => n.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                showGmv={false}
+              />
+              {/* TikTok preview hides the GMV column — partner files don't carry per-row GMV. */}
 
               <button
                 type="button"

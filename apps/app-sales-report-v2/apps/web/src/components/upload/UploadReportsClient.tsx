@@ -29,6 +29,7 @@ export interface ExistingArchiveFile {
   s3Key: string | null;
 }
 import { Step2Upload } from './Step2Upload';
+import type { MissingMasterRow } from './MissingMasterPanel';
 import {
   Step3ManualInput,
   emptyManualInputs,
@@ -70,6 +71,13 @@ export function UploadReportsClient({ realPeriodKeys = [] }: UploadReportsClient
   // Step 2 state
   const [files, setFiles] = useState<Map<string, File>>(new Map());
   const [step2Attempted, setStep2Attempted] = useState(false);
+  // Aggregated "unknown SKUs" from preview cards — lifted here so Step 4 Review
+  // can render a consolidated banner. Keyed by source so re-uploading Shopee
+  // doesn't clobber TikTok findings.
+  const [unknownSkus, setUnknownSkus] = useState<{
+    shopee: MissingMasterRow[];
+    tiktok: MissingMasterRow[];
+  }>({ shopee: [], tiktok: [] });
 
   // Step 3 state
   const [manualInputs, setManualInputs] = useState<ManualInputs>(emptyManualInputs);
@@ -214,6 +222,9 @@ export function UploadReportsClient({ realPeriodKeys = [] }: UploadReportsClient
             }}
             attempted={step2Attempted}
             existingFiles={existingFiles}
+            onUnknownSkusChange={(source, rows) =>
+              setUnknownSkus((prev) => ({ ...prev, [source]: rows }))
+            }
           />
         )}
         {step === 3 && (
@@ -230,7 +241,9 @@ export function UploadReportsClient({ realPeriodKeys = [] }: UploadReportsClient
             selectedPeriod={selectedPeriod}
           />
         )}
-        {step === 4 && <Step4Review selectedPeriod={selectedPeriod} />}
+        {step === 4 && (
+          <Step4Review selectedPeriod={selectedPeriod} unknownSkus={unknownSkus} />
+        )}
         {step === 5 && <Step5Validate selectedPeriod={selectedPeriod} />}
         {step === 6 && (
           <Step6Ingest
