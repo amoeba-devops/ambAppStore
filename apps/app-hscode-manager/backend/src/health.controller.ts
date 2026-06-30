@@ -1,18 +1,15 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Public } from './auth/decorators/public.decorator';
+import { successResponse, BaseResponse } from './common/dto/base-response.dto';
 
 @ApiTags('health')
-@Controller()
+@Controller('health')
 export class HealthController {
-  @Get('health')
   @Public()
-  @ApiOperation({ summary: '서버 상태 확인' })
-  health() {
-    return {
-      status: 'ok',
-      service: 'hscode-manager-api',
-      timestamp: new Date().toISOString(),
-    };
+  @Get()
+  @ApiOperation({ summary: 'Liveness probe' })
+  check(): BaseResponse<{ status: string; service: string }> {
+    return successResponse({ status: 'ok', service: 'hscode-manager' });
   }
 }

@@ -1,0 +1,93 @@
+services:
+  bff-app-hscode:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: bff-app-hscode
+    ports:
+      - "3102:3102"
+    env_file:
+      - ./backend/.env
+    environment:
+      - NODE_ENV=production
+      - PORT=3102
+      # 컨테이너 네트워크 오버라이드 (.env의 localhost 값 대체)
+      - DB_HOST=postgres-hscode
+      - DB_PORT=5432
+      - REDIS_HOST=redis-hscode
+      - REDIS_PORT=6379
+    depends_on:
+      postgres-hscode:
+        condition: service_healthy
+      redis-hscode:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3102/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - amb-apps-network
+
+  web-app-hscode:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: web-app-hscode
+    ports:
+      - "5202:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/app-hscode/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - amb-apps-network
+
+  postgres-hscode:
+    image: pgvector/pgvector:pg15
+    container_name: postgres-hscode
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-hscode_app}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-hscode_app_password}
+      POSTGRES_DB: ${DB_DATABASE:-db_hsm}
+    volumes:
+      - postgres-hscode-data:/var/lib/postgresql/data
+      # 최초 기동 시 스키마 자동 적용 (pgvector/pgcrypto extension 포함)
+      - ./sql/hscode-manager-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-hscode_app} -d ${DB_DATABASE:-db_hsm}"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - amb-apps-network
+
+  redis-hscode:
+    image: redis:7-alpine
+    container_name: redis-hscode
+    ports:
+      - "6380:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-hscode-data:/data
+    restart: unless-stopped
+    networks:
+      - amb-apps-network
+
+volumes:
+  postgres-hscode-data:
+  redis-hscode-data:
+
+networks:
+  amb-apps-network:
+    external: true

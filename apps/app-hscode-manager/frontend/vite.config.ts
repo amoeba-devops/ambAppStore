@@ -4,7 +4,8 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/app-hscode',
+  // 플랫폼 Nginx에서 /app-hscode/* 로 라우팅 (VITE base = build 시점 인라인)
+  base: '/app-hscode/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
@@ -13,9 +14,11 @@ export default defineConfig({
   server: {
     port: 5202,
     proxy: {
-      '/api': {
+      // /app-hscode/api/v1/* → BFF /api/v1/* (프로덕션 nginx 라우팅과 동일 형태)
+      '/app-hscode/api': {
         target: 'http://localhost:3102',
         changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/app-hscode/, ''),
       },
     },
   },

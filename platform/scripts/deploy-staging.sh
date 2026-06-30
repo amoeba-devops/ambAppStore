@@ -74,11 +74,11 @@ APP_WEB_NAME[car-manager-v2]="next-car-manager-v2"
 APP_HEALTH_PATH[car-manager-v2]="/app-car-manager-v2/api/v1/health"
 
 APP_DIRS[hscode]="$PROJECT_ROOT/apps/app-hscode-manager"
-APP_COMPOSE[hscode]="docker-compose.app-hscode-manager.yml"
+APP_COMPOSE[hscode]="docker-compose.app-hscode.yml"
 APP_BFF_PORT[hscode]=3102
 APP_WEB_PORT[hscode]=5202
-APP_BFF_NAME[hscode]="bff-hscode-manager"
-APP_WEB_NAME[hscode]="web-hscode-manager"
+APP_BFF_NAME[hscode]="bff-app-hscode"
+APP_WEB_NAME[hscode]="web-app-hscode"
 
 ALL_APPS=(platform car-manager stock sales car-manager-v2 hscode)
 
