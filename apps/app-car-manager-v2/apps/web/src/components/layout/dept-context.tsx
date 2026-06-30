@@ -73,6 +73,13 @@ export function DeptProvider({ role, fleetAccess, initialDept, children }: DeptP
   useEffect(() => {
     if (role === 'DRIVER') {
       const locked: FleetDept = hasTruck ? 'TRUCK' : 'CAR';
+      /* Persist the locked dept so app/layout.tsx can pre-render the right
+       * accent on the next load. Drivers live on dept-neutral / car-classified
+       * URLs (/today, /trips) that carry no truck marker in the path, so
+       * without this cookie a truck driver's first paint is always the default
+       * blue and only flips to orange after hydration (flash). Staff get this
+       * cookie for free by visiting a /truck/* URL; drivers never do. */
+      persist(locked);
       setDept((prev) => (prev === locked ? prev : locked));
       return;
     }

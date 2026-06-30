@@ -3,6 +3,7 @@ import { Be_Vietnam_Pro, Inter, JetBrains_Mono } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { cookies, headers } from 'next/headers';
+import { mapAmaRoleToLocal, type AmaJwtClaims } from '@car-v2/shared/auth';
 import { clearlyDept } from '@/components/layout/nav-items';
 import { SWRegister } from '@/components/pwa/sw-register';
 import './globals.css';
@@ -76,7 +77,29 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const [jar, hdrs] = await Promise.all([cookies(), headers()]);
   const pathname = hdrs.get('x-pathname') ?? '';
   const cookieDept = jar.get('ccms.fleet.dept')?.value;
-  const dept = clearlyDept(pathname) ?? (cookieDept === 'TRUCK' ? 'TRUCK' : 'CAR');
+  const cookieIsTruck = cookieDept === 'TRUCK';
+  /* Role-aware so the first paint's accent matches the post-hydration theme for
+   * EVERY role, not just staff:
+   *   - STAFF switch workspaces by navigating (/dashboard ↔ /truck/*), so the
+   *     URL is authoritative; the cookie only covers dept-neutral pages.
+   *   - DRIVERS can't switch — their workspace is fixed by membership — and
+   *     their pages live on dept-neutral / car-classified URLs (/today,
+   *     /trips). Letting the path decide would force a truck driver's /trips to
+   *     blue. So for drivers the persisted cookie (kept in sync by
+   *     DeptProvider) wins and the URL is ignored. */
+  const localRole = (() => {
+    /* x-user-role is set by middleware from the verified JWT claim, so it's
+     * always a valid AMA role here; an absent/unexpected value falls through to
+     * the staff (URL-authoritative) branch — the original pre-role behavior. */
+    const ama = hdrs.get('x-user-role');
+    return ama ? mapAmaRoleToLocal(ama as AmaJwtClaims['role']) : null;
+  })();
+  const dept: 'CAR' | 'TRUCK' =
+    localRole === 'DRIVER'
+      ? cookieIsTruck
+        ? 'TRUCK'
+        : 'CAR'
+      : (clearlyDept(pathname) ?? (cookieIsTruck ? 'TRUCK' : 'CAR'));
   const dataDept = dept === 'TRUCK' ? 'truck' : undefined;
 
   return (
