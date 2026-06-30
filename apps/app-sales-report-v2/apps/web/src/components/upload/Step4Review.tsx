@@ -14,6 +14,7 @@ export function Step4Review({ selectedPeriod = null }: Props) {
     <FormulaConfigClient
       showFilters={false}
       showExport={false}
+      showEditableParams={false}
       defaultCollapsed
       header={
         <div className="space-y-2">
