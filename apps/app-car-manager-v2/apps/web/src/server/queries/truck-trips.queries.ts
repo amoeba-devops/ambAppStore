@@ -4,13 +4,18 @@ import { db } from '@car-v2/db/client';
 import {
   carTrips,
   carTripExtraCosts,
-  carTruckMonthClose,
   carDrivers,
   carUsers,
   carVehicles,
   type CarTripStatus,
 } from '@car-v2/db/schema';
-import { computeTruckCost, parseAmount, truckTripFuelCost, type TruckCostBreakdown } from '@car-v2/core/truck';
+import {
+  computeTruckCost,
+  parseAmount,
+  truckTripFuelCost,
+  loadTruckRegionSnapshots,
+  type TruckCostBreakdown,
+} from '@car-v2/core/truck';
 
 const monthKey = (d: Date): string => d.toISOString().slice(0, 7);
 
@@ -114,33 +119,11 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
     for (const d of drows) if (d.name) driverByDrv.set(d.id, d.name);
   }
 
-  /* Month-end fuel snapshot per closed month covered by the result. Closed
-   * months use km × consumption × avg price (official) so per-trip profit
-   * matches the finance/P&L screens; open months stay liters × price. */
+  /* Region-scoped month-end fuel snapshot (REQ-20260630). A trip's official
+   * fuel uses ITS region's closed snapshot (km × consumption × avg price) so
+   * per-trip profit matches the finance/P&L screens; otherwise liters × price. */
   const monthsInResult = [...new Set(trips.map((t) => monthKey(t.trpScheduledAt)))];
-  const closeRows = monthsInResult.length
-    ? await db
-        .select({
-          m: carTruckMonthClose.tmcMonth,
-          avgPrice: carTruckMonthClose.tmcAvgPrice,
-          consumption: carTruckMonthClose.tmcConsumption,
-        })
-        .from(carTruckMonthClose)
-        .where(
-          and(
-            eq(carTruckMonthClose.entId, entId),
-            eq(carTruckMonthClose.tmcVehicleType, 'TRUCK'),
-            inArray(carTruckMonthClose.tmcMonth, monthsInResult),
-            isNull(carTruckMonthClose.tmcDeletedAt),
-          ),
-        )
-    : [];
-  const snapByMonth = new Map<string, { avgPrice: number; consumption: number }>();
-  for (const c of closeRows) {
-    if (c.avgPrice != null && c.consumption != null) {
-      snapByMonth.set(c.m, { avgPrice: parseAmount(c.avgPrice), consumption: parseAmount(c.consumption) });
-    }
-  }
+  const snapshots = await loadTruckRegionSnapshots(entId, monthsInResult);
 
   return trips.map((t) => {
     const km =
@@ -148,7 +131,7 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
         ? t.trpEndOdometer - t.trpStartOdometer
         : null;
     const extraCosts = extraByTrip.get(t.trpId) ?? [];
-    const snap = snapByMonth.get(monthKey(t.trpScheduledAt));
+    const snap = snapshots.forTrip(monthKey(t.trpScheduledAt), t.trpVehicleId);
 
     let breakdown: TruckCostBreakdown;
     if (snap) {

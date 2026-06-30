@@ -12,9 +12,11 @@ import {
   getClosedTruckMonths,
   getTruckMonthCloseInfo,
   getTruckFuelStats,
+  getTruckRegionCloseStates,
   listFuelInvoices,
   listTruckMonthAdjustments,
 } from '@/server/queries/truck-finance.queries';
+import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { TruckFixedCostRow } from '../settings/_components/truck-fixed-cost-row';
 import { FinanceTabs } from '../finance/_components/finance-tabs';
 import { MonthCloseControls } from './_components/month-close-controls';
@@ -64,16 +66,21 @@ const METRICS: MetricDef[] = [
 export default async function TruckPnlPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vehicle?: string; month?: string; tab?: string }>;
+  searchParams: Promise<{ vehicle?: string; month?: string; tab?: string; region?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
   const month = /^\d{4}-\d{2}$/.test(sp.month ?? '') ? (sp.month as string) : currentMonth();
   const tab = sp.tab === 'invoices' ? 'invoices' : 'overview';
+  /* Region scope for the chốt-sổ tab (REQ-20260630). Defaults to the first
+   * region; close + fuel reconciliation + invoices are all scoped to it. */
+  const region =
+    sp.region && (TRUCK_REGIONS as readonly string[]).includes(sp.region) ? sp.region : TRUCK_REGIONS[0];
 
   const t = await getTranslations('screens.truckPnl');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
+  const tRegion = await getTranslations('region');
   const locale = await getLocale();
   const loc = bcp47(locale);
 
@@ -81,15 +88,17 @@ export default async function TruckPnlPage({
   const vehicleId = sp.vehicle && trucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
 
   const months = threeMonthsEnding(month);
-  const [rows, closeInfo, closedSet, fixedMap, invoices, liveStats, adjustments] = await Promise.all([
-    computeTruckPnl(user, { vehicleId, months }),
-    getTruckMonthCloseInfo(user.entId, month),
-    getClosedTruckMonths(user.entId, months),
-    getTruckFixedCostsByMonth(user.entId, month),
-    listFuelInvoices(user.entId, month),
-    getTruckFuelStats(user.entId, month),
-    listTruckMonthAdjustments(user.entId, month),
-  ]);
+  const [rows, closeInfo, closedSet, fixedMap, invoices, liveStats, adjustments, regionStates] =
+    await Promise.all([
+      computeTruckPnl(user, { vehicleId, months }),
+      getTruckMonthCloseInfo(user.entId, month, region),
+      getClosedTruckMonths(user.entId, months),
+      getTruckFixedCostsByMonth(user.entId, month),
+      listFuelInvoices(user.entId, month, region),
+      getTruckFuelStats(user.entId, month, region),
+      listTruckMonthAdjustments(user.entId, month, region),
+      getTruckRegionCloseStates(user.entId, month),
+    ]);
 
   const closed = closeInfo.closed;
   const isAdmin = user.role === 'ADMIN';
@@ -105,16 +114,19 @@ export default async function TruckPnlPage({
         };
   const openMonths = months.filter((m) => !closedSet.has(m));
   const selected = rows.find((r) => r.month === month) ?? null;
+  /* Fixed-cost rows for the selected region's trucks (chốt-sổ tab). */
+  const regionTrucks = trucks.filter((v) => v.cvhRegion === region);
 
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
   const monthLabel = (m: string) =>
     new Date(`${m}-01T00:00:00Z`).toLocaleDateString(loc, { month: 'short', year: '2-digit' });
   const fmt = (def: MetricDef, n: number) => (def.kind === 'count' ? n.toLocaleString(loc) : vnd(n));
 
-  const withParams = (next: { tab?: string; vehicle?: string | null }) => {
+  const withParams = (next: { tab?: string; vehicle?: string | null; region?: string }) => {
     const t2 = next.tab ?? tab;
     const v = next.vehicle === undefined ? vehicleId : next.vehicle ?? undefined;
-    return `/truck/pnl?month=${month}&tab=${t2}${v ? `&vehicle=${v}` : ''}`;
+    const r = next.region ?? region;
+    return `/truck/pnl?month=${month}&tab=${t2}&region=${r}${v ? `&vehicle=${v}` : ''}`;
   };
 
   return (
@@ -253,10 +265,33 @@ export default async function TruckPnlPage({
           </>
         ) : (
           <>
-            {/* Close / reopen + status */}
+            {/* Region selector + per-region close status (REQ-20260630). */}
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-medium text-text-muted">{t('regionLabel')}</span>
+                {TRUCK_REGIONS.map((r) => (
+                  <Chip key={r} href={withParams({ region: r })} active={region === r} label={tRegion(r)} />
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {regionStates.map((rs) => (
+                  <span
+                    key={rs.region}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs',
+                      rs.closed ? 'border-success/40 bg-success/5 text-success' : 'border-border text-text-muted',
+                    )}
+                  >
+                    {tRegion(rs.region)} · {rs.closed ? t('statusClosed') : t('statusOpen')}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Close / reopen for the selected region */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-sm font-semibold text-text">{t('fixedCostsTitle', { month })}</h2>
-              <MonthCloseControls month={month} closed={closed} canReopen={isAdmin} />
+              <h2 className="text-sm font-semibold text-text">{t('closeRegionTitle', { region: tRegion(region) })}</h2>
+              <MonthCloseControls month={month} region={region} closed={closed} canReopen={isAdmin} />
             </div>
 
             {/* Month-end computation snapshot */}
@@ -277,17 +312,17 @@ export default async function TruckPnlPage({
               <p className="text-xs text-text-faint">{t('monthEndFormula')}</p>
             </Card>
 
-            {/* Fuel-invoice ledger for the selected month */}
-            <FuelInvoicePanel month={month} invoices={invoices} locked={closed} />
+            {/* Fuel-invoice ledger for the selected month × region */}
+            <FuelInvoicePanel month={month} region={region} invoices={invoices} locked={closed} />
 
             {/* Fixed costs for the selected month */}
             <div className="space-y-3">
               <h2 className="text-sm font-semibold text-text">{t('fixedCostsTitle', { month })}</h2>
-              {trucks.length === 0 ? (
+              {regionTrucks.length === 0 ? (
                 <Card variant="outline" className="p-6 text-center text-sm text-text-muted">{t('noTrucks')}</Card>
               ) : (
                 <div className="space-y-3">
-                  {trucks.map((v) => (
+                  {regionTrucks.map((v) => (
                     <TruckFixedCostRow
                       key={v.cvhId}
                       vehicleId={v.cvhId}

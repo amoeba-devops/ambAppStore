@@ -61,6 +61,11 @@ export const carVehicles = pgTable(
      * tiêu hao L/100km; cvh_tonnage = tải trọng (tấn). */
     cvhTonnage: decimal('cvh_tonnage', { precision: 6, scale: 2 }),
     cvhFuelQuota: decimal('cvh_fuel_quota', { precision: 6, scale: 2 }),
+    /* Operating region (REQ-20260630, "Khu vực"). Code from TRUCK_REGIONS
+     * (HCM / DONG_NAI / BAIKSAN); nullable. Drives the region-scoped dashboard
+     * breakdown + region-scoped month close (a trip inherits its vehicle's
+     * region). Stored as a code; UI labels come from i18n. */
+    cvhRegion: varchar('cvh_region', { length: 40 }),
     cvhStatus: vehicleStatusEnum('cvh_status').notNull().default('AVAILABLE'),
     cvhOdometerKm: integer('cvh_odometer_km').notNull().default(0),
     cvhLastOilChangeKm: integer('cvh_last_oil_change_km'),
@@ -87,6 +92,8 @@ export const carVehicles = pgTable(
     idxEntStatus: index('idx_car_vehicles_ent_status').on(t.entId, t.cvhStatus),
     /* Fleet-scoped listing ("vehicles in the TRUCK department"). */
     idxEntType: index('idx_car_vehicles_ent_type').on(t.entId, t.cvhType),
+    /* Region-scoped listing / dashboard breakdown. */
+    idxEntTypeRegion: index('idx_car_vehicles_ent_type_region').on(t.entId, t.cvhType, t.cvhRegion),
   }),
 );
 

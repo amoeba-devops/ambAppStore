@@ -46,6 +46,11 @@
     "truckReports": "보고서 목록",
     "truckReportCreate": "보고서 작성"
   },
+  "region": {
+    "HCM": "HCM",
+    "DONG_NAI": "동나이",
+    "BAIKSAN": "백산"
+  },
   "actions": {
     "new": "신규",
     "create": "생성",
@@ -185,6 +190,9 @@
       "chartProfit": "월별 매출 및 손익",
       "costStructure": "비용 구조",
       "fleetStatus": "차량 현황",
+      "byRegion": "지역별",
+      "regionAll": "전체",
+      "thRegionCol": "지역",
       "noData": "데이터 없음",
       "topTrucks": "TOP 트럭 (매출)",
       "topDrivers": "TOP 기사 (매출)",
@@ -249,6 +257,8 @@
       "statusOpen": "열림",
       "statusClosed": "마감됨",
       "closeMonth": "마감",
+      "regionLabel": "지역",
+      "closeRegionTitle": "마감 · {region}",
       "closeConfirm": "{month} 장부를 마감할까요? 마감 후 해당 월 운행이 잠깁니다.",
       "closedToast": "{month} 장부를 마감했습니다",
       "reopen": "재개",
@@ -522,6 +532,8 @@
         "oilIntervalKm": "오일 교체 주기 (km)",
         "lastOilChangeKm": "최근 오일 교체 주행거리",
         "homeBase": "차고지",
+        "region": "지역",
+        "regionNone": "— 없음 —",
         "cancel": "취소",
         "save": "저장",
         "createdToast": "트럭 {plate} 추가됨",
@@ -536,6 +548,7 @@
       "thCode": "차량 코드",
       "thPlate": "번호판",
       "thModel": "이름 / 설명",
+      "thRegion": "지역",
       "thConsumption": "연비",
       "thDepreciation": "감가상각",
       "thDriver": "기사",

@@ -2,6 +2,14 @@ import { z } from 'zod';
 
 /* Request bodies are snake_case per CLAUDE.md §4.4. */
 
+/**
+ * Operating regions ("Khu vực", REQ-20260630). Fixed code list — UI labels are
+ * localized via i18n (region.*). Extend here to add a region. Stored as a code
+ * string in cvh_region / tfi_region / tmc_region.
+ */
+export const TRUCK_REGIONS = ['HCM', 'DONG_NAI', 'BAIKSAN'] as const;
+export type TruckRegion = (typeof TRUCK_REGIONS)[number];
+
 export const createVehicleSchema = z.object({
   plate_number: z.string().trim().min(1).max(20),
   code: z.string().trim().max(120).optional(),
@@ -24,6 +32,8 @@ export const createVehicleSchema = z.object({
   /* Truck-only attributes (tonnage in tons, fuel quota in L/100km). */
   tonnage: z.number().nonnegative().max(100).optional(),
   fuel_quota: z.number().nonnegative().max(200).optional(),
+  /* Operating region (TRUCK). Code from TRUCK_REGIONS; empty string clears it. */
+  region: z.enum(TRUCK_REGIONS).optional().or(z.literal('')),
 });
 export type CreateVehicleInput = z.infer<typeof createVehicleSchema>;
 

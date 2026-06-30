@@ -5,7 +5,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db } from '@car-v2/db/client';
-import { carTrips, carTripExtraCosts } from '@car-v2/db/schema';
+import { carTrips, carTripExtraCosts, carVehicles } from '@car-v2/db/schema';
 import {
   createTruckTrip,
   assignTruckTrip,
@@ -66,6 +66,17 @@ async function notifyTruckTripCompleted(entId: string, actorUserId: string, trip
   });
 }
 
+/** The operating region of a vehicle (its cvh_region) — drives the region-scoped
+ * month-close lock (REQ-20260630). null when no vehicle / no region. */
+async function regionOfVehicle(entId: string, vehicleId: string | null | undefined): Promise<string | null> {
+  if (!vehicleId) return null;
+  const v = await db.query.carVehicles.findFirst({
+    where: and(eq(carVehicles.cvhId, vehicleId), eq(carVehicles.entId, entId)),
+    columns: { cvhRegion: true },
+  });
+  return v?.cvhRegion ?? null;
+}
+
 /** Postgres unique_violation — used to retry trip-ref generation on collision. */
 function isUniqueViolation(err: unknown): boolean {
   return typeof err === 'object' && err !== null && (err as { code?: string }).code === '23505';
@@ -87,7 +98,7 @@ export async function createTruckTripAction(input: unknown): Promise<ActionResul
     requireRole(actor.role, ['ADMIN', 'MANAGER', 'DRIVER']);
     await requireFleet(actor, 'TRUCK');
     const dto = createTruckTripSchema.parse(input);
-    await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at));
+    await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at), await regionOfVehicle(actor.entId, dto.vehicle_id));
 
     /* DRIVER self-assign enforcement: driver_id must be the caller's own record. */
     let enforcedDriverId = dto.driver_id ?? null;
@@ -184,7 +195,7 @@ export async function assignTruckTripAction(input: unknown): Promise<ActionResul
       where: and(eq(carTrips.trpId, dto.trip_id), eq(carTrips.entId, actor.entId)),
       columns: { trpScheduledAt: true },
     });
-    if (asgTrip) await assertTruckMonthOpen(actor.entId, asgTrip.trpScheduledAt);
+    if (asgTrip) await assertTruckMonthOpen(actor.entId, asgTrip.trpScheduledAt, await regionOfVehicle(actor.entId, dto.vehicle_id));
 
     const trip = await assignTruckTrip(actor, dto.trip_id, {
       driverId: dto.driver_id,
@@ -221,9 +232,9 @@ export async function completeTruckTripAction(input: unknown): Promise<ActionRes
     const dto = completeTruckTripSchema.parse(input);
     const finTrip = await db.query.carTrips.findFirst({
       where: and(eq(carTrips.trpId, dto.trip_id), eq(carTrips.entId, actor.entId)),
-      columns: { trpScheduledAt: true },
+      columns: { trpScheduledAt: true, trpVehicleId: true },
     });
-    if (finTrip) await assertTruckMonthOpen(actor.entId, finTrip.trpScheduledAt);
+    if (finTrip) await assertTruckMonthOpen(actor.entId, finTrip.trpScheduledAt, await regionOfVehicle(actor.entId, finTrip.trpVehicleId));
 
     const res = await completeTruckTrip(actor, dto.trip_id, {
       startedAt: dto.start_time ? new Date(dto.start_time) : null,
@@ -271,7 +282,7 @@ export async function driverCompleteTruckTripAction(input: unknown): Promise<Act
     if (!trip || trip.trpDriverId !== driver.drvId) {
       throw new CarError('CAR-E0403', 403, 'Not your trip');
     }
-    await assertTruckMonthOpen(actor.entId, trip.trpScheduledAt);
+    await assertTruckMonthOpen(actor.entId, trip.trpScheduledAt, await regionOfVehicle(actor.entId, trip.trpVehicleId));
 
     const res = await completeTruckTrip(actor, dto.trip_id, {
       startedAt: dto.start_time ? new Date(dto.start_time) : null,
@@ -312,10 +323,10 @@ export async function updateTruckTripAction(input: unknown): Promise<ActionResul
      * editing a trip out of (or into) a closed period. */
     const curTrip = await db.query.carTrips.findFirst({
       where: and(eq(carTrips.trpId, dto.trip_id), eq(carTrips.entId, actor.entId)),
-      columns: { trpScheduledAt: true },
+      columns: { trpScheduledAt: true, trpVehicleId: true },
     });
-    if (curTrip) await assertTruckMonthOpen(actor.entId, curTrip.trpScheduledAt);
-    await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at));
+    if (curTrip) await assertTruckMonthOpen(actor.entId, curTrip.trpScheduledAt, await regionOfVehicle(actor.entId, curTrip.trpVehicleId));
+    await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at), await regionOfVehicle(actor.entId, dto.vehicle_id));
 
     const extraCosts =
       dto.other_amount && dto.other_amount > 0
@@ -400,10 +411,10 @@ export async function patchTruckTripCostsAction(input: unknown): Promise<ActionR
         eq(carTrips.entId, actor.entId),
         isNull(carTrips.trpDeletedAt),
       ),
-      columns: { trpScheduledAt: true, trpRef: true, trpFuelPrice: true },
+      columns: { trpScheduledAt: true, trpRef: true, trpFuelPrice: true, trpVehicleId: true },
     });
     if (!trip) throw new CarError('CAR-E0404', 404, 'Trip not found');
-    await assertTruckMonthOpen(actor.entId, trip.trpScheduledAt);
+    await assertTruckMonthOpen(actor.entId, trip.trpScheduledAt, await regionOfVehicle(actor.entId, trip.trpVehicleId));
 
     const patch: Partial<{ trpTollFee: string; trpRevenue: string; trpFuelLiters: string }> = {};
     if (dto.toll_fee !== undefined) patch.trpTollFee = String(dto.toll_fee);
@@ -462,9 +473,9 @@ export async function deleteTruckTripAction(input: unknown): Promise<ActionResul
     const dto = deleteTruckTripSchema.parse(input);
     const delTrip = await db.query.carTrips.findFirst({
       where: and(eq(carTrips.trpId, dto.trip_id), eq(carTrips.entId, actor.entId)),
-      columns: { trpScheduledAt: true },
+      columns: { trpScheduledAt: true, trpVehicleId: true },
     });
-    if (delTrip) await assertTruckMonthOpen(actor.entId, delTrip.trpScheduledAt);
+    if (delTrip) await assertTruckMonthOpen(actor.entId, delTrip.trpScheduledAt, await regionOfVehicle(actor.entId, delTrip.trpVehicleId));
     await deleteTruckTrip(actor, dto.trip_id);
     await logAudit({
       entId: actor.entId,

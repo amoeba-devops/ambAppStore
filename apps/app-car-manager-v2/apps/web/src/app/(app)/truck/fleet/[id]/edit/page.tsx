@@ -20,6 +20,7 @@ export default async function EditTruckVehiclePage({ params }: { params: Promise
     tonnage: v.cvhTonnage ?? '',
     fuelQuota: v.cvhFuelQuota ?? '',
     fuelType: v.cvhFuelType,
+    region: v.cvhRegion ?? '',
     odometer: String(v.cvhOdometerKm),
     oilIntervalKm: v.cvhOilIntervalKm != null ? String(v.cvhOilIntervalKm) : '',
     lastOilChangeKm: v.cvhLastOilChangeKm != null ? String(v.cvhLastOilChangeKm) : '',

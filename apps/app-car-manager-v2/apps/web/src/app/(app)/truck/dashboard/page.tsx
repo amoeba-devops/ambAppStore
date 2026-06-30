@@ -14,6 +14,7 @@ import {
 } from '@car-v2/ui';
 import { computeTruckPnl } from '@car-v2/core/truck';
 import type { CarVehicleStatus } from '@car-v2/db/schema';
+import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
@@ -99,10 +100,12 @@ function pctDelta(curr: number, prev: number): number | null {
 export default async function TruckDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ period?: string; from?: string; to?: string; region?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
+  const region =
+    sp.region && (TRUCK_REGIONS as readonly string[]).includes(sp.region) ? sp.region : undefined;
   const customFrom = sp.from && YMD.test(sp.from) ? sp.from : undefined;
   const customTo = sp.to && YMD.test(sp.to) ? sp.to : undefined;
   const isCustom = !!(customFrom && customTo && customFrom <= customTo);
@@ -119,6 +122,7 @@ export default async function TruckDashboardPage({
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
   const tStatus = await getTranslations('vehicles.status');
+  const tRegion = await getTranslations('region');
   const locale = await getLocale();
   const loc = bcp47(locale);
 
@@ -128,13 +132,30 @@ export default async function TruckDashboardPage({
     ? `${new Date(customFrom!).toLocaleDateString(loc)} – ${new Date(customTo!).toLocaleDateString(loc)}`
     : tPeriod(preset!);
 
-  const [kpiRows, prevRows, trendRows, trucks, allTrips] = await Promise.all([
-    computeTruckPnl(user, { months: kpiMonths }),
-    computeTruckPnl(user, { months: prevMonths(kpiMonths) }),
-    computeTruckPnl(user, { months: trendMonths }),
+  const [kpiRows, prevRows, trendRows, trucks, allTrips, regionRowsRaw] = await Promise.all([
+    computeTruckPnl(user, { months: kpiMonths, region }),
+    computeTruckPnl(user, { months: prevMonths(kpiMonths), region }),
+    computeTruckPnl(user, { months: trendMonths, region }),
     listVehicles(user.entId, 'active', 'TRUCK'),
     listTruckTrips(user.entId),
+    /* Per-region breakdown over the selected period (always all regions, even
+     * when filtered — so the breakdown stays a comparison). */
+    Promise.all(
+      TRUCK_REGIONS.map(async (r) => {
+        const rows = await computeTruckPnl(user, { months: kpiMonths, region: r });
+        return rows.reduce(
+          (a, x) => ({
+            region: r,
+            revenue: a.revenue + x.revenue,
+            netProfit: a.netProfit + x.netProfit,
+            tripCount: a.tripCount + x.tripCount,
+          }),
+          { region: r, revenue: 0, netProfit: 0, tripCount: 0 },
+        );
+      }),
+    ),
   ]);
+  const regionRows = regionRowsRaw;
 
   /* Sum the per-month rows across the selected period. */
   const acc = kpiRows.reduce(
@@ -203,6 +224,25 @@ export default async function TruckDashboardPage({
     RETIRED: 'bg-text-faint',
   };
 
+  /* Region filter links — preserve the active period, toggle the region param. */
+  const regionHref = (r?: string) => {
+    const p = new URLSearchParams();
+    if (isCustom) {
+      p.set('from', customFrom!);
+      p.set('to', customTo!);
+    } else if (preset && preset !== 'thisMonth') {
+      p.set('period', preset);
+    }
+    if (r) p.set('region', r);
+    const qs = p.toString();
+    return `/truck/dashboard${qs ? `?${qs}` : ''}`;
+  };
+  const pillCls = (active: boolean) =>
+    'rounded-full px-3 py-1 text-xs font-semibold border transition-colors ' +
+    (active
+      ? 'bg-accent text-accent-fg border-accent'
+      : 'border-border text-text-muted hover:border-accent hover:text-accent');
+
   return (
     <>
       <PageHeader
@@ -229,6 +269,19 @@ export default async function TruckDashboardPage({
         {/* Period selector — own row on mobile (hidden in header there). */}
         <div className="sm:hidden">
           <PeriodPicker label={periodLabel} currentPreset={preset} from={customFrom} to={customTo} />
+        </div>
+
+        {/* Region filter (REQ-20260630) — preserves the active period. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-xs font-medium uppercase tracking-wide text-text-faint">{t('byRegion')}</span>
+          <Link href={regionHref()} className={pillCls(!region)}>
+            {t('regionAll')}
+          </Link>
+          {TRUCK_REGIONS.map((r) => (
+            <Link key={r} href={regionHref(r)} className={pillCls(region === r)}>
+              {tRegion(r)}
+            </Link>
+          ))}
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -299,6 +352,39 @@ export default async function TruckDashboardPage({
             ]}
           />
         </div>
+
+        {/* Per-region breakdown (REQ-20260630) — comparison across all regions. */}
+        <Card variant="outline">
+          <div className="px-4 py-3 border-b border-border">
+            <h2 className="text-sm font-semibold text-text">{t('byRegion')}</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('thRegionCol')}</TableHead>
+                  <TableHead className="text-right">{tPnl('revenue')}</TableHead>
+                  <TableHead className="text-right">{tPnl('netProfit')}</TableHead>
+                  <TableHead className="text-right">{t('kpiTrips')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {regionRows.map((rr) => (
+                  <TableRow key={rr.region} className={region === rr.region ? 'bg-accent-soft/40' : undefined}>
+                    <TableCell className="font-medium text-text">{tRegion(rr.region)}</TableCell>
+                    <TableCell className="text-right tabular text-text-muted">{vnd(rr.revenue)}</TableCell>
+                    <TableCell
+                      className={'text-right tabular font-semibold ' + (rr.netProfit >= 0 ? 'text-success' : 'text-danger')}
+                    >
+                      {vnd(rr.netProfit)}
+                    </TableCell>
+                    <TableCell className="text-right tabular">{rr.tripCount.toLocaleString(loc)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
 
         {/* Fleet status + recent */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-4">

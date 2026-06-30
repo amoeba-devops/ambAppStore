@@ -46,6 +46,11 @@
     "truckReports": "Danh sách báo cáo",
     "truckReportCreate": "Lập báo cáo"
   },
+  "region": {
+    "HCM": "HCM",
+    "DONG_NAI": "Đồng Nai",
+    "BAIKSAN": "Baiksan"
+  },
   "actions": {
     "new": "Tạo mới",
     "create": "Tạo",
@@ -185,6 +190,9 @@
       "chartProfit": "Doanh thu & lợi nhuận theo tháng",
       "costStructure": "Cơ cấu chi phí",
       "fleetStatus": "Tình trạng đội xe",
+      "byRegion": "Theo khu vực",
+      "regionAll": "Tất cả",
+      "thRegionCol": "Khu vực",
       "noData": "Chưa có dữ liệu",
       "topTrucks": "TOP xe tải (doanh thu)",
       "topDrivers": "TOP tài xế (doanh thu)",
@@ -249,6 +257,8 @@
       "statusOpen": "Đang mở",
       "statusClosed": "Đã chốt",
       "closeMonth": "Chốt sổ",
+      "regionLabel": "Khu vực",
+      "closeRegionTitle": "Chốt sổ · {region}",
       "closeConfirm": "Chốt sổ tháng {month}? Sau khi chốt, các chuyến trong tháng sẽ bị khoá.",
       "closedToast": "Đã chốt sổ tháng {month}",
       "reopen": "Mở lại",
@@ -522,6 +532,8 @@
         "oilIntervalKm": "Định mức thay dầu (km)",
         "lastOilChangeKm": "Số km thay dầu gần nhất",
         "homeBase": "Bãi đỗ",
+        "region": "Khu vực",
+        "regionNone": "— Không chọn —",
         "cancel": "Huỷ",
         "save": "Lưu",
         "createdToast": "Đã thêm xe tải {plate}",
@@ -536,6 +548,7 @@
       "thCode": "Mã xe",
       "thPlate": "Biển số",
       "thModel": "Tên / Mô tả",
+      "thRegion": "Khu vực",
       "thConsumption": "Định mức tiêu hao",
       "thDepreciation": "Khấu hao",
       "thDriver": "Tài xế",

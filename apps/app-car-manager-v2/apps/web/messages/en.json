@@ -46,6 +46,11 @@
     "truckReports": "Reports",
     "truckReportCreate": "Create report"
   },
+  "region": {
+    "HCM": "HCM",
+    "DONG_NAI": "Dong Nai",
+    "BAIKSAN": "Baiksan"
+  },
   "actions": {
     "new": "New",
     "create": "Create",
@@ -185,6 +190,9 @@
       "chartProfit": "Revenue & profit by month",
       "costStructure": "Cost structure",
       "fleetStatus": "Fleet status",
+      "byRegion": "By region",
+      "regionAll": "All",
+      "thRegionCol": "Region",
       "noData": "No data yet",
       "topTrucks": "TOP trucks (revenue)",
       "topDrivers": "TOP drivers (revenue)",
@@ -249,6 +257,8 @@
       "statusOpen": "Open",
       "statusClosed": "Closed",
       "closeMonth": "Close book",
+      "regionLabel": "Region",
+      "closeRegionTitle": "Close · {region}",
       "closeConfirm": "Close the book for {month}? Trips in this month will be locked.",
       "closedToast": "Closed the book for {month}",
       "reopen": "Reopen",
@@ -522,6 +532,8 @@
         "oilIntervalKm": "Oil change interval (km)",
         "lastOilChangeKm": "Odometer at last oil change",
         "homeBase": "Home base",
+        "region": "Region",
+        "regionNone": "— None —",
         "cancel": "Cancel",
         "save": "Save",
         "createdToast": "Truck {plate} added",
@@ -536,6 +548,7 @@
       "thCode": "Code",
       "thPlate": "Plate",
       "thModel": "Name / Description",
+      "thRegion": "Region",
       "thConsumption": "Consumption",
       "thDepreciation": "Depreciation",
       "thDriver": "Driver",

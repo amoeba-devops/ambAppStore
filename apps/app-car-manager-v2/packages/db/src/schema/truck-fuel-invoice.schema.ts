@@ -16,6 +16,10 @@ export const carTruckFuelInvoices = pgTable(
     tfiId: char('tfi_id', { length: 36 }).primaryKey(),
     entId: char('ent_id', { length: 36 }).notNull(),
     tfiVehicleType: vehicleTypeEnum('tfi_vehicle_type').notNull().default('TRUCK'),
+    /* Operating region (REQ-20260630) — code from TRUCK_REGIONS; nullable.
+     * Region-scoped month close reconciles fuel from this region's invoices ÷
+     * this region's trip km. NULL = unassigned / whole-fleet (legacy). */
+    tfiRegion: varchar('tfi_region', { length: 40 }),
     /* 'YYYY-MM' the invoice belongs to (derived from tfi_date on insert). */
     tfiMonth: varchar('tfi_month', { length: 7 }).notNull(),
     tfiDate: date('tfi_date').notNull(),

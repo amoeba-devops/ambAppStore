@@ -25,9 +25,11 @@ import {
   updateVehicleAction,
   deleteVehicleAction,
 } from '@/server/actions/vehicles/vehicle.actions';
+import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { formatActionError } from '@/lib/format-action-error';
 
 const FUELS = ['DIESEL', 'PETROL', 'HYBRID', 'EV'] as const;
+const NO_REGION = '__none__';
 
 const EMPTY = {
   plate: '',
@@ -38,6 +40,7 @@ const EMPTY = {
   tonnage: '',
   fuelQuota: '',
   fuelType: 'DIESEL',
+  region: '',
   odometer: '',
   oilIntervalKm: '8000',
   lastOilChangeKm: '',
@@ -55,6 +58,7 @@ export function TruckVehicleForm({
 } = {}) {
   const t = useTranslations('screens.truckFleet.form');
   const tFuel = useTranslations('vehicles.fuel');
+  const tRegion = useTranslations('region');
   const tErr = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -81,6 +85,7 @@ export function TruckVehicleForm({
         vehicle_type: 'TRUCK' as const,
         tonnage: f.tonnage ? Number(f.tonnage) : undefined,
         fuel_quota: f.fuelQuota ? Number(f.fuelQuota) : undefined,
+        region: (f.region || undefined) as (typeof TRUCK_REGIONS)[number] | undefined,
         odometer_km: f.odometer ? Number(f.odometer) : undefined,
         oil_interval_km: f.oilIntervalKm ? Number(f.oilIntervalKm) : undefined,
         last_oil_change_km: f.lastOilChangeKm ? Number(f.lastOilChangeKm) : undefined,
@@ -154,6 +159,24 @@ export function TruckVehicleForm({
                   {FUELS.map((fuel) => (
                     <SelectItem key={fuel} value={fuel}>
                       {tFuel(fuel)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label={t('region')}>
+              <Select
+                value={f.region || NO_REGION}
+                onValueChange={(v) => setF((s) => ({ ...s, region: v === NO_REGION ? '' : v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_REGION}>{t('regionNone')}</SelectItem>
+                  {TRUCK_REGIONS.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {tRegion(r)}
                     </SelectItem>
                   ))}
                 </SelectContent>

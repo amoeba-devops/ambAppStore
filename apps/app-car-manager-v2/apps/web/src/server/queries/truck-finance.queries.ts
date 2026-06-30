@@ -11,7 +11,8 @@ import {
   carUsers,
 } from '@car-v2/db/schema';
 import { CarError } from '@car-v2/shared/errors';
-import { parseAmount, truckTripFuelCost, computeTruckPnl } from '@car-v2/core/truck';
+import { parseAmount, truckTripFuelCost, computeTruckPnl, loadTruckRegionSnapshots } from '@car-v2/core/truck';
+import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import type { AuthContext } from '@/lib/auth/get-current-user';
 
 /** Months (of the given set) whose TRUCK book is closed. */
@@ -31,7 +32,13 @@ export async function getClosedTruckMonths(entId: string, months: string[]): Pro
   return new Set(rows.map((r) => r.m));
 }
 
-export async function isTruckMonthClosed(entId: string, month: string): Promise<boolean> {
+/** Is (ent, TRUCK, month, region) closed? `region` null = the whole-fleet
+ * (legacy / "all regions") close; a region code = that region's close. */
+export async function isTruckMonthClosed(
+  entId: string,
+  month: string,
+  region: string | null = null,
+): Promise<boolean> {
   const rows = await db
     .select({ id: carTruckMonthClose.tmcId })
     .from(carTruckMonthClose)
@@ -40,6 +47,7 @@ export async function isTruckMonthClosed(entId: string, month: string): Promise<
         eq(carTruckMonthClose.entId, entId),
         eq(carTruckMonthClose.tmcVehicleType, 'TRUCK'),
         eq(carTruckMonthClose.tmcMonth, month),
+        region == null ? isNull(carTruckMonthClose.tmcRegion) : eq(carTruckMonthClose.tmcRegion, region),
         isNull(carTruckMonthClose.tmcDeletedAt),
       ),
     )
@@ -48,13 +56,21 @@ export async function isTruckMonthClosed(entId: string, month: string): Promise<
 }
 
 /**
- * Financial period lock (REQ-20260623 P4). Throws CAR-E1002 when the TRUCK book
- * for the trip's scheduled month is closed — blocks create/edit/delete/complete
- * so a finalized P&L can't change underneath the close.
+ * Financial period lock (REQ-20260623 P4, region-scoped REQ-20260630). Throws
+ * CAR-E1002 when the book for the trip's (month, region) is closed — or a
+ * whole-fleet close covers the month — so a finalized P&L can't change. Pass the
+ * trip's region (its vehicle's cvh_region); omit for the whole-fleet check only.
  */
-export async function assertTruckMonthOpen(entId: string, scheduledAt: Date): Promise<void> {
+export async function assertTruckMonthOpen(
+  entId: string,
+  scheduledAt: Date,
+  region: string | null = null,
+): Promise<void> {
   const month = scheduledAt.toISOString().slice(0, 7);
-  if (await isTruckMonthClosed(entId, month)) {
+  const closed =
+    (region != null && (await isTruckMonthClosed(entId, month, region))) ||
+    (await isTruckMonthClosed(entId, month, null));
+  if (closed) {
     throw new CarError('CAR-E1002', 409, `Financial month ${month} is closed`);
   }
 }
@@ -63,11 +79,17 @@ export interface FuelInvoiceRow {
   id: string;
   date: string;
   station: string | null;
+  region: string | null;
   liters: number;
   price: number;
 }
 
-export async function listFuelInvoices(entId: string, month: string): Promise<FuelInvoiceRow[]> {
+/** Fuel invoices for a month, optionally scoped to one region. */
+export async function listFuelInvoices(
+  entId: string,
+  month: string,
+  region?: string,
+): Promise<FuelInvoiceRow[]> {
   const rows = await db
     .select()
     .from(carTruckFuelInvoices)
@@ -76,6 +98,7 @@ export async function listFuelInvoices(entId: string, month: string): Promise<Fu
         eq(carTruckFuelInvoices.entId, entId),
         eq(carTruckFuelInvoices.tfiVehicleType, 'TRUCK'),
         eq(carTruckFuelInvoices.tfiMonth, month),
+        region ? eq(carTruckFuelInvoices.tfiRegion, region) : undefined,
         isNull(carTruckFuelInvoices.tfiDeletedAt),
       ),
     )
@@ -84,6 +107,7 @@ export async function listFuelInvoices(entId: string, month: string): Promise<Fu
     id: r.tfiId,
     date: r.tfiDate,
     station: r.tfiStation,
+    region: r.tfiRegion,
     liters: parseAmount(r.tfiLiters),
     price: parseAmount(r.tfiPrice),
   }));
@@ -111,14 +135,15 @@ export interface FuelStats {
  * Computed live for an open month (preview); frozen onto car_truck_month_close
  * at close and read back from there for closed months.
  */
-export async function getTruckFuelStats(entId: string, month: string): Promise<FuelStats> {
+export async function getTruckFuelStats(entId: string, month: string, region?: string): Promise<FuelStats> {
   const start = new Date(`${month}-01T00:00:00.000Z`);
   const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
   const [invs, trips] = await Promise.all([
-    listFuelInvoices(entId, month),
+    listFuelInvoices(entId, month, region),
     db
       .select({ so: carTrips.trpStartOdometer, eo: carTrips.trpEndOdometer })
       .from(carTrips)
+      .leftJoin(carVehicles, eq(carTrips.trpVehicleId, carVehicles.cvhId))
       .where(
         and(
           eq(carTrips.entId, entId),
@@ -127,6 +152,7 @@ export async function getTruckFuelStats(entId: string, month: string): Promise<F
           isNull(carTrips.trpDeletedAt),
           gte(carTrips.trpScheduledAt, start),
           lt(carTrips.trpScheduledAt, end),
+          region ? eq(carVehicles.cvhRegion, region) : undefined,
         ),
       ),
   ]);
@@ -149,8 +175,13 @@ export interface TruckMonthCloseInfo {
   snapshot: { avgPrice: number; consumption: number; totalLiters: number; totalKm: number } | null;
 }
 
-/** The live close row for a month (incl. frozen fuel snapshot) or open state. */
-export async function getTruckMonthCloseInfo(entId: string, month: string): Promise<TruckMonthCloseInfo> {
+/** The live close row for a (month, region) — incl. frozen fuel snapshot — or
+ * open state. `region` null = the whole-fleet (legacy) close. */
+export async function getTruckMonthCloseInfo(
+  entId: string,
+  month: string,
+  region: string | null = null,
+): Promise<TruckMonthCloseInfo> {
   const [row] = await db
     .select()
     .from(carTruckMonthClose)
@@ -159,6 +190,7 @@ export async function getTruckMonthCloseInfo(entId: string, month: string): Prom
         eq(carTruckMonthClose.entId, entId),
         eq(carTruckMonthClose.tmcVehicleType, 'TRUCK'),
         eq(carTruckMonthClose.tmcMonth, month),
+        region == null ? isNull(carTruckMonthClose.tmcRegion) : eq(carTruckMonthClose.tmcRegion, region),
         isNull(carTruckMonthClose.tmcDeletedAt),
       ),
     )
@@ -174,6 +206,47 @@ export async function getTruckMonthCloseInfo(entId: string, month: string): Prom
         }
       : null;
   return { closed: true, closedAt: row.tmcClosedAt, snapshot };
+}
+
+export interface TruckRegionCloseState {
+  region: string;
+  closed: boolean;
+  closedAt: Date | null;
+  snapshot: TruckMonthCloseInfo['snapshot'];
+}
+
+/** Close state of every region for a month — drives the chốt-sổ-theo-khu-vực UI. */
+export async function getTruckRegionCloseStates(
+  entId: string,
+  month: string,
+): Promise<TruckRegionCloseState[]> {
+  const rows = await db
+    .select()
+    .from(carTruckMonthClose)
+    .where(
+      and(
+        eq(carTruckMonthClose.entId, entId),
+        eq(carTruckMonthClose.tmcVehicleType, 'TRUCK'),
+        eq(carTruckMonthClose.tmcMonth, month),
+        isNotNull(carTruckMonthClose.tmcRegion),
+        isNull(carTruckMonthClose.tmcDeletedAt),
+      ),
+    );
+  const byRegion = new Map<string, (typeof rows)[number]>();
+  for (const r of rows) if (r.tmcRegion) byRegion.set(r.tmcRegion, r);
+  return TRUCK_REGIONS.map((region) => {
+    const row = byRegion.get(region);
+    const snapshot =
+      row && row.tmcAvgPrice != null && row.tmcConsumption != null
+        ? {
+            avgPrice: parseAmount(row.tmcAvgPrice),
+            consumption: parseAmount(row.tmcConsumption),
+            totalLiters: parseAmount(row.tmcTotalLiters),
+            totalKm: parseAmount(row.tmcTotalKm),
+          }
+        : null;
+    return { region, closed: !!row, closedAt: row?.tmcClosedAt ?? null, snapshot };
+  });
 }
 
 export interface TruckFinanceTripRow {
@@ -214,8 +287,8 @@ export async function listTruckFinanceTrips(
   const start = new Date(`${opts.month}-01T00:00:00.000Z`);
   const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
 
-  const [closeInfo, trips] = await Promise.all([
-    getTruckMonthCloseInfo(entId, opts.month),
+  const [snapshots, trips] = await Promise.all([
+    loadTruckRegionSnapshots(entId, [opts.month]),
     db
       .select({
         trpId: carTrips.trpId,
@@ -270,13 +343,14 @@ export async function listTruckFinanceTrips(
     extraByTrip.set(e.trpId, (extraByTrip.get(e.trpId) ?? 0) + parseAmount(e.amount));
   }
 
-  const snap = closeInfo.closed ? closeInfo.snapshot : null;
-
   return trips.map((t) => {
     const km = t.so != null && t.eo != null ? t.eo - t.so : 0;
     const toll = Math.round(parseAmount(t.toll));
     const extra = Math.round(extraByTrip.get(t.trpId) ?? 0);
     const revenue = Math.round(parseAmount(t.revenue));
+    /* Region-scoped snapshot: official fuel only when this trip's region's
+     * month is closed (or a whole-fleet close exists). */
+    const snap = snapshots.forTrip(opts.month, t.vehicleId);
     const finalized = snap != null;
     const unitPrice = finalized ? snap.avgPrice : parseAmount(t.fuelPrice);
     const liters = finalized ? km * snap.consumption : parseAmount(t.fuelLiters);
@@ -311,10 +385,12 @@ export interface TruckMonthAdjustment {
   reopenedAt: Date | null;
 }
 
-/** Reopen history for a month = soft-deleted close rows carrying a reason. */
+/** Reopen history for a (month, region) = soft-deleted close rows carrying a
+ * reason. `region` null = whole-fleet (legacy) close history. */
 export async function listTruckMonthAdjustments(
   entId: string,
   month: string,
+  region: string | null = null,
 ): Promise<TruckMonthAdjustment[]> {
   const rows = await db
     .select()
@@ -324,6 +400,7 @@ export async function listTruckMonthAdjustments(
         eq(carTruckMonthClose.entId, entId),
         eq(carTruckMonthClose.tmcVehicleType, 'TRUCK'),
         eq(carTruckMonthClose.tmcMonth, month),
+        region == null ? isNull(carTruckMonthClose.tmcRegion) : eq(carTruckMonthClose.tmcRegion, region),
         isNotNull(carTruckMonthClose.tmcDeletedAt),
         isNotNull(carTruckMonthClose.tmcReopenReason),
       ),

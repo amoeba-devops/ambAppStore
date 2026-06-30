@@ -31,6 +31,11 @@ export const carTruckMonthClose = pgTable(
     tmcVehicleType: vehicleTypeEnum('tmc_vehicle_type').notNull().default('TRUCK'),
     /* 'YYYY-MM' the close applies to. */
     tmcMonth: varchar('tmc_month', { length: 7 }).notNull(),
+    /* Operating region this close applies to (REQ-20260630) — code from
+     * TRUCK_REGIONS; nullable. A close is now scoped to (ent, type, month,
+     * region): each region closes independently with its own fuel snapshot.
+     * NULL = legacy whole-fleet close (pre-region rows). */
+    tmcRegion: varchar('tmc_region', { length: 40 }),
     tmcClosedBy: char('tmc_closed_by', { length: 36 }),
     tmcClosedAt: timestamp('tmc_closed_at', { withTimezone: true }).defaultNow().notNull(),
     /* Month-end fuel snapshot, computed & frozen at close (REQ-20260629). The
@@ -48,10 +53,12 @@ export const carTruckMonthClose = pgTable(
     tmcDeletedAt: timestamp('tmc_deleted_at', { withTimezone: true }),
   },
   (t) => ({
-    /* One live close per (ent, dept, month). Re-closing after reopen is fine —
-     * the partial index only counts live rows. */
-    uniqEntTypeMonth: uniqueIndex('uniq_car_truck_month_close_ent_type_month')
-      .on(t.entId, t.tmcVehicleType, t.tmcMonth)
+    /* One live close per (ent, dept, month, region). Re-closing after reopen is
+     * fine — the partial index only counts live rows. The migration builds this
+     * over COALESCE(tmc_region,'') so a NULL-region (legacy whole-fleet) close
+     * is still unique per month. */
+    uniqEntTypeMonthRegion: uniqueIndex('uniq_car_truck_month_close_ent_type_month_region')
+      .on(t.entId, t.tmcVehicleType, t.tmcMonth, t.tmcRegion)
       .where(isNull(t.tmcDeletedAt)),
     idxEntType: index('idx_car_truck_month_close_ent_type').on(t.entId, t.tmcVehicleType),
   }),

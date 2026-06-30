@@ -14,6 +14,7 @@ import {
   TableRow,
 } from '@car-v2/ui';
 import type { CarVehicleStatus } from '@car-v2/db/schema';
+import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
@@ -40,10 +41,13 @@ export default async function TruckFleetPage() {
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
   const tStatus = await getTranslations('vehicles.status');
+  const tRegion = await getTranslations('region');
   const locale = await getLocale();
   const loc = bcp47(locale);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
   const date = (d: Date) => new Date(d).toLocaleDateString(loc);
+  const REGIONS: readonly string[] = TRUCK_REGIONS;
+  const regionLabel = (r: string | null) => (r && REGIONS.includes(r) ? tRegion(r) : (r ?? '—'));
 
   const trucks = await listVehicles(user.entId, 'active', 'TRUCK');
   const month = new Date().toISOString().slice(0, 7);
@@ -93,6 +97,7 @@ export default async function TruckFleetPage() {
                   <TableHead>{t('thCode')}</TableHead>
                   <TableHead>{t('thPlate')}</TableHead>
                   <TableHead>{t('thModel')}</TableHead>
+                  <TableHead>{t('thRegion')}</TableHead>
                   <TableHead className="text-right">{t('thConsumption')}</TableHead>
                   <TableHead className="text-right">{t('thDepreciation')}</TableHead>
                   <TableHead>{t('thDriver')}</TableHead>
@@ -111,6 +116,7 @@ export default async function TruckFleetPage() {
                       <TableCell className="whitespace-nowrap font-mono text-text-muted">{v.cvhCode ?? '—'}</TableCell>
                       <TableCell className="whitespace-nowrap font-mono font-semibold text-text">{v.cvhPlateNumber}</TableCell>
                       <TableCell className="text-text">{v.cvhModel}</TableCell>
+                      <TableCell className="whitespace-nowrap text-text-muted">{regionLabel(v.cvhRegion)}</TableCell>
                       <TableCell className="text-right tabular text-text-muted">
                         {v.cvhFuelQuota ? `${v.cvhFuelQuota} L/100km` : '—'}
                       </TableCell>

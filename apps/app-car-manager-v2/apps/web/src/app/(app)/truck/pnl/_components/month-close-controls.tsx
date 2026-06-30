@@ -18,10 +18,12 @@ import { formatActionError } from '@/lib/format-action-error';
  */
 export function MonthCloseControls({
   month,
+  region,
   closed,
   canReopen,
 }: {
   month: string;
+  region: string;
   closed: boolean;
   canReopen: boolean;
 }) {
@@ -35,7 +37,7 @@ export function MonthCloseControls({
   const close = () =>
     start(async () => {
       if (!confirm(t('closeConfirm', { month }))) return;
-      const res = await closeTruckMonthAction({ month });
+      const res = await closeTruckMonthAction({ month, region });
       if (!res.success) {
         toast.error(formatActionError(res.error, tErr));
         return;
@@ -46,7 +48,7 @@ export function MonthCloseControls({
 
   const reopen = () =>
     start(async () => {
-      const res = await reopenTruckMonthAction({ month, reason });
+      const res = await reopenTruckMonthAction({ month, region, reason });
       if (!res.success) {
         toast.error(formatActionError(res.error, tErr));
         return;

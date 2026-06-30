@@ -4,12 +4,13 @@ import {
   carTrips,
   carTripExtraCosts,
   carTruckFixedCosts,
-  carTruckMonthClose,
   carDrivers,
   carUserFleetAccess,
+  carVehicles,
 } from '@car-v2/db/schema';
 import type { FleetActor } from '../types';
 import { parseAmount, truckTripFuelCost } from './truck-cost';
+import { loadTruckRegionSnapshots } from './truck-fuel-snapshot';
 
 /**
  * Monthly P&L per truck (REQ-20260617, customer SRS §2.3):
@@ -41,6 +42,9 @@ export interface TruckPnlRow {
 
 export interface TruckPnlQuery {
   vehicleId?: string | null;
+  /** Restrict to vehicles in this operating region (cvh_region code). Like the
+   * vehicle filter, this excludes fleet-level driver salary (not region-tied). */
+  region?: string | null;
   /** Months to report, 'YYYY-MM'. */
   months: string[];
 }
@@ -81,9 +85,31 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
   const rangeStart = new Date(`${firstMonth}-01T00:00:00.000Z`);
   const rangeEnd = monthEndExclusive(lastMonth);
 
+  /* Region filter (REQ-20260630): resolve the trucks in the region, then scope
+   * trips + fixed costs to them. No trucks in the region → all-zero rows. */
+  let regionVehicleIds: string[] | null = null;
+  if (q.region) {
+    const vrows = await db
+      .select({ id: carVehicles.cvhId })
+      .from(carVehicles)
+      .where(
+        and(
+          eq(carVehicles.entId, actor.entId),
+          eq(carVehicles.cvhType, 'TRUCK'),
+          eq(carVehicles.cvhRegion, q.region),
+          isNull(carVehicles.cvhDeletedAt),
+        ),
+      );
+    regionVehicleIds = vrows.map((r) => r.id);
+    if (regionVehicleIds.length === 0) return months.map((m) => emptyRow(m));
+  }
+  const vehicleFilter = (col: typeof carTrips.trpVehicleId | typeof carTruckFixedCosts.cvhId) =>
+    q.vehicleId ? eq(col, q.vehicleId) : regionVehicleIds ? inArray(col, regionVehicleIds) : undefined;
+
   const trips = await db
     .select({
       trpId: carTrips.trpId,
+      vehicleId: carTrips.trpVehicleId,
       scheduledAt: carTrips.trpScheduledAt,
       fuelLiters: carTrips.trpFuelLiters,
       fuelPrice: carTrips.trpFuelPrice,
@@ -101,7 +127,7 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
         isNull(carTrips.trpDeletedAt),
         gte(carTrips.trpScheduledAt, rangeStart),
         lt(carTrips.trpScheduledAt, rangeEnd),
-        q.vehicleId ? eq(carTrips.trpVehicleId, q.vehicleId) : undefined,
+        vehicleFilter(carTrips.trpVehicleId),
       ),
     );
 
@@ -129,45 +155,22 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
       and(
         eq(carTruckFixedCosts.entId, actor.entId),
         inArray(carTruckFixedCosts.tfcMonth, months),
-        q.vehicleId ? eq(carTruckFixedCosts.cvhId, q.vehicleId) : undefined,
+        vehicleFilter(carTruckFixedCosts.cvhId),
       ),
     );
 
-  /* Month-end fuel snapshot per closed month (REQ-20260629). The close is
-   * dept-wide (ent, TRUCK, month) so the same avg price + consumption apply to
-   * every truck's trips regardless of the vehicle filter. A month with a live
-   * close row AND non-null snapshot → official fuel cost = km × consumption ×
-   * avg price; otherwise the trip's own liters × price (fallback below). */
-  const closeRows = await db
-    .select({
-      month: carTruckMonthClose.tmcMonth,
-      avgPrice: carTruckMonthClose.tmcAvgPrice,
-      consumption: carTruckMonthClose.tmcConsumption,
-    })
-    .from(carTruckMonthClose)
-    .where(
-      and(
-        eq(carTruckMonthClose.entId, actor.entId),
-        eq(carTruckMonthClose.tmcVehicleType, 'TRUCK'),
-        inArray(carTruckMonthClose.tmcMonth, months),
-        isNull(carTruckMonthClose.tmcDeletedAt),
-      ),
-    );
-  const snapByMonth = new Map<string, { avgPrice: number; consumption: number }>();
-  for (const c of closeRows) {
-    if (c.avgPrice != null && c.consumption != null) {
-      snapByMonth.set(c.month, {
-        avgPrice: parseAmount(c.avgPrice),
-        consumption: parseAmount(c.consumption),
-      });
-    }
-  }
+  /* Region-scoped month-end fuel snapshot (REQ-20260630). The close is per
+   * (ent, TRUCK, month, region); each trip's official fuel cost uses ITS
+   * region's snapshot (region = its vehicle's cvh_region). A (month, region)
+   * with a live close + non-null snapshot → km × consumption × avg price;
+   * otherwise the trip's own liters × price (fallback below). */
+  const snapshots = await loadTruckRegionSnapshots(actor.entId, months);
 
   /* Driver fixed salary — fleet-level monthly recurring cost. Only attributed
    * in the all-trucks view; a single-vehicle filter leaves it 0 because driver
    * salary isn't tied to a specific vehicle. */
   let driverSalaryTotal = 0;
-  if (!q.vehicleId) {
+  if (!q.vehicleId && !q.region) {
     const drvRows = await db
       .select({ salary: carDrivers.drvFixedSalary })
       .from(carDrivers)
@@ -192,7 +195,7 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
     const row = rows.get(mk);
     if (!row) continue;
     row.revenue += Math.round(parseAmount(t.revenue));
-    const snap = snapByMonth.get(mk);
+    const snap = snapshots.forTrip(mk, t.vehicleId);
     if (snap) {
       const km =
         t.startOdometer != null && t.endOdometer != null ? t.endOdometer - t.startOdometer : 0;

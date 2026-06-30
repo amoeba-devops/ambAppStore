@@ -17,10 +17,13 @@ import type { FuelInvoiceRow } from '@/server/queries/truck-finance.queries';
  * card; this panel just manages the invoice rows (REQ-20260629). */
 export function FuelInvoicePanel({
   month,
+  region,
   invoices,
   locked,
 }: {
   month: string;
+  /** Invoices + the add form are scoped to this operating region. */
+  region: string;
   invoices: FuelInvoiceRow[];
   locked: boolean;
 }) {
@@ -36,6 +39,7 @@ export function FuelInvoicePanel({
       const res = await addFuelInvoiceAction({
         date: f.date,
         station: f.station || undefined,
+        region,
         liters: Number(f.liters || 0),
         price: Number(f.price || 0),
       });
