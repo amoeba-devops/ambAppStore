@@ -86,15 +86,17 @@ export default async function TruckReportsPage({
           <Card>
             <EmptyState
               icon={<FileText />}
-              title={t('emptyTitle')}
-              description={t('emptyDesc')}
+              title={monthFilter && reports.length > 0 ? t('emptyMonthTitle') : t('emptyTitle')}
+              description={monthFilter && reports.length > 0 ? t('emptyMonthDesc') : t('emptyDesc')}
               action={
-                <Button variant="accent" size="md" asChild>
-                  <Link href="/truck/reports/new">
-                    <Plus />
-                    {t('createBtn')}
-                  </Link>
-                </Button>
+                monthFilter && reports.length > 0 ? undefined : (
+                  <Button variant="accent" size="md" asChild>
+                    <Link href="/truck/reports/new">
+                      <Plus />
+                      {t('createBtn')}
+                    </Link>
+                  </Button>
+                )
               }
             />
           </Card>

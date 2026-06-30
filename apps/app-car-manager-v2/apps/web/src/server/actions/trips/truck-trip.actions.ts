@@ -1,9 +1,11 @@
 'use server';
 
-import { and, eq } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
+import { and, eq, isNull } from 'drizzle-orm';
+import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db } from '@car-v2/db/client';
-import { carTrips } from '@car-v2/db/schema';
+import { carTrips, carTripExtraCosts } from '@car-v2/db/schema';
 import {
   createTruckTrip,
   assignTruckTrip,
@@ -358,6 +360,96 @@ export async function updateTruckTripAction(input: unknown): Promise<ActionResul
     revalidatePath('/truck/trips');
     revalidatePath(`/truck/trips/${res.trip.trpId}`);
     return { id: res.trip.trpId };
+  });
+}
+
+/**
+ * Cost patch for the report-review screen ("Lập báo cáo · Bước 2"). Adjusts the
+ * four per-trip cost figures the design lets a manager tweak before generating
+ * the report — toll, extra, fuel, revenue — on an OPEN month only. Mapping to
+ * our normalized model:
+ *   - toll    → trp_toll_fee (single column)
+ *   - revenue → trp_revenue  (single column)
+ *   - extra   → replaces the trip's car_trip_extra_costs line items with one
+ *               "Phát sinh" row (the screen treats extra as a single number)
+ *   - fuel    → back-computed to litres (cost ÷ unit price) so the open-month
+ *               fuel = litres × price equals the entered value; needs a unit
+ *               price, otherwise skipped. When the month later closes the fuel is
+ *               re-derived from the month-end snapshot (km × consumption × avg).
+ * Profit/cost carry no cached column (recomputed on read), so these writes stay
+ * consistent across finance / P&L / dashboard / report.
+ */
+export async function patchTruckTripCostsAction(input: unknown): Promise<ActionResult<{ id: string }>> {
+  return runAction(async () => {
+    const actor = await getCurrentUser();
+    requireRole(actor.role, ['ADMIN', 'MANAGER']);
+    await requireFleet(actor, 'TRUCK');
+    const dto = z
+      .object({
+        trip_id: z.string().uuid(),
+        toll_fee: z.number().nonnegative().max(1_000_000_000).optional(),
+        revenue: z.number().nonnegative().max(1_000_000_000).optional(),
+        extra_amount: z.number().nonnegative().max(1_000_000_000).optional(),
+        fuel_cost: z.number().nonnegative().max(1_000_000_000).optional(),
+      })
+      .parse(input);
+
+    const trip = await db.query.carTrips.findFirst({
+      where: and(
+        eq(carTrips.trpId, dto.trip_id),
+        eq(carTrips.entId, actor.entId),
+        isNull(carTrips.trpDeletedAt),
+      ),
+      columns: { trpScheduledAt: true, trpRef: true, trpFuelPrice: true },
+    });
+    if (!trip) throw new CarError('CAR-E0404', 404, 'Trip not found');
+    await assertTruckMonthOpen(actor.entId, trip.trpScheduledAt);
+
+    const patch: Partial<{ trpTollFee: string; trpRevenue: string; trpFuelLiters: string }> = {};
+    if (dto.toll_fee !== undefined) patch.trpTollFee = String(dto.toll_fee);
+    if (dto.revenue !== undefined) patch.trpRevenue = String(dto.revenue);
+    if (dto.fuel_cost !== undefined) {
+      const price = Number(trip.trpFuelPrice ?? 0);
+      if (price > 0) patch.trpFuelLiters = String(Math.round((dto.fuel_cost / price) * 100) / 100);
+    }
+    if (Object.keys(patch).length > 0) {
+      await db
+        .update(carTrips)
+        .set(patch)
+        .where(and(eq(carTrips.trpId, dto.trip_id), eq(carTrips.entId, actor.entId)));
+    }
+
+    /* Extra costs are line items — the review treats them as a single number, so
+     * replace any existing rows with one "Phát sinh" line (or clear when 0). */
+    if (dto.extra_amount !== undefined) {
+      await db
+        .delete(carTripExtraCosts)
+        .where(and(eq(carTripExtraCosts.entId, actor.entId), eq(carTripExtraCosts.trpId, dto.trip_id)));
+      if (dto.extra_amount > 0) {
+        await db.insert(carTripExtraCosts).values({
+          tecId: randomUUID(),
+          entId: actor.entId,
+          trpId: dto.trip_id,
+          tecName: 'Phát sinh',
+          tecAmount: String(dto.extra_amount),
+        });
+      }
+    }
+
+    await logAudit({
+      entId: actor.entId,
+      userId: actor.userId,
+      action: 'TRUCK_TRIP.UPDATE',
+      entity: 'Trip',
+      entityId: dto.trip_id,
+      entityRef: trip.trpRef,
+      after: { tollFee: dto.toll_fee, revenue: dto.revenue, extra: dto.extra_amount, fuelCost: dto.fuel_cost },
+    });
+    revalidatePath('/truck/finance');
+    revalidatePath('/truck/pnl');
+    revalidatePath('/truck/trips');
+    revalidatePath('/truck/dashboard');
+    return { id: dto.trip_id };
   });
 }
 

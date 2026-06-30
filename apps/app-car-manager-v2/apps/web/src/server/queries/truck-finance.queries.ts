@@ -11,7 +11,8 @@ import {
   carUsers,
 } from '@car-v2/db/schema';
 import { CarError } from '@car-v2/shared/errors';
-import { parseAmount, truckTripFuelCost } from '@car-v2/core/truck';
+import { parseAmount, truckTripFuelCost, computeTruckPnl } from '@car-v2/core/truck';
+import type { AuthContext } from '@/lib/auth/get-current-user';
 
 /** Months (of the given set) whose TRUCK book is closed. */
 export async function getClosedTruckMonths(entId: string, months: string[]): Promise<Set<string>> {
@@ -179,7 +180,9 @@ export interface TruckFinanceTripRow {
   trpId: string;
   ref: string;
   scheduledAt: Date;
+  vehicleId: string | null;
   plate: string | null;
+  model: string | null;
   driver: string | null;
   customer: string | null;
   km: number;
@@ -219,7 +222,9 @@ export async function listTruckFinanceTrips(
         ref: carTrips.trpRef,
         scheduledAt: carTrips.trpScheduledAt,
         customer: carTrips.trpCustomer,
+        vehicleId: carTrips.trpVehicleId,
         plate: carVehicles.cvhPlateNumber,
+        model: carVehicles.cvhModel,
         driver: carUsers.usrName,
         fuelLiters: carTrips.trpFuelLiters,
         fuelPrice: carTrips.trpFuelPrice,
@@ -282,7 +287,9 @@ export async function listTruckFinanceTrips(
       trpId: t.trpId,
       ref: t.ref,
       scheduledAt: t.scheduledAt,
+      vehicleId: t.vehicleId,
       plate: t.plate,
+      model: t.model,
       driver: t.driver,
       customer: t.customer,
       km,
@@ -327,4 +334,149 @@ export async function listTruckMonthAdjustments(
     reopenedBy: r.tmcReopenedBy,
     reopenedAt: r.tmcReopenedAt,
   }));
+}
+
+/* ── Report review (REQ-20260629, design "Lập báo cáo" Bước 2) ──────────────── */
+
+export interface ReportReviewTrip {
+  trpId: string;
+  ref: string;
+  scheduledAt: Date;
+  customer: string | null;
+  km: number;
+  toll: number;
+  extra: number;
+  fuelCost: number;
+  revenue: number;
+  profit: number;
+  finalized: boolean;
+}
+
+export interface ReportReviewVehicle {
+  vehicleId: string | null;
+  plate: string;
+  model: string | null;
+  tripCount: number;
+  totalFuel: number;
+  totalToll: number;
+  totalExtra: number;
+  totalRevenue: number;
+  /** Σ trip profit (revenue − fuel − toll − extra) before fixed costs. */
+  variableProfit: number;
+  /** Monthly fixed cost (salary/depreciation/insurance/driver) for this truck. */
+  fixedCost: number;
+  trips: ReportReviewTrip[];
+}
+
+export interface TruckReportReview {
+  month: string;
+  /** Closed → trips are locked, the Bước-2 table is read-only. */
+  closed: boolean;
+  /** Fleet-level month fuel reconciliation (same number for every vehicle —
+   * our fuel model is fleet-monthly, not per-vehicle). */
+  avgPrice: number;
+  consumption: number;
+  refuelCount: number;
+  vehicles: ReportReviewVehicle[];
+  totals: {
+    tripCount: number;
+    revenue: number;
+    fuel: number;
+    toll: number;
+    extra: number;
+    fixedCost: number;
+    net: number;
+  };
+}
+
+/**
+ * Per-vehicle review for the "Lập báo cáo" Bước 2 screen: every truck that had a
+ * COMPLETED log trip in `month`, with its trips + summary (trip count, fuel,
+ * fixed cost) and the fleet-level fuel reconciliation. Mirrors the design's
+ * confirm screen so a manager can sanity-check (and edit) costs before the
+ * report is generated. Read-only when the month is closed.
+ */
+export async function getTruckReportReview(
+  actor: AuthContext,
+  month: string,
+): Promise<TruckReportReview> {
+  const [trips, stats, closeInfo] = await Promise.all([
+    listTruckFinanceTrips(actor.entId, { month }),
+    getTruckFuelStats(actor.entId, month),
+    getTruckMonthCloseInfo(actor.entId, month),
+  ]);
+
+  const byVeh = new Map<string, ReportReviewVehicle>();
+  for (const t of trips) {
+    const key = t.vehicleId ?? '∅';
+    let g = byVeh.get(key);
+    if (!g) {
+      g = {
+        vehicleId: t.vehicleId,
+        plate: t.plate ?? '—',
+        model: t.model,
+        tripCount: 0,
+        totalFuel: 0,
+        totalToll: 0,
+        totalExtra: 0,
+        totalRevenue: 0,
+        variableProfit: 0,
+        fixedCost: 0,
+        trips: [],
+      };
+      byVeh.set(key, g);
+    }
+    g.trips.push({
+      trpId: t.trpId,
+      ref: t.ref,
+      scheduledAt: t.scheduledAt,
+      customer: t.customer,
+      km: t.km,
+      toll: t.toll,
+      extra: t.extra,
+      fuelCost: t.fuelCost,
+      revenue: t.revenue,
+      profit: t.profit,
+      finalized: t.finalized,
+    });
+    g.tripCount += 1;
+    g.totalFuel += t.fuelCost;
+    g.totalToll += t.toll;
+    g.totalExtra += t.extra;
+    g.totalRevenue += t.revenue;
+    g.variableProfit += t.profit;
+  }
+
+  const vehicles = [...byVeh.values()].sort((a, b) => a.plate.localeCompare(b.plate));
+  /* Per-vehicle fixed cost (salary/depreciation/insurance/driver) for the month. */
+  await Promise.all(
+    vehicles.map(async (v) => {
+      if (!v.vehicleId) return;
+      const [pnl] = await computeTruckPnl(actor, { vehicleId: v.vehicleId, months: [month] });
+      v.fixedCost = pnl?.fixedCost ?? 0;
+    }),
+  );
+
+  const totals = vehicles.reduce(
+    (a, v) => ({
+      tripCount: a.tripCount + v.tripCount,
+      revenue: a.revenue + v.totalRevenue,
+      fuel: a.fuel + v.totalFuel,
+      toll: a.toll + v.totalToll,
+      extra: a.extra + v.totalExtra,
+      fixedCost: a.fixedCost + v.fixedCost,
+      net: a.net + v.variableProfit - v.fixedCost,
+    }),
+    { tripCount: 0, revenue: 0, fuel: 0, toll: 0, extra: 0, fixedCost: 0, net: 0 },
+  );
+
+  return {
+    month,
+    closed: closeInfo.closed,
+    avgPrice: stats.avgPrice,
+    consumption: stats.consumption,
+    refuelCount: stats.invoiceCount,
+    vehicles,
+    totals,
+  };
 }

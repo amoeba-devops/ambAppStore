@@ -149,7 +149,13 @@ export async function generateTruckReportAction(input: unknown): Promise<ActionR
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
 
-    const name = `${REPORT_NAME[type]} · ${monthLabel(month)}`;
+    /* The report flow now generates a single P&L report scoped to all vehicles
+     * (design alignment) — name it "· Tất cả phương tiện" and let the list group
+     * by month. The other types keep a month-qualified name if ever generated. */
+    const name =
+      type === 'PNL'
+        ? `${REPORT_NAME[type]} · Tất cả phương tiện`
+        : `${REPORT_NAME[type]} · ${monthLabel(month)}`;
     await db.insert(carTruckReports).values({
       trrId: id,
       entId: actor.entId,

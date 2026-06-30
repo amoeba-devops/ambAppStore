@@ -487,14 +487,18 @@ function NavGroup({
                         title={
                           item.key === 'costs'
                             ? tNav('todayCountTitle', { n: metricCount })
-                            : tNav('pendingCountTitle', { n: metricCount })
+                            : item.key === 'truckReports'
+                              ? tNav('newReportsCountTitle', { n: metricCount })
+                              : tNav('pendingCountTitle', { n: metricCount })
                         }
                       >
                         <span>{metricCount}</span>
                         <span className="text-[9px] font-medium uppercase tracking-wide opacity-90">
                           {item.key === 'costs'
                             ? tNav('todayBadgeLabel')
-                            : tNav('pendingBadgeLabel')}
+                            : item.key === 'truckReports'
+                              ? tNav('newBadgeLabel')
+                              : tNav('pendingBadgeLabel')}
                         </span>
                       </span>
                     ) : item.staticBadge ? (
