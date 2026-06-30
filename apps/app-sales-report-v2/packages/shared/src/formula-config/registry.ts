@@ -40,6 +40,7 @@ export interface FormulaParamSpec {
 
 /** All registered params. Adding here makes the UI + loader immediately aware. */
 export const FORMULA_PARAM_REGISTRY: Record<string, FormulaParamSpec> = {
+  // --- Phase 1: TikTok Platform Fee Rate ---
   tiktok_platform_fee_rate_pct: {
     key: 'tiktok_platform_fee_rate_pct',
     displayName: 'Platform Fee Rate — TikTok',
@@ -49,6 +50,90 @@ export const FORMULA_PARAM_REGISTRY: Record<string, FormulaParamSpec> = {
     unit: '%',
     defaultValue: '26',
     section: 'platform-tiktok',
+  },
+
+  // --- Phase 2: numeric constants documented in Formula Config but not yet
+  //     consumed by calculator. Editable in UI now so Admin can pre-stage
+  //     values; calculator wiring follows in a later sub-task once business
+  //     confirms how each affects CM. ---
+  hq_margin_pct: {
+    key: 'hq_margin_pct',
+    displayName: 'HQ Margin %',
+    description:
+      'Headquarters margin percentage applied to Net GMV. Currently documentation-only — calculator integration deferred pending business confirmation.',
+    valueType: 'percentage',
+    unit: '%',
+    defaultValue: '5',
+    section: 'aggregated',
+  },
+  vat_rate_pct: {
+    key: 'vat_rate_pct',
+    displayName: 'VAT Rate',
+    description:
+      'Value-added tax rate. Currently documentation-only — calculator integration deferred.',
+    valueType: 'percentage',
+    unit: '%',
+    defaultValue: '10',
+    section: 'aggregated',
+  },
+  fulfillment_fee_vnd: {
+    key: 'fulfillment_fee_vnd',
+    displayName: 'Fulfillment Fee (per unit)',
+    description:
+      'Per-unit fulfillment fee in VND. Currently documentation-only — calculator integration deferred.',
+    valueType: 'currency',
+    unit: 'VND',
+    defaultValue: '14000',
+    section: 'aggregated',
+  },
+
+  // --- Phase 2: categorical/enum settings. Currently hardcoded in parsers /
+  //     calculators; UI exposure lets Admin see the active config + plan
+  //     future changes. Code-side wiring deferred — flipping these here
+  //     today does NOT change behavior (display-only). ---
+  excluded_order_statuses: {
+    key: 'excluded_order_statuses',
+    displayName: 'Excluded Order Statuses',
+    description:
+      'Comma-separated order statuses excluded from sales aggregations. Currently hardcoded; UI exposure is read-the-current-config only.',
+    valueType: 'enum',
+    enumOptions: [
+      'CANCELLED, RETURNED, REFUNDED',
+      'CANCELLED, RETURNED',
+      'CANCELLED only',
+    ],
+    defaultValue: 'CANCELLED, RETURNED, REFUNDED',
+    section: 'general',
+  },
+  free_gift_detection_prefix: {
+    key: 'free_gift_detection_prefix',
+    displayName: 'Free Gift Detection Prefix',
+    description:
+      'String prefix on product name that flags a row as a Free Gift (revenue excluded, prime cost counted in Total Free Gift). Currently hardcoded as "[GIFT]".',
+    valueType: 'enum',
+    enumOptions: ['[GIFT]', '[FREE]', '[KM]'],
+    defaultValue: '[GIFT]',
+    section: 'general',
+  },
+  affiliate_booking_split_basis: {
+    key: 'affiliate_booking_split_basis',
+    displayName: 'Affiliate Booking Fee Split Basis',
+    description:
+      'How the cross-platform Affiliate Booking Fee (manual input) is split between Shopee and TikTok. "GMV" = proportional to each platform\'s total GMV.',
+    valueType: 'enum',
+    enumOptions: ['GMV', 'NMV', 'Net GMV', 'Equal split'],
+    defaultValue: 'GMV',
+    section: 'aggregated',
+  },
+  week_definition: {
+    key: 'week_definition',
+    displayName: 'Week Definition',
+    description:
+      'Calendar boundary for weekly reports. "Friday → Thursday" matches the FIRGI client spec. Changing this would invalidate all historical weekly reports — handle with care.',
+    valueType: 'enum',
+    enumOptions: ['Friday → Thursday', 'Monday → Sunday', 'Sunday → Saturday'],
+    defaultValue: 'Friday → Thursday',
+    section: 'general',
   },
 } as const;
 
