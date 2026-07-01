@@ -1721,7 +1721,11 @@
       "noDone": "Chưa có chuyến hoàn thành",
       "myVehicles": "Phương tiện của tôi",
       "title": "Chuyến hôm nay",
-      "newTrip": "Tạo chuyến"
+      "newTrip": "Tạo chuyến",
+      "todoSummary": "{n} chuyến cần hoàn thành",
+      "statusPending": "Chờ hoàn thành",
+      "statusRunning": "Đang chạy",
+      "completeCta": "Hoàn thành"
     },
     "switchDriver": "Đổi tài xế",
     "title": "Hôm nay",

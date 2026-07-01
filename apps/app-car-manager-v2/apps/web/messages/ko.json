@@ -1721,7 +1721,11 @@
       "noDone": "완료된 운행이 없습니다",
       "myVehicles": "내 차량",
       "title": "오늘의 운행",
-      "newTrip": "운행 추가"
+      "newTrip": "운행 추가",
+      "todoSummary": "완료할 운행 {n}건",
+      "statusPending": "완료 대기",
+      "statusRunning": "운행 중",
+      "completeCta": "완료"
     },
     "switchDriver": "기사 변경",
     "title": "오늘",

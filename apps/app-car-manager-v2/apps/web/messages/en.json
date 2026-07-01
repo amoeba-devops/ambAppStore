@@ -1721,7 +1721,11 @@
       "noDone": "No completed trips yet",
       "myVehicles": "My vehicles",
       "title": "Today's trips",
-      "newTrip": "New trip"
+      "newTrip": "New trip",
+      "todoSummary": "{n} trips to complete",
+      "statusPending": "To complete",
+      "statusRunning": "In progress",
+      "completeCta": "Complete"
     },
     "switchDriver": "Switch driver",
     "title": "Today",

@@ -46,6 +46,7 @@ export default async function TodayPage() {
   const tCo     = await getTranslations('company');
   const tT      = await getTranslations('today');
   const tStatus = await getTranslations('today.status');
+  const tTruck  = await getTranslations('today.truck');
   const user = await getCurrentUser();
 
   let myTrips: TripListItem[] = [];
@@ -76,11 +77,19 @@ export default async function TodayPage() {
   if (user.role === 'DRIVER') {
     /* Truck drivers get a completion-oriented Today (no dispatch hero). */
     const isTruckDriver = (await resolveFleetAccess(user)).includes('TRUCK');
+    /* Truck subtitle counts trips still needing a log (not "today" — a truck
+     * log can be back-dated), which is the number the driver actually acts on. */
+    const truckTodoCount = myTrips.filter(
+      (tr) => tr.trpKind === 'LOG' && (tr.trpStatus === 'CONFIRMED' || tr.trpStatus === 'IN_PROGRESS'),
+    ).length;
+    const driverSubtitle = isTruckDriver
+      ? `${tCo('currentUser')} · ${tTruck('todoSummary', { n: truckTodoCount })}`
+      : `${tCo('currentUser')} · ${tT('subtitleTrips', { count: myTrips.filter((t) => isToday(t.trpScheduledAt)).length })}`;
     return (
       <>
         <PageHeader
           title={tT('title')}
-          subtitle={`${tCo('currentUser')} · ${tT('subtitleTrips', { count: myTrips.filter((t) => isToday(t.trpScheduledAt)).length })}`}
+          subtitle={driverSubtitle}
           breadcrumbs={[{ label: tCo('tenant') }, { label: tT('title') }]}
           actions={!isTruckDriver ? <SwitchDriverButton label={tT('switchDriver')} /> : undefined}
           mobileVariant="brand"
