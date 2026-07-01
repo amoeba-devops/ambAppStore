@@ -76,24 +76,25 @@ export function BottomTabNav({ role, pendingTripCount, todayExpenseCount, newRep
 
   const dept = useActiveDept();
   const workspace = navItemsForRole(role, { dept }).filter((item) => item.group === 'workspace');
-  const dashboardItem = workspace.find((i) => i.key === 'dashboard');
-  /* Flat-row candidates exclude both `dashboard` (rendered as the elevated
-   * centre button) AND `me` (now a persistent avatar in the top-right of the
-   * mobile header). */
-  const flatCandidates = workspace.filter((i) => i.key !== 'dashboard' && i.key !== 'me');
+  /* Dashboard — car `dashboard` OR truck `truckDashboard` — renders as the
+   * elevated centre button (icon-only), so its long label "Bảng điều khiển"
+   * never has to squeeze into a flat tab slot. */
+  const dashboardItem = workspace.find((i) => i.key === 'dashboard' || i.key === 'truckDashboard');
+  /* Flat-row candidates exclude the elevated dashboard AND `me` (a persistent
+   * avatar in the top-right of the mobile header). */
+  const flatCandidates = workspace.filter((i) => i.key !== dashboardItem?.key && i.key !== 'me');
 
-  /* Overflow handling applies ONLY to the flat (no-elevated) layout. The
-   * elevated CAR STAFF layout has a fixed 2 + centre + 2 shape that already
-   * fits its 4 flat items, so it keeps the original slice(0,4). A 5-column bar
-   * is the comfortable max on a ~360px phone; beyond that we show the first 4
-   * + a "Thêm" tab and tuck the rest into a bottom sheet. */
-  const MAX_FLAT = 5;
-  const hasOverflow = !dashboardItem && flatCandidates.length > MAX_FLAT;
-  const flatItems = dashboardItem
-    ? flatCandidates.slice(0, 4)
-    : hasOverflow
-      ? flatCandidates.slice(0, MAX_FLAT - 1)
-      : flatCandidates.slice(0, MAX_FLAT);
+  /* The elevated layout reserves a centre column → 4 flat slots (2 + 2); the
+   * flat-only layout (driver) holds up to 5. When candidates exceed the slots,
+   * show (slots − 1) primary tabs + a "Thêm" tab opening a bottom sheet with
+   * the rest. Truck STAFF (6 candidates) → elevated Dashboard + trips/fleet/
+   * drivers + Thêm(finance/reports), matching car's IA and avoiding the 5-flat
+   * label squeeze. */
+  const MAX_FLAT = dashboardItem ? 4 : 5;
+  const hasOverflow = flatCandidates.length > MAX_FLAT;
+  const flatItems = hasOverflow
+    ? flatCandidates.slice(0, MAX_FLAT - 1)
+    : flatCandidates.slice(0, MAX_FLAT);
   const overflowItems = hasOverflow ? flatCandidates.slice(MAX_FLAT - 1) : [];
 
   /* Canonical active key (handles /truck/pnl → truckFinance, /truck/import →
@@ -146,6 +147,15 @@ export function BottomTabNav({ role, pendingTripCount, todayExpenseCount, newRep
               {flatItems.slice(0, 2).map(renderFlatTab(pathname, tNav, tabCounts))}
               <li aria-hidden />
               {flatItems.slice(2).map(renderFlatTab(pathname, tNav, tabCounts))}
+              {hasOverflow && (
+                <MoreTab
+                  label={tNav('more')}
+                  ariaLabel={tNav('moreAria')}
+                  isActive={moreActive}
+                  hasBadge={moreHasBadge}
+                  onClick={() => setMoreOpen(true)}
+                />
+              )}
             </>
           ) : (
             <>
@@ -233,7 +243,7 @@ function renderFlatTab(
               </span>
             )}
           </span>
-          <span className={cn('truncate px-1 leading-none', isActive && 'font-semibold')}>
+          <span className={cn('w-full truncate px-1 text-center leading-none', isActive && 'font-semibold')}>
             {tNav(navLabelKey(item.key))}
           </span>
         </Link>
@@ -292,7 +302,7 @@ function MoreTab({
             />
           )}
         </span>
-        <span className={cn('truncate px-1 leading-none', isActive && 'font-semibold')}>{label}</span>
+        <span className={cn('w-full truncate px-1 text-center leading-none', isActive && 'font-semibold')}>{label}</span>
       </button>
     </li>
   );
@@ -465,5 +475,11 @@ function matchesTab(pathname: string, href: string, key: NavKey): boolean {
  * as `auditLog` in the messages bundle for legibility). All others map 1:1. */
 function navLabelKey(key: NavKey): string {
   if (key === 'audit') return 'auditLog';
+  /* Truck STAFF flat tabs use concise bottom-nav labels so they fit the ~76px
+   * cell without ellipsis; the desktop sidebar keeps the full descriptive
+   * labels (truckTrips = "Nhật ký chuyến", etc). */
+  if (key === 'truckTrips') return 'truckTripsShort';
+  if (key === 'truckFleet') return 'truckFleetShort';
+  if (key === 'truckDrivers') return 'truckDriversShort';
   return key;
 }

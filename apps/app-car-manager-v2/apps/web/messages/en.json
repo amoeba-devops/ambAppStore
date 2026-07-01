@@ -46,7 +46,10 @@
     "truckReports": "Reports",
     "truckReportCreate": "Create report",
     "more": "More",
-    "moreAria": "Open more menu"
+    "moreAria": "Open more menu",
+    "truckTripsShort": "Trips",
+    "truckFleetShort": "Fleet",
+    "truckDriversShort": "Drivers"
   },
   "region": {
     "HCM": "HCM",

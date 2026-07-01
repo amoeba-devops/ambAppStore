@@ -46,7 +46,10 @@
     "truckReports": "Danh sách báo cáo",
     "truckReportCreate": "Lập báo cáo",
     "more": "Thêm",
-    "moreAria": "Mở menu khác"
+    "moreAria": "Mở menu khác",
+    "truckTripsShort": "Chuyến",
+    "truckFleetShort": "Đội xe",
+    "truckDriversShort": "Tài xế"
   },
   "region": {
     "HCM": "HCM",

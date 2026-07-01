@@ -46,7 +46,10 @@
     "truckReports": "보고서 목록",
     "truckReportCreate": "보고서 작성",
     "more": "더보기",
-    "moreAria": "추가 메뉴 열기"
+    "moreAria": "추가 메뉴 열기",
+    "truckTripsShort": "운행",
+    "truckFleetShort": "차량",
+    "truckDriversShort": "기사"
   },
   "region": {
     "HCM": "HCM",
