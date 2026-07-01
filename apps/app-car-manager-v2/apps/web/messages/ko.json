@@ -44,7 +44,9 @@
     "todayBadgeLabel": "오늘",
     "truckFinance": "비용 및 손익",
     "truckReports": "보고서 목록",
-    "truckReportCreate": "보고서 작성"
+    "truckReportCreate": "보고서 작성",
+    "more": "더보기",
+    "moreAria": "추가 메뉴 열기"
   },
   "region": {
     "HCM": "HCM",
@@ -1650,6 +1652,7 @@
   "layout": {
     "sidebarAria": "기본",
     "mobileNavAria": "모바일 네비게이션",
+    "moreSheet": { "title": "기타 메뉴", "description": "추가 탐색 항목" },
     "breadcrumbAria": "이동 경로",
     "back": "뒤로",
     "dept": {

@@ -164,6 +164,7 @@ export function AppShellClient({
             role={role}
             pendingTripCount={pendingTripCount}
             todayExpenseCount={todayExpenseCount}
+            newReportCount={newReportCount}
           />
           <InstallPrompt />
           <Toaster />

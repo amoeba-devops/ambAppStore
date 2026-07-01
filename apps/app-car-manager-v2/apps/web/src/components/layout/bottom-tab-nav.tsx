@@ -1,12 +1,21 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@car-v2/ui';
+import { ChevronRight, Menu } from 'lucide-react';
+import {
+  cn,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { useActiveDept } from './dept-context';
-import { navItemsForRole, type NavKey } from './nav-items';
+import { activeKeyFor, navItemsForRole, type NavItem, type NavKey, type NavSection } from './nav-items';
 
 interface BottomTabNavProps {
   role: LocalRole;
@@ -16,6 +25,10 @@ interface BottomTabNavProps {
   /** Server-fed expenses submitted today (Asia/Ho_Chi_Minh). Drives the
    * badge on the Chi phí tab (STAFF only — DRIVER doesn't have that tab). */
   todayExpenseCount: number;
+  /** Server-fed truck reports created since the user last opened the list.
+   * Drives the "Mới" badge on the truck Reports entry — which on mobile lives
+   * inside the "Thêm" overflow sheet, so the More tab shows a dot when > 0. */
+  newReportCount: number;
 }
 
 /* Mobile-only navigation bar.
@@ -25,84 +38,142 @@ interface BottomTabNavProps {
  * means editing one file, not two.
  *
  * Layout per role:
- *   - DRIVER (4 workspace items): flat 4-column grid
- *     today · tripsMine · expensesNew · me
- *   - STAFF (5 workspace items): elevated `dashboard` button rising above the
- *     bar centre + 4 flat columns underneath
- *     [Dashboard ▦] over (trips · vehicles · drivers · me)
+ *   - DRIVER (≤3 workspace items): flat grid sized to the item count
+ *     today · tripsMine · expensesNew
+ *   - CAR STAFF (5 workspace items): elevated `dashboard` button rising above
+ *     the bar centre + 4 flat columns underneath
+ *     [Dashboard ▦] over (trips · vehicles · drivers · costs)
+ *   - TRUCK STAFF (7 workspace items): the bar can't hold them all, so it
+ *     shows the first 4 + a "Thêm" tab that opens a bottom sheet listing the
+ *     overflow (Chi phí & Lợi nhuận, Lập báo cáo, Danh sách báo cáo), grouped
+ *     by the same Tài chính / Báo cáo sections as the desktop sidebar. Without
+ *     this, those three menus would have NO bottom-nav entry at all (BUG: the
+ *     old `.slice(0,4)` silently dropped them — there is no hamburger anywhere
+ *     in the mobile chrome, so they were only reachable via dashboard links).
  *
- * The elevated layout solves the 5-into-4 squeeze for STAFF without
+ * The elevated layout solves the 5-into-4 squeeze for CAR STAFF without
  * truncating long labels like "Bảng điều khiển" (~95px @ 12px font).
  * Dashboard becomes the visually dominant CTA which also matches its role
- * as the STAFF landing page.
+ * as the CAR STAFF landing page.
  *
  * Active state matches by `href`-prefix. `/` itself is just a redirect —
- * STAFF lands at `/dashboard`, DRIVER at `/today` — so the tab/button that
- * lights up reflects the post-redirect URL, not `/`.
+ * STAFF lands at `/dashboard` (or `/truck/dashboard`), DRIVER at `/today` —
+ * so the tab/button that lights up reflects the post-redirect URL, not `/`.
  *
  * Hidden on md+ where the sidebar takes over. */
-export function BottomTabNav({ role, pendingTripCount, todayExpenseCount }: BottomTabNavProps) {
+export function BottomTabNav({ role, pendingTripCount, todayExpenseCount, newReportCount }: BottomTabNavProps) {
   const pathname = usePathname() ?? '/';
   const tNav = useTranslations('nav');
   const tL   = useTranslations('layout');
-  /* Per-key badge counts. Keys absent or 0 → no badge. STAFF gets both
-   * trips + costs; DRIVER's `tripsMine` would also benefit from a pending
-   * count later but the current query is staff-scoped so we leave it. */
+  const [moreOpen, setMoreOpen] = useState(false);
+  /* Per-key badge counts. Keys absent or 0 → no badge. `truckReports` lives in
+   * the overflow sheet, so its count surfaces as a dot on the "Thêm" tab. */
   const tabCounts: Partial<Record<NavKey, number>> = {
     trips: pendingTripCount,
     costs: todayExpenseCount,
+    truckReports: newReportCount,
   };
 
   const dept = useActiveDept();
   const workspace = navItemsForRole(role, { dept }).filter((item) => item.group === 'workspace');
   const dashboardItem = workspace.find((i) => i.key === 'dashboard');
-  /* Flat row excludes both `dashboard` (rendered as the elevated centre
-   * button) AND `me` (now a persistent avatar in the top-right of the
-   * mobile header). STAFF flat = [trips, vehicles, drivers, costs];
-   * DRIVER flat = [today, tripsMine, expensesNew]. We still cap at 4 so a
-   * future workspace addition can't silently break the layout. */
-  const flatItems = workspace
-    .filter((i) => i.key !== 'dashboard' && i.key !== 'me')
-    .slice(0, 4);
-  /* Driver has no elevated centre, just 3 flat tabs — use grid-cols-3 so
-   * each tab gets ~120px on a 360px viewport instead of a 25% slice with
-   * an empty 4th cell. STAFF keeps the 5-column template with the centre
-   * spacer reserved for the elevated Dashboard. */
-  const tabCount = flatItems.length;
+  /* Flat-row candidates exclude both `dashboard` (rendered as the elevated
+   * centre button) AND `me` (now a persistent avatar in the top-right of the
+   * mobile header). */
+  const flatCandidates = workspace.filter((i) => i.key !== 'dashboard' && i.key !== 'me');
+
+  /* Overflow handling applies ONLY to the flat (no-elevated) layout. The
+   * elevated CAR STAFF layout has a fixed 2 + centre + 2 shape that already
+   * fits its 4 flat items, so it keeps the original slice(0,4). A 5-column bar
+   * is the comfortable max on a ~360px phone; beyond that we show the first 4
+   * + a "Thêm" tab and tuck the rest into a bottom sheet. */
+  const MAX_FLAT = 5;
+  const hasOverflow = !dashboardItem && flatCandidates.length > MAX_FLAT;
+  const flatItems = dashboardItem
+    ? flatCandidates.slice(0, 4)
+    : hasOverflow
+      ? flatCandidates.slice(0, MAX_FLAT - 1)
+      : flatCandidates.slice(0, MAX_FLAT);
+  const overflowItems = hasOverflow ? flatCandidates.slice(MAX_FLAT - 1) : [];
+
+  /* Canonical active key (handles /truck/pnl → truckFinance, /truck/import →
+   * truckTrips, etc). Used to light the "Thêm" tab + highlight the sheet row
+   * when the current route lives behind the overflow. */
+  const activeKey = activeKeyFor(pathname, role);
+  const moreActive = overflowItems.some((i) => i.key === activeKey);
+  const moreHasBadge = overflowItems.some((i) => (tabCounts[i.key] ?? 0) > 0);
+
+  /* Number of flat cells in the non-elevated layout (primary tabs + the
+   * optional "Thêm" tab). Mapped to a static Tailwind class so JIT keeps it. */
+  const flatCellCount = flatItems.length + (hasOverflow ? 1 : 0);
+  const FLAT_GRID: Record<number, string> = {
+    1: 'grid-cols-1',
+    2: 'grid-cols-2',
+    3: 'grid-cols-3',
+    4: 'grid-cols-4',
+    5: 'grid-cols-5',
+  };
 
   return (
-    <nav
-      aria-label={tL('mobileNavAria')}
-      className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-surface/95 backdrop-blur border-t border-border pb-[env(safe-area-inset-bottom)]"
-    >
-      {dashboardItem && (
-        <ElevatedDashboardTab
-          item={dashboardItem}
-          isActive={matchesTab(pathname, dashboardItem.href, dashboardItem.key)}
-          label={tNav(navLabelKey(dashboardItem.key))}
+    <>
+      <nav
+        aria-label={tL('mobileNavAria')}
+        className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-surface/95 backdrop-blur border-t border-border pb-[env(safe-area-inset-bottom)]"
+      >
+        {dashboardItem && (
+          <ElevatedDashboardTab
+            item={dashboardItem}
+            isActive={matchesTab(pathname, dashboardItem.href, dashboardItem.key)}
+            label={tNav(navLabelKey(dashboardItem.key))}
+          />
+        )}
+        {/* When the elevated Dashboard is present we carve out a fixed-width
+         * centre column (72px) so the round button (56px) gets ~8px of clear
+         * space on each side. `minmax(0,1fr)` on side cells lets labels
+         * truncate gracefully instead of forcing the grid wider than the
+         * viewport. Without elevated Dashboard, use a plain grid sized to the
+         * flat-cell count (incl. the "Thêm" tab when present). */}
+        <ul
+          className={cn(
+            'grid h-14',
+            dashboardItem
+              ? 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_72px_minmax(0,1fr)_minmax(0,1fr)]'
+              : FLAT_GRID[flatCellCount] ?? 'grid-cols-4',
+          )}
+        >
+          {dashboardItem ? (
+            <>
+              {flatItems.slice(0, 2).map(renderFlatTab(pathname, tNav, tabCounts))}
+              <li aria-hidden />
+              {flatItems.slice(2).map(renderFlatTab(pathname, tNav, tabCounts))}
+            </>
+          ) : (
+            <>
+              {flatItems.map(renderFlatTab(pathname, tNav, tabCounts))}
+              {hasOverflow && (
+                <MoreTab
+                  label={tNav('more')}
+                  ariaLabel={tNav('moreAria')}
+                  isActive={moreActive}
+                  hasBadge={moreHasBadge}
+                  onClick={() => setMoreOpen(true)}
+                />
+              )}
+            </>
+          )}
+        </ul>
+      </nav>
+
+      {hasOverflow && (
+        <OverflowSheet
+          open={moreOpen}
+          onOpenChange={setMoreOpen}
+          items={overflowItems}
+          activeKey={activeKey}
+          tabCounts={tabCounts}
         />
       )}
-      {/* When the elevated Dashboard is present we carve out a fixed-width
-       * centre column (72px) so the round button (56px) gets ~8px of clear
-       * space on each side. `minmax(0,1fr)` on side cells lets labels
-       * truncate gracefully instead of forcing the grid wider than the
-       * viewport. Without elevated Dashboard, use a plain grid sized to
-       * `flatItems.length` (3 for DRIVER, 4 for any other no-dashboard role). */}
-      <ul
-        className={cn(
-          'grid h-14',
-          dashboardItem
-            ? 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_72px_minmax(0,1fr)_minmax(0,1fr)]'
-            : tabCount === 3
-              ? 'grid-cols-3'
-              : 'grid-cols-4',
-        )}
-      >
-        {flatItems.slice(0, dashboardItem ? 2 : flatItems.length).map(renderFlatTab(pathname, tNav, tabCounts))}
-        {dashboardItem && <li aria-hidden />}
-        {dashboardItem && flatItems.slice(2).map(renderFlatTab(pathname, tNav, tabCounts))}
-      </ul>
-    </nav>
+    </>
   );
 }
 
@@ -171,6 +242,162 @@ function renderFlatTab(
   };
 }
 
+/* "Thêm" tab — opens the overflow sheet. Styled to match a flat tab (icon +
+ * label) so it reads as a peer of the real destinations. Shows a small dot
+ * when something behind it has a badge (e.g. new truck reports). */
+function MoreTab({
+  label,
+  ariaLabel,
+  isActive,
+  hasBadge,
+  onClick,
+}: {
+  label: string;
+  ariaLabel: string;
+  isActive: boolean;
+  hasBadge: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <li className="relative">
+      <span
+        aria-hidden
+        className={cn(
+          'absolute top-0 left-1/2 -translate-x-1/2 h-0.5 rounded-full transition-all duration-180 motion-reduce:transition-none',
+          isActive ? 'w-10 bg-accent' : 'w-0 bg-transparent',
+        )}
+      />
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={ariaLabel}
+        aria-haspopup="dialog"
+        className={cn(
+          'h-full w-full flex flex-col items-center justify-center gap-1 text-[12px] font-medium',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+          'active:bg-surface-2/60 transition-colors duration-150 motion-reduce:transition-none',
+          isActive ? 'text-accent' : 'text-text-muted',
+        )}
+      >
+        <span className="relative inline-flex">
+          <Menu
+            className={cn('h-6 w-6 transition-transform duration-180', isActive && 'scale-[1.05]')}
+            strokeWidth={isActive ? 2.4 : 1.8}
+            aria-hidden
+          />
+          {hasBadge && (
+            <span
+              aria-hidden
+              className="absolute -top-1 -right-1.5 h-2 w-2 rounded-full bg-danger ring-2 ring-surface"
+            />
+          )}
+        </span>
+        <span className={cn('truncate px-1 leading-none', isActive && 'font-semibold')}>{label}</span>
+      </button>
+    </li>
+  );
+}
+
+/* Bottom sheet listing the workspace destinations that don't fit in the bar.
+ * Grouped by the same sections as the desktop sidebar (Tài chính / Báo cáo)
+ * so the IA is consistent across breakpoints. Rows are 48px tall for a
+ * comfortable thumb target and close the sheet on navigation. */
+function OverflowSheet({
+  open,
+  onOpenChange,
+  items,
+  activeKey,
+  tabCounts,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  items: NavItem[];
+  activeKey: NavKey;
+  tabCounts: Partial<Record<NavKey, number>>;
+}) {
+  const tNav = useTranslations('nav');
+  const tL = useTranslations('layout');
+  const tSections = useTranslations('navSections');
+
+  /* Preserve nav order while grouping by section. */
+  const groups: { section: NavSection | null; items: NavItem[] }[] = [];
+  for (const item of items) {
+    const section = item.section ?? null;
+    let g = groups.find((x) => x.section === section);
+    if (!g) {
+      g = { section, items: [] };
+      groups.push(g);
+    }
+    g.items.push(item);
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        className="md:hidden p-0 pb-[env(safe-area-inset-bottom)] max-h-[80dvh] overflow-y-auto"
+      >
+        <SheetHeader className="px-4 pt-4 pb-2">
+          <SheetTitle>{tL('moreSheet.title')}</SheetTitle>
+          <SheetDescription className="sr-only">{tL('moreSheet.description')}</SheetDescription>
+        </SheetHeader>
+        <div className="px-2 pb-3">
+          {groups.map((group, gi) => (
+            <div key={group.section ?? `g${gi}`} className="mb-1">
+              {group.section && (
+                <div className="px-2 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-text-faint">
+                  {tSections(group.section)}
+                </div>
+              )}
+              <ul>
+                {group.items.map((item) => {
+                  const isActive = item.key === activeKey;
+                  const count = tabCounts[item.key] ?? 0;
+                  return (
+                    <li key={item.key}>
+                      <Link
+                        href={item.href}
+                        onClick={() => onOpenChange(false)}
+                        aria-current={isActive ? 'page' : undefined}
+                        className={cn(
+                          'flex items-center gap-3 h-12 rounded-lg px-3 text-[15px] font-medium',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                          'transition-colors duration-150 motion-reduce:transition-none',
+                          isActive
+                            ? 'bg-accent text-accent-fg'
+                            : 'text-text hover:bg-surface-2 active:bg-surface-2/80',
+                        )}
+                      >
+                        <item.Icon className="h-5 w-5 shrink-0" aria-hidden />
+                        <span className="flex-1 truncate">{tNav(navLabelKey(item.key))}</span>
+                        {count > 0 && (
+                          <span
+                            className={cn(
+                              'min-w-[20px] h-5 px-1.5 rounded-full inline-flex items-center justify-center',
+                              'text-[11px] font-bold tabular leading-none',
+                              isActive ? 'bg-accent-fg/15 text-accent-fg' : 'bg-info-soft text-info',
+                            )}
+                          >
+                            {count > 99 ? '99+' : count}
+                          </span>
+                        )}
+                        <ChevronRight
+                          className={cn('h-4 w-4 shrink-0', isActive ? 'text-accent-fg/70' : 'text-text-faint')}
+                          aria-hidden
+                        />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 /* Elevated centre button for the STAFF Dashboard. Positioned absolutely so it
  * sits above the bar (≈22px protrusion) with shadow for elevation. Icon-only
  * — the label "Bảng điều khiển" is too long to fit a single tab slot, so we
@@ -210,10 +437,6 @@ function ElevatedDashboardTab({
     </Link>
   );
 }
-
-/** Helper type alias so `ElevatedDashboardTab`'s prop signature can borrow
- * the lucide icon type without importing it directly. */
-type NavItem = ReturnType<typeof navItemsForRole>[number];
 
 /* Match the pathname to a tab.
  *

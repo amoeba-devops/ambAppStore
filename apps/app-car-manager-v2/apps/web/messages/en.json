@@ -44,7 +44,9 @@
     "todayBadgeLabel": "today",
     "truckFinance": "Cost & Profit",
     "truckReports": "Reports",
-    "truckReportCreate": "Create report"
+    "truckReportCreate": "Create report",
+    "more": "More",
+    "moreAria": "Open more menu"
   },
   "region": {
     "HCM": "HCM",
@@ -1650,6 +1652,7 @@
   "layout": {
     "sidebarAria": "Primary",
     "mobileNavAria": "Mobile navigation",
+    "moreSheet": { "title": "More menu", "description": "Additional navigation items" },
     "breadcrumbAria": "Breadcrumb",
     "back": "Back",
     "dept": {

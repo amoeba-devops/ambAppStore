@@ -44,7 +44,9 @@
     "newReportsCountTitle": "{n} báo cáo mới",
     "truckFinance": "Chi phí & Lợi nhuận",
     "truckReports": "Danh sách báo cáo",
-    "truckReportCreate": "Lập báo cáo"
+    "truckReportCreate": "Lập báo cáo",
+    "more": "Thêm",
+    "moreAria": "Mở menu khác"
   },
   "region": {
     "HCM": "HCM",
@@ -1650,6 +1652,7 @@
   "layout": {
     "sidebarAria": "Điều hướng chính",
     "mobileNavAria": "Điều hướng mobile",
+    "moreSheet": { "title": "Menu khác", "description": "Các mục điều hướng khác" },
     "breadcrumbAria": "Đường dẫn điều hướng",
     "back": "Quay lại",
     "dept": {
