@@ -51,7 +51,7 @@ export default async function NewTruckDriverPage() {
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6">
         {candidates.length === 0 ? (
-          <Card variant="outline" className="max-w-[720px] mx-auto">
+          <Card variant="outline" className="max-w-[720px] mx-auto md:mx-0">
             <CardContent className="text-center py-10 space-y-4">
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-accent-soft text-accent">
                 <UserPlus className="h-5 w-5" />

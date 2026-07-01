@@ -131,7 +131,7 @@ export function ReportReviewStep({ review }: { review: TruckReportReview }) {
     );
 
   return (
-    <div className="max-w-5xl space-y-5">
+    <div className="space-y-5">
       <ReportStepper step={3} />
 
       <div>

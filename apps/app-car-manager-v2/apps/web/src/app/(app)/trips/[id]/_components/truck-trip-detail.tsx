@@ -55,6 +55,54 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
   const backHref = props.backHref ?? '/trips';
   const parentLabel = props.parentLabel ?? tNav('tripsMine');
 
+  /* Trip facts (map + info rows + stopover timeline) — the "what/where" of the
+   * trip. Shared between the completed 2-column layout (main column) and the
+   * open-trip single column. A fragment so the parent's `space-y-*` spaces the
+   * rows directly. */
+  const infoBlock = (
+    <>
+      {process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY && (
+        <MapPreview pickup={props.pickup} dropoff={props.dropoff} stopovers={[]} showFullscreenLink />
+      )}
+      <section className="rounded-md border border-border divide-y divide-border">
+        <InfoRow label={t('customer')} value={props.customer ?? '—'} />
+        {(!props.stopovers || props.stopovers.length === 0) && (
+          <InfoRow label={t('route')} value={`${props.pickup} → ${props.dropoff}`} />
+        )}
+        {props.bol && <InfoRow label={t('bol')} value={props.bol} mono />}
+        {props.cdf && <InfoRow label={t('cdf')} value={props.cdf} mono />}
+        {props.vehiclePlate && <InfoRow label={t('vehicle')} value={props.vehiclePlate} mono />}
+        {props.driverName && <InfoRow label={t('driver')} value={props.driverName} />}
+      </section>
+      {props.stopovers && props.stopovers.length > 0 && (
+        <StopoverTimeline stopovers={props.stopovers} locale={locale} />
+      )}
+    </>
+  );
+
+  const costCard = (
+    <Card variant="outline" className="p-4 space-y-2">
+      <div className="text-sm font-semibold text-text mb-1">{t('costTitle')}</div>
+      <CostRow label={t('fuel')} value={vnd(props.breakdown.fuelCost)} />
+      <CostRow label={t('toll')} value={vnd(props.breakdown.tollFee)} />
+      {props.extras.map((e, i) => (
+        <CostRow key={i} label={e.name} value={vnd(e.amount)} />
+      ))}
+      <CostRow label={t('total')} value={vnd(props.breakdown.totalCost)} strong />
+      {!props.hideFinancials && (
+        <>
+          <CostRow label={t('revenue')} value={vnd(props.breakdown.revenue)} />
+          <CostRow
+            label={t('profit')}
+            value={vnd(props.breakdown.profit)}
+            tone={props.breakdown.profit >= 0 ? 'success' : 'danger'}
+            strong
+          />
+        </>
+      )}
+    </Card>
+  );
+
   return (
     <>
       <PageHeader
@@ -70,7 +118,7 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
         mobileVariant="brand"
       />
 
-      <div className="flex-1 overflow-auto px-4 md:px-7 py-5 md:py-6 w-full max-w-2xl space-y-5">
+      <div className="flex-1 overflow-auto px-4 md:px-7 py-5 md:py-6 w-full space-y-5">
         <div className="flex items-center gap-3 flex-wrap">
           <Badge tone={props.completed ? 'success' : 'warning'} size="md">
             {props.completed ? t('statusDone') : t('statusOpen')}
@@ -80,50 +128,25 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
           </span>
         </div>
 
-        {process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY && (
-          <MapPreview pickup={props.pickup} dropoff={props.dropoff} stopovers={[]} showFullscreenLink />
-        )}
-
-        <section className="rounded-md border border-border divide-y divide-border">
-          <InfoRow label={t('customer')} value={props.customer ?? '—'} />
-          {(!props.stopovers || props.stopovers.length === 0) && (
-            <InfoRow label={t('route')} value={`${props.pickup} → ${props.dropoff}`} />
-          )}
-          {props.bol && <InfoRow label={t('bol')} value={props.bol} mono />}
-          {props.cdf && <InfoRow label={t('cdf')} value={props.cdf} mono />}
-          {props.vehiclePlate && <InfoRow label={t('vehicle')} value={props.vehiclePlate} mono />}
-          {props.driverName && <InfoRow label={t('driver')} value={props.driverName} />}
-        </section>
-
-        {props.stopovers && props.stopovers.length > 0 && (
-          <StopoverTimeline stopovers={props.stopovers} locale={locale} />
-        )}
-
         {props.completed ? (
-          <Card variant="outline" className="p-4 space-y-2">
-            <div className="text-sm font-semibold text-text mb-1">{t('costTitle')}</div>
-            <CostRow label={t('fuel')} value={vnd(props.breakdown.fuelCost)} />
-            <CostRow label={t('toll')} value={vnd(props.breakdown.tollFee)} />
-            {props.extras.map((e, i) => (
-              <CostRow key={i} label={e.name} value={vnd(e.amount)} />
-            ))}
-            <CostRow label={t('total')} value={vnd(props.breakdown.totalCost)} strong />
-            {!props.hideFinancials && (
-              <>
-                <CostRow label={t('revenue')} value={vnd(props.breakdown.revenue)} />
-                <CostRow
-                  label={t('profit')}
-                  value={vnd(props.breakdown.profit)}
-                  tone={props.breakdown.profit >= 0 ? 'success' : 'danger'}
-                  strong
-                />
-              </>
-            )}
-          </Card>
-        ) : props.canComplete ? (
-          <TruckCompleteSection tripId={props.tripId} mode={props.mode} />
+          /* Completed trips are read-only: trip info + route fill the main column
+           * and the cost/profit breakdown sits in a side rail, so the detail uses
+           * the full desktop width instead of a narrow center strip. Mobile stacks. */
+          <div className="grid gap-5 lg:grid-cols-3 lg:items-start">
+            <div className="space-y-5 lg:col-span-2">{infoBlock}</div>
+            <div className="space-y-5">{costCard}</div>
+          </div>
         ) : (
-          <div className="text-sm text-text-muted">{t('notCompletable')}</div>
+          /* Open trips lead with the completion form, kept at a comfortable
+           * reading width (the focused task, not a wide dashboard). */
+          <div className="max-w-3xl space-y-5">
+            {infoBlock}
+            {props.canComplete ? (
+              <TruckCompleteSection tripId={props.tripId} mode={props.mode} />
+            ) : (
+              <div className="text-sm text-text-muted">{t('notCompletable')}</div>
+            )}
+          </div>
         )}
       </div>
     </>
