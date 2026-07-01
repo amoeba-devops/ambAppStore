@@ -39,7 +39,7 @@ export default async function LoginPage({
   const userGuideHref = `${guideBasePath}/docs/user-guide/${guideLocale}/index.html`;
 
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-bg p-4">
+    <div data-auth-theme className="min-h-dvh flex items-center justify-center bg-bg p-4">
       <Card variant="elevated" className="w-full max-w-sm">
         <CardContent>
           {/* Language switcher sits above the card header so it's the first
