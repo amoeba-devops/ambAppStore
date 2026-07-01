@@ -30,6 +30,7 @@ export function ReportReviewStep({ review }: { review: TruckReportReview }) {
   const t = useTranslations('screens.truckReports');
   const tA = useTranslations('actions');
   const tErr = useTranslations();
+  const tRegion = useTranslations('region');
   const router = useRouter();
   const locale = useLocale();
   const loc = bcp47(locale);
@@ -41,6 +42,7 @@ export function ReportReviewStep({ review }: { review: TruckReportReview }) {
     month: 'long',
     year: 'numeric',
   });
+  const regionLabel = review.region ? tRegion(review.region) : t('regionAll');
 
   const editable = !review.closed;
   const [edits, setEdits] = useState<Record<string, Edit>>(() => {
@@ -102,7 +104,7 @@ export function ReportReviewStep({ review }: { review: TruckReportReview }) {
         }
       }
       /* 2. Generate the single Chi-phí-&-lợi-nhuận report for the month. */
-      const res = await generateTruckReportAction({ month: review.month, type: 'PNL' });
+      const res = await generateTruckReportAction({ month: review.month, region: review.region, type: 'PNL' });
       if (!res.success) {
         toast.error(formatActionError(res.error, tErr));
         return;
@@ -130,12 +132,12 @@ export function ReportReviewStep({ review }: { review: TruckReportReview }) {
 
   return (
     <div className="max-w-5xl space-y-5">
-      <ReportStepper step={2} />
+      <ReportStepper step={3} />
 
       <div>
         <div className="text-sm font-semibold text-text">{t('step2Title')}</div>
         <div className="text-xs text-text-muted">
-          <span className="capitalize">{monthLabel}</span> · {t('reviewSubtitle')}
+          <span className="capitalize">{monthLabel}</span> · <span className="font-medium text-text">{regionLabel}</span> · {t('reviewSubtitle')}
         </div>
       </div>
 
@@ -223,7 +225,7 @@ export function ReportReviewStep({ review }: { review: TruckReportReview }) {
       )}
 
       <div className="flex items-center justify-between pt-1">
-        <Button variant="ghost" size="md" onClick={() => router.push('/truck/reports/new')} disabled={pending}>
+        <Button variant="ghost" size="md" onClick={() => router.push(`/truck/reports/new?month=${review.month}`)} disabled={pending}>
           <ChevronLeft className="h-4 w-4" />
           {tA('back')}
         </Button>

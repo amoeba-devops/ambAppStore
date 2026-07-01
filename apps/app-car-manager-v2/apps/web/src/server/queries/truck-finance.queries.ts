@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, or } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import {
   carTruckMonthClose,
@@ -281,7 +281,7 @@ export interface TruckFinanceTripRow {
  */
 export async function listTruckFinanceTrips(
   entId: string,
-  opts: { month: string; vehicleId?: string | null; q?: string },
+  opts: { month: string; vehicleId?: string | null; q?: string; region?: string | null },
 ): Promise<TruckFinanceTripRow[]> {
   const term = opts.q?.trim();
   const start = new Date(`${opts.month}-01T00:00:00.000Z`);
@@ -319,6 +319,8 @@ export async function listTruckFinanceTrips(
           gte(carTrips.trpScheduledAt, start),
           lt(carTrips.trpScheduledAt, end),
           opts.vehicleId ? eq(carTrips.trpVehicleId, opts.vehicleId) : undefined,
+          /* Region scope = the trip's vehicle operating region (cvh_region). */
+          opts.region ? eq(carVehicles.cvhRegion, opts.region) : undefined,
           term
             ? or(
                 ilike(carTrips.trpCustomer, `%${term}%`),
@@ -447,7 +449,9 @@ export interface ReportReviewVehicle {
 
 export interface TruckReportReview {
   month: string;
-  /** Closed → trips are locked, the Bước-2 table is read-only. */
+  /** Operating region the report is scoped to; `null` = all regions. */
+  region: string | null;
+  /** Closed → trips are locked, the review table is read-only. */
   closed: boolean;
   /** Fleet-level month fuel reconciliation (same number for every vehicle —
    * our fuel model is fleet-monthly, not per-vehicle). */
@@ -476,11 +480,13 @@ export interface TruckReportReview {
 export async function getTruckReportReview(
   actor: AuthContext,
   month: string,
+  /** Operating region scope; `null` = all regions (whole-fleet reconciliation). */
+  region: string | null = null,
 ): Promise<TruckReportReview> {
   const [trips, stats, closeInfo] = await Promise.all([
-    listTruckFinanceTrips(actor.entId, { month }),
-    getTruckFuelStats(actor.entId, month),
-    getTruckMonthCloseInfo(actor.entId, month),
+    listTruckFinanceTrips(actor.entId, { month, region }),
+    getTruckFuelStats(actor.entId, month, region ?? undefined),
+    getTruckMonthCloseInfo(actor.entId, month, region),
   ]);
 
   const byVeh = new Map<string, ReportReviewVehicle>();
@@ -549,6 +555,7 @@ export async function getTruckReportReview(
 
   return {
     month,
+    region,
     closed: closeInfo.closed,
     avgPrice: stats.avgPrice,
     consumption: stats.consumption,
@@ -556,4 +563,65 @@ export async function getTruckReportReview(
     vehicles,
     totals,
   };
+}
+
+/**
+ * Completed-LOG-trip count per month (YYYY-MM). Drives the report month
+ * picker's "has data" guard — a month with 0 completed trips can't be advanced
+ * (the report would be empty), so the user is stopped at step 1 instead of
+ * discovering emptiness at the review step.
+ */
+export async function getTruckMonthTripCounts(entId: string): Promise<Record<string, number>> {
+  const monthExpr = sql<string>`to_char(${carTrips.trpScheduledAt}, 'YYYY-MM')`;
+  const rows = await db
+    .select({ month: monthExpr, n: sql<number>`count(*)::int` })
+    .from(carTrips)
+    .where(
+      and(
+        eq(carTrips.entId, entId),
+        eq(carTrips.trpKind, 'LOG'),
+        eq(carTrips.trpStatus, 'COMPLETED'),
+        isNull(carTrips.trpDeletedAt),
+      ),
+    )
+    .groupBy(monthExpr);
+  const out: Record<string, number> = {};
+  for (const r of rows) out[r.month] = r.n;
+  return out;
+}
+
+/**
+ * Completed-LOG-trip counts for a month, split by operating region (a trip's
+ * region = its vehicle's cvh_region). `total` counts every completed trip
+ * (incl. vehicles with no region) → the "Tất cả khu vực" scope; `byRegion`
+ * drives the per-region guard at step 2.
+ */
+export async function getTruckRegionTripCounts(
+  entId: string,
+  month: string,
+): Promise<{ total: number; byRegion: Record<string, number> }> {
+  const start = new Date(`${month}-01T00:00:00.000Z`);
+  const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
+  const rows = await db
+    .select({ region: carVehicles.cvhRegion, n: sql<number>`count(*)::int` })
+    .from(carTrips)
+    .leftJoin(carVehicles, eq(carTrips.trpVehicleId, carVehicles.cvhId))
+    .where(
+      and(
+        eq(carTrips.entId, entId),
+        eq(carTrips.trpKind, 'LOG'),
+        eq(carTrips.trpStatus, 'COMPLETED'),
+        isNull(carTrips.trpDeletedAt),
+        gte(carTrips.trpScheduledAt, start),
+        lt(carTrips.trpScheduledAt, end),
+      ),
+    )
+    .groupBy(carVehicles.cvhRegion);
+  const byRegion: Record<string, number> = {};
+  let total = 0;
+  for (const r of rows) {
+    total += r.n;
+    if (r.region) byRegion[r.region] = (byRegion[r.region] ?? 0) + r.n;
+  }
+  return { total, byRegion };
 }

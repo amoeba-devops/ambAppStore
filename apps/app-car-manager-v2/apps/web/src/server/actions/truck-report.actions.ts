@@ -8,6 +8,7 @@ import { db } from '@car-v2/db/client';
 import { carTruckReports, carUsers, TRUCK_REPORT_TYPES } from '@car-v2/db/schema';
 import type { ActionResult } from '@car-v2/shared/errors';
 import { computeTruckPnl } from '@car-v2/core/truck';
+import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
 import { listVehicles } from '@/server/queries/vehicles.queries';
@@ -32,13 +33,20 @@ const REPORT_NAME: Record<string, string> = {
   VEHICLE: 'Báo cáo phương tiện',
 };
 
+/* Report-file scope suffix (VN, like the rest of this file's content). */
+const REGION_LABEL: Record<string, string> = { HCM: 'HCM', DONG_NAI: 'Đồng Nai', BAIKSAN: 'Baiksan' };
+function regionSuffix(region: string | null): string {
+  return region ? `Khu vực ${REGION_LABEL[region] ?? region}` : 'Tất cả khu vực';
+}
+
 async function buildReportWorkbook(
   actor: Awaited<ReturnType<typeof getCurrentUser>>,
   month: string,
   type: string,
+  region: string | null,
 ): Promise<Buffer> {
   if (type === 'PNL') {
-    const [row] = await computeTruckPnl(actor, { months: [month] });
+    const [row] = await computeTruckPnl(actor, { months: [month], region: region ?? undefined });
     const r = row ?? null;
     const cols: ExcelColumn[] = [
       { header: 'Hạng mục', key: 'k', width: 28 },
@@ -65,7 +73,7 @@ async function buildReportWorkbook(
   }
 
   if (type === 'TRIP_LOG') {
-    const trips = await listTruckFinanceTrips(actor.entId, { month });
+    const trips = await listTruckFinanceTrips(actor.entId, { month, region });
     const cols: ExcelColumn[] = [
       { header: 'Ngày', key: 'date', width: 12 },
       { header: 'Phương tiện', key: 'plate', width: 14 },
@@ -99,8 +107,9 @@ async function buildReportWorkbook(
     return buildExcel('Nhật ký chuyến', cols, rows);
   }
 
-  // VEHICLE — per-truck month aggregates.
-  const trucks = await listVehicles(actor.entId, 'active', 'TRUCK');
+  // VEHICLE — per-truck month aggregates (scoped to the region when set).
+  const allTrucks = await listVehicles(actor.entId, 'active', 'TRUCK');
+  const trucks = region ? allTrucks.filter((v) => v.cvhRegion === region) : allTrucks;
   const cols: ExcelColumn[] = [
     { header: 'Biển số', key: 'plate', width: 14 },
     { header: 'Mô tả', key: 'model', width: 22 },
@@ -136,26 +145,30 @@ export async function generateTruckReportAction(input: unknown): Promise<ActionR
     const actor = await getCurrentUser();
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
     await requireFleet(actor, 'TRUCK');
-    const { month, type } = z
-      .object({ month: z.string().regex(MONTH), type: z.enum(TRUCK_REPORT_TYPES) })
+    const parsed = z
+      .object({
+        month: z.string().regex(MONTH),
+        type: z.enum(TRUCK_REPORT_TYPES),
+        /* Operating region scope; null/absent = all regions. */
+        region: z.enum(TRUCK_REGIONS).nullable().optional(),
+      })
       .parse(input);
+    const { month, type } = parsed;
+    const region = parsed.region ?? null;
 
-    const buffer = await buildReportWorkbook(actor, month, type);
+    const buffer = await buildReportWorkbook(actor, month, type, region);
     const id = randomUUID();
-    const key = `truck-reports/${actor.entId}/${month}/${type}-${id}.xlsx`;
+    const key = `truck-reports/${actor.entId}/${month}/${type}-${region ?? 'all'}-${id}.xlsx`;
     await putObject(
       key,
       new Uint8Array(buffer),
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
 
-    /* The report flow now generates a single P&L report scoped to all vehicles
-     * (design alignment) — name it "· Tất cả phương tiện" and let the list group
-     * by month. The other types keep a month-qualified name if ever generated. */
-    const name =
-      type === 'PNL'
-        ? `${REPORT_NAME[type]} · Tất cả phương tiện`
-        : `${REPORT_NAME[type]} · ${monthLabel(month)}`;
+    /* Report is scoped to the chosen operating region (or all regions) — name it
+     * with that scope ("· Khu vực HCM" / "· Tất cả khu vực") so the list makes the
+     * scope obvious; the list still groups by month. */
+    const name = `${REPORT_NAME[type]} · ${regionSuffix(region)}`;
     await db.insert(carTruckReports).values({
       trrId: id,
       entId: actor.entId,
@@ -174,7 +187,7 @@ export async function generateTruckReportAction(input: unknown): Promise<ActionR
       entity: 'TruckReport',
       entityId: id,
       entityRef: name,
-      after: { month, type },
+      after: { month, type, region },
     });
     revalidatePath('/truck/reports');
     return { id };

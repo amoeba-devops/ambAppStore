@@ -4,14 +4,15 @@ import { useTranslations } from 'next-intl';
 import { Check } from 'lucide-react';
 import { cn } from '@car-v2/ui';
 
-/** Horizontal 2-step indicator for the "Lập báo cáo" flow (design): ① Chọn tháng
- * —— ② Xác nhận & Lập báo cáo. Done steps go green (✓), the current step is the
- * filled dark circle, upcoming steps are muted. */
-export function ReportStepper({ step }: { step: 1 | 2 }) {
+/** Horizontal 3-step indicator for the "Lập báo cáo" flow: ① Chọn tháng —— ②
+ * Chọn khu vực —— ③ Xác nhận & Lập báo cáo. Done steps go green (✓), the current
+ * step is the filled dark circle, upcoming steps are muted. */
+export function ReportStepper({ step }: { step: 1 | 2 | 3 }) {
   const t = useTranslations('screens.truckReports');
   const items = [
     { n: 1 as const, label: t('stepName1') },
-    { n: 2 as const, label: t('stepName2') },
+    { n: 2 as const, label: t('stepNameRegion') },
+    { n: 3 as const, label: t('stepName2') },
   ];
   return (
     <div className="flex items-center gap-3 overflow-x-auto">
@@ -37,7 +38,9 @@ export function ReportStepper({ step }: { step: 1 | 2 }) {
                 {s.label}
               </span>
             </div>
-            {i === 0 && <div className={cn('h-px w-12 sm:w-24', step > 1 ? 'bg-success' : 'bg-border')} />}
+            {i < items.length - 1 && (
+              <div className={cn('h-px w-8 sm:w-16', step > s.n ? 'bg-success' : 'bg-border')} />
+            )}
           </div>
         );
       })}
