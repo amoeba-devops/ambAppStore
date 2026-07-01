@@ -107,7 +107,37 @@ export default async function TruckReportsPage({
                 <h2 className="text-sm font-semibold text-text capitalize">{monthLabel(g.month)}</h2>
                 <span className="text-xs text-text-muted">{t('groupCount', { count: g.rows.length })}</span>
               </div>
-              <Card variant="outline" className="overflow-x-auto">
+              {/* Mobile card list — below md the 5-column report table is
+               * replaced by cards with a full-width download button. */}
+              <ul className="md:hidden space-y-2.5">
+                {g.rows.map((r) => (
+                  <li key={r.id} className="rounded-md border border-border bg-surface px-4 py-3.5">
+                    <div className="flex items-start gap-2">
+                      <FileText className="h-4 w-4 shrink-0 text-text-faint mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-text">{r.name}</span>
+                          {r.isNew && <Badge tone="accent" size="sm">{t('newBadge')}</Badge>}
+                        </div>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted">
+                          <Badge tone="neutral" size="sm">{r.format}</Badge>
+                          <span className="tabular">· {dateTime(r.createdAt)}</span>
+                          {r.createdByName && <span>· {r.createdByName}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <Button variant="secondary" size="sm" className="mt-3 w-full" asChild>
+                      <a href={`${BASE_PATH}/truck/reports/${r.id}/download`}>
+                        <Download className="h-3.5 w-3.5" />
+                        {t('download')}
+                      </a>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Desktop table */}
+              <Card variant="outline" className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>

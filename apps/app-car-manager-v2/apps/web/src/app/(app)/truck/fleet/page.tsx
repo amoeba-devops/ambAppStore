@@ -90,7 +90,42 @@ export default async function TruckFleetPage() {
             />
           </Card>
         ) : (
-          <Card variant="outline" className="overflow-x-auto">
+          <>
+            {/* Mobile card list — the desktop table has 11 columns (~790px) and
+             * forces horizontal scrolling on phones, so below md each truck
+             * renders as a tappable card surfacing the key fields. */}
+            <ul className="md:hidden space-y-2.5">
+              {trucks.map((v) => {
+                const driver = drivers.get(v.cvhId) ?? null;
+                return (
+                  <li key={v.cvhId}>
+                    <Link
+                      href={`/truck/fleet/${v.cvhId}/edit`}
+                      className="block rounded-md border border-border bg-surface px-4 py-3.5 active:bg-surface-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="font-mono font-semibold text-text truncate">{v.cvhPlateNumber}</div>
+                          <div className="text-xs text-text-faint truncate">
+                            {v.cvhCode ? <span className="font-mono">{v.cvhCode} · </span> : null}
+                            {v.cvhModel}
+                          </div>
+                        </div>
+                        <Badge tone={STATUS_TONE[v.cvhStatus]} size="sm">{tStatus(v.cvhStatus)}</Badge>
+                      </div>
+                      <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted">
+                        <span className="text-text">{regionLabel(v.cvhRegion)}</span>
+                        <span>· {driver ?? '—'}</span>
+                        <span className="tabular">· {v.cvhOdometerKm.toLocaleString(loc)} km</span>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Desktop table */}
+            <Card variant="outline" className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -139,7 +174,8 @@ export default async function TruckFleetPage() {
                 })}
               </TableBody>
             </Table>
-          </Card>
+            </Card>
+          </>
         )}
       </div>
     </>

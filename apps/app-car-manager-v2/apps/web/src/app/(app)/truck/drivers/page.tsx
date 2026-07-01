@@ -79,7 +79,42 @@ export default async function TruckDriversPage() {
             )}
           </Card>
         ) : (
-          <Card variant="outline" className="overflow-x-auto">
+          <>
+            {/* Mobile card list — the desktop roster is ~965px wide (10
+             * columns) and forces horizontal scrolling on phones, so below md
+             * each driver renders as a tappable card. */}
+            <ul className="md:hidden space-y-2.5">
+              {drivers.map((d) => (
+                <li key={d.drvId}>
+                  <Link
+                    href={`/drivers/${d.drvId}`}
+                    className="block rounded-md border border-border bg-surface px-4 py-3.5 active:bg-surface-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-text truncate">{d.user.usrName ?? '—'}</div>
+                        {d.user.usrEmail && <div className="text-xs text-text-faint truncate">{d.user.usrEmail}</div>}
+                      </div>
+                      <Badge tone={STATUS_TONE[d.drvStatus]} size="sm">{t(`status.${d.drvStatus}`)}</Badge>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted">
+                      <span className="font-mono text-text">{d.drvLicenseNumber}</span>
+                      <span>· {d.drvLicenseClass}</span>
+                      {vehicleByDriver.get(d.drvId) && (
+                        <span className="font-mono">· {vehicleByDriver.get(d.drvId)}</span>
+                      )}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-faint tabular">
+                      <span>{t('thExpiry')}: {date(d.drvLicenseExpiry)}</span>
+                      {d.drvPhone && <span>· {d.drvPhone}</span>}
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop table */}
+            <Card variant="outline" className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -123,7 +158,8 @@ export default async function TruckDriversPage() {
                 ))}
               </TableBody>
             </Table>
-          </Card>
+            </Card>
+          </>
         )}
       </div>
     </>

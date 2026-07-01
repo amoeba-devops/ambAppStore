@@ -121,7 +121,48 @@ export default async function TruckTripsPage({
             />
           </Card>
         ) : (
-          <Card variant="outline" className="overflow-x-auto">
+          <>
+            {/* Mobile card list — the desktop trip log is ~865px wide (10
+             * columns) so it forces horizontal scrolling on phones. Below md
+             * each trip renders as a tappable card with date, customer, the
+             * key operational fields + a compact cost line. */}
+            <ul className="md:hidden space-y-2.5">
+              {trips.map((trip) => (
+                <li key={trip.trpId}>
+                  <Link
+                    href={`/truck/trips/${trip.trpId}`}
+                    className="block rounded-md border border-border bg-surface px-4 py-3.5 active:bg-surface-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-medium text-text">{date(trip.scheduledAt)}</div>
+                        <div className="text-xs text-text-faint font-mono truncate">{trip.ref}</div>
+                      </div>
+                      <Badge tone={trip.status === 'COMPLETED' ? 'success' : 'neutral'} size="sm">
+                        {trip.status === 'COMPLETED' ? t('statusDone') : t('statusOpen')}
+                      </Badge>
+                    </div>
+                    <div className="mt-1.5 text-sm text-text truncate">
+                      {trip.customer ?? '—'}
+                      {trip.bol && <span className="text-xs text-text-faint font-mono"> · {trip.bol}</span>}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted">
+                      <span className="font-mono text-text">{trip.plate ?? '—'}</span>
+                      <span>· {trip.driver ?? '—'}</span>
+                      <span className="tabular">· {trip.km != null ? `${trip.km.toLocaleString(loc)} km` : '—'}</span>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 text-xs text-text-faint tabular">
+                      <span>{t('thFuel')}: {vnd(trip.breakdown.fuelCost)}</span>
+                      <span>{t('thToll')}: {vnd(trip.breakdown.tollFee)}</span>
+                      <span>{t('thOther')}: {vnd(trip.breakdown.extraTotal)}</span>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop table */}
+            <Card variant="outline" className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -166,7 +207,8 @@ export default async function TruckTripsPage({
                 ))}
               </TableBody>
             </Table>
-          </Card>
+            </Card>
+          </>
         )}
       </div>
     </>
