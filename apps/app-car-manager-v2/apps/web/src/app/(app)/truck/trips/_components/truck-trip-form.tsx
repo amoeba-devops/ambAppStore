@@ -218,8 +218,8 @@ export function TruckTripForm({
         <div className="rounded-lg border border-border bg-surface p-4 lg:p-5">
           <Tabs value={markCompleted ? 'log' : 'assign'} onValueChange={(v) => setMarkCompleted(v === 'log')}>
             <TabsList className="w-full max-w-md">
-              <TabsTrigger value="assign" className="flex-1">{t('modeAssignShort')}</TabsTrigger>
-              <TabsTrigger value="log" className="flex-1">{t('modeCompletedShort')}</TabsTrigger>
+              <TabsTrigger value="assign" className="flex-1 h-11 md:h-7">{t('modeAssignShort')}</TabsTrigger>
+              <TabsTrigger value="log" className="flex-1 h-11 md:h-7">{t('modeCompletedShort')}</TabsTrigger>
             </TabsList>
           </Tabs>
           <p className="mt-2 text-xs text-text-muted">
@@ -424,7 +424,7 @@ function DisclosureButton({ label, onClick, bare }: { label: string; onClick: ()
       size="sm"
       onClick={onClick}
       className={
-        'h-9 gap-1.5 text-xs text-text-muted hover:text-text ' +
+        'h-11 md:h-9 gap-1.5 text-xs text-text-muted hover:text-text ' +
         (bare ? '' : 'w-full justify-start rounded-lg border border-dashed border-border-strong')
       }
     >

@@ -220,7 +220,7 @@ function Chip({ href, active, label }: { href: string; active: boolean; label: s
     <Link
       href={href}
       className={cn(
-        'rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors',
+        'inline-flex items-center min-h-[44px] md:min-h-0 rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors',
         active
           ? 'bg-accent text-accent-fg border-accent'
           : 'bg-surface text-text-muted border-border hover:border-accent hover:text-accent',

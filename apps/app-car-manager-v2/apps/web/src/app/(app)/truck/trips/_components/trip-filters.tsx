@@ -27,7 +27,7 @@ export function TripFilters({
   };
 
   const cls =
-    'h-9 rounded-md border border-border bg-surface px-2.5 text-sm text-text focus-visible:outline-none focus-visible:border-accent';
+    'h-11 md:h-9 rounded-md border border-border bg-surface px-2.5 text-sm text-text focus-visible:outline-none focus-visible:border-accent';
 
   return (
     <>

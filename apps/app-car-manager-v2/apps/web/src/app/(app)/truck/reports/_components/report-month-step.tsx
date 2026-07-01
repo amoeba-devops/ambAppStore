@@ -39,7 +39,7 @@ export function ReportMonthStep({ exportedMonths }: { exportedMonths: string[] }
             type="button"
             onClick={() => setYear((y) => y - 1)}
             aria-label="prev year"
-            className="rounded-md border border-border p-1.5 text-text-muted hover:border-accent hover:text-accent"
+            className="inline-flex items-center justify-center h-11 w-11 md:h-9 md:w-9 rounded-md border border-border text-text-muted hover:border-accent hover:text-accent"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -48,7 +48,7 @@ export function ReportMonthStep({ exportedMonths }: { exportedMonths: string[] }
             type="button"
             onClick={() => setYear((y) => y + 1)}
             aria-label="next year"
-            className="rounded-md border border-border p-1.5 text-text-muted hover:border-accent hover:text-accent"
+            className="inline-flex items-center justify-center h-11 w-11 md:h-9 md:w-9 rounded-md border border-border text-text-muted hover:border-accent hover:text-accent"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

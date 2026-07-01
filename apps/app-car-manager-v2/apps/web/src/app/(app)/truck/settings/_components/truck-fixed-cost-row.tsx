@@ -71,7 +71,7 @@ export function TruckFixedCostRow({ vehicleId, plate, model, month, initial, loc
         </div>
       </div>
       <div className="flex justify-end mt-3">
-        <Button type="button" size="sm" variant="accent" disabled={pending || locked} onClick={save}
+        <Button type="button" size="sm" className="h-11 md:h-9" variant="accent" disabled={pending || locked} onClick={save}
           iconLeft={pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}>
           {t('save')}
         </Button>

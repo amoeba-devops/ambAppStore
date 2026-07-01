@@ -73,10 +73,11 @@ export function MonthCloseControls({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder={t('reopenReasonPlaceholder')}
-              className="h-8 w-56"
+              className="h-11 md:h-9 w-56"
             />
             <Button
               size="sm"
+              className="h-11 md:h-9"
               variant="accent"
               disabled={pending || reason.trim().length < 3}
               onClick={reopen}
@@ -84,18 +85,19 @@ export function MonthCloseControls({
             >
               {t('reopen')}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => { setReopening(false); setReason(''); }}>
+            <Button size="sm" className="h-11 md:h-9" variant="ghost" onClick={() => { setReopening(false); setReason(''); }}>
               {t('cancel')}
             </Button>
           </>
         ) : (
-          <Button size="sm" variant="secondary" onClick={() => setReopening(true)} iconLeft={<LockOpen className="h-3.5 w-3.5" />}>
+          <Button size="sm" className="h-11 md:h-9" variant="secondary" onClick={() => setReopening(true)} iconLeft={<LockOpen className="h-3.5 w-3.5" />}>
             {t('reopen')}
           </Button>
         )
       ) : (
         <Button
           size="sm"
+          className="h-11 md:h-9"
           variant="accent"
           disabled={pending}
           onClick={close}

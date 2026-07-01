@@ -120,7 +120,7 @@ export function StopBuilder({ stops, onChange, showKm = false }: StopBuilderProp
                   value={stop.type}
                   onValueChange={(v) => update(stop.id, { type: v as CarStopType })}
                 >
-                  <SelectTrigger className="h-7 text-xs w-40 border-0 bg-surface-2 px-2 gap-1">
+                  <SelectTrigger className="h-11 md:h-7 text-xs w-40 border-0 bg-surface-2 px-2 gap-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -151,7 +151,7 @@ export function StopBuilder({ stops, onChange, showKm = false }: StopBuilderProp
                     value={stop.km}
                     onChange={(e) => update(stop.id, { km: e.target.value })}
                     placeholder="—"
-                    className="text-sm w-36 h-8"
+                    className="text-sm w-36 h-11 md:h-8"
                   />
                 </div>
               )}
@@ -164,7 +164,7 @@ export function StopBuilder({ stops, onChange, showKm = false }: StopBuilderProp
                   type="button"
                   onClick={() => remove(stop.id)}
                   aria-label={t('remove')}
-                  className="h-7 w-7 flex items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
+                  className="h-11 w-11 md:h-7 md:w-7 flex items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -184,7 +184,7 @@ export function StopBuilder({ stops, onChange, showKm = false }: StopBuilderProp
             variant="ghost"
             size="sm"
             onClick={addStop}
-            className="h-7 text-xs text-text-muted gap-1.5 hover:text-text"
+            className="h-11 md:h-7 text-xs text-text-muted gap-1.5 hover:text-text"
           >
             <Plus className="h-3 w-3" />
             {t('addStop')}

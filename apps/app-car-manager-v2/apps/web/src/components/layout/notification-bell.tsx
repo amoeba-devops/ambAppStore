@@ -30,7 +30,7 @@ export function NotificationBell({ variant = 'desktop', className }: Notificatio
   const { unreadNotifications } = useUserDisplay();
   const tNav = useTranslations('nav');
 
-  const sizeClass = variant === 'mobile' ? 'h-9 w-9' : 'h-9 w-9 md:h-10 md:w-10';
+  const sizeClass = variant === 'mobile' ? 'h-11 w-11' : 'h-9 w-9 md:h-10 md:w-10';
   const iconSize = variant === 'mobile' ? 'h-5 w-5' : 'h-4 w-4 md:h-[18px] md:w-[18px]';
 
   const ariaLabel =

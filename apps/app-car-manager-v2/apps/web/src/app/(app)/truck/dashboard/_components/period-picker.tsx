@@ -67,7 +67,7 @@ export function PeriodPicker({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-1.5 text-sm font-semibold text-text hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-1.5 text-sm font-semibold text-text min-h-[44px] md:min-h-0 hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Calendar className="h-4 w-4 text-text-muted" />
         {label}
@@ -84,7 +84,7 @@ export function PeriodPicker({
                   type="button"
                   onClick={() => pickPreset(p)}
                   className={cn(
-                    'rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
+                    'inline-flex items-center min-h-[44px] md:min-h-0 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
                     currentPreset === p
                       ? 'border-accent bg-accent text-accent-fg'
                       : 'border-border bg-surface text-text-muted hover:border-accent hover:text-accent',
@@ -102,17 +102,17 @@ export function PeriodPicker({
                 type="date"
                 value={draftFrom}
                 onChange={(e) => setDraftFrom(e.target.value)}
-                className="h-8 flex-1 rounded-md border border-border bg-surface px-2 text-sm text-text focus-visible:outline-none focus-visible:border-accent"
+                className="h-11 md:h-9 flex-1 rounded-md border border-border bg-surface px-2 text-sm text-text focus-visible:outline-none focus-visible:border-accent"
               />
               <span className="text-text-muted">–</span>
               <input
                 type="date"
                 value={draftTo}
                 onChange={(e) => setDraftTo(e.target.value)}
-                className="h-8 flex-1 rounded-md border border-border bg-surface px-2 text-sm text-text focus-visible:outline-none focus-visible:border-accent"
+                className="h-11 md:h-9 flex-1 rounded-md border border-border bg-surface px-2 text-sm text-text focus-visible:outline-none focus-visible:border-accent"
               />
             </div>
-            <Button variant="accent" size="sm" className="mt-2 w-full" disabled={!customValid} onClick={applyCustom}>
+            <Button variant="accent" size="sm" className="mt-2 w-full h-11 md:h-9" disabled={!customValid} onClick={applyCustom}>
               {t('apply')}
             </Button>
           </div>

@@ -79,7 +79,7 @@ export function FuelInvoicePanel({
                   onClick={() => del(i.id)}
                   disabled={pending}
                   aria-label={t('deleteInvoice')}
-                  className="text-text-faint hover:text-danger shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                  className="inline-flex items-center justify-center h-9 w-9 -mr-1.5 shrink-0 text-text-faint hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -96,7 +96,7 @@ export function FuelInvoicePanel({
           <Input placeholder={t('station')} value={f.station} onChange={(e) => setF((s) => ({ ...s, station: e.target.value }))} />
           <Input type="number" placeholder={t('liters')} value={f.liters} onChange={(e) => setF((s) => ({ ...s, liters: e.target.value }))} />
           <Input type="number" placeholder={t('price')} value={f.price} onChange={(e) => setF((s) => ({ ...s, price: e.target.value }))} />
-          <Button size="sm" variant="accent" disabled={pending} onClick={add} iconLeft={pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}>
+          <Button size="sm" className="h-11 md:h-9" variant="accent" disabled={pending} onClick={add} iconLeft={pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}>
             {t('addInvoice')}
           </Button>
         </div>
