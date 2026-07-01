@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>비용 & 손익 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2" aria-label="Amoeba Car Manager v2">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 가이드</span></span><span class="header__brand-mobile">가이드</span>
+      </a>
+      <div class="header__tools">
+        <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="가이드 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi"><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" data-lang="ko"><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">트럭 · 관리자</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-bang-dieu-khien.html">대시보드</a>
+        <a class="sidebar__link" href="02-nhat-ky-chuyen.html">운행 일지</a>
+        <a class="sidebar__link" href="03-lap-chuyen.html">운행 등록</a>
+        <a class="sidebar__link" href="04-chi-tiet-chuyen.html">운행 상세</a>
+        <a class="sidebar__link" href="05-doi-xe.html">차량</a>
+        <a class="sidebar__link" href="06-tai-xe.html">기사</a>
+        <a class="sidebar__link is-active" href="07-chi-phi-loi-nhuan.html">비용 & 손익</a>
+        <a class="sidebar__link" href="08-tong-quan-pnl.html">손익 개요</a>
+        <a class="sidebar__link" href="09-lap-bao-cao.html">보고서 작성</a>
+        <a class="sidebar__link" href="10-danh-sach-bao-cao.html">보고서 목록</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">트럭 · 기사</div>
+        <a class="sidebar__link" href="../truck-driver/00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="../truck-driver/01-hom-nay.html">오늘</a>
+        <a class="sidebar__link" href="../truck-driver/02-hoan-thanh-chuyen.html">운행 완료</a>
+        <a class="sidebar__link" href="../truck-driver/03-ghi-chuyen-moi.html">새 운행 기록</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">홈</a> · 트럭 · 관리자 · 비용 & 손익</div>
+        <h1>비용 & 손익</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/truck/finance" target="_parent" rel="noopener">
+            <span>앱에서 열기</span>
+            <span class="app-link-cta__route">/truck/finance</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/finance</code></dd><dt>기간</dt><dd>상단에서 월 선택</dd></dl></div>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/07-finance.png" alt="비용 & 손익 — 선택한 달의 운행별 장부"><figcaption>비용 & 손익 — 선택한 달의 운행별 장부</figcaption></figure>
+<h2>탭</h2><ul><li><strong>운행별</strong> — 운행별 매출·비용·이익 장부</li><li><strong>손익 개요</strong> — <a href="08-tong-quan-pnl.html">손익 개요</a> 참고</li><li><strong>영수증 &amp; 월 비용</strong> — 연료 영수증, 고정비</li></ul>
+<h2>고정비</h2><p>기사 급여, 감가상각, 보험 등을 월 단위로 입력하며 이익 계산 시 총비용에 합산됩니다.</p>
+<h2>월 마감</h2><p>수치가 확정되면 해당 월(지역별)을 <strong>마감</strong>하여 수정을 잠급니다 — 그 달 보고서는 읽기 전용이 됩니다.</p>
+
+        <nav class="pager">
+          <a class="pager__prev" href="06-tai-xe.html"><span>← 이전</span><strong>기사</strong></a>
+          <a class="pager__next" href="08-tong-quan-pnl.html"><span>다음 →</span><strong>손익 개요</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">업데이트 01-07-2026 · 피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

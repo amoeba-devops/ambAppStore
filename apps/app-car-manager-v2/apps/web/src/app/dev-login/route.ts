@@ -39,6 +39,10 @@ export async function GET(req: NextRequest) {
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const entIdOverride = req.nextUrl.searchParams.get('ent_id');
   const subOverride = req.nextUrl.searchParams.get('sub');
+  /* Optional display-name override (dev-only) — lets the user-guide screenshot
+   * pipeline mint a JWT with a real name ("Phạm Minh Quân") instead of the
+   * generic "Demo MANAGER" in the sidebar profile card. Ignored in test mode. */
+  const nameOverride = req.nextUrl.searchParams.get('name');
   if (entIdOverride && !UUID_RE.test(entIdOverride)) {
     return new NextResponse('Invalid ent_id format (need UUID).', { status: 400 });
   }
@@ -104,7 +108,7 @@ export async function GET(req: NextRequest) {
   };
   if (!isTestMode) {
     payload.email = `demo-${role.toLowerCase()}@dev.car-manager-v2.local`;
-    payload.name = `Demo ${role}`;
+    payload.name = nameOverride ?? `Demo ${role}`;
   }
   const token = await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })

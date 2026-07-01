@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>트럭 — 관리자 화면 개요 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2" aria-label="Amoeba Car Manager v2">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 가이드</span></span><span class="header__brand-mobile">가이드</span>
+      </a>
+      <div class="header__tools">
+        <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="가이드 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi"><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" data-lang="ko"><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">트럭 · 관리자</div>
+        <a class="sidebar__link is-active" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-bang-dieu-khien.html">대시보드</a>
+        <a class="sidebar__link" href="02-nhat-ky-chuyen.html">운행 일지</a>
+        <a class="sidebar__link" href="03-lap-chuyen.html">운행 등록</a>
+        <a class="sidebar__link" href="04-chi-tiet-chuyen.html">운행 상세</a>
+        <a class="sidebar__link" href="05-doi-xe.html">차량</a>
+        <a class="sidebar__link" href="06-tai-xe.html">기사</a>
+        <a class="sidebar__link" href="07-chi-phi-loi-nhuan.html">비용 & 손익</a>
+        <a class="sidebar__link" href="08-tong-quan-pnl.html">손익 개요</a>
+        <a class="sidebar__link" href="09-lap-bao-cao.html">보고서 작성</a>
+        <a class="sidebar__link" href="10-danh-sach-bao-cao.html">보고서 목록</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">트럭 · 기사</div>
+        <a class="sidebar__link" href="../truck-driver/00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="../truck-driver/01-hom-nay.html">오늘</a>
+        <a class="sidebar__link" href="../truck-driver/02-hoan-thanh-chuyen.html">운행 완료</a>
+        <a class="sidebar__link" href="../truck-driver/03-ghi-chuyen-moi.html">새 운행 기록</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">홈</a> · 트럭 · 관리자 · 개요</div>
+        <h1>트럭 — 관리자 화면 개요</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/truck/dashboard" target="_parent" rel="noopener">
+            <span>앱에서 열기</span>
+            <span class="app-link-cta__route">/truck/dashboard</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro"><dl class="intro__row"><dt>대상</dt><dd><strong>트럭</strong> 부서 권한이 있는 <strong>관리자</strong> 및 <strong>매니저</strong></dd><dt>목적</dt><dd>화물 운행 일지 기록, 지역별 차량 관리, 비용·매출·손익 추적 및 월간 보고서 작성</dd><dt>테마</dt><dd><strong>주황색</strong> 테마 (승용차 부서의 파란색과 구분)</dd></dl></div>
+<p><strong>트럭</strong> 부서는 화물 운송 업무를 위한 것입니다. 각 운행은 고객·경로·연료·통행료·매출을 기록하는 <strong>운행 일지(LOG)</strong>입니다. 배차·수락/거절이 있는 승용차 부서와 달리, 트럭 부서는 운행별·지역별 <strong>비용 기록 및 정산</strong>에 중점을 둡니다.</p>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/01-dashboard.png" alt="트럭 대시보드 — 주황색 테마, 지역별 필터"><figcaption>트럭 대시보드 — 주황색 테마, 지역별 필터</figcaption></figure>
+<h2>트럭 부서 진입 방법</h2><ul><li><strong>트럭 전담 매니저</strong> — 로그인하면 바로 진입합니다.</li><li><strong>관리자(양쪽 부서)</strong> — 사이드바 상단의 <strong>승용차 / 트럭 전환</strong> 버튼 사용. <em>관리자만</em> 보이고 전환할 수 있습니다.</li></ul>
+<h2>메뉴 구성</h2><ul><li><strong>운영</strong> — 대시보드 · 운행 일지 · 차량 · 기사</li><li><strong>재무</strong> — 비용 &amp; 손익 (손익 개요 포함)</li><li><strong>보고서</strong> — 보고서 작성 · 보고서 목록</li></ul>
+<h2>3개 지역</h2><p>각 트럭은 <strong>HCM</strong>, <strong>동나이</strong>, <strong>Baiksan</strong> 중 한 지역에 속합니다. 운행의 지역은 그 운행을 수행한 차량의 지역이며, 대시보드 필터·손익·보고서에 사용됩니다.</p>
+
+        <nav class="pager">
+          <a class="pager__prev" href="../index.html"><span>← 이전</span><strong>역할 선택</strong></a>
+          <a class="pager__next" href="01-bang-dieu-khien.html"><span>다음 →</span><strong>대시보드</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">업데이트 01-07-2026 · 피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

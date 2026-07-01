@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>운행 완료 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2" aria-label="Amoeba Car Manager v2">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 가이드</span></span><span class="header__brand-mobile">가이드</span>
+      </a>
+      <div class="header__tools">
+        <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="가이드 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi"><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" data-lang="ko"><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">트럭 · 관리자</div>
+        <a class="sidebar__link" href="../truck-manager/00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="../truck-manager/01-bang-dieu-khien.html">대시보드</a>
+        <a class="sidebar__link" href="../truck-manager/02-nhat-ky-chuyen.html">운행 일지</a>
+        <a class="sidebar__link" href="../truck-manager/03-lap-chuyen.html">운행 등록</a>
+        <a class="sidebar__link" href="../truck-manager/04-chi-tiet-chuyen.html">운행 상세</a>
+        <a class="sidebar__link" href="../truck-manager/05-doi-xe.html">차량</a>
+        <a class="sidebar__link" href="../truck-manager/06-tai-xe.html">기사</a>
+        <a class="sidebar__link" href="../truck-manager/07-chi-phi-loi-nhuan.html">비용 & 손익</a>
+        <a class="sidebar__link" href="../truck-manager/08-tong-quan-pnl.html">손익 개요</a>
+        <a class="sidebar__link" href="../truck-manager/09-lap-bao-cao.html">보고서 작성</a>
+        <a class="sidebar__link" href="../truck-manager/10-danh-sach-bao-cao.html">보고서 목록</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">트럭 · 기사</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-hom-nay.html">오늘</a>
+        <a class="sidebar__link is-active" href="02-hoan-thanh-chuyen.html">운행 완료</a>
+        <a class="sidebar__link" href="03-ghi-chuyen-moi.html">새 운행 기록</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">홈</a> · 트럭 · 기사 · 운행 완료</div>
+        <h1>운행 완료</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/today" target="_parent" rel="noopener">
+            <span>앱에서 열기</span>
+            <span class="app-link-cta__route">/today</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro"><dl class="intro__row"><dt>진입</dt><dd>"완료할 운행" 목록의 운행</dd><dt>목적</dt><dd>수치를 기록해 운행 확정</dd></dl></div>
+        <figure><img src="../../assets/img/screenshots/ko/truck-driver/02-trip-complete-mobile.png" alt="휴대폰 운행 완료 화면"><figcaption>휴대폰 운행 완료 화면</figcaption></figure>
+<h2>입력 수치</h2><ul><li><strong>시작</strong> / <strong>종료</strong> 시각</li><li><strong>최종 주행거리</strong>(계기판)</li><li><strong>연료</strong>(리터) 및 <strong>통행료</strong></li><li><strong>기타 비용</strong> — 항목별 추가(이름 + 금액)</li></ul>
+<h2>확인</h2><p><strong>완료 확인</strong>을 누르면 운행이 <strong>완료</strong> 상태가 됩니다. 이 수치는 즉시 관리자의 비용·손익·보고서에 반영됩니다.</p>
+
+        <nav class="pager">
+          <a class="pager__prev" href="01-hom-nay.html"><span>← 이전</span><strong>오늘</strong></a>
+          <a class="pager__next" href="03-ghi-chuyen-moi.html"><span>다음 →</span><strong>새 운행 기록</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">업데이트 01-07-2026 · 피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

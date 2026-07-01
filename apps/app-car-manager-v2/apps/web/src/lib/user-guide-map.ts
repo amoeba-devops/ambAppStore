@@ -24,6 +24,10 @@ interface PathRule {
   prefix: string;
   /** Map of role → guide file (relative to `{locale}/`). `undefined` = use role overview. */
   byRole: Partial<Record<LocalRole, string>>;
+  /** Only match when the active fleet dept equals this (undefined = any dept).
+   * Used to disambiguate shared routes like `/today` between a truck driver
+   * (their home) and a car driver (dispatch screen). */
+  dept?: 'CAR' | 'TRUCK';
 }
 
 /**
@@ -33,6 +37,27 @@ interface PathRule {
  * management page, driver sees today-screen flow).
  */
 const PATH_RULES: PathRule[] = [
+  // ── TRUCK workspace ──────────────────────────────────────────────
+  // Driver truck flow (dept-gated). A truck driver's `/today` is their home;
+  // a car driver's `/today` is the dispatch screen — hence the `dept` guard.
+  // MUST precede the generic `/today` rule below. `/today/truck/new` before
+  // `/today/truck` so the create form maps to its own page.
+  { prefix: '/today/truck/new', dept: 'TRUCK', byRole: { DRIVER: 'truck-driver/03-ghi-chuyen-moi.html' } },
+  { prefix: '/today/truck', dept: 'TRUCK', byRole: { DRIVER: 'truck-driver/02-hoan-thanh-chuyen.html' } },
+  { prefix: '/today', dept: 'TRUCK', byRole: { DRIVER: 'truck-driver/01-hom-nay.html' } },
+  // Manager truck surface (/truck/*). Most-specific first (…/new before list).
+  { prefix: '/truck/reports/new', byRole: { ADMIN: 'truck-manager/09-lap-bao-cao.html', MANAGER: 'truck-manager/09-lap-bao-cao.html' } },
+  { prefix: '/truck/reports', byRole: { ADMIN: 'truck-manager/10-danh-sach-bao-cao.html', MANAGER: 'truck-manager/10-danh-sach-bao-cao.html' } },
+  { prefix: '/truck/trips/new', byRole: { ADMIN: 'truck-manager/03-lap-chuyen.html', MANAGER: 'truck-manager/03-lap-chuyen.html' } },
+  { prefix: '/truck/trips', byRole: { ADMIN: 'truck-manager/02-nhat-ky-chuyen.html', MANAGER: 'truck-manager/02-nhat-ky-chuyen.html' } },
+  { prefix: '/truck/fleet', byRole: { ADMIN: 'truck-manager/05-doi-xe.html', MANAGER: 'truck-manager/05-doi-xe.html' } },
+  { prefix: '/truck/drivers', byRole: { ADMIN: 'truck-manager/06-tai-xe.html', MANAGER: 'truck-manager/06-tai-xe.html' } },
+  { prefix: '/truck/finance', byRole: { ADMIN: 'truck-manager/07-chi-phi-loi-nhuan.html', MANAGER: 'truck-manager/07-chi-phi-loi-nhuan.html' } },
+  { prefix: '/truck/pnl', byRole: { ADMIN: 'truck-manager/08-tong-quan-pnl.html', MANAGER: 'truck-manager/08-tong-quan-pnl.html' } },
+  { prefix: '/truck/dashboard', byRole: { ADMIN: 'truck-manager/01-bang-dieu-khien.html', MANAGER: 'truck-manager/01-bang-dieu-khien.html' } },
+  // Any other /truck/* → truck manager overview.
+  { prefix: '/truck', byRole: { ADMIN: 'truck-manager/00-tong-quan.html', MANAGER: 'truck-manager/00-tong-quan.html' } },
+
   // /settings/me — same overview for everyone
   {
     prefix: '/settings/me',
@@ -160,10 +185,12 @@ export function resolveGuidePage(
   role: LocalRole,
   uiLocale: string,
   basePath = '',
+  dept?: 'CAR' | 'TRUCK',
 ): ResolvedGuide {
   const locale = resolveGuideLocale(uiLocale);
 
   for (const rule of PATH_RULES) {
+    if (rule.dept && rule.dept !== dept) continue;
     if (!matchPath(pathname, rule.prefix)) continue;
     const page = rule.byRole[role];
     if (page) {
