@@ -19,6 +19,8 @@ dist/
 .env.production
 .env.*.local
 !.env.example
+env.txt
+*.env.txt
 
 # Logs (session conversation logs — không sync git)
 docs/log/
