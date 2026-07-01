@@ -192,6 +192,15 @@ export default async function TruckDashboardPage({
   const fixedPct = totalCost > 0 ? 100 - variablePct : 0;
 
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
+  /* Compact money for narrow mobile cells/cards — a full "150.000.000 ₫"
+   * overflows a 2-col KPI card (~132px) at the desktop font size, so on mobile
+   * we render "150 tr" / "1,2 tỷ" instead. Desktop keeps the exact figure. */
+  const vndCompact = (n: number) => {
+    const a = Math.abs(n);
+    if (a >= 1e9) return (n / 1e9).toLocaleString(loc, { maximumFractionDigits: 1 }) + ' tỷ';
+    if (a >= 1e6) return (n / 1e6).toLocaleString(loc, { maximumFractionDigits: 0 }) + ' tr';
+    return n.toLocaleString(loc) + ' ₫';
+  };
   const date = (d: Date) => new Date(d).toLocaleDateString(loc);
   const monthShort = (m: string) =>
     new Date(`${m}-01T00:00:00Z`).toLocaleDateString(loc, { month: 'short' });
@@ -238,7 +247,7 @@ export default async function TruckDashboardPage({
     return `/truck/dashboard${qs ? `?${qs}` : ''}`;
   };
   const pillCls = (active: boolean) =>
-    'rounded-full px-3 py-1 text-xs font-semibold border transition-colors ' +
+    'inline-flex items-center min-h-[44px] md:min-h-0 rounded-full px-3 py-1 text-xs font-semibold border transition-colors ' +
     (active
       ? 'bg-accent text-accent-fg border-accent'
       : 'border-border text-text-muted hover:border-accent hover:text-accent');
@@ -285,11 +294,12 @@ export default async function TruckDashboardPage({
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Kpi label={t('kpiRevenue')} value={vnd(acc.revenue)} delta={billingDelta} vsPrev={t('vsPrev')} />
-          <Kpi label={t('kpiCost')} value={vnd(totalCost)} subtitle={t('kpiCostSub')} />
+          <Kpi label={t('kpiRevenue')} value={vnd(acc.revenue)} valueMobile={vndCompact(acc.revenue)} delta={billingDelta} vsPrev={t('vsPrev')} />
+          <Kpi label={t('kpiCost')} value={vnd(totalCost)} valueMobile={vndCompact(totalCost)} subtitle={t('kpiCostSub')} />
           <Kpi
             label={t('kpiProfit')}
             value={vnd(acc.netProfit)}
+            valueMobile={vndCompact(acc.netProfit)}
             tone={acc.netProfit >= 0 ? 'success' : 'danger'}
             delta={profitDelta}
             vsPrev={t('vsPrev')}
@@ -358,7 +368,23 @@ export default async function TruckDashboardPage({
           <div className="px-4 py-3 border-b border-border">
             <h2 className="text-sm font-semibold text-text">{t('byRegion')}</h2>
           </div>
-          <div className="overflow-x-auto">
+          {/* Mobile: compact per-region cards. Full VND across 4 columns would
+           * force a horizontal scroll on a phone, so money is abbreviated. */}
+          <ul className="md:hidden divide-y divide-border">
+            {regionRows.map((rr) => (
+              <li key={rr.region} className={'px-4 py-3 ' + (region === rr.region ? 'bg-accent-soft/40' : '')}>
+                <div className="font-medium text-text">{tRegion(rr.region)}</div>
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-text-muted">
+                  <span>{tPnl('revenue')}: <span className="tabular text-text">{vndCompact(rr.revenue)}</span></span>
+                  <span>{t('kpiTrips')}: <span className="tabular text-text">{rr.tripCount.toLocaleString(loc)}</span></span>
+                  <span className={'tabular font-semibold ' + (rr.netProfit >= 0 ? 'text-success' : 'text-danger')}>
+                    {tPnl('netProfit')}: {vndCompact(rr.netProfit)}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -406,14 +432,42 @@ export default async function TruckDashboardPage({
           <Card variant="outline">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <h2 className="text-sm font-semibold text-text">{t('recentTitle')}</h2>
-              <Link href="/truck/trips" className="text-xs font-semibold text-accent hover:underline">
+              <Link
+                href="/truck/trips"
+                className="inline-flex items-center min-h-[44px] -my-2 -mr-2 px-2 rounded text-xs font-semibold text-accent active:bg-accent-soft md:min-h-0 md:my-0 md:mr-0 md:px-0 md:hover:underline"
+              >
                 {t('viewAll')}
               </Link>
             </div>
             {recent.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-text-muted">{tTrips('emptyTitle')}</div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              {/* Mobile: compact trip rows instead of a 4-column table. */}
+              <ul className="md:hidden divide-y divide-border">
+                {recent.map((trip) => (
+                  <li key={trip.trpId}>
+                    <Link
+                      href={`/truck/trips/${trip.trpId}`}
+                      className="flex items-center justify-between gap-3 px-4 py-3 active:bg-surface-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm text-text truncate">{trip.customer ?? '—'}</div>
+                        <div className="text-xs text-text-faint tabular">
+                          {date(trip.scheduledAt)} · <span className="font-mono">{trip.ref}</span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-sm tabular text-text">{vndCompact(trip.breakdown.revenue)}</div>
+                        <div className={'text-xs tabular font-semibold ' + (trip.breakdown.profit >= 0 ? 'text-success' : 'text-danger')}>
+                          {vndCompact(trip.breakdown.profit)}
+                        </div>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -445,6 +499,7 @@ export default async function TruckDashboardPage({
                   </TableBody>
                 </Table>
               </div>
+              </>
             )}
           </Card>
         </div>
@@ -456,6 +511,7 @@ export default async function TruckDashboardPage({
 function Kpi({
   label,
   value,
+  valueMobile,
   tone,
   subtitle,
   delta,
@@ -463,6 +519,9 @@ function Kpi({
 }: {
   label: string;
   value: string;
+  /** Compact form shown < sm (e.g. "150 tr"); `value` (exact) shows ≥ sm.
+   * Omit for short values (counts) that already fit on mobile. */
+  valueMobile?: string;
   tone?: 'success' | 'danger';
   subtitle?: string;
   delta?: number | null;
@@ -473,11 +532,18 @@ function Kpi({
       <div className="text-xs font-medium uppercase tracking-wide text-text-muted mb-1.5">{label}</div>
       <div
         className={
-          'text-xl md:text-2xl font-bold tabular leading-none ' +
+          'text-xl md:text-2xl font-bold tabular leading-none whitespace-nowrap ' +
           (tone === 'success' ? 'text-success' : tone === 'danger' ? 'text-danger' : 'text-text')
         }
       >
-        {value}
+        {valueMobile ? (
+          <>
+            <span className="sm:hidden">{valueMobile}</span>
+            <span className="hidden sm:inline">{value}</span>
+          </>
+        ) : (
+          value
+        )}
       </div>
       {delta != null && (
         <div className={'mt-1 text-xs font-semibold tabular ' + (delta >= 0 ? 'text-success' : 'text-danger')}>
