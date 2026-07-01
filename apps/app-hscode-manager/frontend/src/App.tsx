@@ -1,117 +1,74 @@
-import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { queryClient } from '@/lib/query-client';
-import '@/i18n/i18n';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { DashboardPage } from '@/pages/dashboard/DashboardPage';
-import { AdminLayoutPage } from '@/pages/admin/AdminLayoutPage';
-import { MasterImportCountryPage } from '@/pages/admin/MasterImportCountryPage';
-import { MasterExportCountryPage } from '@/pages/admin/MasterExportCountryPage';
-import { MasterExporterPage } from '@/pages/admin/MasterExporterPage';
-import { MasterDataSourcePage } from '@/pages/admin/MasterDataSourcePage';
-import { MasterFtaPage } from '@/pages/admin/MasterFtaPage';
-import { UserProfilePage } from '@/pages/admin/UserProfilePage';
-import { InquiryCreatePage } from '@/pages/inquiry/InquiryCreatePage';
-import { IntakeChannelPage } from '@/pages/intake/IntakeChannelPage';
-import { DirectInputPage } from '@/pages/intake/DirectInputPage';
-import { ExcelUploadPage } from '@/pages/intake/ExcelUploadPage';
-import { HoldQueuePage } from '@/pages/intake/HoldQueuePage';
-import { MatchingProgressPage } from '@/pages/matching/MatchingProgressPage';
-import { RecommendationConfirmPage } from '@/pages/matching/RecommendationConfirmPage';
-import { ClassificationListPage } from '@/pages/classification/ClassificationListPage';
-import { ClassificationDetailPage } from '@/pages/classification/ClassificationDetailPage';
-import { VerificationRegisterPage } from '@/pages/verification/VerificationRegisterPage';
-import { ReviewQueuePage } from '@/pages/verification/ReviewQueuePage';
-import { EscalationQueuePage } from '@/pages/expert/EscalationQueuePage';
-import { ExpertReplyPage } from '@/pages/expert/ExpertReplyPage';
-import { PolicyThresholdPage } from '@/pages/admin/PolicyThresholdPage';
-import { KpiDashboardPage } from '@/pages/admin/KpiDashboardPage';
-import { UnsupportedCountryPage } from '@/pages/admin/UnsupportedCountryPage';
-import { meService } from '@/services/me.service';
-import { useAuthStore } from '@/stores/auth.store';
+import { NavLink, Outlet } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import clsx from 'clsx';
 
-function MeBootstrap() {
-  const setAuth = useAuthStore((s) => s.setAuth);
-  const { data } = useQuery({
-    queryKey: ['me'],
-    queryFn: meService.get,
-    retry: false,
-  });
-  useEffect(() => {
-    if (data) {
-      setAuth(localStorage.getItem('ama_token') ?? '__bootstrap__', {
-        userId: data.userId,
-        entityId: data.entityId,
-        entityCode: data.entityCode,
-        email: data.email,
-        name: data.name,
-        roles: data.roles,
-      });
-    }
-  }, [data, setAuth]);
-  return null;
-}
+const NAV = [
+  { to: '/search/qa', key: 'nav.qa' },
+  { to: '/search/barcode', key: 'nav.barcode' },
+  { to: '/search/attribute', key: 'nav.attr' },
+  { to: '/result', key: 'nav.result' },
+  { to: '/reference', key: 'nav.reference' },
+  { to: '/admin', key: 'nav.admin' },
+];
+
+const LANGS = ['ko', 'en', 'vi'] as const;
 
 export default function App() {
+  const { t, i18n } = useTranslation('hscode');
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter basename="/app-hscode">
-        <MeBootstrap />
-        <AppLayout>
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
+    <div className="min-h-full">
+      <header className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-4 border-b border-line bg-white px-6 py-3">
+        <div className="flex items-center gap-2 text-base font-extrabold tracking-tight">
+          <span className="flex h-[22px] w-[22px] items-center justify-center rounded-[7px] bg-gradient-to-br from-brand to-brand-dark text-xs font-extrabold text-white">
+            HS
+          </span>
+          HS Code Manager
+          <small className="font-medium text-muted">{t('brand.sub')}</small>
+        </div>
 
-            <Route path="/new-work" element={<InquiryCreatePage />} />
-            <Route path="/new-work/:inquiryId/channel" element={<IntakeChannelPage />} />
-            <Route path="/new-work/:inquiryId/direct" element={<DirectInputPage />} />
-            <Route path="/new-work/:inquiryId/excel" element={<ExcelUploadPage />} />
-            <Route
-              path="/new-work/:inquiryId/excel/:batchId/hold"
-              element={<HoldQueuePage />}
-            />
-            <Route
-              path="/new-work/:inquiryId/matching"
-              element={<MatchingProgressPage />}
-            />
-            <Route
-              path="/new-work/:inquiryId/candidates"
-              element={<RecommendationConfirmPage />}
-            />
+        <nav className="flex flex-wrap gap-1 rounded-[10px] bg-[#f3f4f6] p-1">
+          {NAV.map((n) => (
+            <NavLink
+              key={n.to}
+              to={n.to}
+              className={({ isActive }) =>
+                clsx(
+                  'rounded-[7px] px-3.5 py-1.5 text-[13px] font-semibold transition',
+                  isActive
+                    ? 'bg-white text-brand-dark shadow-sm'
+                    : 'text-muted hover:text-ink',
+                )
+              }
+            >
+              {t(n.key)}
+            </NavLink>
+          ))}
+        </nav>
 
-            <Route path="/classifications" element={<ClassificationListPage />} />
-            <Route
-              path="/classifications/:id"
-              element={<ClassificationDetailPage />}
-            />
+        <div className="flex items-center gap-3">
+          <div className="flex overflow-hidden rounded-lg border border-line2">
+            {LANGS.map((l) => (
+              <button
+                key={l}
+                onClick={() => i18n.changeLanguage(l)}
+                className={clsx(
+                  'px-2.5 py-1.5 text-xs font-bold transition',
+                  i18n.language === l
+                    ? 'bg-brand text-white'
+                    : 'bg-white text-muted',
+                )}
+              >
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
 
-            <Route path="/verification" element={<ReviewQueuePage />} />
-            <Route path="/verification/register" element={<VerificationRegisterPage />} />
-            <Route
-              path="/verification/register/:classificationId"
-              element={<VerificationRegisterPage />}
-            />
-
-            <Route path="/expert-reviews" element={<EscalationQueuePage />} />
-            <Route path="/expert-reviews/:id" element={<ExpertReplyPage />} />
-
-            <Route path="/admin" element={<AdminLayoutPage />}>
-              <Route index element={<Navigate to="import-countries" replace />} />
-              <Route path="import-countries" element={<MasterImportCountryPage />} />
-              <Route path="export-countries" element={<MasterExportCountryPage />} />
-              <Route path="exporters" element={<MasterExporterPage />} />
-              <Route path="data-sources" element={<MasterDataSourcePage />} />
-              <Route path="fta" element={<MasterFtaPage />} />
-              <Route path="policy" element={<PolicyThresholdPage />} />
-              <Route path="kpi" element={<KpiDashboardPage />} />
-              <Route path="ucr" element={<UnsupportedCountryPage />} />
-              <Route path="me" element={<UserProfilePage />} />
-            </Route>
-
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AppLayout>
-      </BrowserRouter>
-    </QueryClientProvider>
+      <main className="mx-auto max-w-[1120px] px-4 pb-14">
+        <Outlet />
+      </main>
+    </div>
   );
 }

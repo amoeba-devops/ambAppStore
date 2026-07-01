@@ -1,69 +1,64 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_FILTER } from '@nestjs/core';
-import * as path from 'path';
-import { HealthController } from './health.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bullmq';
+import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
-import { GlobalExceptionFilter } from './common/filter/global-exception.filter';
-import { PlaceholderModule } from './domain/placeholder.module';
-import { MasterCountryModule } from './domain/master-country/master-country.module';
-import { MasterExporterModule } from './domain/master-exporter/master-exporter.module';
-import { MasterDataSourceModule } from './domain/master-data-source/master-data-source.module';
-import { MasterFtaModule } from './domain/master-fta/master-fta.module';
-import { UserModule } from './domain/user/user.module';
-import { InquiryModule } from './domain/inquiry/inquiry.module';
-import { ItemModule } from './domain/item/item.module';
-import { IntakeModule } from './domain/intake/intake.module';
-import { ExternalModule } from './domain/external/external.module';
-import { MatchingModule } from './domain/matching/matching.module';
-import { ClassificationModule } from './domain/classification/classification.module';
-import { AuditLogModule } from './domain/audit-log/audit-log.module';
-import { VerificationModule } from './domain/verification/verification.module';
-import { ExpertReviewModule } from './domain/expert-review/expert-review.module';
-import { AdminModule } from './domain/admin/admin.module';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { HealthController } from './health.controller';
+import { ReferenceModule } from './domain/reference/reference.module';
+import { SearchQaModule } from './domain/search-qa/search-qa.module';
+import { ResultModule } from './domain/result/result.module';
+import { AttributeModule } from './domain/attribute/attribute.module';
+import { ExcelModule } from './domain/excel/excel.module';
+import { GtinModule } from './domain/gtin/gtin.module';
+import { ReviewModule } from './domain/review/review.module';
+import { MappingModule } from './domain/mapping/mapping.module';
+import { AdminSettingsModule } from './domain/admin-settings/admin-settings.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: [path.join(__dirname, '..', '.env'), '.env'],
-    }),
+    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: 'mysql' as const,
-        host: config.get<string>('DB_HOST', 'localhost'),
-        port: parseInt(config.get<string>('DB_PORT', '3306'), 10),
-        username: config.get<string>('DB_USERNAME', 'root'),
-        password: config.get<string>('DB_PASSWORD', '') as string,
-        database: config.get<string>('DB_DATABASE', 'db_app_hscode') as string,
-        charset: 'utf8mb4',
+        type: 'postgres',
+        host: config.get<string>('DB_HOST', '127.0.0.1'),
+        port: config.get<number>('DB_PORT', 5432),
+        username: config.get<string>('DB_USERNAME', 'hscode_app'),
+        password: config.get<string>('DB_PASSWORD', ''),
+        database: config.get<string>('DB_DATABASE', 'db_hsm'),
         autoLoadEntities: true,
-        synchronize: config.get<string>('NODE_ENV') !== 'production',
-        logging: config.get<string>('NODE_ENV') !== 'production',
+        // 스테이징/프로덕션은 수동 SQL 마이그레이션 (CLAUDE.md). 로컬도 synchronize 비활성.
+        synchronize: false,
+      }),
+    }),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: {
+          host: config.get<string>('REDIS_HOST', '127.0.0.1'),
+          port: config.get<number>('REDIS_PORT', 6379),
+        },
       }),
     }),
     AuthModule,
-    PlaceholderModule,
-    UserModule,
-    MasterCountryModule,
-    MasterExporterModule,
-    MasterDataSourceModule,
-    MasterFtaModule,
-    InquiryModule,
-    ItemModule,
-    IntakeModule,
-    ExternalModule,
-    MatchingModule,
-    ClassificationModule,
-    AuditLogModule,
-    VerificationModule,
-    ExpertReviewModule,
-    AdminModule,
+    ReferenceModule,
+    SearchQaModule,
+    ResultModule,
+    AttributeModule,
+    ExcelModule,
+    GtinModule,
+    ReviewModule,
+    MappingModule,
+    AdminSettingsModule,
   ],
   controllers: [HealthController],
-  providers: [{ provide: APP_FILTER, useClass: GlobalExceptionFilter }],
+  providers: [
+    // 전역 JWT 가드 — @Public() 데코레이터로 개별 해제
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+  ],
 })
 export class AppModule {}

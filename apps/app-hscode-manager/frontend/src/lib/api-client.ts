@@ -1,51 +1,39 @@
 import axios from 'axios';
+import { useAuthStore } from '@/stores/auth.store';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || '/api';
+/**
+ * 공통 API 클라이언트. Base = {app-base}/api/v1.
+ * 프로덕션 Nginx는 /app-hscode/api/ → bff-app-hscode:3102/api/ 로 프록시하므로
+ * BASE_URL(=/app-hscode/) 기준으로 /app-hscode/api/v1 을 호출한다. (dev는 vite proxy 동일 경로)
+ * 컴포넌트에서 직접 호출 금지 — 반드시 service 계층 경유 (CLAUDE.md FE 규칙).
+ */
+const APP_BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 export const apiClient = axios.create({
-  baseURL,
-  timeout: 15000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: `${APP_BASE}/api/v1`,
+  headers: { 'Content-Type': 'application/json' },
 });
 
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('ama_token');
+  const token = useAuthStore.getState().token;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-  } else if (import.meta.env.DEV) {
-    config.headers['X-Entity-Id'] = 'dev-entity-001';
-    config.headers['X-Entity-Code'] = 'DEV';
-    config.headers['X-Entity-Name'] = 'Dev Entity';
-    config.headers['X-Entity-Email'] = 'dev@localhost';
   }
   return config;
 });
 
-const isInIframe = window.self !== window.top;
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  error?: { code: string; message: string };
+  timestamp: string;
+}
 
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      if (isInIframe) {
-        try {
-          window.parent.postMessage(
-            { type: 'TOKEN_EXPIRED', source: 'app-hscode-manager' },
-            '*',
-          );
-        } catch {
-          /* cross-origin 차단 시 무시 */
-        }
-      } else {
-        localStorage.removeItem('ama_token');
-        const loginUrl = import.meta.env.VITE_AMA_LOGIN_URL;
-        if (loginUrl) {
-          window.location.href = loginUrl;
-        }
-      }
-    }
-    return Promise.reject(error);
-  },
-);
+/** 표준 응답 언래퍼 — data만 반환, 에러는 코드와 함께 throw */
+export async function unwrap<T>(promise: Promise<{ data: ApiResponse<T> }>): Promise<T> {
+  const res = await promise;
+  if (!res.data.success) {
+    throw new Error(res.data.error?.code ?? 'HSC-E9999');
+  }
+  return res.data.data;
+}

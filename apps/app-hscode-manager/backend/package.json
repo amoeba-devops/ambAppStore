@@ -1,5 +1,5 @@
 {
-  "name": "@amb/hscode-manager-backend",
+  "name": "@amb/hscode-backend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,25 +9,25 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,test}/**/*.ts\"",
-    "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@nestjs/bullmq": "^11.0.0",
     "@nestjs/common": "^11.1.0",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.1.0",
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/passport": "^11.0.0",
     "@nestjs/platform-express": "^11.1.0",
-    "@nestjs/swagger": "^11.2.6",
+    "@nestjs/swagger": "^11.0.0",
     "@nestjs/typeorm": "^11.0.0",
-    "@anthropic-ai/sdk": "^0.27.0",
+    "bullmq": "^5.34.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "exceljs": "^4.4.0",
-    "mysql2": "^3.11.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.0",
+    "pg": "^8.13.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0",
     "typeorm": "^0.3.20",
@@ -37,9 +37,9 @@
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@types/express": "^5.0.0",
-    "@types/multer": "^2.1.0",
-    "@types/node": "^22.0.0",
+    "@types/multer": "^1.4.12",
     "@types/passport-jwt": "^4.0.0",
+    "@types/pg": "^8.11.0",
     "@types/uuid": "^10.0.0",
     "typescript": "^5.7.0"
   }

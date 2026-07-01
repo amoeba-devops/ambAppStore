@@ -15,6 +15,6 @@ import { EntityScopeGuard } from './guards/entity-scope.guard';
     }),
   ],
   providers: [JwtStrategy, JwtAuthGuard, RoleGuard, EntityScopeGuard],
-  exports: [JwtModule, JwtAuthGuard, RoleGuard, EntityScopeGuard],
+  exports: [JwtAuthGuard, RoleGuard, EntityScopeGuard, JwtModule],
 })
 export class AuthModule {}

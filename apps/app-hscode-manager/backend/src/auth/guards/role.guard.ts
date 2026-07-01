@@ -2,33 +2,48 @@ import {
   Injectable,
   CanActivate,
   ExecutionContext,
-  ForbiddenException,
+  HttpStatus,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AmaJwtPayload } from '../interfaces/ama-jwt-payload.interface';
+import { IS_ADMIN_KEY } from '../decorators/admin-only.decorator';
 import { ROLES_KEY } from '../decorators/roles.decorator';
+import { AmaJwtPayload } from '../interfaces/ama-jwt-payload.interface';
+import { BusinessException } from '../../common/exceptions/business.exception';
+import { ERROR_CODES } from '../../common/error-codes';
 
 @Injectable()
 export class RoleGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
+    const isAdmin = this.reflector.getAllAndOverride<boolean>(IS_ADMIN_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
-    if (!requiredRoles || requiredRoles.length === 0) return true;
+
+    if (!isAdmin && (!requiredRoles || requiredRoles.length === 0)) {
+      return true;
+    }
 
     const request = context.switchToHttp().getRequest();
-    const user = request.user as AmaJwtPayload;
-    if (!user || !requiredRoles.some((role) => user.roles?.includes(role))) {
-      throw new ForbiddenException({
-        success: false,
-        data: null,
-        error: { code: 'HSC-E0104', message: 'Insufficient permissions' },
-        timestamp: new Date().toISOString(),
-      });
+    const user = request.user as AmaJwtPayload | undefined;
+    const isAdminLevel = user?.level === 'ADMIN_LEVEL';
+    const hasAdminRole = user?.roles?.includes('ADMIN');
+
+    if (isAdmin && (isAdminLevel || hasAdminRole)) return true;
+
+    if (requiredRoles?.length && user?.roles?.some((r) => requiredRoles.includes(r))) {
+      return true;
     }
-    return true;
+
+    throw new BusinessException(
+      ERROR_CODES.FORBIDDEN_ROLE,
+      'Insufficient role for this resource',
+      HttpStatus.FORBIDDEN,
+    );
   }
 }

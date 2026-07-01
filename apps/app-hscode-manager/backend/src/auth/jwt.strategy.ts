@@ -13,23 +13,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any): Promise<AmaJwtPayload> {
+  async validate(payload: Record<string, any>): Promise<AmaJwtPayload> {
     return {
-      sub: payload.sub || payload.userId,
-      ent_id: payload.ent_id || payload.entityId,
-      ent_code: payload.ent_code || payload.entityCode,
-      email: payload.email,
-      name:
-        payload.name ||
-        payload.usr_name ||
-        payload.fullName ||
-        (payload.email ? payload.email.split('@')[0] : ''),
+      sub: payload.sub,
+      userId: payload.sub || payload.userId,
+      entityId: payload.ent_id || payload.entityId || '',
+      entityCode: payload.ent_code || payload.entityCode || '',
+      email: payload.email || '',
+      name: payload.name || '',
+      level: payload.level,
+      role: payload.role,
       roles: payload.roles || [],
       iat: payload.iat,
       exp: payload.exp,
-      userId: payload.sub || payload.userId,
-      entityId: payload.ent_id || payload.entityId,
-      entityCode: payload.ent_code || payload.entityCode,
     };
   }
 }

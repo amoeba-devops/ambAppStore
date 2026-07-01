@@ -1,48 +1,38 @@
 /**
- * HS Code Manager 에러 코드 체계 — HSC-E{4자리}
- * 코드 대역:
- *   E01XX  인증/권한
- *   E02XX  마스터 데이터 (수입국/수출국/Exporter/FTA)
- *   E03XX  Inquiry / Intake
- *   E04XX  Classification / 컨펌
- *   E05XX  Verification
- *   E06XX  Expert Review / Escalation
- *   E07XX  Admin / Policy
- *   E08XX  외부 어댑터 / AI
- *   E99XX  시스템
+ * HS Code Manager 에러 코드 체계 — prefix `HSC-E{4자리}` (CLAUDE.md).
+ * 백엔드 메시지는 영어 고정, 프론트는 코드 기반 i18n 번역.
  */
-export const HscodeErrorCode = {
-  // 인증/권한
-  AUTH_UNAUTHORIZED: 'HSC-E0101',
-  AUTH_TOKEN_EXPIRED: 'HSC-E0102',
-  AUTH_TOKEN_TAMPERED: 'HSC-E0103',
-  AUTH_INSUFFICIENT_ROLE: 'HSC-E0104',
-  AUTH_ENTITY_SCOPE_REQUIRED: 'HSC-E0105',
+export const ERROR_CODES = {
+  // 공통 (E9xxx)
+  UNKNOWN: 'HSC-E9999',
+  VALIDATION: 'HSC-E9001',
 
-  // 마스터 데이터
-  COUNTRY_DUPLICATE_CODE: 'HSC-E0201',
-  COUNTRY_INVALID_STATUS_TRANSITION: 'HSC-E0210',
-  COUNTRY_ADAPTER_NOT_REGISTERED: 'HSC-E0211',
-  EXPORTER_NOT_FOUND: 'HSC-E0220',
-  FTA_DUPLICATE_KEY: 'HSC-E0230',
+  // 인증/권한 (E1xxx)
+  UNAUTHORIZED: 'HSC-E1001',
+  FORBIDDEN_ROLE: 'HSC-E1002',
+  ENTITY_SCOPE_MISSING: 'HSC-E1003',
 
-  // Inquiry / Intake
-  INQUIRY_NOT_SUPPORTED_COUNTRY: 'HSC-E0301',
-  INQUIRY_INVALID_STATUS_TRANSITION: 'HSC-E0310',
-  INTAKE_CAS_SUM_OUT_OF_RANGE: 'HSC-E0320',
-  INTAKE_PHOTO_REQUIRED: 'HSC-E0321',
-  INTAKE_EXCEL_ROW_LIMIT: 'HSC-E0330',
-  INTAKE_EXCEL_MISSING_COLUMNS: 'HSC-E0331',
-  INTAKE_EXCEL_FORMAT: 'HSC-E0332',
+  // 검색/분류 (E2xxx)
+  EMPTY_QUERY: 'HSC-E2001',
+  SEARCH_INDEX_UNAVAILABLE: 'HSC-E2002',
+  NO_CANDIDATE: 'HSC-E2003',
 
-  // Classification
-  CLASSIFICATION_RATIONALE_REQUIRED: 'HSC-E0401',
-  CLASSIFICATION_IMMUTABLE: 'HSC-E0410',
-  CLASSIFICATION_DUPLICATE: 'HSC-E0420',
+  // 바코드/GTIN (E3xxx)
+  INVALID_GTIN: 'HSC-E3001',
+  COUNTRY_REQUIRED: 'HSC-E3002',
+  COUNTRY_EXTENSION_MISSING: 'HSC-E3003',
 
-  // 시스템
-  INTERNAL_ERROR: 'HSC-E9999',
+  // 엑셀/배치 (E4xxx)
+  INVALID_TEMPLATE: 'HSC-E4001',
+  BATCH_TOO_LARGE: 'HSC-E4002',
+
+  // 참조/Import (E5xxx)
+  UNSUPPORTED_FORMAT: 'HSC-E5001',
+  IMPORT_FAILED: 'HSC-E5002',
+
+  // 설정 (E6xxx)
+  SETTING_NOT_FOUND: 'HSC-E6001',
+  EXTERNAL_CONNECTION_FAILED: 'HSC-E6002',
 } as const;
 
-export type HscodeErrorCodeType =
-  (typeof HscodeErrorCode)[keyof typeof HscodeErrorCode];
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
