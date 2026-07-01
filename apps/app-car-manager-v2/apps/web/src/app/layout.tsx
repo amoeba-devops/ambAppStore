@@ -5,6 +5,8 @@ import { getLocale, getMessages } from 'next-intl/server';
 import { cookies, headers } from 'next/headers';
 import { mapAmaRoleToLocal, type AmaJwtClaims } from '@car-v2/shared/auth';
 import { clearlyDept } from '@/components/layout/nav-items';
+import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { resolveFleetAccess } from '@/lib/auth/fleet-access';
 import { SWRegister } from '@/components/pwa/sw-register';
 import './globals.css';
 
@@ -84,9 +86,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
    *     URL is authoritative; the cookie only covers dept-neutral pages.
    *   - DRIVERS can't switch — their workspace is fixed by membership — and
    *     their pages live on dept-neutral / car-classified URLs (/today,
-   *     /trips). Letting the path decide would force a truck driver's /trips to
-   *     blue. So for drivers the persisted cookie (kept in sync by
-   *     DeptProvider) wins and the URL is ignored. */
+   *     /trips), so neither the path nor (on a fresh login, where the cookie is
+   *     absent — it's cleared at logout) the cookie can colour the FIRST paint.
+   *     We resolve the driver's membership directly so a truck driver is orange
+   *     from first byte, matching a truck manager landing on /truck/*. */
   const localRole = (() => {
     /* x-user-role is set by middleware from the verified JWT claim, so it's
      * always a valid AMA role here; an absent/unexpected value falls through to
@@ -94,12 +97,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     const ama = hdrs.get('x-user-role');
     return ama ? mapAmaRoleToLocal(ama as AmaJwtClaims['role']) : null;
   })();
-  const dept: 'CAR' | 'TRUCK' =
-    localRole === 'DRIVER'
-      ? cookieIsTruck
-        ? 'TRUCK'
-        : 'CAR'
-      : (clearlyDept(pathname) ?? (cookieIsTruck ? 'TRUCK' : 'CAR'));
+  let dept: 'CAR' | 'TRUCK';
+  if (localRole === 'DRIVER') {
+    /* resolveFleetAccess is React-cache()d and AppShell resolves it again this
+     * same request, so this is deduped to one query — no extra DB round-trip.
+     * Falls back to the cookie guess if the lookup throws (unauth/edge). */
+    let isTruck = cookieIsTruck;
+    try {
+      isTruck = (await resolveFleetAccess(await getCurrentUser())).includes('TRUCK');
+    } catch {
+      /* keep the cookie-based guess */
+    }
+    dept = isTruck ? 'TRUCK' : 'CAR';
+  } else {
+    dept = clearlyDept(pathname) ?? (cookieIsTruck ? 'TRUCK' : 'CAR');
+  }
   const dataDept = dept === 'TRUCK' ? 'truck' : undefined;
 
   return (
