@@ -30,8 +30,11 @@ export function DeptSwitch({ role, fleetAccess, collapsed }: Props) {
   const hasCar = fleetAccess.includes('CAR');
   const hasTruck = fleetAccess.includes('TRUCK');
 
-  /* Both departments → segmented toggle between the two workspaces. */
-  if (hasCar && hasTruck) {
+  /* Both departments → segmented toggle between the two workspaces. ADMIN only:
+   * only the org admin switches across the Car/Truck workspaces. Managers (incl.
+   * dept-scoped "quản trị xe con/xe tải") don't get the switch — they fall
+   * through to the read-only workspace badge below. */
+  if (hasCar && hasTruck && role === 'ADMIN') {
     return (
       <div className={cn('flex gap-1 rounded-md bg-surface-2 p-1', collapsed && 'flex-col')}>
         <DeptLink href={CAR_HOME} active={current === 'CAR'} Icon={Car} label={t('car')} collapsed={collapsed} />
