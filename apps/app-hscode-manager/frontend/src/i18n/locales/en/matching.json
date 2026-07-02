@@ -1,0 +1,63 @@
+{
+  "progress": {
+    "title": "HS code matching in progress",
+    "steps": {
+      "normalize": "1. Normalize & hash",
+      "internal": "2. Internal ERP matching",
+      "external": "3. External authority lookup",
+      "ai": "4. AI recommendation",
+      "rank": "5. Rank & tariff rule"
+    },
+    "status": {
+      "wait": "Waiting",
+      "running": "Running",
+      "done": "Done",
+      "skipped": "Skipped",
+      "error": "Failed"
+    },
+    "warning": {
+      "external_degraded": "External adapter degraded — cache fallback (confidence -0.2)",
+      "ai_disabled": "AI failed — proceeding with external only",
+      "ai_hallucinated": "AI suggested out-of-context codes — discarded ({{count}})",
+      "skipped_external": "Internal confidence sufficient — external / AI skipped",
+      "no_adapter": "No adapter registered for the selected import country"
+    },
+    "start": "Start matching",
+    "view_candidates": "View candidates"
+  },
+  "candidates": {
+    "title": "HS Code Recommendations",
+    "subtitle": "{{exportCountry}} → {{importCountry}}",
+    "rank_label": "Rank {{rank}}",
+    "confidence": "Confidence",
+    "basic_tariff": "Basic tariff",
+    "fta_tariff": "FTA tariff",
+    "fta_agreement": "Agreement",
+    "source": "Source",
+    "past_adoption": "Past adoption x {{count}}",
+    "no_past_adoption": "No past adoption",
+    "ai_reasoning": "AI reasoning",
+    "citations": "Citations",
+    "select": "Select",
+    "selected": "Selected",
+    "rationale_required": "Different from past adoption — please provide a reason (required at Phase 4 confirm)",
+    "rationale_placeholder": "Selection reason (e.g. new policy / one-off exception)",
+    "empty": "No candidates",
+    "flag": {
+      "conservative": "Conservative tariff applied",
+      "sample_recommended": "Sample analysis recommended",
+      "sample_required": "Sample analysis required",
+      "disputed_history": "Disputed history"
+    },
+    "source_label": {
+      "INTERNAL": "Internal",
+      "EXTERNAL": "External",
+      "AI": "AI",
+      "MIXED": "Mixed"
+    },
+    "confirm_disabled_hint": "Confirm is enabled in Phase 4 — this screen is *display only*"
+  },
+  "modal": {
+    "no_items": "No items registered in this inquiry — please complete intake first"
+  }
+}

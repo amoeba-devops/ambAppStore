@@ -7,6 +7,7 @@ import { cn } from '@v2/ui';
 import type { SelectedPeriod } from './Step1Period';
 import { TotalGmvPreviewCard } from './TotalGmvPreviewCard';
 import { TikTokMetricsPreviewCard } from './TikTokMetricsPreviewCard';
+import type { MissingMasterRow } from './MissingMasterPanel';
 
 export type Channel = 'SHOPEE' | 'TIKTOK';
 export type ReportType =
@@ -15,13 +16,26 @@ export type ReportType =
   | 'BRAND_ADS'
   | 'OFF_PLATFORM_ADS'
   | 'TRAFFIC'
-  | 'AFFILIATE';
+  | 'AFFILIATE'
+  // TikTok-only: split affiliate export into 3 order-level reports. AFFILIATE
+  // is the "Creator" variant (kept for Shopee backward compat too).
+  | 'AFFILIATE_PARTNER'
+  | 'AFFILIATE_NONCOLLAB';
 
 export interface ReportSlot {
   channel: Channel;
   type: ReportType;
   /** i18n key suffix under `uploadWizard.step2.slot.*` — pair Label + Subtitle keys. */
-  slotKey: 'sales' | 'ads' | 'brandAds' | 'offPlatformAds' | 'traffic' | 'affiliate';
+  slotKey:
+    | 'sales'
+    | 'ads'
+    | 'brandAds'
+    | 'offPlatformAds'
+    | 'traffic'
+    | 'affiliate'
+    | 'affiliateCreator'
+    | 'affiliatePartner'
+    | 'affiliateNonCollab';
 }
 
 const SHOPEE_REPORTS: ReportSlot[] = [
@@ -36,7 +50,9 @@ const SHOPEE_REPORTS: ReportSlot[] = [
 const TIKTOK_REPORTS: ReportSlot[] = [
   { channel: 'TIKTOK', type: 'SALES', slotKey: 'sales' },
   { channel: 'TIKTOK', type: 'TRAFFIC', slotKey: 'traffic' },
-  { channel: 'TIKTOK', type: 'AFFILIATE', slotKey: 'affiliate' },
+  { channel: 'TIKTOK', type: 'AFFILIATE', slotKey: 'affiliateCreator' },
+  { channel: 'TIKTOK', type: 'AFFILIATE_PARTNER', slotKey: 'affiliatePartner' },
+  { channel: 'TIKTOK', type: 'AFFILIATE_NONCOLLAB', slotKey: 'affiliateNonCollab' },
 ];
 
 export function slotKey(slot: { channel: Channel; type: ReportType }): string {
@@ -46,7 +62,15 @@ export function slotKey(slot: { channel: Channel; type: ReportType }): string {
 interface ExistingFileInfo {
   arfId: string;
   channel: 'SHOPEE' | 'TIKTOK';
-  fileType: 'SALES' | 'ADS' | 'BRAND_ADS' | 'OFF_PLATFORM_ADS' | 'TRAFFIC' | 'AFFILIATE';
+  fileType:
+    | 'SALES'
+    | 'ADS'
+    | 'BRAND_ADS'
+    | 'OFF_PLATFORM_ADS'
+    | 'TRAFFIC'
+    | 'AFFILIATE'
+    | 'AFFILIATE_PARTNER'
+    | 'AFFILIATE_NONCOLLAB';
   filename: string;
   sizeBytes: number;
   rowCount: number | null;
@@ -62,6 +86,9 @@ interface Props {
   attempted?: boolean;
   /** When Active period is selected, list of files already archived from the previous ingest. */
   existingFiles?: ExistingFileInfo[];
+  /** Bubbled up from preview cards when SKU-vs-master scan finds anything. The
+   * Step 4 Review uses this to render a consolidated banner. */
+  onUnknownSkusChange?: (source: 'shopee' | 'tiktok', rows: MissingMasterRow[]) => void;
 }
 
 function fmtBytes(b: number): string {
@@ -76,6 +103,7 @@ export function Step2Upload({
   onFilesChange,
   attempted = false,
   existingFiles = [],
+  onUnknownSkusChange,
 }: Props) {
   const t = useTranslations('uploadWizard.step2');
   const tSlot = useTranslations('uploadWizard.step2.slot');
@@ -232,6 +260,7 @@ export function Step2Upload({
             offPlatformAdsFile={files.get(slotKey({ channel: 'SHOPEE', type: 'OFF_PLATFORM_ADS' })) ?? null}
             trafficFile={files.get(slotKey({ channel: 'SHOPEE', type: 'TRAFFIC' })) ?? null}
             affiliateFile={files.get(slotKey({ channel: 'SHOPEE', type: 'AFFILIATE' })) ?? null}
+            onMissingMasterChange={(rows) => onUnknownSkusChange?.('shopee', rows)}
           />
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {SHOPEE_REPORTS.map((slot) => {
@@ -266,6 +295,7 @@ export function Step2Upload({
             file={files.get(slotKey({ channel: 'TIKTOK', type: 'SALES' })) ?? null}
             trafficFile={files.get(slotKey({ channel: 'TIKTOK', type: 'TRAFFIC' })) ?? null}
             affiliateFile={files.get(slotKey({ channel: 'TIKTOK', type: 'AFFILIATE' })) ?? null}
+            onMissingMasterChange={(rows) => onUnknownSkusChange?.('tiktok', rows)}
           />
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {TIKTOK_REPORTS.map((slot) => {

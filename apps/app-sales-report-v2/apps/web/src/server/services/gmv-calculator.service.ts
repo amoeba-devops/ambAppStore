@@ -47,6 +47,9 @@ export interface PrimeCostMaster {
   listingPrice: number;
   /** English product name (for Product Breakdown display). May be empty. */
   productNameEn: string;
+  /** Vietnamese product name — used by SKU-rename detection when partner ships
+   * the same product under a new SKU code. May be empty. */
+  productNameVi: string;
   /** Shopee option / variation name (e.g. "Hồng san hô,Nhỏ"). May be empty. */
   variationName: string;
   /**
@@ -63,6 +66,81 @@ export interface PrimeCostMaster {
   listingVersions: PriceVersion[];
 }
 export type PrimeCostMap = Map<string, PrimeCostMaster>;
+
+/**
+ * Build a normalized-name → master-SKU index from a PrimeCostMap. Used by
+ * calculators to detect "SKU rename" cases: a row's SKU is missing from the
+ * master, but its product name matches an existing master row.
+ *
+ * Normalization is intentionally aggressive (lowercase + collapse whitespace)
+ * because partner reports often differ from master entries by case or stray
+ * spaces only. Both Vi and En names are indexed; when collisions happen we
+ * keep the first occurrence (deterministic with Map insertion order).
+ */
+export function buildMasterNameIndex(map: PrimeCostMap): Map<string, string> {
+  const idx = new Map<string, string>();
+  for (const [sku, m] of map) {
+    for (const raw of [m.productNameVi, m.productNameEn]) {
+      const norm = normalizeProductName(raw);
+      if (norm && !idx.has(norm)) idx.set(norm, sku);
+    }
+  }
+  return idx;
+}
+
+/** Returns the master SKU matched by name, or undefined if no match. */
+export function lookupMasterByName(
+  idx: Map<string, string>,
+  productName: string | null | undefined,
+): string | undefined {
+  return idx.get(normalizeProductName(productName));
+}
+
+function normalizeProductName(s: string | null | undefined): string {
+  if (!s) return '';
+  return s.toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+/**
+ * Classify a row's master state for the "Unknown products" warning panel.
+ *
+ *   - `undefined` master → unknown SKU or name_match (try name fallback).
+ *   - Defined master with any of the three required prices ≤ 0 →
+ *     incomplete_master (operator registered the SKU but forgot to fill in
+ *     a price — Net GMV / Prime Cost will silently be 0).
+ *   - Defined master with full pricing → null (no warning).
+ *
+ * Centralized so Shopee + TikTok calculators stay in sync.
+ */
+export function classifyMissing(
+  master: PrimeCostMaster | undefined,
+  nameIndex: Map<string, string>,
+  sku: string,
+  productName: string | null | undefined,
+):
+  | {
+      matchType: 'unknown' | 'name_match' | 'incomplete_master';
+      possibleMasterSku?: string;
+      missingFields?: Array<'primeCost' | 'sellingPrice' | 'listingPrice'>;
+    }
+  | null {
+  if (!master) {
+    const possibleMasterSku = lookupMasterByName(nameIndex, productName);
+    return {
+      matchType: possibleMasterSku ? 'name_match' : 'unknown',
+      possibleMasterSku,
+    };
+  }
+  const missingFields: Array<'primeCost' | 'sellingPrice' | 'listingPrice'> = [];
+  if (!(master.primeCost > 0)) missingFields.push('primeCost');
+  if (!(master.sellingPrice > 0)) missingFields.push('sellingPrice');
+  if (!(master.listingPrice > 0)) missingFields.push('listingPrice');
+  if (missingFields.length === 0) return null;
+  // Reference `sku` so eslint doesn't flag it as unused — also useful when
+  // a future caller wants to log which SKU triggered the incomplete classification.
+  void sku;
+  return { matchType: 'incomplete_master', missingFields };
+}
 
 /**
  * Resolve the per-unit prime cost for a row given the order's createDate.
@@ -127,7 +205,7 @@ export interface ShopeeMetricsResult {
   totalNmv: number;
   /** SUM(MAX(0, net_gmv_row − nmv_row)) for kept rows — per-row clamped. */
   totalSellerDiscount: number;
-  /** SUM(prime_cost × item_sold) for kept rows + free gift rows. */
+  /** SUM(prime_cost × item_sold) for kept rows only. Free Gift PC is tracked separately in `primeCostFreeGift` and displayed as its own report line. */
   totalPrimeCost: number;
   /** Split for reporting transparency. */
   primeCostKept: number;
@@ -179,6 +257,8 @@ export interface ShopeeMetricsResult {
     rowCount: number;
     orderCount: number;
     statusBreakdown: Record<string, number>;
+    /** SUM(chiPhi) per normalized product name — used for exact per-SKU attribution downstream. */
+    costByProductName: Record<string, number>;
   } | null;
   /** Counts. */
   rowsKept: number;
@@ -214,8 +294,29 @@ export interface ShopeeMetricsResult {
     /** Page views matched from Traffic xlsx by productName. 0 when no match. */
     pageViews: number;
   }>;
-  /** SKUs sold but missing from prime cost master — Net GMV / Prime Cost skip these. */
-  missingFromMaster: Array<{ sku: string; productName: string; units: number; gmvContribution: number }>;
+  /**
+   * SKUs sold whose master data is missing or incomplete — these produce
+   * silently-wrong Net GMV / Prime Cost numbers.
+   *
+   * `matchType`:
+   *   - `unknown` — neither SKU nor product name found in master. New product
+   *     partner never registered, or typo. Action: ask partner + add to master.
+   *   - `name_match` — SKU not in master, but the product name matches a known
+   *     master row (`possibleMasterSku`). Likely a SKU rename from the partner
+   *     side. Action: confirm with partner, then alias/rename the SKU.
+   *   - `incomplete_master` — SKU exists in master but one or more required
+   *     prices (prime_cost / selling_price / listing_price) is missing or 0.
+   *     `missingFields` lists which. Action: fill in Product List → SKU edit.
+   */
+  missingFromMaster: Array<{
+    sku: string;
+    productName: string;
+    units: number;
+    gmvContribution: number;
+    matchType: 'unknown' | 'name_match' | 'incomplete_master';
+    possibleMasterSku?: string;
+    missingFields?: Array<'primeCost' | 'sellingPrice' | 'listingPrice'>;
+  }>;
 }
 
 /**
@@ -249,9 +350,9 @@ export const SHOPEE_METRIC_SPECS = {
   TOTAL_PRIME_COST_SHOPEE: {
     id: 'TOTAL_PRIME_COST_SHOPEE',
     name: 'Total Prime Cost — Shopee',
-    expression: 'SUM(prime_cost × item_sold) over kept + free_gift rows',
+    expression: 'SUM(prime_cost × item_sold) over kept rows only',
     requires: ['prime_costs.prime_cost'],
-    note: 'Free Gift prime cost IS included — allocated to non-gift SKUs by NMV contribution downstream (skill §2.4).',
+    note: 'Free Gift PC is NOT added here — it is reported separately in `primeCostFreeGift` and subtracted as a distinct CM line.',
   },
   TOTAL_SELLER_VOUCHERS_SHOPEE: {
     id: 'TOTAL_SELLER_VOUCHERS_SHOPEE',
@@ -347,7 +448,19 @@ export function computeShopeeMetrics(
   let freeGift = 0;
   let kept = 0;
   const freeGiftProducts = new Set<string>();
-  const missingByProduct = new Map<string, { sku: string; productName: string; units: number; gmvContribution: number }>();
+  const missingByProduct = new Map<
+    string,
+    {
+      sku: string;
+      productName: string;
+      units: number;
+      gmvContribution: number;
+      matchType: 'unknown' | 'name_match' | 'incomplete_master';
+      possibleMasterSku?: string;
+      missingFields?: Array<'primeCost' | 'sellingPrice' | 'listingPrice'>;
+    }
+  >();
+  const masterNameIndex = buildMasterNameIndex(primeCosts);
   const productAgg = new Map<
     string,
     { gmv: number; netGmv: number; nmv: number; sellerDiscount: number; primeCost: number; units: number; skus: Set<string>; nameEn: string; variationName: string; isCombo: boolean }
@@ -436,14 +549,20 @@ export function computeShopeeMetrics(
       continue;
     }
 
-    // Track SKU missing from master (Net GMV / Prime Cost can't be computed)
-    if (!master) {
+    // Track SKU missing from master OR registered with incomplete pricing —
+    // both cases produce silently-wrong Net GMV / Prime Cost numbers downstream.
+    // See `missingFromMaster` interface comment for matchType semantics.
+    const missingEntry = classifyMissing(master, masterNameIndex, row.varSku, row.productName);
+    if (missingEntry) {
       const key = row.varSku;
       const prev = missingByProduct.get(key) ?? {
         sku: row.varSku,
         productName: row.productName,
         units: 0,
         gmvContribution: 0,
+        matchType: missingEntry.matchType,
+        possibleMasterSku: missingEntry.possibleMasterSku,
+        missingFields: missingEntry.missingFields,
       };
       prev.units += itemSold;
       prev.gmvContribution += gmv;
@@ -565,7 +684,7 @@ export function computeShopeeMetrics(
     totalNetGmv,
     totalNmv,
     totalSellerDiscount,
-    totalPrimeCost: primeCostKept + primeCostFreeGift,
+    totalPrimeCost: primeCostKept,
     primeCostKept,
     primeCostFreeGift,
     totalSellerVouchers,

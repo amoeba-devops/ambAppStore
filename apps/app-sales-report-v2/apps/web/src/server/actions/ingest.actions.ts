@@ -39,9 +39,12 @@ import {
   TikTokTrafficParseError,
 } from '@/server/services/tiktok-traffic-parser.service';
 import {
-  parseTikTokAffiliate,
-  TikTokAffiliateParseError,
-} from '@/server/services/tiktok-affiliate-parser.service';
+  parseTikTokAffiliateCreator,
+  parseTikTokAffiliatePartner,
+  parseTikTokAffiliateNonCollab,
+  mergeTikTokAffiliateCosts,
+  TikTokAffiliateOrderParseError,
+} from '@/server/services/tiktok-affiliate-orders-parser.service';
 import { computeShopeeMetrics } from '@/server/services/gmv-calculator.service';
 import { computeTikTokMetrics } from '@/server/services/tiktok-metrics-calculator.service';
 import {
@@ -57,6 +60,7 @@ import {
   type ArchiveChannel,
   type ArchiveFileType,
 } from '@/server/services/archive-files.service';
+import { loadFormulaConfig } from '@/server/services/formula-config.service';
 
 export interface CommitIngestResult {
   pspId: string;
@@ -105,14 +109,17 @@ export async function commitIngestAction(
       tiktokLivestreamFees: numFromForm(formData, 'tiktokLivestreamFees') ?? 0,
       tiktokAdsSpending: numFromForm(formData, 'tiktokAdsSpending') ?? 0,
     };
-    // TikTok platform fee rate: 24% until 2026-05-07, then 26% from 2026-05-08
-    // onwards (per TikTok Shop policy update communicated by client).
-    // Use periodStart as the cutoff — boundary aligns with weekly Mon-Sun, so
-    // weeks fall cleanly on one rate or the other. Caller can still override
-    // via formData if needed.
-    const defaultTiktokRate = periodStartIso >= '2026-05-08' ? 26 : 24;
+    // TikTok platform fee rate — loaded from sal_formula_configs (FR-23).
+    // Loader picks the row with the latest effective_from ≤ periodStart, so
+    // periods before / after the rate change auto-resolve to the right value
+    // without any hardcoded date in this file. Caller can still override via
+    // FormData for ad-hoc per-ingest tweaks (rare).
+    const formulaConfigSnapshot = await loadFormulaConfig(user.entId, new Date(periodStartIso));
+    const loadedTiktokRate = Number(
+      formulaConfigSnapshot['tiktok_platform_fee_rate_pct']?.value ?? '24',
+    );
     const tiktokPlatformFeeRatePct =
-      numFromForm(formData, 'tiktokPlatformFeeRatePct') ?? defaultTiktokRate;
+      numFromForm(formData, 'tiktokPlatformFeeRatePct') ?? loadedTiktokRate;
 
     // Re-ingest support: when a slot is empty in the form payload, fall back
     // to the most-recent archived file for the same (period, channel, type).
@@ -146,7 +153,9 @@ export async function commitIngestAction(
       shopeeAffiliateFile,
       tiktokSalesFile,
       tiktokTrafficFile,
-      tiktokAffiliateFile,
+      tiktokAffiliateCreatorFile,
+      tiktokAffiliatePartnerFile,
+      tiktokAffiliateNonCollabFile,
       master,
     ] = await Promise.all([
       slotOrArchive('shopee_sales', 'SHOPEE', 'SALES'),
@@ -158,6 +167,8 @@ export async function commitIngestAction(
       slotOrArchive('tiktok_sales', 'TIKTOK', 'SALES'),
       slotOrArchive('tiktok_traffic', 'TIKTOK', 'TRAFFIC'),
       slotOrArchive('tiktok_affiliate', 'TIKTOK', 'AFFILIATE'),
+      slotOrArchive('tiktok_affiliate_partner', 'TIKTOK', 'AFFILIATE_PARTNER'),
+      slotOrArchive('tiktok_affiliate_noncollab', 'TIKTOK', 'AFFILIATE_NONCOLLAB'),
       loadPrimeCostMaster(user.entId),
     ]);
 
@@ -231,31 +242,56 @@ export async function commitIngestAction(
         totalOffPlatformAds: r.offPlatformAds?.totalCost ?? 0,
         totalPageViews: r.traffic?.totalPageViews ?? 0,
         totalAffiliateCommission: r.affiliate?.totalCost ?? 0,
+        affiliateCostByProductName: r.affiliate?.costByProductName ?? {},
       };
     }
 
-    // TikTok compute (requires sales)
+    // TikTok compute (requires sales). Affiliate now arrives in 3 separate
+    // order-level files (Creator / Partner / Non-collaboration) — parsed
+    // independently, then merged by product name for exact per-SKU attribution
+    // downstream (Total = SUM of merged map).
     let tiktok: PeriodSnapshotMetrics['tiktok'] | null = null;
     if (tiktokSalesFile) {
-      const [salesRows, trafficRows, affiliateRows] = await Promise.all([
+      const [
+        salesRows,
+        trafficRows,
+        affiliateCreator,
+        affiliatePartner,
+        affiliateNonCollab,
+      ] = await Promise.all([
         parseWithContext('TikTok Sales', tiktokSalesFile, parseTikTokSales),
         tiktokTrafficFile
           ? parseWithContext('TikTok Traffic', tiktokTrafficFile, parseTikTokTraffic)
           : Promise.resolve(null),
-        tiktokAffiliateFile
-          ? parseWithContext('TikTok Affiliate', tiktokAffiliateFile, parseTikTokAffiliate)
+        tiktokAffiliateCreatorFile
+          ? parseWithContext('TikTok Affiliate (Creator)', tiktokAffiliateCreatorFile, parseTikTokAffiliateCreator)
+          : Promise.resolve(null),
+        tiktokAffiliatePartnerFile
+          ? parseWithContext('TikTok Affiliate (Partner)', tiktokAffiliatePartnerFile, parseTikTokAffiliatePartner)
+          : Promise.resolve(null),
+        tiktokAffiliateNonCollabFile
+          ? parseWithContext('TikTok Affiliate (Non-collab)', tiktokAffiliateNonCollabFile, parseTikTokAffiliateNonCollab)
           : Promise.resolve(null),
       ]);
       rowCounts.set('TIKTOK/SALES', salesRows.length);
       if (trafficRows) rowCounts.set('TIKTOK/TRAFFIC', trafficRows.length);
-      if (affiliateRows) rowCounts.set('TIKTOK/AFFILIATE', affiliateRows.length);
+      if (affiliateCreator) rowCounts.set('TIKTOK/AFFILIATE', affiliateCreator.rowsKept + affiliateCreator.rowsExcluded);
+      if (affiliatePartner) rowCounts.set('TIKTOK/AFFILIATE_PARTNER', affiliatePartner.rowsKept + affiliatePartner.rowsExcluded);
+      if (affiliateNonCollab) rowCounts.set('TIKTOK/AFFILIATE_NONCOLLAB', affiliateNonCollab.rowsKept + affiliateNonCollab.rowsExcluded);
+
       const r = computeTikTokMetrics(
         salesRows,
         master,
         trafficRows ?? undefined,
-        affiliateRows ?? undefined,
         tiktokPlatformFeeRatePct,
       );
+
+      const mergedAffiliate = mergeTikTokAffiliateCosts(
+        affiliateCreator?.costByProductName,
+        affiliatePartner?.costByProductName,
+        affiliateNonCollab?.costByProductName,
+      );
+
       tiktok = {
         totalItemSold: r.totalItemSold,
         totalGmv: r.totalGmv,
@@ -273,7 +309,8 @@ export async function commitIngestAction(
         productBreakdown: r.productBreakdown,
         giftBreakdown: r.giftBreakdown,
         totalPageViews: r.traffic?.totalPageViews ?? 0,
-        totalAffiliateCommission: r.affiliate?.totalCommission ?? 0,
+        totalAffiliateCommission: mergedAffiliate.totalCost,
+        affiliateCostByProductName: mergedAffiliate.costByProductName,
       };
     }
 
@@ -305,7 +342,15 @@ export async function commitIngestAction(
       const updated: PeriodSnapshotMetrics = {
         ...existing,
         manualInputs,
-        constants: { tiktokPlatformFeeRatePct },
+        constants: {
+          tiktokPlatformFeeRatePct,
+          formulaConfig: Object.fromEntries(
+            Object.entries(formulaConfigSnapshot).map(([k, v]) => [
+              k,
+              { value: v.value, valueType: v.valueType },
+            ]),
+          ),
+        },
         computedAt: new Date().toISOString(),
       };
       const { pspId, isNew } = await savePeriodSnapshot({
@@ -359,7 +404,9 @@ export async function commitIngestAction(
       { file: shopeeAffiliateFile, channel: 'SHOPEE', fileType: 'AFFILIATE' },
       { file: tiktokSalesFile, channel: 'TIKTOK', fileType: 'SALES' },
       { file: tiktokTrafficFile, channel: 'TIKTOK', fileType: 'TRAFFIC' },
-      { file: tiktokAffiliateFile, channel: 'TIKTOK', fileType: 'AFFILIATE' },
+      { file: tiktokAffiliateCreatorFile, channel: 'TIKTOK', fileType: 'AFFILIATE' },
+      { file: tiktokAffiliatePartnerFile, channel: 'TIKTOK', fileType: 'AFFILIATE_PARTNER' },
+      { file: tiktokAffiliateNonCollabFile, channel: 'TIKTOK', fileType: 'AFFILIATE_NONCOLLAB' },
     ];
     for (const item of archivePlan) {
       if (!item.file) continue;
@@ -398,7 +445,7 @@ export async function commitIngestAction(
       err instanceof ShopeeAffiliateParseError ||
       err instanceof TikTokSalesParseError ||
       err instanceof TikTokTrafficParseError ||
-      err instanceof TikTokAffiliateParseError
+      err instanceof TikTokAffiliateOrderParseError
     ) {
       return { success: false, error: { code: 'SAL-PARSE', message: err.message } };
     }
@@ -624,6 +671,7 @@ function emptyShopeeMetrics(): PeriodSnapshotMetrics['shopee'] {
     totalOffPlatformAds: 0,
     totalPageViews: 0,
     totalAffiliateCommission: 0,
+    affiliateCostByProductName: {},
   };
 }
 
@@ -646,5 +694,6 @@ function emptyTikTokMetrics(): PeriodSnapshotMetrics['tiktok'] {
     giftBreakdown: [],
     totalPageViews: 0,
     totalAffiliateCommission: 0,
+    affiliateCostByProductName: {},
   };
 }

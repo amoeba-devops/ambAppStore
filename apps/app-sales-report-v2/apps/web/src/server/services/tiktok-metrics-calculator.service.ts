@@ -1,14 +1,16 @@
 import 'server-only';
 import type { TikTokSaleRow } from './tiktok-sales-parser.service';
-import { findPrimeCost, findListingPrice, type PrimeCostMap } from './gmv-calculator.service';
+import {
+  findPrimeCost,
+  findListingPrice,
+  buildMasterNameIndex,
+  classifyMissing,
+  type PrimeCostMap,
+} from './gmv-calculator.service';
 import {
   aggregateTikTokTraffic,
   type TikTokTrafficRow,
 } from './tiktok-traffic-parser.service';
-import {
-  aggregateTikTokAffiliate,
-  type TikTokAffiliateRow,
-} from './tiktok-affiliate-parser.service';
 
 export interface TikTokMetricsResult {
   /** SUM(item_sold) for kept rows. */
@@ -27,7 +29,7 @@ export interface TikTokMetricsResult {
   totalPlatformFee: number;
   /** Platform fee rate used for computation (percent). */
   platformFeeRatePct: number;
-  /** SUM(prime_cost × item_sold) for kept + free gift rows. */
+  /** SUM(prime_cost × item_sold) for kept rows only. Free Gift PC is tracked separately in `primeCostFreeGift` and displayed as its own report line. */
   totalPrimeCost: number;
   primeCostKept: number;
   primeCostFreeGift: number;
@@ -36,24 +38,22 @@ export interface TikTokMetricsResult {
   /** Distinct order counts (by Order ID). */
   orderCounts: { totalDistinct: number; cancelled: number; nonCancelled: number };
   freeGiftProducts: string[];
-  missingFromMaster: Array<{ sku: string; productName: string; units: number; gmvContribution: number }>;
+  /** See `gmv-calculator.ShopeeMetricsResult.missingFromMaster` for matchType semantics. */
+  missingFromMaster: Array<{
+    sku: string;
+    productName: string;
+    units: number;
+    gmvContribution: number;
+    matchType: 'unknown' | 'name_match' | 'incomplete_master';
+    possibleMasterSku?: string;
+    missingFields?: Array<'primeCost' | 'sellingPrice' | 'listingPrice'>;
+  }>;
   /** Traffic metrics — only when Traffic xlsx provided. */
   traffic: {
     totalPageViews: number;
-    pvShopTab: number;
-    pvLive: number;
-    pvVideo: number;
-    pvProductCard: number;
     productCount: number;
-  } | null;
-  /** Affiliate metrics — only when Affiliate xlsx provided. */
-  affiliate: {
-    totalCommission: number;
-    totalFixedFee: number;
-    totalGmv: number;
-    totalItemsSold: number;
-    creatorCount: number;
-    activeCreatorCount: number;
+    pageViewsByProductName: Record<string, number>;
+    ctrByProductName: Record<string, number>;
   } | null;
   productBreakdown: Array<{
     productName: string;
@@ -69,8 +69,10 @@ export interface TikTokMetricsResult {
     primeCost: number;
     units: number;
     skuCount: number;
-    /** Page views matched from Traffic xlsx by productName. 0 when no match. */
+    /** Unique product impressions matched from Traffic xlsx by productName. 0 when no match. */
     pageViews: number;
+    /** Unique CTR (decimal 0..1) matched from Traffic xlsx by productName. 0 when no match. */
+    ctr: number;
   }>;
   giftBreakdown: Array<{
     productName: string;
@@ -79,8 +81,10 @@ export interface TikTokMetricsResult {
     primeCost: number;
     units: number;
     skuCount: number;
-    /** Page views matched from Traffic xlsx by productName. 0 when no match. */
+    /** Unique product impressions matched from Traffic xlsx by productName. 0 when no match. */
     pageViews: number;
+    /** Unique CTR (decimal 0..1) matched from Traffic xlsx by productName. 0 when no match. */
+    ctr: number;
   }>;
 }
 
@@ -124,8 +128,9 @@ export const TIKTOK_METRIC_SPECS = {
   TOTAL_PRIME_COST_TIKTOK: {
     id: 'TOTAL_PRIME_COST_TIKTOK',
     name: 'Total Prime Cost — TikTok',
-    expression: 'SUM(prime_cost × item_sold) over kept + free_gift rows',
+    expression: 'SUM(prime_cost × item_sold) over kept rows only',
     requires: ['prime_costs.prime_cost'],
+    note: 'Free Gift PC is NOT added here — it is reported separately in `primeCostFreeGift` and subtracted as a distinct CM line.',
   },
   TOTAL_PAGE_VIEWS_TIKTOK: {
     id: 'TOTAL_PAGE_VIEWS_TIKTOK',
@@ -138,9 +143,14 @@ export const TIKTOK_METRIC_SPECS = {
   TOTAL_AFFILIATE_COMMISSION_TIKTOK: {
     id: 'TOTAL_AFFILIATE_COMMISSION_TIKTOK',
     name: 'Total Affiliate Commission — TikTok',
-    expression: 'SUM({Hoa hồng ước tính}) over all creators in Creator_List xlsx',
-    requires: ['tiktok_affiliate_xlsx'],
-    note: 'Per-creator estimated commission. Fixed fee column often "--" (= 0).',
+    expression:
+      'SUM(per-row commission payouts across 3 affiliate exports: Creator + Partner + Non-collaboration). Per row = (Thanh toán hoa hồng tiêu chuẩn ước tính | Thanh toán hoa hồng ước tính) + Thanh toán hoa hồng Quảng cáo cửa hàng ước tính',
+    requires: [
+      'tiktok_affiliate_creator_xlsx',
+      'tiktok_affiliate_partner_xlsx',
+      'tiktok_affiliate_noncollab_xlsx',
+    ],
+    note: 'Cancelled + refunded rows excluded. Grouped by "Tên sản phẩm" so per-SKU attribution downstream can be exact (NMV-split intra-product, Others bucket for unmatched).',
   },
   TOTAL_PLATFORM_FEE_TIKTOK: {
     id: 'TOTAL_PLATFORM_FEE_TIKTOK',
@@ -162,7 +172,6 @@ export function computeTikTokMetrics(
   rows: TikTokSaleRow[],
   primeCosts: PrimeCostMap,
   trafficRows?: TikTokTrafficRow[] | null,
-  affiliateRows?: TikTokAffiliateRow[] | null,
   platformFeeRatePct: number = 24,
 ): TikTokMetricsResult {
   let totalItemSold = 0;
@@ -180,7 +189,19 @@ export function computeTikTokMetrics(
   let freeGift = 0;
   let kept = 0;
   const freeGiftProducts = new Set<string>();
-  const missingByProduct = new Map<string, { sku: string; productName: string; units: number; gmvContribution: number }>();
+  const missingByProduct = new Map<
+    string,
+    {
+      sku: string;
+      productName: string;
+      units: number;
+      gmvContribution: number;
+      matchType: 'unknown' | 'name_match' | 'incomplete_master';
+      possibleMasterSku?: string;
+      missingFields?: Array<'primeCost' | 'sellingPrice' | 'listingPrice'>;
+    }
+  >();
+  const masterNameIndex = buildMasterNameIndex(primeCosts);
   const productAgg = new Map<
     string,
     { gmv: number; netGmv: number; nmv: number; sellerDiscount: number; primeCost: number; units: number; skus: Set<string>; nameEn: string; variationName: string; isCombo: boolean }
@@ -260,12 +281,16 @@ export function computeTikTokMetrics(
       continue;
     }
 
-    if (!master) {
+    const missingEntry = classifyMissing(master, masterNameIndex, row.sellerSku, row.productName);
+    if (missingEntry) {
       const prev = missingByProduct.get(row.sellerSku) ?? {
         sku: row.sellerSku,
         productName: row.productName,
         units: 0,
         gmvContribution: 0,
+        matchType: missingEntry.matchType,
+        possibleMasterSku: missingEntry.possibleMasterSku,
+        missingFields: missingEntry.missingFields,
       };
       prev.units += itemSold;
       prev.gmvContribution += gmv;
@@ -326,12 +351,16 @@ export function computeTikTokMetrics(
     agg.skus.add(row.sellerSku);
   }
 
-  // Per-product page views from TikTok Traffic xlsx (match by productName, NFC-normalized)
+  // Per-product page views + CTR from TikTok Traffic xlsx
+  // (match by productName, NFC-normalized + whitespace collapsed)
+  const trafficNorm = (s: string) => s.normalize('NFC').replace(/\s+/g, ' ').trim();
   const pvByProduct = new Map<string, number>();
+  const ctrByProduct = new Map<string, number>();
   if (trafficRows) {
     for (const t of trafficRows) {
-      const key = t.productName.normalize('NFC').trim();
+      const key = trafficNorm(t.productName);
       pvByProduct.set(key, (pvByProduct.get(key) ?? 0) + t.pageViews);
+      if (!ctrByProduct.has(key)) ctrByProduct.set(key, t.ctr);
     }
   }
 
@@ -340,6 +369,7 @@ export function computeTikTokMetrics(
       // aggKey: `${productName}|${sellerSku}` — strip SKU half for display.
       const sepIdx = aggKey.lastIndexOf('|');
       const productName = sepIdx >= 0 ? aggKey.slice(0, sepIdx) : aggKey;
+      const nameKey = trafficNorm(productName);
       return {
         productName,
         productNameEn: agg.nameEn,
@@ -353,21 +383,26 @@ export function computeTikTokMetrics(
         primeCost: agg.primeCost,
         units: agg.units,
         skuCount: agg.skus.size,
-        pageViews: pvByProduct.get(productName.normalize('NFC').trim()) ?? 0,
+        pageViews: pvByProduct.get(nameKey) ?? 0,
+        ctr: ctrByProduct.get(nameKey) ?? 0,
       };
     })
     .sort((a, b) => b.gmv - a.gmv);
 
   const giftBreakdown = [...giftAgg.entries()]
-    .map(([productName, agg]) => ({
-      productName,
-      productNameEn: agg.nameEn,
-      representativeSku: [...agg.skus][0] ?? '',
-      primeCost: agg.primeCost,
-      units: agg.units,
-      skuCount: agg.skus.size,
-      pageViews: pvByProduct.get(productName.normalize('NFC').trim()) ?? 0,
-    }))
+    .map(([productName, agg]) => {
+      const nameKey = trafficNorm(productName);
+      return {
+        productName,
+        productNameEn: agg.nameEn,
+        representativeSku: [...agg.skus][0] ?? '',
+        primeCost: agg.primeCost,
+        units: agg.units,
+        skuCount: agg.skus.size,
+        pageViews: pvByProduct.get(nameKey) ?? 0,
+        ctr: ctrByProduct.get(nameKey) ?? 0,
+      };
+    })
     .sort((a, b) => b.primeCost - a.primeCost);
 
   return {
@@ -379,7 +414,7 @@ export function computeTikTokMetrics(
     totalPlatformDiscount,
     totalPlatformFee,
     platformFeeRatePct,
-    totalPrimeCost: primeCostKept + primeCostFreeGift,
+    totalPrimeCost: primeCostKept,
     primeCostKept,
     primeCostFreeGift,
     rowsKept: kept,
@@ -405,7 +440,6 @@ export function computeTikTokMetrics(
     freeGiftProducts: [...freeGiftProducts],
     missingFromMaster: [...missingByProduct.values()].sort((a, b) => b.gmvContribution - a.gmvContribution),
     traffic: trafficRows ? aggregateTikTokTraffic(trafficRows) : null,
-    affiliate: affiliateRows ? aggregateTikTokAffiliate(affiliateRows) : null,
     productBreakdown,
     giftBreakdown,
   };

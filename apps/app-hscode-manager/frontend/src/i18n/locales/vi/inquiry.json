@@ -1,0 +1,47 @@
+{
+  "create": {
+    "title": "Tạo yêu cầu mới",
+    "exporter": "Nhà xuất khẩu",
+    "export_country": "Nước xuất khẩu",
+    "import_country": "Nước nhập khẩu",
+    "title_field": "Tiêu đề / ghi chú",
+    "memo": "Ghi chú",
+    "submit": "Tiếp",
+    "cancel": "Hủy",
+    "select_exporter": "Chọn nhà xuất khẩu",
+    "select_country": "Chọn quốc gia"
+  },
+  "support_status": {
+    "ACTIVE": "Đã hỗ trợ",
+    "BETA": "Beta (thử nghiệm)",
+    "NOT_SUPPORTED": "Chưa hỗ trợ"
+  },
+  "beta_warning": {
+    "title": "Vận hành Beta",
+    "message": "Quốc gia nhập khẩu đang ở giai đoạn beta. Dữ liệu và thuế suất có thể chưa được xác thực đầy đủ."
+  },
+  "not_supported": {
+    "title": "Quốc gia chưa được hỗ trợ",
+    "message": "Quốc gia nhập khẩu đã chọn ({{country}}) hiện chưa được hỗ trợ. Vui lòng liên hệ quản trị viên."
+  },
+  "list": {
+    "title": "Danh sách yêu cầu",
+    "exporter": "Nhà xuất khẩu",
+    "route": "Xuất → Nhập",
+    "status": "Trạng thái",
+    "completeness": "Mức độ hoàn thiện",
+    "created_at": "Ngày tạo"
+  },
+  "status": {
+    "DRAFT": "Bản nháp",
+    "INTAKE": "Đang thu thập",
+    "MATCHING": "Đang phân loại",
+    "REVIEWING": "Đang xem xét",
+    "RESPONDED": "Đã phản hồi",
+    "VERIFIED": "Đã xác minh",
+    "DISPUTED": "Tranh chấp"
+  },
+  "modal": {
+    "created": "Đã tạo yêu cầu"
+  }
+}

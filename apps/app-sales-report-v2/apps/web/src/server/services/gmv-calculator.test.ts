@@ -24,6 +24,7 @@ const fixtureMaster = (overrides: Partial<PrimeCostMaster> = {}): PrimeCostMaste
   sellingPrice: 500,
   listingPrice: 600,
   productNameEn: 'Test',
+  productNameVi: '',
   variationName: '',
   isCombo: false,
   versions: [

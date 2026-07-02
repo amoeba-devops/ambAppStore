@@ -42,6 +42,11 @@ export interface PeriodSnapshotMetrics {
     totalOffPlatformAds: number;
     totalPageViews: number;
     totalAffiliateCommission: number;
+    /** Per-product-name affiliate cost (Chi phí) from the Affiliate file.
+     *  Key = normalized product name; value = SUM(chiPhi) for that product.
+     *  Used to attribute exact affComm per breakdown row + an "Others" bucket
+     *  for product names that don't match any Sales breakdown entry. */
+    affiliateCostByProductName: Record<string, number>;
   };
   tiktok: Pick<
     TikTokMetricsResult,
@@ -63,6 +68,11 @@ export interface PeriodSnapshotMetrics {
   > & {
     totalPageViews: number;
     totalAffiliateCommission: number;
+    /** Per-product (`Tên sản phẩm` normalized) affiliate cost merged across the
+     *  3 TikTok affiliate exports (Creator / Partner / Non-collaboration). Used
+     *  for exact per-SKU attribution downstream + an "Others" bucket for product
+     *  names not present in the Sales breakdown. */
+    affiliateCostByProductName: Record<string, number>;
   };
   manualInputs: {
     affiliateBookingFees: number;
@@ -72,7 +82,20 @@ export interface PeriodSnapshotMetrics {
   };
   /** Constants captured at ingest time. */
   constants: {
+    /**
+     * Legacy field — TikTok platform fee rate at the time of ingest. Kept for
+     * backward compat with snapshots written before FR-23. New ingests still
+     * populate this from `formulaConfig.tiktok_platform_fee_rate_pct` so
+     * downstream code can read either source.
+     */
     tiktokPlatformFeeRatePct: number;
+    /**
+     * Generic snapshot of all formula-config params active at ingest time.
+     * Mirrors `loadFormulaConfig(entId, periodStart)` output. Frozen at ingest
+     * so re-rendering an old report uses the rates active at that time even
+     * if Admin has since updated them.
+     */
+    formulaConfig?: Record<string, { value: string; valueType: string }>;
   };
   computedAt: string;
 }

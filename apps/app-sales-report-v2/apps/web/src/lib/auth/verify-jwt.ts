@@ -12,9 +12,9 @@ function getSecret(): Uint8Array {
 }
 
 export async function verifyAmaJwt(token: string): Promise<AmaJwtClaims> {
-  const { payload } = await jwtVerify(token, getSecret(), {
-    issuer: 'amb-management',
-    audience: 'sales-report-v2',
-  });
+  // No `issuer`/`audience` options: AMA's `generateAppToken` does not include
+  // `iss`/`aud` claims. Identity binding is enforced by (a) the shared HS256
+  // secret and (b) the schema's `appCode` literal check. (Matches car-manager-v2.)
+  const { payload } = await jwtVerify(token, getSecret());
   return amaJwtClaimsSchema.parse(payload);
 }

@@ -369,6 +369,8 @@
         "productEn": "상품명 (EN)",
         "platform": "플랫폼",
         "pv": "PV",
+        "impression": "노출",
+        "ctr": "CTR%",
         "cvr": "CVR%",
         "items": "수량",
         "gmv": "GMV",
@@ -468,7 +470,13 @@
         "trafficLabel": "트래픽 리포트",
         "trafficSubtitle": "세션, PV, 전환",
         "affiliateLabel": "제휴 리포트",
-        "affiliateSubtitle": "수수료 지급"
+        "affiliateSubtitle": "수수료 지급",
+        "affiliateCreatorLabel": "제휴 · 크리에이터 주문",
+        "affiliateCreatorSubtitle": "기본 + 매장 광고 수수료",
+        "affiliatePartnerLabel": "제휴 · 파트너 주문",
+        "affiliatePartnerSubtitle": "파트너 협업 수수료",
+        "affiliateNonCollabLabel": "제휴 · 비협업 주문",
+        "affiliateNonCollabSubtitle": "자체 귀속 수수료"
       },
       "fileSlot": {
         "required": "필수",
@@ -506,7 +514,18 @@
     "step4": {
       "title": "4단계 · 검토",
       "subtitle": "수집 전에 수식 설정을 확인하세요. 필요 시 수정 가능 — 변경은 이번 수집에만 적용됩니다.",
-      "banner": "수식 적용 대상:"
+      "banner": "수식 적용 대상:",
+      "unknownSkusBannerTitle": "업로드 파일에서 상품 마스터 이슈가 발견되었습니다",
+      "unknownSkusBannerBody": "{unknownCount, plural, =0 {} =1 {미등록 SKU 1개} other {미등록 SKU #개}}{renameCount, plural, =0 {} =1 { · SKU 변경 의심 1건} other { · SKU 변경 의심 #건}}{incompleteCount, plural, =0 {} =1 { · 가격 미입력 1건} other { · 가격 미입력 #건}}. 이 행들은 Net GMV / Prime Cost가 잘못 계산됩니다 — 계속하기 전에 파트너 확인 + Product List 수정하세요.",
+      "unknownSection": "미등록 상품 ({count})",
+      "renameSection": "SKU 변경 의심 ({count})",
+      "incompleteSection": "마스터 정보 불완전 ({count})",
+      "field": {
+        "primeCost": "원가",
+        "sellingPrice": "판매가",
+        "listingPrice": "정가"
+      },
+      "andMore": "… 그 외 {count}건"
     },
     "step5": {
       "title": "5단계 · 검증",
@@ -607,6 +626,17 @@
       "missingFromMasterTikTok": "마스터에 누락된 SKU {count}개",
       "missingFromMasterSingular": "원가 마스터에 누락된 판매 SKU 1개 — Net GMV / Prime Cost 에 포함되지 않습니다",
       "missingFromMasterTikTokSingular": "마스터에 누락된 SKU 1개",
+      "missingUnknown": "미등록 상품 {count}개 — Product List에 없습니다. 파트너에 확인 후 마스터에 추가하세요",
+      "missingUnknownSingular": "미등록 상품 1개 — Product List에 없습니다. 파트너에 확인 후 마스터에 추가하세요",
+      "missingRename": "SKU 변경 의심 {count}개 — 상품명은 기존 SKU와 일치하지만 SKU 코드가 새로 들어왔습니다",
+      "missingRenameSingular": "SKU 변경 의심 1개 — 상품명은 기존 SKU와 일치하지만 SKU 코드가 새로 들어왔습니다",
+      "missingIncomplete": "마스터 정보 불완전 SKU {count}개 — 등록은 되어 있으나 가격 1개 이상이 0입니다. Net GMV / Prime Cost가 잘못 계산됩니다",
+      "missingIncompleteSingular": "마스터 정보 불완전 SKU 1개 — 등록은 되어 있으나 가격 1개 이상이 0입니다. Net GMV / Prime Cost가 잘못 계산됩니다",
+      "field": {
+        "primeCost": "원가",
+        "sellingPrice": "판매가",
+        "listingPrice": "정가"
+      },
       "andMore": "… 그리고 {count}개 더",
       "showFormulas": "수식 명세 + 상품별 breakdown 표시",
       "hideFormulas": "수식 명세 + 상품별 breakdown 숨기기",
@@ -1226,6 +1256,8 @@
         "charts": "영향받는 차트"
       },
       "effectiveFrom": "적용 시작일",
+      "backdatedWarningTitle": "과거 날짜로 적용",
+      "backdatedWarningBody": "새 값은 앞으로 ingest되는 기간에만 적용됩니다. 이미 ingest된 기간은 이전 값을 유지합니다 — 과거 데이터에도 적용하려면 해당 기간을 다시 ingest하거나 아래 \"소급 적용\"을 체크하여 재계산하세요.",
       "retroactive": "소급 적용",
       "retroactiveHint": "(과거 리포트도 덮어씀)",
       "retroactiveWarningTitle": "주의: 이 지표에 의존하는 모든 과거 리포트가 재계산됩니다.",

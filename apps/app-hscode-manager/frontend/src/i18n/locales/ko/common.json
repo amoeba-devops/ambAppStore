@@ -1,0 +1,36 @@
+{
+  "app": {
+    "title": "HS Code Manager",
+    "subtitle": "원부자재 HS코드 매칭 플랫폼"
+  },
+  "nav": {
+    "dashboard": "대시보드",
+    "new_work": "새 작업",
+    "history": "누적 조회",
+    "verification": "검증 이벤트",
+    "expert": "전문가 검토",
+    "admin": "관리"
+  },
+  "dashboard": {
+    "title": "대시보드",
+    "in_progress": "진행 중 Inquiry",
+    "kpi_summary": "추징·정정률 요약",
+    "recent_activity": "최근 작업 히스토리",
+    "empty_state": "아직 작업이 없습니다. 우측 상단의 [새 작업]을 선택해 시작하세요."
+  },
+  "language": {
+    "ko": "한국어",
+    "en": "English",
+    "vi": "Tiếng Việt"
+  },
+  "common": {
+    "loading": "불러오는 중...",
+    "error": "오류가 발생했습니다",
+    "retry": "다시 시도",
+    "save": "저장",
+    "cancel": "취소",
+    "confirm": "확인",
+    "back": "이전",
+    "next": "다음"
+  }
+}

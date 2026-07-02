@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { LogIn, Building2, Mail, ExternalLink, BookOpen } from 'lucide-react';
 import { Button, Card, CardContent } from '@car-v2/ui';
 import { DEV_PERSONAS, loginHrefFor, localRoleFor } from '@/lib/dev/test-personas';
+import { apiPath } from '@/lib/base-path';
 import { LoginLanguageSwitcher } from './_components/login-language-switcher';
 
 /**
@@ -57,7 +58,7 @@ export default async function LoginPage({
             <p className="mt-1 text-sm text-text-muted">{t('subtitle')}</p>
           </div>
 
-          <form action="/api/auth/login" method="POST" className="mt-6 space-y-4">
+          <form action={apiPath('/api/auth/login')} method="POST" className="mt-6 space-y-4">
             {error && (
               <div className="rounded-md bg-danger-soft text-danger text-sm p-3">
                 {resolveErrorMessage(error, t)}

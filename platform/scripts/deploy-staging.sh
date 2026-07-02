@@ -12,6 +12,7 @@
 #   bash platform/scripts/deploy-staging.sh build stock        # build stock-management only
 #   bash platform/scripts/deploy-staging.sh build sales        # build sales-report only
 #   bash platform/scripts/deploy-staging.sh build car-manager-v2  # build v2 only (Next.js)
+#   bash platform/scripts/deploy-staging.sh build hscode       # build hscode-manager only
 # ============================================================
 set -euo pipefail
 
@@ -72,7 +73,14 @@ APP_BFF_NAME[car-manager-v2]="next-car-manager-v2"
 APP_WEB_NAME[car-manager-v2]="next-car-manager-v2"
 APP_HEALTH_PATH[car-manager-v2]="/app-car-manager-v2/api/v1/health"
 
-ALL_APPS=(platform car-manager stock sales car-manager-v2)
+APP_DIRS[hscode]="$PROJECT_ROOT/apps/app-hscode-manager"
+APP_COMPOSE[hscode]="docker-compose.app-hscode-manager.yml"
+APP_BFF_PORT[hscode]=3102
+APP_WEB_PORT[hscode]=5202
+APP_BFF_NAME[hscode]="bff-hscode-manager"
+APP_WEB_NAME[hscode]="web-hscode-manager"
+
+ALL_APPS=(platform car-manager stock sales car-manager-v2 hscode)
 
 MODE="${1:-full}"
 TARGET_APP="${2:-all}"
@@ -109,7 +117,7 @@ done
 
 # Ensure platform (with MySQL) is deployed first when deploying all apps
 if [ "$TARGET_APP" = "all" ]; then
-  APPS=(platform car-manager stock sales car-manager-v2)
+  APPS=(platform car-manager stock sales car-manager-v2 hscode)
 fi
 
 build_app() {
@@ -220,7 +228,7 @@ case "$MODE" in
     ;;
 
   *)
-    echo "Usage: $0 {full|build|restart|verify} [platform|car-manager|stock|sales|car-manager-v2|all]"
+    echo "Usage: $0 {full|build|restart|verify} [platform|car-manager|stock|sales|car-manager-v2|hscode|all]"
     exit 1
     ;;
 esac

@@ -11,6 +11,7 @@ import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
 import { useFormDraft } from '@/hooks/use-form-draft';
 import { submitExpenseAction } from '@/server/actions/expenses/expense.actions';
 import { formatActionError } from '@/lib/format-action-error';
+import { apiPath } from '@/lib/base-path';
 import { AmountInput } from './amount-input';
 import { ExpenseTypeChipGrid, type ExpenseType } from './expense-type-chip-grid';
 import { ReceiptCameraInput } from './receipt-camera-input';
@@ -251,7 +252,7 @@ export function ExpenseSubmitForm({
   }
 
   async function requestPresigned(f: File): Promise<{ uploadUrl: string; key: string }> {
-    const res = await fetch('/api/v1/expenses/upload-presigned', {
+    const res = await fetch(apiPath('/api/v1/expenses/upload-presigned'), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({

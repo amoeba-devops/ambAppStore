@@ -28,7 +28,7 @@ interface Props {
   manualInputs?: ManualInputs;
   /**
    * Override the server-side rate default. When omitted, the server picks 24%
-   * for periods before 2026-05-08 and 26% from 2026-05-08 onwards.
+   * for periods up to 2026-05-08 and 26% from 2026-05-09 onwards.
    */
   tiktokPlatformFeeRatePct?: number;
 }
@@ -95,7 +95,7 @@ export function Step6Ingest({
       }
     }
     // Only forward the rate when explicitly provided. Otherwise the server's
-    // date-based default applies (24% pre 2026-05-08, 26% from 2026-05-08+).
+    // date-based default applies (24% up to 2026-05-08, 26% from 2026-05-09+).
     if (tiktokPlatformFeeRatePct != null) {
       fd.set('tiktokPlatformFeeRatePct', String(tiktokPlatformFeeRatePct));
     }

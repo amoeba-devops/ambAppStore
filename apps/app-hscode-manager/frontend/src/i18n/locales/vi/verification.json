@@ -1,0 +1,72 @@
+{
+  "register": {
+    "title": "Đăng ký sự kiện xác minh",
+    "classification": "Phân loại",
+    "event_type": "Loại sự kiện",
+    "event_date": "Ngày sự kiện",
+    "result": "Kết quả",
+    "amount_usd": "Số tiền truy thu (USD)",
+    "notes": "Ghi chú",
+    "submit": "Đăng ký",
+    "submit_with_actions": "Đăng ký — {{count}} hành động tiếp theo sẽ kích hoạt"
+  },
+  "event_type": {
+    "SAMPLE_ANALYSIS": "Kết quả phân tích mẫu",
+    "CUSTOMS_SEIZURE": "Hải quan truy thu",
+    "CUSTOMS_DOUBLE_CHECK": "Hải quan xác nhận"
+  },
+  "event_type_hint": {
+    "SAMPLE_ANALYSIS": "Phân tích mẫu — MATCH: tin cậy +0.2; MISMATCH: bản gốc SUPERSEDED + hàng đợi xem xét",
+    "CUSTOMS_SEIZURE": "Truy thu — DISPUTED + tất cả phân loại cùng mã HS được đưa vào hàng đợi xem xét",
+    "CUSTOMS_DOUBLE_CHECK": "Hải quan kiểm trước — phân loại SEALED + tin cậy +0.3"
+  },
+  "result": {
+    "MATCH": "Khớp",
+    "MISMATCH": "Không khớp",
+    "CONFIRMED": "Đã xác nhận"
+  },
+  "modal": {
+    "success": "Đã đăng ký sự kiện xác minh",
+    "with_actions": "{{count}} hành động tiếp theo đã tự động kích hoạt"
+  },
+  "queue": {
+    "title": "Hàng đợi xem xét",
+    "open_only": "Chỉ chưa giải quyết",
+    "all": "Tất cả",
+    "target_type": "Đối tượng",
+    "reason": "Lý do",
+    "priority": "Ưu tiên",
+    "created_at": "Ngày tạo",
+    "resolved": "Đã giải quyết",
+    "actions": "Thao tác",
+    "resolve": "Giải quyết",
+    "resolve_notes": "Ghi chú giải quyết (tùy chọn)",
+    "empty": "Không có mục trong hàng đợi",
+    "target": {
+      "ITEM": "Item",
+      "CLASSIFICATION": "Phân loại"
+    },
+    "reasons": {
+      "SAMPLE_MISMATCH": "Mẫu không khớp",
+      "CUSTOMS_SEIZURE_DIRECT": "Truy thu trực tiếp",
+      "CUSTOMS_SEIZURE_PATTERN": "Truy thu theo mẫu",
+      "MANUAL": "Thủ công",
+      "DISPUTED_CHAIN": "Chuỗi tranh chấp"
+    },
+    "modal": {
+      "resolved": "Đã giải quyết mục xem xét"
+    }
+  },
+  "kpi": {
+    "title": "KPI xác minh",
+    "period": "Kỳ (tháng)",
+    "total_adopted": "Tổng đã chọn",
+    "seizure": "Truy thu",
+    "correction": "Điều chỉnh",
+    "sealed": "Đã chốt",
+    "seizure_rate": "Tỷ lệ truy thu",
+    "correction_rate": "Tỷ lệ điều chỉnh",
+    "sealed_rate": "Tỷ lệ chốt",
+    "seizure_amount": "Tổng truy thu (USD)"
+  }
+}

@@ -19,6 +19,26 @@ import type {
 import type { PeriodSnapshotMetrics } from '@/server/services/period-snapshot.service';
 import { getMetricFormula } from './formula-lookup';
 
+/**
+ * Resolve a formula param from snapshot.constants. Prefers the new generic
+ * `formulaConfig` map (FR-23); falls back to the legacy named field
+ * `tiktokPlatformFeeRatePct` for snapshots written before the formula-config
+ * persistence rollout.
+ */
+function resolveSnapshotParam(
+  constants: PeriodSnapshotMetrics['constants'] | undefined,
+  key: string,
+  legacyValue: number | undefined,
+  defaultValue: number,
+): number {
+  const fromCfg = constants?.formulaConfig?.[key]?.value;
+  if (fromCfg != null) {
+    const n = Number(fromCfg);
+    if (Number.isFinite(n)) return n;
+  }
+  return legacyValue ?? defaultValue;
+}
+
 export function snapshotToWeeklyReport(
   snap: PeriodSnapshotMetrics,
   channel: WeeklyChannel,
@@ -41,10 +61,15 @@ export function snapshotToWeeklyReport(
   // TikTok Platform Fee = Sum of per-row (GMV − Seller Discount) × Rate.
   // Computed in calculator and persisted in snapshot. Falls back to legacy
   // formula for snapshots saved before this field was added.
+  const tiktokRatePct = resolveSnapshotParam(
+    constants,
+    'tiktok_platform_fee_rate_pct',
+    constants?.tiktokPlatformFeeRatePct,
+    24,
+  );
   const tiktokPlatformFee =
     tiktok.totalPlatformFee ??
-    (tiktok.totalGmv - tiktok.totalSellerDiscount) *
-      ((constants?.tiktokPlatformFeeRatePct ?? 24) / 100);
+    (tiktok.totalGmv - tiktok.totalSellerDiscount) * (tiktokRatePct / 100);
 
   // Per-platform CM (per Formula Config — Free Gift is a separate line in addition
   // to Total Prime Cost, matching FINAL REPORT structure).
@@ -52,7 +77,7 @@ export function snapshotToWeeklyReport(
   const shopeeCm =
     shopee.totalNetGmv -
     shopee.totalSellerDiscount -
-    shopee.totalPrimeCost - // (kept + free gift)
+    shopee.totalPrimeCost - // kept rows only (free gift subtracted separately below)
     shopee.totalAdSpending -
     shopee.totalBrandAds -
     shopee.totalPlatformFee -
@@ -171,14 +196,60 @@ export function snapshotToWeeklyReport(
   const shopeeAdRevenue = useShopee ? shopee.totalAdRevenue ?? 0 : 0;
   const shopeeAdCost = useShopee ? shopee.totalAdSpending : 0;
   const adRoas = shopeeAdCost > 0 ? shopeeAdRevenue / shopeeAdCost : 0;
+
+  // Split traffic rows by platform — Shopee uses page views, TikTok uses
+  // unique product impressions (different semantics → separate rows in
+  // mixed view). Conversion Rate likewise split.
+  const shopeePv = useShopee ? shopee.totalPageViews : 0;
+  const tiktokImpression = useTiktok ? tiktok.totalPageViews : 0;
+  const shopeeItems = useShopee ? shopee.totalItemSold ?? 0 : 0;
+  const tiktokItems = useTiktok ? tiktok.totalItemSold ?? 0 : 0;
+  const shopeeCvr = shopeePv > 0 ? shopeeItems / shopeePv : 0;
+  const tiktokCvr = tiktokImpression > 0 ? tiktokItems / tiktokImpression : 0;
+  // Append " — Shopee" / " — TikTok" suffix only when the report is mixed
+  // (channel === 'ALL'); single-channel view shows plain labels.
+  const isMixed = useShopee && useTiktok;
   const traffic: BreakdownItem[] = [
-    { label: 'Total Page Views', raw: pageViews, rawDisplay: pageViews.toLocaleString('en-US'), wowPct: null },
-    {
-      label: 'Conversion Rate',
-      raw: conversionRate,
-      rawDisplay: pageViews > 0 ? (conversionRate * 100).toFixed(2) + '%' : '—',
-      wowPct: null,
-    },
+    ...(useShopee
+      ? ([
+          {
+            label: isMixed ? 'Total Page Views — Shopee' : 'Total Page Views',
+            raw: shopeePv,
+            rawDisplay: shopeePv.toLocaleString('en-US'),
+            wowPct: null,
+          },
+        ] as BreakdownItem[])
+      : []),
+    ...(useTiktok
+      ? ([
+          {
+            label: isMixed ? 'Total Impression — TikTok' : 'Total Impression',
+            raw: tiktokImpression,
+            rawDisplay: tiktokImpression.toLocaleString('en-US'),
+            wowPct: null,
+          },
+        ] as BreakdownItem[])
+      : []),
+    ...(useShopee
+      ? ([
+          {
+            label: isMixed ? 'Conversion Rate — Shopee' : 'Conversion Rate',
+            raw: shopeeCvr,
+            rawDisplay: shopeePv > 0 ? (shopeeCvr * 100).toFixed(2) + '%' : '—',
+            wowPct: null,
+          },
+        ] as BreakdownItem[])
+      : []),
+    ...(useTiktok
+      ? ([
+          {
+            label: isMixed ? 'Conversion Rate — TikTok' : 'Conversion Rate',
+            raw: tiktokCvr,
+            rawDisplay: tiktokImpression > 0 ? (tiktokCvr * 100).toFixed(2) + '%' : '—',
+            wowPct: null,
+          },
+        ] as BreakdownItem[])
+      : []),
     ...(useShopee
       ? ([
           {
@@ -326,10 +397,15 @@ export function snapshotToProducts(
       : 0;
 
   // TikTok Platform Fee — use persisted per-row sum; fallback for legacy snapshots
+  const tiktokRatePct = resolveSnapshotParam(
+    constants,
+    'tiktok_platform_fee_rate_pct',
+    constants?.tiktokPlatformFeeRatePct,
+    24,
+  );
   const tiktokPlatformFee =
     tiktok.totalPlatformFee ??
-    (tiktok.totalGmv - tiktok.totalSellerDiscount) *
-      ((constants?.tiktokPlatformFeeRatePct ?? 24) / 100);
+    (tiktok.totalGmv - tiktok.totalSellerDiscount) * (tiktokRatePct / 100);
 
   // Platform totals for NMV-based allocation
   const shopeeNmvSum = (shopee.productBreakdown ?? []).reduce((a, p) => a + p.nmv, 0);
@@ -339,14 +415,32 @@ export function snapshotToProducts(
 
   if (useShopee) {
     const total = shopeeNmvSum;
-    for (const p of shopee.productBreakdown ?? []) {
+    const breakdown = shopee.productBreakdown ?? [];
+
+    // Per-product affiliate cost lookup straight from the file. Each breakdown
+    // row receives the full {Chi phí(₫)} for its product name — no NMV split,
+    // no allocation. Keys are already normalized by the affiliate parser; we
+    // mirror the normalization here. NOTE: for products with multi-variation
+    // breakdown rows (combo + regular, or multiple colours/sizes), each row
+    // will show the same product-level chiPhi; the Promotional Breakdown
+    // Total card stays accurate because it reads `totalAffiliateCommission`
+    // from the file (sum of unique product entries), not the sum of per-SKU
+    // rows in the table.
+    const affCostByName = shopee.affiliateCostByProductName ?? {};
+    const normalizeName = (s: string) => s.normalize('NFC').replace(/\s+/g, ' ').trim();
+    const matchedAffNames = new Set<string>();
+
+    for (const p of breakdown) {
       const share = total > 0 ? p.nmv / total : 0;
       const voucher = shopee.totalSellerVouchers * share;
       const freeGift = shopee.primeCostFreeGift * share;
       const adSpend = shopee.totalAdSpending * share;
       const brandAds = shopee.totalBrandAds * share;
       const offPlatformAds = shopee.totalOffPlatformAds * share;
-      const affComm = shopee.totalAffiliateCommission * share;
+      const nameKey = normalizeName(p.productName);
+      const productAffCost = affCostByName[nameKey] ?? 0;
+      const affComm = productAffCost;
+      if (productAffCost > 0) matchedAffNames.add(nameKey);
       const affBook = shopeeAffBookingFee * share;
       const livestream = manualInputs.shopeeLivestreamFees * share;
       const platformFee = shopee.totalPlatformFee * share;
@@ -392,6 +486,42 @@ export function snapshotToProducts(
         isCombo: p.isCombo ?? false,
       });
     }
+    // Affiliate cost for product names not present in the Sales breakdown
+    // (including names whose breakdown rows all had NMV=0) → bucket into an
+    // "Others" pseudo-row so the platform total stays exact.
+    let othersAffCost = 0;
+    for (const [name, cost] of Object.entries(affCostByName)) {
+      if (!matchedAffNames.has(name)) othersAffCost += cost;
+    }
+    if (othersAffCost > 0) {
+      out.push({
+        no: '',
+        sku: '—',
+        nameVi: 'Others',
+        nameEn: 'Others',
+        platform: 'SHOPEE',
+        pv: 0,
+        cvr: 0,
+        items: 0,
+        gmv: 0,
+        netGmv: 0,
+        nmv: 0,
+        voucher: 0,
+        sellerDisc: 0,
+        freeGift: 0,
+        adSpend: 0,
+        brandAds: 0,
+        offPlatformAds: 0,
+        affComm: othersAffCost,
+        affBook: 0,
+        livestream: 0,
+        platformFee: 0,
+        primeCost: 0,
+        cm: -othersAffCost,
+        isOthers: true,
+      });
+    }
+
     for (const g of shopee.giftBreakdown ?? []) {
       out.push({
         no: '',
@@ -424,12 +554,36 @@ export function snapshotToProducts(
 
   if (useTiktok) {
     const total = tiktokNmvSum;
-    const ratePct = constants?.tiktokPlatformFeeRatePct ?? 24;
-    for (const p of tiktok.productBreakdown ?? []) {
+    const ratePct = resolveSnapshotParam(
+      constants,
+      'tiktok_platform_fee_rate_pct',
+      constants?.tiktokPlatformFeeRatePct,
+      24,
+    );
+    const tiktokBreakdown = tiktok.productBreakdown ?? [];
+
+    // Mirror Shopee — exact per-SKU affiliate attribution by product name,
+    // NMV-split among same-name variations, "Others" bucket for unmatched.
+    const tiktokAffCostByName = tiktok.affiliateCostByProductName ?? {};
+    const normalizeName = (s: string) => s.normalize('NFC').replace(/\s+/g, ' ').trim();
+    const tiktokNmvByName = new Map<string, number>();
+    for (const p of tiktokBreakdown) {
+      const k = normalizeName(p.productName);
+      tiktokNmvByName.set(k, (tiktokNmvByName.get(k) ?? 0) + p.nmv);
+    }
+    const matchedTiktokAffNames = new Set<string>();
+
+    for (const p of tiktokBreakdown) {
       const share = total > 0 ? p.nmv / total : 0;
       const freeGift = tiktok.primeCostFreeGift * share;
       const adSpend = manualInputs.tiktokAdsSpending * share;
-      const affComm = tiktok.totalAffiliateCommission * share;
+      const nameKey = normalizeName(p.productName);
+      const productAffCost = tiktokAffCostByName[nameKey] ?? 0;
+      const productNmvSum = tiktokNmvByName.get(nameKey) ?? 0;
+      const affComm = productNmvSum > 0 && productAffCost > 0
+        ? productAffCost * (p.nmv / productNmvSum)
+        : 0;
+      if (productAffCost > 0 && productNmvSum > 0) matchedTiktokAffNames.add(nameKey);
       const affBook = tiktokAffBookingFee * share;
       const livestream = manualInputs.tiktokLivestreamFees * share;
       // Per user spec: Platform Fee per row = (GMV − Seller Discount) × Rate.
@@ -456,6 +610,7 @@ export function snapshotToProducts(
         platform: 'TIKTOK',
         pv,
         cvr: pv > 0 ? p.units / pv : 0,
+        ctr: (p as { ctr?: number }).ctr ?? 0,
         items: p.units,
         gmv: p.gmv,
         netGmv: p.netGmv,
@@ -475,6 +630,41 @@ export function snapshotToProducts(
         isCombo: p.isCombo ?? false,
       });
     }
+    // Affiliate cost for product names not present in TikTok Sales breakdown
+    // (or whose breakdown rows had NMV=0) → "Others" pseudo-row.
+    let othersTiktokAffCost = 0;
+    for (const [name, cost] of Object.entries(tiktokAffCostByName)) {
+      if (!matchedTiktokAffNames.has(name)) othersTiktokAffCost += cost;
+    }
+    if (othersTiktokAffCost > 0) {
+      out.push({
+        no: '',
+        sku: '—',
+        nameVi: 'Others',
+        nameEn: 'Others',
+        platform: 'TIKTOK',
+        pv: 0,
+        cvr: 0,
+        items: 0,
+        gmv: 0,
+        netGmv: 0,
+        nmv: 0,
+        voucher: 0,
+        sellerDisc: 0,
+        freeGift: 0,
+        adSpend: 0,
+        brandAds: 0,
+        offPlatformAds: 0,
+        affComm: othersTiktokAffCost,
+        affBook: 0,
+        livestream: 0,
+        platformFee: 0,
+        primeCost: 0,
+        cm: -othersTiktokAffCost,
+        isOthers: true,
+      });
+    }
+
     for (const g of tiktok.giftBreakdown ?? []) {
       out.push({
         no: '',
