@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, desc, eq, gt, isNull } from 'drizzle-orm';
+import { and, desc, eq, gt, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTruckReports, carUsers, type TruckReportType } from '@car-v2/db/schema';
 
@@ -13,6 +13,34 @@ export interface TruckReportRow {
   createdByName: string | null;
   /** Created after the viewer's last "seen" mark → show "Mới" badge. */
   isNew: boolean;
+}
+
+/**
+ * Per month (YYYY-MM), the distinct operating regions that have ≥1 live report.
+ * Drives the month picker's "Đã xuất X/3 khu vực" badge. Legacy whole-fleet rows
+ * (trr_region NULL) are excluded — they can't be attributed to a region.
+ */
+export async function getTruckExportedRegionsByMonth(
+  entId: string,
+): Promise<Record<string, string[]>> {
+  const rows = await db
+    .select({ month: carTruckReports.trrMonth, region: carTruckReports.trrRegion })
+    .from(carTruckReports)
+    .where(
+      and(
+        eq(carTruckReports.entId, entId),
+        isNull(carTruckReports.trrDeletedAt),
+        isNotNull(carTruckReports.trrRegion),
+      ),
+    );
+  const sets: Record<string, Set<string>> = {};
+  for (const r of rows) {
+    if (!r.region) continue;
+    (sets[r.month] ??= new Set()).add(r.region);
+  }
+  const out: Record<string, string[]> = {};
+  for (const [m, set] of Object.entries(sets)) out[m] = [...set];
+  return out;
 }
 
 /** All live truck reports (newest first), each flagged new relative to `seenAt`. */

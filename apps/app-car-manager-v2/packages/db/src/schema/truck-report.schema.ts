@@ -19,6 +19,10 @@ export const carTruckReports = pgTable(
     trrVehicleType: vehicleTypeEnum('trr_vehicle_type').notNull().default('TRUCK'),
     /* 'YYYY-MM' the report covers. */
     trrMonth: varchar('trr_month', { length: 7 }).notNull(),
+    /* Operating region the report is scoped to (code from TRUCK_REGIONS —
+     * HCM / DONG_NAI / BAIKSAN). NULL = legacy whole-fleet report. Drives the
+     * month picker's "Đã xuất X/3 khu vực" badge (distinct non-null regions). */
+    trrRegion: varchar('trr_region', { length: 40 }),
     trrType: varchar('trr_type', { length: 16 }).notNull(),
     trrFormat: varchar('trr_format', { length: 8 }).notNull().default('EXCEL'),
     trrS3Key: varchar('trr_s3_key', { length: 512 }).notNull(),
@@ -29,6 +33,11 @@ export const carTruckReports = pgTable(
   },
   (t) => ({
     idxEntMonth: index('idx_car_truck_reports_ent_month').on(t.entId, t.trrMonth),
+    idxEntMonthRegion: index('idx_car_truck_reports_ent_month_region').on(
+      t.entId,
+      t.trrMonth,
+      t.trrRegion,
+    ),
   }),
 );
 

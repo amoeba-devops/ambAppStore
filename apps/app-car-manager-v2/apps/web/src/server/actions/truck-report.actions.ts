@@ -174,6 +174,7 @@ export async function generateTruckReportAction(input: unknown): Promise<ActionR
       entId: actor.entId,
       trrVehicleType: 'TRUCK',
       trrMonth: month,
+      trrRegion: region,
       trrType: type,
       trrFormat: 'EXCEL',
       trrS3Key: key,
