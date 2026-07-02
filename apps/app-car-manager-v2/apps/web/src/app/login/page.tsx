@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from 'next-intl/server';
 import { LogIn, Building2, Mail, ExternalLink, BookOpen } from 'lucide-react';
 import { Button, Card, CardContent } from '@car-v2/ui';
+import { DEV_PERSONAS, loginHrefFor, localRoleFor } from '@/lib/dev/test-personas';
 import { apiPath } from '@/lib/base-path';
 import { LoginLanguageSwitcher } from './_components/login-language-switcher';
 
@@ -39,7 +40,7 @@ export default async function LoginPage({
   const userGuideHref = `${guideBasePath}/docs/user-guide/${guideLocale}/index.html`;
 
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-bg p-4">
+    <div data-auth-theme className="min-h-dvh flex items-center justify-center bg-bg p-4">
       <Card variant="elevated" className="w-full max-w-sm">
         <CardContent>
           {/* Language switcher sits above the card header so it's the first
@@ -152,13 +153,16 @@ export default async function LoginPage({
               <div className="text-[10.5px] font-semibold text-text-faint uppercase tracking-wider mb-3">
                 {t('devTitle')}
               </div>
+              {/* Every role × department persona, one click each. `loginHrefFor`
+               * carries the fixed `sub` so dept-scoped managers/drivers get the
+               * right fleet access (generic /dev-login?role= alone wouldn't). */}
               <div className="grid grid-cols-1 gap-2">
-                {(['OWNER', 'MANAGER', 'MEMBER'] as const).map((role) => (
-                  <Button key={role} variant="secondary" size="md" asChild>
-                    <a href={`/dev-login?role=${role}`}>
-                      {t('devLoginAs')}{' '}
-                      <span className="font-semibold text-accent ml-1">
-                        {role === 'OWNER' ? 'ADMIN' : role === 'MEMBER' ? 'DRIVER' : 'MANAGER'}
+                {DEV_PERSONAS.map((p) => (
+                  <Button key={p.key} variant="secondary" size="md" asChild>
+                    <a href={loginHrefFor(p)}>
+                      {t(`devPersona.${p.key}`)}
+                      <span className="font-semibold text-accent ml-1.5 text-xs uppercase">
+                        {localRoleFor(p)}
                       </span>
                     </a>
                   </Button>

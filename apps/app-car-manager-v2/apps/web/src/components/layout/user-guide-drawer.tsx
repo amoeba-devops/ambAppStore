@@ -7,6 +7,7 @@ import { BookOpen, ExternalLink, Loader2 } from 'lucide-react';
 import { Button, Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { guideHomeUrl, resolveGuidePage } from '@/lib/user-guide-map';
+import { useActiveDept } from './dept-context';
 
 interface UserGuideDrawerProps {
   role: LocalRole;
@@ -38,6 +39,7 @@ export function UserGuideDrawer({ role, trigger }: UserGuideDrawerProps) {
   const pathname = usePathname();
   const router = useRouter();
   const uiLocale = useLocale();
+  const dept = useActiveDept();
   const t = useTranslations('nav');
   const tGuide = useTranslations('userGuide');
 
@@ -67,7 +69,7 @@ export function UserGuideDrawer({ role, trigger }: UserGuideDrawerProps) {
   /* Re-compute on every open so we always reflect the current pathname /
    * locale — admin who switched locale or navigated since first mount still
    * gets the right page. */
-  const resolved = resolveGuidePage(pathname, role, uiLocale, BASE_PATH);
+  const resolved = resolveGuidePage(pathname, role, uiLocale, BASE_PATH, dept);
 
   /* Reset the loading state every time the drawer opens (the iframe re-renders
    * its src and onLoad fires again). */

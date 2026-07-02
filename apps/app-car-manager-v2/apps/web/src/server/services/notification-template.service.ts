@@ -42,7 +42,14 @@ export type NotificationEvent =
   | 'MAINTENANCE.OIL_OVERDUE'
   | 'MAINTENANCE.OIL_DUE_SOON'
   | 'MAINTENANCE.INSPECTION_OVERDUE'
-  | 'MAINTENANCE.INSPECTION_DUE_SOON';
+  | 'MAINTENANCE.INSPECTION_DUE_SOON'
+  | 'TRUCK_TRIP.ASSIGNED'
+  | 'TRUCK_TRIP.COMPLETED'
+  | 'FLEET.ACCESS_REQUESTED'
+  | 'FLEET.ACCESS_APPROVED'
+  | 'FLEET.ACCESS_REJECTED'
+  | 'FLEET.ACCESS_GRANTED'
+  | 'FLEET.ACCESS_REVOKED';
 
 export interface TemplateContext {
   /** Trip / vehicle / expense reference like "TR-1042" or "29A-123.45". */
@@ -111,6 +118,9 @@ function pickBodyKey(event: NotificationEvent, ctx: TemplateContext): BodyKey {
   if ((event === 'TRIP.ASSIGNED' || event === 'TRIP.NEEDS_ASSIGNMENT') && ctx.route) {
     return 'bodyWithRoute';
   }
+  if ((event === 'TRUCK_TRIP.ASSIGNED' || event === 'TRUCK_TRIP.COMPLETED') && ctx.route) {
+    return 'bodyWithRoute';
+  }
   if ((event === 'TRIP.REJECTED' || event === 'TRIP.CANCELLED') && ctx.reason) {
     return 'bodyWithReason';
   }
@@ -144,7 +154,8 @@ export async function renderNotification(
     description: ctx.description ?? '',
     actorName: ctx.actorName ?? '',
   });
-  const cta = t('cta');
+  /* Fleet-access notifications link to the access page, not a trip. */
+  const cta = t(event.startsWith('FLEET.') ? 'ctaFleet' : 'cta');
   const url = buildAppUrl(ctx.tripPath);
 
   /* Email HTML — intentionally minimalist (no React Email yet). Inline styles

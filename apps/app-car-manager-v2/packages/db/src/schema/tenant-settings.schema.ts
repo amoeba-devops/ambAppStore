@@ -3,6 +3,7 @@ import {
   char,
   integer,
   pgEnum,
+  text,
   pgTable,
   timestamp,
   uniqueIndex,
@@ -51,6 +52,10 @@ export const carTenantSettings = pgTable(
      * Middleware đọc cột này để quyết định redirect admin/manager tới /onboarding. */
     tnsUsersSyncedAt: timestamp('tns_users_synced_at', { withTimezone: true }),
     tnsUsersSyncedCount: integer('tns_users_synced_count').notNull().default(0),
+    /** Default depot/yard address for truck trips (REQ-20260623). Pre-fills
+     * ORIGIN and RETURN stops in the trip form. Nullable — not every tenant
+     * operates from a fixed yard. */
+    tnsDepotAddress: text('tns_depot_address'),
     tnsUpdatedAt: timestamp('tns_updated_at', { withTimezone: true }).defaultNow().notNull(),
     tnsUpdatedBy: char('tns_updated_by', { length: 36 }).references(() => carUsers.usrId, {
       onDelete: 'set null',
