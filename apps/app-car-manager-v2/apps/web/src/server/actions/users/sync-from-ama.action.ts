@@ -75,7 +75,10 @@ export async function syncUsersFromAmaAction(): Promise<ActionResult<SyncFromAma
           usrAmaUserId: m.userId,
           usrEmail: m.email,
           usrName: m.name,
-          usrLocalRole: mapAmaRoleToLocal(m.amaRole as 'OWNER' | 'MASTER' | 'MANAGER' | 'MEMBER'),
+          /* m.amaRole is a raw string from AMA — mapAmaRoleToLocal accepts any
+           * string and defaults unknown roles to DRIVER, so every member syncs.
+           * The verbatim AMA role is preserved in usrAmaRoleSnapshot. */
+          usrLocalRole: mapAmaRoleToLocal(m.amaRole),
           usrAmaRoleSnapshot: m.amaRole,
         });
         inserted++;

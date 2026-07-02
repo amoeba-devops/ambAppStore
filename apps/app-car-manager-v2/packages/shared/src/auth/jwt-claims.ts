@@ -10,6 +10,25 @@ const AMA_APP_CODE = 'app-car-manager-v2';
 const LOCAL_APP_CODE = 'car-manager-v2';
 
 /**
+ * The full set of entity-scoped roles AMA can issue
+ * (`amb_hr_entity_user_roles.eur_role`). All 7 are preserved verbatim in
+ * `car_users.usr_ama_role_snapshot`; the app collapses them to 3 local
+ * permission tiers via {@link mapAmaRoleToLocal}. Single source of truth for
+ * both the JWT enum and UI label lookups.
+ */
+export const AMA_ROLES = [
+  'OWNER',
+  'MASTER',
+  'ADMIN',
+  'SUPER_ADMIN',
+  'MANAGER',
+  'MEMBER',
+  'VIEWER',
+] as const;
+
+export type AmaRole = (typeof AMA_ROLES)[number];
+
+/**
  * Entity-scoped role from amb_hr_entity_user_roles.eur_role.
  * AMA's actual data also uses 'ADMIN' / 'SUPER_ADMIN' / 'VIEWER' for some users
  * (e.g. ADMIN_LEVEL system admin assigned to entities). v2 only knows 3 local
@@ -28,7 +47,7 @@ export const amaJwtClaimsSchema = z
     entityName: z.string().optional(),
     /* Wider role enum: AMA's amb_hr_entity_user_roles.eur_role có thể carry
      * ADMIN/SUPER_ADMIN/VIEWER ngoài 4 base. Map via mapAmaRoleToLocal. */
-    role: z.enum(['OWNER', 'MASTER', 'ADMIN', 'SUPER_ADMIN', 'MANAGER', 'MEMBER', 'VIEWER']),
+    role: z.enum(AMA_ROLES),
     email: z.string().email().optional(),
     name: z.string().optional(),
     appCode: z.union([z.literal(AMA_APP_CODE), z.literal(LOCAL_APP_CODE)]),
@@ -54,7 +73,17 @@ export type AmaJwtClaims = z.infer<typeof amaJwtClaimsSchema>;
 /** App-local roles per PRD §4 (Admin/Manager/Driver). */
 export type LocalRole = 'DRIVER' | 'MANAGER' | 'ADMIN';
 
-export function mapAmaRoleToLocal(amaRole: AmaJwtClaims['role']): LocalRole {
+/**
+ * Map AMA role → 3-tier local permission. The full AMA role is preserved
+ * verbatim in `car_users.usr_ama_role_snapshot` (so all 7 roles "đồng bộ qua"
+ * for display); this only collapses them into the app's permission tier.
+ *
+ * `amaRole` is typed to the 7-enum, but the bulk-sync path feeds raw strings
+ * straight from AMA's `/entity-settings/members` API — so a `default` guards
+ * any role AMA might add later, ensuring EVERY member still syncs (lowest
+ * privilege = DRIVER) instead of crashing with an undefined local role.
+ */
+export function mapAmaRoleToLocal(amaRole: AmaJwtClaims['role'] | (string & {})): LocalRole {
   switch (amaRole) {
     case 'OWNER':
     case 'MASTER':
@@ -65,6 +94,8 @@ export function mapAmaRoleToLocal(amaRole: AmaJwtClaims['role']): LocalRole {
       return 'MANAGER';
     case 'MEMBER':
     case 'VIEWER':
+      return 'DRIVER';
+    default:
       return 'DRIVER';
   }
 }

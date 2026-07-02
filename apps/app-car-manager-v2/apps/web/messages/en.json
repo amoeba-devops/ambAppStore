@@ -652,6 +652,15 @@
       "thAmaRole": "AMA role",
       "thLastActive": "Last active",
       "amaPrefix": "AMA:",
+      "amaRoleOption": {
+        "OWNER": "Owner",
+        "MASTER": "Master",
+        "ADMIN": "Admin",
+        "SUPER_ADMIN": "Super admin",
+        "MANAGER": "Manager",
+        "MEMBER": "Member",
+        "VIEWER": "Viewer"
+      },
       "inactive": "Inactive",
       "status_active": "Active",
       "status_inactive": "Inactive",
