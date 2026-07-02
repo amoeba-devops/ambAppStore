@@ -200,6 +200,8 @@ export async function generateTruckReportAction(input: unknown): Promise<ActionR
 export async function markTruckReportsSeenAction(): Promise<ActionResult<{ ok: true }>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
+    requireRole(actor.role, ['ADMIN', 'MANAGER']);
+    await requireFleet(actor, 'TRUCK');
     await db
       .update(carUsers)
       .set({ usrTruckReportsSeenAt: new Date() })
