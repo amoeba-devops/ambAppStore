@@ -1,0 +1,278 @@
+import 'server-only';
+import { and, asc, eq, gte, inArray, isNull, lt } from 'drizzle-orm';
+import { db } from '@car-v2/db/client';
+import {
+  carTrips,
+  carTripExtraCosts,
+  carTripStopovers,
+  carVehicles,
+  carDrivers,
+  carUsers,
+} from '@car-v2/db/schema';
+import {
+  parseAmount,
+  truckTripFuelCost,
+  computeTruckPnl,
+  loadTruckRegionSnapshots,
+} from '@car-v2/core/truck';
+import type { AuthContext } from '@/lib/auth/get-current-user';
+import { getTruckFuelStats, isTruckMonthClosed } from './truck-finance.queries';
+
+/**
+ * Full report dataset for the "complex" truck report workbook (client NEW RULE
+ * template): a detailed trip log, a per-vehicle monthly P&L, and the fleet
+ * total — all for one (month × region). Numbers come from the same core logic
+ * as the finance screen (`computeTruckPnl`, region fuel snapshots) so the report
+ * always matches what the app shows. See truck-report-workbook.ts for layout.
+ */
+
+/** One row of the "Danh sách chuyến đi" sheet (all NEW RULE columns). */
+export interface ReportTripLogRow {
+  date: Date;
+  plate: string;
+  driver: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  customer: string | null;
+  depot: string | null; // Bãi xuất phát (ORIGIN)
+  pickup: string | null; // Lấy hàng / Giao hàng / Điểm khác (PICKUP)
+  delivery: string | null; // Giao hàng (DELIVERY)
+  waypoint: string | null; // Thêm điểm (WAYPOINT)
+  back: string | null; // Về bãi (RETURN)
+  startKm: number | null;
+  endKm: number | null;
+  km: number;
+  toll: number;
+  extra: number;
+  extraNote: string | null;
+  avgPrice: number; // Giá xăng bình quân tháng (đ/L)
+  liters: number;
+  fuelCost: number; // Phí xăng của chuyến
+  revenue: number;
+  profit: number; // = revenue − fuel − toll − extra (trước chi phí cố định)
+  finalized: boolean; // Đã chốt / Tạm tính
+  bol: string | null;
+  cdf: string | null;
+}
+
+/** One row of the "Chi phí & Lợi nhuận — theo xe" sheet. */
+export interface ReportVehiclePnlRow {
+  plate: string;
+  driver: string | null;
+  depreciation: number; // Khấu hao xe
+  salary: number; // Lương tài xế
+  revenue: number; // Doanh thu tháng
+  fixedOther: number; // Chi phí cố định (= bảo hiểm & CP cố định khác)
+  toll: number; // Phí cầu đường
+  fuel: number; // Phí xăng dầu
+  extra: number; // Tổng phí phát sinh
+  net: number; // Lợi nhuận ròng
+}
+
+export interface TruckReportExport {
+  month: string;
+  region: string | null;
+  closed: boolean;
+  fuel: { avgPrice: number; consumption: number; invoiceCount: number };
+  trips: ReportTripLogRow[];
+  vehicles: ReportVehiclePnlRow[];
+  totals: {
+    salary: number;
+    revenue: number;
+    fixedOther: number; // depreciation + insurance (Tổng hợp gộp khấu hao)
+    toll: number;
+    fuel: number;
+    extra: number;
+    net: number;
+  };
+}
+
+function hhmm(d: Date | null): string | null {
+  if (!d) return null;
+  return new Date(d).toISOString().slice(11, 16);
+}
+
+export async function getTruckReportExport(
+  actor: AuthContext,
+  month: string,
+  region: string | null,
+): Promise<TruckReportExport> {
+  const start = new Date(`${month}-01T00:00:00.000Z`);
+  const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
+
+  const [snapshots, fuel, closed, rows] = await Promise.all([
+    loadTruckRegionSnapshots(actor.entId, [month]),
+    getTruckFuelStats(actor.entId, month, region ?? undefined),
+    isTruckMonthClosed(actor.entId, month, region),
+    db
+      .select({
+        trpId: carTrips.trpId,
+        scheduledAt: carTrips.trpScheduledAt,
+        startedAt: carTrips.trpStartedAt,
+        endedAt: carTrips.trpEndedAt,
+        customer: carTrips.trpCustomer,
+        vehicleId: carTrips.trpVehicleId,
+        plate: carVehicles.cvhPlateNumber,
+        driver: carUsers.usrName,
+        pickupAddress: carTrips.trpPickupAddress,
+        dropoffAddress: carTrips.trpDropoffAddress,
+        so: carTrips.trpStartOdometer,
+        eo: carTrips.trpEndOdometer,
+        fuelLiters: carTrips.trpFuelLiters,
+        fuelPrice: carTrips.trpFuelPrice,
+        toll: carTrips.trpTollFee,
+        revenue: carTrips.trpRevenue,
+        bol: carTrips.trpBol,
+        cdf: carTrips.trpCdf,
+      })
+      .from(carTrips)
+      .leftJoin(carVehicles, eq(carTrips.trpVehicleId, carVehicles.cvhId))
+      .leftJoin(carDrivers, eq(carTrips.trpDriverId, carDrivers.drvId))
+      .leftJoin(carUsers, eq(carDrivers.drvUserId, carUsers.usrId))
+      .where(
+        and(
+          eq(carTrips.entId, actor.entId),
+          eq(carTrips.trpKind, 'LOG'),
+          eq(carTrips.trpStatus, 'COMPLETED'),
+          isNull(carTrips.trpDeletedAt),
+          gte(carTrips.trpScheduledAt, start),
+          lt(carTrips.trpScheduledAt, end),
+          region ? eq(carVehicles.cvhRegion, region) : undefined,
+        ),
+      )
+      .orderBy(asc(carTrips.trpScheduledAt)),
+  ]);
+
+  const ids = rows.map((r) => r.trpId);
+
+  /* Extra costs (sum + concatenated names → "Ghi chú chi phí phát sinh"). */
+  const extraByTrip = new Map<string, { amount: number; notes: string[] }>();
+  if (ids.length) {
+    const extras = await db
+      .select({ trpId: carTripExtraCosts.trpId, name: carTripExtraCosts.tecName, amount: carTripExtraCosts.tecAmount })
+      .from(carTripExtraCosts)
+      .where(and(eq(carTripExtraCosts.entId, actor.entId), inArray(carTripExtraCosts.trpId, ids)));
+    for (const e of extras) {
+      const g = extraByTrip.get(e.trpId) ?? { amount: 0, notes: [] };
+      g.amount += parseAmount(e.amount);
+      if (e.name?.trim()) g.notes.push(e.name.trim());
+      extraByTrip.set(e.trpId, g);
+    }
+  }
+
+  /* Route stopovers, grouped by trip then by type (first address per type). */
+  const routeByTrip = new Map<string, Partial<Record<string, string>>>();
+  if (ids.length) {
+    const stops = await db
+      .select({
+        trpId: carTripStopovers.tstTripId,
+        type: carTripStopovers.tstType,
+        address: carTripStopovers.tstAddress,
+      })
+      .from(carTripStopovers)
+      .where(and(eq(carTripStopovers.entId, actor.entId), inArray(carTripStopovers.tstTripId, ids)))
+      .orderBy(asc(carTripStopovers.tstOrder));
+    for (const s of stops) {
+      const g = routeByTrip.get(s.trpId) ?? {};
+      if (g[s.type] == null) g[s.type] = s.address; // first per type
+      routeByTrip.set(s.trpId, g);
+    }
+  }
+
+  const trips: ReportTripLogRow[] = rows.map((t) => {
+    const km = t.so != null && t.eo != null ? t.eo - t.so : 0;
+    const ex = extraByTrip.get(t.trpId) ?? { amount: 0, notes: [] };
+    const extra = Math.round(ex.amount);
+    const toll = Math.round(parseAmount(t.toll));
+    const revenue = Math.round(parseAmount(t.revenue));
+    const snap = snapshots.forTrip(month, t.vehicleId);
+    const finalized = snap != null;
+    const avgPrice = finalized ? snap.avgPrice : parseAmount(t.fuelPrice);
+    const liters = finalized ? km * snap.consumption : parseAmount(t.fuelLiters);
+    const fuelCost = finalized
+      ? truckTripFuelCost({ km, consumption: snap.consumption, avgPrice: snap.avgPrice })
+      : Math.round(parseAmount(t.fuelLiters) * parseAmount(t.fuelPrice));
+    const route = routeByTrip.get(t.trpId) ?? {};
+    return {
+      date: t.scheduledAt,
+      plate: t.plate ?? '—',
+      driver: t.driver,
+      startTime: hhmm(t.startedAt),
+      endTime: hhmm(t.endedAt),
+      customer: t.customer,
+      depot: route.ORIGIN ?? t.pickupAddress ?? null,
+      pickup: route.PICKUP ?? null,
+      delivery: route.DELIVERY ?? t.dropoffAddress ?? null,
+      waypoint: route.WAYPOINT ?? null,
+      back: route.RETURN ?? null,
+      startKm: t.so ?? null,
+      endKm: t.eo ?? null,
+      km,
+      toll,
+      extra,
+      extraNote: ex.notes.length ? ex.notes.join(', ') : null,
+      avgPrice: Math.round(avgPrice),
+      liters: Math.round(liters * 10) / 10,
+      fuelCost,
+      revenue,
+      profit: revenue - fuelCost - toll - extra,
+      finalized,
+      bol: t.bol,
+      cdf: t.cdf,
+    };
+  });
+
+  /* Per-vehicle P&L via the core service (one call per distinct vehicle so each
+   * row carries its own fixed costs). Vehicles = those with a trip this month. */
+  const vehIds = [...new Set(rows.map((r) => r.vehicleId).filter((v): v is string => !!v))];
+  const plateByVeh = new Map<string, string>();
+  const driverByVeh = new Map<string, string | null>();
+  for (const r of rows) {
+    if (r.vehicleId) {
+      plateByVeh.set(r.vehicleId, r.plate ?? '—');
+      if (!driverByVeh.has(r.vehicleId)) driverByVeh.set(r.vehicleId, r.driver);
+    }
+  }
+  const vehicles: ReportVehiclePnlRow[] = [];
+  await Promise.all(
+    vehIds.map(async (vid) => {
+      const [p] = await computeTruckPnl(actor, { vehicleId: vid, months: [month] });
+      if (!p) return;
+      vehicles.push({
+        plate: plateByVeh.get(vid) ?? '—',
+        driver: driverByVeh.get(vid) ?? null,
+        depreciation: p.depreciation,
+        salary: p.salary,
+        revenue: p.revenue,
+        fixedOther: p.insurance,
+        toll: p.tollFee,
+        fuel: p.fuelCost,
+        extra: p.extraTotal,
+        net: p.netProfit,
+      });
+    }),
+  );
+  vehicles.sort((a, b) => a.plate.localeCompare(b.plate));
+
+  /* Fleet total for the (month × region) — region-level core call. */
+  const [tot] = await computeTruckPnl(actor, { region, months: [month] });
+  const totals = {
+    salary: tot?.salary ?? 0,
+    revenue: tot?.revenue ?? 0,
+    fixedOther: (tot?.depreciation ?? 0) + (tot?.insurance ?? 0),
+    toll: tot?.tollFee ?? 0,
+    fuel: tot?.fuelCost ?? 0,
+    extra: tot?.extraTotal ?? 0,
+    net: tot?.netProfit ?? 0,
+  };
+
+  return {
+    month,
+    region,
+    closed,
+    fuel: { avgPrice: fuel.avgPrice, consumption: fuel.consumption, invoiceCount: fuel.invoiceCount },
+    trips,
+    vehicles,
+    totals,
+  };
+}

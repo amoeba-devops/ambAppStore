@@ -13,6 +13,8 @@ import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { listTruckFinanceTrips } from '@/server/queries/truck-finance.queries';
+import { getTruckReportExport } from '@/server/queries/truck-report-export.queries';
+import { buildTruckReportWorkbook } from '@/server/lib/truck-report-workbook';
 import { buildExcel, type ExcelColumn } from '@/server/lib/excel';
 import { putObject } from '@/lib/s3-client';
 import { logAudit } from '@/server/services/audit-log.service';
@@ -46,30 +48,15 @@ async function buildReportWorkbook(
   region: string | null,
 ): Promise<Buffer> {
   if (type === 'PNL') {
-    const [row] = await computeTruckPnl(actor, { months: [month], region: region ?? undefined });
-    const r = row ?? null;
-    const cols: ExcelColumn[] = [
-      { header: 'Hạng mục', key: 'k', width: 28 },
-      { header: monthLabel(month), key: 'v', width: 20 },
-    ];
-    const line = (k: string, v: number) => ({ k, v });
-    const rows = r
-      ? [
-          line('Doanh thu', r.revenue),
-          line('Phí xăng dầu', r.fuelCost),
-          line('Phí cầu đường', r.tollFee),
-          line('Chi phí phát sinh', r.extraTotal),
-          line('Chi phí biến đổi', r.variableCost),
-          line('Lương (theo xe)', r.salary),
-          line('Khấu hao', r.depreciation),
-          line('Bảo hiểm', r.insurance),
-          line('Lương tài xế', r.driverSalary),
-          line('Chi phí cố định', r.fixedCost),
-          line('Số chuyến', r.tripCount),
-          line('Lợi nhuận ròng', r.netProfit),
-        ]
-      : [];
-    return buildExcel('P&L', cols, rows);
+    /* Comprehensive report (client NEW RULE template): a 3-sheet styled workbook
+     * — trip log + per-vehicle P&L + fleet total + glossary. Numbers come from
+     * the same core logic (computeTruckPnl + region fuel snapshots) as the
+     * finance screen, so the report always matches what the app shows. */
+    const data = await getTruckReportExport(actor, month, region);
+    return buildTruckReportWorkbook(data, {
+      monthLabel: monthLabel(month),
+      regionLabel: regionSuffix(region),
+    });
   }
 
   if (type === 'TRIP_LOG') {
