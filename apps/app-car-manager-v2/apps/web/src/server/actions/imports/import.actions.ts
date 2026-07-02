@@ -2,13 +2,15 @@
 
 import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
-import { carImports } from '@car-v2/db/schema';
+import { carImports, carVehicles } from '@car-v2/db/schema';
 import { createTruckTrip, completeTruckTrip } from '@car-v2/core/truck';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import { importTruckTripsSchema } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
+import { assertTruckMonthOpen } from '@/server/queries/truck-finance.queries';
 import { nextTripRef } from '@/server/services/trip-ref.service';
 import { logAudit } from '@/server/services/audit-log.service';
 import { runAction } from '../_helpers';
@@ -26,12 +28,42 @@ function isUniqueViolation(err: unknown): boolean {
  * on failure we record a FAILED car_imports row with the count created so far,
  * then surface the error.
  */
-export async function importTruckTripsAction(input: unknown): Promise<ActionResult<{ count: number }>> {
+export async function importTruckTripsAction(
+  input: unknown,
+): Promise<ActionResult<{ count: number; month?: string }>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
     await requireFleet(actor, 'TRUCK');
     const dto = importTruckTripsSchema.parse(input);
+
+    /* Financial period lock (QA 2026-07). Imports previously bypassed the
+     * month-close guard every other trip mutation enforces — rows could land in
+     * a closed (month × region) and silently change finalized P&L. Resolve the
+     * vehicle's region (ent-scoped; also validates ownership) and check each
+     * distinct month of the file BEFORE inserting anything. */
+    const vehicle = await db.query.carVehicles.findFirst({
+      where: and(
+        eq(carVehicles.cvhId, dto.vehicle_id),
+        eq(carVehicles.entId, actor.entId),
+        isNull(carVehicles.cvhDeletedAt),
+      ),
+      columns: { cvhRegion: true },
+    });
+    if (!vehicle) throw new CarError('CAR-E0404', 404, 'Vehicle not found');
+    const months = new Map<string, Date>(); // YYYY-MM → a date within it
+    for (const row of dto.rows) {
+      const d = new Date(row.date);
+      if (Number.isNaN(d.getTime())) continue; // unparseable rows fail later, as before
+      const key = d.toISOString().slice(0, 7);
+      if (!months.has(key)) months.set(key, d);
+    }
+    for (const d of months.values()) {
+      await assertTruckMonthOpen(actor.entId, d, vehicle.cvhRegion);
+    }
+    /* Latest month in the file — the post-import deep-link target ("rồi sao
+     * nữa": land the user on the trip log filtered to what they just loaded). */
+    const month = [...months.keys()].sort().pop();
 
     let created = 0;
     try {
@@ -109,6 +141,6 @@ export async function importTruckTripsAction(input: unknown): Promise<ActionResu
 
     revalidatePath('/truck/trips');
     revalidatePath('/truck/import');
-    return { count: created };
+    return { count: created, month };
   });
 }
