@@ -21,7 +21,7 @@ import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listUsers, type UserListItem } from '@/server/queries/users.queries';
-import type { LocalRole } from '@car-v2/shared/auth';
+import { AMA_ROLES, type LocalRole } from '@car-v2/shared/auth';
 import { ClickableCard, ClickableTableRow, StopRowClick } from '@/components/clickable-table-row';
 import { DriverSigninToggle } from './_components/driver-signin-toggle';
 import { SyncFromAmaButton } from './_components/sync-from-ama-button';
@@ -80,6 +80,15 @@ export default async function UsersPage({ searchParams }: PageProps) {
   const tList   = await getTranslations('users.list');
   const tRel    = await getTranslations('users.relativeTime');
   const locale  = await getLocale();
+
+  /* Human-readable label for the verbatim AMA role (all 7 roles synced from
+   * ambManagement). Falls back to the raw code for any role not yet localized. */
+  const amaRoleLabel = (role: string | null): string => {
+    if (!role) return '—';
+    return (AMA_ROLES as readonly string[]).includes(role)
+      ? tList(`amaRoleOption.${role}`)
+      : role;
+  };
 
   /* Reads from `car_users` local DB. After Option 1b, members appear here
    * lazily — only after their first login to car-v2 (`ensureCarUser` JIT
@@ -213,9 +222,9 @@ export default async function UsersPage({ searchParams }: PageProps) {
                         </div>
                       </div>
                       <div className="mt-2 flex items-center justify-between text-xs">
-                        <span className="text-text-muted">
+                        <span className="text-text-muted" title={u.usrAmaRoleSnapshot ?? undefined}>
                           {tList('amaPrefix')}{' '}
-                          <span className="font-mono">{u.usrAmaRoleSnapshot ?? '—'}</span>
+                          <span className="font-medium text-text">{amaRoleLabel(u.usrAmaRoleSnapshot)}</span>
                         </span>
                         <span className="text-text-faint">{formatRelativeTime(u.usrLastLoginAt, tRel, locale)}</span>
                       </div>
@@ -276,7 +285,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="font-mono text-xs text-text-muted">{u.usrAmaRoleSnapshot ?? '—'}</TableCell>
+                        <TableCell className="text-text-muted" title={u.usrAmaRoleSnapshot ?? undefined}>{amaRoleLabel(u.usrAmaRoleSnapshot)}</TableCell>
                         <TableCell className="text-text-muted">
                           {formatRelativeTime(u.usrLastLoginAt, tRel, locale)}
                         </TableCell>

@@ -1237,6 +1237,15 @@
       "thAmaRole": "AMA 역할",
       "thLastActive": "최근 접속",
       "amaPrefix": "AMA:",
+      "amaRoleOption": {
+        "OWNER": "소유자",
+        "MASTER": "마스터",
+        "ADMIN": "관리자",
+        "SUPER_ADMIN": "슈퍼 관리자",
+        "MANAGER": "매니저",
+        "MEMBER": "멤버",
+        "VIEWER": "뷰어"
+      },
       "inactive": "비활성",
       "status_active": "활성",
       "status_inactive": "잠금",

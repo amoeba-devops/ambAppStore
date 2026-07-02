@@ -1237,6 +1237,15 @@
       "thAmaRole": "Vai trò AMA",
       "thLastActive": "Hoạt động gần nhất",
       "amaPrefix": "AMA:",
+      "amaRoleOption": {
+        "OWNER": "Chủ sở hữu",
+        "MASTER": "Quản trị cấp cao",
+        "ADMIN": "Quản trị",
+        "SUPER_ADMIN": "Quản trị hệ thống",
+        "MANAGER": "Quản lý",
+        "MEMBER": "Thành viên",
+        "VIEWER": "Chỉ xem"
+      },
       "inactive": "Không hoạt động",
       "status_active": "Hoạt động",
       "status_inactive": "Tạm khoá",

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Clock, Lock, PencilLine, Shield } from 'lucide-react';
 import { Avatar, Badge, Button, cn } from '@car-v2/ui';
-import type { LocalRole } from '@car-v2/shared/auth';
+import { AMA_ROLES, type LocalRole } from '@car-v2/shared/auth';
 import { Sheet, SheetCloseButton } from '@/components/layout/sheet';
 import { DriverSigninToggle } from './driver-signin-toggle';
 
@@ -42,6 +42,14 @@ export function UserPeekDrawer({ user, lastActiveLabel, isAdmin, isSelf }: UserP
   const t = useTranslations('users.peek');
   const tList = useTranslations('users.list');
   const tA = useTranslations('actions');
+
+  /* Verbatim AMA role → localized label, with raw-code fallback. */
+  const amaRoleLabel = (role: string | null): string => {
+    if (!role) return '—';
+    return (AMA_ROLES as readonly string[]).includes(role)
+      ? tList(`amaRoleOption.${role}`)
+      : role;
+  };
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -93,7 +101,7 @@ export function UserPeekDrawer({ user, lastActiveLabel, isAdmin, isSelf }: UserP
       {/* Body — detail fields */}
       <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
         <Field icon={<Shield />} label={tList('thAppRole')} value={user.usrLocalRole} />
-        <Field icon={<Shield />} label={tList('thAmaRole')} value={user.usrAmaRoleSnapshot ?? '—'} mono />
+        <Field icon={<Shield />} label={tList('thAmaRole')} value={amaRoleLabel(user.usrAmaRoleSnapshot)} />
         <Field icon={<Clock />} label={tList('thLastActive')} value={lastActiveLabel} />
       </div>
 
