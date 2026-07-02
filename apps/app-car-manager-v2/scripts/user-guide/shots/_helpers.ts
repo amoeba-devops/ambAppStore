@@ -54,6 +54,10 @@ export async function snoozePushBanner(context: BrowserContext) {
     try {
       const oneHour = 60 * 60 * 1000;
       window.localStorage.setItem('pwa.pushStripSnoozedUntil', String(Date.now() + oneHour));
+      /* Also snooze the PWA install banner (install-prompt.tsx) — on the mobile
+       * (Safari UA) projects it renders a fixed bottom "Add to Home Screen"
+       * card that would otherwise cover the bottom of every mobile shot. */
+      window.localStorage.setItem('pwa.installDismissedUntil', String(Date.now() + oneHour));
     } catch {
       // Some pages may not have storage access yet — harmless for shots.
     }

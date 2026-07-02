@@ -66,11 +66,11 @@
           </a>
         </p>
 
-        <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/reports/new</code></dd><dt>절차</dt><dd>3단계: 월 선택 → 지역 선택 → 확인</dd></dl></div>
-        <figure><img src="../../assets/img/screenshots/ko/truck-manager/10-report-new.png" alt="보고서 작성 — 1단계: 월 선택"><figcaption>보고서 작성 — 1단계: 월 선택</figcaption></figure>
-<h2>1단계 — 월 선택</h2><p>보고할 월을 선택합니다. <strong>데이터가 없는</strong> 달은 다음으로 진행할 수 없고 이 단계에서 즉시 경고가 표시됩니다.</p>
-<h2>2단계 — 지역 선택</h2><p><strong>한 지역</strong>(HCM / 동나이 / Baiksan) 또는 <strong>전체 지역</strong>을 선택합니다. 해당 월에 운행이 없는 지역도 경고와 함께 차단됩니다.</p>
-<h2>3단계 — 확인 &amp; 작성</h2><p>집계 수치를 검토한 뒤 보고서를 생성합니다. 보고서는 지역명과 함께 명명되며 Excel로 내려받을 수 있습니다.</p>
+        <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/reports/new</code></dd><dt>절차</dt><dd>3단계: 월 → 지역 → 확인</dd></dl></div>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/10-report-new.png" alt="1단계 — 월 선택 (데스크톱)"><figcaption>1단계 — 월 선택 (데스크톱)</figcaption></figure>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/10-report-new-mobile.png" alt="휴대폰 보고서 작성 (모바일)"><figcaption>휴대폰 보고서 작성 (모바일)</figcaption></figure>
+<h2>사용 단계</h2><ol><li><strong>1단계 — 월 선택</strong>: 보고할 월 선택.</li><li><strong>2단계 — 지역 선택</strong>: 한 지역(HCM/동나이/Baiksan) 또는 <strong>전체 지역</strong>.</li><li><strong>3단계 — 확인 &amp; 작성</strong>: 집계 수치 검토 후 생성.</li><li>생성된 보고서 Excel 다운로드(또는 <a href="10-danh-sach-bao-cao.html">보고서 목록</a>에서).</li></ol>
+<h2>로직 / 규칙(오류 차단)</h2><ul><li><strong>데이터 없는 월</strong> → 2단계로 진행 불가, 1단계에서 즉시 경고.</li><li>해당 월에 <strong>운행 없는 지역</strong> → 3단계로 진행 불가, 2단계에서 즉시 경고.</li><li>보고서는 <strong>지역명</strong>과 함께 명명되어 목록에 저장.</li></ul>
 
         <nav class="pager">
           <a class="pager__prev" href="08-tong-quan-pnl.html"><span>← 이전</span><strong>손익 개요</strong></a>

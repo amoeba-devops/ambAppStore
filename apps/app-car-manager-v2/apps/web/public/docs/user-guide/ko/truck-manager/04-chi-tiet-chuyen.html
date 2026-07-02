@@ -66,11 +66,11 @@
           </a>
         </p>
 
-        <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/trips/{번호}</code></dd><dt>레이아웃</dt><dd>완료 운행은 데스크톱에서 2단 표시</dd></dl></div>
-        <figure><img src="../../assets/img/screenshots/ko/truck-manager/04-trip-detail.png" alt="완료 운행 상세 — 정보(좌) + 비용 & 손익(우)"><figcaption>완료 운행 상세 — 정보(좌) + 비용 & 손익(우)</figcaption></figure>
-<h2>정보 영역</h2><p>고객, BOL/CDF, 경로, 차량, 기사, <strong>경유 동선</strong>(있는 경우).</p>
-<h2>비용 &amp; 손익 영역</h2><p>연료, 통행료, 기타 비용, <strong>총비용</strong>, 매출, <strong>이익</strong>(양수 초록/음수 빨강)을 표로 표시합니다.</p>
-<h2>동작</h2><ul><li>운행 <strong>수정 / 삭제</strong>(매니저)</li><li>미완료 운행은 <strong>완료</strong> 버튼으로 수치를 바로 입력</li></ul>
+        <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/trips/{번호}</code></dd><dt>레이아웃</dt><dd>완료 운행: 데스크톱 2단, 모바일 세로</dd></dl></div>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/04-trip-detail.png" alt="상세: 정보(좌) + 비용 & 손익(우) (데스크톱)"><figcaption>상세: 정보(좌) + 비용 & 손익(우) (데스크톱)</figcaption></figure>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/04-trip-detail-mobile.png" alt="휴대폰 운행 상세 (모바일)"><figcaption>휴대폰 운행 상세 (모바일)</figcaption></figure>
+<h2>사용 단계</h2><ol><li><strong>정보</strong> 영역: 고객·BOL/CDF·경로·차량·기사·경유 동선.</li><li><strong>비용 &amp; 손익</strong> 영역: 연료·통행료·기타·총비용·매출·이익.</li><li><strong>수정</strong>으로 수치 변경 또는 <strong>삭제</strong>(소프트 삭제).</li><li><strong>미완료</strong> 운행이면 <strong>완료</strong>로 수치 즉시 입력.</li></ol>
+<h2>로직 / 규칙</h2><ul><li><strong>이익 = 매출 − 총비용</strong>(양수 초록/음수 빨강).</li><li>운행 수치는 해당 지역의 대시보드·손익·보고서에 즉시 반영.</li><li>마감된 월·지역의 운행은 보기 전용.</li></ul>
 
         <nav class="pager">
           <a class="pager__prev" href="03-lap-chuyen.html"><span>← 이전</span><strong>운행 등록</strong></a>

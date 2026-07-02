@@ -66,12 +66,11 @@
           </a>
         </p>
 
-        <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/dashboard</code> — 트럭 부서 진입 시 첫 화면</dd><dt>기간</dt><dd>우측 상단에서 선택 (기본 <strong>이번 달</strong>)</dd></dl></div>
-        <figure><img src="../../assets/img/screenshots/ko/truck-manager/01-dashboard.png" alt="대시보드 — 4개 지표, 차트, 비용 구성, 지역 표"><figcaption>대시보드 — 4개 지표, 차트, 비용 구성, 지역 표</figcaption></figure>
-<h2>지역별 필터</h2><p>상단의 <strong>전체 · HCM · 동나이 · Baiksan</strong> 버튼으로 화면 전체 수치를 선택한 지역 기준으로 필터링합니다.</p>
-<h2>4개 핵심 지표</h2><ul><li><strong>매출</strong> — 기간 내 운행 매출 합계</li><li><strong>총비용</strong> — 연료 + 통행료 + 기타 + 고정비</li><li><strong>순이익</strong> — 매출 − 총비용</li><li><strong>운행 수</strong> — 기간 내 완료 운행 수</li></ul><p>각 지표에는 <strong>전기 대비</strong> 증감(▲/▼ %)이 표시됩니다.</p>
-<h2>차트 &amp; 표</h2><ul><li><strong>월별 매출 &amp; 이익</strong> — 월별 막대</li><li><strong>비용 구성</strong> — 항목별 비중 도넛</li><li><strong>지역별</strong> — 지역별 매출/이익/운행 수 표</li></ul>
-        <figure><img src="../../assets/img/screenshots/ko/truck-manager/01-dashboard-mobile.png" alt="휴대폰 대시보드 — 카드 세로 배치"><figcaption>휴대폰 대시보드 — 카드 세로 배치</figcaption></figure>
+        <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/dashboard</code> — 트럭 부서 첫 화면</dd><dt>기간</dt><dd>우측 상단 선택 (기본 <strong>이번 달</strong>)</dd></dl></div>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/01-dashboard.png" alt="대시보드: 지표 + 차트 + 비용 구성 + 지역 표 (데스크톱)"><figcaption>대시보드: 지표 + 차트 + 비용 구성 + 지역 표 (데스크톱)</figcaption></figure>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/01-dashboard-mobile.png" alt="휴대폰 대시보드(세로 스크롤) (모바일)"><figcaption>휴대폰 대시보드(세로 스크롤) (모바일)</figcaption></figure>
+<h2>사용 단계</h2><ol><li>우측 상단에서 <strong>기간</strong> 선택(이번 달 / 다른 달).</li><li><strong>전체 · HCM · 동나이 · Baiksan</strong> 버튼으로 <strong>지역</strong> 필터 — 전체 수치가 함께 변경.</li><li>4개 지표 확인: <strong>매출 · 총비용 · 순이익 · 운행 수</strong> (전기 대비 ▲/▼).</li><li><strong>월별 매출·이익 차트</strong>와 <strong>비용 구성 도넛</strong> 확인.</li><li>아래로 스크롤해 <strong>지역별 표</strong>와 <strong>최근 운행</strong> 확인 — 운행 클릭 시 상세 열림.</li><li>우측 <strong>운행 생성</strong> 버튼으로 새 일지 작성.</li></ol>
+<h2>계산 로직</h2><ul><li><strong>순이익 = 매출 − 총비용</strong>(연료 + 통행료 + 기타 + 고정비).</li><li>선택한 기간·지역의 <strong>완료된</strong> 운행만 집계.</li><li><strong>전기 대비 %</strong> = 같은 지역 직전 달 대비.</li><li>운행별 연료비 = 리터 × 단가(지역 마감 시 정해진 정액 적용).</li></ul>
 
         <nav class="pager">
           <a class="pager__prev" href="00-tong-quan.html"><span>← 이전</span><strong>개요</strong></a>

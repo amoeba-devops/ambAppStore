@@ -5,7 +5,7 @@
     "section": "Trang chủ chung",
     "title": "Hướng dẫn sử dụng",
     "headings": [],
-    "snippet": "Amoeba Car Manager v2 — Hệ thống quản lý điều xe & chi phí nội bộ 33 trang · 40+ ảnh minh hoạ · 2 ngôn ngữ 🇻🇳 Tiếng Việt 🇰🇷 한국어 Cập nhật / 최종 업데이트: 24-05-2026 · Phản hồi / 피드백: dev@amoeba.group Tip: bấm / để tìm kiếm · 검색은 / 키"
+    "snippet": "Amoeba Car Manager v2 — Hệ thống quản lý điều xe & chi phí nội bộ 48 trang · 55+ ảnh minh hoạ · 2 ngôn ngữ · Xe con + Xe tải 🇻🇳 Tiếng Việt 🇰🇷 한국어 Cập nhật / 최종 업데이트: 24-05-2026 · Phản hồi / 피드백: dev@amoeba.group Tip: bấm / để tìm kiếm · 검색은 / 키"
   },
   {
     "url": "ko/admin/00-tong-quan.html",
@@ -440,9 +440,10 @@
     "section": "truck-driver",
     "title": "트럭 — 기사 화면 개요",
     "headings": [
-      "페이지"
+      "3개 페이지",
+      "승용차와 차이"
     ],
-    "snippet": "앱에서 열기 /today → 대상 트럭 부서 기사 기기 휴대폰(PWA) 중심, PC에서도 사용 가능 트럭 기사 화면은 운행 완료 에 초점을 둡니다 — 승용차처럼 수락/거절 단계가 없습니다. 완료할 운행을 확인하고, 종료 시 수치를 기록하며, 완료된 운행을 다시 볼 수 있습니다. 트럭 기사 오늘 화면 페이지 오늘 — 완료할 운행 목록 + 차량 운행 완료 — 연료·통행료·주행거리 입력 새 운행 기록 — 운행 일지 직접 생성 ← 이전 역할 선택 다음 → 오늘"
+    "snippet": "앱에서 열기 /today → 대상 트럭 부서 기사 기기 휴대폰(PWA) 중심, PC도 가능 트럭 기사 화면은 운행 완료 에 초점 — 승용차 같은 수락/거절이 없습니다. 완료할 운행을 보고, 종료 시 수치를 기록하며, 완료 운행을 다시 봅니다. 기사 오늘 화면 (데스크톱) 휴대폰 오늘 화면 (모바일) 3개 페이지 오늘 — 완료할 운행 + 차량 + 완료됨. 운행 완료 — 연료·통행료·주행거리 입력. 새 운행 기록 — 운행 일지 직접 생성. 승용차와 차이 운행 수락/거절 단계 없음 . 배차가 아니라 수치 기록·비용 확정 에 집중. ← 이전 역할 선택 다음 → 오늘"
   },
   {
     "url": "ko/truck-driver/01-hom-nay.html",
@@ -450,11 +451,10 @@
     "section": "truck-driver",
     "title": "오늘",
     "headings": [
-      "완료할 운행",
-      "차량 & 완료됨",
-      "운행 생성"
+      "사용 단계",
+      "로직 / 규칙"
     ],
-    "snippet": "앱에서 열기 /today → URL /today 내용 오늘 기사가 할 일 휴대폰 오늘 화면 완료할 운행 수치 기록을 기다리는 운행 목록 — 각 카드에 고객·경로·날짜/시간·번호판·상태(완료 대기 / 운행 중)가 표시됩니다. 눌러서 운행 완료 를 진행합니다. 차량 & 완료됨 옆에는 내 차량 목록과 최근 완료된 운행이 있습니다. 데스크톱에서는 우측 열, 휴대폰에서는 세로로 배치됩니다. 운행 생성 운행 생성 버튼으로 새 운행을 직접 기록합니다( 새 운행 기록 ). ← 이전 개요 다음 → 운행 완료"
+    "snippet": "앱에서 열기 /today → URL /today 내용 오늘 기사가 할 일 오늘 화면 (데스크톱) 휴대폰 오늘 화면 (모바일) 사용 단계 완료할 운행 확인 — 고객·경로·날짜/시간·번호판·상태. 운행을 눌러 완료 진행. 내 차량 과 최근 완료됨 운행 확인. 운행 생성 으로 새 운행 직접 기록. 로직 / 규칙 완료할 운행 = 나에게 배정된 완료 대기/운행 중 상태. 데스크톱 2단, 모바일 세로 + 운행 생성 버튼 전체 너비. ← 이전 개요 다음 → 운행 완료"
   },
   {
     "url": "ko/truck-driver/02-hoan-thanh-chuyen.html",
@@ -462,10 +462,10 @@
     "section": "truck-driver",
     "title": "운행 완료",
     "headings": [
-      "입력 수치",
-      "확인"
+      "사용 단계",
+      "로직 / 규칙"
     ],
-    "snippet": "앱에서 열기 /today → 진입 \"완료할 운행\" 목록의 운행 목적 수치를 기록해 운행 확정 휴대폰 운행 완료 화면 입력 수치 시작 / 종료 시각 최종 주행거리 (계기판) 연료 (리터) 및 통행료 기타 비용 — 항목별 추가(이름 + 금액) 확인 완료 확인 을 누르면 운행이 완료 상태가 됩니다. 이 수치는 즉시 관리자의 비용·손익·보고서에 반영됩니다. ← 이전 오늘 다음 → 새 운행 기록"
+    "snippet": "앱에서 열기 /today → 진입 \"완료할 운행\"의 항목 목적 수치 기록으로 운행 확정 운행 완료 화면 (데스크톱) 휴대폰 운행 완료 (모바일) 사용 단계 완료할 운행 목록에서 운행 열기. 시작 / 종료 시각 입력. 최종 주행거리 (계기판)· 연료 (리터)· 통행료 입력. 필요 시 기타 비용 추가(이름+금액, + 버튼). 완료 확인 . 로직 / 규칙 확인 시 운행이 완료 상태로 전환. 수치는 관리자 비용·손익·보고서에 즉시 반영. 월·지역 마감 시 수정 불가. ← 이전 오늘 다음 → 새 운행 기록"
   },
   {
     "url": "ko/truck-driver/03-ghi-chuyen-moi.html",
@@ -473,10 +473,10 @@
     "section": "truck-driver",
     "title": "새 운행 기록",
     "headings": [
-      "빠른 입력",
+      "사용 단계",
       "사용 시점"
     ],
-    "snippet": "앱에서 열기 /today/truck/new → URL /today/truck/new 목적 기사가 운행 일지를 직접 생성 휴대폰 새 운행 기록 폼 빠른 입력 고객·경로·기본 수치를 입력합니다. 먼저 저장한 뒤 운행 완료 시 연료/통행료를 보완할 수 있습니다. 사용 시점 관리자가 미리 등록하지 않은 운행에 사용합니다 — 기사가 직접 기록해 비용·매출 누락을 방지합니다. ← 이전 운행 완료"
+    "snippet": "앱에서 열기 /today/truck/new → URL /today/truck/new 목적 기사가 운행 일지 직접 생성 새 운행 기록 폼 (데스크톱) 휴대폰 새 운행 기록 (모바일) 사용 단계 고객 · 경로 (출→도) 입력. 기본 수치 입력(연료/통행료는 완료 시 보완 가능). 저장 . 사용 시점 관리자가 미리 등록하지 않은 운행에 사용 — 비용/매출 누락 방지. 저장 후 운행 완료 에서 수치 완성. ← 이전 운행 완료"
   },
   {
     "url": "ko/truck-manager/00-tong-quan.html",
@@ -484,11 +484,10 @@
     "section": "truck-manager",
     "title": "트럭 — 관리자 화면 개요",
     "headings": [
-      "트럭 부서 진입 방법",
-      "메뉴 구성",
-      "3개 지역"
+      "트럭 부서 진입",
+      "메뉴 구성"
     ],
-    "snippet": "앱에서 열기 /truck/dashboard → 대상 트럭 부서 권한이 있는 관리자 및 매니저 목적 화물 운행 일지 기록, 지역별 차량 관리, 비용·매출·손익 추적 및 월간 보고서 작성 테마 주황색 테마 (승용차 부서의 파란색과 구분) 트럭 부서는 화물 운송 업무를 위한 것입니다. 각 운행은 고객·경로·연료·통행료·매출을 기록하는 운행 일지(LOG) 입니다. 배차·수락/거절이 있는 승용차 부서와 달리, 트럭 부서는 운행별·지역별 비용 기록 및 정산 에 중점을 둡니다. 트럭 대시보드 — 주황색 테마, 지역별 필터 트럭 부서 진입 방법 트럭 전담 매니저 — 로그인하면 바로 진입합니다. 관리자(양쪽 부서) — 사이드바 상단의 승용차 / 트럭 전환 버튼 사용. 관리자만 보이고 전환할 수 있습니다. 메뉴 구성 운영 —"
+    "snippet": "앱에서 열기 /truck/dashboard → 대상 트럭 부서 권한이 있는 관리자 · 매니저 기기 PC(기본) 및 휴대폰 — 모든 페이지 반응형 테마 주황색 (승용차 부서 파란색과 구분) 트럭 부서는 화물 운송용입니다. 각 운행은 고객·경로·연료·통행료·매출을 담은 운행 일지(LOG) 이며, 배차·수락/거절이 있는 승용차와 달리 운행별·지역별 비용 기록·정산 에 집중합니다. 트럭 대시보드 (데스크톱) 휴대폰 대시보드 (모바일) 트럭 부서 진입 트럭 전담 매니저 : 로그인 시 바로 진입. 관리자(양쪽 부서) : 사이드바 상단 승용차 / 트럭 전환 버튼 사용. 관리자만 표시·전환 가능. 휴대폰: 메뉴는 하단 탭, 가운데 대시보드 버튼이 돌출. 메뉴 구성 운영 — 대시보드 · 운행 일지 · 차량 · 기사 재무 —"
   },
   {
     "url": "ko/truck-manager/01-bang-dieu-khien.html",
@@ -496,11 +495,10 @@
     "section": "truck-manager",
     "title": "트럭 대시보드",
     "headings": [
-      "지역별 필터",
-      "4개 핵심 지표",
-      "차트 & 표"
+      "사용 단계",
+      "계산 로직"
     ],
-    "snippet": "앱에서 열기 /truck/dashboard → URL /truck/dashboard — 트럭 부서 진입 시 첫 화면 기간 우측 상단에서 선택 (기본 이번 달 ) 대시보드 — 4개 지표, 차트, 비용 구성, 지역 표 지역별 필터 상단의 전체 · HCM · 동나이 · Baiksan 버튼으로 화면 전체 수치를 선택한 지역 기준으로 필터링합니다. 4개 핵심 지표 매출 — 기간 내 운행 매출 합계 총비용 — 연료 + 통행료 + 기타 + 고정비 순이익 — 매출 − 총비용 운행 수 — 기간 내 완료 운행 수 각 지표에는 전기 대비 증감(▲/▼ %)이 표시됩니다. 차트 & 표 월별 매출 & 이익 — 월별 막대 비용 구성 — 항목별 비중 도넛 지역별 — 지역별 매출/이익/운행 수 표 휴대폰 대시보드 — 카드 세로 배치 ← "
+    "snippet": "앱에서 열기 /truck/dashboard → URL /truck/dashboard — 트럭 부서 첫 화면 기간 우측 상단 선택 (기본 이번 달 ) 대시보드: 지표 + 차트 + 비용 구성 + 지역 표 (데스크톱) 휴대폰 대시보드(세로 스크롤) (모바일) 사용 단계 우측 상단에서 기간 선택(이번 달 / 다른 달). 전체 · HCM · 동나이 · Baiksan 버튼으로 지역 필터 — 전체 수치가 함께 변경. 4개 지표 확인: 매출 · 총비용 · 순이익 · 운행 수 (전기 대비 ▲/▼). 월별 매출·이익 차트 와 비용 구성 도넛 확인. 아래로 스크롤해 지역별 표 와 최근 운행 확인 — 운행 클릭 시 상세 열림. 우측 운행 생성 버튼으로 새 일지 작성. 계산 로직 순이익 = 매출 − 총비용 (연료 + 통행료 + 기"
   },
   {
     "url": "ko/truck-manager/02-nhat-ky-chuyen.html",
@@ -508,11 +506,10 @@
     "section": "truck-manager",
     "title": "운행 일지",
     "headings": [
-      "각 행 정보",
-      "운행 상태",
-      "생성 & 가져오기"
+      "사용 단계",
+      "운행 상태"
     ],
-    "snippet": "앱에서 열기 /truck/trips → URL /truck/trips 내용 트럭 부서의 모든 운행 일지(LOG) 목록 운행 일지 목록 — 데스크톱 표 각 행 정보 운행 번호, 고객, 경로(출발 → 도착), 차량, 기사, 상태, 매출. 행을 클릭하면 운행 상세 가 열립니다. 운행 상태 완료 대기 — 생성됨, 기사 기록 대기 운행 중 — 진행 중 완료 — 연료/통행료/매출 기록 완료 생성 & 가져오기 운행 등록 버튼으로 새 운행을 만듭니다( 운행 등록 ). 휴대폰에서는 표 대신 카드로 표시됩니다. ← 이전 대시보드 다음 → 운행 등록"
+    "snippet": "앱에서 열기 /truck/trips → URL /truck/trips 내용 트럭 부서의 모든 운행 일지(LOG) 운행 목록(표) (데스크톱) 휴대폰 운행 목록(카드) (모바일) 사용 단계 상단에서 운행번호·고객·차량·상태로 필터/검색 . 각 행 확인: 번호 · 고객 · 경로(출→도) · 차량 · 기사 · 상태 · 매출. 행(모바일: 카드) 클릭 → 운행 상세 . 운행 등록 버튼으로 신규 작성( 운행 등록 ). 운행 상태 완료 대기 — 생성됨, 수치 미입력. 운행 중 — 진행 중. 완료 — 연료/통행료/매출 입력 완료; 이후 대시보드·보고서에 반영. LOG(트럭) 운행만 표시(승용차 배차와 분리). ← 이전 대시보드 다음 → 운행 등록"
   },
   {
     "url": "ko/truck-manager/03-lap-chuyen.html",
@@ -520,10 +517,10 @@
     "section": "truck-manager",
     "title": "운행 등록(일지)",
     "headings": [
-      "입력 항목",
-      "참고"
+      "사용 단계",
+      "로직 / 규칙"
     ],
-    "snippet": "앱에서 열기 /truck/trips/new → URL /truck/trips/new 목적 새 화물 운행 일지 생성 운행 등록 폼 — 고객·경로·수치 입력 항목 고객 , BOL / CDF 번호(증빙) 출발 → 도착 , 경유지 추가 가능 차량 (운행 지역 결정) 및 기사 수치 : 연료(리터 + 단가), 통행료, 매출 — 완료 시 기사가 입력 가능 참고 차량·기사는 나중에 배정할 수 있습니다. 저장하면 수치를 모두 기록하기 전까지 완료 대기 상태입니다. ← 이전 운행 일지 다음 → 운행 상세"
+    "snippet": "앱에서 열기 /truck/trips/new → URL /truck/trips/new 목적 새 화물 운행 일지 생성 운행 등록 폼 (데스크톱) 휴대폰 운행 등록 폼 (모바일) 사용 단계 고객 및 증빙 번호 BOL / CDF (있으면) 입력. 출발 → 도착 입력; 다구간이면 + 경유지 추가 . 차량 (운행 지역 결정)· 기사 선택. 수치 입력: 연료(리터+단가)·통행료·매출 — 완료 시 기사가 입력하도록 비워둘 수 있음. 저장 . 로직 / 규칙 차량·기사는 나중에 배정 가능 (생성 시 필수 아님). 저장 시 수치 완비 전까지 완료 대기 상태. 해당 월·지역이 마감 되었으면 생성/수정 차단(정산 확정). ← 이전 운행 일지 다음 → 운행 상세"
   },
   {
     "url": "ko/truck-manager/04-chi-tiet-chuyen.html",
@@ -531,11 +528,10 @@
     "section": "truck-manager",
     "title": "운행 상세",
     "headings": [
-      "정보 영역",
-      "비용 & 손익 영역",
-      "동작"
+      "사용 단계",
+      "로직 / 규칙"
     ],
-    "snippet": "앱에서 열기 /truck/trips → URL /truck/trips/{번호} 레이아웃 완료 운행은 데스크톱에서 2단 표시 완료 운행 상세 — 정보(좌) + 비용 & 손익(우) 정보 영역 고객, BOL/CDF, 경로, 차량, 기사, 경유 동선 (있는 경우). 비용 & 손익 영역 연료, 통행료, 기타 비용, 총비용 , 매출, 이익 (양수 초록/음수 빨강)을 표로 표시합니다. 동작 운행 수정 / 삭제 (매니저) 미완료 운행은 완료 버튼으로 수치를 바로 입력 ← 이전 운행 등록 다음 → 차량"
+    "snippet": "앱에서 열기 /truck/trips → URL /truck/trips/{번호} 레이아웃 완료 운행: 데스크톱 2단, 모바일 세로 상세: 정보(좌) + 비용 & 손익(우) (데스크톱) 휴대폰 운행 상세 (모바일) 사용 단계 정보 영역: 고객·BOL/CDF·경로·차량·기사·경유 동선. 비용 & 손익 영역: 연료·통행료·기타·총비용·매출·이익. 수정 으로 수치 변경 또는 삭제 (소프트 삭제). 미완료 운행이면 완료 로 수치 즉시 입력. 로직 / 규칙 이익 = 매출 − 총비용 (양수 초록/음수 빨강). 운행 수치는 해당 지역의 대시보드·손익·보고서에 즉시 반영. 마감된 월·지역의 운행은 보기 전용. ← 이전 운행 등록 다음 → 차량"
   },
   {
     "url": "ko/truck-manager/05-doi-xe.html",
@@ -543,10 +539,10 @@
     "section": "truck-manager",
     "title": "트럭 차량",
     "headings": [
-      "차량 정보",
-      "차량 추가 / 수정"
+      "사용 단계",
+      "로직 / 규칙"
     ],
-    "snippet": "앱에서 열기 /truck/fleet → URL /truck/fleet 내용 지역·상태가 포함된 트럭 목록 트럭 차량 목록 차량 정보 번호판, 모델, 지역 (HCM / 동나이 / Baiksan), 상태 : 사용 가능 · 운행 중 · 정비 · 폐차. 차량 추가 / 수정 차량 추가 버튼으로 폼을 엽니다(번호판·모델·지역 등). 차량 지역이 대시보드·보고서에서 해당 차량 운행의 지역을 결정합니다. ← 이전 운행 상세 다음 → 기사"
+    "snippet": "앱에서 열기 /truck/fleet → URL /truck/fleet 내용 지역·상태 포함 트럭 목록 차량 목록 (데스크톱) 휴대폰 차량 목록 (모바일) 사용 단계 각 차량 확인: 번호판 · 모델 · 지역 · 상태 . 차량 추가 → 번호판·모델· 지역 (HCM/동나이/Baiksan)·상태 입력. 차량 클릭 → 정보 수정 . 로직 / 규칙 상태: 사용 가능 · 운행 중 · 정비 · 폐차 . 차량 지역이 그 차량 운행의 지역을 결정 → 대시보드·손익·보고서에 영향. 차량 삭제는 소프트 삭제(운행 이력 보존). ← 이전 운행 상세 다음 → 기사"
   },
   {
     "url": "ko/truck-manager/06-tai-xe.html",
@@ -554,10 +550,10 @@
     "section": "truck-manager",
     "title": "트럭 기사",
     "headings": [
-      "기사 정보",
-      "기사 추가"
+      "사용 단계",
+      "로직 / 규칙"
     ],
-    "snippet": "앱에서 열기 /truck/drivers → URL /truck/drivers 내용 트럭 부서 기사 목록 트럭 기사 목록 기사 정보 이름, 면허 등급, 상태. 기사는 트럭 부서 권한이 있는 사용자로부터 생성됩니다. 기사 추가 기사 추가 버튼으로 사용자를 선택해 기사 프로필을 만듭니다. 적합한 사용자가 없으면 먼저 AMA에서 사용자를 생성하세요. ← 이전 차량 다음 → 비용 & 손익"
+    "snippet": "앱에서 열기 /truck/drivers → URL /truck/drivers 내용 트럭 부서 기사 목록 기사 목록 (데스크톱) 휴대폰 기사 목록 (모바일) 사용 단계 각 기사 확인: 이름·면허 등급·상태. 기사 추가 → 트럭 권한 있는 사용자를 선택해 프로필 입력. 적합한 사용자가 없으면 AMA에서 사용자 생성 → 트럭 권한 부여 후 재시도. 로직 / 규칙 기사는 트럭 권한(car_user_fleet_access)이 부여된 AMA 사용자 로부터 생성. 한 기사는 한 부서 에만 소속(승용차 또는 트럭). ← 이전 차량 다음 → 비용 & 손익"
   },
   {
     "url": "ko/truck-manager/07-chi-phi-loi-nhuan.html",
@@ -565,11 +561,10 @@
     "section": "truck-manager",
     "title": "비용 & 손익",
     "headings": [
-      "탭",
-      "고정비",
-      "월 마감"
+      "사용 단계",
+      "로직 / 규칙"
     ],
-    "snippet": "앱에서 열기 /truck/finance → URL /truck/finance 기간 상단에서 월 선택 비용 & 손익 — 선택한 달의 운행별 장부 탭 운행별 — 운행별 매출·비용·이익 장부 손익 개요 — 손익 개요 참고 영수증 & 월 비용 — 연료 영수증, 고정비 고정비 기사 급여, 감가상각, 보험 등을 월 단위로 입력하며 이익 계산 시 총비용에 합산됩니다. 월 마감 수치가 확정되면 해당 월(지역별)을 마감 하여 수정을 잠급니다 — 그 달 보고서는 읽기 전용이 됩니다. ← 이전 기사 다음 → 손익 개요"
+    "snippet": "앱에서 열기 /truck/finance → URL /truck/finance 기간 상단에서 월 선택 선택 월의 운행별 장부 (데스크톱) 휴대폰 비용 & 손익 (모바일) 사용 단계 상단에서 월 선택. 3개 탭 이동: 운행별 · 손익 개요 · 영수증 & 월 비용 . 영수증 & 비용 탭에서 고정비 (급여·감가·보험)와 연료 영수증 입력. 수치 확정 시 지역별 월 마감 . 로직 / 규칙 월 고정비는 이익 계산 시 총비용에 합산 . 마감 = 해당 (월 × 지역) 운행/비용 수정 잠금, 보고서 읽기 전용. 재개 가능(관리자만). 마감 시 연료 단가·정액 을 확정해 일관된 비용 계산. ← 이전 기사 다음 → 손익 개요"
   },
   {
     "url": "ko/truck-manager/08-tong-quan-pnl.html",
@@ -577,10 +572,10 @@
     "section": "truck-manager",
     "title": "손익 개요",
     "headings": [
-      "확인 내용",
-      "연결"
+      "사용 단계",
+      "로직 / 규칙"
     ],
-    "snippet": "앱에서 열기 /truck/pnl → URL /truck/pnl 내용 지역별·월별 손익 개요 지역별 손익 개요 확인 내용 매출·총비용·이익을 지역 및 월 기준으로 집계하여 HCM / 동나이 / Baiksan 간 효율을 비교합니다. 연결 손익은 비용 & 손익 메뉴의 한 탭이며, 완료된 운행과 기간 고정비에서 수치를 가져옵니다. ← 이전 비용 & 손익 다음 → 보고서 작성"
+    "snippet": "앱에서 열기 /truck/pnl → URL /truck/pnl 내용 지역·월별 손익 집계 지역별 손익 개요 (데스크톱) 휴대폰 손익 개요 (모바일) 사용 단계 기간/지역을 선택해 매출·비용·이익 집계 확인. HCM / 동나이 / Baiksan 간 효율 비교. 필요 시 Excel 내보내기 . 로직 / 규칙 기간의 완료 운행 + 고정비 에서 산출. 손익은 비용 & 손익 메뉴의 한 탭. ← 이전 비용 & 손익 다음 → 보고서 작성"
   },
   {
     "url": "ko/truck-manager/09-lap-bao-cao.html",
@@ -588,11 +583,10 @@
     "section": "truck-manager",
     "title": "보고서 작성",
     "headings": [
-      "1단계 — 월 선택",
-      "2단계 — 지역 선택",
-      "3단계 — 확인 & 작성"
+      "사용 단계",
+      "로직 / 규칙(오류 차단)"
     ],
-    "snippet": "앱에서 열기 /truck/reports/new → URL /truck/reports/new 절차 3단계: 월 선택 → 지역 선택 → 확인 보고서 작성 — 1단계: 월 선택 1단계 — 월 선택 보고할 월을 선택합니다. 데이터가 없는 달은 다음으로 진행할 수 없고 이 단계에서 즉시 경고가 표시됩니다. 2단계 — 지역 선택 한 지역 (HCM / 동나이 / Baiksan) 또는 전체 지역 을 선택합니다. 해당 월에 운행이 없는 지역도 경고와 함께 차단됩니다. 3단계 — 확인 & 작성 집계 수치를 검토한 뒤 보고서를 생성합니다. 보고서는 지역명과 함께 명명되며 Excel로 내려받을 수 있습니다. ← 이전 손익 개요 다음 → 보고서 목록"
+    "snippet": "앱에서 열기 /truck/reports/new → URL /truck/reports/new 절차 3단계: 월 → 지역 → 확인 1단계 — 월 선택 (데스크톱) 휴대폰 보고서 작성 (모바일) 사용 단계 1단계 — 월 선택 : 보고할 월 선택. 2단계 — 지역 선택 : 한 지역(HCM/동나이/Baiksan) 또는 전체 지역 . 3단계 — 확인 & 작성 : 집계 수치 검토 후 생성. 생성된 보고서 Excel 다운로드(또는 보고서 목록 에서). 로직 / 규칙(오류 차단) 데이터 없는 월 → 2단계로 진행 불가, 1단계에서 즉시 경고. 해당 월에 운행 없는 지역 → 3단계로 진행 불가, 2단계에서 즉시 경고. 보고서는 지역명 과 함께 명명되어 목록에 저장. ← 이전 손익 개요 다음 → 보고서 목록"
   },
   {
     "url": "ko/truck-manager/10-danh-sach-bao-cao.html",
@@ -600,9 +594,10 @@
     "section": "truck-manager",
     "title": "보고서 목록",
     "headings": [
-      "작업"
+      "사용 단계",
+      "로직 / 규칙"
     ],
-    "snippet": "앱에서 열기 /truck/reports → URL /truck/reports 내용 작성된 보고서 작성된 보고서 목록 작업 보고서 확인 및 다운로드 (Excel) 새 보고서는 열람 전까지 신규 배지 표시 보고서 작성 으로 새로 생성( 보고서 작성 ) ← 이전 보고서 작성"
+    "snippet": "앱에서 열기 /truck/reports → URL /truck/reports 내용 작성된 보고서 작성된 보고서 목록 (데스크톱) 휴대폰 보고서 목록 (모바일) 사용 단계 작성된 보고서 확인(월·지역·작성자·시각). 다운로드 로 Excel 파일 받기. 보고서 작성 으로 신규 생성( 보고서 작성 ). 로직 / 규칙 새 보고서는 이 페이지를 열기 전까지 신규 배지 표시. 보고서 파일은 서버(S3)에 저장되어 언제든 재다운로드. ← 이전 보고서 작성"
   },
   {
     "url": "vi/admin/00-tong-quan.html",
@@ -1037,9 +1032,10 @@
     "section": "truck-driver",
     "title": "Xe tải — Tổng quan Tài xế",
     "headings": [
-      "Các trang"
+      "3 trang chính",
+      "Khác gì phòng Xe con?"
     ],
-    "snippet": "Mở trang trong app /today → Dành cho Tài xế phòng Xe tải Thiết bị Điện thoại (PWA) là chính, dùng được cả trên máy tính Màn hình tài xế xe tải hướng đến hoàn thành chuyến : không có bước chấp nhận/từ chối như xe con. Bạn thấy các chuyến cần hoàn thành , ghi số liệu khi kết thúc, và xem lại chuyến đã xong. Màn hình Hôm nay của tài xế xe tải Các trang Hôm nay — danh sách chuyến cần hoàn thành + phươ"
+    "snippet": "Mở trang trong app /today → Dành cho Tài xế phòng Xe tải Thiết bị Điện thoại (PWA) là chính, dùng được cả trên máy tính Màn hình tài xế xe tải hướng đến hoàn thành chuyến : không có bước chấp nhận/từ chối như xe con. Bạn thấy các chuyến cần hoàn thành , ghi số liệu khi kết thúc, và xem lại chuyến đã xong. Màn hình Hôm nay của tài xế (desktop) Hôm nay trên điện thoại (điện thoại) 3 trang chính Hôm "
   },
   {
     "url": "vi/truck-driver/01-hom-nay.html",
@@ -1047,11 +1043,10 @@
     "section": "truck-driver",
     "title": "Hôm nay",
     "headings": [
-      "Cần hoàn thành",
-      "Phương tiện & Đã hoàn thành",
-      "Tạo chuyến"
+      "Các bước sử dụng",
+      "Logic / Quy tắc"
     ],
-    "snippet": "Mở trang trong app /today → URL /today Nội dung Việc cần làm của tài xế trong hôm nay Màn hình Hôm nay trên điện thoại Cần hoàn thành Danh sách chuyến chờ ghi số liệu — mỗi thẻ hiện khách hàng, tuyến, ngày·giờ, biển số và trạng thái (Chờ hoàn thành / Đang chạy). Bấm để mở và hoàn thành chuyến . Phương tiện & Đã hoàn thành Bên cạnh là danh sách phương tiện của tôi và các chuyến đã hoàn thành gần đâ"
+    "snippet": "Mở trang trong app /today → URL /today Nội dung Việc cần làm của tài xế hôm nay Màn hình Hôm nay (desktop) Hôm nay trên điện thoại (điện thoại) Các bước sử dụng Xem mục Cần hoàn thành — mỗi thẻ có khách hàng, tuyến, ngày·giờ, biển số, trạng thái. Bấm một chuyến để mở và hoàn thành . Xem Phương tiện của tôi và các chuyến Đã hoàn thành gần đây. Bấm Tạo chuyến để tự ghi một chuyến mới. Logic / Quy tắ"
   },
   {
     "url": "vi/truck-driver/02-hoan-thanh-chuyen.html",
@@ -1059,10 +1054,10 @@
     "section": "truck-driver",
     "title": "Hoàn thành chuyến",
     "headings": [
-      "Các số liệu cần nhập",
-      "Xác nhận"
+      "Các bước sử dụng",
+      "Logic / Quy tắc"
     ],
-    "snippet": "Mở trang trong app /today → Mở từ Một chuyến trong danh sách \"Cần hoàn thành\" Mục đích Ghi số liệu để chốt chuyến Màn hình hoàn thành chuyến trên điện thoại Các số liệu cần nhập Giờ bắt đầu / kết thúc Số km cuối (đồng hồ) Nhiên liệu (lít) và cầu đường Chi phí phát sinh — thêm từng khoản (tên + số tiền) Xác nhận Bấm Xác nhận hoàn thành để chuyển chuyến sang trạng thái Hoàn thành . Số liệu này lập t"
+    "snippet": "Mở trang trong app /today → Mở từ Một chuyến trong \"Cần hoàn thành\" Mục đích Ghi số liệu để chốt chuyến Màn hình hoàn thành chuyến (desktop) Hoàn thành chuyến trên điện thoại (điện thoại) Các bước sử dụng Mở chuyến từ danh sách Cần hoàn thành . Nhập giờ bắt đầu / kết thúc . Nhập số km cuối (đồng hồ), nhiên liệu (lít) và cầu đường . Thêm chi phí phát sinh nếu có (tên + số tiền, bấm + để thêm dòng)."
   },
   {
     "url": "vi/truck-driver/03-ghi-chuyen-moi.html",
@@ -1070,10 +1065,10 @@
     "section": "truck-driver",
     "title": "Ghi chuyến mới",
     "headings": [
-      "Nhập nhanh",
+      "Các bước sử dụng",
       "Khi nào dùng"
     ],
-    "snippet": "Mở trang trong app /today/truck/new → URL /today/truck/new Mục đích Tài xế tự tạo một nhật ký chuyến Form ghi chuyến mới trên điện thoại Nhập nhanh Điền khách hàng, tuyến đường và số liệu cơ bản. Có thể lưu trước rồi bổ sung nhiên liệu/cầu đường khi hoàn thành chuyến . Khi nào dùng Dùng khi chuyến chưa được Quản lý lập sẵn — tài xế chủ động ghi để không bỏ sót chi phí và doanh thu. ← Trước Hoàn th"
+    "snippet": "Mở trang trong app /today/truck/new → URL /today/truck/new Mục đích Tài xế tự tạo một nhật ký chuyến Form ghi chuyến mới (desktop) Ghi chuyến mới trên điện thoại (điện thoại) Các bước sử dụng Nhập khách hàng và tuyến đường (điểm đi → đến). Nhập số liệu cơ bản (có thể bổ sung nhiên liệu/cầu đường khi hoàn thành). Bấm Lưu . Khi nào dùng Dùng khi chuyến chưa được Quản lý lập sẵn — tài xế chủ động ghi"
   },
   {
     "url": "vi/truck-manager/00-tong-quan.html",
@@ -1081,11 +1076,10 @@
     "section": "truck-manager",
     "title": "Xe tải — Tổng quan phân hệ Quản lý",
     "headings": [
-      "Vào phòng Xe tải bằng cách nào?",
-      "Bản đồ menu",
-      "3 khu vực"
+      "Vào phòng Xe tải",
+      "Bản đồ menu"
     ],
-    "snippet": "Mở trang trong app /truck/dashboard → Dành cho Quản trị viên và Quản lý có quyền phòng Xe tải Mục đích Ghi nhật ký chuyến hàng, quản lý đội xe theo khu vực, theo dõi chi phí – doanh thu – lợi nhuận và lập báo cáo tháng Giao diện Chủ đề màu cam (phân biệt với phòng Xe con màu xanh) Phòng Xe tải phục vụ vận tải hàng hoá: mỗi chuyến là một nhật ký chuyến (LOG) ghi lại khách hàng, tuyến đường, số liệu"
+    "snippet": "Mở trang trong app /truck/dashboard → Dành cho Quản trị viên và Quản lý có quyền phòng Xe tải Thiết bị Máy tính (chính) và điện thoại — mọi trang đều responsive Giao diện Chủ đề màu cam (phân biệt với phòng Xe con màu xanh) Phòng Xe tải phục vụ vận tải hàng hoá: mỗi chuyến là một nhật ký chuyến (LOG) ghi lại khách hàng, tuyến đường, nhiên liệu – cầu đường – doanh thu. Khác phòng Xe con (điều phối "
   },
   {
     "url": "vi/truck-manager/01-bang-dieu-khien.html",
@@ -1093,11 +1087,10 @@
     "section": "truck-manager",
     "title": "Bảng điều khiển Xe tải",
     "headings": [
-      "Lọc theo khu vực",
-      "4 chỉ số chính",
-      "Biểu đồ & bảng"
+      "Các bước sử dụng",
+      "Logic tính số"
     ],
-    "snippet": "Mở trang trong app /truck/dashboard → URL /truck/dashboard — trang chủ khi vào phòng Xe tải Kỳ dữ liệu Chọn ở góc phải (mặc định Tháng này ) Bảng điều khiển — 4 chỉ số, biểu đồ, cơ cấu chi phí, bảng khu vực Lọc theo khu vực Hàng nút Tất cả · HCM · Đồng Nai · Baiksan ở trên cùng lọc toàn bộ số liệu trong trang theo khu vực đang chọn. 4 chỉ số chính Doanh thu — tổng doanh thu các chuyến trong kỳ Tổn"
+    "snippet": "Mở trang trong app /truck/dashboard → URL /truck/dashboard — trang chủ khi vào phòng Xe tải Kỳ Chọn ở góc phải trên (mặc định Tháng này ) Bảng điều khiển: KPI + biểu đồ + cơ cấu chi phí + bảng khu vực (desktop) Bảng điều khiển trên điện thoại (cuộn dọc) (điện thoại) Các bước sử dụng Chọn kỳ ở nút góc phải trên (Tháng này / tháng khác). Lọc khu vực bằng hàng nút Tất cả · HCM · Đồng Nai · Baiksan — "
   },
   {
     "url": "vi/truck-manager/02-nhat-ky-chuyen.html",
@@ -1105,11 +1098,10 @@
     "section": "truck-manager",
     "title": "Nhật ký chuyến",
     "headings": [
-      "Thông tin mỗi dòng",
-      "Trạng thái chuyến",
-      "Tạo & nhập"
+      "Các bước sử dụng",
+      "Trạng thái chuyến"
     ],
-    "snippet": "Mở trang trong app /truck/trips → URL /truck/trips Nội dung Danh sách tất cả nhật ký chuyến (LOG) của phòng Xe tải Danh sách nhật ký chuyến — bảng trên desktop Thông tin mỗi dòng Mã chuyến, khách hàng, tuyến (điểm đi → điểm đến), xe, tài xế, trạng thái và doanh thu. Bấm một dòng để mở chi tiết chuyến . Trạng thái chuyến Chờ hoàn thành — đã tạo, chờ tài xế ghi số liệu Đang chạy — chuyến đang thực h"
+    "snippet": "Mở trang trong app /truck/trips → URL /truck/trips Nội dung Toàn bộ nhật ký chuyến (LOG) của phòng Xe tải Danh sách chuyến (bảng) (desktop) Danh sách chuyến (thẻ) trên điện thoại (điện thoại) Các bước sử dụng Lọc / tìm theo mã chuyến, khách hàng, xe, trạng thái ở thanh trên. Đọc mỗi dòng: mã · khách hàng · tuyến (đi → đến) · xe · tài xế · trạng thái · doanh thu. Bấm một dòng (điện thoại: một thẻ) "
   },
   {
     "url": "vi/truck-manager/03-lap-chuyen.html",
@@ -1117,10 +1109,10 @@
     "section": "truck-manager",
     "title": "Lập chuyến (nhật ký)",
     "headings": [
-      "Các trường",
-      "Lưu ý"
+      "Các bước sử dụng",
+      "Logic / Quy tắc"
     ],
-    "snippet": "Mở trang trong app /truck/trips/new → URL /truck/trips/new Mục đích Tạo một nhật ký chuyến hàng mới Form lập chuyến — thông tin khách hàng, tuyến và số liệu Các trường Khách hàng , số BOL / CDF (chứng từ) Điểm đi → điểm đến , có thể thêm điểm dừng Xe (quyết định khu vực của chuyến) và tài xế Số liệu : nhiên liệu (lít + đơn giá), cầu đường, doanh thu — có thể để tài xế điền khi hoàn thành Lưu ý Xe "
+    "snippet": "Mở trang trong app /truck/trips/new → URL /truck/trips/new Mục đích Tạo một nhật ký chuyến hàng mới Form lập chuyến (desktop) Form lập chuyến trên điện thoại (điện thoại) Các bước sử dụng Nhập Khách hàng và số chứng từ BOL / CDF (nếu có). Nhập điểm đi → điểm đến ; bấm + Thêm điểm dừng nếu chuyến có nhiều chặng. Chọn Xe (quyết định khu vực của chuyến) và Tài xế . Nhập số liệu : nhiên liệu (lít + đơ"
   },
   {
     "url": "vi/truck-manager/04-chi-tiet-chuyen.html",
@@ -1128,11 +1120,10 @@
     "section": "truck-manager",
     "title": "Chi tiết chuyến",
     "headings": [
-      "Cột thông tin",
-      "Cột chi phí & lợi nhuận",
-      "Hành động"
+      "Các bước sử dụng",
+      "Logic / Quy tắc"
     ],
-    "snippet": "Mở trang trong app /truck/trips → URL /truck/trips/{mã} Bố cục Chuyến đã hoàn thành hiển thị 2 cột trên desktop Chi tiết chuyến đã hoàn thành — thông tin (trái) + chi phí & lợi nhuận (phải) Cột thông tin Khách hàng, BOL/CDF, tuyến đường, xe, tài xế và lộ trình điểm dừng (nếu có). Cột chi phí & lợi nhuận Bảng liệt kê: nhiên liệu, cầu đường, chi phí phát sinh, tổng chi phí , doanh thu và lợi nhuận ("
+    "snippet": "Mở trang trong app /truck/trips → URL /truck/trips/{mã} Bố cục Chuyến đã hoàn thành: 2 cột trên desktop, xếp dọc trên điện thoại Chi tiết: thông tin (trái) + chi phí & lợi nhuận (phải) (desktop) Chi tiết chuyến trên điện thoại (điện thoại) Các bước sử dụng Xem cột thông tin : khách hàng, BOL/CDF, tuyến, xe, tài xế, lộ trình điểm dừng. Xem cột chi phí & lợi nhuận : nhiên liệu, cầu đường, phát sinh,"
   },
   {
     "url": "vi/truck-manager/05-doi-xe.html",
@@ -1140,10 +1131,10 @@
     "section": "truck-manager",
     "title": "Đội xe tải",
     "headings": [
-      "Thông tin mỗi xe",
-      "Thêm / sửa xe"
+      "Các bước sử dụng",
+      "Logic / Quy tắc"
     ],
-    "snippet": "Mở trang trong app /truck/fleet → URL /truck/fleet Nội dung Danh sách xe tải kèm khu vực và trạng thái Danh sách đội xe tải Thông tin mỗi xe Biển số, model, khu vực (HCM / Đồng Nai / Baiksan) và trạng thái : Sẵn sàng · Đang chạy · Bảo trì · Đã thanh lý. Thêm / sửa xe Nút Thêm xe mở form (biển số, model, khu vực…). Khu vực của xe quyết định chuyến của xe đó thuộc khu vực nào trên dashboard và báo c"
+    "snippet": "Mở trang trong app /truck/fleet → URL /truck/fleet Nội dung Danh sách xe tải kèm khu vực & trạng thái Danh sách đội xe (desktop) Đội xe trên điện thoại (điện thoại) Các bước sử dụng Xem mỗi xe: biển số · model · khu vực · trạng thái . Bấm Thêm xe → nhập biển số, model, khu vực (HCM/Đồng Nai/Baiksan), trạng thái. Bấm một xe để sửa thông tin. Logic / Quy tắc Trạng thái: Sẵn sàng · Đang chạy · Bảo tr"
   },
   {
     "url": "vi/truck-manager/06-tai-xe.html",
@@ -1151,10 +1142,10 @@
     "section": "truck-manager",
     "title": "Tài xế xe tải",
     "headings": [
-      "Thông tin mỗi tài xế",
-      "Thêm tài xế"
+      "Các bước sử dụng",
+      "Logic / Quy tắc"
     ],
-    "snippet": "Mở trang trong app /truck/drivers → URL /truck/drivers Nội dung Danh sách tài xế phòng Xe tải Danh sách tài xế xe tải Thông tin mỗi tài xế Tên, hạng bằng lái, trạng thái. Tài xế được tạo từ người dùng đã có quyền phòng Xe tải. Thêm tài xế Nút Thêm tài xế chọn người dùng và cấp hồ sơ tài xế. Nếu chưa có người dùng phù hợp, tạo người dùng trên AMA trước. ← Trước Đội xe Tiếp theo → Chi phí & Lợi nhuậ"
+    "snippet": "Mở trang trong app /truck/drivers → URL /truck/drivers Nội dung Danh sách tài xế phòng Xe tải Danh sách tài xế (desktop) Tài xế trên điện thoại (điện thoại) Các bước sử dụng Xem mỗi tài xế: tên, hạng bằng, trạng thái. Bấm Thêm tài xế → chọn người dùng đã có quyền phòng Xe tải, nhập hồ sơ. Nếu chưa có người dùng phù hợp: tạo người dùng trên AMA trước, cấp quyền Xe tải, rồi quay lại. Logic / Quy tắc"
   },
   {
     "url": "vi/truck-manager/07-chi-phi-loi-nhuan.html",
@@ -1162,11 +1153,10 @@
     "section": "truck-manager",
     "title": "Chi phí & Lợi nhuận",
     "headings": [
-      "Các tab",
-      "Chi phí cố định",
-      "Đóng sổ tháng"
+      "Các bước sử dụng",
+      "Logic / Quy tắc"
     ],
-    "snippet": "Mở trang trong app /truck/finance → URL /truck/finance Kỳ Chọn tháng ở đầu trang Chi phí & Lợi nhuận — sổ theo chuyến của tháng đã chọn Các tab Theo chuyến — sổ liệt kê từng chuyến kèm doanh thu, chi phí, lợi nhuận Tổng quan P&L — xem Tổng quan P&L Hoá đơn & Chi phí tháng — hoá đơn nhiên liệu, chi phí cố định Chi phí cố định Lương tài xế, khấu hao, bảo hiểm… nhập theo tháng và được cộng vào tổng c"
+    "snippet": "Mở trang trong app /truck/finance → URL /truck/finance Kỳ Chọn tháng ở đầu trang Sổ theo chuyến của tháng đã chọn (desktop) Chi phí & Lợi nhuận trên điện thoại (điện thoại) Các bước sử dụng Chọn tháng ở đầu trang. Chuyển giữa 3 tab: Theo chuyến (sổ từng chuyến) · Tổng quan P&L · Hoá đơn & Chi phí tháng . Ở tab Hoá đơn & Chi phí: nhập chi phí cố định (lương, khấu hao, bảo hiểm) và hoá đơn nhiên liệ"
   },
   {
     "url": "vi/truck-manager/08-tong-quan-pnl.html",
@@ -1174,10 +1164,10 @@
     "section": "truck-manager",
     "title": "Tổng quan P&L",
     "headings": [
-      "Xem gì ở đây",
-      "Liên kết"
+      "Các bước sử dụng",
+      "Logic / Quy tắc"
     ],
-    "snippet": "Mở trang trong app /truck/pnl → URL /truck/pnl Nội dung Bức tranh lãi/lỗ theo khu vực và theo tháng Tổng quan P&L theo khu vực Xem gì ở đây Doanh thu, tổng chi phí và lợi nhuận được tổng hợp theo khu vực và tháng , giúp so sánh hiệu quả giữa HCM / Đồng Nai / Baiksan. Liên kết P&L là một tab trong menu Chi phí & Lợi nhuận ; số liệu lấy từ các chuyến đã hoàn thành và chi phí cố định của kỳ. ← Trước "
+    "snippet": "Mở trang trong app /truck/pnl → URL /truck/pnl Nội dung Lãi/lỗ tổng hợp theo khu vực & tháng Tổng quan P&L theo khu vực (desktop) Tổng quan P&L trên điện thoại (điện thoại) Các bước sử dụng Chọn kỳ / khu vực để xem doanh thu – chi phí – lợi nhuận tổng hợp. So sánh hiệu quả giữa HCM / Đồng Nai / Baiksan . Bấm Xuất Excel nếu cần lấy số liệu ra ngoài. Logic / Quy tắc Số liệu lấy từ các chuyến đã hoàn"
   },
   {
     "url": "vi/truck-manager/09-lap-bao-cao.html",
@@ -1185,11 +1175,10 @@
     "section": "truck-manager",
     "title": "Lập báo cáo",
     "headings": [
-      "Bước 1 — Chọn tháng",
-      "Bước 2 — Chọn khu vực",
-      "Bước 3 — Xác nhận & Lập báo cáo"
+      "Các bước sử dụng",
+      "Logic / Quy tắc (chặn lỗi)"
     ],
-    "snippet": "Mở trang trong app /truck/reports/new → URL /truck/reports/new Quy trình 3 bước: Chọn tháng → Chọn khu vực → Xác nhận Lập báo cáo — Bước 1: chọn tháng Bước 1 — Chọn tháng Chọn tháng cần lập báo cáo. Tháng không có dữ liệu sẽ không cho đi tiếp và hiển thị cảnh báo ngay tại bước này. Bước 2 — Chọn khu vực Chọn một khu vực (HCM / Đồng Nai / Baiksan) hoặc toàn khu vực . Khu vực không có chuyến trong t"
+    "snippet": "Mở trang trong app /truck/reports/new → URL /truck/reports/new Quy trình 3 bước: Chọn tháng → Chọn khu vực → Xác nhận Bước 1 — chọn tháng (desktop) Lập báo cáo trên điện thoại (điện thoại) Các bước sử dụng Bước 1 — Chọn tháng : chọn tháng cần lập báo cáo. Bước 2 — Chọn khu vực : chọn một khu vực (HCM/Đồng Nai/Baiksan) hoặc toàn khu vực . Bước 3 — Xác nhận & Lập báo cáo : xem lại số liệu tổng hợp r"
   },
   {
     "url": "vi/truck-manager/10-danh-sach-bao-cao.html",
@@ -1197,8 +1186,9 @@
     "section": "truck-manager",
     "title": "Danh sách báo cáo",
     "headings": [
-      "Thao tác"
+      "Các bước sử dụng",
+      "Logic / Quy tắc"
     ],
-    "snippet": "Mở trang trong app /truck/reports → URL /truck/reports Nội dung Các báo cáo đã lập Danh sách báo cáo đã lập Thao tác Xem lại và tải về báo cáo (Excel) Báo cáo mới có nhãn Mới cho đến khi được xem Bấm Lập báo cáo để tạo báo cáo mới (xem Lập báo cáo ) ← Trước Lập báo cáo"
+    "snippet": "Mở trang trong app /truck/reports → URL /truck/reports Nội dung Các báo cáo đã lập Danh sách báo cáo đã lập (desktop) Danh sách báo cáo trên điện thoại (điện thoại) Các bước sử dụng Xem các báo cáo đã lập (tháng · khu vực · người lập · thời điểm). Bấm Tải về để lấy file Excel. Bấm Lập báo cáo để tạo báo cáo mới (xem Lập báo cáo ). Logic / Quy tắc Báo cáo mới có nhãn Mới cho đến khi bạn xem trang n"
   }
 ]

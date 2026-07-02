@@ -67,9 +67,10 @@
         </p>
 
         <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/trips/new</code></dd><dt>목적</dt><dd>새 화물 운행 일지 생성</dd></dl></div>
-        <figure><img src="../../assets/img/screenshots/ko/truck-manager/03-trip-new.png" alt="운행 등록 폼 — 고객·경로·수치"><figcaption>운행 등록 폼 — 고객·경로·수치</figcaption></figure>
-<h2>입력 항목</h2><ul><li><strong>고객</strong>, <strong>BOL</strong> / <strong>CDF</strong> 번호(증빙)</li><li><strong>출발 → 도착</strong>, 경유지 추가 가능</li><li><strong>차량</strong>(운행 지역 결정) 및 <strong>기사</strong></li><li><strong>수치</strong>: 연료(리터 + 단가), 통행료, 매출 — 완료 시 기사가 입력 가능</li></ul>
-<h2>참고</h2><p>차량·기사는 나중에 배정할 수 있습니다. 저장하면 수치를 모두 기록하기 전까지 <strong>완료 대기</strong> 상태입니다.</p>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/03-trip-new.png" alt="운행 등록 폼 (데스크톱)"><figcaption>운행 등록 폼 (데스크톱)</figcaption></figure>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/03-trip-new-mobile.png" alt="휴대폰 운행 등록 폼 (모바일)"><figcaption>휴대폰 운행 등록 폼 (모바일)</figcaption></figure>
+<h2>사용 단계</h2><ol><li><strong>고객</strong> 및 증빙 번호 <strong>BOL / CDF</strong>(있으면) 입력.</li><li><strong>출발 → 도착</strong> 입력; 다구간이면 <strong>+ 경유지 추가</strong>.</li><li><strong>차량</strong>(운행 지역 결정)·<strong>기사</strong> 선택.</li><li><strong>수치</strong> 입력: 연료(리터+단가)·통행료·매출 — 완료 시 기사가 입력하도록 비워둘 수 있음.</li><li><strong>저장</strong>.</li></ol>
+<h2>로직 / 규칙</h2><ul><li><strong>차량·기사는 나중에 배정 가능</strong>(생성 시 필수 아님).</li><li>저장 시 수치 완비 전까지 <strong>완료 대기</strong> 상태.</li><li>해당 월·지역이 <strong>마감</strong>되었으면 생성/수정 차단(정산 확정).</li></ul>
 
         <nav class="pager">
           <a class="pager__prev" href="02-nhat-ky-chuyen.html"><span>← 이전</span><strong>운행 일지</strong></a>

@@ -67,9 +67,10 @@
         </p>
 
         <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/drivers</code></dd><dt>내용</dt><dd>트럭 부서 기사 목록</dd></dl></div>
-        <figure><img src="../../assets/img/screenshots/ko/truck-manager/06-drivers.png" alt="트럭 기사 목록"><figcaption>트럭 기사 목록</figcaption></figure>
-<h2>기사 정보</h2><p>이름, 면허 등급, 상태. 기사는 트럭 부서 권한이 있는 사용자로부터 생성됩니다.</p>
-<h2>기사 추가</h2><p><strong>기사 추가</strong> 버튼으로 사용자를 선택해 기사 프로필을 만듭니다. 적합한 사용자가 없으면 먼저 AMA에서 사용자를 생성하세요.</p>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/06-drivers.png" alt="기사 목록 (데스크톱)"><figcaption>기사 목록 (데스크톱)</figcaption></figure>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/06-drivers-mobile.png" alt="휴대폰 기사 목록 (모바일)"><figcaption>휴대폰 기사 목록 (모바일)</figcaption></figure>
+<h2>사용 단계</h2><ol><li>각 기사 확인: 이름·면허 등급·상태.</li><li><strong>기사 추가</strong> → 트럭 권한 있는 사용자를 선택해 프로필 입력.</li><li>적합한 사용자가 없으면 AMA에서 사용자 생성 → 트럭 권한 부여 후 재시도.</li></ol>
+<h2>로직 / 규칙</h2><ul><li>기사는 트럭 권한(car_user_fleet_access)이 부여된 <strong>AMA 사용자</strong>로부터 생성.</li><li>한 기사는 <strong>한 부서</strong>에만 소속(승용차 또는 트럭).</li></ul>
 
         <nav class="pager">
           <a class="pager__prev" href="05-doi-xe.html"><span>← 이전</span><strong>차량</strong></a>
