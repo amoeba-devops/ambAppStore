@@ -27,6 +27,9 @@ interface StackedBarChartProps<T extends Record<string, unknown>> {
   valueSuffix?: string;
   /* Number of decimal places used when formatting (default 0). */
   valuePrecision?: number;
+  /* Stack the series (default) or render them grouped side-by-side. Grouped is
+   * right when series aren't additive (e.g. revenue vs profit). */
+  stacked?: boolean;
 }
 
 export function StackedBarChart<T extends Record<string, unknown>>({
@@ -36,6 +39,7 @@ export function StackedBarChart<T extends Record<string, unknown>>({
   height = 240,
   valueSuffix = '',
   valuePrecision = 0,
+  stacked = true,
 }: StackedBarChartProps<T>) {
   const fmt = (v: number) => `${v.toFixed(valuePrecision)}${valueSuffix}`;
   return (
@@ -72,7 +76,7 @@ export function StackedBarChart<T extends Record<string, unknown>>({
               key={s.key}
               dataKey={s.key}
               name={s.name}
-              stackId="a"
+              stackId={stacked ? 'a' : undefined}
               fill={s.color}
               radius={i === series.length - 1 ? [4, 4, 0, 0] : 0}
               isAnimationActive={false}

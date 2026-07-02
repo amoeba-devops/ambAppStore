@@ -78,7 +78,7 @@ export function OpenInMapsLink({ origin, dest, waypoints }: OpenInMapsLinkProps)
       rel={opensInNewTab ? 'noopener noreferrer' : undefined}
       onClick={handleClick}
       aria-label={ariaLabel}
-      className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg rounded"
+      className="inline-flex items-center gap-1 min-h-[44px] md:min-h-0 text-xs font-medium text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg rounded"
     >
       {t('openFullscreen')}
       {opensInNewTab ? <ExternalLink className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}

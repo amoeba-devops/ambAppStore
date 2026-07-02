@@ -5,7 +5,7 @@ import { ChevronLeft } from 'lucide-react';
 import { Button } from '@car-v2/ui';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { getDriver } from '@/server/queries/drivers.queries';
+import { getDriver, isTruckDriver } from '@/server/queries/drivers.queries';
 import { DriverForm } from '../../_components/driver-form';
 
 export default async function EditDriverPage({ params }: { params: Promise<{ id: string }> }) {
@@ -18,6 +18,8 @@ export default async function EditDriverPage({ params }: { params: Promise<{ id:
 
   const driver = await getDriver(user.entId, id);
   if (!driver) notFound();
+  /* Truck drivers get the fixed-salary field; resolved from fleet membership. */
+  const truckDriver = await isTruckDriver(user.entId, driver.drvUserId);
 
   return (
     <>
@@ -39,7 +41,7 @@ export default async function EditDriverPage({ params }: { params: Promise<{ id:
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6">
-        <DriverForm driver={driver} />
+        <DriverForm driver={driver} dept={truckDriver ? 'TRUCK' : undefined} />
       </div>
     </>
   );

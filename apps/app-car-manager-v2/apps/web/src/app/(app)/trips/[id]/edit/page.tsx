@@ -8,7 +8,7 @@ import { db } from '@car-v2/db/client';
 import { carTripStopovers, carUsers } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { listDrivers } from '@/server/queries/drivers.queries';
+import { listNonTruckDrivers } from '@/server/queries/drivers.queries';
 import { getTrip } from '@/server/queries/trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { EditTripForm } from './edit-trip-form';
@@ -41,7 +41,7 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
       })
       .from(carUsers)
       .where(and(eq(carUsers.entId, user.entId), isNull(carUsers.usrDeletedAt))),
-    listDrivers(user.entId),
+    listNonTruckDrivers(user.entId),
     listVehicles(user.entId),
     db.query.carTripStopovers.findMany({
       where: eq(carTripStopovers.tstTripId, id),

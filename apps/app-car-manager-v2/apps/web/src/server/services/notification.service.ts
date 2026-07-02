@@ -78,6 +78,10 @@ const DELIVERY_CHANNELS: Record<string, { email: boolean; push: boolean }> = {
   'MAINTENANCE.OIL_DUE_SOON': { email: false, push: true },
   'MAINTENANCE.INSPECTION_OVERDUE': { email: true, push: true },
   'MAINTENANCE.INSPECTION_DUE_SOON': { email: false, push: true },
+  /* Truck trip-log (REQ-20260617): push the driver on assign, push the creator
+   * on completion. Fleet-access events stay in-app only (omitted). */
+  'TRUCK_TRIP.ASSIGNED': { email: false, push: true },
+  'TRUCK_TRIP.COMPLETED': { email: false, push: true },
 };
 
 export async function notifyUser(input: NotifyInput): Promise<void> {

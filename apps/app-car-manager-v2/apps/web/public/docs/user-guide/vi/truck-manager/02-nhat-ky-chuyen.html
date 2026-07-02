@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nhật ký chuyến — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2" aria-label="Amoeba Car Manager v2">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span><span class="header__brand-mobile">Hướng dẫn</span>
+      </a>
+      <div class="header__tools">
+        <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi"><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" data-lang="ko"><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Xe tải · Quản lý</div>
+        <a class="sidebar__link" href="00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="01-bang-dieu-khien.html">Bảng điều khiển</a>
+        <a class="sidebar__link is-active" href="02-nhat-ky-chuyen.html">Nhật ký chuyến</a>
+        <a class="sidebar__link" href="03-lap-chuyen.html">Lập chuyến</a>
+        <a class="sidebar__link" href="04-chi-tiet-chuyen.html">Chi tiết chuyến</a>
+        <a class="sidebar__link" href="05-doi-xe.html">Đội xe</a>
+        <a class="sidebar__link" href="06-tai-xe.html">Tài xế</a>
+        <a class="sidebar__link" href="07-chi-phi-loi-nhuan.html">Chi phí & Lợi nhuận</a>
+        <a class="sidebar__link" href="08-tong-quan-pnl.html">Tổng quan P&L</a>
+        <a class="sidebar__link" href="09-lap-bao-cao.html">Lập báo cáo</a>
+        <a class="sidebar__link" href="10-danh-sach-bao-cao.html">Danh sách báo cáo</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Xe tải · Tài xế</div>
+        <a class="sidebar__link" href="../truck-driver/00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="../truck-driver/01-hom-nay.html">Hôm nay</a>
+        <a class="sidebar__link" href="../truck-driver/02-hoan-thanh-chuyen.html">Hoàn thành chuyến</a>
+        <a class="sidebar__link" href="../truck-driver/03-ghi-chuyen-moi.html">Ghi chuyến mới</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">Thông báo</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">Trang chủ</a> · Xe tải · Quản lý · Nhật ký chuyến</div>
+        <h1>Nhật ký chuyến</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/truck/trips" target="_parent" rel="noopener">
+            <span>Mở trang trong app</span>
+            <span class="app-link-cta__route">/truck/trips</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/trips</code></dd><dt>Nội dung</dt><dd>Toàn bộ nhật ký chuyến (LOG) của phòng Xe tải</dd></dl></div>
+        <figure><img src="../../assets/img/screenshots/vi/truck-manager/02-trips-list.png" alt="Danh sách chuyến (bảng) (desktop)"><figcaption>Danh sách chuyến (bảng) (desktop)</figcaption></figure>
+        <figure><img src="../../assets/img/screenshots/vi/truck-manager/02-trips-list-mobile.png" alt="Danh sách chuyến (thẻ) trên điện thoại (điện thoại)"><figcaption>Danh sách chuyến (thẻ) trên điện thoại (điện thoại)</figcaption></figure>
+<h2>Các bước sử dụng</h2><ol><li><strong>Lọc / tìm</strong> theo mã chuyến, khách hàng, xe, trạng thái ở thanh trên.</li><li>Đọc mỗi dòng: mã · khách hàng · tuyến (đi → đến) · xe · tài xế · trạng thái · doanh thu.</li><li>Bấm một dòng (điện thoại: một thẻ) để mở <a href="04-chi-tiet-chuyen.html">chi tiết chuyến</a>.</li><li>Bấm <strong>Lập chuyến</strong> để tạo mới (xem <a href="03-lap-chuyen.html">Lập chuyến</a>).</li></ol>
+<h2>Trạng thái chuyến</h2><ul><li><strong>Chờ hoàn thành</strong> — đã tạo, chưa ghi đủ số liệu.</li><li><strong>Đang chạy</strong> — chuyến đang thực hiện.</li><li><strong>Hoàn thành</strong> — đã ghi nhiên liệu/cầu đường/doanh thu; mới được tính vào dashboard &amp; báo cáo.</li><li>Chỉ hiển thị chuyến loại LOG (xe tải), không lẫn chuyến điều xe con.</li></ul>
+
+        <nav class="pager">
+          <a class="pager__prev" href="01-bang-dieu-khien.html"><span>← Trước</span><strong>Bảng điều khiển</strong></a>
+          <a class="pager__next" href="03-lap-chuyen.html"><span>Tiếp theo →</span><strong>Lập chuyến</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">Cập nhật 01-07-2026 · Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

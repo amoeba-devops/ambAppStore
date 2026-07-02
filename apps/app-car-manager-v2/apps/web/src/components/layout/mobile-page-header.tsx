@@ -114,7 +114,7 @@ function MeAvatarLink() {
       aria-label={`${tNav('me')} — ${user.name}`}
       title={user.name}
       className={cn(
-        'shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-full',
+        'shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-full',
         user.color.bg,
         user.color.fg,
         'text-xs font-bold',
@@ -181,7 +181,7 @@ function UserGuideIconLink() {
           aria-label={tNav('userGuideAria')}
           title={tNav('userGuide')}
           className={cn(
-            'shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-full',
+            'shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-full',
             'text-text-muted hover:bg-surface-2 hover:text-text active:bg-surface-2/80',
             'transition-[background-color,color] duration-150 motion-reduce:transition-none',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg',

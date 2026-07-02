@@ -8,7 +8,7 @@ import { db } from '@car-v2/db/client';
 import { carUsers } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { listDrivers } from '@/server/queries/drivers.queries';
+import { listNonTruckDrivers } from '@/server/queries/drivers.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { NewTripForm } from './new-trip-form';
 
@@ -26,7 +26,7 @@ export default async function NewTripPage() {
    * listDrivers/listVehicles (ent_id filter); carUsers query thêm điều kiện
    * entId ở đây để khớp pattern. */
   const [drivers, vehicles, users] = await Promise.all([
-    listDrivers(user.entId),
+    listNonTruckDrivers(user.entId),
     listVehicles(user.entId),
     db
       .select({

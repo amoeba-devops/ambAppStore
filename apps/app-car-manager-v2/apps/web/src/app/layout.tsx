@@ -2,6 +2,11 @@ import type { Metadata, Viewport } from 'next';
 import { Be_Vietnam_Pro, Inter, JetBrains_Mono } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
+import { cookies, headers } from 'next/headers';
+import { mapAmaRoleToLocal, type AmaJwtClaims } from '@car-v2/shared/auth';
+import { clearlyDept } from '@/components/layout/nav-items';
+import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { resolveFleetAccess } from '@/lib/auth/fleet-access';
 import { SWRegister } from '@/components/pwa/sw-register';
 import './globals.css';
 
@@ -61,6 +66,53 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
   const messages = await getMessages();
+  /* Pre-render data-dept server-side so the FIRST paint already carries the
+   * correct accent (truck → orange, car → blue) with no flash:
+   *   1. URL is authoritative — `/truck/*` is always the truck workspace, even
+   *      on first login before the sticky cookie exists (middleware forwards
+   *      the app-relative path via x-pathname).
+   *   2. Department-NEUTRAL pages (drivers/users/settings/audit) fall back to
+   *      the `ccms.fleet.dept` cookie so a truck-workspace user keeps orange.
+   * DeptThemeEffect keeps it in sync on client navigations; the cookie is set
+   * by DeptProvider.persist(). suppressHydrationWarning on <html> covers the
+   * transient case where cookie + client state diverge (e.g. a new user logs in). */
+  const [jar, hdrs] = await Promise.all([cookies(), headers()]);
+  const pathname = hdrs.get('x-pathname') ?? '';
+  const cookieDept = jar.get('ccms.fleet.dept')?.value;
+  const cookieIsTruck = cookieDept === 'TRUCK';
+  /* Role-aware so the first paint's accent matches the post-hydration theme for
+   * EVERY role, not just staff:
+   *   - STAFF switch workspaces by navigating (/dashboard ↔ /truck/*), so the
+   *     URL is authoritative; the cookie only covers dept-neutral pages.
+   *   - DRIVERS can't switch — their workspace is fixed by membership — and
+   *     their pages live on dept-neutral / car-classified URLs (/today,
+   *     /trips), so neither the path nor (on a fresh login, where the cookie is
+   *     absent — it's cleared at logout) the cookie can colour the FIRST paint.
+   *     We resolve the driver's membership directly so a truck driver is orange
+   *     from first byte, matching a truck manager landing on /truck/*. */
+  const localRole = (() => {
+    /* x-user-role is set by middleware from the verified JWT claim, so it's
+     * always a valid AMA role here; an absent/unexpected value falls through to
+     * the staff (URL-authoritative) branch — the original pre-role behavior. */
+    const ama = hdrs.get('x-user-role');
+    return ama ? mapAmaRoleToLocal(ama as AmaJwtClaims['role']) : null;
+  })();
+  let dept: 'CAR' | 'TRUCK';
+  if (localRole === 'DRIVER') {
+    /* resolveFleetAccess is React-cache()d and AppShell resolves it again this
+     * same request, so this is deduped to one query — no extra DB round-trip.
+     * Falls back to the cookie guess if the lookup throws (unauth/edge). */
+    let isTruck = cookieIsTruck;
+    try {
+      isTruck = (await resolveFleetAccess(await getCurrentUser())).includes('TRUCK');
+    } catch {
+      /* keep the cookie-based guess */
+    }
+    dept = isTruck ? 'TRUCK' : 'CAR';
+  } else {
+    dept = clearlyDept(pathname) ?? (cookieIsTruck ? 'TRUCK' : 'CAR');
+  }
+  const dataDept = dept === 'TRUCK' ? 'truck' : undefined;
 
   return (
     /* suppressHydrationWarning trên <html> + <body> mute noise của browser
@@ -76,7 +128,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
      * functionality. Production users không có extension này sẽ không thấy.
      * Tài liệu trong README §10 troubleshooting để dev local biết cách bỏ
      * qua (Bitdefender → Safe Browsing → whitelist localhost). */
-    <html lang={locale} className={fontVariables} suppressHydrationWarning>
+    <html lang={locale} className={fontVariables} data-dept={dataDept} suppressHydrationWarning>
       <body className="min-h-screen" suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}

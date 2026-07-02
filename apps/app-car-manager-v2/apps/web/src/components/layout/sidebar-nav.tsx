@@ -34,7 +34,9 @@ import {
 import type { LocalRole } from '@car-v2/shared/auth';
 import { useAllDrafts, type DraftEntry } from '@/hooks/use-all-drafts';
 import { LogoutConfirmDialog } from '@/components/auth/logout-confirm-dialog';
-import { activeKeyFor, navItemsForRole, type NavKey } from './nav-items';
+import { useActiveDept } from './dept-context';
+import { DeptSwitch } from './dept-switch';
+import { activeKeyFor, navItemsForRole, type FleetDept, type NavKey } from './nav-items';
 import { SidebarLocaleSwitcher } from './sidebar-locale-switcher';
 import { useTenantDisplay } from './tenant-display-context';
 import { UserGuideDrawer } from './user-guide-drawer';
@@ -52,6 +54,9 @@ const ENTITY_SUB_ICON: Record<DraftEntry['entity'], LucideIcon> = {
 interface SidebarNavProps {
   collapsed: boolean;
   role: LocalRole;
+  /** Fleet departments the user may enter — drives the dept switch + which
+   * department's nav items show. */
+  fleetAccess: FleetDept[];
   /** Real user display name from AMA JWT. Fallback to email/role if null. */
   userName: string | null;
   /** Email from AMA JWT. Used as secondary text and Avatar fallback. */
@@ -62,6 +67,9 @@ interface SidebarNavProps {
    * "N hôm nay" badge on the Chi phí nav item. STAFF only — passed as 0
    * for DRIVER (the costs nav item isn't in their role anyway). */
   todayExpenseCount: number;
+  /** Server-fed: truck reports created since the user last opened the list.
+   * Drives the "Mới" badge on the truck Reports nav item. 0 hides it. */
+  newReportCount: number;
 }
 
 /** Map NavKey → metric counts. Keys absent or 0 → no badge. */
@@ -76,11 +84,12 @@ const NAV_KEY_TO_ENTITY: Partial<Record<NavKey, DraftEntry['entity']>> = {
   costs: 'expense',
 };
 
-export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCount, todayExpenseCount }: SidebarNavProps) {
+export function SidebarNav({ collapsed, role, fleetAccess, userName, userEmail, pendingTripCount, todayExpenseCount, newReportCount }: SidebarNavProps) {
   const tNav   = useTranslations('nav');
   const tCo    = useTranslations('company');
   const tAct   = useTranslations('actions');
   const tRole  = useTranslations('settings.me.roles');
+  const tDept  = useTranslations('layout.dept');
   const tGroup = useTranslations();
   const pathname = usePathname();
   // locale + guide href no longer needed here — UserGuideDrawer reads locale +
@@ -93,7 +102,14 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
    *   userName → email local part → "User"
    * Role uses i18n (Quản trị / Quản lý / Tài xế). */
   const displayName = userName?.trim() || userEmail?.split('@')[0] || 'User';
-  const displayRole = tRole(role);
+  /* Hướng B / B1: a manager scoped to a single fleet IS that department's
+   * admin (same workspace-only powers), so surface "Quản trị xe tải/xe con" as
+   * their title. Org admins keep "Quản trị viên"; 2-dept managers stay "Quản
+   * lý"; drivers unchanged. Label only — permissions are not affected. */
+  const displayRole =
+    role === 'MANAGER' && fleetAccess.length === 1
+      ? tDept(fleetAccess[0] === 'TRUCK' ? 'deptAdminTruck' : 'deptAdminCar')
+      : tRole(role);
   /* Email shown as secondary line if available + different from display name. */
   const showEmailLine = userEmail && userEmail !== displayName;
   /* Pass role so `/` correctly maps to `today` for drivers and `dashboard`/`trips`
@@ -117,6 +133,7 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
   const metricCounts: MetricCounts = {
     trips: pendingTripCount,
     costs: todayExpenseCount,
+    truckReports: newReportCount,
   };
 
   /* Passed to the confirm dialog as `perform` — runs AFTER the client wipes
@@ -133,9 +150,26 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
    * already the canonical "current user" affordance on desktop (clicks open a
    * dropdown with Me + Sign out), so a separate row was redundant. Mobile keeps
    * the avatar in MobilePageHeader, which already links to /settings/me. */
-  const allItems = navItemsForRole(role);
+  /* Sticky active workspace (from DeptProvider). The nav shows that
+   * department's items + department-agnostic shared ones, and — unlike the old
+   * URL-derived value — stays put when the user opens a shared admin page
+   * (drivers/users/settings/audit) instead of snapping back to car. */
+  const dept = useActiveDept();
+  const allItems = navItemsForRole(role, { dept });
   const workspace = allItems.filter((i) => i.group === 'workspace' && i.key !== 'me');
   const admin = allItems.filter((i) => i.group === 'admin');
+
+  /* Workspace renders as a single group (car: items have no `section`) or as
+   * the truck IA sub-sections. Fixed display order; empty sections self-hide
+   * (NavGroup returns null for 0 items). Labels live at i18n root. */
+  const SECTION_ORDER = ['workspace', 'operations', 'finance', 'data', 'reports'] as const;
+  const sectionLabelKey: Record<string, string> = {
+    workspace: 'workspace',
+    operations: 'navSections.operations',
+    finance: 'navSections.finance',
+    data: 'navSections.data',
+    reports: 'navSections.reports',
+  };
 
   return (
     <aside
@@ -168,18 +202,27 @@ export function SidebarNav({ collapsed, role, userName, userEmail, pendingTripCo
         )}
       </div>
 
+      {/* Fleet department switch — renders only for users with both
+       * departments (toggle) or a manager who can request truck access. */}
+      <div className="px-2 pt-2 empty:hidden">
+        <DeptSwitch role={role} fleetAccess={fleetAccess} collapsed={collapsed} />
+      </div>
+
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-5">
-        <NavGroup
-          label={tGroup('workspace')}
-          items={workspace}
-          activeKey={active}
-          collapsed={collapsed}
-          draftsByNavKey={draftsByNavKey}
-          metricCounts={metricCounts}
-          onRemoveDraft={removeDraft}
-          t={(key: NavKey) => tNav(key === 'audit' ? 'auditLog' : key)}
-        />
+        {SECTION_ORDER.map((sec) => (
+          <NavGroup
+            key={sec}
+            label={tGroup(sectionLabelKey[sec])}
+            items={workspace.filter((i) => (i.section ?? 'workspace') === sec)}
+            activeKey={active}
+            collapsed={collapsed}
+            draftsByNavKey={draftsByNavKey}
+            metricCounts={metricCounts}
+            onRemoveDraft={removeDraft}
+            t={(key: NavKey) => tNav(key === 'audit' ? 'auditLog' : key)}
+          />
+        ))}
         <NavGroup
           label={tGroup('admin')}
           items={admin}
@@ -420,7 +463,7 @@ function NavGroup({
                   'group flex items-center gap-2.5 h-9 rounded px-2 text-sm font-medium transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   isActive
-                    ? 'bg-primary text-primary-fg'
+                    ? 'bg-accent text-accent-fg'
                     : 'text-text-muted hover:bg-surface-2 hover:text-text',
                   collapsed && 'justify-center',
                 )}
@@ -438,20 +481,24 @@ function NavGroup({
                         className={cn(
                           'text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full tabular shrink-0 inline-flex items-baseline gap-0.5',
                           isActive
-                            ? 'bg-primary-fg/15 text-primary-fg'
+                            ? 'bg-accent-fg/15 text-accent-fg'
                             : 'bg-info-soft text-info',
                         )}
                         title={
                           item.key === 'costs'
                             ? tNav('todayCountTitle', { n: metricCount })
-                            : tNav('pendingCountTitle', { n: metricCount })
+                            : item.key === 'truckReports'
+                              ? tNav('newReportsCountTitle', { n: metricCount })
+                              : tNav('pendingCountTitle', { n: metricCount })
                         }
                       >
                         <span>{metricCount}</span>
                         <span className="text-[9px] font-medium uppercase tracking-wide opacity-90">
                           {item.key === 'costs'
                             ? tNav('todayBadgeLabel')
-                            : tNav('pendingBadgeLabel')}
+                            : item.key === 'truckReports'
+                              ? tNav('newBadgeLabel')
+                              : tNav('pendingBadgeLabel')}
                         </span>
                       </span>
                     ) : item.staticBadge ? (
@@ -459,7 +506,7 @@ function NavGroup({
                         className={cn(
                           'text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full tabular shrink-0',
                           isActive
-                            ? 'bg-primary-fg/15 text-primary-fg'
+                            ? 'bg-accent-fg/15 text-accent-fg'
                             : 'bg-surface-2 text-text-muted',
                         )}
                       >

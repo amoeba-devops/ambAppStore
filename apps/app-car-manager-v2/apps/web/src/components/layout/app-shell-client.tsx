@@ -9,6 +9,8 @@ import { InstallPrompt } from '@/components/pwa/install-prompt';
 import { PushConfigProvider } from '@/components/pwa/push-config-context';
 import { PushPromptStrip } from '@/components/pwa/push-prompt-strip';
 import { BottomTabNav } from './bottom-tab-nav';
+import { DeptProvider } from './dept-context';
+import type { FleetDept } from './nav-items';
 import { SidebarNav } from './sidebar-nav';
 import { TenantDisplayProvider } from './tenant-display-context';
 import { UserDisplayProvider } from './user-display-context';
@@ -17,6 +19,10 @@ const COLLAPSE_KEY = 'ccms.sidebar.collapsed';
 
 interface AppShellClientProps {
   role: LocalRole;
+  /** Fleet departments the user may enter (drives the dept switch + nav). */
+  fleetAccess: FleetDept[];
+  /** Server-resolved sticky workspace seed (cookie clamped to access). */
+  initialDept: FleetDept;
   /** Display name from AMA JWT (null if not provided). */
   userName: string | null;
   /** Email from AMA JWT (null if not provided). */
@@ -27,6 +33,9 @@ interface AppShellClientProps {
    * sidebar + mobile bottom-tab render a small badge on the Chi phí entry
    * when this is > 0. 0 for DRIVER (badge is STAFF-only). */
   todayExpenseCount: number;
+  /** Server-counted truck reports created since this user last opened the
+   * reports list — "Mới" badge on the truck Reports nav. 0 hides it. */
+  newReportCount: number;
   /** Server-counted unread inbox notifications for this user. Drives the
    * red badge on the header notification bell (desktop + mobile). */
   unreadNotificationCount: number;
@@ -66,10 +75,13 @@ interface AppShellClientProps {
  * a numeric badge on the Trips nav item. 0 → no badge. */
 export function AppShellClient({
   role,
+  fleetAccess,
+  initialDept,
   userName,
   userEmail,
   pendingTripCount,
   todayExpenseCount,
+  newReportCount,
   unreadNotificationCount,
   vapidPublicKey,
   basePath,
@@ -111,6 +123,7 @@ export function AppShellClient({
     >
       <UserDisplayProvider userName={userName} userEmail={userEmail} role={role} unreadNotifications={unreadNotificationCount}>
       <PushConfigProvider vapidPublicKey={vapidPublicKey} basePath={basePath}>
+        <DeptProvider role={role} fleetAccess={fleetAccess} initialDept={initialDept}>
         <div className="flex min-h-dvh bg-bg text-text">
           {/* Sidebar — hidden on mobile, replaced by BottomTabNav below.
            * Push enablement is surfaced via PushPromptStrip below (a top-of-
@@ -119,10 +132,12 @@ export function AppShellClient({
             <SidebarNav
               collapsed={collapsed}
               role={role}
+              fleetAccess={fleetAccess}
               userName={userName}
               userEmail={userEmail}
               pendingTripCount={pendingTripCount}
               todayExpenseCount={todayExpenseCount}
+              newReportCount={newReportCount}
             />
           </div>
           {/* Main: reserve bottom space on mobile for the fixed bottom-tab
@@ -149,11 +164,13 @@ export function AppShellClient({
             role={role}
             pendingTripCount={pendingTripCount}
             todayExpenseCount={todayExpenseCount}
+            newReportCount={newReportCount}
           />
           <InstallPrompt />
           <Toaster />
           <NotificationSound />
         </div>
+        </DeptProvider>
       </PushConfigProvider>
       </UserDisplayProvider>
     </TenantDisplayProvider>

@@ -9,6 +9,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Auth / entry theme — the shared sign-in screen is neither the Car nor the
+ * Truck workspace, so it must NOT inherit either fleet's accent (car blue /
+ * truck orange) from the persisted `data-dept` cookie. Scope a neutral slate
+ * accent to the login subtree; every `accent` utility on it recolours to slate
+ * without touching individual classes. */
+[data-auth-theme] {
+  --accent: 215 25% 27%;      /* slate ~#334155 — distinct from car blue + truck orange */
+  --accent-fg: 0 0% 100%;
+  --accent-soft: 214 32% 91%; /* light slate ~#E2E8F0 (icon circle bg / focus ring) */
+}
+
 @layer base {
   html, body {
     height: 100%;

@@ -16,14 +16,17 @@ import {
 } from 'lucide-react';
 import { Avatar, Badge, Button } from '@car-v2/ui';
 import type { CarTripStatus } from '@car-v2/db/schema';
+import { computeTruckCost, parseAmount } from '@car-v2/core/truck';
 import { MapPreview } from '@/components/inputs/map-preview';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listAuditForEntity } from '@/server/queries/audit.queries';
-import { listDrivers } from '@/server/queries/drivers.queries';
+import { listNonTruckDrivers, getDriverByUserId } from '@/server/queries/drivers.queries';
 import { getTrip } from '@/server/queries/trips.queries';
+import { getTripExtraCosts } from '@/server/queries/truck-trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { TripActions } from './trip-actions';
+import { TruckTripDetail } from './_components/truck-trip-detail';
 
 const STATUS_TONE: Record<CarTripStatus, 'accent' | 'warning' | 'success' | 'info' | 'neutral' | 'danger'> = {
   PENDING_ASSIGNMENT:          'accent',
@@ -57,9 +60,56 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
   const trip = await getTrip(user.entId, id);
   if (!trip) notFound();
 
+  /* Truck trip-log (LOG) → dedicated detail (read-only breakdown or the
+   * completion section). Returns early so the car dispatch layout below is
+   * never touched for trucks. */
+  if (trip.trpKind === 'LOG') {
+    let isAssignedDriver = false;
+    if (user.role === 'DRIVER' && trip.trpDriverId) {
+      const actorDriver = await getDriverByUserId(user.entId, user.userId);
+      isAssignedDriver = actorDriver?.drvId === trip.trpDriverId;
+    }
+    const isStaffUser = user.role === 'ADMIN' || user.role === 'MANAGER';
+    const extras = await getTripExtraCosts(user.entId, trip.trpId);
+    const breakdown = computeTruckCost({
+      fuelLiters: parseAmount(trip.trpFuelLiters),
+      fuelPrice: parseAmount(trip.trpFuelPrice),
+      tollFee: parseAmount(trip.trpTollFee),
+      extraCosts: extras.map((e) => e.amount),
+      revenue: parseAmount(trip.trpRevenue),
+    });
+    const completed = trip.trpStatus === 'COMPLETED';
+    const canComplete =
+      !completed &&
+      (isStaffUser || isAssignedDriver) &&
+      (trip.trpStatus === 'CONFIRMED' || trip.trpStatus === 'IN_PROGRESS');
+
+    return (
+      <TruckTripDetail
+        tripId={trip.trpId}
+        tripRef={trip.trpRef}
+        status={trip.trpStatus}
+        scheduledAt={trip.trpScheduledAt}
+        customer={trip.trpCustomer}
+        bol={trip.trpBol}
+        cdf={trip.trpCdf}
+        pickup={trip.trpPickupAddress}
+        dropoff={trip.trpDropoffAddress}
+        vehiclePlate={trip.vehiclePlate}
+        driverName={trip.driverName}
+        extras={extras}
+        breakdown={breakdown}
+        completed={completed}
+        canComplete={canComplete}
+        mode={user.role === 'DRIVER' ? 'driver' : 'staff'}
+        hideFinancials={user.role === 'DRIVER'}
+      />
+    );
+  }
+
   const isStaff = user.role === 'ADMIN' || user.role === 'MANAGER';
   const [drivers, vehicles, auditRows] = await Promise.all([
-    isStaff ? listDrivers(user.entId) : Promise.resolve([]),
+    isStaff ? listNonTruckDrivers(user.entId) : Promise.resolve([]),
     isStaff ? listVehicles(user.entId) : Promise.resolve([]),
     listAuditForEntity(user.entId, 'Trip', id),
   ]);
