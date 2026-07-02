@@ -66,6 +66,13 @@ export const carVehicles = pgTable(
      * breakdown + region-scoped month close (a trip inherits its vehicle's
      * region). Stored as a code; UI labels come from i18n. */
     cvhRegion: varchar('cvh_region', { length: 40 }),
+    /* Default driver for this truck (QA 2026-07). "1 xe ↔ 1 tài xế": this driver's
+     * fixed monthly salary feeds the vehicle's monthly P&L fixed cost when no
+     * manual car_truck_fixed_costs row exists. Nullable; app-level ref to drv_id. */
+    cvhDefaultDriverId: char('cvh_default_driver_id', { length: 36 }),
+    /* Monthly depreciation (VND) — a default fixed cost carried on the vehicle so
+     * the P&L can attribute it without a manual monthly entry. Nullable. */
+    cvhDepreciation: decimal('cvh_depreciation', { precision: 14, scale: 2 }),
     cvhStatus: vehicleStatusEnum('cvh_status').notNull().default('AVAILABLE'),
     cvhOdometerKm: integer('cvh_odometer_km').notNull().default(0),
     cvhLastOilChangeKm: integer('cvh_last_oil_change_km'),

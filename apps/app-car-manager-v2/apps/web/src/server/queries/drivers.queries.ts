@@ -63,7 +63,9 @@ export async function listFleetDrivers(
       ),
     )
     .where(and(eq(carDrivers.entId, entId), isNull(carDrivers.drvDeletedAt)))
-    .orderBy(asc(carUsers.usrName));
+    /* Stable order: name, then drvId as tiebreaker so same-named drivers keep a
+     * deterministic position across reloads (QA "2 lists lúc này lúc kia"). */
+    .orderBy(asc(carUsers.usrName), asc(carDrivers.drvId));
 
   return rows.map((r) => ({ ...r.driver, user: r.user, isDeleted: false }));
 }

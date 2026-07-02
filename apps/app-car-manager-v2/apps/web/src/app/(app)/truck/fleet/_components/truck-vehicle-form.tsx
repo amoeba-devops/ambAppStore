@@ -30,6 +30,7 @@ import { formatActionError } from '@/lib/format-action-error';
 
 const FUELS = ['DIESEL', 'PETROL', 'HYBRID', 'EV'] as const;
 const NO_REGION = '__none__';
+const NO_DRIVER = '__none__';
 
 const EMPTY = {
   plate: '',
@@ -41,6 +42,8 @@ const EMPTY = {
   fuelQuota: '',
   fuelType: 'DIESEL',
   region: '',
+  defaultDriverId: '',
+  depreciation: '',
   odometer: '',
   oilIntervalKm: '8000',
   lastOilChangeKm: '',
@@ -51,10 +54,13 @@ const EMPTY = {
 export function TruckVehicleForm({
   vehicleId,
   initial,
+  drivers = [],
 }: {
   /** When set, the form edits this vehicle (calls updateVehicleAction). */
   vehicleId?: string;
   initial?: Partial<typeof EMPTY>;
+  /** Truck drivers for the "Tài xế mặc định" select. */
+  drivers?: { id: string; name: string }[];
 } = {}) {
   const t = useTranslations('screens.truckFleet.form');
   const tFuel = useTranslations('vehicles.fuel');
@@ -86,6 +92,8 @@ export function TruckVehicleForm({
         tonnage: f.tonnage ? Number(f.tonnage) : undefined,
         fuel_quota: f.fuelQuota ? Number(f.fuelQuota) : undefined,
         region: (f.region || undefined) as (typeof TRUCK_REGIONS)[number] | undefined,
+        default_driver_id: f.defaultDriverId || undefined,
+        depreciation: f.depreciation ? Number(f.depreciation) : undefined,
         odometer_km: f.odometer ? Number(f.odometer) : undefined,
         oil_interval_km: f.oilIntervalKm ? Number(f.oilIntervalKm) : undefined,
         last_oil_change_km: f.lastOilChangeKm ? Number(f.lastOilChangeKm) : undefined,
@@ -181,6 +189,27 @@ export function TruckVehicleForm({
                   ))}
                 </SelectContent>
               </Select>
+            </Field>
+            <Field label={t('defaultDriver')}>
+              <Select
+                value={f.defaultDriverId || NO_DRIVER}
+                onValueChange={(v) => setF((s) => ({ ...s, defaultDriverId: v === NO_DRIVER ? '' : v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_DRIVER}>{t('driverNone')}</SelectItem>
+                  {drivers.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label={t('depreciation')}>
+              <Input type="number" value={f.depreciation} onChange={set('depreciation')} placeholder="1000000" />
             </Field>
             <Field label={t('odometer')}>
               <Input type="number" value={f.odometer} onChange={set('odometer')} placeholder="45000" />

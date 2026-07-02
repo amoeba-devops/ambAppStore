@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getVehicle } from '@/server/queries/vehicles.queries';
+import { listFleetDrivers } from '@/server/queries/drivers.queries';
 import { TruckVehicleForm } from '../../_components/truck-vehicle-form';
 
 export default async function EditTruckVehiclePage({ params }: { params: Promise<{ id: string }> }) {
@@ -11,6 +12,10 @@ export default async function EditTruckVehiclePage({ params }: { params: Promise
   const v = await getVehicle(user.entId, id);
   if (!v || v.cvhType !== 'TRUCK') notFound();
 
+  const drivers = (await listFleetDrivers(user.entId, 'TRUCK')).map((d) => ({
+    id: d.drvId,
+    name: d.user.usrName ?? d.user.usrEmail ?? d.drvId,
+  }));
   const t = await getTranslations('screens.truckFleet');
   const initial = {
     plate: v.cvhPlateNumber,
@@ -21,6 +26,8 @@ export default async function EditTruckVehiclePage({ params }: { params: Promise
     fuelQuota: v.cvhFuelQuota ?? '',
     fuelType: v.cvhFuelType,
     region: v.cvhRegion ?? '',
+    defaultDriverId: v.cvhDefaultDriverId ?? '',
+    depreciation: v.cvhDepreciation ?? '',
     odometer: String(v.cvhOdometerKm),
     oilIntervalKm: v.cvhOilIntervalKm != null ? String(v.cvhOilIntervalKm) : '',
     lastOilChangeKm: v.cvhLastOilChangeKm != null ? String(v.cvhLastOilChangeKm) : '',
@@ -40,7 +47,7 @@ export default async function EditTruckVehiclePage({ params }: { params: Promise
         back="/truck/fleet"
       />
       <div className="px-4 md:px-7 py-4 md:py-6 max-w-2xl mx-auto md:mx-0 w-full">
-        <TruckVehicleForm vehicleId={v.cvhId} initial={initial} />
+        <TruckVehicleForm vehicleId={v.cvhId} initial={initial} drivers={drivers} />
       </div>
     </>
   );
