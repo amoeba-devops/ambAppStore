@@ -194,6 +194,7 @@ export function DriverForm({ driver, userCandidates = [], dept }: DriverFormProp
             ...basePayload,
             user_id: userId,
             vehicle_type: dept,
+            status,
           });
 
       if (result.success) {
@@ -328,18 +329,17 @@ export function DriverForm({ driver, userCandidates = [], dept }: DriverFormProp
             <Field label={t('expiry')} required hint={t('expiryHint')}>
               <Input type="date" value={licenseExpiry} onChange={(e) => { setLicenseExpiry(e.target.value); markDirty(); }} />
             </Field>
-            {isEdit && (
-              <Field label={t('status')}>
-                <Select value={status} onValueChange={(v) => { setStatus(v as CarDriverStatus); markDirty(); }}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>{tStatus(s)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )}
+            {/* Status renders on create too (QA P2) — defaults to AVAILABLE. */}
+            <Field label={t('status')}>
+              <Select value={status} onValueChange={(v) => { setStatus(v as CarDriverStatus); markDirty(); }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>{tStatus(s)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
             {/* Phone là contact info local trong car_drivers (admin gọi tài xế).
              *  Login = email, không liên quan SĐT. Render cả ở create + edit mode. */}
             <Field label={t('phone')}>

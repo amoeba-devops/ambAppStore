@@ -18,6 +18,7 @@ import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { MonthPicker } from '@/components/inputs/month-picker';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { TripFilters } from './_components/trip-filters';
@@ -33,23 +34,27 @@ function bcp47(locale: string): string {
 export default async function TruckTripsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; month?: string; vehicle?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; month?: string; region?: string; vehicle?: string; status?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
   const q = sp.q?.trim() || undefined;
   const month = /^\d{4}-\d{2}$/.test(sp.month ?? '') ? sp.month : undefined;
   const status = sp.status === 'complete' || sp.status === 'ongoing' ? sp.status : undefined;
+  const regionCodes: readonly string[] = TRUCK_REGIONS;
+  const region = sp.region && regionCodes.includes(sp.region) ? sp.region : undefined;
 
   const t = await getTranslations('screens.truckTrips');
   const tA = await getTranslations('actions');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
+  const tRegion = await getTranslations('region');
   const locale = await getLocale();
+  const regionLabel = (r: string | null) => (r && regionCodes.includes(r) ? tRegion(r) : (r ?? '—'));
 
   const trucks = await listVehicles(user.entId, 'active', 'TRUCK');
   const vehicle = sp.vehicle && trucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
-  const trips = await listTruckTrips(user.entId, { q, month, vehicleId: vehicle, status });
+  const trips = await listTruckTrips(user.entId, { q, month, region, vehicleId: vehicle, status });
   const loc = bcp47(locale);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
   const date = (d: Date) => new Date(d).toLocaleDateString(loc);
@@ -58,6 +63,7 @@ export default async function TruckTripsPage({
   const exportParams = new URLSearchParams();
   if (q) exportParams.set('q', q);
   if (month) exportParams.set('month', month);
+  if (region) exportParams.set('region', region);
   if (vehicle) exportParams.set('vehicle', vehicle);
   if (status) exportParams.set('status', status);
   const exportHref = `${BASE_PATH}/truck/trips/export${exportParams.toString() ? `?${exportParams}` : ''}`;
@@ -102,7 +108,7 @@ export default async function TruckTripsPage({
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
           <DebouncedSearchInput placeholder={t('searchPlaceholder')} className="sm:w-72" clearLabel={tA('clear')} />
           <MonthPicker value={month ?? ''} />
-          <TripFilters plates={plateOptions} vehicle={vehicle} status={status} />
+          <TripFilters plates={plateOptions} region={region} vehicle={vehicle} status={status} />
         </div>
         {trips.length === 0 ? (
           <Card>
@@ -148,6 +154,7 @@ export default async function TruckTripsPage({
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted">
                       <span className="font-mono text-text">{trip.plate ?? '—'}</span>
+                      {trip.region && <span>· {regionLabel(trip.region)}</span>}
                       <span>· {trip.driver ?? '—'}</span>
                       <span className="tabular">· {trip.km != null ? `${trip.km.toLocaleString(loc)} km` : '—'}</span>
                     </div>
@@ -168,6 +175,7 @@ export default async function TruckTripsPage({
                 <TableRow>
                   <TableHead>{t('thDate')}</TableHead>
                   <TableHead>{t('thVehicle')}</TableHead>
+                  <TableHead>{t('thRegion')}</TableHead>
                   <TableHead>{t('thDriver')}</TableHead>
                   <TableHead>{t('thCustomer')}</TableHead>
                   <TableHead className="text-right">{t('thKm')}</TableHead>
@@ -186,6 +194,7 @@ export default async function TruckTripsPage({
                       <div className="text-xs text-text-faint font-mono">{trip.ref}</div>
                     </TableCell>
                     <TableCell className="whitespace-nowrap font-mono text-text">{trip.plate ?? '—'}</TableCell>
+                    <TableCell className="whitespace-nowrap text-text-muted">{regionLabel(trip.region)}</TableCell>
                     <TableCell className="whitespace-nowrap text-text-muted">{trip.driver ?? '—'}</TableCell>
                     <TableCell>
                       <div className="text-text">{trip.customer ?? '—'}</div>

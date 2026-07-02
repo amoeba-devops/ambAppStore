@@ -16,6 +16,9 @@ import {
 import type { CarVehicleStatus } from '@car-v2/db/schema';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
+import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
+import { ParamSelect } from '@/components/inputs/param-select';
+import { ListRowActions } from '@/components/list-row-actions';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
@@ -35,9 +38,17 @@ function bcp47(locale: string): string {
   return 'en-US';
 }
 
-export default async function TruckFleetPage() {
+const VEHICLE_STATUSES: CarVehicleStatus[] = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'RETIRED'];
+
+export default async function TruckFleetPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; region?: string; driver?: string; status?: string }>;
+}) {
   const user = await getCurrentUser();
+  const sp = await searchParams;
   const t = await getTranslations('screens.truckFleet');
+  const tA = await getTranslations('actions');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
   const tStatus = await getTranslations('vehicles.status');
@@ -49,12 +60,30 @@ export default async function TruckFleetPage() {
   const REGIONS: readonly string[] = TRUCK_REGIONS;
   const regionLabel = (r: string | null) => (r && REGIONS.includes(r) ? tRegion(r) : (r ?? '—'));
 
-  const trucks = await listVehicles(user.entId, 'active', 'TRUCK');
+  const allTrucks = await listVehicles(user.entId, 'active', 'TRUCK');
   const month = new Date().toISOString().slice(0, 7);
   const [drivers, fixedMap] = await Promise.all([
     getLatestTruckDrivers(user.entId),
     getTruckFixedCostsByMonth(user.entId, month),
   ]);
+
+  /* Search (biển số) + filters (QA P2): Khu vực / Tài xế / Trạng thái. Small
+   * fleet → filter the fetched list server-side. Driver filter matches the
+   * latest-trip driver shown in the "Tài xế" column. */
+  const q = sp.q?.trim().toLowerCase() || undefined;
+  const fRegion = sp.region && REGIONS.includes(sp.region) ? sp.region : undefined;
+  const fStatus = VEHICLE_STATUSES.includes(sp.status as CarVehicleStatus)
+    ? (sp.status as CarVehicleStatus)
+    : undefined;
+  const driverNames = [...new Set([...drivers.values()])].sort((a, b) => a.localeCompare(b));
+  const fDriver = sp.driver && driverNames.includes(sp.driver) ? sp.driver : undefined;
+  const trucks = allTrucks.filter((v) => {
+    if (q && !v.cvhPlateNumber.toLowerCase().includes(q)) return false;
+    if (fRegion && v.cvhRegion !== fRegion) return false;
+    if (fStatus && v.cvhStatus !== fStatus) return false;
+    if (fDriver && (drivers.get(v.cvhId) ?? null) !== fDriver) return false;
+    return true;
+  });
 
   return (
     <>
@@ -72,7 +101,29 @@ export default async function TruckFleetPage() {
         }
       />
 
-      <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6">
+      <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
+        {/* Search + filter bar (QA P2) — URL-driven, same pattern as trip log. */}
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+          <DebouncedSearchInput placeholder={t('searchPlaceholder')} className="sm:w-72" clearLabel={tA('clear')} />
+          <ParamSelect
+            param="region"
+            value={fRegion}
+            allLabel={t('allRegions')}
+            options={REGIONS.map((r) => ({ value: r, label: tRegion(r) }))}
+          />
+          <ParamSelect
+            param="driver"
+            value={fDriver}
+            allLabel={t('allDrivers')}
+            options={driverNames.map((n) => ({ value: n, label: n }))}
+          />
+          <ParamSelect
+            param="status"
+            value={fStatus}
+            allLabel={t('allStatus')}
+            options={VEHICLE_STATUSES.map((s) => ({ value: s, label: tStatus(s) }))}
+          />
+        </div>
         {trucks.length === 0 ? (
           <Card>
             <EmptyState
@@ -129,6 +180,7 @@ export default async function TruckFleetPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[52px]">{t('thStt')}</TableHead>
                   <TableHead>{t('thCode')}</TableHead>
                   <TableHead>{t('thPlate')}</TableHead>
                   <TableHead>{t('thModel')}</TableHead>
@@ -140,14 +192,16 @@ export default async function TruckFleetPage() {
                   <TableHead>{t('thStatus')}</TableHead>
                   <TableHead className="whitespace-nowrap">{t('thUpdated')}</TableHead>
                   <TableHead>{t('thNotes')}</TableHead>
+                  <TableHead className="w-[88px]">{t('thActions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {trucks.map((v) => {
+                {trucks.map((v, i) => {
                   const driver = drivers.get(v.cvhId) ?? null;
                   const deprec = fixedMap.get(v.cvhId)?.depreciation ?? 0;
                   return (
                     <ClickableTableRow key={v.cvhId} href={`/truck/fleet/${v.cvhId}/edit`}>
+                      <TableCell className="tabular text-text-faint">{i + 1}</TableCell>
                       <TableCell className="whitespace-nowrap font-mono text-text-muted">{v.cvhCode ?? '—'}</TableCell>
                       <TableCell className="whitespace-nowrap font-mono font-semibold text-text">{v.cvhPlateNumber}</TableCell>
                       <TableCell className="text-text">{v.cvhModel}</TableCell>
@@ -169,6 +223,14 @@ export default async function TruckFleetPage() {
                         {v.cvhUpdatedAt ? date(v.cvhUpdatedAt) : '—'}
                       </TableCell>
                       <TableCell className="max-w-[180px] truncate text-text-muted">{v.cvhNotes ?? '—'}</TableCell>
+                      <TableCell>
+                        <ListRowActions
+                          editHref={`/truck/fleet/${v.cvhId}/edit`}
+                          deleteId={v.cvhId}
+                          kind="vehicle"
+                          confirmText={t('form.deleteConfirm')}
+                        />
+                      </TableCell>
                     </ClickableTableRow>
                   );
                 })}

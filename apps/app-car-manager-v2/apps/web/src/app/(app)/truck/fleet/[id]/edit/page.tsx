@@ -46,7 +46,8 @@ export default async function EditTruckVehiclePage({ params }: { params: Promise
         ]}
         back="/truck/fleet"
       />
-      <div className="px-4 md:px-7 py-4 md:py-6 max-w-2xl mx-auto md:mx-0 w-full">
+      {/* Form canh giữa màn hình (QA P2 R21). */}
+      <div className="px-4 md:px-7 py-4 md:py-6 max-w-2xl mx-auto w-full">
         <TruckVehicleForm vehicleId={v.cvhId} initial={initial} drivers={drivers} />
       </div>
     </>

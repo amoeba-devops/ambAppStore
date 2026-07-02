@@ -37,6 +37,7 @@ import { LogoutConfirmDialog } from '@/components/auth/logout-confirm-dialog';
 import { useActiveDept } from './dept-context';
 import { DeptSwitch } from './dept-switch';
 import { activeKeyFor, navItemsForRole, type FleetDept, type NavKey } from './nav-items';
+import { SidebarInboxLink } from './notification-bell';
 import { SidebarLocaleSwitcher } from './sidebar-locale-switcher';
 import { useTenantDisplay } from './tenant-display-context';
 import { UserGuideDrawer } from './user-guide-drawer';
@@ -234,6 +235,12 @@ export function SidebarNav({ collapsed, role, fleetAccess, userName, userEmail, 
           t={(key: NavKey) => tNav(key === 'audit' ? 'auditLog' : key)}
         />
       </nav>
+
+      {/* Hộp thư (QA P2 R3) — the notification bell lives HERE, app-level,
+       * instead of next to each page's title where it read as a page feature. */}
+      <div className="border-t border-border p-2">
+        <SidebarInboxLink collapsed={collapsed} />
+      </div>
 
       {/* Quick locale switcher — admin/manager often flip between vi/en/ko
        * for cross-team demos. Putting it permanently in the rail avoids the

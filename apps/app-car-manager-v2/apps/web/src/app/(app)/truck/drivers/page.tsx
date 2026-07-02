@@ -13,11 +13,16 @@ import {
   TableRow,
 } from '@car-v2/ui';
 import type { CarDriverStatus } from '@car-v2/db/schema';
+import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
+import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
+import { ParamSelect } from '@/components/inputs/param-select';
+import { ListRowActions } from '@/components/list-row-actions';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listFleetDrivers } from '@/server/queries/drivers.queries';
 import { getLatestVehiclesByDriver } from '@/server/queries/truck-trips.queries';
+import { listVehicles } from '@/server/queries/vehicles.queries';
 
 /**
  * Truck-department driver roster (REQ-20260622 audit G5; design table layout
@@ -37,19 +42,52 @@ function bcp47(locale: string): string {
   return 'en-US';
 }
 
-export default async function TruckDriversPage() {
+const DRIVER_STATUSES: CarDriverStatus[] = ['AVAILABLE', 'ON_TRIP', 'OFF_DUTY', 'UNAVAILABLE'];
+
+export default async function TruckDriversPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; region?: string; vehicle?: string; status?: string }>;
+}) {
   const user = await getCurrentUser();
+  const sp = await searchParams;
   const t = await getTranslations('screens.truckDrivers');
+  const tA = await getTranslations('actions');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
+  const tRegion = await getTranslations('region');
   const locale = await getLocale();
   const loc = bcp47(locale);
   const date = (d: string | Date) => new Date(d).toLocaleDateString(loc);
 
-  const [drivers, vehicleByDriver] = await Promise.all([
+  const [allDrivers, vehicleByDriver, trucks] = await Promise.all([
     listFleetDrivers(user.entId, 'TRUCK'),
     getLatestVehiclesByDriver(user.entId),
+    listVehicles(user.entId, 'active', 'TRUCK'),
   ]);
+
+  /* Search + filters (QA P2) — the roster is small (a handful of drivers), so
+   * filtering the fetched list server-side keeps the query API untouched.
+   * Region for a driver = the region of their latest vehicle (plate lookup). */
+  const regionCodes: readonly string[] = TRUCK_REGIONS;
+  const q = sp.q?.trim().toLowerCase() || undefined;
+  const fRegion = sp.region && regionCodes.includes(sp.region) ? sp.region : undefined;
+  const fVehicle = sp.vehicle && trucks.some((v) => v.cvhPlateNumber === sp.vehicle) ? sp.vehicle : undefined;
+  const fStatus = DRIVER_STATUSES.includes(sp.status as CarDriverStatus)
+    ? (sp.status as CarDriverStatus)
+    : undefined;
+  const regionByPlate = new Map(trucks.map((v) => [v.cvhPlateNumber, v.cvhRegion]));
+  const drivers = allDrivers.filter((d) => {
+    if (q) {
+      const hay = `${d.user.usrName ?? ''} ${d.drvPhone ?? ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    const plate = vehicleByDriver.get(d.drvId);
+    if (fVehicle && plate !== fVehicle) return false;
+    if (fRegion && (plate ? regionByPlate.get(plate) : null) !== fRegion) return false;
+    if (fStatus && d.drvStatus !== fStatus) return false;
+    return true;
+  });
   /* The /truck layout already blocks DRIVER role — anyone here is ADMIN/MANAGER. */
   const canCreate = user.role === 'ADMIN' || user.role === 'MANAGER';
 
@@ -68,7 +106,30 @@ export default async function TruckDriversPage() {
         }
       />
 
-      <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6">
+      <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
+        {/* Search + filter bar (QA P2): tên/SĐT search, Khu vực / Phương tiện /
+         * Trạng thái dropdowns — URL-driven so results are shareable. */}
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+          <DebouncedSearchInput placeholder={t('searchPlaceholder')} className="sm:w-72" clearLabel={tA('clear')} />
+          <ParamSelect
+            param="region"
+            value={fRegion}
+            allLabel={t('allRegions')}
+            options={regionCodes.map((r) => ({ value: r, label: tRegion(r) }))}
+          />
+          <ParamSelect
+            param="vehicle"
+            value={fVehicle}
+            allLabel={t('allVehicles')}
+            options={trucks.map((v) => ({ value: v.cvhPlateNumber, label: v.cvhPlateNumber }))}
+          />
+          <ParamSelect
+            param="status"
+            value={fStatus}
+            allLabel={t('allStatus')}
+            options={DRIVER_STATUSES.map((s) => ({ value: s, label: t(`status.${s}`) }))}
+          />
+        </div>
         {drivers.length === 0 ? (
           <Card variant="outline" className="p-8 text-center space-y-4">
             <div className="text-sm text-text-muted">{t('empty')}</div>
@@ -118,6 +179,7 @@ export default async function TruckDriversPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[52px]">{t('thStt')}</TableHead>
                   <TableHead>{t('thDriver')}</TableHead>
                   <TableHead>{t('thVehicle')}</TableHead>
                   <TableHead>{t('thLicense')}</TableHead>
@@ -128,11 +190,13 @@ export default async function TruckDriversPage() {
                   <TableHead>{t('thStatus')}</TableHead>
                   <TableHead className="whitespace-nowrap">{t('thUpdated')}</TableHead>
                   <TableHead>{t('thNotes')}</TableHead>
+                  <TableHead className="w-[88px]">{t('thActions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {drivers.map((d) => (
+                {drivers.map((d, i) => (
                   <ClickableTableRow key={d.drvId} href={`/drivers/${d.drvId}`}>
+                    <TableCell className="tabular text-text-faint">{i + 1}</TableCell>
                     <TableCell>
                       <div className="font-medium text-text">{d.user.usrName ?? '—'}</div>
                       {d.user.usrEmail && <div className="text-xs text-text-faint truncate">{d.user.usrEmail}</div>}
@@ -154,6 +218,14 @@ export default async function TruckDriversPage() {
                       {d.drvUpdatedAt ? date(d.drvUpdatedAt) : '—'}
                     </TableCell>
                     <TableCell className="max-w-[180px] truncate text-text-muted">{d.drvNotes ?? '—'}</TableCell>
+                    <TableCell>
+                      <ListRowActions
+                        editHref={`/drivers/${d.drvId}/edit`}
+                        deleteId={d.drvId}
+                        kind="driver"
+                        confirmText={t('deleteConfirm')}
+                      />
+                    </TableCell>
                   </ClickableTableRow>
                 ))}
               </TableBody>

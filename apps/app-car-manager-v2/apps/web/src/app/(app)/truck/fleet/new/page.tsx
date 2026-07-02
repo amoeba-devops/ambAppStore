@@ -22,7 +22,8 @@ export default async function NewTruckPage() {
           { label: t('newCrumb') },
         ]}
       />
-      <div className="px-4 md:px-7 py-4 md:py-6 max-w-2xl mx-auto md:mx-0 w-full">
+      {/* Form canh giữa màn hình (QA P2 R21). */}
+      <div className="px-4 md:px-7 py-4 md:py-6 max-w-2xl mx-auto w-full">
         <TruckVehicleForm drivers={drivers} />
       </div>
     </>

@@ -38,6 +38,8 @@ export async function createDriverAction(input: unknown): Promise<ActionResult<C
         drvPhone: data.phone?.trim() || null,
         drvEmergencyContact: data.emergency_contact ?? null,
         drvFixedSalary: data.fixed_salary != null ? String(data.fixed_salary) : null,
+        /* Initial status (QA P2) — omitted falls back to the DB default. */
+        ...(data.status ? { drvStatus: data.status } : {}),
         drvNotes: data.notes ?? null,
       })
       .returning();

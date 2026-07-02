@@ -28,6 +28,8 @@ export interface TruckTripRow {
   status: CarTripStatus;
   /** Vehicle plate / driver name for the trip-log table (design columns). */
   plate: string | null;
+  /** Vehicle operating region code (cvh_region) — "Khu vực" column (QA P2). */
+  region: string | null;
   driver: string | null;
   /** Distance = end − start odometer when both present. */
   km: number | null;
@@ -46,6 +48,8 @@ export interface ListTruckTripsOpts {
   month?: string;
   /** Restrict to one vehicle. */
   vehicleId?: string;
+  /** Restrict to vehicles in one operating region (cvh_region code, QA P2). */
+  region?: string;
   /** 'complete' = COMPLETED only · 'ongoing' = not completed · else all. */
   status?: 'all' | 'complete' | 'ongoing';
 }
@@ -76,6 +80,22 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
   if (opts.vehicleId) filters.push(eq(carTrips.trpVehicleId, opts.vehicleId));
   if (opts.status === 'complete') filters.push(eq(carTrips.trpStatus, 'COMPLETED'));
   else if (opts.status === 'ongoing') filters.push(ne(carTrips.trpStatus, 'COMPLETED'));
+  /* Region scope (QA P2) — a trip's region is its vehicle's cvh_region, so
+   * resolve the region's vehicle ids first. No vehicles in region → no rows. */
+  if (opts.region) {
+    const vrows = await db
+      .select({ id: carVehicles.cvhId })
+      .from(carVehicles)
+      .where(
+        and(
+          eq(carVehicles.entId, entId),
+          eq(carVehicles.cvhRegion, opts.region),
+          isNull(carVehicles.cvhDeletedAt),
+        ),
+      );
+    if (vrows.length === 0) return [];
+    filters.push(inArray(carTrips.trpVehicleId, vrows.map((v) => v.id)));
+  }
 
   const trips = await db
     .select()
@@ -101,12 +121,20 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
    * query a flat select. */
   const vehIds = [...new Set(trips.map((t) => t.trpVehicleId).filter((v): v is string => !!v))];
   const plateByVeh = new Map<string, string>();
+  const regionByVeh = new Map<string, string | null>();
   if (vehIds.length) {
     const vrows = await db
-      .select({ id: carVehicles.cvhId, plate: carVehicles.cvhPlateNumber })
+      .select({
+        id: carVehicles.cvhId,
+        plate: carVehicles.cvhPlateNumber,
+        region: carVehicles.cvhRegion,
+      })
       .from(carVehicles)
       .where(and(eq(carVehicles.entId, entId), inArray(carVehicles.cvhId, vehIds)));
-    for (const v of vrows) plateByVeh.set(v.id, v.plate);
+    for (const v of vrows) {
+      plateByVeh.set(v.id, v.plate);
+      regionByVeh.set(v.id, v.region);
+    }
   }
   const drvIds = [...new Set(trips.map((t) => t.trpDriverId).filter((v): v is string => !!v))];
   const driverByDrv = new Map<string, string>();
@@ -159,6 +187,7 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
       bol: t.trpBol,
       status: t.trpStatus,
       plate: t.trpVehicleId ? plateByVeh.get(t.trpVehicleId) ?? null : null,
+      region: t.trpVehicleId ? regionByVeh.get(t.trpVehicleId) ?? null : null,
       driver: t.trpDriverId ? driverByDrv.get(t.trpDriverId) ?? null : null,
       km,
       breakdown,

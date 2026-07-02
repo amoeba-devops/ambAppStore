@@ -2,7 +2,6 @@ import { getTranslations } from 'next-intl/server';
 import { cn } from '@car-v2/ui';
 import { Breadcrumbs, type BreadcrumbItem } from './breadcrumbs';
 import { MobilePageHeader } from './mobile-page-header';
-import { NotificationBell } from './notification-bell';
 
 interface PageHeaderProps {
   title: React.ReactNode;
@@ -89,14 +88,10 @@ export async function PageHeader({
             <h1 className="text-xl font-semibold text-text leading-tight tracking-tight">{title}</h1>
             {subtitle && <p className="text-sm text-text-muted mt-0.5">{subtitle}</p>}
           </div>
-          {/* Notification bell + per-page actions cluster. Bell renders on
-           * every page (always-visible inbox affordance), per-page actions
-           * (e.g. "+ Create") to its right. The cluster shrinks to fit the
-           * combined width so a wide title doesn't shove buttons off-screen. */}
-          <div className="shrink-0 flex items-center gap-2">
-            <NotificationBell />
-            {actions}
-          </div>
+          {/* Per-page actions cluster (e.g. "+ Create"). The notification bell
+           * moved to the sidebar footer (QA P2 R3) — sitting here, level with
+           * the page title, it read as a feature of THAT page. */}
+          <div className="shrink-0 flex items-center gap-2">{actions}</div>
         </div>
       </div>
     </header>
