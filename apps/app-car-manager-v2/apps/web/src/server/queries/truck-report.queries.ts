@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, desc, eq, gt, isNotNull, isNull } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTruckReports, carUsers, type TruckReportType } from '@car-v2/db/schema';
 
@@ -67,6 +67,52 @@ export async function listTruckReports(
     type: r.type as TruckReportType,
     isNew: seenAt == null ? true : r.createdAt > seenAt,
   }));
+}
+
+/** Latest report for a (month, region) — drives the finance/P&L status badge.
+ * Returns the newest report's creation timestamp regardless of report type. */
+export async function getLatestTruckReportForMonth(
+  entId: string,
+  month: string,
+  region?: string | null,
+): Promise<{ createdAt: Date; name: string } | null> {
+  const conds = [
+    eq(carTruckReports.entId, entId),
+    eq(carTruckReports.trrMonth, month),
+    isNull(carTruckReports.trrDeletedAt),
+  ];
+  if (region) conds.push(eq(carTruckReports.trrRegion, region));
+  const [row] = await db
+    .select({ createdAt: carTruckReports.trrCreatedAt, name: carTruckReports.trrName })
+    .from(carTruckReports)
+    .where(and(...conds))
+    .orderBy(desc(carTruckReports.trrCreatedAt))
+    .limit(1);
+  return row ?? null;
+}
+
+/** Latest report dates for multiple months — drives the P&L banner. */
+export async function getLatestTruckReportDates(
+  entId: string,
+  months: string[],
+): Promise<Map<string, Date>> {
+  if (months.length === 0) return new Map();
+  const rows = await db
+    .select({ month: carTruckReports.trrMonth, createdAt: carTruckReports.trrCreatedAt })
+    .from(carTruckReports)
+    .where(
+      and(
+        eq(carTruckReports.entId, entId),
+        inArray(carTruckReports.trrMonth, months),
+        isNull(carTruckReports.trrDeletedAt),
+      ),
+    )
+    .orderBy(desc(carTruckReports.trrCreatedAt));
+  const out = new Map<string, Date>();
+  for (const r of rows) {
+    if (!out.has(r.month)) out.set(r.month, r.createdAt);
+  }
+  return out;
 }
 
 /** One report (ent-scoped) for the download handler. */

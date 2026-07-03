@@ -9,7 +9,7 @@ import { MonthPicker } from '@/components/inputs/month-picker';
 import { ParamSelect } from '@/components/inputs/param-select';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
-import { getClosedTruckMonths } from '@/server/queries/truck-finance.queries';
+import { getLatestTruckReportDates } from '@/server/queries/truck-report.queries';
 import { FinanceTabs } from '../finance/_components/finance-tabs';
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
@@ -75,12 +75,12 @@ export default async function TruckPnlPage({
   const vehicleId = sp.vehicle && trucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
 
   const months = threeMonthsEnding(month);
-  const [rows, closedSet] = await Promise.all([
+  const [rows, reportDates] = await Promise.all([
     computeTruckPnl(user, { vehicleId, region, months }),
-    getClosedTruckMonths(user.entId, months),
+    getLatestTruckReportDates(user.entId, months),
   ]);
 
-  const openMonths = months.filter((m) => !closedSet.has(m));
+  const unreportedMonths = months.filter((m) => !reportDates.has(m));
   const selected = rows.find((r) => r.month === month) ?? null;
 
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
@@ -131,11 +131,11 @@ export default async function TruckPnlPage({
           <FinanceTabs active="overview" month={month} vehicleId={vehicleId} />
         </div>
 
-        {/* Provisional banner — any month in the window still open. */}
-        {openMonths.length > 0 && (
+        {/* Report status banner */}
+        {unreportedMonths.length > 0 && (
           <Card variant="outline" className="flex flex-wrap items-center gap-3 border-warning/40 bg-warning/5 p-3">
             <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
-            <span className="flex-1 text-sm text-text">{t('provisionalBanner')}</span>
+            <span className="flex-1 text-sm text-text">{t('unreportedBanner')}</span>
           </Card>
         )}
 

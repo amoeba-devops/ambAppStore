@@ -89,7 +89,7 @@ async function buildReportWorkbook(
       fuel: t.fuelCost,
       revenue: t.revenue,
       profit: t.profit,
-      status: t.finalized ? 'Đã chốt' : 'Tạm tính',
+      status: t.finalized ? 'Đã lập BC' : 'Tạm tính',
     }));
     return buildExcel('Nhật ký chuyến', cols, rows);
   }

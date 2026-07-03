@@ -24,10 +24,8 @@ import { FinanceTabs } from './_components/finance-tabs';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
-import {
-  getTruckMonthCloseInfo,
-  listTruckFinanceTrips,
-} from '@/server/queries/truck-finance.queries';
+import { listTruckFinanceTrips } from '@/server/queries/truck-finance.queries';
+import { getLatestTruckReportForMonth } from '@/server/queries/truck-report.queries';
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
@@ -64,13 +62,12 @@ export default async function TruckFinancePage({
   const trucks = await listVehicles(user.entId, 'active', 'TRUCK');
   const vehicleId = sp.vehicle && trucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
 
-  const [rows, pnl, closeInfo] = await Promise.all([
+  const [rows, pnl, latestReport] = await Promise.all([
     listTruckFinanceTrips(user.entId, { month, vehicleId, q, region }),
     computeTruckPnl(user, { vehicleId, months: [month] }),
-    getTruckMonthCloseInfo(user.entId, month),
+    getLatestTruckReportForMonth(user.entId, month, region),
   ]);
   const summary = pnl[0] ?? null;
-  const closed = closeInfo.closed;
 
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
   const num = (n: number, frac = 0) => n.toLocaleString(loc, { maximumFractionDigits: frac });
@@ -123,8 +120,10 @@ export default async function TruckFinancePage({
               allLabel={t('allRegions')}
               options={regionCodes.map((r) => ({ value: r, label: tRegion(r) }))}
             />
-            <Badge tone={closed ? 'success' : 'warning'} size="sm">
-              {closed ? t('finalized') : t('provisional')}
+            <Badge tone={latestReport ? 'success' : 'neutral'} size="sm">
+              {latestReport
+                ? t('reportAt', { date: new Date(latestReport.createdAt).toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) })
+                : t('noReport')}
             </Badge>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -211,8 +210,10 @@ export default async function TruckFinancePage({
                       {vnd(r.profit)}
                     </TableCell>
                     <TableCell>
-                      <Badge tone={r.finalized ? 'success' : 'warning'} size="sm">
-                        {r.finalized ? t('finalized') : t('provisional')}
+                      <Badge tone={latestReport ? 'success' : 'neutral'} size="sm">
+                        {latestReport
+                          ? t('reported')
+                          : t('provisional')}
                       </Badge>
                     </TableCell>
                   </ClickableTableRow>
