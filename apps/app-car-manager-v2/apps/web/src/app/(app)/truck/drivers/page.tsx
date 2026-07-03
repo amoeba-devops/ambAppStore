@@ -13,7 +13,6 @@ import {
   TableRow,
 } from '@car-v2/ui';
 import type { CarDriverStatus } from '@car-v2/db/schema';
-import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { ParamSelect } from '@/components/inputs/param-select';
@@ -21,8 +20,6 @@ import { ListRowActions } from '@/components/list-row-actions';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listFleetDrivers } from '@/server/queries/drivers.queries';
-import { getLatestVehiclesByDriver } from '@/server/queries/truck-trips.queries';
-import { listVehicles } from '@/server/queries/vehicles.queries';
 
 /**
  * Truck-department driver roster (REQ-20260622 audit G5; design table layout
@@ -47,7 +44,7 @@ const DRIVER_STATUSES: CarDriverStatus[] = ['AVAILABLE', 'ON_TRIP', 'OFF_DUTY', 
 export default async function TruckDriversPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; region?: string; vehicle?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; status?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
@@ -55,36 +52,21 @@ export default async function TruckDriversPage({
   const tA = await getTranslations('actions');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
-  const tRegion = await getTranslations('region');
   const locale = await getLocale();
   const loc = bcp47(locale);
   const date = (d: string | Date) => new Date(d).toLocaleDateString(loc);
 
-  const [allDrivers, vehicleByDriver, trucks] = await Promise.all([
-    listFleetDrivers(user.entId, 'TRUCK'),
-    getLatestVehiclesByDriver(user.entId),
-    listVehicles(user.entId, 'active', 'TRUCK'),
-  ]);
+  const allDrivers = await listFleetDrivers(user.entId, 'TRUCK');
 
-  /* Search + filters (QA P2) — the roster is small (a handful of drivers), so
-   * filtering the fetched list server-side keeps the query API untouched.
-   * Region for a driver = the region of their latest vehicle (plate lookup). */
-  const regionCodes: readonly string[] = TRUCK_REGIONS;
   const q = sp.q?.trim().toLowerCase() || undefined;
-  const fRegion = sp.region && regionCodes.includes(sp.region) ? sp.region : undefined;
-  const fVehicle = sp.vehicle && trucks.some((v) => v.cvhPlateNumber === sp.vehicle) ? sp.vehicle : undefined;
   const fStatus = DRIVER_STATUSES.includes(sp.status as CarDriverStatus)
     ? (sp.status as CarDriverStatus)
     : undefined;
-  const regionByPlate = new Map(trucks.map((v) => [v.cvhPlateNumber, v.cvhRegion]));
   const drivers = allDrivers.filter((d) => {
     if (q) {
       const hay = `${d.user.usrName ?? ''} ${d.drvPhone ?? ''}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
-    const plate = vehicleByDriver.get(d.drvId);
-    if (fVehicle && plate !== fVehicle) return false;
-    if (fRegion && (plate ? regionByPlate.get(plate) : null) !== fRegion) return false;
     if (fStatus && d.drvStatus !== fStatus) return false;
     return true;
   });
@@ -111,18 +93,6 @@ export default async function TruckDriversPage({
          * Trạng thái dropdowns — URL-driven so results are shareable. */}
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
           <DebouncedSearchInput placeholder={t('searchPlaceholder')} className="sm:w-72" clearLabel={tA('clear')} />
-          <ParamSelect
-            param="region"
-            value={fRegion}
-            allLabel={t('allRegions')}
-            options={regionCodes.map((r) => ({ value: r, label: tRegion(r) }))}
-          />
-          <ParamSelect
-            param="vehicle"
-            value={fVehicle}
-            allLabel={t('allVehicles')}
-            options={trucks.map((v) => ({ value: v.cvhPlateNumber, label: v.cvhPlateNumber }))}
-          />
           <ParamSelect
             param="status"
             value={fStatus}
@@ -161,9 +131,6 @@ export default async function TruckDriversPage({
                     <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted">
                       <span className="font-mono text-text">{d.drvLicenseNumber}</span>
                       <span>· {d.drvLicenseClass}</span>
-                      {vehicleByDriver.get(d.drvId) && (
-                        <span className="font-mono">· {vehicleByDriver.get(d.drvId)}</span>
-                      )}
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-faint tabular">
                       <span>{t('thExpiry')}: {date(d.drvLicenseExpiry)}</span>
@@ -181,7 +148,6 @@ export default async function TruckDriversPage({
                 <TableRow>
                   <TableHead className="w-[52px]">{t('thStt')}</TableHead>
                   <TableHead>{t('thDriver')}</TableHead>
-                  <TableHead>{t('thVehicle')}</TableHead>
                   <TableHead>{t('thLicense')}</TableHead>
                   <TableHead>{t('thClass')}</TableHead>
                   <TableHead className="whitespace-nowrap">{t('thExpiry')}</TableHead>
@@ -200,9 +166,6 @@ export default async function TruckDriversPage({
                     <TableCell>
                       <div className="font-medium text-text">{d.user.usrName ?? '—'}</div>
                       {d.user.usrEmail && <div className="text-xs text-text-faint truncate">{d.user.usrEmail}</div>}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap font-mono text-text-muted">
-                      {vehicleByDriver.get(d.drvId) ?? '—'}
                     </TableCell>
                     <TableCell className="whitespace-nowrap font-mono text-text">{d.drvLicenseNumber}</TableCell>
                     <TableCell className="text-text-muted">{d.drvLicenseClass}</TableCell>

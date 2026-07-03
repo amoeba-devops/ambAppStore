@@ -8,14 +8,9 @@ import { Loader2, Pencil, Trash2 } from 'lucide-react';
 import { toast } from '@car-v2/ui';
 import { deleteVehicleAction } from '@/server/actions/vehicles/vehicle.actions';
 import { deleteDriverAction } from '@/server/actions/drivers/driver.actions';
+import { deleteTruckTripAction } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
 
-/**
- * Edit/Delete cell for roster tables (QA P2 — "Thêm cột Action/Hành động").
- * Rows are already clickable (ClickableTableRow), so every handler stops
- * propagation to avoid triggering the row navigation. Delete confirms first,
- * then calls the soft-delete action for the given kind and refreshes the list.
- */
 export function ListRowActions({
   editHref,
   deleteId,
@@ -24,7 +19,7 @@ export function ListRowActions({
 }: {
   editHref: string;
   deleteId: string;
-  kind: 'vehicle' | 'driver';
+  kind: 'vehicle' | 'driver' | 'trip';
   confirmText: string;
 }) {
   const tA = useTranslations('actions');
@@ -37,7 +32,10 @@ export function ListRowActions({
     e.stopPropagation();
     if (!confirm(confirmText)) return;
     start(async () => {
-      const res = kind === 'vehicle' ? await deleteVehicleAction(deleteId) : await deleteDriverAction(deleteId);
+      const res =
+        kind === 'vehicle' ? await deleteVehicleAction(deleteId)
+        : kind === 'driver' ? await deleteDriverAction(deleteId)
+        : await deleteTruckTripAction({ trip_id: deleteId });
       if (!res.success) {
         toast.error(formatActionError(res.error, tErr));
         return;

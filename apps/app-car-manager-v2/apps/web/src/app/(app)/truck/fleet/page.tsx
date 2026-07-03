@@ -22,7 +22,6 @@ import { ListRowActions } from '@/components/list-row-actions';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
-import { getLatestTruckDrivers } from '@/server/queries/truck-trips.queries';
 import { getTruckFixedCostsByMonth } from '@/server/queries/truck-fixed-cost.queries';
 
 const STATUS_TONE: Record<CarVehicleStatus, 'success' | 'info' | 'warning' | 'neutral'> = {
@@ -43,7 +42,7 @@ const VEHICLE_STATUSES: CarVehicleStatus[] = ['AVAILABLE', 'IN_USE', 'MAINTENANC
 export default async function TruckFleetPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; region?: string; driver?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; region?: string; status?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
@@ -62,26 +61,17 @@ export default async function TruckFleetPage({
 
   const allTrucks = await listVehicles(user.entId, 'active', 'TRUCK');
   const month = new Date().toISOString().slice(0, 7);
-  const [drivers, fixedMap] = await Promise.all([
-    getLatestTruckDrivers(user.entId),
-    getTruckFixedCostsByMonth(user.entId, month),
-  ]);
+  const fixedMap = await getTruckFixedCostsByMonth(user.entId, month);
 
-  /* Search (biển số) + filters (QA P2): Khu vực / Tài xế / Trạng thái. Small
-   * fleet → filter the fetched list server-side. Driver filter matches the
-   * latest-trip driver shown in the "Tài xế" column. */
   const q = sp.q?.trim().toLowerCase() || undefined;
   const fRegion = sp.region && REGIONS.includes(sp.region) ? sp.region : undefined;
   const fStatus = VEHICLE_STATUSES.includes(sp.status as CarVehicleStatus)
     ? (sp.status as CarVehicleStatus)
     : undefined;
-  const driverNames = [...new Set([...drivers.values()])].sort((a, b) => a.localeCompare(b));
-  const fDriver = sp.driver && driverNames.includes(sp.driver) ? sp.driver : undefined;
   const trucks = allTrucks.filter((v) => {
     if (q && !v.cvhPlateNumber.toLowerCase().includes(q)) return false;
     if (fRegion && v.cvhRegion !== fRegion) return false;
     if (fStatus && v.cvhStatus !== fStatus) return false;
-    if (fDriver && (drivers.get(v.cvhId) ?? null) !== fDriver) return false;
     return true;
   });
 
@@ -112,12 +102,6 @@ export default async function TruckFleetPage({
             options={REGIONS.map((r) => ({ value: r, label: tRegion(r) }))}
           />
           <ParamSelect
-            param="driver"
-            value={fDriver}
-            allLabel={t('allDrivers')}
-            options={driverNames.map((n) => ({ value: n, label: n }))}
-          />
-          <ParamSelect
             param="status"
             value={fStatus}
             allLabel={t('allStatus')}
@@ -146,9 +130,7 @@ export default async function TruckFleetPage({
              * forces horizontal scrolling on phones, so below md each truck
              * renders as a tappable card surfacing the key fields. */}
             <ul className="md:hidden space-y-2.5">
-              {trucks.map((v) => {
-                const driver = drivers.get(v.cvhId) ?? null;
-                return (
+              {trucks.map((v) => (
                   <li key={v.cvhId}>
                     <Link
                       href={`/truck/fleet/${v.cvhId}/edit`}
@@ -166,13 +148,11 @@ export default async function TruckFleetPage({
                       </div>
                       <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted">
                         <span className="text-text">{regionLabel(v.cvhRegion)}</span>
-                        <span>· {driver ?? '—'}</span>
                         <span className="tabular">· {v.cvhOdometerKm.toLocaleString(loc)} km</span>
                       </div>
                     </Link>
                   </li>
-                );
-              })}
+                ))}
             </ul>
 
             {/* Desktop table */}
@@ -187,7 +167,6 @@ export default async function TruckFleetPage({
                   <TableHead>{t('thRegion')}</TableHead>
                   <TableHead className="text-right">{t('thConsumption')}</TableHead>
                   <TableHead className="text-right">{t('thDepreciation')}</TableHead>
-                  <TableHead>{t('thDriver')}</TableHead>
                   <TableHead className="text-right">{t('thOdometer')}</TableHead>
                   <TableHead>{t('thStatus')}</TableHead>
                   <TableHead className="whitespace-nowrap">{t('thUpdated')}</TableHead>
@@ -197,7 +176,6 @@ export default async function TruckFleetPage({
               </TableHeader>
               <TableBody>
                 {trucks.map((v, i) => {
-                  const driver = drivers.get(v.cvhId) ?? null;
                   const deprec = fixedMap.get(v.cvhId)?.depreciation ?? 0;
                   return (
                     <ClickableTableRow key={v.cvhId} href={`/truck/fleet/${v.cvhId}/edit`}>
@@ -212,7 +190,6 @@ export default async function TruckFleetPage({
                       <TableCell className="text-right tabular text-text-muted">
                         {deprec > 0 ? vnd(deprec) : '—'}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-text-muted">{driver ?? '—'}</TableCell>
                       <TableCell className="text-right tabular">{v.cvhOdometerKm.toLocaleString(loc)} km</TableCell>
                       <TableCell>
                         <Badge tone={STATUS_TONE[v.cvhStatus]} size="sm">

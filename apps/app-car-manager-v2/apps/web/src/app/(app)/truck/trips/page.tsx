@@ -14,6 +14,7 @@ import {
   TableRow,
 } from '@car-v2/ui';
 import { ClickableTableRow } from '@/components/clickable-table-row';
+import { ListRowActions } from '@/components/list-row-actions';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { MonthPicker } from '@/components/inputs/month-picker';
 import { PageHeader } from '@/components/layout/page-header';
@@ -173,6 +174,7 @@ export default async function TruckTripsPage({
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[52px]">{t('thStt')}</TableHead>
                   <TableHead>{t('thDate')}</TableHead>
                   <TableHead>{t('thVehicle')}</TableHead>
                   <TableHead>{t('thRegion')}</TableHead>
@@ -184,11 +186,13 @@ export default async function TruckTripsPage({
                   <TableHead className="text-right">{t('thOther')}</TableHead>
                   <TableHead>{t('thStatus')}</TableHead>
                   <TableHead className="whitespace-nowrap">{t('thUpdated')}</TableHead>
+                  <TableHead className="w-[88px]">{t('thActions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {trips.map((trip) => (
+                {trips.map((trip, i) => (
                   <ClickableTableRow key={trip.trpId} href={`/truck/trips/${trip.trpId}`}>
+                    <TableCell className="tabular text-text-faint">{i + 1}</TableCell>
                     <TableCell className="whitespace-nowrap">
                       <div className="font-medium text-text">{date(trip.scheduledAt)}</div>
                       <div className="text-xs text-text-faint font-mono">{trip.ref}</div>
@@ -211,6 +215,14 @@ export default async function TruckTripsPage({
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-xs text-text-faint tabular">
                       {trip.updatedAt ? date(trip.updatedAt) : '—'}
+                    </TableCell>
+                    <TableCell>
+                      <ListRowActions
+                        editHref={`/truck/trips/${trip.trpId}/edit`}
+                        deleteId={trip.trpId}
+                        kind="trip"
+                        confirmText={t('deleteConfirm')}
+                      />
                     </TableCell>
                   </ClickableTableRow>
                 ))}

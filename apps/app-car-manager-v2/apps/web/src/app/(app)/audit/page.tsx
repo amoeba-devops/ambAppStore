@@ -20,6 +20,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { listAudit, listAuditActors } from '@/server/queries/audit.queries';
 import { AuditActorFilter } from './_components/audit-actor-filter';
+import { AuditContentCell } from './_components/audit-content-cell';
 
 /* Map common action verbs to a tone for visual scanning. */
 function toneFor(action: string): 'success' | 'info' | 'warning' | 'danger' | 'accent' | 'neutral' {
@@ -29,27 +30,6 @@ function toneFor(action: string): 'success' | 'info' | 'warning' | 'danger' | 'a
   if (action.includes('START') || action.includes('END'))   return 'info';
   if (action.includes('ALERT') || action.includes('WARN'))  return 'warning';
   return 'neutral';
-}
-
-/* Compact, human-readable summary of what changed — from the before/after
- * snapshots (QA feedback: audit needs a "Nội dung" column). Shows changed
- * fields (old → new) for updates, or the created/deleted payload otherwise.
- * Keys are the short labels the logAudit callers store (plate, status, …). */
-function changeSummary(before: unknown, after: unknown): string[] {
-  const b = before && typeof before === 'object' ? (before as Record<string, unknown>) : null;
-  const a = after && typeof after === 'object' ? (after as Record<string, unknown>) : null;
-  const fmt = (v: unknown) => (v == null ? '∅' : typeof v === 'object' ? JSON.stringify(v) : String(v));
-  const out: string[] = [];
-  if (b && a) {
-    for (const k of new Set([...Object.keys(b), ...Object.keys(a)])) {
-      if (JSON.stringify(b[k]) !== JSON.stringify(a[k])) out.push(`${k}: ${fmt(b[k])} → ${fmt(a[k])}`);
-    }
-  } else if (a) {
-    for (const [k, v] of Object.entries(a)) out.push(`${k}: ${fmt(v)}`);
-  } else if (b) {
-    for (const [k, v] of Object.entries(b)) out.push(`${k}: ${fmt(v)}`);
-  }
-  return out;
 }
 
 interface PageProps {
@@ -159,7 +139,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
                   <TableHead>{tAu('thAction')}</TableHead>
                   <TableHead>{tAu('thEntity')}</TableHead>
                   <TableHead>{tAu('thRef')}</TableHead>
-                  <TableHead className="w-[140px]">{tAu('thIp')}</TableHead>
+                  <TableHead className="w-[140px] hidden lg:table-cell">{tAu('thIp')}</TableHead>
                   <TableHead>{tAu('thContent')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -186,24 +166,16 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
                     </TableCell>
                     <TableCell className="text-text-muted">{row.audEntity}</TableCell>
                     <TableCell className="font-mono text-xs text-text tabular">{row.audEntityRef ?? '—'}</TableCell>
-                    <TableCell className="font-mono text-xs text-text-faint tabular">{row.audIp ?? '—'}</TableCell>
+                    <TableCell className="font-mono text-xs text-text-faint tabular hidden lg:table-cell">{row.audIp ?? '—'}</TableCell>
                     <TableCell className="text-xs text-text-muted">
-                      {(() => {
-                        const parts = changeSummary(row.audBefore, row.audAfter);
-                        if (parts.length === 0) return <span className="text-text-faint">—</span>;
-                        return (
-                          <div className="max-w-[24rem] space-y-0.5">
-                            {parts.slice(0, 5).map((p, i) => (
-                              <div key={i} className="truncate font-mono text-[11px]" title={p}>
-                                {p}
-                              </div>
-                            ))}
-                            {parts.length > 5 && (
-                              <div className="text-[11px] text-text-faint">+{parts.length - 5}…</div>
-                            )}
-                          </div>
-                        );
-                      })()}
+                      <AuditContentCell
+                        before={row.audBefore}
+                        after={row.audAfter}
+                        action={row.audAction}
+                        entityRef={row.audEntityRef}
+                        actorName={row.actorName}
+                        timestamp={new Date(row.audCreatedAt).toISOString().replace('T', ' ').slice(0, 19)}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

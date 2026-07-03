@@ -32,7 +32,7 @@ export async function GET(req: Request) {
 
   const header = [
     'Ngày', 'Phương tiện', 'Tài xế', 'Khách hàng', 'Km',
-    'Phí cầu đường', 'Phát sinh', 'Đơn giá', 'Lít', 'Phí xăng',
+    'Phí cầu đường', 'Phát sinh', 'Đơn giá', 'Lít', 'Phí nhiên liệu',
     'Doanh thu', 'Lợi nhuận', 'Trạng thái',
   ];
   const body = rows.map((r) => [

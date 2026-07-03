@@ -15,9 +15,11 @@ import {
   cn,
 } from '@car-v2/ui';
 import { computeTruckPnl } from '@car-v2/core/truck';
+import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { MonthPicker } from '@/components/inputs/month-picker';
+import { ParamSelect } from '@/components/inputs/param-select';
 import { FinanceTabs } from './_components/finance-tabs';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
@@ -42,17 +44,20 @@ function currentMonth(): string {
 export default async function TruckFinancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; vehicle?: string; q?: string }>;
+  searchParams: Promise<{ month?: string; vehicle?: string; q?: string; region?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
   const month = /^\d{4}-\d{2}$/.test(sp.month ?? '') ? (sp.month as string) : currentMonth();
   const q = sp.q?.trim() || undefined;
+  const regionCodes: readonly string[] = TRUCK_REGIONS;
+  const region = sp.region && regionCodes.includes(sp.region) ? sp.region : undefined;
 
   const t = await getTranslations('screens.truckFinance');
   const tA = await getTranslations('actions');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
+  const tRegion = await getTranslations('region');
   const locale = await getLocale();
   const loc = bcp47(locale);
 
@@ -60,7 +65,7 @@ export default async function TruckFinancePage({
   const vehicleId = sp.vehicle && trucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
 
   const [rows, pnl, closeInfo] = await Promise.all([
-    listTruckFinanceTrips(user.entId, { month, vehicleId, q }),
+    listTruckFinanceTrips(user.entId, { month, vehicleId, q, region }),
     computeTruckPnl(user, { vehicleId, months: [month] }),
     getTruckMonthCloseInfo(user.entId, month),
   ]);
@@ -112,6 +117,12 @@ export default async function TruckFinancePage({
           <div className="flex flex-wrap items-center gap-3">
             <DebouncedSearchInput placeholder={t('searchPlaceholder')} className="sm:w-64" clearLabel={tA('clear')} />
             <MonthPicker value={month} />
+            <ParamSelect
+              param="region"
+              value={region}
+              allLabel={t('allRegions')}
+              options={regionCodes.map((r) => ({ value: r, label: tRegion(r) }))}
+            />
             <Badge tone={closed ? 'success' : 'warning'} size="sm">
               {closed ? t('finalized') : t('provisional')}
             </Badge>

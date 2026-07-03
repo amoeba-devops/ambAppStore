@@ -31,13 +31,14 @@ export async function GET(req: Request) {
     ? (url.searchParams.get('month') as string)
     : currentMonth();
   const format = url.searchParams.get('format') === 'pdf' ? 'pdf' : 'xlsx';
+  const region = url.searchParams.get('region') ?? undefined;
 
-  const [row] = await computeTruckPnl(user, { months: [month] });
+  const [row] = await computeTruckPnl(user, { region, months: [month] });
   const r = row ?? null;
   const lines: { k: string; v: number }[] = r
     ? [
         { k: 'Doanh thu', v: r.revenue },
-        { k: 'Phí xăng dầu', v: r.fuelCost },
+        { k: 'Phí nhiên liệu', v: r.fuelCost },
         { k: 'Phí cầu đường', v: r.tollFee },
         { k: 'Chi phí phát sinh', v: r.extraTotal },
         { k: 'Chi phí biến đổi', v: r.variableCost },
