@@ -226,7 +226,9 @@
       "thCost": "비용",
       "tooltipRevenue": "해당 기간 전체 운행의 총 매출.",
       "tooltipCost": "총 비용 = 기사 급여 + 차량 감가상각 + 연료비 + 통행료 + 기타 부대비용",
-      "tooltipProfit": "순이익 = 총 매출 − 기사 급여 − 차량 감가상각 − 총 고정비 − 총 연료비 − 총 통행료 − 총 부대비용"
+      "tooltipProfit": "순이익 = 총 매출 − 기사 급여 − 차량 감가상각 − 총 고정비 − 총 연료비 − 총 통행료 − 총 부대비용",
+      "byVehicle": "차량별",
+      "allVehicles": "모든 차량"
     },
     "truckDrivers": {
       "title": "기사",
@@ -265,7 +267,7 @@
       "allRegions": "전체 지역",
       "metric": "항목",
       "revenue": "매출",
-      "fuel": "주유비",
+      "fuel": "연료",
       "toll": "통행료",
       "other": "기타",
       "variable": "총 변동비",
@@ -445,7 +447,7 @@
       "thStatus": "상태",
       "statusDone": "완료",
       "statusOpen": "미완료",
-      "newTitle": "트럭 운행 추가",
+      "newTitle": "운행 추가",
       "newSubtitle": "운행 상세 기록",
       "newCrumb": "추가",
       "editTitle": "운행 편집",
@@ -515,7 +517,8 @@
           "addStop": "+ 경유지 추가",
           "totalDistance": "총 거리",
           "remove": "경유지 삭제"
-        }
+        },
+        "provisionalTag": "임시 계산"
       },
       "provisional": "잠정",
       "thVehicle": "차량",
@@ -530,7 +533,8 @@
       "importExcel": "엑셀 가져오기",
       "thStt": "번호",
       "thActions": "관리",
-      "deleteConfirm": "이 운행을 삭제할까요? 관련 비용 데이터도 삭제됩니다."
+      "deleteConfirm": "이 운행을 삭제할까요? 관련 비용 데이터도 삭제됩니다.",
+      "allDrivers": "모든 기사"
     },
     "truckFleet": {
       "title": "차량",
@@ -640,7 +644,8 @@
       "searchPlaceholder": "BOL / CDF / 고객 검색",
       "tabTrips": "운행별",
       "tabOverview": "손익 개요",
-      "tabInvoices": "전표 & 마감"
+      "tabInvoices": "전표 & 마감",
+      "thUpdated": "수정일"
     },
     "truckReports": {
       "title": "보고서 목록",
@@ -1748,7 +1753,37 @@
     "appendOnly": "추가 전용",
     "appendOnlyDesc": "— 레코드를 수정하거나 삭제할 수 없습니다 (CLAUDE.md §8). 보관:",
     "retention": "5년",
-    "retentionNote": "NFR-10."
+    "retentionNote": "NFR-10.",
+    "verb": {
+      "CREATE": "생성",
+      "UPDATE": "수정",
+      "DELETE": "삭제",
+      "ASSIGN": "배정",
+      "REASSIGN": "재배정",
+      "ACCEPT": "수락",
+      "ACCEPTED": "수락됨",
+      "REJECT": "거부",
+      "REJECTED": "거부됨",
+      "START": "시작",
+      "END": "종료",
+      "COMPLETE": "완료",
+      "COMPLETED": "완료됨",
+      "DRIVER_COMPLETE": "기사 완료",
+      "CANCEL": "취소",
+      "CANCELLED": "취소됨",
+      "ASSIGNED": "배정됨",
+      "GENERATED": "보고서 생성",
+      "SUBMITTED": "제출",
+      "OIL_RESET": "엔진오일 초기화",
+      "ACKNOWLEDGED": "경고 확인",
+      "RUN": "가져오기 실행",
+      "UPSERT": "수정",
+      "CLOSED": "마감",
+      "REOPENED": "재개",
+      "ACCESS_GRANTED": "권한 부여",
+      "ACCESS_REQUESTED": "권한 요청",
+      "ACCESS_REVOKED": "권한 회수"
+    }
   },
   "errors": {
     "internal": "내부 서버 오류 — 잠시 후 다시 시도하거나 관리자에게 문의하세요",

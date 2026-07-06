@@ -16,6 +16,7 @@ import { computeTruckPnl } from '@car-v2/core/truck';
 import type { CarVehicleStatus } from '@car-v2/db/schema';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
+import { ParamSelect } from '@/components/inputs/param-select';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
@@ -102,7 +103,7 @@ function pctDelta(curr: number, prev: number): number | null {
 export default async function TruckDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; from?: string; to?: string; region?: string }>;
+  searchParams: Promise<{ period?: string; from?: string; to?: string; region?: string; vehicle?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
@@ -138,11 +139,18 @@ export default async function TruckDashboardPage({
     ? `${monthYear(customFrom!)} – ${monthYear(customTo!)}`
     : tPeriod(preset!);
 
-  const [kpiRows, prevRows, trendRows, trucks, allTrips, regionRowsRaw] = await Promise.all([
-    computeTruckPnl(user, { months: kpiMonths, region }),
-    computeTruckPnl(user, { months: prevMonths(kpiMonths), region }),
-    computeTruckPnl(user, { months: trendMonths, region }),
-    listVehicles(user.entId, 'active', 'TRUCK'),
+  const trucks = await listVehicles(user.entId, 'active', 'TRUCK');
+  /* Vehicle is a step-2 filter under region (Sheet-2 D1): the dropdown lists
+   * only the chosen region's trucks, and the filter is honoured only when a
+   * region is active and the vehicle belongs to it. */
+  const regionTrucks = region ? trucks.filter((v) => v.cvhRegion === region) : [];
+  const vehicleId =
+    region && sp.vehicle && regionTrucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
+
+  const [kpiRows, prevRows, trendRows, allTrips, regionRowsRaw] = await Promise.all([
+    computeTruckPnl(user, { months: kpiMonths, region, vehicleId }),
+    computeTruckPnl(user, { months: prevMonths(kpiMonths), region, vehicleId }),
+    computeTruckPnl(user, { months: trendMonths, region, vehicleId }),
     listTruckTrips(user.entId),
     /* Per-region breakdown over the selected period (always all regions, even
      * when filtered — so the breakdown stays a comparison). */
@@ -296,6 +304,20 @@ export default async function TruckDashboardPage({
           ))}
         </div>
 
+        {/* Vehicle filter — step 2 after a region is chosen (Sheet-2 D1);
+         * lists only that region's trucks. */}
+        {region && regionTrucks.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="mr-1 text-xs font-medium uppercase tracking-wide text-text-faint">{t('byVehicle')}</span>
+            <ParamSelect
+              param="vehicle"
+              value={vehicleId}
+              allLabel={t('allVehicles')}
+              options={regionTrucks.map((v) => ({ value: v.cvhId, label: v.cvhPlateNumber }))}
+            />
+          </div>
+        )}
+
         {/* Disclaimer note (QA P2 item 4) */}
         <div className="flex items-start gap-2 rounded-md border border-border bg-surface-2/50 px-3 py-2.5">
           <Info className="h-4 w-4 shrink-0 text-text-faint mt-0.5" />
@@ -365,7 +387,6 @@ export default async function TruckDashboardPage({
             sub={`${fixedPct}% · ${t('perMonth')}`}
             total={vnd(acc.fixedCost)}
             rows={[
-              [tPnl('salary'), vnd(acc.salary)],
               [tPnl('depreciation'), vnd(acc.depreciation)],
               [tPnl('insurance'), vnd(acc.insurance)],
             ]}

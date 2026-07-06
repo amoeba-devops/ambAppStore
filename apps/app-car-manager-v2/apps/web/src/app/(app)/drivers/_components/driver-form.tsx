@@ -24,6 +24,7 @@ import {
   toast,
 } from '@car-v2/ui';
 import type { CarDriver, CarDriverLicenseClass, CarDriverStatus, CarVehicleType } from '@car-v2/db/schema';
+import { MoneyInput } from '@/components/inputs/money-input';
 import { ConfirmDeleteDialog, type DeleteWarningRef } from '@/components/dialogs/confirm-delete-dialog';
 import { RefDetailPanel } from '@/components/dialogs/ref-detail-panel';
 import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
@@ -218,7 +219,9 @@ export function DriverForm({ driver, userCandidates = [], dept }: DriverFormProp
     const result = await deleteDriverAction(driver.drvId);
     if (result.success) {
       toast.success(t('tRemoved'));
-      router.push('/drivers');
+      /* Return to the roster the driver belongs to (Sheet-2 DR11) — truck
+       * drivers back to /truck/drivers, not the car roster. */
+      router.push(dept === 'TRUCK' ? '/truck/drivers' : '/drivers');
       router.refresh();
     } else {
       toast.error(t('errRemove'), { description: formatActionError(result.error, tErr) });
@@ -365,14 +368,10 @@ export function DriverForm({ driver, userCandidates = [], dept }: DriverFormProp
             </Field>
             {isTruck && (
               <Field label={t('fixedSalary')} hint={t('fixedSalaryHint')}>
-                <Input
-                  type="number"
-                  min={0}
-                  inputMode="numeric"
+                <MoneyInput
                   value={fixedSalary ?? ''}
-                  onChange={(e) => { setFixedSalary(e.target.value); markDirty(); }}
+                  onChange={(v) => { setFixedSalary(v); markDirty(); }}
                   placeholder={t('fixedSalaryPlaceholder')}
-                  className="font-mono"
                 />
               </Field>
             )}

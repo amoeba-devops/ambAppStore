@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ClipboardList, FileText, Loader2, Plus, Route, Save, Truck, User, Wallet } from 'lucide-react';
 import {
+  Badge,
   Button,
   Input,
   Select,
@@ -21,6 +22,7 @@ import type { LocalRole } from '@car-v2/shared/auth';
 import { createTruckTripAction, updateTruckTripAction } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
 import { FormField } from '@/components/forms/form-section';
+import { MoneyInput } from '@/components/inputs/money-input';
 import { StopBuilder, makeDefaultStops, type StopField } from './stop-builder';
 import type { CarStopType, CarTripStopover } from '@car-v2/db/schema';
 
@@ -129,6 +131,9 @@ export function TruckTripForm({
     (k: keyof typeof EMPTY_FIELDS) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setF((s) => ({ ...s, [k]: e.target.value }));
+
+  /* Setter for MoneyInput (receives the raw digit string, not an event). */
+  const setNum = (k: keyof typeof EMPTY_FIELDS) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
   /* Live profit preview. */
   const preview = useMemo(() => {
@@ -298,10 +303,10 @@ export function TruckTripForm({
                   <Input type="number" step="0.01" value={f.fuelLiters} onChange={set('fuelLiters')} />
                 </FormField>
                 <FormField label={t('fuelPrice')} inline>
-                  <Input type="number" value={f.fuelPrice} onChange={set('fuelPrice')} />
+                  <MoneyInput value={f.fuelPrice} onChange={setNum('fuelPrice')} />
                 </FormField>
                 <FormField label={t('toll')} inline className="sm:col-span-2">
-                  <Input type="number" value={f.toll} onChange={set('toll')} />
+                  <MoneyInput value={f.toll} onChange={setNum('toll')} />
                 </FormField>
               </div>
             </SectionCard>
@@ -312,18 +317,18 @@ export function TruckTripForm({
                   <Input type="number" step="0.01" value={f.fuelLiters} onChange={set('fuelLiters')} />
                 </FormField>
                 <FormField label={t('fuelPrice')} inline>
-                  <Input type="number" value={f.fuelPrice} onChange={set('fuelPrice')} />
+                  <MoneyInput value={f.fuelPrice} onChange={setNum('fuelPrice')} />
                 </FormField>
                 <FormField label={t('toll')} inline>
-                  <Input type="number" value={f.toll} onChange={set('toll')} />
+                  <MoneyInput value={f.toll} onChange={setNum('toll')} />
                 </FormField>
                 <FormField label={t('revenue')} inline>
-                  <Input type="number" value={f.revenue} onChange={set('revenue')} />
+                  <MoneyInput value={f.revenue} onChange={setNum('revenue')} />
                 </FormField>
                 {showOther ? (
                   <>
                     <FormField label={t('otherAmount')} inline>
-                      <Input type="number" value={f.otherAmount} onChange={set('otherAmount')} />
+                      <MoneyInput value={f.otherAmount} onChange={setNum('otherAmount')} />
                     </FormField>
                     <FormField label={t('otherNote')} inline>
                       <Input value={f.otherNote} onChange={set('otherNote')} />
@@ -340,10 +345,10 @@ export function TruckTripForm({
             <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionPlan')} hint={t('sectionPlanHint')}>
               <div className={GRID}>
                 <FormField label={t('fuelPrice')} inline>
-                  <Input type="number" value={f.fuelPrice} onChange={set('fuelPrice')} />
+                  <MoneyInput value={f.fuelPrice} onChange={setNum('fuelPrice')} />
                 </FormField>
                 <FormField label={t('revenue')} inline>
-                  <Input type="number" value={f.revenue} onChange={set('revenue')} />
+                  <MoneyInput value={f.revenue} onChange={setNum('revenue')} />
                 </FormField>
               </div>
             </SectionCard>
@@ -471,7 +476,13 @@ function TripSummary({
 
   return (
     <div className="rounded-lg border border-border bg-surface p-4 lg:p-5 space-y-3.5">
-      <div className="text-sm lg:text-base font-medium text-text">{t('summaryTitle')}</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-sm lg:text-base font-medium text-text">{t('summaryTitle')}</div>
+        {/* Sheet-2 T12 — figures here are a live estimate, not the final report. */}
+        {(showProfit || showCostOnly) && (
+          <Badge tone="neutral" size="sm">{t('provisionalTag')}</Badge>
+        )}
+      </div>
 
       {/* Route preview */}
       {filled.length > 0 ? (

@@ -226,7 +226,9 @@
       "thCost": "Cost",
       "tooltipRevenue": "Total revenue from all trips in the period.",
       "tooltipCost": "Total cost = Driver salary + Vehicle depreciation + Fuel cost + Toll fees + Other incidental costs",
-      "tooltipProfit": "Net profit = Total revenue − Driver salary − Vehicle depreciation − Total fixed costs − Total fuel − Total toll fees − Total incidental costs"
+      "tooltipProfit": "Net profit = Total revenue − Driver salary − Vehicle depreciation − Total fixed costs − Total fuel − Total toll fees − Total incidental costs",
+      "byVehicle": "By vehicle",
+      "allVehicles": "All vehicles"
     },
     "truckDrivers": {
       "title": "Drivers",
@@ -265,7 +267,7 @@
       "allRegions": "All regions",
       "metric": "Item",
       "revenue": "Revenue",
-      "fuel": "Gasoline",
+      "fuel": "Fuel",
       "toll": "Toll",
       "other": "Other",
       "variable": "Total variable fees",
@@ -445,7 +447,7 @@
       "thStatus": "Status",
       "statusDone": "Completed",
       "statusOpen": "Open",
-      "newTitle": "New truck trip",
+      "newTitle": "New trip",
       "newSubtitle": "Log trip details",
       "newCrumb": "New",
       "editTitle": "Edit trip",
@@ -515,7 +517,8 @@
           "addStop": "+ Add stop",
           "totalDistance": "Total distance",
           "remove": "Remove stop"
-        }
+        },
+        "provisionalTag": "Provisional"
       },
       "provisional": "Provisional",
       "thVehicle": "Vehicle",
@@ -530,7 +533,8 @@
       "importExcel": "Import Excel",
       "thStt": "No.",
       "thActions": "Actions",
-      "deleteConfirm": "Delete this trip? Associated cost data will be removed."
+      "deleteConfirm": "Delete this trip? Associated cost data will be removed.",
+      "allDrivers": "All drivers"
     },
     "truckFleet": {
       "title": "Vehicles",
@@ -640,7 +644,8 @@
       "searchPlaceholder": "Search BOL / CDF / customer",
       "tabTrips": "By trip",
       "tabOverview": "P&L overview",
-      "tabInvoices": "Invoices & close"
+      "tabInvoices": "Invoices & close",
+      "thUpdated": "Updated"
     },
     "truckReports": {
       "title": "Reports",
@@ -1748,7 +1753,37 @@
     "appendOnly": "append-only",
     "appendOnlyDesc": "— records cannot be edited or deleted (CLAUDE.md §8). Retention:",
     "retention": "5 years",
-    "retentionNote": "per NFR-10."
+    "retentionNote": "per NFR-10.",
+    "verb": {
+      "CREATE": "Created",
+      "UPDATE": "Updated",
+      "DELETE": "Deleted",
+      "ASSIGN": "Assigned",
+      "REASSIGN": "Reassigned",
+      "ACCEPT": "Accepted",
+      "ACCEPTED": "Accepted",
+      "REJECT": "Rejected",
+      "REJECTED": "Rejected",
+      "START": "Started",
+      "END": "Ended",
+      "COMPLETE": "Completed",
+      "COMPLETED": "Completed",
+      "DRIVER_COMPLETE": "Driver completed",
+      "CANCEL": "Cancelled",
+      "CANCELLED": "Cancelled",
+      "ASSIGNED": "Assigned",
+      "GENERATED": "Report generated",
+      "SUBMITTED": "Submitted",
+      "OIL_RESET": "Oil reset",
+      "ACKNOWLEDGED": "Alert acknowledged",
+      "RUN": "Import run",
+      "UPSERT": "Updated",
+      "CLOSED": "Month closed",
+      "REOPENED": "Month reopened",
+      "ACCESS_GRANTED": "Access granted",
+      "ACCESS_REQUESTED": "Access requested",
+      "ACCESS_REVOKED": "Access revoked"
+    }
   },
   "errors": {
     "internal": "Internal server error — please try again later or contact an administrator",

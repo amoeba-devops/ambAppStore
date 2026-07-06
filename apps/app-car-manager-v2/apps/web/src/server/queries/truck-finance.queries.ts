@@ -270,6 +270,8 @@ export interface TruckFinanceTripRow {
   profit: number;
   /** true once the trip's month is closed → fuel/profit are official. */
   finalized: boolean;
+  /** Last-modified timestamp for the "Cập nhật" column (Sheet-2 P7). */
+  updatedAt: Date | null;
 }
 
 /**
@@ -305,6 +307,7 @@ export async function listTruckFinanceTrips(
         eo: carTrips.trpEndOdometer,
         toll: carTrips.trpTollFee,
         revenue: carTrips.trpRevenue,
+        updatedAt: carTrips.trpUpdatedAt,
       })
       .from(carTrips)
       .leftJoin(carVehicles, eq(carTrips.trpVehicleId, carVehicles.cvhId))
@@ -377,6 +380,7 @@ export async function listTruckFinanceTrips(
       revenue,
       profit: revenue - fuelCost - toll - extra,
       finalized,
+      updatedAt: t.updatedAt,
     };
   });
 }

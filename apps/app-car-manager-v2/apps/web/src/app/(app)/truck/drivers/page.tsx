@@ -14,6 +14,7 @@ import {
 } from '@car-v2/ui';
 import type { CarDriverStatus } from '@car-v2/db/schema';
 import { ClickableTableRow } from '@/components/clickable-table-row';
+import { DateTimeCell } from '@/components/datetime-cell';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { ParamSelect } from '@/components/inputs/param-select';
 import { ListRowActions } from '@/components/list-row-actions';
@@ -177,8 +178,8 @@ export default async function TruckDriversPage({
                         {t(`status.${d.drvStatus}`)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-xs text-text-faint tabular">
-                      {d.drvUpdatedAt ? date(d.drvUpdatedAt) : '—'}
+                    <TableCell className="whitespace-nowrap text-xs">
+                      <DateTimeCell value={d.drvUpdatedAt} locale={loc} />
                     </TableCell>
                     <TableCell className="max-w-[180px] truncate text-text-muted">{d.drvNotes ?? '—'}</TableCell>
                     <TableCell>

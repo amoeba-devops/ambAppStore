@@ -50,6 +50,14 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
   const user   = await getCurrentUser();
   requireRole(user.role, ['ADMIN']);
 
+  /* Human-readable action label (Sheet-2 A2) — map the code's verb to a
+   * translated phrase; the raw code stays as a hover tooltip for traceability
+   * and the affected object is already shown in the Entity column. */
+  const actionLabel = (action: string): string => {
+    const verb = action.split('.').pop() ?? action;
+    return tAu.has(`verb.${verb}`) ? tAu(`verb.${verb}`) : action;
+  };
+
   /* Lấy danh sách actor distinct trong tenant để render dropdown.
    * Đồng thời whitelist `actorIdRaw` — chỉ cho phép filter ID nằm trong danh sách
    * này (chặn URL-injection để xem audit của tenant khác). */
@@ -160,9 +168,9 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge tone={toneFor(row.audAction)} size="sm">
-                        <span className="font-mono tabular text-[10.5px]">{row.audAction}</span>
-                      </Badge>
+                      <span title={row.audAction}>
+                        <Badge tone={toneFor(row.audAction)} size="sm">{actionLabel(row.audAction)}</Badge>
+                      </span>
                     </TableCell>
                     <TableCell className="text-text-muted">{row.audEntity}</TableCell>
                     <TableCell className="font-mono text-xs text-text tabular">{row.audEntityRef ?? '—'}</TableCell>

@@ -14,6 +14,7 @@ import {
   TableRow,
 } from '@car-v2/ui';
 import { ClickableTableRow } from '@/components/clickable-table-row';
+import { DateTimeCell } from '@/components/datetime-cell';
 import { ListRowActions } from '@/components/list-row-actions';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { MonthPicker } from '@/components/inputs/month-picker';
@@ -22,6 +23,7 @@ import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
+import { listFleetDrivers } from '@/server/queries/drivers.queries';
 import { TripFilters } from './_components/trip-filters';
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
@@ -35,7 +37,7 @@ function bcp47(locale: string): string {
 export default async function TruckTripsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; month?: string; region?: string; vehicle?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; month?: string; region?: string; vehicle?: string; driver?: string; status?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
@@ -53,19 +55,25 @@ export default async function TruckTripsPage({
   const locale = await getLocale();
   const regionLabel = (r: string | null) => (r && regionCodes.includes(r) ? tRegion(r) : (r ?? '—'));
 
-  const trucks = await listVehicles(user.entId, 'active', 'TRUCK');
+  const [trucks, fleetDrivers] = await Promise.all([
+    listVehicles(user.entId, 'active', 'TRUCK'),
+    listFleetDrivers(user.entId, 'TRUCK'),
+  ]);
   const vehicle = sp.vehicle && trucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
-  const trips = await listTruckTrips(user.entId, { q, month, region, vehicleId: vehicle, status });
+  const driver = sp.driver && fleetDrivers.some((d) => d.drvId === sp.driver) ? sp.driver : undefined;
+  const trips = await listTruckTrips(user.entId, { q, month, region, vehicleId: vehicle, driverId: driver, status });
   const loc = bcp47(locale);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
   const date = (d: Date) => new Date(d).toLocaleDateString(loc);
   const plateOptions = trucks.map((v) => ({ id: v.cvhId, label: v.cvhPlateNumber }));
+  const driverOptions = fleetDrivers.map((d) => ({ id: d.drvId, label: d.user.usrName ?? d.user.usrEmail ?? d.drvId }));
 
   const exportParams = new URLSearchParams();
   if (q) exportParams.set('q', q);
   if (month) exportParams.set('month', month);
   if (region) exportParams.set('region', region);
   if (vehicle) exportParams.set('vehicle', vehicle);
+  if (driver) exportParams.set('driver', driver);
   if (status) exportParams.set('status', status);
   const exportHref = `${BASE_PATH}/truck/trips/export${exportParams.toString() ? `?${exportParams}` : ''}`;
 
@@ -109,7 +117,7 @@ export default async function TruckTripsPage({
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
           <DebouncedSearchInput placeholder={t('searchPlaceholder')} className="sm:w-72" clearLabel={tA('clear')} />
           <MonthPicker value={month ?? ''} />
-          <TripFilters plates={plateOptions} region={region} vehicle={vehicle} status={status} />
+          <TripFilters plates={plateOptions} drivers={driverOptions} region={region} vehicle={vehicle} driver={driver} status={status} />
         </div>
         {trips.length === 0 ? (
           <Card>
@@ -213,8 +221,8 @@ export default async function TruckTripsPage({
                         {trip.status === 'COMPLETED' ? t('statusDone') : t('statusOpen')}
                       </Badge>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-xs text-text-faint tabular">
-                      {trip.updatedAt ? date(trip.updatedAt) : '—'}
+                    <TableCell className="whitespace-nowrap text-xs">
+                      <DateTimeCell value={trip.updatedAt} locale={loc} />
                     </TableCell>
                     <TableCell>
                       <ListRowActions

@@ -16,6 +16,7 @@ import {
 import type { CarVehicleStatus } from '@car-v2/db/schema';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
+import { DateTimeCell } from '@/components/datetime-cell';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { ParamSelect } from '@/components/inputs/param-select';
 import { ListRowActions } from '@/components/list-row-actions';
@@ -55,7 +56,6 @@ export default async function TruckFleetPage({
   const locale = await getLocale();
   const loc = bcp47(locale);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
-  const date = (d: Date) => new Date(d).toLocaleDateString(loc);
   const REGIONS: readonly string[] = TRUCK_REGIONS;
   const regionLabel = (r: string | null) => (r && REGIONS.includes(r) ? tRegion(r) : (r ?? '—'));
 
@@ -196,8 +196,8 @@ export default async function TruckFleetPage({
                           {tStatus(v.cvhStatus)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs text-text-faint tabular">
-                        {v.cvhUpdatedAt ? date(v.cvhUpdatedAt) : '—'}
+                      <TableCell className="whitespace-nowrap text-xs">
+                        <DateTimeCell value={v.cvhUpdatedAt} locale={loc} />
                       </TableCell>
                       <TableCell className="max-w-[180px] truncate text-text-muted">{v.cvhNotes ?? '—'}</TableCell>
                       <TableCell>

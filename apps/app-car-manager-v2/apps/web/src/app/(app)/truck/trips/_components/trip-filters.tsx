@@ -9,13 +9,17 @@ import { TRUCK_REGIONS } from '@car-v2/shared/zod';
  * preserves other params. */
 export function TripFilters({
   plates,
+  drivers,
   region,
   vehicle,
+  driver,
   status,
 }: {
   plates: { id: string; label: string }[];
+  drivers: { id: string; label: string }[];
   region?: string;
   vehicle?: string;
+  driver?: string;
   status?: string;
 }) {
   const t = useTranslations('screens.truckTrips');
@@ -57,6 +61,18 @@ export function TripFilters({
         {plates.map((p) => (
           <option key={p.id} value={p.id}>
             {p.label}
+          </option>
+        ))}
+      </select>
+      <select
+        className={cls}
+        value={driver ?? 'all'}
+        onChange={(e) => setParam('driver', e.target.value === 'all' ? '' : e.target.value)}
+      >
+        <option value="all">{t('allDrivers')}</option>
+        {drivers.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.label}
           </option>
         ))}
       </select>

@@ -226,7 +226,9 @@
       "thCost": "Chi phí",
       "tooltipRevenue": "Tổng doanh thu từ tất cả các chuyến đi trong kỳ.",
       "tooltipCost": "Tổng chi phí = Lương tài xế + Khấu hao xe + Phí nhiên liệu + Phí cầu đường + Các chi phí phát sinh khác",
-      "tooltipProfit": "Lợi nhuận ròng = Tổng doanh thu − Lương tài xế − Khấu hao xe − Tổng chi phí cố định − Tổng xăng dầu − Tổng phí cầu đường − Tổng phí phát sinh"
+      "tooltipProfit": "Lợi nhuận ròng = Tổng doanh thu − Lương tài xế − Khấu hao xe − Tổng chi phí cố định − Tổng xăng dầu − Tổng phí cầu đường − Tổng phí phát sinh",
+      "byVehicle": "Theo xe",
+      "allVehicles": "Tất cả xe"
     },
     "truckDrivers": {
       "title": "Tài xế",
@@ -265,7 +267,7 @@
       "allRegions": "Tất cả khu vực",
       "metric": "Hạng mục",
       "revenue": "Doanh thu",
-      "fuel": "Xăng",
+      "fuel": "Nhiên liệu",
       "toll": "Cầu đường",
       "other": "Phát sinh khác",
       "variable": "Tổng phí biến đổi",
@@ -445,7 +447,7 @@
       "thStatus": "Trạng thái",
       "statusDone": "Đã hoàn thành",
       "statusOpen": "Chưa hoàn thành",
-      "newTitle": "Tạo chuyến xe tải",
+      "newTitle": "Tạo chuyến",
       "newSubtitle": "Ghi nhận chi tiết chuyến đi",
       "newCrumb": "Tạo mới",
       "editTitle": "Sửa chuyến",
@@ -515,7 +517,8 @@
           "addStop": "+ Thêm điểm",
           "totalDistance": "Tổng quãng đường",
           "remove": "Xóa điểm này"
-        }
+        },
+        "provisionalTag": "Tạm tính"
       },
       "provisional": "Tạm tính",
       "thVehicle": "Phương tiện",
@@ -530,7 +533,8 @@
       "importExcel": "Import Excel",
       "thStt": "STT",
       "thActions": "Hành động",
-      "deleteConfirm": "Xoá chuyến này? Dữ liệu chi phí liên quan sẽ bị xoá."
+      "deleteConfirm": "Xoá chuyến này? Dữ liệu chi phí liên quan sẽ bị xoá.",
+      "allDrivers": "Tất cả tài xế"
     },
     "truckFleet": {
       "title": "Phương tiện",
@@ -640,7 +644,8 @@
       "searchPlaceholder": "Tìm BOL / CDF / khách hàng",
       "tabTrips": "Theo chuyến",
       "tabOverview": "Tổng quan P&L",
-      "tabInvoices": "Hoá đơn & Chốt tháng"
+      "tabInvoices": "Hoá đơn & Chốt tháng",
+      "thUpdated": "Cập nhật"
     },
     "truckReports": {
       "title": "Danh sách báo cáo",
@@ -1748,7 +1753,37 @@
     "appendOnly": "chỉ thêm",
     "appendOnlyDesc": "— bản ghi không thể sửa hoặc xoá (CLAUDE.md §8). Lưu trữ:",
     "retention": "5 năm",
-    "retentionNote": "theo NFR-10."
+    "retentionNote": "theo NFR-10.",
+    "verb": {
+      "CREATE": "Tạo",
+      "UPDATE": "Cập nhật",
+      "DELETE": "Xóa",
+      "ASSIGN": "Phân công",
+      "REASSIGN": "Phân công lại",
+      "ACCEPT": "Chấp nhận",
+      "ACCEPTED": "Đã chấp nhận",
+      "REJECT": "Từ chối",
+      "REJECTED": "Đã từ chối",
+      "START": "Bắt đầu",
+      "END": "Kết thúc",
+      "COMPLETE": "Hoàn thành",
+      "COMPLETED": "Đã hoàn thành",
+      "DRIVER_COMPLETE": "Tài xế hoàn thành",
+      "CANCEL": "Hủy",
+      "CANCELLED": "Đã hủy",
+      "ASSIGNED": "Đã phân công",
+      "GENERATED": "Lập báo cáo",
+      "SUBMITTED": "Gửi",
+      "OIL_RESET": "Reset thay nhớt",
+      "ACKNOWLEDGED": "Xác nhận cảnh báo",
+      "RUN": "Nhập dữ liệu",
+      "UPSERT": "Cập nhật",
+      "CLOSED": "Chốt sổ",
+      "REOPENED": "Mở lại sổ",
+      "ACCESS_GRANTED": "Cấp quyền",
+      "ACCESS_REQUESTED": "Yêu cầu quyền",
+      "ACCESS_REVOKED": "Thu hồi quyền"
+    }
   },
   "errors": {
     "internal": "Lỗi hệ thống — vui lòng thử lại sau hoặc liên hệ quản trị viên",

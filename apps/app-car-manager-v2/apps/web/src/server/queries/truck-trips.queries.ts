@@ -48,6 +48,8 @@ export interface ListTruckTripsOpts {
   month?: string;
   /** Restrict to one vehicle. */
   vehicleId?: string;
+  /** Restrict to one driver (Sheet-2 T7). */
+  driverId?: string;
   /** Restrict to vehicles in one operating region (cvh_region code, QA P2). */
   region?: string;
   /** 'complete' = COMPLETED only · 'ongoing' = not completed · else all. */
@@ -78,6 +80,7 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
     if (search) filters.push(search);
   }
   if (opts.vehicleId) filters.push(eq(carTrips.trpVehicleId, opts.vehicleId));
+  if (opts.driverId) filters.push(eq(carTrips.trpDriverId, opts.driverId));
   if (opts.status === 'complete') filters.push(eq(carTrips.trpStatus, 'COMPLETED'));
   else if (opts.status === 'ongoing') filters.push(ne(carTrips.trpStatus, 'COMPLETED'));
   /* Region scope (QA P2) — a trip's region is its vehicle's cvh_region, so

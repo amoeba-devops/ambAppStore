@@ -1,5 +1,4 @@
 import { getLocale, getTranslations } from 'next-intl/server';
-import Link from 'next/link';
 import { Coins, Download } from 'lucide-react';
 import {
   Badge,
@@ -17,6 +16,7 @@ import {
 import { computeTruckPnl } from '@car-v2/core/truck';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
+import { DateTimeCell } from '@/components/datetime-cell';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { MonthPicker } from '@/components/inputs/month-picker';
 import { ParamSelect } from '@/components/inputs/param-select';
@@ -74,7 +74,6 @@ export default async function TruckFinancePage({
   const date = (d: Date) => new Date(d).toLocaleDateString(loc);
 
   const qs = q ? `&q=${encodeURIComponent(q)}` : '';
-  const chipHref = (v?: string) => `/truck/finance?month=${month}${v ? `&vehicle=${v}` : ''}${qs}`;
   const exportHref = `${BASE_PATH}/truck/finance/export?month=${month}${vehicleId ? `&vehicle=${vehicleId}` : ''}${qs}`;
 
   const summaryCards: [string, number, ('profit' | 'plain')?][] = summary
@@ -109,29 +108,27 @@ export default async function TruckFinancePage({
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
         <FinanceTabs active="trips" month={month} vehicleId={vehicleId} />
-        {/* Controls: month + status + vehicle chips */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-3">
-            <DebouncedSearchInput placeholder={t('searchPlaceholder')} className="sm:w-64" clearLabel={tA('clear')} />
-            <MonthPicker value={month} />
-            <ParamSelect
-              param="region"
-              value={region}
-              allLabel={t('allRegions')}
-              options={regionCodes.map((r) => ({ value: r, label: tRegion(r) }))}
-            />
-            <Badge tone={latestReport ? 'success' : 'neutral'} size="sm">
-              {latestReport
-                ? t('reportAt', { date: new Date(latestReport.createdAt).toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) })
-                : t('noReport')}
-            </Badge>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Chip href={chipHref()} active={!vehicleId} label={t('allTrucks')} />
-            {trucks.map((v) => (
-              <Chip key={v.cvhId} href={chipHref(v.cvhId)} active={vehicleId === v.cvhId} label={v.cvhPlateNumber} />
-            ))}
-          </div>
+        {/* Controls: search + month + region + vehicle (dropdown, left-aligned — Sheet-2 P5) */}
+        <div className="flex flex-wrap items-center gap-3">
+          <DebouncedSearchInput placeholder={t('searchPlaceholder')} className="sm:w-64" clearLabel={tA('clear')} />
+          <MonthPicker value={month} />
+          <ParamSelect
+            param="region"
+            value={region}
+            allLabel={t('allRegions')}
+            options={regionCodes.map((r) => ({ value: r, label: tRegion(r) }))}
+          />
+          <ParamSelect
+            param="vehicle"
+            value={vehicleId}
+            allLabel={t('allTrucks')}
+            options={trucks.map((v) => ({ value: v.cvhId, label: v.cvhPlateNumber }))}
+          />
+          <Badge tone={latestReport ? 'success' : 'neutral'} size="sm">
+            {latestReport
+              ? t('reportAt', { date: new Date(latestReport.createdAt).toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) })
+              : t('noReport')}
+          </Badge>
         </div>
 
         {/* Month summary cards */}
@@ -175,6 +172,7 @@ export default async function TruckFinancePage({
                   <TableHead className="text-right">{t('thRevenue')}</TableHead>
                   <TableHead className="text-right">{t('thProfit')}</TableHead>
                   <TableHead>{t('thStatus')}</TableHead>
+                  <TableHead className="whitespace-nowrap">{t('thUpdated')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -216,6 +214,9 @@ export default async function TruckFinancePage({
                           : t('provisional')}
                       </Badge>
                     </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      <DateTimeCell value={r.updatedAt} locale={loc} />
+                    </TableCell>
                   </ClickableTableRow>
                 ))}
               </TableBody>
@@ -224,21 +225,5 @@ export default async function TruckFinancePage({
         )}
       </div>
     </>
-  );
-}
-
-function Chip({ href, active, label }: { href: string; active: boolean; label: string }) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'inline-flex items-center min-h-[44px] md:min-h-0 rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors',
-        active
-          ? 'bg-accent text-accent-fg border-accent'
-          : 'bg-surface text-text-muted border-border hover:border-accent hover:text-accent',
-      )}
-    >
-      {label}
-    </Link>
   );
 }
