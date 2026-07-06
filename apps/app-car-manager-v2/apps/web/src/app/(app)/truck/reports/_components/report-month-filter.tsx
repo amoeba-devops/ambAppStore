@@ -29,7 +29,7 @@ export function ReportMonthFilter({
       <select
         value={value ?? 'all'}
         onChange={(e) => onChange(e.target.value)}
-        className="h-9 rounded-md border border-border bg-surface px-2.5 text-sm text-text focus-visible:outline-none focus-visible:border-accent"
+        className="h-11 md:h-9 rounded-md border border-border bg-surface px-2.5 text-sm text-text focus-visible:outline-none focus-visible:border-accent"
       >
         <option value="all">{t('allMonths')}</option>
         {months.map((m) => (
