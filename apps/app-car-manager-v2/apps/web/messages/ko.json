@@ -208,7 +208,14 @@
         "last6": "6개월",
         "ytd": "올해",
         "all": "12개월",
-        "quickAccess": "빠른 선택"
+        "quickAccess": "빠른 선택",
+        "customRange": "사용자 지정 기간",
+        "apply": "적용",
+        "rangeFrom": "부터",
+        "rangeTo": "까지",
+        "monthPh": "월",
+        "yearPh": "년",
+        "rangeError": "시작 월은 종료 월보다 이전이어야 합니다"
       },
       "vsPrev": "전기 대비",
       "kpiCostSub": "급여 · 감가 · 연료 · 주차 · 통행료",

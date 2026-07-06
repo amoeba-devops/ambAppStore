@@ -208,7 +208,14 @@
         "last6": "6 months",
         "ytd": "Year to date",
         "all": "12 months",
-        "quickAccess": "Quick access"
+        "quickAccess": "Quick access",
+        "customRange": "Custom range",
+        "apply": "Apply",
+        "rangeFrom": "From",
+        "rangeTo": "To",
+        "monthPh": "Month",
+        "yearPh": "Year",
+        "rangeError": "Start month must be ≤ end month"
       },
       "vsPrev": "vs prev",
       "kpiCostSub": "Salary · Deprec · Fuel · Parking · Toll",

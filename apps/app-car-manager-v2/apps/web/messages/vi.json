@@ -208,7 +208,14 @@
         "last6": "6 tháng",
         "ytd": "Từ đầu năm",
         "all": "12 tháng",
-        "quickAccess": "Truy cập nhanh"
+        "quickAccess": "Truy cập nhanh",
+        "customRange": "Khoảng tùy chọn",
+        "apply": "Áp dụng",
+        "rangeFrom": "Từ",
+        "rangeTo": "Đến",
+        "monthPh": "Tháng",
+        "yearPh": "Năm",
+        "rangeError": "Từ tháng phải ≤ đến tháng"
       },
       "vsPrev": "so kỳ trước",
       "kpiCostSub": "Lương · KH · xăng · bãi · cầu đường",

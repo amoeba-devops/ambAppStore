@@ -65,6 +65,23 @@ function monthsForPreset(p: PeriodPreset): string[] {
 }
 
 
+const YM = /^\d{4}-\d{2}$/;
+
+/** All 'YYYY-MM' months a custom [from,to] month range spans (capped at 24). */
+function monthsBetween(fromYm: string, toYm: string): string[] {
+  let y = Number(fromYm.slice(0, 4));
+  let m = Number(fromYm.slice(5, 7));
+  const ty = Number(toYm.slice(0, 4));
+  const tm = Number(toYm.slice(5, 7));
+  const out: string[] = [];
+  while ((y < ty || (y === ty && m <= tm)) && out.length < 24) {
+    out.push(`${y}-${String(m).padStart(2, '0')}`);
+    m += 1;
+    if (m > 12) { m = 1; y += 1; }
+  }
+  return out;
+}
+
 /** The same number of months immediately before `months` — basis for the
  * KPI delta ("so kỳ trước"). */
 function prevMonths(months: string[]): string[] {
@@ -85,13 +102,22 @@ function pctDelta(curr: number, prev: number): number | null {
 export default async function TruckDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; region?: string }>;
+  searchParams: Promise<{ period?: string; from?: string; to?: string; region?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
   const region =
     sp.region && (TRUCK_REGIONS as readonly string[]).includes(sp.region) ? sp.region : undefined;
-  const preset: PeriodPreset = isPeriodPreset(sp.period) ? sp.period : 'thisMonth';
+  /* Custom month/year range (?from=&to= in YYYY-MM) takes precedence over a
+   * preset; falls back to `thisMonth` when neither is a valid range. */
+  const customFrom = sp.from && YM.test(sp.from) ? sp.from : undefined;
+  const customTo = sp.to && YM.test(sp.to) ? sp.to : undefined;
+  const isCustom = !!(customFrom && customTo && customFrom <= customTo);
+  const preset: PeriodPreset | null = isCustom
+    ? null
+    : isPeriodPreset(sp.period)
+      ? sp.period
+      : 'thisMonth';
 
   const t = await getTranslations('screens.truckDashboard');
   const tPeriod = await getTranslations('screens.truckDashboard.period');
@@ -104,9 +130,13 @@ export default async function TruckDashboardPage({
   const locale = await getLocale();
   const loc = bcp47(locale);
 
-  const kpiMonths = monthsForPreset(preset);
+  const monthYear = (m: string) =>
+    new Date(`${m}-01T00:00:00Z`).toLocaleDateString(loc, { month: 'short', year: 'numeric' });
+  const kpiMonths = isCustom ? monthsBetween(customFrom!, customTo!) : monthsForPreset(preset!);
   const trendMonths = lastNMonths(6);
-  const periodLabel = tPeriod(preset);
+  const periodLabel = isCustom
+    ? `${monthYear(customFrom!)} – ${monthYear(customTo!)}`
+    : tPeriod(preset!);
 
   const [kpiRows, prevRows, trendRows, trucks, allTrips, regionRowsRaw] = await Promise.all([
     computeTruckPnl(user, { months: kpiMonths, region }),
@@ -209,7 +239,12 @@ export default async function TruckDashboardPage({
   /* Region filter links — preserve the active period, toggle the region param. */
   const regionHref = (r?: string) => {
     const p = new URLSearchParams();
-    if (preset !== 'thisMonth') p.set('period', preset);
+    if (isCustom) {
+      p.set('from', customFrom!);
+      p.set('to', customTo!);
+    } else if (preset && preset !== 'thisMonth') {
+      p.set('period', preset);
+    }
     if (r) p.set('region', r);
     const qs = p.toString();
     return `/truck/dashboard${qs ? `?${qs}` : ''}`;
@@ -229,7 +264,7 @@ export default async function TruckDashboardPage({
         actions={
           <div className="flex items-center gap-2">
             <div className="hidden sm:block">
-              <PeriodPicker label={periodLabel} currentPreset={preset} />
+              <PeriodPicker label={periodLabel} currentPreset={preset} from={customFrom} to={customTo} />
             </div>
             <Link
               href="/truck/trips/new"
@@ -245,7 +280,7 @@ export default async function TruckDashboardPage({
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-5">
         {/* Period selector — own row on mobile (hidden in header there). */}
         <div className="sm:hidden">
-          <PeriodPicker label={periodLabel} currentPreset={preset} />
+          <PeriodPicker label={periodLabel} currentPreset={preset} from={customFrom} to={customTo} />
         </div>
 
         {/* Region filter (REQ-20260630) — preserves the active period. */}
