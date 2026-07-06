@@ -47,6 +47,9 @@ export async function createVehicleAction(input: unknown): Promise<ActionResult<
         cvhLastOilChangeKm: data.last_oil_change_km ?? null,
         cvhHomeBase: data.home_base ?? null,
         cvhNotes: data.notes ?? null,
+        /* Set updated_at on insert so the roster "Cập nhật" column isn't blank
+         * right after create (Sheet-2 F8). */
+        cvhUpdatedAt: new Date(),
       })
       .returning();
     if (!created) throw new CarError('CAR-E0500', 500, 'Insert returned no row');
