@@ -160,6 +160,10 @@ export function ReportReviewStep({ reviews }: { reviews: TruckReportReview[] }) 
 
       {reviews.map((review) => {
         const editable = !review.closed;
+        /* Reconciliation computable → fuel is auto-allocated (km × consumption
+         * × avg price); the fuel column is read-only so a hand edit can't be
+         * silently overwritten by the recompute at generation. */
+        const fuelEditable = editable && !review.allocatable;
         return (
           <section key={review.region ?? '∅'} className="space-y-3">
             {/* Region section header — only shown when more than one region is
@@ -178,6 +182,21 @@ export function ReportReviewStep({ reviews }: { reviews: TruckReportReview[] }) 
               <div className="flex items-center gap-2 rounded-md border border-border bg-surface-2 px-3 py-2 text-xs text-text-muted">
                 <Lock className="h-3.5 w-3.5" />
                 {t('closedNote')}
+              </div>
+            )}
+
+            {/* Fuel mode — allocated (official formula) vs manual fallback. */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={review.allocatable ? 'success' : 'warning'} size="sm">
+                {review.allocatable ? t('modeAllocated') : t('modeManual')}
+              </Badge>
+              <span className="text-xs text-text-faint">
+                {review.allocatable ? t('modeAllocatedHint') : t('modeManualHint')}
+              </span>
+            </div>
+            {review.allocatable && review.kmZeroCount > 0 && (
+              <div className="rounded-md border border-warning/40 bg-warning/5 px-3 py-2 text-xs text-text">
+                {t('kmZeroWarn', { n: review.kmZeroCount })}
               </div>
             )}
             {editable && <p className="text-xs text-text-faint">{t('editHint')}</p>}
@@ -236,7 +255,7 @@ export function ReportReviewStep({ reviews }: { reviews: TruckReportReview[] }) 
                                   <td className="px-3 py-2 text-right tabular">{tr.km.toLocaleString(loc)}</td>
                                   <td className="px-3 py-2 text-right">{numCell(tr.trpId, 'toll', tr.toll, 'w-24', editable)}</td>
                                   <td className="px-3 py-2 text-right">{numCell(tr.trpId, 'extra', tr.extra, 'w-24', editable)}</td>
-                                  <td className="px-3 py-2 text-right">{numCell(tr.trpId, 'fuel', tr.fuelCost, 'w-24', editable)}</td>
+                                  <td className="px-3 py-2 text-right">{numCell(tr.trpId, 'fuel', tr.fuelCost, 'w-24', fuelEditable)}</td>
                                   <td className="px-3 py-2 text-right">{numCell(tr.trpId, 'revenue', tr.revenue, 'w-28', editable)}</td>
                                   <td className="px-3 py-2">
                                     <Badge tone={tr.finalized ? 'success' : 'neutral'} size="sm">

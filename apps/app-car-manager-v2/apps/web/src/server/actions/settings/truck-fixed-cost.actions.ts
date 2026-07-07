@@ -2,8 +2,9 @@
 
 import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
-import { carTruckFixedCosts } from '@car-v2/db/schema';
+import { carTruckFixedCosts, carVehicles } from '@car-v2/db/schema';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import { upsertTruckFixedCostSchema } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
@@ -23,7 +24,24 @@ export async function upsertTruckFixedCostAction(input: unknown): Promise<Action
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
     await requireFleet(actor, 'TRUCK');
     const dto = upsertTruckFixedCostSchema.parse(input);
-    if (await isTruckMonthClosed(actor.entId, dto.month)) {
+    /* Legacy manual closes lock the month — whole-fleet OR the vehicle's own
+     * region close (the region check was missing before PLAN-20260707). Reports
+     * don't lock; regenerating recomputes with the new fixed costs. */
+    const [veh] = await db
+      .select({ region: carVehicles.cvhRegion })
+      .from(carVehicles)
+      .where(
+        and(
+          eq(carVehicles.entId, actor.entId),
+          eq(carVehicles.cvhId, dto.vehicle_id),
+          isNull(carVehicles.cvhDeletedAt),
+        ),
+      )
+      .limit(1);
+    const closed =
+      (await isTruckMonthClosed(actor.entId, dto.month)) ||
+      (veh?.region != null && (await isTruckMonthClosed(actor.entId, dto.month, veh.region)));
+    if (closed) {
       throw new CarError('CAR-E1002', 409, 'Financial month is closed');
     }
 

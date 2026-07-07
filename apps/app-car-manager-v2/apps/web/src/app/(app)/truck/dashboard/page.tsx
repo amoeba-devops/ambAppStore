@@ -18,7 +18,9 @@ import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
 import { ParamSelect } from '@/components/inputs/param-select';
 import { PageHeader } from '@/components/layout/page-header';
+import { ReportStatusBadge } from '@/components/truck/report-status-badge';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { getTruckReportStatus, type TruckReportStatus } from '@/server/queries/truck-report.queries';
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { Info } from 'lucide-react';
@@ -153,23 +155,29 @@ export default async function TruckDashboardPage({
     computeTruckPnl(user, { months: trendMonths, region, vehicleId }),
     listTruckTrips(user.entId),
     /* Per-region breakdown over the selected period (always all regions, even
-     * when filtered — so the breakdown stays a comparison). */
+     * when filtered — so the breakdown stays a comparison). Report status is
+     * only meaningful for a single-month period (a range can't map to one
+     * generation event), so it's only fetched then. */
     Promise.all(
       TRUCK_REGIONS.map(async (r) => {
-        const rows = await computeTruckPnl(user, { months: kpiMonths, region: r });
-        return rows.reduce(
+        const [rows, status] = await Promise.all([
+          computeTruckPnl(user, { months: kpiMonths, region: r }),
+          kpiMonths.length === 1 ? getTruckReportStatus(user.entId, kpiMonths[0]!, r) : Promise.resolve(null),
+        ]);
+        const acc = rows.reduce(
           (a, x) => ({
-            region: r,
             revenue: a.revenue + x.revenue,
             netProfit: a.netProfit + x.netProfit,
             tripCount: a.tripCount + x.tripCount,
           }),
-          { region: r, revenue: 0, netProfit: 0, tripCount: 0 },
+          { revenue: 0, netProfit: 0, tripCount: 0 },
         );
+        return { region: r, ...acc, status: status as TruckReportStatus | null };
       }),
     ),
   ]);
   const regionRows = regionRowsRaw;
+  const showReportStatus = kpiMonths.length === 1;
 
   /* Sum the per-month rows across the selected period. */
   const acc = kpiRows.reduce(
@@ -411,6 +419,11 @@ export default async function TruckDashboardPage({
                     {tPnl('netProfit')}: {vndCompact(rr.netProfit)}
                   </span>
                 </div>
+                {rr.status && (
+                  <div className="mt-1.5">
+                    <ReportStatusBadge reportedAt={rr.status.reportedAt} stale={rr.status.stale} locale={locale} />
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -422,6 +435,7 @@ export default async function TruckDashboardPage({
                   <TableHead className="text-right">{tPnl('revenue')}</TableHead>
                   <TableHead className="text-right">{tPnl('netProfit')}</TableHead>
                   <TableHead className="text-right">{t('kpiTrips')}</TableHead>
+                  {showReportStatus && <TableHead>{t('thReportStatus')}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -435,6 +449,13 @@ export default async function TruckDashboardPage({
                       {vnd(rr.netProfit)}
                     </TableCell>
                     <TableCell className="text-right tabular">{rr.tripCount.toLocaleString(loc)}</TableCell>
+                    {showReportStatus && (
+                      <TableCell>
+                        {rr.status && (
+                          <ReportStatusBadge reportedAt={rr.status.reportedAt} stale={rr.status.stale} locale={locale} />
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

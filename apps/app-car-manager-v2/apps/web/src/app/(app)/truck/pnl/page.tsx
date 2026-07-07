@@ -9,8 +9,15 @@ import { MonthPicker } from '@/components/inputs/month-picker';
 import { ParamSelect } from '@/components/inputs/param-select';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
-import { getLatestTruckReportDates } from '@/server/queries/truck-report.queries';
+import { getTruckReportStatus } from '@/server/queries/truck-report.queries';
+import {
+  getTruckFuelStats,
+  isTruckMonthClosed,
+  listFuelInvoices,
+} from '@/server/queries/truck-finance.queries';
+import { ReportStatusBadge } from '@/components/truck/report-status-badge';
 import { FinanceTabs } from '../finance/_components/finance-tabs';
+import { FuelInvoicePanel } from './_components/fuel-invoice-panel';
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
@@ -75,12 +82,20 @@ export default async function TruckPnlPage({
   const vehicleId = sp.vehicle && trucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
 
   const months = threeMonthsEnding(month);
-  const [rows, reportDates] = await Promise.all([
+  const [rows, monthStatuses, invoices, fuelStats, regionLocked] = await Promise.all([
     computeTruckPnl(user, { vehicleId, region, months }),
-    getLatestTruckReportDates(user.entId, months),
+    /* Per-month, REGION-SCOPED report status (when was it generated, is it
+     * stale) — one source shared with Finance/Dashboard/chi tiết chuyến. */
+    Promise.all(months.map((m) => getTruckReportStatus(user.entId, m, region ?? null))),
+    /* Fuel-invoice ledger — the data source of the report's fuel reconciliation
+     * (avg price + consumption). Region-scoped, so it needs a region selected. */
+    region ? listFuelInvoices(user.entId, month, region) : Promise.resolve(null),
+    region ? getTruckFuelStats(user.entId, month, region) : Promise.resolve(null),
+    /* Legacy manual closes still lock their months; reports don't. */
+    region ? isTruckMonthClosed(user.entId, month, region) : Promise.resolve(false),
   ]);
 
-  const unreportedMonths = months.filter((m) => !reportDates.has(m));
+  const unreportedMonths = months.filter((m, i) => monthStatuses[i]!.reportedAt == null);
   const selected = rows.find((r) => r.month === month) ?? null;
 
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
@@ -181,9 +196,12 @@ export default async function TruckPnlPage({
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left font-semibold text-text-muted px-4 py-2.5">{t('metric')}</th>
-                  {months.map((m) => (
+                  {months.map((m, i) => (
                     <th key={m} className="text-right font-semibold text-text-muted px-4 py-2.5 whitespace-nowrap">
-                      {monthLabel(m)}
+                      <div className="flex flex-col items-end gap-1">
+                        <span>{monthLabel(m)}</span>
+                        <ReportStatusBadge reportedAt={monthStatuses[i]!.reportedAt} stale={monthStatuses[i]!.stale} locale={locale} />
+                      </div>
                     </th>
                   ))}
                 </tr>
@@ -219,6 +237,35 @@ export default async function TruckPnlPage({
             </table>
           </Card>
         </div>
+
+        {/* Fuel-invoice ledger — the input of the report's fuel reconciliation
+         * (giá bình quân + định mức). Region-scoped; the reconciliation itself
+         * is frozen per report by "Lập báo cáo" (PLAN-20260707). */}
+        {region && invoices ? (
+          <div className="space-y-3">
+            {fuelStats && (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {(
+                  [
+                    [t('avgPrice'), `${fuelStats.avgPrice.toLocaleString(loc)} ₫/L`],
+                    [t('consumption'), `${fuelStats.consumption.toFixed(3)} L/km`],
+                    [t('invoiceLiters'), `${fuelStats.invoiceLiters.toLocaleString(loc)} L`],
+                    [t('totalKm'), `${fuelStats.totalKm.toLocaleString(loc)} km`],
+                  ] as const
+                ).map(([label, value]) => (
+                  <Card key={label} variant="outline" className="p-3">
+                    <div className="text-xs text-text-muted">{label}</div>
+                    <div className="mt-1 text-sm font-bold tabular text-text">{value}</div>
+                  </Card>
+                ))}
+              </div>
+            )}
+            <FuelInvoicePanel month={month} region={region} invoices={invoices} locked={regionLocked} />
+            <p className="text-xs text-text-faint">{t('monthEndFormula')}</p>
+          </div>
+        ) : (
+          <Card variant="outline" className="p-4 text-sm text-text-muted">{t('invoiceRegionHint')}</Card>
+        )}
       </div>
     </>
   );

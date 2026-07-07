@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { computeTruckCost, parseAmount } from '@car-v2/core/truck';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getTrip } from '@/server/queries/trips.queries';
-import { getTripExtraCosts } from '@/server/queries/truck-trips.queries';
+import { getTripExtraCosts, getTruckTripBreakdown } from '@/server/queries/truck-trips.queries';
+import { getTruckReportStatus } from '@/server/queries/truck-report.queries';
 import { getTripStopovers } from '@/server/queries/stopovers.queries';
 import { TruckTripDetail } from '@/app/(app)/trips/[id]/_components/truck-trip-detail';
 import { TruckTripManageActions } from '../_components/truck-trip-manage-actions';
@@ -22,15 +22,10 @@ export default async function TruckTripDetailPage({ params }: { params: Promise<
     getTripExtraCosts(user.entId, trip.trpId),
     getTripStopovers(user.entId, trip.trpId),
   ]);
-  const breakdown = computeTruckCost({
-    fuelLiters: parseAmount(trip.trpFuelLiters),
-    fuelPrice: parseAmount(trip.trpFuelPrice),
-    tollFee: parseAmount(trip.trpTollFee),
-    extraCosts: extras.map((e) => e.amount),
-    revenue: parseAmount(trip.trpRevenue),
-  });
+  const { breakdown, month, region } = await getTruckTripBreakdown(user.entId, trip, extras.map((e) => e.amount));
   const completed = trip.trpStatus === 'COMPLETED';
   const canComplete = !completed && (trip.trpStatus === 'CONFIRMED' || trip.trpStatus === 'IN_PROGRESS');
+  const reportStatus = completed ? await getTruckReportStatus(user.entId, month, region || null) : null;
 
   return (
     <TruckTripDetail
@@ -54,6 +49,7 @@ export default async function TruckTripDetailPage({ params }: { params: Promise<
       backHref="/truck/trips"
       parentLabel={tNav('truckTrips')}
       actions={<TruckTripManageActions tripId={trip.trpId} />}
+      reportStatus={reportStatus}
     />
   );
 }

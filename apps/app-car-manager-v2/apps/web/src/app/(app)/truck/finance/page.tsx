@@ -22,9 +22,13 @@ import { MonthPicker } from '@/components/inputs/month-picker';
 import { ParamSelect } from '@/components/inputs/param-select';
 import { FinanceTabs } from './_components/finance-tabs';
 import { PageHeader } from '@/components/layout/page-header';
+import { ReportStatusBadge } from '@/components/truck/report-status-badge';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
-import { listTruckFinanceTrips } from '@/server/queries/truck-finance.queries';
+import {
+  getTruckFixedCostsLastUpdated,
+  listTruckFinanceTrips,
+} from '@/server/queries/truck-finance.queries';
 import { getLatestTruckReportForMonth } from '@/server/queries/truck-report.queries';
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
@@ -62,12 +66,19 @@ export default async function TruckFinancePage({
   const trucks = await listVehicles(user.entId, 'active', 'TRUCK');
   const vehicleId = sp.vehicle && trucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
 
-  const [rows, pnl, latestReport] = await Promise.all([
+  const [rows, pnl, latestReport, fixedUpdatedAt] = await Promise.all([
     listTruckFinanceTrips(user.entId, { month, vehicleId, q, region }),
-    computeTruckPnl(user, { vehicleId, months: [month] }),
+    computeTruckPnl(user, { vehicleId, region, months: [month] }),
     getLatestTruckReportForMonth(user.entId, month, region),
+    getTruckFixedCostsLastUpdated(user.entId, month),
   ]);
   const summary = pnl[0] ?? null;
+  /* Q1 decision (PLAN-20260707): no month lock — instead flag when trips or
+   * fixed costs changed AFTER the latest report, so the operator regenerates. */
+  const stale =
+    latestReport != null &&
+    (rows.some((r) => r.updatedAt != null && r.updatedAt > latestReport.createdAt) ||
+      (fixedUpdatedAt != null && fixedUpdatedAt > latestReport.createdAt));
 
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
   const num = (n: number, frac = 0) => n.toLocaleString(loc, { maximumFractionDigits: frac });
@@ -124,11 +135,7 @@ export default async function TruckFinancePage({
             allLabel={t('allTrucks')}
             options={trucks.map((v) => ({ value: v.cvhId, label: v.cvhPlateNumber }))}
           />
-          <Badge tone={latestReport ? 'success' : 'neutral'} size="sm">
-            {latestReport
-              ? t('reportAt', { date: new Date(latestReport.createdAt).toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) })
-              : t('noReport')}
-          </Badge>
+          <ReportStatusBadge reportedAt={latestReport?.createdAt ?? null} stale={stale} locale={locale} />
         </div>
 
         {/* Month summary cards */}

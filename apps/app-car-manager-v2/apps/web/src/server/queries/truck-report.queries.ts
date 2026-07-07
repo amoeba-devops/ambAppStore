@@ -2,6 +2,7 @@ import 'server-only';
 import { and, desc, eq, gt, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTruckReports, carUsers, type TruckReportType } from '@car-v2/db/schema';
+import { getTruckFixedCostsLastUpdated, getTruckTripsMaxUpdatedAt } from './truck-finance.queries';
 
 export interface TruckReportRow {
   id: string;
@@ -89,6 +90,40 @@ export async function getLatestTruckReportForMonth(
     .orderBy(desc(carTruckReports.trrCreatedAt))
     .limit(1);
   return row ?? null;
+}
+
+export interface TruckReportStatus {
+  /** When the latest live report for this (month, region) was generated;
+   * null = never reported. */
+  reportedAt: Date | null;
+  /** true when a trip or fixed cost in this scope changed AFTER reportedAt —
+   * the on-screen numbers may no longer match the last generated report
+   * (PLAN-20260707: no lock, so this is the only staleness signal). Always
+   * false when reportedAt is null. */
+  stale: boolean;
+}
+
+/**
+ * One combined "when was this generated, and is it still fresh" status per
+ * (month, region) — the single source every screen showing snapshot-derived
+ * truck numbers (Chi phí & LN, P&L, Dashboard, chi tiết chuyến) reads from, so
+ * the answer is identical no matter which screen the user is looking at.
+ */
+export async function getTruckReportStatus(
+  entId: string,
+  month: string,
+  region: string | null = null,
+): Promise<TruckReportStatus> {
+  const latest = await getLatestTruckReportForMonth(entId, month, region);
+  if (!latest) return { reportedAt: null, stale: false };
+  const [tripsUpdatedAt, fixedUpdatedAt] = await Promise.all([
+    getTruckTripsMaxUpdatedAt(entId, month, region),
+    getTruckFixedCostsLastUpdated(entId, month),
+  ]);
+  const stale =
+    (tripsUpdatedAt != null && tripsUpdatedAt > latest.createdAt) ||
+    (fixedUpdatedAt != null && fixedUpdatedAt > latest.createdAt);
+  return { reportedAt: latest.createdAt, stale };
 }
 
 /** Latest report dates for multiple months — drives the P&L banner. */

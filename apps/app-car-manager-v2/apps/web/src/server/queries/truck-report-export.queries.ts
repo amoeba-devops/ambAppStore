@@ -100,7 +100,7 @@ export async function getTruckReportExport(
   const start = new Date(`${month}-01T00:00:00.000Z`);
   const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
 
-  const [snapshots, fuel, closed, rows] = await Promise.all([
+  const [snapshots, fuel, closedLegacy, rows] = await Promise.all([
     loadTruckRegionSnapshots(actor.entId, [month]),
     getTruckFuelStats(actor.entId, month, region ?? undefined),
     isTruckMonthClosed(actor.entId, month, region),
@@ -266,10 +266,15 @@ export async function getTruckReportExport(
     net: tot?.netProfit ?? 0,
   };
 
+  /* "Official" when the scope has a frozen snapshot — since PLAN-20260707 that
+   * is the report's own recomputed snapshot (inserted before this runs); legacy
+   * manual closes still count for historical months. */
+  const scopeSnap = snapshots.snap.get(`${month}|${region ?? ''}`) ?? null;
+
   return {
     month,
     region,
-    closed,
+    closed: closedLegacy || scopeSnap != null,
     fuel: { avgPrice: fuel.avgPrice, consumption: fuel.consumption, invoiceCount: fuel.invoiceCount },
     trips,
     vehicles,

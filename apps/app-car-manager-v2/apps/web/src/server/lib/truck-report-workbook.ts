@@ -88,11 +88,21 @@ function put(
 
 export async function buildTruckReportWorkbook(
   data: TruckReportExport,
-  labels: { monthLabel: string; regionLabel: string },
+  labels: { monthLabel: string; regionLabel: string; generatedAt: Date },
 ): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Amoeba Car Manager';
-  const title = `BÁO CÁO XE TẢI  ·  ${labels.regionLabel}  ·  ${labels.monthLabel}`;
+  /* Stamped into every sheet's banner (below) so whoever opens this file later
+   * — independent of the live app UI — can tell exactly which "Lập báo cáo"
+   * run produced these numbers (PLAN-20260707 follow-up). */
+  const generatedAtStr = labels.generatedAt.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const title = `BÁO CÁO XE TẢI  ·  ${labels.regionLabel}  ·  ${labels.monthLabel}  ·  Lập lúc ${generatedAtStr}`;
 
   /* ── ① Danh sách chuyến đi ─────────────────────────────────────────────── */
   const TRIP: Col[] = [
@@ -132,7 +142,7 @@ export async function buildTruckReportWorkbook(
   headerRow(ws1, 3, TRIP);
   data.trips.forEach((t, i) => {
     const r = 4 + i;
-    const status = t.finalized ? 'Đã chốt' : 'Tạm tính';
+    const status = t.finalized ? 'Đã lập BC' : 'Tạm tính';
     const vals: Record<string, unknown> = {
       stt: i + 1,
       date: t.date,
@@ -211,7 +221,7 @@ export async function buildTruckReportWorkbook(
       fuel: v.fuel,
       extra: v.extra,
       net: v.net,
-      status: data.closed ? 'Đã chốt' : 'Tạm tính',
+      status: data.closed ? 'Đã lập BC' : 'Tạm tính',
     };
     VEH.forEach((c, ci) => {
       const isStatus = c.key === 'status';
@@ -304,19 +314,27 @@ export async function buildTruckReportWorkbook(
   frCell.value = `Đối soát nhiên liệu tháng: giá xăng bình quân ${data.fuel.avgPrice.toLocaleString('vi-VN')} đ/L · tiêu hao ${data.fuel.consumption.toFixed(3)} L/km · ${data.fuel.invoiceCount} hóa đơn`;
   frCell.font = { name: FONT, size: 10, italic: true, color: { argb: 'FF444444' } };
 
+  /* Generation timestamp — the exact "Lập báo cáo" moment these numbers were
+   * frozen at (no lock model means numbers can drift after this). */
+  const gtr = 8;
+  ws3.mergeCells(`B${gtr}:H${gtr}`);
+  const gtCell = ws3.getCell(`B${gtr}`);
+  gtCell.value = `Số liệu chính thức tính lúc ${generatedAtStr} — dữ liệu thay đổi sau thời điểm này chỉ cập nhật khi lập lại báo cáo.`;
+  gtCell.font = { name: FONT, size: 10, italic: true, color: { argb: 'FF444444' } };
+
   /* Glossary — "Định nghĩa thuật ngữ" so the terms are unambiguous. */
   const gloss: [string, string][] = [
     ['Doanh thu', 'Doanh thu chuyến nhập khi tạo chuyến đi; Doanh thu tháng = tổng các chuyến.'],
     ['Giá xăng bình quân tháng', 'Trung bình cộng đơn giá các hóa đơn nhiên liệu trong tháng (đ/L).'],
     ['Lượng tiêu hao / km', 'Tổng lít xăng đã đổ trong tháng ÷ tổng km đã đi trong tháng.'],
-    ['Phí nhiên liệu (phí xăng chuyến)', 'Tiêu hao/km × km chuyến × giá xăng bình quân tháng (tính khi chốt sổ).'],
+    ['Phí nhiên liệu (phí xăng chuyến)', 'Tiêu hao/km × km chuyến × giá xăng bình quân tháng (tính lại mỗi lần lập báo cáo).'],
     ['Phí cầu đường / phát sinh', 'Nhập khi hoàn thành chuyến; phát sinh gồm vá vỏ, rửa xe, phí bãi…'],
     ['Lợi nhuận (chuyến)', 'Doanh thu − Phí nhiên liệu − Phí cầu đường − Chi phí phát sinh (trước chi phí cố định tháng).'],
     ['Khấu hao xe', 'Chi phí khấu hao cố định theo tháng của xe.'],
     ['Lương tài xế', 'Lương cố định theo tháng.'],
     ['Chi phí cố định', 'Bảo hiểm & chi phí cố định khác theo tháng (KHÔNG gồm khấu hao & lương — tách riêng để không trùng).'],
     ['Lợi nhuận ròng (tháng)', 'Doanh thu − Phí nhiên liệu − Phí cầu đường − Tổng phí phát sinh − Lương tài xế − Khấu hao − Chi phí cố định.'],
-    ['Trạng thái', '“Đã chốt” = tháng đã khóa sổ (số liệu chính thức); “Tạm tính” = tháng còn mở.'],
+    ['Trạng thái', '“Đã lập BC” = số liệu chính thức theo lần lập báo cáo gần nhất; “Tạm tính” = chưa đủ dữ liệu phân bổ (hóa đơn xăng / km).'],
     ['Số vận đơn (BOL) / Số CDF', 'BOL = Bill of Lading (vận đơn); CDF = tờ khai hải quan — nhập khi tạo chuyến.'],
   ];
   let gr = 9;

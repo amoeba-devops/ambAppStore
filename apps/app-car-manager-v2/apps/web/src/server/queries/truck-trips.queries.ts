@@ -19,6 +19,70 @@ import {
 
 const monthKey = (d: Date): string => d.toISOString().slice(0, 7);
 
+/**
+ * Snapshot-aware cost breakdown for ONE trip — the exact rule `listTruckTrips`
+ * applies per row (official km × consumption × avg price once the trip's
+ * (month, region) has a fuel snapshot; otherwise the trip's own litres ×
+ * price). The trip-detail pages go through this so detail always matches the
+ * list / finance / P&L / report numbers (PLAN-20260707 S1.5).
+ */
+export async function getTruckTripBreakdown(
+  entId: string,
+  trip: {
+    trpScheduledAt: Date;
+    trpVehicleId: string | null;
+    trpStartOdometer: number | null;
+    trpEndOdometer: number | null;
+    trpFuelLiters: string | null;
+    trpFuelPrice: string | null;
+    trpTollFee: string | null;
+    trpRevenue: string | null;
+  },
+  extraAmounts: number[],
+): Promise<{
+  breakdown: TruckCostBreakdown;
+  finalized: boolean;
+  /** The trip's month + resolved operating region ('' = vehicle has no
+   * region) — feeds `getTruckReportStatus` so the detail page can show WHEN
+   * the report covering this trip was last generated. */
+  month: string;
+  region: string;
+}> {
+  const month = monthKey(trip.trpScheduledAt);
+  const snapshots = await loadTruckRegionSnapshots(entId, [month]);
+  const region = trip.trpVehicleId ? snapshots.vehicleRegion.get(trip.trpVehicleId) ?? '' : '';
+  const snap = snapshots.forTrip(month, trip.trpVehicleId);
+  if (!snap) {
+    return {
+      breakdown: computeTruckCost({
+        fuelLiters: parseAmount(trip.trpFuelLiters),
+        fuelPrice: parseAmount(trip.trpFuelPrice),
+        tollFee: parseAmount(trip.trpTollFee),
+        extraCosts: extraAmounts,
+        revenue: parseAmount(trip.trpRevenue),
+      }),
+      finalized: false,
+      month,
+      region,
+    };
+  }
+  const km =
+    trip.trpStartOdometer != null && trip.trpEndOdometer != null
+      ? trip.trpEndOdometer - trip.trpStartOdometer
+      : 0;
+  const fuelCost = truckTripFuelCost({ km, consumption: snap.consumption, avgPrice: snap.avgPrice });
+  const tollFee = Math.round(parseAmount(trip.trpTollFee));
+  const extraTotal = Math.round(extraAmounts.reduce((s, n) => s + (n || 0), 0));
+  const revenue = Math.round(parseAmount(trip.trpRevenue));
+  const totalCost = fuelCost + tollFee + extraTotal;
+  return {
+    breakdown: { fuelCost, tollFee, extraTotal, totalCost, revenue, profit: revenue - totalCost },
+    finalized: true,
+    month,
+    region,
+  };
+}
+
 export interface TruckTripRow {
   trpId: string;
   ref: string;

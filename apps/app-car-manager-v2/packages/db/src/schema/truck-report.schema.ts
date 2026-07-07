@@ -1,4 +1,4 @@
-import { pgTable, char, varchar, timestamp, index } from 'drizzle-orm/pg-core';
+import { pgTable, char, varchar, timestamp, index, decimal } from 'drizzle-orm/pg-core';
 import { vehicleTypeEnum } from './vehicles.schema';
 
 /**
@@ -27,6 +27,16 @@ export const carTruckReports = pgTable(
     trrFormat: varchar('trr_format', { length: 8 }).notNull().default('EXCEL'),
     trrS3Key: varchar('trr_s3_key', { length: 512 }).notNull(),
     trrName: varchar('trr_name', { length: 200 }).notNull(),
+    /* Month-end fuel reconciliation FROZEN at generation time (0021). The
+     * generate action recomputes the old chốt-sổ formulas (avg invoice price,
+     * consumption = Σ litres ÷ Σ km) and stores them here; the latest live row
+     * per (ent, month, region) is the official snapshot every screen reads.
+     * NULL = not computable at generation (no invoices / no km) → screens keep
+     * the per-trip provisional numbers. Precision mirrors car_truck_month_close. */
+    trrAvgPrice: decimal('trr_avg_price', { precision: 14, scale: 2 }),
+    trrConsumption: decimal('trr_consumption', { precision: 10, scale: 6 }),
+    trrTotalLiters: decimal('trr_total_liters', { precision: 12, scale: 2 }),
+    trrTotalKm: decimal('trr_total_km', { precision: 12, scale: 2 }),
     trrCreatedBy: char('trr_created_by', { length: 36 }),
     trrCreatedAt: timestamp('trr_created_at', { withTimezone: true }).defaultNow().notNull(),
     trrDeletedAt: timestamp('trr_deleted_at', { withTimezone: true }),

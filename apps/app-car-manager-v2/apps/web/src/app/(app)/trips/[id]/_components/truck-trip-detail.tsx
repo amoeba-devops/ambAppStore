@@ -5,6 +5,8 @@ import type { TruckCostBreakdown } from '@car-v2/core/truck';
 import type { CarTripStopover, CarStopType } from '@car-v2/db/schema';
 import { MapPreview } from '@/components/inputs/map-preview';
 import { PageHeader } from '@/components/layout/page-header';
+import { ReportStatusBadge } from '@/components/truck/report-status-badge';
+import type { TruckReportStatus } from '@/server/queries/truck-report.queries';
 import { TruckCompleteSection } from './truck-complete-section';
 
 function bcp47(locale: string): string {
@@ -40,6 +42,9 @@ export interface TruckTripDetailProps {
   hideFinancials?: boolean;
   /** Ordered stopovers (REQ-20260623). When empty, falls back to pickup→dropoff display. */
   stopovers?: CarTripStopover[];
+  /** When was the report covering this trip's (month, region) last generated,
+   * and is it stale — null when the trip isn't completed yet (no cost card). */
+  reportStatus?: TruckReportStatus | null;
 }
 
 /** Truck (LOG) trip detail — read-only breakdown when completed, otherwise the
@@ -82,7 +87,12 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
 
   const costCard = (
     <Card variant="outline" className="p-4 space-y-2">
-      <div className="text-sm font-semibold text-text mb-1">{t('costTitle')}</div>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="text-sm font-semibold text-text">{t('costTitle')}</div>
+        {props.reportStatus && (
+          <ReportStatusBadge reportedAt={props.reportStatus.reportedAt} stale={props.reportStatus.stale} locale={locale} />
+        )}
+      </div>
       <CostRow label={t('fuel')} value={vnd(props.breakdown.fuelCost)} />
       <CostRow label={t('toll')} value={vnd(props.breakdown.tollFee)} />
       {props.extras.map((e, i) => (

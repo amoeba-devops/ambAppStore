@@ -416,12 +416,19 @@ export async function patchTruckTripCostsAction(input: unknown): Promise<ActionR
     if (!trip) throw new CarError('CAR-E0404', 404, 'Trip not found');
     await assertTruckMonthOpen(actor.entId, trip.trpScheduledAt, await regionOfVehicle(actor.entId, trip.trpVehicleId));
 
-    const patch: Partial<{ trpTollFee: string; trpRevenue: string; trpFuelLiters: string }> = {};
+    const patch: Partial<{ trpTollFee: string; trpRevenue: string; trpFuelLiters: string; trpFuelPrice: string }> = {};
     if (dto.toll_fee !== undefined) patch.trpTollFee = String(dto.toll_fee);
     if (dto.revenue !== undefined) patch.trpRevenue = String(dto.revenue);
     if (dto.fuel_cost !== undefined) {
       const price = Number(trip.trpFuelPrice ?? 0);
-      if (price > 0) patch.trpFuelLiters = String(Math.round((dto.fuel_cost / price) * 100) / 100);
+      if (price > 0) {
+        patch.trpFuelLiters = String(Math.round((dto.fuel_cost / price) * 100) / 100);
+      } else {
+        /* No unit price on the trip → store the amount as liters × 1 đ so the
+         * edit persists (it used to be silently dropped). */
+        patch.trpFuelPrice = '1';
+        patch.trpFuelLiters = String(dto.fuel_cost);
+      }
     }
     if (Object.keys(patch).length > 0) {
       await db
