@@ -44,6 +44,8 @@ const NAV = {
     ['08-tong-quan-pnl', { vi: 'Tổng quan P&L', ko: '손익 개요' }],
     ['09-lap-bao-cao', { vi: 'Lập báo cáo', ko: '보고서 작성' }],
     ['10-danh-sach-bao-cao', { vi: 'Danh sách báo cáo', ko: '보고서 목록' }],
+    ['11-import-excel', { vi: 'Import Excel', ko: '엑셀 가져오기' }],
+    ['12-cau-hinh', { vi: 'Cấu hình xe tải', ko: '트럭 설정' }],
   ],
   driver: [
     ['00-tong-quan', { vi: 'Tổng quan', ko: '개요' }],

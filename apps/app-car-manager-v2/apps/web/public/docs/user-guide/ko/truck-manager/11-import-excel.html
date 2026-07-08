@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>엑셀 가져오기 — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2" aria-label="Amoeba Car Manager v2">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· 가이드</span></span><span class="header__brand-mobile">가이드</span>
+      </a>
+      <div class="header__tools">
+        <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="가이드 검색… (/)" aria-label="검색">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi"><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" data-lang="ko"><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">트럭 · 관리자</div>
+        <a class="sidebar__link" href="00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="01-bang-dieu-khien.html">대시보드</a>
+        <a class="sidebar__link" href="02-nhat-ky-chuyen.html">운행 일지</a>
+        <a class="sidebar__link" href="03-lap-chuyen.html">운행 등록</a>
+        <a class="sidebar__link" href="04-chi-tiet-chuyen.html">운행 상세</a>
+        <a class="sidebar__link" href="05-doi-xe.html">차량</a>
+        <a class="sidebar__link" href="06-tai-xe.html">기사</a>
+        <a class="sidebar__link" href="07-chi-phi-loi-nhuan.html">비용 & 손익</a>
+        <a class="sidebar__link" href="08-tong-quan-pnl.html">손익 개요</a>
+        <a class="sidebar__link" href="09-lap-bao-cao.html">보고서 작성</a>
+        <a class="sidebar__link" href="10-danh-sach-bao-cao.html">보고서 목록</a>
+        <a class="sidebar__link is-active" href="11-import-excel.html">엑셀 가져오기</a>
+        <a class="sidebar__link" href="12-cau-hinh.html">트럭 설정</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">트럭 · 기사</div>
+        <a class="sidebar__link" href="../truck-driver/00-tong-quan.html">개요</a>
+        <a class="sidebar__link" href="../truck-driver/01-hom-nay.html">오늘</a>
+        <a class="sidebar__link" href="../truck-driver/02-hoan-thanh-chuyen.html">운행 완료</a>
+        <a class="sidebar__link" href="../truck-driver/03-ghi-chuyen-moi.html">새 운행 기록</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">공통</div>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">로그인</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">언어 변경</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">알림</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">홈</a> · 트럭 · 관리자 · 엑셀 가져오기</div>
+        <h1>엑셀 가져오기</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/truck/import" target="_parent" rel="noopener">
+            <span>앱에서 열기</span>
+            <span class="app-link-cta__route">/truck/import</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/import</code></dd><dt>목적</dt><dd>다른 곳에 있던 운행 데이터를 엑셀로 일괄 등록</dd></dl></div>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/11-import.png" alt="엑셀 가져오기 화면 (데스크톱)"><figcaption>엑셀 가져오기 화면 (데스크톱)</figcaption></figure>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/11-import-mobile.png" alt="휴대폰 엑셀 가져오기 (모바일)"><figcaption>휴대폰 엑셀 가져오기 (모바일)</figcaption></figure>
+<h2>사용 단계</h2><ol><li><strong>템플릿 다운로드</strong>로 올바른 열 구조 확인.</li><li>파일 전체에 적용할 <strong>차량</strong>과 <strong>기사</strong> 선택(파일 하나 = 차량 1대 + 기사 1명).</li><li>작성한 <code>.xlsx</code>/<code>.xls</code> 파일을 드래그하거나 선택.</li><li>시트가 여러 개면 <strong>시트 선택</strong>에서 가져올 시트 선택 — 시트 하나 = 한 달.</li><li><strong>열 매핑</strong> 확인: 열 이름으로 자동 추정되며 수동 변경 가능. <strong>날짜</strong> 열은 필수.</li><li>미리보기 표에서 <strong>유효</strong>(초록)·<strong>오류</strong>(빨강, 주로 날짜 누락) 행 수 확인.</li><li><strong>N행 가져오기</strong> 클릭 — 유효한 행만 등록됨.</li></ol>
+<h2>로직 / 규칙</h2><ul><li><strong>CR-Vietnam-Truck-v1</strong> 템플릿은 17개 열(<em>차량(번호판)</em> 열 포함 — 차량·기사는 위에서 별도로 선택하므로 참고용). 앱이 실제로 읽는 열은 16개: 날짜, 출/도착 시각, 고객, 상차/하차지, 시작/종료 km, 연료량+단가, 통행료, 기타비용+메모, BOL, CDF, 매출.</li><li>가져오기 성공 시 방금 가져온 달로 필터된 <a href="02-nhat-ky-chuyen.html">운행 일지</a>로 바로 이동해 확인 가능.</li><li>이미 보고서가 <strong>작성된</strong> 달/지역이어도 가져오기는 가능(잠금 없음) — 가져온 후 <a href="09-lap-bao-cao.html">보고서를 다시 작성</a>해 공식 수치를 갱신하세요.</li></ul>
+
+        <nav class="pager">
+          <a class="pager__prev" href="10-danh-sach-bao-cao.html"><span>← 이전</span><strong>보고서 목록</strong></a>
+          <a class="pager__next" href="12-cau-hinh.html"><span>다음 →</span><strong>트럭 설정</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">업데이트 01-07-2026 · 피드백: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

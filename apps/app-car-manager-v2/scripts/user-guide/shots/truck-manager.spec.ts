@@ -16,6 +16,9 @@ import {
 const MGR = { role: 'MANAGER', sub: '0a0a0a0a-0000-4000-8000-0000000000c2', name: 'Phạm Minh Quân' };
 // A COMPLETED trip (TRK-1001) → 2-column cost/profit detail.
 const TRIP_DONE = 'd7000000-0000-4000-8000-000000001001';
+// Current month, 'YYYY-MM' — matches seed-truck-guide.mjs's monthsAgo=0 trips
+// + the HCM fuel invoices, so Bước 3 lands on an ALLOCATABLE region (PLAN-20260707).
+const CURRENT_MONTH = new Date().toISOString().slice(0, 7);
 
 /** slug · route · fullPage(desktop). Every page is shot on BOTH desktop and
  * mobile so the guide can show each surface at its correct breakpoint. */
@@ -27,9 +30,16 @@ const PAGES: { slug: string; route: string; full?: boolean }[] = [
   { slug: '05-fleet', route: '/truck/fleet' },
   { slug: '06-drivers', route: '/truck/drivers' },
   { slug: '07-finance', route: '/truck/finance' },
-  { slug: '08-pnl', route: '/truck/pnl' },
+  // Region selected so the "Hoá đơn xăng dầu" panel (fuel invoices + the 4
+  // reconciliation indicators) is visible, not just the bare P&L table.
+  { slug: '08-pnl', route: '/truck/pnl?region=HCM' },
   { slug: '09-reports', route: '/truck/reports' },
   { slug: '10-report-new', route: '/truck/reports/new', full: true },
+  // Bước 3 (review/confirm) for an allocatable region — shows the "Phân bổ
+  // theo bình quân" badge + locked fuel column, not just the Bước 1 picker.
+  { slug: '10-report-new-step3', route: `/truck/reports/new?month=${CURRENT_MONTH}&regions=HCM`, full: true },
+  { slug: '11-import', route: '/truck/import' },
+  { slug: '12-settings', route: '/truck/settings' },
 ];
 
 async function truckLogin(page: Page, next: string) {

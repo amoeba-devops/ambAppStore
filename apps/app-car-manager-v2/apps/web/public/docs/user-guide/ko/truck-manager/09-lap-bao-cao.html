@@ -37,6 +37,8 @@
         <a class="sidebar__link" href="08-tong-quan-pnl.html">손익 개요</a>
         <a class="sidebar__link is-active" href="09-lap-bao-cao.html">보고서 작성</a>
         <a class="sidebar__link" href="10-danh-sach-bao-cao.html">보고서 목록</a>
+        <a class="sidebar__link" href="11-import-excel.html">엑셀 가져오기</a>
+        <a class="sidebar__link" href="12-cau-hinh.html">트럭 설정</a>
       </div>
       <div class="sidebar__group">
         <div class="sidebar__group-label">트럭 · 기사</div>
@@ -69,8 +71,11 @@
         <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/reports/new</code></dd><dt>절차</dt><dd>3단계: 월 → 지역 → 확인</dd></dl></div>
         <figure><img src="../../assets/img/screenshots/ko/truck-manager/10-report-new.png" alt="1단계 — 월 선택 (데스크톱)"><figcaption>1단계 — 월 선택 (데스크톱)</figcaption></figure>
         <figure><img src="../../assets/img/screenshots/ko/truck-manager/10-report-new-mobile.png" alt="휴대폰 보고서 작성 (모바일)"><figcaption>휴대폰 보고서 작성 (모바일)</figcaption></figure>
-<h2>사용 단계</h2><ol><li><strong>1단계 — 월 선택</strong>: 보고할 월 선택.</li><li><strong>2단계 — 지역 선택</strong>: 한 지역(HCM/동나이/Baiksan) 또는 <strong>전체 지역</strong>.</li><li><strong>3단계 — 확인 &amp; 작성</strong>: 집계 수치 검토 후 생성.</li><li>생성된 보고서 Excel 다운로드(또는 <a href="10-danh-sach-bao-cao.html">보고서 목록</a>에서).</li></ol>
-<h2>로직 / 규칙(오류 차단)</h2><ul><li><strong>데이터 없는 월</strong> → 2단계로 진행 불가, 1단계에서 즉시 경고.</li><li>해당 월에 <strong>운행 없는 지역</strong> → 3단계로 진행 불가, 2단계에서 즉시 경고.</li><li>보고서는 <strong>지역명</strong>과 함께 명명되어 목록에 저장.</li></ul>
+<h2>사용 단계</h2><ol><li><strong>1단계 — 월 선택</strong>: 보고할 월 선택.</li><li><strong>2단계 — 지역 선택</strong>: 한 지역(HCM/동나이/Baiksan) 또는 <strong>전체 지역</strong>.</li><li><strong>3단계 — 확인 &amp; 작성</strong>: 집계 수치와 배분 배지를 확인한 후 생성.</li><li>생성된 보고서 Excel 다운로드(또는 <a href="10-danh-sach-bao-cao.html">보고서 목록</a>에서).</li></ol>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/10-report-new-step3.png" alt="3단계 — 지역 평균 기반 연료비 배분 (데스크톱)"><figcaption>3단계 — 지역 평균 기반 연료비 배분 (데스크톱)</figcaption></figure>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/10-report-new-step3-mobile.png" alt="휴대폰 3단계 (모바일)"><figcaption>휴대폰 3단계 (모바일)</figcaption></figure>
+<h2>3단계 — 연료비 배분</h2><ul><li><strong>평균 배분</strong> 배지(초록) = 이 지역의 주유 영수증·운행 km 데이터가 충분함 — <strong>연료비</strong> 열이 잠기고 연비 기준으로 자동 계산.</li><li><strong>수동 임시 집계</strong> 배지(노랑) = 데이터 부족 — 연료비 열을 직접 수정 가능; 작성 전 <a href="08-tong-quan-pnl.html">손익 개요</a>에서 영수증을 보충하는 것을 권장.</li><li>주행거리(km) 미입력 운행이 있으면 경고 표시 — 해당 운행의 배분 연료비는 0으로 처리.</li><li>표에서 <strong>통행료</strong>와 <strong>매출</strong>은 생성 전 직접 수정 가능.</li></ul>
+<h2>로직 / 규칙(오류 차단)</h2><ul><li><strong>데이터 없는 월</strong> → 2단계로 진행 불가, 1단계에서 즉시 경고.</li><li>해당 월에 <strong>운행 없는 지역</strong> → 3단계로 진행 불가, 2단계에서 즉시 경고.</li><li><strong>여러 번 재작성해도 안전</strong> — 생성할 때마다 최신 데이터로 다시 계산해 공식 수치를 덮어씁니다; 이전 보고서는 <a href="10-danh-sach-bao-cao.html">보고서 목록</a>에 그대로 남아 대조 가능.</li><li>보고서는 <strong>지역명</strong>과 함께 명명되어 목록에 저장.</li></ul>
 
         <nav class="pager">
           <a class="pager__prev" href="08-tong-quan-pnl.html"><span>← 이전</span><strong>손익 개요</strong></a>
