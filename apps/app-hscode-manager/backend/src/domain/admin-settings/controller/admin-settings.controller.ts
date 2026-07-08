@@ -7,14 +7,19 @@ import {
   successResponse,
 } from '../../../common/dto/base-response.dto';
 import { AppConfigService, SettingView } from '../service/app-config.service';
+import { AiConnectionService } from '../service/ai-connection.service';
 import { PutSettingsRequest } from '../dto/request/put-settings.request';
+import { TestConnectionRequest } from '../dto/request/test-connection.request';
 
 /** SCR-006 어드민(설정) — AI/외부 API 연결·설정 (R-18). 관리자 전용 (POL-005). */
 @ApiTags('admin-settings')
 @ApiBearerAuth()
 @Controller('admin/settings')
 export class AdminSettingsController {
-  constructor(private readonly appConfig: AppConfigService) {}
+  constructor(
+    private readonly appConfig: AppConfigService,
+    private readonly aiConnection: AiConnectionService,
+  ) {}
 
   @AdminOnly()
   @Get(':category')
@@ -42,15 +47,16 @@ export class AdminSettingsController {
 
   @AdminOnly()
   @Post('test')
-  @ApiOperation({ summary: '연결 테스트 (Claude/어댑터 ping)' })
+  @ApiOperation({ summary: '연결 테스트 (Claude 실제 ping — 입력값 우선)' })
   async test(
+    @Body() dto: TestConnectionRequest,
     @CurrentUser('entityId') entId: string,
-  ): Promise<BaseResponse<{ claude: boolean; message: string }>> {
-    const apiKey = await this.appConfig.getSecret(entId, 'AI', 'api_key');
-    const configured = !!apiKey || !!process.env.CLAUDE_API_KEY;
-    return successResponse({
-      claude: configured,
-      message: configured ? 'API key present' : 'API key not configured',
-    });
+  ): Promise<BaseResponse<{ claude: boolean; message: string; model?: string }>> {
+    return successResponse(
+      await this.aiConnection.test(entId, {
+        apiKey: dto.api_key,
+        modelVersion: dto.model_version,
+      }),
+    );
   }
 }

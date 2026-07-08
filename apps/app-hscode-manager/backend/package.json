@@ -12,6 +12,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
     "@nestjs/bullmq": "^11.0.0",
     "@nestjs/common": "^11.1.0",
     "@nestjs/config": "^4.0.3",

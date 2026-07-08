@@ -66,6 +66,8 @@ function SettingsForm({ category }: { category: SettingCategory }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [placeholders, setPlaceholders] = useState<Record<string, string>>({});
   const [testMsg, setTestMsg] = useState<string | null>(null);
+  const [testOk, setTestOk] = useState<boolean | null>(null);
+  const [testing, setTesting] = useState(false);
 
   const fields = FIELDS[category];
 
@@ -111,11 +113,26 @@ function SettingsForm({ category }: { category: SettingCategory }) {
       <div className="mt-2 flex justify-end gap-2">
         {category === 'AI' && (
           <button
+            disabled={testing}
             onClick={async () => {
-              const res = await adminSettingsService.test();
-              setTestMsg(res.message);
+              setTesting(true);
+              setTestMsg(t('set.testing'));
+              setTestOk(null);
+              try {
+                const res = await adminSettingsService.test({
+                  api_key: values['api_key'] || undefined,
+                  model_version: values['model_version'] || undefined,
+                });
+                setTestOk(res.claude);
+                setTestMsg(res.message);
+              } catch (err) {
+                setTestOk(false);
+                setTestMsg(err instanceof Error ? err.message : t('set.testfail'));
+              } finally {
+                setTesting(false);
+              }
             }}
-            className="rounded-s border border-line2 bg-white px-3 py-1.5 text-[12.5px] font-semibold hover:border-brand-light"
+            className="rounded-s border border-line2 bg-white px-3 py-1.5 text-[12.5px] font-semibold hover:border-brand-light disabled:opacity-45"
           >
             {t('set.test')}
           </button>
@@ -129,7 +146,15 @@ function SettingsForm({ category }: { category: SettingCategory }) {
         </button>
       </div>
 
-      {testMsg && <p className="mt-2 text-right text-[12px] text-muted">{testMsg}</p>}
+      {testMsg && (
+        <p
+          className={`mt-2 text-right text-[12px] ${
+            testOk === true ? 'text-emerald-600' : testOk === false ? 'text-red-600' : 'text-muted'
+          }`}
+        >
+          {testMsg}
+        </p>
+      )}
 
       <div className="mt-3.5 flex items-start gap-2.5 rounded-[9px] border border-[#BBD6FA] bg-info-soft px-3.5 py-3 text-[12.5px] text-[#1E5BB8]">
         <span>🔒</span>

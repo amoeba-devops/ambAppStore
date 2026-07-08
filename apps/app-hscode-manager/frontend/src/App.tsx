@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
+import { DebugContextPanel } from './components/common/DebugContextPanel';
 
 const NAV = [
   { to: '/search/qa', key: 'nav.qa' },
@@ -69,6 +70,8 @@ export default function App() {
       <main className="mx-auto max-w-[1120px] px-4 pb-14">
         <Outlet />
       </main>
+
+      <DebugContextPanel />
     </div>
   );
 }

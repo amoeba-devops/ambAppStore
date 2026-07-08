@@ -11,6 +11,12 @@ import { AmaJwtPayload } from '../interfaces/ama-jwt-payload.interface';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { ERROR_CODES } from '../../common/error-codes';
 
+/**
+ * AMA 엔티티 관리자 역할 (auth.decorator @MasterOrAbove 와 동일 집합).
+ * App Store SSO 토큰은 단일 `role`을 담고, jwt.strategy가 이를 roles[]에 반영한다.
+ */
+const ADMIN_ROLES = ['ADMIN', 'MASTER', 'SUPER_ADMIN'];
+
 @Injectable()
 export class RoleGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
@@ -32,7 +38,7 @@ export class RoleGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user as AmaJwtPayload | undefined;
     const isAdminLevel = user?.level === 'ADMIN_LEVEL';
-    const hasAdminRole = user?.roles?.includes('ADMIN');
+    const hasAdminRole = user?.roles?.some((r) => ADMIN_ROLES.includes(r)) ?? false;
 
     if (isAdmin && (isAdminLevel || hasAdminRole)) return true;
 

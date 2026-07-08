@@ -7,6 +7,17 @@ export interface SettingItemInput {
   is_secret?: boolean;
 }
 
+export interface TestConnectionInput {
+  api_key?: string;
+  model_version?: string;
+}
+
+export interface TestConnectionResult {
+  claude: boolean;
+  message: string;
+  model?: string;
+}
+
 export const adminSettingsService = {
   get(category: SettingCategory): Promise<SettingView[]> {
     return unwrap(apiClient.get<ApiResponse<SettingView[]>>(`/admin/settings/${category}`));
@@ -16,9 +27,9 @@ export const adminSettingsService = {
       apiClient.put<ApiResponse<SettingView[]>>(`/admin/settings/${category}`, { items }),
     );
   },
-  test(): Promise<{ claude: boolean; message: string }> {
+  test(input: TestConnectionInput = {}): Promise<TestConnectionResult> {
     return unwrap(
-      apiClient.post<ApiResponse<{ claude: boolean; message: string }>>('/admin/settings/test', {}),
+      apiClient.post<ApiResponse<TestConnectionResult>>('/admin/settings/test', input),
     );
   },
 };
