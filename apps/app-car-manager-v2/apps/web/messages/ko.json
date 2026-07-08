@@ -618,7 +618,7 @@
       "export": "엑셀 내보내기",
       "emptyTitle": "운행 없음",
       "emptyDesc": "당월에 비용·손익을 계산할 완료된 운행이 없습니다.",
-      "provisional": "보고서 없음",
+      "provisional": "임시 계산",
       "reported": "보고서 완료",
       "allTrucks": "전체 차량",
       "allRegions": "전체 지역",
@@ -646,7 +646,13 @@
       "tabTrips": "운행별",
       "tabOverview": "손익 개요",
       "tabInvoices": "전표 & 마감",
-      "thUpdated": "수정일"
+      "thUpdated": "수정일",
+      "provTitle": "일부 운행이 임시 계산(수기 연료 단가)입니다",
+      "provDesc": "이 운행들은 아직 월말 평균 연료 단가를 적용하지 않았습니다. 적용하려면:",
+      "provKm": "{count}건의 운행에 주행거리(시작/종료 ODO)가 없습니다.",
+      "provInvoice": "이 기간의 주유 전표가 입력되지 않았습니다.",
+      "provReady": "데이터가 준비됨 — \"보고서 작성\"으로 평균 기준 확정하세요.",
+      "provCta": "월 손익 & 주유 전표 열기"
     },
     "truckReportStatus": {
       "reportAt": "보고서 · {date}",

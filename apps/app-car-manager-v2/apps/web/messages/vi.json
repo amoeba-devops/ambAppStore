@@ -618,7 +618,7 @@
       "export": "Xuất Excel",
       "emptyTitle": "Chưa có chuyến nào",
       "emptyDesc": "Tháng này chưa có chuyến hoàn thành để tính chi phí & lợi nhuận.",
-      "provisional": "Chưa lập BC",
+      "provisional": "Tạm tính",
       "reported": "Đã lập BC",
       "allTrucks": "Tất cả phương tiện",
       "allRegions": "Tất cả khu vực",
@@ -646,7 +646,13 @@
       "tabTrips": "Theo chuyến",
       "tabOverview": "Tổng quan P&L",
       "tabInvoices": "Hoá đơn & Chốt tháng",
-      "thUpdated": "Cập nhật"
+      "thUpdated": "Cập nhật",
+      "provTitle": "Một số chuyến đang tạm tính theo giá xăng nhập tay",
+      "provDesc": "Các chuyến này chưa áp dụng bình quân xăng dầu cuối tháng. Để áp dụng bình quân:",
+      "provKm": "Còn {count} chuyến chưa nhập số km đồng hồ (ODO đầu/cuối).",
+      "provInvoice": "Chưa có hoá đơn xăng cho kỳ này.",
+      "provReady": "Đã đủ dữ liệu — hãy \"Lập báo cáo\" để chốt số theo bình quân.",
+      "provCta": "Mở P&L & Hoá đơn xăng"
     },
     "truckReportStatus": {
       "reportAt": "Đã lập BC · {date}",

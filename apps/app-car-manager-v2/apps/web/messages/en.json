@@ -618,7 +618,7 @@
       "export": "Export Excel",
       "emptyTitle": "No trips yet",
       "emptyDesc": "No completed trips this month to compute cost & profit.",
-      "provisional": "No report",
+      "provisional": "Provisional",
       "reported": "Reported",
       "allTrucks": "All vehicles",
       "allRegions": "All regions",
@@ -646,7 +646,13 @@
       "tabTrips": "By trip",
       "tabOverview": "P&L overview",
       "tabInvoices": "Invoices & close",
-      "thUpdated": "Updated"
+      "thUpdated": "Updated",
+      "provTitle": "Some trips are provisional (manual fuel price)",
+      "provDesc": "These trips don't yet use the month-end average fuel price. To apply it:",
+      "provKm": "{count} trip(s) missing odometer km (start/end ODO).",
+      "provInvoice": "No fuel invoices entered for this period.",
+      "provReady": "All data is ready — click \"Create report\" to finalize with the average.",
+      "provCta": "Open P&L & Fuel invoices"
     },
     "truckReportStatus": {
       "reportAt": "Report · {date}",

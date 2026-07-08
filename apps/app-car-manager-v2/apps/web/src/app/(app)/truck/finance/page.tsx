@@ -1,5 +1,5 @@
 import { getLocale, getTranslations } from 'next-intl/server';
-import { Coins, Download } from 'lucide-react';
+import { AlertTriangle, Coins, Download } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -27,6 +27,7 @@ import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import {
   getTruckFixedCostsLastUpdated,
+  getTruckFuelStats,
   listTruckFinanceTrips,
 } from '@/server/queries/truck-finance.queries';
 import { getLatestTruckReportForMonth } from '@/server/queries/truck-report.queries';
@@ -66,13 +67,26 @@ export default async function TruckFinancePage({
   const trucks = await listVehicles(user.entId, 'active', 'TRUCK');
   const vehicleId = sp.vehicle && trucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
 
-  const [rows, pnl, latestReport, fixedUpdatedAt] = await Promise.all([
+  const [rows, pnl, latestReport, fixedUpdatedAt, fuelStats] = await Promise.all([
     listTruckFinanceTrips(user.entId, { month, vehicleId, q, region }),
     computeTruckPnl(user, { vehicleId, region, months: [month] }),
     getLatestTruckReportForMonth(user.entId, month, region),
     getTruckFixedCostsLastUpdated(user.entId, month),
+    getTruckFuelStats(user.entId, month, region),
   ]);
   const summary = pnl[0] ?? null;
+
+  /* Transparency (feedback #1): per-trip profit falls back to the manually
+   * entered fuel price until a report freezes a valid month-end snapshot — and
+   * that snapshot needs BOTH odometer km (Σ > 0) and fuel invoices. When any
+   * row is still provisional, surface exactly what's missing so the operator
+   * knows why the "bình quân xăng" isn't applied yet (instead of silently
+   * showing raw numbers under a green "Đã lập BC" badge). */
+  const provisionalCount = rows.filter((r) => !r.finalized).length;
+  const kmZeroCount = rows.filter((r) => r.km <= 0).length;
+  const hasInvoice = fuelStats.invoiceLiters > 0 && fuelStats.avgPrice > 0;
+  const allocatable = fuelStats.totalKm > 0 && hasInvoice;
+  const showProvNotice = provisionalCount > 0;
   /* Q1 decision (PLAN-20260707): no month lock — instead flag when trips or
    * fixed costs changed AFTER the latest report, so the operator regenerates. */
   const stale =
@@ -157,6 +171,29 @@ export default async function TruckFinancePage({
           </div>
         )}
 
+        {showProvNotice && (
+          <Card variant="outline" className="border-warning/40 bg-warning/5 p-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+              <div className="flex-1 space-y-1.5 text-sm">
+                <p className="font-semibold text-text">{t('provTitle')}</p>
+                <p className="text-text-muted">{t('provDesc')}</p>
+                <ul className="list-disc space-y-0.5 pl-5 text-text-muted">
+                  {kmZeroCount > 0 && <li>{t('provKm', { count: kmZeroCount })}</li>}
+                  {!hasInvoice && <li>{t('provInvoice')}</li>}
+                  {allocatable && <li>{t('provReady')}</li>}
+                </ul>
+                <a
+                  href={`${BASE_PATH}/truck/pnl?month=${month}${region ? `&region=${region}` : ''}`}
+                  className="inline-flex items-center gap-1 font-medium text-accent hover:underline"
+                >
+                  {t('provCta')} →
+                </a>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {rows.length === 0 ? (
           <Card>
             <EmptyState icon={<Coins />} title={t('emptyTitle')} description={t('emptyDesc')} />
@@ -215,10 +252,8 @@ export default async function TruckFinancePage({
                       {vnd(r.profit)}
                     </TableCell>
                     <TableCell>
-                      <Badge tone={latestReport ? 'success' : 'neutral'} size="sm">
-                        {latestReport
-                          ? t('reported')
-                          : t('provisional')}
+                      <Badge tone={r.finalized ? 'success' : 'neutral'} size="sm">
+                        {r.finalized ? t('reported') : t('provisional')}
                       </Badge>
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-xs">

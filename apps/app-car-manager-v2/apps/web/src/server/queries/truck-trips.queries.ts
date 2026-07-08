@@ -99,6 +99,23 @@ export interface TruckTripRow {
   km: number | null;
   breakdown: TruckCostBreakdown;
   updatedAt: Date | null;
+  /* ── Extra detail for the trip-log Excel export (feedback #4). Not shown in
+   * the on-screen table; populated for every row so "Tải xuống" mirrors the
+   * monthly report's detailed columns. ── */
+  startTime: Date | null;
+  endTime: Date | null;
+  startOdometer: number | null;
+  endOdometer: number | null;
+  pickup: string | null;
+  dropoff: string | null;
+  cdf: string | null;
+  notes: string | null;
+  /** Joined names of the trip's extra-cost lines ("Tên phí khác"). */
+  extraNote: string | null;
+  /** Fuel unit price for the export: month-avg when finalized, else own price. */
+  fuelUnitPrice: number;
+  /** Litres for the export: km × consumption when finalized, else own litres. */
+  fuelLiters: number;
   /** true once the trip's month is closed → fuel/profit are the official
    * month-end figures; false → provisional (liters × price). Lets list views
    * flag "Tạm tính" and keeps profit consistent with the finance/P&L screens. */
@@ -173,15 +190,21 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
   const ids = trips.map((t) => t.trpId);
   const extras = ids.length
     ? await db
-        .select({ trpId: carTripExtraCosts.trpId, amount: carTripExtraCosts.tecAmount })
+        .select({ trpId: carTripExtraCosts.trpId, name: carTripExtraCosts.tecName, amount: carTripExtraCosts.tecAmount })
         .from(carTripExtraCosts)
         .where(and(eq(carTripExtraCosts.entId, entId), inArray(carTripExtraCosts.trpId, ids)))
     : [];
   const extraByTrip = new Map<string, number[]>();
+  const extraNoteByTrip = new Map<string, string[]>();
   for (const e of extras) {
     const arr = extraByTrip.get(e.trpId) ?? [];
     arr.push(parseAmount(e.amount));
     extraByTrip.set(e.trpId, arr);
+    if (e.name?.trim()) {
+      const narr = extraNoteByTrip.get(e.trpId) ?? [];
+      narr.push(e.name.trim());
+      extraNoteByTrip.set(e.trpId, narr);
+    }
   }
 
   /* Plate + driver name for the table columns — batch lookups keep the main
@@ -246,6 +269,11 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
       });
     }
 
+    /* Fuel unit price + litres shown in the export mirror the fuel-cost rule:
+     * the frozen month-end snapshot when finalized, else the trip's own entry. */
+    const fuelUnitPrice = snap ? snap.avgPrice : parseAmount(t.trpFuelPrice);
+    const fuelLiters = snap ? (km ?? 0) * snap.consumption : parseAmount(t.trpFuelLiters);
+
     return {
       trpId: t.trpId,
       ref: t.trpRef,
@@ -259,6 +287,17 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
       km,
       breakdown,
       updatedAt: t.trpUpdatedAt,
+      startTime: t.trpStartedAt,
+      endTime: t.trpEndedAt,
+      startOdometer: t.trpStartOdometer,
+      endOdometer: t.trpEndOdometer,
+      pickup: t.trpPickupAddress,
+      dropoff: t.trpDropoffAddress,
+      cdf: t.trpCdf,
+      notes: t.trpNotes,
+      extraNote: (extraNoteByTrip.get(t.trpId) ?? []).join(', ') || null,
+      fuelUnitPrice,
+      fuelLiters,
       finalized: !!snap,
     };
   });
