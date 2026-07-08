@@ -16,6 +16,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AdminOnly } from '../../../auth/decorators/admin-only.decorator';
+import { Auth } from '../../../auth/decorators/auth.decorator';
 import { CurrentUser } from '../../../auth/decorators/current-user.decorator';
 import { BusinessException } from '../../../common/exceptions/business.exception';
 import { ERROR_CODES } from '../../../common/error-codes';
@@ -26,6 +27,7 @@ import {
 import { PaginatedData, PaginationQuery } from '../../../common/dto/pagination.dto';
 import { ReferenceService } from '../service/reference.service';
 import { ImportReferenceRequest } from '../dto/request/import-reference.request';
+import { SaveReferenceEntryRequest } from '../dto/request/save-reference-entry.request';
 import { ImportBatchResponse } from '../dto/response/import-batch.response';
 import { ImportBatchMapper } from '../mapper/import-batch.mapper';
 import { decodeMultipartFilename } from '../../../common/utils/multipart-filename.util';
@@ -75,5 +77,17 @@ export class ReferenceController {
       ...result,
       items: ImportBatchMapper.toListResponse(result.items),
     });
+  }
+
+  /** FR-005 — 확정 분류 결과를 reference에 저장(자기개선 루프). Feature C 사용자 플로우이므로 @Auth. */
+  @Auth()
+  @Post('entries')
+  @ApiOperation({ summary: '확정 결과 → reference 저장 (DB dedupe + 임베딩, FR-005/044)' })
+  async saveEntry(
+    @Body() dto: SaveReferenceEntryRequest,
+    @CurrentUser('entityId') entId: string,
+    @CurrentUser('userId') userId: string,
+  ): Promise<BaseResponse<{ imported: number; deduped: number }>> {
+    return successResponse(await this.referenceService.saveEntry(entId, userId, dto));
   }
 }
