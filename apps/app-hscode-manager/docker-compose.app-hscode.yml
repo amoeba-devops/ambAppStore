@@ -18,10 +18,17 @@ services:
       - DB_PORT=5432
       - REDIS_HOST=redis-hscode
       - REDIS_PORT=6379
+      # 임베딩(BGE-M3 TEI) — 컨테이너 네트워크 엔드포인트
+      - EMBEDDING_PROVIDER=bge-m3
+      - EMBEDDING_ENDPOINT=http://tei-hscode:80
     depends_on:
       postgres-hscode:
         condition: service_healthy
       redis-hscode:
+        condition: service_started
+      # TEI는 모델 다운로드로 기동이 느려 hard-dependency 미적용 —
+      # 준비 전에는 EmbeddingService가 키워드 폴백(무중단). service_started만 대기.
+      tei-hscode:
         condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3102/api/v1/health || exit 1"]
@@ -84,9 +91,26 @@ services:
     networks:
       - amb-apps-network
 
+  # BGE-M3 임베딩 서버 (HuggingFace text-embeddings-inference).
+  # 다국어(KR/EN→VI) dense 1024차원. 통관데이터 사내 유지 + 벡터공간 버전 고정.
+  # 최초 기동 시 BAAI/bge-m3 모델을 HF 허브에서 다운로드(공개, 토큰 불필요) → tei-hscode-data 캐시.
+  # GPU 사용 시: image를 GPU 태그로 교체 + deploy.resources.reservations.devices(nvidia) 추가.
+  tei-hscode:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest  # 운영은 특정 버전 태그로 고정 권장
+    container_name: tei-hscode
+    command: ["--model-id", "BAAI/bge-m3"]
+    ports:
+      - "8081:80"
+    volumes:
+      - tei-hscode-data:/data
+    restart: unless-stopped
+    networks:
+      - amb-apps-network
+
 volumes:
   postgres-hscode-data:
   redis-hscode-data:
+  tei-hscode-data:
 
 networks:
   amb-apps-network:

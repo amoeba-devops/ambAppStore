@@ -37,8 +37,10 @@
 
 ### Phase 0 — 임베딩 공급자 결정 & 시맨틱 RAG 활성화 (전제)
 
-- **Step 0-1**: 임베딩 공급자 확정 — 후보: (a) Claude 미제공 → 별도 임베딩(예: multilingual-e5-large 셀프호스트 / OpenAI text-embedding-3 / Voyage) (b) 키워드 유지(시맨틱 보류). `EMBEDDING_PROVIDER`/`EMBEDDING_DIMENSIONS`(=pgvector 컬럼 차원) 정합.
-  - └─ 사이드 임팩트: 차원 변경 시 `hsr_embedding vector(N)` 스키마 영향 → 초기 확정 필요. **결정 게이트.**
+> **결정 확정(2026-07-09, 정확도+사내정보축적 관점)**: 공급자 = **BGE-M3 셀프호스트(HuggingFace TEI)**, `EMBEDDING_DIMENSIONS=1024`(기존 pgvector 컬럼 그대로 → **DDL 변경 없음**), 검색 = **하이브리드(벡터+키워드)**. 근거: 다국어(KR/EN→VI) 상위 정확도 + 모델 버전 고정으로 성장 코퍼스의 벡터공간 일관성 + 데이터 주권(통관데이터 사내 유지) + 재임베딩 무료. AI 분류 = `claude-opus-4-8` 기본(엑셀 배치만 설정에서 haiku/sonnet+캐싱).
+
+- **Step 0-1**: 임베딩 인프라 구성 — hscode compose에 **TEI 컨테이너(`text-embeddings-inference`, model `BAAI/bge-m3`)** 추가. env: `EMBEDDING_PROVIDER=bge-m3`, `EMBEDDING_ENDPOINT=http://tei-hscode:80`, `EMBEDDING_DIMENSIONS=1024`(셀프호스트라 API 키 불필요).
+  - └─ 사이드 임팩트: 컨테이너 1개 추가(모델 최초 다운로드). 차원 1024 고정 → **스키마 변경 없음.**
 - **Step 0-2**: `EmbeddingService.embed()` 실제 구현(공급자 호출) + `isEnabled` 조건 충족. 실패 시 `null`(키워드 폴백 유지).
   - └─ 사이드 임팩트: 없음(비활성 시 현행과 동일).
 - **Step 0-3**: 기존 `hsm_hs_references` 임베딩 **백필**(배치). `hsr_embedding` 채움 → `vectorSearch` 활성.
