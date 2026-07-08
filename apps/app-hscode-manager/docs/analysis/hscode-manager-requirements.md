@@ -1,9 +1,9 @@
 ---
-document_id: HSCODE-MGR-REQ-1.0.0
-version: 1.0.0
+document_id: HSCODE-MGR-REQ-1.1.0
+version: 1.1.0
 status: Draft
 created: 2026-06-23
-updated: 2026-06-23
+updated: 2026-07-08
 author: 김익용
 reviewers: []
 change_log:
@@ -11,6 +11,10 @@ change_log:
     date: 2026-06-23
     author: 김익용
     description: Initial draft — requirements analysis for HS Code Manager (3 search modes)
+  - version: 1.1.0
+    date: 2026-07-08
+    author: 김익용
+    description: Add FR-023 (third-party barcode fallback → semantic search, PoC-gated); clarify MVP boundary as L1-only for Feature B; add PoC open question (Appendix B #10)
 ---
 
 # HS Code Manager — Requirements Analysis (HS코드 매니저 요구사항 분석서)
@@ -18,7 +22,7 @@ change_log:
 ## 1. Project Overview (프로젝트 개요)
 
 - **Project**: HS Code Manager (HS코드 매니저)
-- **Version**: 1.0.0 / **Date**: 2026-06-23
+- **Version**: 1.1.0 / **Date**: 2026-07-08
 - **Service type**: New standalone service (신규 독립 서비스) — React + NestJS + PostgreSQL + Redis
 - **Background and Purpose (배경 및 목적)**: Determining the correct HS code (Harmonized System code) for import/export goods is a repetitive, expertise-dependent task. Mis-classification causes customs delays, incorrect duty/VAT calculation, and compliance risk. The HS Code Manager lets users find the correct HS code through three complementary entry points — natural-language Q&A, barcode (GTIN) lookup, and structured attribute input — reducing reliance on manual expert judgment. (HS코드 분류는 반복적이고 전문성 의존도가 높은 작업이며, 오분류 시 통관 지연·관세/부가세 오류·컴플라이언스 리스크가 발생한다. 본 서비스는 자연어 질문응답, 바코드(GTIN) 조회, 속성 입력의 3가지 경로로 정확한 HS코드를 찾도록 지원한다.)
 - **Expected Benefits (기대 효과)**:
@@ -47,7 +51,7 @@ Key source columns relevant to classification: `Mã HS` (HS code), `Tên hàng` 
 
 > **Schema-variant note (스키마 변형 주의)**: Most files share the `BaoCaoHangChiTiet` layout (header row contains `Mã HS`), but `BaoCaoToKhai` (declaration-level) and `VMSG` (custom import list) differ. The data-import process (FR-040) needs a per-format adapter to normalize all variants into the common reference schema.
 
-> **Important gap (중요 공백)**: The reference corpus contains **no barcode/GTIN column**. The GTIN→HS resolution for Feature B is therefore handled by the **2-stage pipeline** defined in the companion design doc `GTIN_HSCode_설계문서.md` (internal mapping table first → GS1 product info → GPC→HS → AI classify fallback), **not** a single direct GTIN→HS API call. See FR-010~022 and Section 6.
+> **Important gap (중요 공백)**: The reference corpus contains **no barcode/GTIN column**. The GTIN→HS resolution for Feature B is therefore handled by the **2-stage pipeline** defined in the companion design doc `GTIN_HSCode_설계문서.md` (internal mapping table first → GS1 product info → GPC→HS → AI classify fallback), **not** a single direct GTIN→HS API call. See FR-010~023 and Section 6.
 
 ## 2. Stakeholders (이해관계자)
 
@@ -80,6 +84,8 @@ Key source columns relevant to classification: `Mã HS` (HS code), `Tên hàng` 
 
 Design reference: `GTIN_HSCode_설계문서.md` (2-stage resolution pipeline). The single biggest constraint is that **no single API maps GTIN→HS directly**; GTIN yields product info (GPC/description) and HS must be inferred from it via internal-mapping-first fallback.
 
+> **MVP implementation note (MVP 구현 범위 확인)**: The current implementation (`GtinPipelineService`) ships **Layer 1 (FR-013) + country expansion (FR-017)** only; Layer 2/3/4 (FR-014~016) are wired as `status: 'unused'` stubs pending the GS1/AI-classifier access described in Appendix B #1. This matches the MVP boundary in Section 4 — Feature B's external layers are Full-scope, not MVP.
+
 | ID | Requirement | Priority | Note |
 |----|-------------|----------|------|
 | FR-010 | User enters a GTIN; system normalizes GTIN-8/12/13/14 to a 14-digit form (GTIN 입력·14자리 정규화) | P0 | Manual entry; scanner = [TBD] |
@@ -95,6 +101,7 @@ Design reference: `GTIN_HSCode_설계문서.md` (2-stage resolution pipeline). T
 | FR-020 | **Audit trail**: persist the resolution source, confidence, and verifier for each result for customs justification (소명용 audit 로그) | P0 | source ∈ {manual, api, learned} |
 | FR-021 | Cache resolved GTIN lookups to reduce external API cost/latency (조회 캐시) | P1 | |
 | FR-022 | Display a legal notice that auto-classification is a recommendation; final HS responsibility rests with the importer/exporter (자동분류는 추천값, 확정책임은 화주) | P0 | Design doc §6.2 |
+| FR-023 | **Third-party barcode fallback (optional path)**: on Layer 1 miss, optionally query a non-GS1 third-party barcode DB (e.g. UPCitemdb) for `category`/`description` text only — these services do not return an official GS1 GPC Brick code — and route that text into the Feature A semantic-search engine instead of the Layer 3 GPC→HS path (L1 미스 시 서드파티 바코드 DB에서 category/description만 확보 → GPC 매핑 대신 Feature A 시맨틱 검색으로 연결) | P2 | **Full scope, not MVP.** Gated by the coverage PoC (Appendix B #10) before production adoption. GPC-mapping path (FR-014/015) remains the primary Layer 2/3 when GS1 access is provisioned |
 
 #### Feature C — Attribute / Excel-Upload Search (속성 입력 검색)
 
@@ -146,14 +153,15 @@ Design reference: `GTIN_HSCode_설계문서.md` (2-stage resolution pipeline). T
   - Official GS1-WCO GPC-HS dataset (not yet commercialized) — `hsm_gpc_hs_maps` is internally maintained until then (design doc §8)
 - **MVP vs Full**:
   - **MVP (P0)**: Feature A (Q&A semantic search) + Feature C (attribute/Excel) over the seed reference table, plus reference-table import/management (FR-040/041/043). Feature B is P0 functionally but its external layers (GS1, AI classifier) depend on API access being provisioned — Layer 1 (internal direct mapping) and check-digit validation can ship independently.
-  - **Full**: AI-classify fallback (FR-016), learned-mapping self-improvement (FR-018), manual-review queue (FR-019), feedback-loop learning (FR-005), explainability citations (FR-006), duty/VAT linkage (FR-042).
+  - **Full**: AI-classify fallback (FR-016), learned-mapping self-improvement (FR-018), manual-review queue (FR-019), feedback-loop learning (FR-005), explainability citations (FR-006), duty/VAT linkage (FR-042), third-party barcode fallback → semantic search (FR-023, PoC-gated).
 
 ## 5. Constraints and Assumptions (제약사항 및 가정)
 
 - **Constraint**: Reference HS codes are **8-digit and 10-digit Vietnam codes**; matching is managed at the HS6 base with national digits handled via the country-extension table (FR-017/043). (참조 코드는 8/10자리, HS6 기준 + 국가확장 관리)
 - **Constraint**: Product descriptions in the corpus are primarily Vietnamese (`Tên hàng`); semantic search must handle cross-language matching (KR/EN query → VI reference). The corpus spans many industries (auto parts, chemicals, textiles, etc.), so matching cannot assume a single product domain.
 - **Constraint**: No single API returns HS directly from a GTIN; HS must be inferred via the 2-stage pipeline (design doc §1.2). GPC↔HS is **1:many**, so candidate lists and priority ordering are required.
-- **Assumption**: External dependencies — **GS1 (Verified by GS1 / GS1 US/UK)** for product info and an **AI classifier (Zonos / Pitney Bowes)** for HS fallback — must be provisioned. Licensing, endpoints, rate limits, and GTIN coverage are currently **[TBD]** (design doc §7).
+- **Assumption**: External dependencies — **GS1 (Verified by GS1 / GS1 US/UK)** for product info and an **AI classifier (Zonos / Pitney Bowes)** for HS fallback — must be provisioned. Licensing, endpoints, rate limits, and GTIN coverage are currently **[TBD]** (design doc §7). Cost survey (2026-07-08): GS1 US Data Hub View/Use subscription $500–2,500/yr + API Add-On $6,500/yr (≈$7,000–9,000/yr all-in); GS1 Korea/Vietnam publish no online pricing and require direct inquiry.
+- **Assumption**: A non-GS1 third-party barcode DB (FR-023) is a cheaper but lower-fidelity fallback for Layer 2 — no official GPC Brick, uncertain coverage for industrial/B2B goods and Vietnamese local brands (the corpus's actual product mix). Treat as **Full-scope, PoC-gated**, not a substitute for FR-014 until validated (Appendix B #10).
 - **Assumption**: Import adapters are needed for the non-standard files (`BaoCaoToKhai`, `VMSG`) alongside the standard `BaoCaoHangChiTiet` parser.
 - **Assumption**: A single organization's reference data is sufficient for MVP; multi-tenant isolation is [TBD]. (Corpus is already multi-company — tenant scoping policy to be decided.)
 - **Assumption**: Frontend is React; state management, routing, and component library choices are deferred to the design stage. Backend resolution logic follows the Node.js design in `GTIN_HSCode_설계문서.md`.
@@ -170,6 +178,7 @@ Design reference: `GTIN_HSCode_설계문서.md` (2-stage resolution pipeline). T
 | Embedding / vector index | Semantic search backend for FR-002 | [TBD: pgvector / external vector DB] |
 | 면장리스트 customs report files | Seed & periodic import of reference data (FR-040) | Admin import with per-format adapters |
 | Manual-review queue + audit log | Low-confidence routing (FR-019) and customs-justification trail (FR-020) | Internal |
+| Third-party barcode DB (e.g. UPCitemdb) | GTIN → category/description only, no GPC Brick — optional Layer 2 fallback into Feature A semantic search (FR-023) | External REST API; free tier for PoC (100 req/day, no signup), paid tiers ~$99–699/mo for production volume |
 
 ## 7. Success Metrics (성공 지표)
 
@@ -188,12 +197,12 @@ Design reference: `GTIN_HSCode_설계문서.md` (2-stage resolution pipeline). T
 | Feature | Entry point | Core flow | Primary FRs | Key dependency |
 |---------|-------------|-----------|-------------|----------------|
 | A. Q&A Search | Natural-language chat | AI semantic search → sequential clarifying questions → ranked HS codes | FR-001~007 | Embedding index over 면장리스트 corpus |
-| B. Barcode Lookup | GTIN + destination country | Normalize/validate → L1 internal map → L2 GS1 product info → L3 GPC→HS → L4 AI classify → country expand → learn/audit | FR-010~022 | **GS1 + AI classifier APIs [TBD]**; design doc pipeline |
+| B. Barcode Lookup | GTIN + destination country | Normalize/validate → L1 internal map → L2 GS1 product info (or FR-023 third-party fallback → semantic search) → L3 GPC→HS → L4 AI classify → country expand → learn/audit | FR-010~023 | **GS1 + AI classifier APIs [TBD]**; design doc pipeline; MVP ships L1+country-expand only |
 | C. Attribute / Excel | Form or Excel upload | Validate template → per-row attribute analysis → HS code + export | FR-030~036 | Shared matching engine (Feature A) |
 
 ## Appendix B — Open Questions ([TBD] 목록)
 
-1. GS1 API access — licensing, endpoint, rate limits, GTIN coverage for these product domains (design doc §7).
+1. GS1 API access — licensing, endpoint, rate limits, GTIN coverage for these product domains (design doc §7). Partial answer (2026-07-08 cost survey): GS1 US route ≈ $7,000–9,000/yr all-in (Data Hub View/Use + API Add-On); GS1 Korea/Vietnam require direct inquiry, no published rate. FR-023 (third-party fallback) is a candidate cheaper mitigation pending PoC (#10) — it is not a drop-in replacement since it skips the GPC-Brick path.
 2. AI classifier choice and contract (Zonos Classify vs. Pitney Bowes) and confidence threshold for the manual-review cutoff.
 3. Initial population of `hsm_gpc_hs_maps` (1:many GPC→HS) before the GS1-WCO official dataset exists.
 4. Excel upload max batch size (NFR-004) and async processing threshold (corpus files reach ~28k rows).
@@ -202,6 +211,7 @@ Design reference: `GTIN_HSCode_설계문서.md` (2-stage resolution pipeline). T
 7. Import adapters for non-standard files (`BaoCaoToKhai`, `VMSG`) and de-duplication policy across companies (FR-044).
 8. Barcode scanner hardware integration timeline (manual entry only in v1).
 9. Destination-country coverage for `hsm_hs_country_extensions` (which countries beyond VN/KR at launch).
+10. **FR-023 coverage PoC**: before any production integration, validate GTIN hit-rate (coverage) of a candidate third-party barcode DB — start with UPCitemdb's free tier (100 req/day, no signup) against a few dozen of our own real GTIN samples (auto parts, chemicals, textiles — matching the 면장리스트 corpus's industrial/B2B mix, not just US consumer goods). No hit-rate target is set yet; define acceptance threshold once initial PoC numbers are in, then decide go/no-go for FR-023 and which paid tier (if any) to adopt.
 
 ---
 
