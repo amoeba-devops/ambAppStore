@@ -28,6 +28,7 @@ import { ReferenceService } from '../service/reference.service';
 import { ImportReferenceRequest } from '../dto/request/import-reference.request';
 import { ImportBatchResponse } from '../dto/response/import-batch.response';
 import { ImportBatchMapper } from '../mapper/import-batch.mapper';
+import { decodeMultipartFilename } from '../../../common/utils/multipart-filename.util';
 
 /** SCR-005 참조(Reference) — RAG 참조 데이터 적재/조회. 관리자 전용 (POL-005). */
 @ApiTags('reference')
@@ -55,7 +56,7 @@ export class ReferenceController {
     }
     const batch = await this.referenceService.importFile(
       entId,
-      file.originalname,
+      decodeMultipartFilename(file.originalname),
       file.buffer,
       body.source_company ?? null,
     );
