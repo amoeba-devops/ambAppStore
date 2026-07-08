@@ -7,6 +7,22 @@ import type {
 } from '@/types/admin.types';
 
 export const referenceService = {
+  // --- 확정 결과 → reference 저장 (FR-005 자기개선 루프) ---
+  saveEntry(payload: {
+    hs_code: string;
+    description: string;
+    origin?: string;
+    unit?: string;
+    source_company?: string;
+  }): Promise<{ imported: number; deduped: number }> {
+    return unwrap(
+      apiClient.post<ApiResponse<{ imported: number; deduped: number }>>(
+        '/reference/entries',
+        payload,
+      ),
+    );
+  },
+
   // --- import (RAG 코퍼스) ---
   listImports(): Promise<Paginated<ImportBatch>> {
     return unwrap(apiClient.get<ApiResponse<Paginated<ImportBatch>>>('/reference/imports'));

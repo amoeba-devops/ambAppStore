@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AdminOnly } from '../../../auth/decorators/admin-only.decorator';
+import { SuperAdminOnly } from '../../../auth/decorators/super-admin-only.decorator';
 import { CurrentUser } from '../../../auth/decorators/current-user.decorator';
 import {
   BaseResponse,
@@ -43,9 +44,9 @@ export class MappingController {
     return successResponse(await this.mappingService.listGpc());
   }
 
-  @AdminOnly()
+  @SuperAdminOnly()
   @Post('gpc')
-  @ApiOperation({ summary: 'GPC Brick→HS6 매핑 upsert (1:다)' })
+  @ApiOperation({ summary: 'GPC Brick→HS6 매핑 upsert (전역 참조 — 플랫폼 슈퍼관리자 전용)' })
   async upsertGpc(@Body() dto: UpsertGpcMapRequest): Promise<BaseResponse<unknown>> {
     return successResponse(await this.mappingService.upsertGpc(dto));
   }
@@ -56,9 +57,9 @@ export class MappingController {
     return successResponse(await this.mappingService.listCountryExt());
   }
 
-  @AdminOnly()
+  @SuperAdminOnly()
   @Post('country-ext')
-  @ApiOperation({ summary: 'HS6→국가 확장 upsert' })
+  @ApiOperation({ summary: 'HS6→국가 확장 upsert (전역 참조 — 플랫폼 슈퍼관리자 전용)' })
   async upsertCountryExt(@Body() dto: UpsertCountryExtRequest): Promise<BaseResponse<unknown>> {
     return successResponse(await this.mappingService.upsertCountryExt(dto));
   }

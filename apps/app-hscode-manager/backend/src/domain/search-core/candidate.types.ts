@@ -15,10 +15,11 @@ export interface Candidate {
   description: string;
   origin: string | null;
   unit: string | null;
-  score: number; // 0..1
+  score: number; // 0..1 (AI 판정 시 AI 신뢰도로 대체)
   sourceRefId: string | null;
   sourceCompany: string | null;
   refCount: number; // 동일 HS6 근거 행 수 (FR-006)
+  rationale?: string; // AI 근거 (FR-006, AI 경유 시에만)
 }
 
 /** 3모드 공통 정규화 결과 객체 (FR-041 / FN-003) */
