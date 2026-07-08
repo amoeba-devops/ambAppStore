@@ -1,9 +1,15 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { attributeService } from '@/services/attribute.service';
 import { excelService } from '@/services/excel.service';
+import { referenceService } from '@/services/reference.service';
 
 export function useAttributeClassify() {
   return useMutation({ mutationFn: attributeService.classify });
+}
+
+/** 확정 결과를 reference 코퍼스에 저장 (FR-005 자기개선 루프) */
+export function useSaveReference() {
+  return useMutation({ mutationFn: referenceService.saveEntry });
 }
 
 export function useExcelClassify() {

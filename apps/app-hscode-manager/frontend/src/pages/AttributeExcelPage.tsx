@@ -4,7 +4,12 @@ import clsx from 'clsx';
 import ScreenHeader from '@/components/common/ScreenHeader';
 import ConfidenceBadge from '@/components/common/ConfidenceBadge';
 import { excelService } from '@/services/excel.service';
-import { useAttributeClassify, useExcelClassify, useExcelJob } from '@/hooks/useAttributeExcel';
+import {
+  useAttributeClassify,
+  useExcelClassify,
+  useExcelJob,
+  useSaveReference,
+} from '@/hooks/useAttributeExcel';
 import type { Candidate } from '@/types/hscode.types';
 import type { RowValidationError } from '@/types/excel.types';
 
@@ -26,10 +31,25 @@ export default function AttributeExcelPage() {
   });
   const [attrCandidates, setAttrCandidates] = useState<Candidate[]>([]);
 
+  // 확정 결과 → reference 저장 (FR-005 자기개선 루프)
+  const saveRef = useSaveReference();
+  const [savedIdx, setSavedIdx] = useState<Record<number, 'saved' | 'dup'>>({});
+
   const onClassify = async () => {
     if (form.name.trim().length < 2) return;
     const res = await classify.mutateAsync(form);
     setAttrCandidates(res.candidates);
+    setSavedIdx({});
+  };
+
+  const onSaveRef = async (c: Candidate, i: number) => {
+    const r = await saveRef.mutateAsync({
+      hs_code: c.hsCode,
+      description: c.description,
+      origin: c.origin ?? undefined,
+      unit: c.unit ?? undefined,
+    });
+    setSavedIdx((prev) => ({ ...prev, [i]: r.imported > 0 ? 'saved' : 'dup' }));
   };
 
   // --- 엑셀 ---
@@ -145,6 +165,26 @@ export default function AttributeExcelPage() {
                     <span className="text-[15px] font-extrabold tabular-nums">{c.hsCode}</span>
                     <span className="min-w-[130px] flex-1 font-semibold">{c.description}</span>
                     <ConfidenceBadge score={c.score} />
+                  </div>
+                  {c.rationale && (
+                    <div className="mt-1.5 text-[12px] text-muted">
+                      <span className="font-semibold">{t('k.reason')}:</span> {c.rationale}
+                    </div>
+                  )}
+                  <div className="mt-2 flex items-center gap-2 border-t border-dashed border-line pt-2">
+                    <button
+                      onClick={() => void onSaveRef(c, i)}
+                      disabled={saveRef.isPending || !!savedIdx[i]}
+                      className="rounded-s border border-line2 bg-white px-2.5 py-1 text-[12px] font-semibold hover:border-brand-light disabled:opacity-45"
+                    >
+                      {t('at.saveref')}
+                    </button>
+                    {savedIdx[i] === 'saved' && (
+                      <span className="text-[12px] font-semibold text-emerald-600">{t('at.saved')}</span>
+                    )}
+                    {savedIdx[i] === 'dup' && (
+                      <span className="text-[12px] text-muted">{t('at.savedup')}</span>
+                    )}
                   </div>
                 </div>
               ))}
