@@ -36,6 +36,11 @@ export default function CandidateCard({ candidate, best, selected, onSelect }: P
           HS6 {candidate.hs6}
         </span>
       </div>
+      {candidate.rationale && (
+        <div className="mt-1.5 text-[12px] text-muted">
+          <span className="font-semibold">{t('k.reason')}:</span> {candidate.rationale}
+        </div>
+      )}
       {candidate.sourceCompany && (
         <div className="mt-2 border-t border-dashed border-line pt-1.5 text-[11.5px] text-muted2">
           {candidate.sourceCompany} · {t('k.basis')} {candidate.refCount}

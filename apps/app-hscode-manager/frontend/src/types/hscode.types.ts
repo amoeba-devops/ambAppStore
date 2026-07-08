@@ -8,6 +8,7 @@ export interface Candidate {
   sourceRefId: string | null;
   sourceCompany: string | null;
   refCount: number;
+  rationale?: string; // AI 근거 (FR-006, AI 경유 시)
 }
 
 export type AttributeKey = 'processing' | 'material' | 'usage';

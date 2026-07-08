@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { QueryLog } from '../entity/query-log.entity';
 import { SemanticRetrievalService } from '../../search-core/service/semantic-retrieval.service';
 import { ClarifyingQuestionService } from '../../search-core/service/clarifying-question.service';
+import { AiClassificationService } from '../../search-core/service/ai-classification.service';
 import { AuditService } from '../../audit/service/audit.service';
 import { QaSearchRequest } from '../dto/request/qa-search.request';
 import { ConfirmQaRequest } from '../dto/request/confirm-qa.request';
@@ -20,18 +21,20 @@ export class QaService {
     private readonly queryLogRepo: Repository<QueryLog>,
     private readonly retrieval: SemanticRetrievalService,
     private readonly clarify: ClarifyingQuestionService,
+    private readonly ai: AiClassificationService,
     private readonly audit: AuditService,
   ) {}
 
-  /** FR-001~004 — 의미검색 후보 + 명확화 판단 */
+  /** FR-001~004 — RAG 검색 후보 → 설정 Claude 근거 판정(가능 시), 미설정/오류 시 검색 순위 폴백 */
   async search(entId: string, dto: QaSearchRequest): Promise<QaSearchResponse> {
-    const candidates = await this.retrieval.retrieve(
-      entId,
-      dto.query_text,
-      5,
-      dto.constraints,
-    );
-    const decision = this.clarify.decide(candidates, dto.round_count ?? 0);
+    const retrieved = await this.retrieval.retrieve(entId, dto.query_text, 5, dto.constraints);
+
+    // FR-002/003/006 — AI가 후보를 근거 기반 재판정. null이면 검색 순위로 graceful fallback (R4).
+    const ai = await this.ai.classify(entId, dto.query_text, dto.constraints, retrieved);
+    const candidates = ai?.candidates ?? retrieved;
+    const decision = ai
+      ? { needQuestion: ai.needQuestion, attributeKey: ai.attributeKey }
+      : this.clarify.decide(retrieved, dto.round_count ?? 0);
 
     const mapped: CandidateResponse[] = candidates.map((c) => ({
       hsCode: c.hsCode,
@@ -43,6 +46,7 @@ export class QaService {
       sourceRefId: c.sourceRefId,
       sourceCompany: c.sourceCompany,
       refCount: c.refCount,
+      rationale: c.rationale,
     }));
 
     return {
