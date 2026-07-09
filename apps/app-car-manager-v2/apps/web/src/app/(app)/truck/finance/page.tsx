@@ -21,13 +21,14 @@ import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { MonthPicker } from '@/components/inputs/month-picker';
 import { ParamSelect } from '@/components/inputs/param-select';
 import { FinanceTabs } from './_components/finance-tabs';
+import { GenerateAllRegionsButton } from './_components/generate-all-regions-button';
 import { PageHeader } from '@/components/layout/page-header';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import {
   getTruckFixedCostsLastUpdated,
-  getTruckFuelStats,
+  getTruckInvoiceRegions,
   listTruckFinanceTrips,
 } from '@/server/queries/truck-finance.queries';
 import { getLatestTruckReportForMonth } from '@/server/queries/truck-report.queries';
@@ -67,26 +68,39 @@ export default async function TruckFinancePage({
   const trucks = await listVehicles(user.entId, 'active', 'TRUCK');
   const vehicleId = sp.vehicle && trucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
 
-  const [rows, pnl, latestReport, fixedUpdatedAt, fuelStats] = await Promise.all([
+  const [rows, pnl, latestReport, fixedUpdatedAt, invoiceRegions] = await Promise.all([
     listTruckFinanceTrips(user.entId, { month, vehicleId, q, region }),
     computeTruckPnl(user, { vehicleId, region, months: [month] }),
     getLatestTruckReportForMonth(user.entId, month, region),
     getTruckFixedCostsLastUpdated(user.entId, month),
-    getTruckFuelStats(user.entId, month, region),
+    getTruckInvoiceRegions(user.entId, month),
   ]);
   const summary = pnl[0] ?? null;
 
-  /* Transparency (feedback #1): per-trip profit falls back to the manually
-   * entered fuel price until a report freezes a valid month-end snapshot — and
-   * that snapshot needs BOTH odometer km (Σ > 0) and fuel invoices. When any
-   * row is still provisional, surface exactly what's missing so the operator
-   * knows why the "bình quân xăng" isn't applied yet (instead of silently
-   * showing raw numbers under a green "Đã lập BC" badge). */
-  const provisionalCount = rows.filter((r) => !r.finalized).length;
-  const kmZeroCount = rows.filter((r) => r.km <= 0).length;
-  const hasInvoice = fuelStats.invoiceLiters > 0 && fuelStats.avgPrice > 0;
-  const allocatable = fuelStats.totalKm > 0 && hasInvoice;
-  const showProvNotice = provisionalCount > 0;
+  /* Transparency (feedback #1): a per-trip fuel/profit only switches to the
+   * month-end "bình quân" once ITS region has a report freezing a valid
+   * snapshot. Group the still-provisional trips by region so we can name
+   * exactly which regions haven't been reported — and tell apart a region that
+   * just needs the report generated (it HAS fuel invoices → computable) from
+   * one that can't be reconciled yet (no invoices). This replaces the earlier
+   * fleet-level notice that misleadingly said "đã đủ dữ liệu — hãy Lập báo cáo"
+   * even after a report had been generated for another region. */
+  const provByRegion = new Map<string, number>();
+  for (const r of rows) {
+    if (r.finalized) continue;
+    provByRegion.set(r.region ?? '', (provByRegion.get(r.region ?? '') ?? 0) + 1);
+  }
+  const provRegions = [...provByRegion.entries()].map(([code, count]) => ({
+    code: code || null,
+    count,
+    hasInvoice: code !== '' && invoiceRegions.has(code),
+  }));
+  const kmZeroCount = rows.filter((r) => !r.finalized && r.km <= 0).length;
+  const showProvNotice = provRegions.length > 0;
+  const canReport = user.role === 'ADMIN' || user.role === 'MANAGER';
+  /* Offer the one-click generate only when at least one provisional region is
+   * actually reconcilable — otherwise the button couldn't finalize anything. */
+  const anyReportable = provRegions.some((r) => r.code != null && r.hasInvoice);
   /* Q1 decision (PLAN-20260707): no month lock — instead flag when trips or
    * fixed costs changed AFTER the latest report, so the operator regenerates. */
   const stale =
@@ -179,16 +193,31 @@ export default async function TruckFinancePage({
                 <p className="font-semibold text-text">{t('provTitle')}</p>
                 <p className="text-text-muted">{t('provDesc')}</p>
                 <ul className="list-disc space-y-0.5 pl-5 text-text-muted">
+                  {provRegions.map((r) => (
+                    <li key={r.code ?? '∅'}>
+                      <span className="font-medium text-text">
+                        {r.code ? tRegion(r.code) : t('provRegionUnassigned')}
+                      </span>{' '}
+                      — {t('provRegionCount', { count: r.count })}
+                      {r.code != null && (
+                        <span className={r.hasInvoice ? 'text-text-muted' : 'text-warning'}>
+                          {' · '}
+                          {r.hasInvoice ? t('provRegionReady') : t('provRegionNoInvoice')}
+                        </span>
+                      )}
+                    </li>
+                  ))}
                   {kmZeroCount > 0 && <li>{t('provKm', { count: kmZeroCount })}</li>}
-                  {!hasInvoice && <li>{t('provInvoice')}</li>}
-                  {allocatable && <li>{t('provReady')}</li>}
                 </ul>
-                <a
-                  href={`${BASE_PATH}/truck/pnl?month=${month}${region ? `&region=${region}` : ''}`}
-                  className="inline-flex items-center gap-1 font-medium text-accent hover:underline"
-                >
-                  {t('provCta')} →
-                </a>
+                <div className="flex flex-wrap items-center gap-3 pt-0.5">
+                  {canReport && anyReportable && <GenerateAllRegionsButton month={month} />}
+                  <a
+                    href={`${BASE_PATH}/truck/pnl?month=${month}${region ? `&region=${region}` : ''}`}
+                    className="inline-flex items-center gap-1 font-medium text-accent hover:underline"
+                  >
+                    {t('provCta')} →
+                  </a>
+                </div>
               </div>
             </div>
           </Card>

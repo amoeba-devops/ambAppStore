@@ -5,14 +5,18 @@ import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@car-v2/db/client';
-import { carTruckReports, carUsers, TRUCK_REPORT_TYPES } from '@car-v2/db/schema';
+import { carTruckReports, carUsers, TRUCK_REPORT_TYPES, type TruckReportType } from '@car-v2/db/schema';
 import type { ActionResult } from '@car-v2/shared/errors';
 import { computeTruckPnl } from '@car-v2/core/truck';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
 import { listVehicles } from '@/server/queries/vehicles.queries';
-import { getTruckFuelStats, listTruckFinanceTrips } from '@/server/queries/truck-finance.queries';
+import {
+  getTruckFuelStats,
+  getTruckRegionTripCounts,
+  listTruckFinanceTrips,
+} from '@/server/queries/truck-finance.queries';
 import { getTruckReportExport } from '@/server/queries/truck-report-export.queries';
 import { buildTruckReportWorkbook } from '@/server/lib/truck-report-workbook';
 import { buildExcel, type ExcelColumn } from '@/server/lib/excel';
@@ -129,14 +133,111 @@ async function buildReportWorkbook(
 }
 
 /**
- * Generate one monthly report (PNL | TRIP_LOG | VEHICLE) → Excel → S3 → row.
+ * Generate ONE monthly report (PNL | TRIP_LOG | VEHICLE) → Excel → S3 → row, and
+ * freeze the month-end fuel reconciliation onto it. Shared by the single-scope
+ * action (review wizard) and the "all regions" one-click on the finance screen.
  *
- * Every run RECOMPUTES the month-end fuel reconciliation (the old chốt-sổ
- * formulas — avg invoice price, consumption = Σ litres ÷ Σ km) for the scope
- * and freezes it onto the report row (PLAN-20260707). The row is inserted
- * BEFORE the workbook is built so the file — and every screen — reads the fresh
- * snapshot through loadTruckRegionSnapshots. Regenerating later recomputes from
- * the then-current data; the latest report is the official one. No month lock.
+ * RECOMPUTES the reconciliation (the old chốt-sổ formulas — avg invoice price,
+ * consumption = Σ litres ÷ Σ km) for the scope and freezes it onto the report
+ * row (PLAN-20260707) — but only when computable (F5); otherwise the snapshot
+ * columns stay NULL and screens keep the per-trip provisional numbers. The row
+ * is inserted BEFORE the workbook is built so the file — and every screen —
+ * reads the fresh snapshot through loadTruckRegionSnapshots. Does NOT
+ * revalidate; callers revalidate once (so a batch run revalidates a single time).
+ */
+async function generateOneTruckReport(
+  actor: Awaited<ReturnType<typeof getCurrentUser>>,
+  opts: { month: string; type: TruckReportType; region: string | null },
+): Promise<{ id: string; hasSnapshot: boolean }> {
+  const { month, type, region } = opts;
+
+  /* Month-end reconciliation, recomputed NOW (F1–F4). Only frozen when
+   * computable (F5) — otherwise NULL → screens keep provisional numbers. */
+  const stats = await getTruckFuelStats(actor.entId, month, region ?? undefined);
+  const hasSnapshot = stats.totalKm > 0 && stats.invoiceLiters > 0 && stats.avgPrice > 0;
+
+  const id = randomUUID();
+  /* Pin the exact generation moment: stamped into the workbook itself AND
+   * set explicitly (instead of relying on defaultNow()) as trr_created_at,
+   * so the file's stamp and every screen's "Đã lập BC · {date}" badge
+   * (which reads trr_created_at) always agree to the second. */
+  const generatedAt = new Date();
+  const key = `truck-reports/${actor.entId}/${month}/${type}-${region ?? 'all'}-${id}.xlsx`;
+  /* Report is scoped to the chosen operating region (or all regions) — name it
+   * with that scope ("· Khu vực HCM" / "· Tất cả khu vực") so the list makes the
+   * scope obvious; the list still groups by month. */
+  const name = `${REPORT_NAME[type]} · ${regionSuffix(region)}`;
+  await db.insert(carTruckReports).values({
+    trrId: id,
+    entId: actor.entId,
+    trrVehicleType: 'TRUCK',
+    trrMonth: month,
+    trrRegion: region,
+    trrType: type,
+    trrFormat: 'EXCEL',
+    trrS3Key: key,
+    trrName: name,
+    trrCreatedBy: actor.userId,
+    trrCreatedAt: generatedAt,
+    trrAvgPrice: hasSnapshot ? String(stats.avgPrice) : null,
+    trrConsumption: hasSnapshot ? String(stats.consumption) : null,
+    trrTotalLiters: hasSnapshot ? String(stats.invoiceLiters) : null,
+    trrTotalKm: hasSnapshot ? String(stats.totalKm) : null,
+  });
+
+  try {
+    const buffer = await buildReportWorkbook(actor, month, type, region, generatedAt);
+    await putObject(
+      key,
+      new Uint8Array(buffer),
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+  } catch (err) {
+    /* Workbook/upload failed → retract the row (and its snapshot) so the
+     * screens don't claim an official number that has no file behind it. */
+    await db
+      .update(carTruckReports)
+      .set({ trrDeletedAt: new Date() })
+      .where(and(eq(carTruckReports.entId, actor.entId), eq(carTruckReports.trrId, id)));
+    throw err;
+  }
+
+  await logAudit({
+    entId: actor.entId,
+    userId: actor.userId,
+    action: 'TRUCK_REPORT.GENERATED',
+    entity: 'TruckReport',
+    entityId: id,
+    entityRef: name,
+    after: hasSnapshot
+      ? {
+          month,
+          type,
+          region,
+          avgPrice: stats.avgPrice,
+          consumption: stats.consumption,
+          totalLiters: stats.invoiceLiters,
+          totalKm: stats.totalKm,
+        }
+      : { month, type, region },
+  });
+  return { id, hasSnapshot };
+}
+
+/** Paths that read the fuel snapshot — revalidated after any report change so
+ * the recomputed per-trip fuel/profit shows immediately (feedback #1). */
+function revalidateTruckReportPaths(): void {
+  revalidatePath('/truck/reports');
+  revalidatePath('/truck/finance');
+  revalidatePath('/truck/pnl');
+  revalidatePath('/truck/dashboard');
+  revalidatePath('/truck/trips');
+}
+
+/**
+ * Generate one monthly report for a single scope (one region, or all-regions
+ * when region is null). Thin wrapper over generateOneTruckReport + revalidate;
+ * the review wizard calls this once per selected region.
  */
 export async function generateTruckReportAction(input: unknown): Promise<ActionResult<{ id: string }>> {
   return runAction(async () => {
@@ -151,86 +252,50 @@ export async function generateTruckReportAction(input: unknown): Promise<ActionR
         region: z.enum(TRUCK_REGIONS).nullable().optional(),
       })
       .parse(input);
-    const { month, type } = parsed;
-    const region = parsed.region ?? null;
-
-    /* Month-end reconciliation, recomputed NOW (F1–F4). Only frozen when
-     * computable (F5) — otherwise NULL → screens keep provisional numbers. */
-    const stats = await getTruckFuelStats(actor.entId, month, region ?? undefined);
-    const hasSnapshot = stats.totalKm > 0 && stats.invoiceLiters > 0 && stats.avgPrice > 0;
-
-    const id = randomUUID();
-    /* Pin the exact generation moment: stamped into the workbook itself AND
-     * set explicitly (instead of relying on defaultNow()) as trr_created_at,
-     * so the file's stamp and every screen's "Đã lập BC · {date}" badge
-     * (which reads trr_created_at) always agree to the second. */
-    const generatedAt = new Date();
-    const key = `truck-reports/${actor.entId}/${month}/${type}-${region ?? 'all'}-${id}.xlsx`;
-    /* Report is scoped to the chosen operating region (or all regions) — name it
-     * with that scope ("· Khu vực HCM" / "· Tất cả khu vực") so the list makes the
-     * scope obvious; the list still groups by month. */
-    const name = `${REPORT_NAME[type]} · ${regionSuffix(region)}`;
-    await db.insert(carTruckReports).values({
-      trrId: id,
-      entId: actor.entId,
-      trrVehicleType: 'TRUCK',
-      trrMonth: month,
-      trrRegion: region,
-      trrType: type,
-      trrFormat: 'EXCEL',
-      trrS3Key: key,
-      trrName: name,
-      trrCreatedBy: actor.userId,
-      trrCreatedAt: generatedAt,
-      trrAvgPrice: hasSnapshot ? String(stats.avgPrice) : null,
-      trrConsumption: hasSnapshot ? String(stats.consumption) : null,
-      trrTotalLiters: hasSnapshot ? String(stats.invoiceLiters) : null,
-      trrTotalKm: hasSnapshot ? String(stats.totalKm) : null,
-    });
-
-    try {
-      const buffer = await buildReportWorkbook(actor, month, type, region, generatedAt);
-      await putObject(
-        key,
-        new Uint8Array(buffer),
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      );
-    } catch (err) {
-      /* Workbook/upload failed → retract the row (and its snapshot) so the
-       * screens don't claim an official number that has no file behind it. */
-      await db
-        .update(carTruckReports)
-        .set({ trrDeletedAt: new Date() })
-        .where(and(eq(carTruckReports.entId, actor.entId), eq(carTruckReports.trrId, id)));
-      throw err;
-    }
-
-    await logAudit({
-      entId: actor.entId,
-      userId: actor.userId,
-      action: 'TRUCK_REPORT.GENERATED',
-      entity: 'TruckReport',
-      entityId: id,
-      entityRef: name,
-      after: hasSnapshot
-        ? {
-            month,
-            type,
-            region,
-            avgPrice: stats.avgPrice,
-            consumption: stats.consumption,
-            totalLiters: stats.invoiceLiters,
-            totalKm: stats.totalKm,
-          }
-        : { month, type, region },
+    const { id } = await generateOneTruckReport(actor, {
+      month: parsed.month,
+      type: parsed.type,
+      region: parsed.region ?? null,
     });
     /* Numbers just became official everywhere the snapshot is read. */
-    revalidatePath('/truck/reports');
-    revalidatePath('/truck/finance');
-    revalidatePath('/truck/pnl');
-    revalidatePath('/truck/dashboard');
-    revalidatePath('/truck/trips');
+    revalidateTruckReportPaths();
     return { id };
+  });
+}
+
+/**
+ * One-click "Lập báo cáo tất cả khu vực" from the finance screen (feedback #1).
+ * Generates a Chi-phí-&-lợi-nhuận (PNL) report for EVERY operating region that
+ * has completed trips this month, freezing each region's OWN month-end average
+ * (per-region accuracy — regions are never blended together). A region that
+ * still lacks fuel invoices can't be reconciled (F5), so it's returned in
+ * `pending` — we skip generation there rather than emit a report with no
+ * snapshot. `finalized`/`pending` are region codes the caller maps to names.
+ */
+export async function generateAllRegionsTruckReportsAction(
+  input: unknown,
+): Promise<ActionResult<{ finalized: string[]; pending: string[] }>> {
+  return runAction(async () => {
+    const actor = await getCurrentUser();
+    requireRole(actor.role, ['ADMIN', 'MANAGER']);
+    await requireFleet(actor, 'TRUCK');
+    const { month } = z.object({ month: z.string().regex(MONTH) }).parse(input);
+
+    const { byRegion } = await getTruckRegionTripCounts(actor.entId, month);
+    const finalized: string[] = [];
+    const pending: string[] = [];
+    for (const region of Object.keys(byRegion)) {
+      /* F5 gate — only a region with invoices + km + price is reconcilable. */
+      const stats = await getTruckFuelStats(actor.entId, month, region);
+      if (!(stats.totalKm > 0 && stats.invoiceLiters > 0 && stats.avgPrice > 0)) {
+        pending.push(region);
+        continue;
+      }
+      await generateOneTruckReport(actor, { month, type: 'PNL', region });
+      finalized.push(region);
+    }
+    if (finalized.length > 0) revalidateTruckReportPaths();
+    return { finalized, pending };
   });
 }
 

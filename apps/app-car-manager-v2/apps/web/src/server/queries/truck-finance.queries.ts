@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, asc, desc, eq, gte, ilike, inArray, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import {
   carTruckMonthClose,
@@ -94,6 +94,28 @@ export async function listFuelInvoices(
     liters: parseAmount(r.tfiLiters),
     price: parseAmount(r.tfiPrice),
   }));
+}
+
+/**
+ * Distinct operating regions that have ≥1 fuel invoice in the month. The finance
+ * banner uses this to tell apart a provisional region that just needs a report
+ * generated (it HAS invoices → the month-end average is computable) from one
+ * that can't be reconciled yet (no invoices → adding a report won't finalize it).
+ */
+export async function getTruckInvoiceRegions(entId: string, month: string): Promise<Set<string>> {
+  const rows = await db
+    .selectDistinct({ region: carTruckFuelInvoices.tfiRegion })
+    .from(carTruckFuelInvoices)
+    .where(
+      and(
+        eq(carTruckFuelInvoices.entId, entId),
+        eq(carTruckFuelInvoices.tfiVehicleType, 'TRUCK'),
+        eq(carTruckFuelInvoices.tfiMonth, month),
+        isNull(carTruckFuelInvoices.tfiDeletedAt),
+        isNotNull(carTruckFuelInvoices.tfiRegion),
+      ),
+    );
+  return new Set(rows.map((r) => r.region).filter((r): r is string => !!r));
 }
 
 export interface FuelStats {
@@ -196,6 +218,10 @@ export interface TruckFinanceTripRow {
   ref: string;
   scheduledAt: Date;
   vehicleId: string | null;
+  /** Operating region of the trip's vehicle (cvh_region); null when unassigned.
+   * Lets the finance screen group provisional trips by the region that still
+   * needs a month-end report. */
+  region: string | null;
   plate: string | null;
   model: string | null;
   driver: string | null;
@@ -242,6 +268,7 @@ export async function listTruckFinanceTrips(
         vehicleId: carTrips.trpVehicleId,
         plate: carVehicles.cvhPlateNumber,
         model: carVehicles.cvhModel,
+        region: carVehicles.cvhRegion,
         driver: carUsers.usrName,
         fuelLiters: carTrips.trpFuelLiters,
         fuelPrice: carTrips.trpFuelPrice,
@@ -309,6 +336,7 @@ export async function listTruckFinanceTrips(
       ref: t.ref,
       scheduledAt: t.scheduledAt,
       vehicleId: t.vehicleId,
+      region: t.region,
       plate: t.plate,
       model: t.model,
       driver: t.driver,
