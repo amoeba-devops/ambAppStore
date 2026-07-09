@@ -33,6 +33,11 @@ export const ERROR_CODES = {
   // 설정 (E6xxx)
   SETTING_NOT_FOUND: 'HSC-E6001',
   EXTERNAL_CONNECTION_FAILED: 'HSC-E6002',
+
+  // 지식/RAG 구축 (E7xxx)
+  KNOWLEDGE_PARSE_FAILED: 'HSC-E7001',
+  KNOWLEDGE_EMPTY_CONTENT: 'HSC-E7002',
+  HS_TABLE_COLUMN_MISSING: 'HSC-E7003',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

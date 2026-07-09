@@ -4,11 +4,10 @@ import clsx from 'clsx';
 import { DebugContextPanel } from './components/common/DebugContextPanel';
 
 const NAV = [
-  { to: '/search/qa', key: 'nav.qa' },
-  { to: '/search/barcode', key: 'nav.barcode' },
-  { to: '/search/attribute', key: 'nav.attr' },
-  { to: '/result', key: 'nav.result' },
-  { to: '/reference', key: 'nav.reference' },
+  { to: '/match', key: 'nav.match' },
+  { to: '/chat', key: 'nav.chat' },
+  { to: '/history', key: 'nav.history' },
+  { to: '/reference-build', key: 'nav.refbuild' },
   { to: '/admin', key: 'nav.admin' },
 ];
 
