@@ -12,6 +12,8 @@ import {
   completeTruckTrip,
   updateTruckTrip,
   deleteTruckTrip,
+  syncTripCostAttachments,
+  type TripCostAttachmentInput,
 } from '@car-v2/core/truck';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import {
@@ -80,6 +82,29 @@ async function regionOfVehicle(entId: string, vehicleId: string | null | undefin
 /** Postgres unique_violation — used to retry trip-ref generation on collision. */
 function isUniqueViolation(err: unknown): boolean {
   return typeof err === 'object' && err !== null && (err as { code?: string }).code === '23505';
+}
+
+/**
+ * Reconcile a trip's receipt attachments to the DTO's desired set.
+ *
+ * `undefined` means "don't touch" (caller didn't manage attachments) — we skip
+ * the sync entirely so a form that omits the field never clobbers existing
+ * receipts. An explicit array (even empty) IS the full desired set: empty
+ * clears all. The manager + completion forms always send the full array.
+ */
+async function maybeSyncAttachments(
+  entId: string,
+  tripId: string,
+  atts: { cost_kind: 'FUEL' | 'TOLL' | 'EXTRA'; s3_key: string; mime: string; size_bytes: number }[] | undefined,
+): Promise<void> {
+  if (atts === undefined) return;
+  const mapped: TripCostAttachmentInput[] = atts.map((a) => ({
+    costKind: a.cost_kind,
+    s3Key: a.s3_key,
+    mime: a.mime,
+    sizeBytes: a.size_bytes,
+  }));
+  await syncTripCostAttachments(entId, tripId, mapped);
 }
 
 /**
@@ -160,6 +185,10 @@ export async function createTruckTripAction(input: unknown): Promise<ActionResul
       });
       trip = res.trip;
     }
+
+    /* Persist trip-cost receipt attachments (REQ-20260709). No existing rows on
+     * create → sync just inserts the uploaded keys. */
+    await maybeSyncAttachments(actor.entId, trip.trpId, dto.cost_attachments);
 
     await logAudit({
       entId: actor.entId,
@@ -242,6 +271,9 @@ export async function completeTruckTripAction(input: unknown): Promise<ActionRes
       extraCosts: dto.extra_costs ?? [],
     });
 
+    /* Reconcile receipt attachments (insert new, soft-delete removed). */
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
+
     await logAudit({
       entId: actor.entId,
       userId: actor.userId,
@@ -289,6 +321,9 @@ export async function driverCompleteTruckTripAction(input: unknown): Promise<Act
       tollFee: dto.toll_fee ?? null,
       extraCosts: dto.extra_costs ?? [],
     });
+
+    /* Reconcile receipt attachments (insert new, soft-delete removed). */
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
 
     await logAudit({
       entId: actor.entId,
@@ -351,6 +386,9 @@ export async function updateTruckTripAction(input: unknown): Promise<ActionResul
       extraCosts,
       stopovers,
     });
+
+    /* Reconcile receipt attachments (insert new, soft-delete removed). */
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
 
     await logAudit({
       entId: actor.entId,

@@ -351,6 +351,8 @@
       "costTitle": "운행 비용",
       "fuel": "연료",
       "toll": "통행료",
+      "receiptsTitle": "영수증 / 증빙",
+      "receiptsExtra": "기타 비용",
       "total": "총 비용",
       "revenue": "매출",
       "profit": "이익",
@@ -504,6 +506,11 @@
         "extraAmount": "금액 (₫)",
         "extraAdd": "+ 비용 추가",
         "extraRemove": "삭제",
+        "receiptsSection": "영수증 / 증빙",
+        "fuelReceipts": "연료 영수증",
+        "tollReceipts": "통행료 영수증",
+        "extraReceipts": "기타 비용 증빙",
+        "receiptUploadFailed": "증빙 업로드에 실패했습니다. 다시 시도해 주세요.",
         "addOtherCost": "기타 비용 추가",
         "sectionRoute": "경로",
         "stops": {
@@ -774,6 +781,17 @@
   },
   "search": {
     "placeholder": "운행·기사·비용 검색…"
+  },
+  "truckCostReceipt": {
+    "add": "첨부",
+    "addMore": "파일 추가",
+    "remove": "첨부 삭제",
+    "savedAlt": "저장된 증빙",
+    "offline": "파일을 첨부하려면 온라인 상태여야 합니다",
+    "maxReached": "최대 {max}개까지 첨부할 수 있습니다",
+    "errType": "이미지 또는 PDF 파일만 지원합니다",
+    "errTooLarge": "파일이 {max}MB를 초과합니다",
+    "errTooMany": "비용당 최대 {max}개까지 첨부할 수 있습니다"
   },
   "company": {
     "tenant": "조직",

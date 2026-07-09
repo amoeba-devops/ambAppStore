@@ -22,7 +22,7 @@ import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listAuditForEntity } from '@/server/queries/audit.queries';
 import { listNonTruckDrivers, getDriverByUserId } from '@/server/queries/drivers.queries';
 import { getTrip } from '@/server/queries/trips.queries';
-import { getTripExtraCosts, getTruckTripBreakdown } from '@/server/queries/truck-trips.queries';
+import { getTripExtraCosts, getTruckTripBreakdown, getTripCostAttachmentsView } from '@/server/queries/truck-trips.queries';
 import { getTruckReportStatus } from '@/server/queries/truck-report.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { TripActions } from './trip-actions';
@@ -71,6 +71,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
     }
     const isStaffUser = user.role === 'ADMIN' || user.role === 'MANAGER';
     const extras = await getTripExtraCosts(user.entId, trip.trpId);
+    const costAttachments = await getTripCostAttachmentsView(user.entId, trip.trpId);
     const { breakdown, month, region } = await getTruckTripBreakdown(user.entId, trip, extras.map((e) => e.amount));
     const completed = trip.trpStatus === 'COMPLETED';
     const canComplete =
@@ -94,6 +95,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
         vehiclePlate={trip.vehiclePlate}
         driverName={trip.driverName}
         extras={extras}
+        costAttachments={costAttachments}
         breakdown={breakdown}
         completed={completed}
         canComplete={canComplete}

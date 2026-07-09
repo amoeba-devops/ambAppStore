@@ -351,6 +351,8 @@
       "costTitle": "Chi phí chuyến",
       "fuel": "Nhiên liệu",
       "toll": "Cầu đường",
+      "receiptsTitle": "Hóa đơn / chứng từ",
+      "receiptsExtra": "Phí phát sinh",
       "total": "Tổng chi phí",
       "revenue": "Doanh thu",
       "profit": "Lợi nhuận",
@@ -504,6 +506,11 @@
         "extraAmount": "Số tiền (₫)",
         "extraAdd": "+ Thêm khoản phí",
         "extraRemove": "Xoá",
+        "receiptsSection": "Hóa đơn / chứng từ",
+        "fuelReceipts": "Hóa đơn nhiên liệu",
+        "tollReceipts": "Hóa đơn cầu đường",
+        "extraReceipts": "Chứng từ phí phát sinh",
+        "receiptUploadFailed": "Tải chứng từ lên thất bại. Vui lòng thử lại.",
         "addOtherCost": "Thêm chi phí khác",
         "sectionRoute": "Lộ trình",
         "stops": {
@@ -774,6 +781,17 @@
   },
   "search": {
     "placeholder": "Tìm chuyến, tài xế, chi phí…"
+  },
+  "truckCostReceipt": {
+    "add": "Đính kèm",
+    "addMore": "Thêm tệp",
+    "remove": "Xoá tệp đính kèm",
+    "savedAlt": "Chứng từ đã lưu",
+    "offline": "Cần có mạng để đính kèm tệp",
+    "maxReached": "Đã đạt tối đa {max} tệp",
+    "errType": "Chỉ hỗ trợ ảnh hoặc file PDF",
+    "errTooLarge": "Tệp vượt quá {max}MB",
+    "errTooMany": "Tối đa {max} tệp cho mỗi khoản chi phí"
   },
   "company": {
     "tenant": "Tổ chức",

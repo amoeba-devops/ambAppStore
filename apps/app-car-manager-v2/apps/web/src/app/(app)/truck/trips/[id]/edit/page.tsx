@@ -4,7 +4,7 @@ import { AlertTriangle } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getTrip } from '@/server/queries/trips.queries';
-import { getTripExtraCosts } from '@/server/queries/truck-trips.queries';
+import { getTripExtraCosts, getTripCostAttachmentsView } from '@/server/queries/truck-trips.queries';
 import { getTripStopovers } from '@/server/queries/stopovers.queries';
 import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
 import { getLatestTruckReportForMonth } from '@/server/queries/truck-report.queries';
@@ -20,13 +20,14 @@ export default async function EditTruckTripPage({ params }: { params: Promise<{ 
 
   const t = await getTranslations('screens.truckTrips');
   const tripMonth = new Date(trip.trpScheduledAt).toISOString().slice(0, 7);
-  const [vehicles, drivers, extras, stopovers, settings, monthReport] = await Promise.all([
+  const [vehicles, drivers, extras, stopovers, settings, monthReport, costAttachments] = await Promise.all([
     listVehicles(user.entId, 'active', 'TRUCK'),
     listFleetDrivers(user.entId, 'TRUCK'),
     getTripExtraCosts(user.entId, trip.trpId),
     getTripStopovers(user.entId, trip.trpId),
     getTenantSettings(user.entId),
     getLatestTruckReportForMonth(user.entId, tripMonth),
+    getTripCostAttachmentsView(user.entId, trip.trpId),
   ]);
   const vehicleOptions = vehicles.map((v) => ({ id: v.cvhId, label: `${v.cvhPlateNumber} · ${v.cvhModel}` }));
   const driverOptions = drivers.map((d) => ({ id: d.drvId, label: d.user.usrName ?? d.user.usrEmail ?? d.drvId }));
@@ -45,6 +46,14 @@ export default async function EditTruckTripPage({ params }: { params: Promise<{ 
     fuelLiters: trip.trpFuelLiters ?? '',
     toll: trip.trpTollFee ?? '',
     extraCosts: extras.map((e) => ({ name: e.name, amount: e.amount })),
+    costAttachments: costAttachments.map((a) => ({
+      id: a.id,
+      costKind: a.costKind,
+      s3Key: a.s3Key,
+      mime: a.mime,
+      sizeBytes: a.sizeBytes,
+      signedUrl: a.signedUrl,
+    })),
     markCompleted: trip.trpStatus === 'COMPLETED',
     stopovers: stopovers.length > 0 ? stopovers : undefined,
   };

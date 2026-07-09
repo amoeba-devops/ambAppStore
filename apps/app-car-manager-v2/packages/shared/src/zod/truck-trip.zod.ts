@@ -9,6 +9,38 @@ import { z } from 'zod';
  * dropoff_address for backward compat (summary display, notification text).
  */
 
+/**
+ * Trip-cost receipt/invoice attachments (REQ-20260709). Image + PDF uploads
+ * attached to a trip's costs. Kept trip-scoped and tagged by `cost_kind`
+ * (FUEL / TOLL / EXTRA) rather than FK'd to individual extra-cost rows —
+ * those rows are delete+reinserted on every edit, so a per-row FK would
+ * orphan. The client uploads each file to S3 first (presigned PUT) then sends
+ * the resulting key here; the server never sees file bytes.
+ *
+ * Size ceiling is a SEPARATE knob from the car Expense upload (server reads
+ * TRUCK_S3_MAX_UPLOAD_BYTES). This client-side constant mirrors the default so
+ * the UI can reject oversize files before the round-trip.
+ */
+export const TRUCK_COST_ATTACHMENT_MAX_BYTES = 50 * 1024 * 1024;
+/** Max receipts per cost bucket (FUEL / TOLL / EXTRA). */
+export const TRUCK_COST_ATTACHMENT_MAX_PER_KIND = 10;
+
+export const tripCostKindSchema = z.enum(['FUEL', 'TOLL', 'EXTRA']);
+export type TripCostKind = z.infer<typeof tripCostKindSchema>;
+
+export const tripCostAttachmentSchema = z.object({
+  cost_kind: tripCostKindSchema,
+  s3_key: z.string().min(1).max(1024),
+  mime: z.string().min(1).max(64),
+  size_bytes: z.number().int().min(1).max(TRUCK_COST_ATTACHMENT_MAX_BYTES),
+});
+export type TripCostAttachmentDto = z.infer<typeof tripCostAttachmentSchema>;
+
+/** Full desired attachment set for a trip across all buckets. The server diffs
+ * this against existing rows: new keys are inserted, missing keys soft-deleted.
+ * 30 = 3 buckets × 10 each. */
+const costAttachmentsField = z.array(tripCostAttachmentSchema).max(30).optional();
+
 export const stopTypeSchema = z.enum(['ORIGIN', 'PICKUP', 'DELIVERY', 'WAYPOINT', 'RETURN']);
 
 export const stopoverInputSchema = z.object({
@@ -42,6 +74,8 @@ export const createTruckTripSchema = z.object({
     .array(z.object({ name: z.string().trim().min(1).max(255), amount: z.number().nonnegative() }))
     .max(50)
     .optional(),
+  /** Receipt/invoice attachments for this trip's costs (REQ-20260709). */
+  cost_attachments: costAttachmentsField,
   /** Multi-stop route (REQ-20260623). Max 20 stops. When present, stopovers
    * are saved to car_trip_stopovers and form the canonical route display. */
   stopovers: z.array(stopoverInputSchema).max(20).optional(),
@@ -74,6 +108,8 @@ export const completeTruckTripSchema = z.object({
     .array(z.object({ name: z.string().trim().min(1).max(255), amount: z.number().nonnegative() }))
     .max(50)
     .optional(),
+  /** Receipt/invoice attachments for this trip's costs (REQ-20260709). */
+  cost_attachments: costAttachmentsField,
 });
 export type CompleteTruckTripInputDto = z.infer<typeof completeTruckTripSchema>;
 

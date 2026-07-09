@@ -23,8 +23,20 @@ import { createTruckTripAction, updateTruckTripAction } from '@/server/actions/t
 import { formatActionError } from '@/lib/format-action-error';
 import { FormField } from '@/components/forms/form-section';
 import { MoneyInput } from '@/components/inputs/money-input';
+import { CostReceiptInput, type ExistingCostAttachment } from '@/components/truck/cost-receipt-input';
+import { uploadTruckCostFile } from '@/lib/truck-cost-upload';
 import { StopBuilder, makeDefaultStops, type StopField } from './stop-builder';
 import type { CarStopType, CarTripStopover } from '@car-v2/db/schema';
+
+type CostKind = 'FUEL' | 'TOLL' | 'EXTRA';
+/** Per-bucket receipt state: already-saved attachments + newly picked files. */
+interface ReceiptBucket {
+  existing: ExistingCostAttachment[];
+  files: File[];
+}
+export interface InitialCostAttachment extends ExistingCostAttachment {
+  costKind: CostKind;
+}
 
 export interface OptionItem {
   id: string;
@@ -45,6 +57,7 @@ export type TruckTripFormInitial = Partial<{
   fuelLiters: string;
   toll: string;
   extraCosts: { name: string; amount: number }[];
+  costAttachments: InitialCostAttachment[];
   markCompleted: boolean;
   stopovers: CarTripStopover[];
 }>;
@@ -124,6 +137,42 @@ export function TruckTripForm({
     setExtras((x) => x.map((row, j) => (j === i ? { ...row, [k]: v } : row)));
   const removeExtra = (i: number) => setExtras((x) => x.filter((_, j) => j !== i));
 
+  /* Cost receipt attachments (REQ-20260709) — one bucket per cost kind, each
+   * holding already-saved attachments (edit) + newly picked files. */
+  const [receipts, setReceipts] = useState<Record<CostKind, ReceiptBucket>>(() => {
+    const init: Record<CostKind, ReceiptBucket> = {
+      FUEL: { existing: [], files: [] },
+      TOLL: { existing: [], files: [] },
+      EXTRA: { existing: [], files: [] },
+    };
+    for (const a of initial?.costAttachments ?? []) {
+      init[a.costKind].existing.push({ id: a.id, s3Key: a.s3Key, mime: a.mime, sizeBytes: a.sizeBytes, signedUrl: a.signedUrl });
+    }
+    return init;
+  });
+  const setBucketExisting = (k: CostKind, next: ExistingCostAttachment[]) =>
+    setReceipts((r) => ({ ...r, [k]: { ...r[k], existing: next } }));
+  const setBucketFiles = (k: CostKind, next: File[]) =>
+    setReceipts((r) => ({ ...r, [k]: { ...r[k], files: next } }));
+
+  /* Build the full desired attachment set: kept existing keys + freshly
+   * uploaded files (uploaded here, on submit). Throws if any S3 PUT fails. */
+  const buildCostAttachments = async (): Promise<
+    { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number }[]
+  > => {
+    const out: { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number }[] = [];
+    for (const k of ['FUEL', 'TOLL', 'EXTRA'] as const) {
+      for (const e of receipts[k].existing) {
+        out.push({ cost_kind: k, s3_key: e.s3Key, mime: e.mime, size_bytes: e.sizeBytes });
+      }
+      for (const f of receipts[k].files) {
+        const up = await uploadTruckCostFile(f);
+        out.push({ cost_kind: k, ...up });
+      }
+    }
+    return out;
+  };
+
   /* Optional fields stay collapsed by default to keep the form light — they
    * auto-expand on edit when the trip already carries that data. */
   const [showDocs, setShowDocs] = useState(
@@ -189,6 +238,16 @@ export function TruckTripForm({
           km: s.km ? Number(s.km) : undefined,
         }));
 
+      /* Upload any newly picked receipts to S3 first. On failure, abort before
+       * touching the trip so we don't half-save. */
+      let cost_attachments: { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number }[];
+      try {
+        cost_attachments = await buildCostAttachments();
+      } catch {
+        toast.error(t('receiptUploadFailed'));
+        return;
+      }
+
       const payload = {
         scheduled_at: f.scheduledAt,
         vehicle_id: f.vehicleId || undefined,
@@ -208,6 +267,7 @@ export function TruckTripForm({
         extra_costs: extras
           .filter((e) => e.name.trim() !== '' && e.amount.trim() !== '')
           .map((e) => ({ name: e.name.trim(), amount: Number(e.amount) })),
+        cost_attachments,
         stopovers: stopoversPayload,
       };
       const res = tripId
@@ -224,6 +284,26 @@ export function TruckTripForm({
       router.refresh();
     });
   };
+
+  /* Receipt attachments block (REQ-20260709) — three buckets (fuel / toll /
+   * extra), shown wherever those costs are entered (driver + manager-log). */
+  const receiptsBlock = (
+    <div className="mt-4 pt-4 border-t border-border space-y-3">
+      <div className="text-xs font-medium text-text-muted uppercase tracking-wide">{t('receiptsSection')}</div>
+      {(['FUEL', 'TOLL', 'EXTRA'] as const).map((k) => (
+        <div key={k} className="space-y-1.5">
+          <div className="text-xs text-text-muted">{t(RECEIPT_LABEL[k])}</div>
+          <CostReceiptInput
+            existing={receipts[k].existing}
+            onExistingChange={(next) => setBucketExisting(k, next)}
+            files={receipts[k].files}
+            onFilesChange={(next) => setBucketFiles(k, next)}
+            disabled={pending}
+          />
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <form
@@ -323,6 +403,7 @@ export function TruckTripForm({
                 </FormField>
               </div>
               <ExtrasCostSection extras={extras} t={t} onAdd={addExtra} onChange={setExtra} onRemove={removeExtra} />
+              {receiptsBlock}
             </SectionCard>
           ) : markCompleted ? (
             <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionCostRevenue')}>
@@ -341,6 +422,7 @@ export function TruckTripForm({
                 </FormField>
               </div>
               <ExtrasCostSection extras={extras} t={t} onAdd={addExtra} onChange={setExtra} onRemove={removeExtra} />
+              {receiptsBlock}
             </SectionCard>
           ) : (
             <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionPlan')} hint={t('sectionPlanHint')}>
@@ -395,6 +477,13 @@ export function TruckTripForm({
 }
 
 const GRID = 'grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-3 lg:gap-y-4';
+
+/** i18n key (under screens.truckTrips.form) for each bucket's receipt label. */
+const RECEIPT_LABEL: Record<CostKind, string> = {
+  FUEL: 'fuelReceipts',
+  TOLL: 'tollReceipts',
+  EXTRA: 'extraReceipts',
+};
 
 /** Titled white card with an accent icon — the visual unit of the form. */
 function SectionCard({

@@ -14,8 +14,10 @@ import {
   parseAmount,
   truckTripFuelCost,
   loadTruckRegionSnapshots,
+  getTripCostAttachments,
   type TruckCostBreakdown,
 } from '@car-v2/core/truck';
+import { getSignedGetUrl } from '@/lib/s3-client';
 
 const monthKey = (d: Date): string => d.toISOString().slice(0, 7);
 
@@ -361,6 +363,38 @@ export async function getLatestVehiclesByDriver(entId: string): Promise<Map<stri
     if (r.driverId && r.plate && !map.has(r.driverId)) map.set(r.driverId, r.plate);
   }
   return map;
+}
+
+export type TripCostKind = 'FUEL' | 'TOLL' | 'EXTRA';
+
+export interface TripCostAttachmentView {
+  id: string;
+  costKind: TripCostKind;
+  /** S3 key — the form echoes this back on save so kept attachments survive. */
+  s3Key: string;
+  mime: string;
+  sizeBytes: number;
+  /** Pre-signed GET URL (15-min TTL). Null when S3 isn't configured (dev). */
+  signedUrl: string | null;
+}
+
+/** Live trip-cost receipt attachments (REQ-20260709) with signed GET URLs, for
+ * the trip detail + edit form. Grouped by the caller via `costKind`. */
+export async function getTripCostAttachmentsView(
+  entId: string,
+  tripId: string,
+): Promise<TripCostAttachmentView[]> {
+  const rows = await getTripCostAttachments(entId, tripId);
+  return Promise.all(
+    rows.map(async (r) => ({
+      id: r.tcaId,
+      costKind: r.tcaCostKind as TripCostKind,
+      s3Key: r.tcaS3Key,
+      mime: r.tcaMime,
+      sizeBytes: r.tcaSizeBytes,
+      signedUrl: await getSignedGetUrl(r.tcaS3Key),
+    })),
+  );
 }
 
 /** Structured extra-cost rows for one truck trip (detail breakdown). */

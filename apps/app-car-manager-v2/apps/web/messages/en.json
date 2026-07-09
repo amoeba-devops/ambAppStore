@@ -351,6 +351,8 @@
       "costTitle": "Trip costs",
       "fuel": "Fuel",
       "toll": "Toll",
+      "receiptsTitle": "Invoices / documents",
+      "receiptsExtra": "Extra costs",
       "total": "Total cost",
       "revenue": "Revenue",
       "profit": "Profit",
@@ -504,6 +506,11 @@
         "extraAmount": "Amount (₫)",
         "extraAdd": "+ Add cost",
         "extraRemove": "Remove",
+        "receiptsSection": "Invoices / documents",
+        "fuelReceipts": "Fuel invoice",
+        "tollReceipts": "Toll invoice",
+        "extraReceipts": "Extra-cost document",
+        "receiptUploadFailed": "Failed to upload documents. Please try again.",
         "addOtherCost": "Add other cost",
         "sectionRoute": "Route",
         "stops": {
@@ -774,6 +781,17 @@
   },
   "search": {
     "placeholder": "Search trips, drivers, costs…"
+  },
+  "truckCostReceipt": {
+    "add": "Attach",
+    "addMore": "Add file",
+    "remove": "Remove attachment",
+    "savedAlt": "Saved document",
+    "offline": "You need to be online to attach files",
+    "maxReached": "Reached the max of {max} files",
+    "errType": "Only images or PDF files are supported",
+    "errTooLarge": "File exceeds {max}MB",
+    "errTooMany": "Up to {max} files per cost"
   },
   "company": {
     "tenant": "Organization",
