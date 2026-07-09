@@ -38,8 +38,10 @@ export const createTruckTripSchema = z.object({
   end_odometer: z.number().int().nonnegative().optional(),
   fuel_liters: z.number().nonnegative().optional(),
   toll_fee: z.number().nonnegative().optional(),
-  other_amount: z.number().nonnegative().optional(),
-  other_note: z.string().trim().max(255).optional(),
+  extra_costs: z
+    .array(z.object({ name: z.string().trim().min(1).max(255), amount: z.number().nonnegative() }))
+    .max(50)
+    .optional(),
   /** Multi-stop route (REQ-20260623). Max 20 stops. When present, stopovers
    * are saved to car_trip_stopovers and form the canonical route display. */
   stopovers: z.array(stopoverInputSchema).max(20).optional(),

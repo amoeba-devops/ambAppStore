@@ -499,6 +499,11 @@
         "summaryTitle": "Tóm tắt chuyến",
         "summaryEmpty": "Chọn xe và nhập lộ trình để xem tóm tắt.",
         "addDocs": "Thêm khách hàng & chứng từ",
+        "extraSection": "Chi phí phát sinh khác",
+        "extraName": "Tên khoản phí",
+        "extraAmount": "Số tiền (₫)",
+        "extraAdd": "+ Thêm khoản phí",
+        "extraRemove": "Xoá",
         "addOtherCost": "Thêm chi phí khác",
         "sectionRoute": "Lộ trình",
         "stops": {
@@ -521,7 +526,8 @@
           "totalDistance": "Tổng quãng đường",
           "remove": "Xóa điểm này"
         },
-        "provisionalTag": "Tạm tính"
+        "provisionalTag": "Tạm tính",
+        "validationMissing": "Vui lòng điền đầy đủ: {fields}"
       },
       "provisional": "Tạm tính",
       "thVehicle": "Phương tiện",

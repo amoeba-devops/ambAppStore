@@ -31,7 +31,6 @@ export default async function EditTruckTripPage({ params }: { params: Promise<{ 
   const vehicleOptions = vehicles.map((v) => ({ id: v.cvhId, label: `${v.cvhPlateNumber} · ${v.cvhModel}` }));
   const driverOptions = drivers.map((d) => ({ id: d.drvId, label: d.user.usrName ?? d.user.usrEmail ?? d.drvId }));
 
-  const otherTotal = extras.reduce((s, e) => s + e.amount, 0);
   const initial = {
     scheduledAt: new Date(trip.trpScheduledAt).toISOString().slice(0, 10),
     vehicleId: trip.trpVehicleId ?? '',
@@ -45,8 +44,7 @@ export default async function EditTruckTripPage({ params }: { params: Promise<{ 
     fuelPrice: trip.trpFuelPrice ?? '',
     fuelLiters: trip.trpFuelLiters ?? '',
     toll: trip.trpTollFee ?? '',
-    otherAmount: otherTotal ? String(otherTotal) : '',
-    otherNote: extras[0]?.name ?? '',
+    extraCosts: extras.map((e) => ({ name: e.name, amount: e.amount })),
     markCompleted: trip.trpStatus === 'COMPLETED',
     stopovers: stopovers.length > 0 ? stopovers : undefined,
   };

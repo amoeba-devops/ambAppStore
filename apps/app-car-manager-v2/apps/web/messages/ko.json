@@ -499,6 +499,11 @@
         "summaryTitle": "운행 요약",
         "summaryEmpty": "차량을 선택하고 경로를 입력하면 요약이 표시됩니다.",
         "addDocs": "고객·문서 추가",
+        "extraSection": "기타 발생 비용",
+        "extraName": "비용 항목",
+        "extraAmount": "금액 (₫)",
+        "extraAdd": "+ 비용 추가",
+        "extraRemove": "삭제",
         "addOtherCost": "기타 비용 추가",
         "sectionRoute": "경로",
         "stops": {
@@ -521,7 +526,8 @@
           "totalDistance": "총 거리",
           "remove": "경유지 삭제"
         },
-        "provisionalTag": "임시 계산"
+        "provisionalTag": "임시 계산",
+        "validationMissing": "필수 항목을 입력해주세요: {fields}"
       },
       "provisional": "잠정",
       "thVehicle": "차량",

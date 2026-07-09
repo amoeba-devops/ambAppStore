@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { ClipboardList, FileText, Loader2, Plus, Route, Save, Truck, User, Wallet } from 'lucide-react';
+import { ClipboardList, FileText, Loader2, Plus, Route, Save, Trash2, Truck, User, Wallet } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -44,8 +44,7 @@ export type TruckTripFormInitial = Partial<{
   fuelPrice: string;
   fuelLiters: string;
   toll: string;
-  otherAmount: string;
-  otherNote: string;
+  extraCosts: { name: string; amount: number }[];
   markCompleted: boolean;
   stopovers: CarTripStopover[];
 }>;
@@ -63,8 +62,6 @@ const EMPTY_FIELDS = {
   fuelPrice: '',
   fuelLiters: '',
   toll: '',
-  otherAmount: '',
-  otherNote: '',
 };
 
 const numF = (s: string) => (s.trim() === '' ? undefined : Number(s));
@@ -118,13 +115,19 @@ export function TruckTripForm({
 
   const isDriver = role === 'DRIVER';
 
+  /* Extra incidental costs — free-text name + amount rows. */
+  const [extras, setExtras] = useState<ExtraRow[]>(
+    () => initial?.extraCosts?.map((e) => ({ name: e.name, amount: String(e.amount) })) ?? [],
+  );
+  const addExtra = () => setExtras((x) => [...x, { name: '', amount: '' }]);
+  const setExtra = (i: number, k: keyof ExtraRow, v: string) =>
+    setExtras((x) => x.map((row, j) => (j === i ? { ...row, [k]: v } : row)));
+  const removeExtra = (i: number) => setExtras((x) => x.filter((_, j) => j !== i));
+
   /* Optional fields stay collapsed by default to keep the form light — they
    * auto-expand on edit when the trip already carries that data. */
   const [showDocs, setShowDocs] = useState(
     () => !!(initial?.customer || initial?.bol || initial?.cdf),
-  );
-  const [showOther, setShowOther] = useState(
-    () => !!(initial?.otherAmount || initial?.otherNote),
   );
 
   const set =
@@ -139,11 +142,11 @@ export function TruckTripForm({
   const preview = useMemo(() => {
     const fuelCost = Math.round((numF(f.fuelLiters) ?? 0) * (numF(f.fuelPrice) ?? 0));
     const toll = Math.round(numF(f.toll) ?? 0);
-    const other = Math.round(numF(f.otherAmount) ?? 0);
+    const extraTotal = extras.reduce((s, e) => s + Math.round(numF(e.amount) ?? 0), 0);
     const revenue = Math.round(numF(f.revenue) ?? 0);
-    const totalCost = fuelCost + toll + other;
+    const totalCost = fuelCost + toll + extraTotal;
     return { fuelCost, totalCost, revenue, profit: revenue - totalCost };
-  }, [f.fuelLiters, f.fuelPrice, f.toll, f.otherAmount, f.revenue]);
+  }, [f.fuelLiters, f.fuelPrice, f.toll, f.revenue, extras]);
 
   /* Extract pickup/dropoff from stops for the API (summary + notification). */
   const pickupStop = stops.find((s) => s.type === 'PICKUP');
@@ -168,7 +171,15 @@ export function TruckTripForm({
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!dirty) return;
+    if (!dirty) {
+      const missing: string[] = [];
+      if (f.vehicleId === '') missing.push(t('vehicle'));
+      if (!isDriver && f.driverId === '') missing.push(t('driver'));
+      if (pickupAddress === '') missing.push(t('pickup'));
+      if (dropoffAddress === '') missing.push(t('dropoff'));
+      toast.error(t('validationMissing', { fields: missing.join(', ') }));
+      return;
+    }
     startTransition(async () => {
       const stopoversPayload = stops
         .filter((s) => s.address.trim() !== '' || s.type === 'PICKUP' || s.type === 'DELIVERY')
@@ -194,8 +205,9 @@ export function TruckTripForm({
         end_odometer: numI(stops.slice().reverse().find((s) => s.type === 'RETURN')?.km ?? stops[stops.length - 1]?.km ?? ''),
         fuel_liters: numF(f.fuelLiters),
         toll_fee: numF(f.toll),
-        other_amount: isDriver ? undefined : numF(f.otherAmount),
-        other_note: isDriver ? undefined : (f.otherNote.trim() || undefined),
+        extra_costs: extras
+          .filter((e) => e.name.trim() !== '' && e.amount.trim() !== '')
+          .map((e) => ({ name: e.name.trim(), amount: Number(e.amount) })),
         stopovers: stopoversPayload,
       };
       const res = tripId
@@ -216,6 +228,7 @@ export function TruckTripForm({
   return (
     <form
       onSubmit={submit}
+      noValidate
       className="space-y-4 lg:space-y-6 lg:[&_input]:h-11 lg:[&_input]:text-[15px] lg:[&_label]:text-[13px]"
     >
       {/* Record-type segmented control — manager only, drives the whole form. */}
@@ -309,6 +322,7 @@ export function TruckTripForm({
                   <MoneyInput value={f.toll} onChange={setNum('toll')} />
                 </FormField>
               </div>
+              <ExtrasCostSection extras={extras} t={t} onAdd={addExtra} onChange={setExtra} onRemove={removeExtra} />
             </SectionCard>
           ) : markCompleted ? (
             <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionCostRevenue')}>
@@ -325,21 +339,8 @@ export function TruckTripForm({
                 <FormField label={t('revenue')} inline>
                   <MoneyInput value={f.revenue} onChange={setNum('revenue')} />
                 </FormField>
-                {showOther ? (
-                  <>
-                    <FormField label={t('otherAmount')} inline>
-                      <MoneyInput value={f.otherAmount} onChange={setNum('otherAmount')} />
-                    </FormField>
-                    <FormField label={t('otherNote')} inline>
-                      <Input value={f.otherNote} onChange={set('otherNote')} />
-                    </FormField>
-                  </>
-                ) : (
-                  <div className="flex items-end sm:col-span-2">
-                    <DisclosureButton label={t('addOtherCost')} onClick={() => setShowOther(true)} bare />
-                  </div>
-                )}
               </div>
+              <ExtrasCostSection extras={extras} t={t} onAdd={addExtra} onChange={setExtra} onRemove={removeExtra} />
             </SectionCard>
           ) : (
             <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionPlan')} hint={t('sectionPlanHint')}>
@@ -384,7 +385,7 @@ export function TruckTripForm({
         >
           {t('cancel')}
         </Button>
-        <Button type="submit" variant="accent" size="lg" disabled={pending || !dirty} className="w-full sm:w-auto">
+        <Button type="submit" variant="accent" size="lg" disabled={pending} className="w-full sm:w-auto">
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           {t('save')}
         </Button>
@@ -552,6 +553,52 @@ function StatRow({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between text-sm">
       <span className="text-text-muted">{label}</span>
       <span className="tabular text-text">{value}</span>
+    </div>
+  );
+}
+
+interface ExtraRow { name: string; amount: string; }
+
+function ExtrasCostSection({
+  extras,
+  t,
+  onAdd,
+  onChange,
+  onRemove,
+}: {
+  extras: ExtraRow[];
+  t: (key: string) => string;
+  onAdd: () => void;
+  onChange: (i: number, k: keyof ExtraRow, v: string) => void;
+  onRemove: (i: number) => void;
+}) {
+  return (
+    <div className="mt-4 pt-4 border-t border-border space-y-2">
+      <div className="text-xs font-medium text-text-muted uppercase tracking-wide">{t('extraSection')}</div>
+      {extras.map((row, i) => (
+        <div key={i} className="flex gap-2 items-center">
+          <Input
+            placeholder={t('extraName')}
+            value={row.name}
+            onChange={(e) => onChange(i, 'name', e.target.value)}
+            className="flex-1"
+          />
+          <Input
+            type="number"
+            placeholder={t('extraAmount')}
+            value={row.amount}
+            onChange={(e) => onChange(i, 'amount', e.target.value)}
+            className="w-36"
+          />
+          <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(i)} aria-label={t('extraRemove')}>
+            <Trash2 className="h-4 w-4 text-text-faint" />
+          </Button>
+        </div>
+      ))}
+      <Button type="button" variant="ghost" size="sm" onClick={onAdd} className="gap-1.5 text-xs text-text-muted hover:text-text">
+        <Plus className="h-3.5 w-3.5" />
+        {t('extraAdd')}
+      </Button>
     </div>
   );
 }

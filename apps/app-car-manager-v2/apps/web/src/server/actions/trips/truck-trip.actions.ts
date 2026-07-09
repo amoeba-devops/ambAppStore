@@ -151,10 +151,7 @@ export async function createTruckTripAction(input: unknown): Promise<ActionResul
 
     /* Log a finished trip in one step when the manager supplied metrics. */
     if (actor.role !== 'DRIVER' && dto.mark_completed && trip.trpDriverId && trip.trpVehicleId) {
-      const extraCosts =
-        dto.other_amount && dto.other_amount > 0
-          ? [{ name: dto.other_note?.trim() || 'Other', amount: dto.other_amount }]
-          : [];
+      const extraCosts = dto.extra_costs ?? [];
       const res = await completeTruckTrip(actor, trip.trpId, {
         endOdometer: dto.end_odometer ?? null,
         fuelLiters: dto.fuel_liters ?? null,
@@ -328,10 +325,7 @@ export async function updateTruckTripAction(input: unknown): Promise<ActionResul
     if (curTrip) await assertTruckMonthOpen(actor.entId, curTrip.trpScheduledAt, await regionOfVehicle(actor.entId, curTrip.trpVehicleId));
     await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at), await regionOfVehicle(actor.entId, dto.vehicle_id));
 
-    const extraCosts =
-      dto.other_amount && dto.other_amount > 0
-        ? [{ name: dto.other_note?.trim() || 'Other', amount: dto.other_amount }]
-        : [];
+    const extraCosts = dto.extra_costs ?? [];
     const stopovers: StopoverInput[] | undefined = dto.stopovers?.map((s) => ({
       type: s.type,
       address: s.address,

@@ -499,6 +499,11 @@
         "summaryTitle": "Trip summary",
         "summaryEmpty": "Pick a vehicle and fill the route to see a summary.",
         "addDocs": "Add customer & documents",
+        "extraSection": "Other incidental costs",
+        "extraName": "Cost name",
+        "extraAmount": "Amount (₫)",
+        "extraAdd": "+ Add cost",
+        "extraRemove": "Remove",
         "addOtherCost": "Add other cost",
         "sectionRoute": "Route",
         "stops": {
@@ -521,7 +526,8 @@
           "totalDistance": "Total distance",
           "remove": "Remove stop"
         },
-        "provisionalTag": "Provisional"
+        "provisionalTag": "Provisional",
+        "validationMissing": "Please fill in required fields: {fields}"
       },
       "provisional": "Provisional",
       "thVehicle": "Vehicle",
