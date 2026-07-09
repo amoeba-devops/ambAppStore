@@ -264,13 +264,18 @@ export async function generateTruckReportAction(input: unknown): Promise<ActionR
 }
 
 /**
- * One-click "Lập báo cáo tất cả khu vực" from the finance screen (feedback #1).
- * Generates a Chi-phí-&-lợi-nhuận (PNL) report for EVERY operating region that
- * has completed trips this month, freezing each region's OWN month-end average
- * (per-region accuracy — regions are never blended together). A region that
- * still lacks fuel invoices can't be reconciled (F5), so it's returned in
- * `pending` — we skip generation there rather than emit a report with no
- * snapshot. `finalized`/`pending` are region codes the caller maps to names.
+ * Batch report generation from the finance screen (feedback #1), supporting
+ * TWO scopes the operator can pick between:
+ *   - `regions` omitted/empty → EVERY operating region with completed trips
+ *     this month, INCLUDING ones already reported (a full refresh with the
+ *     current live data — "Làm mới tất cả khu vực").
+ *   - `regions` given → only those regions (the finance banner passes the
+ *     still-provisional ones — "Lập báo cáo khu vực còn tạm tính").
+ * Either way each region freezes its OWN month-end average (per-region
+ * accuracy — regions are never blended together). A region that still lacks
+ * fuel invoices can't be reconciled (F5), so it's returned in `pending` — we
+ * skip generation there rather than emit a report with no snapshot.
+ * `finalized`/`pending` are region codes the caller maps to names.
  */
 export async function generateAllRegionsTruckReportsAction(
   input: unknown,
@@ -279,12 +284,25 @@ export async function generateAllRegionsTruckReportsAction(
     const actor = await getCurrentUser();
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
     await requireFleet(actor, 'TRUCK');
-    const { month } = z.object({ month: z.string().regex(MONTH) }).parse(input);
+    const parsed = z
+      .object({
+        month: z.string().regex(MONTH),
+        /* Explicit scope; omitted/empty = every region with trip data. */
+        regions: z.array(z.enum(TRUCK_REGIONS)).optional(),
+      })
+      .parse(input);
+    const { month } = parsed;
 
     const { byRegion } = await getTruckRegionTripCounts(actor.entId, month);
+    const scope = parsed.regions?.length ? parsed.regions : Object.keys(byRegion);
     const finalized: string[] = [];
     const pending: string[] = [];
-    for (const region of Object.keys(byRegion)) {
+    for (const region of scope) {
+      /* No completed trips for this region this month → nothing to report. */
+      if (!byRegion[region]) {
+        pending.push(region);
+        continue;
+      }
       /* F5 gate — only a region with invoices + km + price is reconcilable. */
       const stats = await getTruckFuelStats(actor.entId, month, region);
       if (!(stats.totalKm > 0 && stats.invoiceLiters > 0 && stats.avgPrice > 0)) {

@@ -98,9 +98,13 @@ export default async function TruckFinancePage({
   const kmZeroCount = rows.filter((r) => !r.finalized && r.km <= 0).length;
   const showProvNotice = provRegions.length > 0;
   const canReport = user.role === 'ADMIN' || user.role === 'MANAGER';
-  /* Offer the one-click generate only when at least one provisional region is
-   * actually reconcilable — otherwise the button couldn't finalize anything. */
-  const anyReportable = provRegions.some((r) => r.code != null && r.hasInvoice);
+  /* Two report-generation scopes offered on the banner: targeted (only the
+   * still-provisional regions — leaves already-reported regions untouched)
+   * and full refresh (every region with trip data, including ones already
+   * reported, recomputed from the current live data). Vehicles with no
+   * region (code === null) can't be targeted by either — there's no region
+   * to scope a report to. */
+  const provisionalRegionCodes = provRegions.map((r) => r.code).filter((c): c is string => c != null);
   /* Q1 decision (PLAN-20260707): no month lock — instead flag when trips or
    * fixed costs changed AFTER the latest report, so the operator regenerates. */
   const stale =
@@ -210,7 +214,16 @@ export default async function TruckFinancePage({
                   {kmZeroCount > 0 && <li>{t('provKm', { count: kmZeroCount })}</li>}
                 </ul>
                 <div className="flex flex-wrap items-center gap-3 pt-0.5">
-                  {canReport && anyReportable && <GenerateAllRegionsButton month={month} />}
+                  {canReport && provisionalRegionCodes.length > 0 && (
+                    <GenerateAllRegionsButton
+                      month={month}
+                      regions={provisionalRegionCodes}
+                      label={t('genProvisionalBtn')}
+                    />
+                  )}
+                  {canReport && (
+                    <GenerateAllRegionsButton month={month} label={t('genAllBtn')} variant="secondary" />
+                  )}
                   <a
                     href={`${BASE_PATH}/truck/pnl?month=${month}${region ? `&region=${region}` : ''}`}
                     className="inline-flex items-center gap-1 font-medium text-accent hover:underline"
