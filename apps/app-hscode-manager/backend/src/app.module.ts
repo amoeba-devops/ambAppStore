@@ -15,6 +15,9 @@ import { GtinModule } from './domain/gtin/gtin.module';
 import { ReviewModule } from './domain/review/review.module';
 import { MappingModule } from './domain/mapping/mapping.module';
 import { AdminSettingsModule } from './domain/admin-settings/admin-settings.module';
+import { KnowledgeModule } from './domain/knowledge/knowledge.module';
+import { MatchingModule } from './domain/matching/matching.module';
+import { ChatModule } from './domain/chat/chat.module';
 
 @Module({
   imports: [
@@ -54,6 +57,9 @@ import { AdminSettingsModule } from './domain/admin-settings/admin-settings.modu
     ReviewModule,
     MappingModule,
     AdminSettingsModule,
+    KnowledgeModule,
+    MatchingModule,
+    ChatModule,
   ],
   controllers: [HealthController],
   providers: [
