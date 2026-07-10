@@ -206,7 +206,7 @@
   "m.subtitle": "회사 양식(엑셀·CSV)을 올리면 AI가 분석해 HS 코드를 추천합니다.",
   "m.dropHere": "여기에 파일을 끌어다 놓으세요",
   "m.analyzing": "AI가 문서를 분석 중입니다…",
-  "m.formats": "다양한 양식 지원 · 엑셀/CSV · AI 자동 분석·매칭",
+  "m.formats": "다양한 양식 지원 · 엑셀/CSV/PDF · AI 자동 분석·매칭",
   "m.selectFile": "파일 선택",
   "m.uploadError": "업로드에 실패했습니다. 파일 형식을 확인해 주세요.",
   "m.advancedManual": "직접 입력(고급)",

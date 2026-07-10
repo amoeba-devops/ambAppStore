@@ -206,7 +206,7 @@
   "m.subtitle": "Tải tệp của công ty (Excel/CSV); AI phân tích và đề xuất mã HS.",
   "m.dropHere": "Kéo thả tệp vào đây",
   "m.analyzing": "AI đang phân tích tài liệu…",
-  "m.formats": "Mọi định dạng · Excel/CSV · AI tự động phân tích & khớp",
+  "m.formats": "Mọi định dạng · Excel/CSV/PDF · AI tự động phân tích & khớp",
   "m.selectFile": "Chọn tệp",
   "m.uploadError": "Tải lên thất bại. Vui lòng kiểm tra định dạng tệp.",
   "m.advancedManual": "Nhập thủ công (nâng cao)",

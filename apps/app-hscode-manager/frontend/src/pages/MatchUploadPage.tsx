@@ -61,7 +61,7 @@ export default function MatchUploadPage() {
         <input
           ref={inputRef}
           type="file"
-          accept=".xlsx,.xls,.csv"
+          accept=".xlsx,.xls,.csv,.pdf"
           className="hidden"
           onChange={(e) => handleFile(e.target.files?.[0])}
         />
