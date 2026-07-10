@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Row, Workbook, Worksheet } from 'exceljs';
+import * as XLSX from 'xlsx';
 import { ImportBatch } from '../entity/import-batch.entity';
 import { BaoCaoHangChiTietAdapter } from '../adapters/bao-cao-hang-chi-tiet.adapter';
 import { BaoCaoToKhaiAdapter } from '../adapters/bao-cao-to-khai.adapter';
@@ -55,11 +55,8 @@ export class ImportDispatcherService {
     buffer: Buffer,
     sourceCompany: string | null,
   ): Promise<ImportBatch> {
-    const workbook = new Workbook();
-    await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
-    const worksheet = workbook.worksheets[0];
-
-    const { headers, rows } = this.extractRows(worksheet);
+    const matrix = this.readMatrix(buffer);
+    const { headers, rows } = this.extractRows(matrix);
     const adapter = this.adapters.find((a) => a.detect(headers));
 
     if (!adapter) {
@@ -96,21 +93,42 @@ export class ImportDispatcherService {
   }
 
   /**
-   * 워크시트에서 헤더 행을 탐지하고 데이터 행을 헤더키 객체 배열로 변환.
+   * SheetJS로 첫 시트를 문자열 매트릭스로 읽는다.
+   * **.xlsx / .xls(레거시 BIFF) / .csv / .ods** 자동 감지(exceljs는 .xls 미지원 → 교체).
+   */
+  private readMatrix(buffer: Buffer): unknown[][] {
+    try {
+      const wb = XLSX.read(buffer, { type: 'buffer', cellDates: false });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      if (!ws) return [];
+      return XLSX.utils.sheet_to_json(ws, {
+        header: 1,
+        defval: '',
+        blankrows: false,
+        raw: false,
+      }) as unknown[][];
+    } catch (err) {
+      this.logger.warn(`Failed to parse import file: ${String(err)}`);
+      return [];
+    }
+  }
+
+  /**
+   * 매트릭스에서 헤더 행을 탐지하고 데이터 행을 헤더키 객체 배열로 변환.
    * 상단 제목/메타 행을 건너뛰기 위해 HS 헤더 토큰을 포함한 행을 헤더로 인식.
    */
-  private extractRows(worksheet: Worksheet | undefined): {
+  private extractRows(matrix: unknown[][]): {
     headers: string[];
     rows: Record<string, unknown>[];
   } {
-    if (!worksheet) return { headers: [], rows: [] };
+    if (!matrix.length) return { headers: [], rows: [] };
 
     let headerRowIdx = -1;
     let headers: string[] = [];
 
-    const maxScan = Math.min(worksheet.rowCount, 15);
-    for (let i = 1; i <= maxScan; i += 1) {
-      const values = this.rowValues(worksheet.getRow(i));
+    const maxScan = Math.min(matrix.length, 15);
+    for (let i = 0; i < maxScan; i += 1) {
+      const values = matrix[i].map((v) => String(v ?? '').trim());
       const lower = values.map((v) => v.toLowerCase());
       if (lower.some((v) => HS_HEADER_TOKENS.includes(v))) {
         headerRowIdx = i;
@@ -121,8 +139,8 @@ export class ImportDispatcherService {
     if (headerRowIdx === -1) return { headers: [], rows: [] };
 
     const rows: Record<string, unknown>[] = [];
-    for (let i = headerRowIdx + 1; i <= worksheet.rowCount; i += 1) {
-      const values = this.rowValues(worksheet.getRow(i));
+    for (let i = headerRowIdx + 1; i < matrix.length; i += 1) {
+      const values = matrix[i].map((v) => String(v ?? '').trim());
       if (values.every((v) => v === '')) continue;
       const obj: Record<string, unknown> = {};
       headers.forEach((h, idx) => {
@@ -131,15 +149,5 @@ export class ImportDispatcherService {
       rows.push(obj);
     }
     return { headers, rows };
-  }
-
-  private rowValues(row: Row): string[] {
-    const out: string[] = [];
-    for (let c = 1; c <= row.cellCount; c += 1) {
-      const cell = row.getCell(c);
-      const text = cell.text ?? (cell.value != null ? String(cell.value) : '');
-      out.push(String(text).trim());
-    }
-    return out;
   }
 }
