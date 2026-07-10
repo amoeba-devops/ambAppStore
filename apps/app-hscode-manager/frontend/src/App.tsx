@@ -8,10 +8,11 @@ const NAV = [
   { to: '/chat', key: 'nav.chat' },
   { to: '/history', key: 'nav.history' },
   { to: '/reference-build', key: 'nav.refbuild' },
+  { to: '/knowledge-base', key: 'nav.knowledgeBase' },
   { to: '/admin', key: 'nav.admin' },
 ];
 
-const LANGS = ['ko', 'en', 'vi'] as const;
+const LANGS = ['ko', 'en', 'vi', 'id'] as const;
 
 export default function App() {
   const { t, i18n } = useTranslation('hscode');
