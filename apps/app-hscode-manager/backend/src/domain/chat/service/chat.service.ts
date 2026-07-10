@@ -130,9 +130,13 @@ export class ChatService {
       this.config.get<string>('CLAUDE_API_KEY') ||
       '';
 
-    if (apiKey && (refs.length > 0 || snippets.length > 0)) {
+    // 키가 있으면 RAG가 비어도 LLM 일반지식 추론을 시도(베트남 통관 기준). 근거 유무로 source 구분.
+    if (apiKey) {
       const ai = await this.callClaude(apiKey, entId, history, question, refs, snippets);
-      if (ai) return { ...ai, source: 'AI' };
+      if (ai) {
+        const grounded = refs.length > 0 || snippets.length > 0;
+        return { ...ai, source: grounded ? 'AI' : 'AI_GENERAL' };
+      }
     }
     return { ...this.fallback(refs, snippets), source: 'SEARCH_FALLBACK' };
   }
@@ -151,20 +155,23 @@ export class ChatService {
       this.config.get<string>('CLAUDE_MODEL_VERSION') ||
       DEFAULT_MODEL;
 
-    const context = [
-      refs.length
-        ? `REFERENCE (customs declaration corpus; descriptions often Vietnamese):\n${JSON.stringify(
-            refs.map((r) => ({ hsCode: r.hsCode, description: r.description, refCount: r.refCount })),
-          )}`
-        : '',
-      snippets.length
-        ? `KNOWLEDGE (HS reference tables / guides):\n${JSON.stringify(
-            snippets.map((s) => ({ country: s.sourceCountry, text: s.citationText.slice(0, 500) })),
-          )}`
-        : '',
-    ]
-      .filter(Boolean)
-      .join('\n\n');
+    const hasContext = refs.length > 0 || snippets.length > 0;
+    const context = hasContext
+      ? [
+          refs.length
+            ? `REFERENCE (customs declaration corpus; descriptions often Vietnamese):\n${JSON.stringify(
+                refs.map((r) => ({ hsCode: r.hsCode, description: r.description, refCount: r.refCount })),
+              )}`
+            : '',
+          snippets.length
+            ? `KNOWLEDGE (HS reference tables / guides):\n${JSON.stringify(
+                snippets.map((s) => ({ country: s.sourceCountry, text: s.citationText.slice(0, 500) })),
+              )}`
+            : '',
+        ]
+          .filter(Boolean)
+          .join('\n\n')
+      : 'NO_CONTEXT — the knowledge base returned nothing for this query. Reason from general Vietnam customs/HS classification knowledge, propose likely HS candidates, and state clearly that this is a general estimate not backed by the corpus (lower confidence, recommend confirmation).';
 
     const messages = [
       ...history.map((m) => ({
@@ -186,12 +193,16 @@ export class ChatService {
       const parsed = this.parseJson(raw);
       if (!parsed || !parsed.answer) return null;
 
+      // 조건부 그라운딩: refs가 있으면 후보를 코퍼스 HS로 제한(환각 방지),
+      // refs가 없으면(일반지식 모드) LLM 제안 HS를 허용하되 신뢰도 상한을 낮춘다.
       const validHs = new Set(refs.map((r) => r.hsCode));
       const candidates: MessageCandidate[] = (parsed.candidates ?? [])
-        .filter((c) => c.hsCode && validHs.has(c.hsCode)) // 그라운딩: 컨텍스트 밖 HS 무시
+        .filter((c) => !!c.hsCode && (refs.length === 0 || validHs.has(c.hsCode as string)))
         .map((c) => ({
           hsCode: c.hsCode as string,
-          confidence: clamp01(c.confidence ?? 0),
+          confidence: hasContext
+            ? clamp01(c.confidence ?? 0)
+            : Math.min(0.6, clamp01(c.confidence ?? 0)), // 일반지식 추정 상한 0.6
           rationale: (c.rationale ?? '').trim(),
         }));
       return { answer: parsed.answer.trim(), candidates, needQuestion: !!parsed.needMoreInfo };
@@ -277,14 +288,23 @@ function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));
 }
 
-const SYSTEM_PROMPT = `You are a Vietnam customs HS-code classification assistant chatting with an importer.
-You answer in the SAME language the user writes in (Korean, English, or Vietnamese).
+const SYSTEM_PROMPT = `너는 베트남 수입 통관 기준 HS 품목분류를 보조하는 LLM 엔진이다. 수입자와 대화한다.
+사용자가 쓴 언어(한국어/영어/베트남어)로 답한다.
 
-Grounding rules:
-- Base your answer ONLY on the provided CONTEXT (REFERENCE corpus + KNOWLEDGE tables/guides). Do cross-language matching (Korean/English question vs Vietnamese descriptions).
-- Recommend VN HS codes. Only cite hsCode values that appear in the CONTEXT — never invent one.
-- If the CONTEXT is insufficient or the product is ambiguous, set needMoreInfo=true and ask ONE concise clarifying question (about material, composition ratio, usage, or processing) inside "answer".
-- Keep "answer" conversational and concise. Mention key evidence and any confirmation points (e.g., foamed vs non-foamed).
+[분류 규칙]
+- 일반 분류 원칙(GRI): 본질적 특성·주된 기능·최종 용도를 기준으로 판단한다.
+- 베트남(VN) 기준을 우선한다. 필요 시 KR/CN/US는 참고로만 언급한다.
+- 혼합물·복합소재: 주성분(최대 함량)·본질적 특성을 부여하는 구성요소를 기준으로 분류하고, 함량 비율이 근소하면 대안 후보와 확인 필요를 명시한다.
+- 원산지(원산지증명·FTA)와 HS 품목분류는 별개임을 구분한다. 질문이 원산지에 관한 것이면 HS와 구분해 답한다.
 
-Respond with ONLY a JSON object, exactly this shape (no markdown, no prose outside JSON):
+[근거 규칙]
+- CONTEXT(REFERENCE 코퍼스 + KNOWLEDGE 기준표/사례)가 있으면 그것에 근거해 답하고, 코퍼스에 있는 hsCode만 인용한다(환각 금지). 교차언어 매칭(한/영 질문 vs 베트남어 설명)을 수행한다.
+- CONTEXT가 'NO_CONTEXT'이면 코퍼스에 근거가 없다는 뜻이다. 일반 통관/HS 지식으로 단계별 추론해 가장 가능성 높은 HS 후보를 제시하되, "코퍼스 근거가 아닌 일반 추정"임을 answer에 분명히 밝히고 신뢰도를 낮게 준다(≤0.6).
+- 정보가 부족하거나 모호하면 needMoreInfo=true로 두고, answer 안에서 성분·함량 비율·용도·가공단계 중 하나를 되묻는 간결한 질문 1개를 한다.
+
+[작업]
+- 단계별 추론(주성분→본질특성→용도→후보 좁히기)을 내부적으로 수행하고, 결과만 아래 형식으로 출력한다.
+- answer는 대화체로 간결하게. 핵심 근거와 확인 포인트(예: 발포 여부, 편직/직조 구분)를 함께 언급한다.
+
+오직 JSON 오브젝트 하나만 출력한다(마크다운·JSON 밖 텍스트 금지):
 {"answer":"...","candidates":[{"hsCode":"...","confidence":0.0,"rationale":"..."}],"needMoreInfo":false}`;

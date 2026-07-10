@@ -259,5 +259,8 @@
   "h.colDate": "Ngày",
   "h.reviewN": "duyệt {{n}}",
   "h.open": "Mở",
-  "h.empty": "Chưa có lịch sử."
+  "h.empty": "Chưa có lịch sử.",
+  "c.generalBased": "Ước tính chung",
+  "rb.declSkip": "Bỏ {{n}}",
+  "rb.declNone": "Không phân tích được dòng nào — vui lòng kiểm tra cột HS/tên hàng."
 }

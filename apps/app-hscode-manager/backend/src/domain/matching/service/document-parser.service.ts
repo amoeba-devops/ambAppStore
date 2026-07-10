@@ -76,18 +76,24 @@ export class DocumentParserService {
 
     // 컬럼 매핑 — AI 우선, 실패 시 휴리스틱.
     let map = await this.aiColumnMap(entId, header, rows.slice(0, 5));
-    let mappedBy: 'AI' | 'HEURISTIC' = 'AI';
+    let mappedBy: 'AI' | 'HEURISTIC' | 'FALLBACK' = 'AI';
     if (!map || map.name === null) {
       map = this.heuristicColumnMap(header);
       mappedBy = 'HEURISTIC';
     }
+    // Graceful 폴백: 품명 컬럼 미검출 시 400 대신 첫 텍스트 컬럼을 품명으로 가정(전 품목 검토필요).
+    if (map.name === null) {
+      map = { ...map, name: this.firstTextColumn(rows) };
+      mappedBy = 'FALLBACK';
+    }
     if (map.name === null) {
       throw new BusinessException(
-        ERROR_CODES.HS_TABLE_COLUMN_MISSING,
-        `Could not identify a product-name column (headers: ${header.join(', ')})`,
+        ERROR_CODES.KNOWLEDGE_EMPTY_CONTENT,
+        'The document has no readable columns to analyze.',
         HttpStatus.BAD_REQUEST,
       );
     }
+    const forceReview = mappedBy === 'FALLBACK';
 
     const capped = rows.slice(0, MAX_ITEMS);
     const items: ParsedItem[] = [];
@@ -105,14 +111,15 @@ export class DocumentParserService {
         usage,
         quantity,
         rawSource: raw,
-        needsReview: !name, // 품명 미검출 → 검토 필요
+        needsReview: !name || forceReview, // 품명 미검출/컬럼 자동인식 실패 → 검토 필요
       });
     });
 
     const truncated = rows.length > MAX_ITEMS ? ` (${rows.length}행 중 ${MAX_ITEMS}행만 처리 — 대량은 후속 비동기)` : '';
-    const note = `컬럼매핑=${mappedBy} name#${map.name}${map.material !== null ? ` material#${map.material}` : ''}${map.usage !== null ? ` usage#${map.usage}` : ''}${map.quantity !== null ? ` qty#${map.quantity}` : ''}${truncated}`;
+    const fallbackNote = forceReview ? ' · 컬럼 자동인식 실패 → 1열을 품명으로 가정, 검토 필요' : '';
+    const note = `컬럼매핑=${mappedBy} name#${map.name}${map.material !== null ? ` material#${map.material}` : ''}${map.usage !== null ? ` usage#${map.usage}` : ''}${map.quantity !== null ? ` qty#${map.quantity}` : ''}${fallbackNote}${truncated}`;
 
-    return { sourceType: isCsv ? 'CSV' : 'EXCEL', items, note, mappedBy };
+    return { sourceType: isCsv ? 'CSV' : 'EXCEL', items, note, mappedBy: mappedBy === 'FALLBACK' ? 'HEURISTIC' : mappedBy };
   }
 
   /** exceljs로 첫 시트 → 헤더행 + 데이터행(문자열 매트릭스). */
@@ -150,8 +157,32 @@ export class DocumentParserService {
       matrix.push(values.slice(1)); // exceljs values는 1-based
     });
     if (matrix.length < 1) return { header: [], rows: [] };
-    const header = matrix[0].map((c) => String(c ?? '').trim());
-    return { header, rows: matrix.slice(1) };
+
+    // 헤더행 자동 탐지: 상단 제목/메타 행을 건너뛰기 위해 첫 ~8행 중
+    // 컬럼 토큰(품명/성분/용도/수량) 매칭 점수가 가장 높은 행을 헤더로 선택.
+    const scanTo = Math.min(matrix.length, 8);
+    let headerIdx = 0;
+    let bestScore = -1;
+    for (let i = 0; i < scanTo; i++) {
+      const cells = matrix[i].map((c) => String(c ?? '').trim().toLowerCase());
+      const score = this.headerScore(cells);
+      if (score > bestScore) {
+        bestScore = score;
+        headerIdx = i;
+      }
+    }
+    const header = matrix[headerIdx].map((c) => String(c ?? '').trim());
+    return { header, rows: matrix.slice(headerIdx + 1) };
+  }
+
+  /** 행이 헤더일 가능성 점수 = 인식 토큰을 포함한 셀 수. */
+  private headerScore(cells: string[]): number {
+    const all = ([] as string[]).concat(...Object.values(HEURISTIC_TOKENS));
+    let score = 0;
+    for (const c of cells) {
+      if (c && all.some((tok) => c === tok || c.includes(tok))) score += 1;
+    }
+    return score;
   }
 
   /** 셀 접근(널 안전, trim, 빈값 null). */
@@ -161,6 +192,26 @@ export class DocumentParserService {
     if (v === null || v === undefined) return null;
     const s = String(v).trim();
     return s === '' ? null : s;
+  }
+
+  /** 데이터 첫 행에서 가장 긴 텍스트를 담은 컬럼 인덱스(품명 후보 폴백). */
+  private firstTextColumn(rows: unknown[][]): number | null {
+    const sample = rows.find((r) => r.some((c) => String(c ?? '').trim().length > 0));
+    if (!sample) return null;
+    let best = -1;
+    let bestLen = 0;
+    for (let i = 0; i < sample.length; i++) {
+      const v = String(sample[i] ?? '').trim();
+      // 숫자만(코드/수량)인 컬럼은 품명 후보에서 제외.
+      if (v && !/^\d[\d.\s,-]*$/.test(v) && v.length > bestLen) {
+        bestLen = v.length;
+        best = i;
+      }
+    }
+    if (best >= 0) return best;
+    // 텍스트가 없으면 첫 비어있지 않은 컬럼.
+    const idx = sample.findIndex((c) => String(c ?? '').trim().length > 0);
+    return idx >= 0 ? idx : null;
   }
 
   /** 헤더 토큰 휴리스틱 매핑. */

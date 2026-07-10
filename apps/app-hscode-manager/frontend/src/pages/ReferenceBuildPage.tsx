@@ -45,11 +45,19 @@ export default function ReferenceBuildPage() {
               if (f) declUpload.mutate({ file: f });
             }}
           />
-          {declUpload.isSuccess && (
-            <p className="mt-2 text-xs font-semibold text-ok">
-              ✓ {t('rb.declDone', { n: declUpload.data.rowsImported ?? 0 })}
-            </p>
-          )}
+          {declUpload.isSuccess &&
+            (declUpload.data.rowsImported > 0 ? (
+              <p className="mt-2 text-xs font-semibold text-ok">
+                ✓ {t('rb.declDone', { n: declUpload.data.rowsImported })}
+                {declUpload.data.rowsFailed > 0 && (
+                  <span className="text-muted"> · {t('rb.declSkip', { n: declUpload.data.rowsFailed })}</span>
+                )}
+              </p>
+            ) : (
+              <p className="mt-2 text-xs font-semibold text-warn">
+                ⚠ {t('rb.declNone')}
+              </p>
+            ))}
           {declUpload.isError && <p className="mt-2 text-xs font-semibold text-bad">{t('rb.failed')}</p>}
         </section>
 
