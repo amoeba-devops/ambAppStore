@@ -1,7 +1,7 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Workbook } from 'exceljs';
+import * as XLSX from 'xlsx';
 import { HsCode } from '../entity/hs-code.entity';
 import { BusinessException } from '../../../common/exceptions/business.exception';
 import { ERROR_CODES } from '../../../common/error-codes';
@@ -36,7 +36,7 @@ export class HsCodeTableService {
     version: string,
     buffer: Buffer,
   ): Promise<HsTableImportResult> {
-    const { codeIdx, descIdx, rows } = await this.parse(buffer);
+    const { codeIdx, descIdx, rows } = this.parse(buffer);
 
     const sys = system.trim().toUpperCase();
     const ver = version.trim();
@@ -88,44 +88,26 @@ export class HsCodeTableService {
     return s.replace(/\D/g, '');
   }
 
-  /** xlsx/csv 파싱 → 헤더에서 코드·설명 컬럼 인덱스 감지 + 데이터 행. */
-  private async parse(
-    buffer: Buffer,
-  ): Promise<{ codeIdx: number; descIdx: number; rows: unknown[][] }> {
-    let worksheet;
+  /** xlsx/xls/csv 파싱 → 헤더에서 코드·설명 컬럼 인덱스 감지 + 데이터 행. SheetJS(.xls 포함). */
+  private parse(buffer: Buffer): { codeIdx: number; descIdx: number; rows: unknown[][] } {
+    let matrix: unknown[][];
     try {
-      const wb = new Workbook();
-      await wb.xlsx.load(buffer as unknown as ArrayBuffer);
-      worksheet = wb.worksheets[0];
-    } catch {
-      // csv 폴백
-      try {
-        const wb = new Workbook();
-        const { Readable } = await import('stream');
-        await wb.csv.read(Readable.from(buffer.toString('utf-8')));
-        worksheet = wb.worksheets[0];
-      } catch (err) {
-        throw new BusinessException(
-          ERROR_CODES.KNOWLEDGE_PARSE_FAILED,
-          `Failed to parse HS table file: ${String(err)}`,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-    }
-    if (!worksheet) {
+      const wb = XLSX.read(buffer, { type: 'buffer', cellDates: false });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      if (!ws) throw new Error('no worksheet');
+      matrix = XLSX.utils.sheet_to_json(ws, {
+        header: 1,
+        defval: '',
+        blankrows: false,
+        raw: false,
+      }) as unknown[][];
+    } catch (err) {
       throw new BusinessException(
         ERROR_CODES.KNOWLEDGE_PARSE_FAILED,
-        'No worksheet found',
+        `Failed to parse HS table file: ${String(err)}`,
         HttpStatus.BAD_REQUEST,
       );
     }
-
-    const matrix: unknown[][] = [];
-    worksheet.eachRow((row) => {
-      const values = row.values as unknown[];
-      // exceljs values는 1-based (index 0은 비어있음) — 정규화.
-      matrix.push(values.slice(1));
-    });
     if (matrix.length < 2) {
       throw new BusinessException(
         ERROR_CODES.KNOWLEDGE_EMPTY_CONTENT,
