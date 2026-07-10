@@ -206,7 +206,7 @@
   "m.subtitle": "Upload your company file (Excel/CSV); AI analyzes it and recommends HS codes.",
   "m.dropHere": "Drop your file here",
   "m.analyzing": "AI is analyzing the document…",
-  "m.formats": "Any format · Excel/CSV · AI auto analysis & matching",
+  "m.formats": "Any format · Excel/CSV/PDF · AI auto analysis & matching",
   "m.selectFile": "Select file",
   "m.uploadError": "Upload failed. Please check the file format.",
   "m.advancedManual": "Manual entry (advanced)",
