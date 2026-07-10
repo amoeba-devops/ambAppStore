@@ -1,15 +1,18 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bullmq';
 import { SearchCoreModule } from '../search-core/search-core.module';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { ReferenceModule } from '../reference/reference.module';
 import { AdminSettingsModule } from '../admin-settings/admin-settings.module';
+import { MATCHING_QUEUE } from './matching.constants';
 import { MatchRequest } from './entity/match-request.entity';
 import { Item } from './entity/item.entity';
 import { Recommendation } from './entity/recommendation.entity';
 import { MatchingController } from './controller/matching.controller';
 import { MatchingService } from './service/matching.service';
 import { DocumentParserService } from './service/document-parser.service';
+import { MatchingProcessor } from './processor/matching.processor';
 
 /**
  * 문서 업로드 매칭 (Phase 2, 주 기능) — 자유양식 파싱 + 품목별 RAG 매칭 + 승인/저장.
@@ -18,13 +21,14 @@ import { DocumentParserService } from './service/document-parser.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([MatchRequest, Item, Recommendation]),
+    BullModule.registerQueue({ name: MATCHING_QUEUE }),
     SearchCoreModule,
     KnowledgeModule,
     ReferenceModule,
     AdminSettingsModule, // AppConfigService(문서 파서 AI 컬럼추론 키/모델)
   ],
   controllers: [MatchingController],
-  providers: [MatchingService, DocumentParserService],
+  providers: [MatchingService, DocumentParserService, MatchingProcessor],
   exports: [MatchingService],
 })
 export class MatchingModule {}

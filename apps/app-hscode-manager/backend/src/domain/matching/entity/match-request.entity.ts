@@ -45,6 +45,10 @@ export class MatchRequest {
   @Column({ name: 'mrq_confirmed_count', type: 'int', default: 0 })
   confirmedCount: number;
 
+  /** 비동기 처리 진행 카운터(처리 완료 품목 수). 진행률 = processed/itemCount. */
+  @Column({ name: 'mrq_processed_count', type: 'int', default: 0 })
+  processedCount: number;
+
   @Column({ name: 'mrq_parse_note', type: 'text', nullable: true })
   parseNote: string | null;
 

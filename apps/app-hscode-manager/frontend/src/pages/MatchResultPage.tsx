@@ -56,6 +56,8 @@ export default function MatchResultPage() {
   const approvedCount = items.filter((i) => checked[i.itemId] && selected[i.itemId]).length;
   const reviewCount = items.filter((i) => i.needsReview).length;
   const isConfirmed = req.status === 'CONFIRMED';
+  const isProcessing = req.status === 'PROCESSING';
+  const pct = req.itemCount > 0 ? Math.round((req.processedCount / req.itemCount) * 100) : 0;
 
   const toggleAll = (on: boolean) => {
     const next: Record<string, boolean> = {};
@@ -87,14 +89,14 @@ export default function MatchResultPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => toggleAll(true)}
-            disabled={isConfirmed}
+            disabled={isConfirmed || isProcessing}
             className="rounded-lg border border-line2 px-3 py-2 text-xs font-bold text-muted hover:border-brand hover:text-brand disabled:opacity-50"
           >
             {t('m.selectAll')}
           </button>
           <button
             onClick={save}
-            disabled={isConfirmed || confirm.isPending || approvedCount === 0}
+            disabled={isConfirmed || isProcessing || confirm.isPending || approvedCount === 0}
             className="rounded-lg bg-brand px-4 py-2 text-sm font-bold text-white hover:bg-brand-dark disabled:opacity-50"
           >
             {confirm.isPending
@@ -103,6 +105,18 @@ export default function MatchResultPage() {
           </button>
         </div>
       </div>
+
+      {isProcessing && (
+        <div className="mb-4 rounded-lg bg-info-soft px-4 py-3">
+          <div className="flex items-center justify-between text-sm font-semibold text-info">
+            <span>⏳ {t('m.analyzingN', { done: req.processedCount, total: req.itemCount })}</span>
+            <span>{pct}%</span>
+          </div>
+          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white">
+            <div className="h-full rounded-full bg-info transition-all" style={{ width: `${pct}%` }} />
+          </div>
+        </div>
+      )}
 
       {isConfirmed && (
         <div className="mb-4 rounded-lg bg-ok-soft px-4 py-2.5 text-sm font-semibold text-ok">
@@ -119,7 +133,7 @@ export default function MatchResultPage() {
             selected={selected[it.itemId]}
             checked={!!checked[it.itemId]}
             expanded={!!expanded[it.itemId]}
-            disabled={isConfirmed}
+            disabled={isConfirmed || isProcessing}
             onToggleCheck={() =>
               setChecked((c) => ({ ...c, [it.itemId]: !c[it.itemId] }))
             }

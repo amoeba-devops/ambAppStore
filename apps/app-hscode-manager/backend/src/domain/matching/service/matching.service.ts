@@ -1,10 +1,13 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { DataSource, In, Repository } from 'typeorm';
 import { MatchRequest } from '../entity/match-request.entity';
 import { Item } from '../entity/item.entity';
 import { Recommendation } from '../entity/recommendation.entity';
-import { DocumentParserService, ParsedItem } from './document-parser.service';
+import { MATCHING_QUEUE } from '../matching.constants';
+import { DocumentParserService } from './document-parser.service';
 import { SemanticRetrievalService } from '../../search-core/service/semantic-retrieval.service';
 import { AiClassificationService } from '../../search-core/service/ai-classification.service';
 import { Candidate, SearchConstraints } from '../../search-core/candidate.types';
@@ -51,10 +54,14 @@ export class MatchingService {
     private readonly ai: AiClassificationService,
     private readonly reference: ReferenceService,
     private readonly dataSource: DataSource,
+    @InjectQueue(MATCHING_QUEUE) private readonly queue: Queue,
   ) {}
 
-  /** 업로드 → 파싱 → 품목별 매칭 → 추천 저장 → 요청건 상세 반환. */
-  async uploadAndMatch(
+  /**
+   * 업로드 → 파싱 → 요청건(PROCESSING)+품목 생성 → 큐 투입 → 요청 요약 반환(대량 비동기).
+   * 실제 매칭은 워커(processRequest)가 백그라운드로 수행. 프론트는 폴링으로 진행률/결과 조회.
+   */
+  async uploadAndEnqueue(
     entId: string,
     userId: string,
     fileName: string,
@@ -74,67 +81,107 @@ export class MatchingService {
       }),
     );
 
-    let matched = 0;
-    let review = 0;
-    const detail: RequestDetail['items'] = [];
-
-    for (const p of parsed.items) {
-      const { item, recommendations } = await this.matchOne(entId, request.mrqId, p);
-      if (recommendations.length > 0) matched += 1;
-      if (item.needsReview) review += 1;
-      detail.push({ item, recommendations });
+    // 품목 생성(추천 없음 — 워커가 채움). 매칭 입력은 저장된 필드에서 복원.
+    if (parsed.items.length > 0) {
+      await this.itemRepo.save(
+        parsed.items.map((p) =>
+          this.itemRepo.create({
+            entId,
+            mrqId: request.mrqId,
+            rowIndex: p.rowIndex,
+            productNameKo: p.name.slice(0, 200) || null,
+            description: [p.name, p.material, p.usage].filter(Boolean).join(' / ') || null,
+            mainMaterial: p.material?.slice(0, 200) ?? null,
+            intendedUse: p.usage?.slice(0, 200) ?? null,
+            importCountry: 'VN',
+            status: 'NEW',
+            needsReview: p.needsReview,
+            rawSource: p.rawSource || null,
+          }),
+        ),
+        { chunk: 500 },
+      );
     }
 
-    request.status = 'READY';
-    request.matchedCount = matched;
-    request.reviewCount = review;
-    await this.requestRepo.save(request);
+    // 빈 파일이면 즉시 READY. 아니면 큐 투입.
+    if (parsed.items.length === 0) {
+      await this.requestRepo.update({ mrqId: request.mrqId }, { status: 'READY' });
+    } else {
+      await this.queue.add(
+        'process',
+        { entId, mrqId: request.mrqId },
+        { removeOnComplete: true, removeOnFail: 50 },
+      );
+    }
 
-    return { request, items: detail };
+    return this.getRequestDetail(entId, request.mrqId);
   }
 
-  /** 단일 품목 매칭: 면장+지식 회수 → AI 재판정 → 추천 후보 저장. */
-  private async matchOne(
-    entId: string,
-    mrqId: string,
-    p: ParsedItem,
-  ): Promise<{ item: Item; recommendations: Recommendation[] }> {
-    const item = await this.itemRepo.save(
-      this.itemRepo.create({
-        entId,
-        mrqId,
-        rowIndex: p.rowIndex,
-        productNameKo: p.name.slice(0, 200) || null,
-        description: [p.name, p.material, p.usage].filter(Boolean).join(' / ') || null,
-        mainMaterial: p.material?.slice(0, 200) ?? null,
-        intendedUse: p.usage?.slice(0, 200) ?? null,
-        importCountry: 'VN',
-        status: 'NEW',
-        needsReview: p.needsReview,
-        rawSource: p.rawSource || null,
-      }),
-    );
+  /**
+   * 워커 진입점 — 요청건의 미처리 품목을 순회 매칭. 품목별 processed_count 갱신, 완료 시 READY.
+   * 개별 품목 오류는 격리(검토필요로 표시)하고 계속(R4).
+   */
+  async processRequest(entId: string, mrqId: string): Promise<void> {
+    const request = await this.requestRepo.findOne({ where: { mrqId, entId } });
+    if (!request) return;
 
-    if (!p.name) {
-      // 품명 미검출 — 매칭 불가, 검토필요.
-      return { item, recommendations: [] };
+    const items = await this.itemRepo.find({
+      where: { mrqId, entId },
+      order: { rowIndex: 'ASC' },
+    });
+
+    let matched = 0;
+    let review = 0;
+    let processed = 0;
+    for (const item of items) {
+      try {
+        const hadRecs = await this.matchItem(entId, item);
+        if (hadRecs) matched += 1;
+      } catch (err) {
+        this.logger.warn(`matchItem failed for item ${item.itmId}: ${String(err)}`);
+        item.needsReview = true;
+        await this.itemRepo.save(item);
+      }
+      if (item.needsReview) review += 1;
+      processed += 1;
+      await this.requestRepo.update({ mrqId }, { processedCount: processed });
+    }
+
+    await this.requestRepo.update(
+      { mrqId },
+      { status: 'READY', matchedCount: matched, reviewCount: review, processedCount: processed },
+    );
+    this.logger.log(`Request ${mrqId} done: ${processed} items, ${matched} matched, ${review} review.`);
+  }
+
+  /** 단일 품목 매칭(기존 Item 기반): 면장+지식 회수 → AI 재판정 → 추천 저장. 추천 유무 반환. */
+  private async matchItem(entId: string, item: Item): Promise<boolean> {
+    const name = item.productNameKo ?? '';
+    if (!name) {
+      if (!item.needsReview) {
+        item.needsReview = true;
+        await this.itemRepo.save(item);
+      }
+      return false;
     }
 
     const constraints: SearchConstraints = {
-      material: p.material ?? undefined,
-      usage: p.usage ?? undefined,
+      material: item.mainMaterial ?? undefined,
+      usage: item.intendedUse ?? undefined,
     };
-    const retrieved = await this.retrieval.retrieve(entId, p.name, 5, constraints);
-    // 지식(기준표/해설) 스니펫 — 근거 보강.
-    const snippets = await this.knowledge.retrieve(entId, [p.name, p.material].filter(Boolean).join(' '), 3);
-    // AI 재판정(그라운딩) — 미설정/오류 시 검색 순위 폴백.
-    const aiRes = await this.ai.classify(entId, p.name, constraints, retrieved);
+    const retrieved = await this.retrieval.retrieve(entId, name, 5, constraints);
+    const snippets = await this.knowledge.retrieve(
+      entId,
+      [name, item.mainMaterial].filter(Boolean).join(' '),
+      3,
+    );
+    const aiRes = await this.ai.classify(entId, name, constraints, retrieved);
     const candidates = (aiRes?.candidates ?? retrieved).slice(0, TOP_CANDIDATES);
 
     if (candidates.length === 0) {
       item.needsReview = true;
       await this.itemRepo.save(item);
-      return { item, recommendations: [] };
+      return false;
     }
 
     const topScore = candidates[0].score;
@@ -145,7 +192,7 @@ export class MatchingService {
     }
 
     const knowledgeIds = snippets.map((s) => s.chunkId);
-    const recs = await this.recRepo.save(
+    await this.recRepo.save(
       candidates.map((c, idx) =>
         this.recRepo.create({
           itmId: item.itmId,
@@ -159,8 +206,7 @@ export class MatchingService {
         }),
       ),
     );
-
-    return { item, recommendations: recs };
+    return true;
   }
 
   private reasoning(c: Candidate, snippetCount: number): string {

@@ -49,7 +49,7 @@ export class MatchingController {
     if (!file) {
       throw new BusinessException(ERROR_CODES.VALIDATION, 'file is required', HttpStatus.BAD_REQUEST);
     }
-    const detail = await this.matching.uploadAndMatch(
+    const detail = await this.matching.uploadAndEnqueue(
       entId,
       userId,
       decodeMultipartFilename(file.originalname),
