@@ -58,11 +58,7 @@ export class DocumentParserService {
   async parse(entId: string, fileName: string, buffer: Buffer): Promise<ParseResult> {
     const lower = (fileName ?? '').toLowerCase();
     if (lower.endsWith('.pdf')) {
-      throw new BusinessException(
-        ERROR_CODES.KNOWLEDGE_PARSE_FAILED,
-        'PDF parsing is not yet available. Please upload an Excel/CSV file. (PDF 지원 예정)',
-        HttpStatus.BAD_REQUEST,
-      );
+      return this.parsePdf(entId, buffer);
     }
     const isCsv = lower.endsWith('.csv');
     const { header, rows } = this.extractMatrix(buffer);
@@ -120,6 +116,131 @@ export class DocumentParserService {
     const note = `컬럼매핑=${mappedBy} name#${map.name}${map.material !== null ? ` material#${map.material}` : ''}${map.usage !== null ? ` usage#${map.usage}` : ''}${map.quantity !== null ? ` qty#${map.quantity}` : ''}${fallbackNote}${truncated}`;
 
     return { sourceType: isCsv ? 'CSV' : 'EXCEL', items, note, mappedBy: mappedBy === 'FALLBACK' ? 'HEURISTIC' : mappedBy };
+  }
+
+  /**
+   * PDF 파싱 (R1~R3) — Claude 문서 입력으로 품목 추출. 텍스트+스캔 PDF 모두 비전으로 이해.
+   * 유효 키 필수(없으면 400 안내). 업로드 요청 내 1회 호출(매칭은 이후 비동기).
+   */
+  private async parsePdf(entId: string, buffer: Buffer): Promise<ParseResult> {
+    const apiKey =
+      (await this.appConfig.getSecret(entId, 'AI', 'api_key')) ||
+      this.config.get<string>('CLAUDE_API_KEY') ||
+      '';
+    if (!apiKey) {
+      throw new BusinessException(
+        ERROR_CODES.KNOWLEDGE_PARSE_FAILED,
+        'PDF 분석은 AI 설정(Claude 키)이 필요합니다. 설정에서 키를 등록하거나 엑셀/CSV로 업로드해 주세요.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const model =
+      (await this.appConfig.getSecret(entId, 'AI', 'model_version')) ||
+      this.config.get<string>('CLAUDE_MODEL_VERSION') ||
+      DEFAULT_MODEL;
+
+    let text: string;
+    try {
+      const client = new Anthropic({ apiKey, maxRetries: 1 });
+      const resp = await client.messages.create({
+        model,
+        max_tokens: 8000,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'base64',
+                  media_type: 'application/pdf',
+                  data: buffer.toString('base64'),
+                },
+              },
+              { type: 'text', text: PDF_EXTRACT_PROMPT },
+            ],
+          },
+        ],
+      });
+      text = resp.content.find((b) => b.type === 'text')?.text ?? '';
+    } catch (err) {
+      this.logger.warn(`PDF extraction failed: ${String(err)}`);
+      throw new BusinessException(
+        ERROR_CODES.KNOWLEDGE_PARSE_FAILED,
+        'PDF 분석에 실패했습니다. 파일이 유효한 PDF인지, 용량/페이지가 과도하지 않은지 확인해 주세요.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const parsed = this.parsePdfItems(text);
+    if (parsed.length === 0) {
+      throw new BusinessException(
+        ERROR_CODES.KNOWLEDGE_EMPTY_CONTENT,
+        'PDF에서 품목을 추출하지 못했습니다.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const capped = parsed.slice(0, MAX_ITEMS);
+    const items: ParsedItem[] = capped
+      .map((r, i) => {
+        const name = String(r.name ?? '').trim();
+        const material = this.cleanField(r.material);
+        const usage = this.cleanField(r.usage);
+        const quantity = this.cleanField(r.quantity);
+        const raw = [name, material, usage, quantity].filter(Boolean).join(' | ');
+        return {
+          rowIndex: i + 1,
+          name,
+          material,
+          usage,
+          quantity,
+          rawSource: raw,
+          needsReview: !name,
+        };
+      })
+      .filter((it) => it.name || it.rawSource);
+
+    const truncated = parsed.length > MAX_ITEMS ? ` (${parsed.length}품목 중 상한 ${MAX_ITEMS})` : '';
+    return {
+      sourceType: 'PDF',
+      items,
+      note: `PDF AI 추출 ${items.length}품목${truncated}`,
+      mappedBy: 'AI',
+    };
+  }
+
+  private cleanField(v: unknown): string | null {
+    if (v === null || v === undefined) return null;
+    const s = String(v).trim();
+    return s === '' || s.toLowerCase() === 'null' ? null : s;
+  }
+
+  /** Claude 응답에서 items 배열 파싱({items:[...]} 또는 [...]). 실패 시 빈 배열. */
+  private parsePdfItems(text: string): Array<Record<string, unknown>> {
+    const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    // 오브젝트 우선({items:[...]}), 없으면 배열([...]) 시도.
+    const objStart = cleaned.indexOf('{');
+    const arrStart = cleaned.indexOf('[');
+    try {
+      if (objStart >= 0 && (arrStart < 0 || objStart < arrStart)) {
+        const end = cleaned.lastIndexOf('}');
+        if (end > objStart) {
+          const obj = JSON.parse(cleaned.slice(objStart, end + 1)) as { items?: unknown };
+          if (Array.isArray(obj.items)) return obj.items as Array<Record<string, unknown>>;
+        }
+      }
+      if (arrStart >= 0) {
+        const end = cleaned.lastIndexOf(']');
+        if (end > arrStart) {
+          const arr = JSON.parse(cleaned.slice(arrStart, end + 1));
+          if (Array.isArray(arr)) return arr as Array<Record<string, unknown>>;
+        }
+      }
+    } catch {
+      return [];
+    }
+    return [];
   }
 
   /**
@@ -288,6 +409,23 @@ export class DocumentParserService {
     }
   }
 }
+
+const PDF_EXTRACT_PROMPT = `The attached PDF is a trade/customs document (e.g., customs declaration, commercial invoice, packing list, BOM, or product spec sheet). It may be digital or scanned.
+
+Extract EACH product / line item into a normalized list for HS-code classification. For each item capture:
+- name: product/goods name or description (REQUIRED)
+- material: material / composition (e.g., "cotton 50% polyester 50%") if present, else null
+- usage: use / purpose if present, else null
+- quantity: quantity or unit if present, else null
+
+Rules:
+- Extract only actual goods line items. Ignore headers, totals, addresses, terms, signatures, page numbers.
+- Text may be Korean, English, or Vietnamese — keep original language.
+- If a field is absent, use null. Do not invent values.
+- If the document has no identifiable line items, return an empty items array.
+
+Respond with ONLY a JSON object, exactly:
+{"items":[{"name":"...","material":null,"usage":null,"quantity":null}]}`;
 
 const COLUMN_MAP_SYSTEM = `You map spreadsheet columns to a normalized schema for HS-code classification.
 Given HEADERS (0-indexed array) and SAMPLE ROWS, identify which column index holds each field:
