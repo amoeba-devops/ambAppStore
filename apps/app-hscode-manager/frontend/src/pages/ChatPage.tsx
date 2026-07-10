@@ -133,6 +133,11 @@ function MessageBubble({ m }: { m: ChatMessage }) {
                 {t('c.searchBased')}
               </span>
             )}
+            {m.source === 'AI_GENERAL' && (
+              <span className="mr-2 rounded bg-info-soft px-1.5 py-0.5 font-semibold text-info">
+                {t('c.generalBased')}
+              </span>
+            )}
             {m.citations.length > 0 && (
               <button onClick={() => setShowCite((s) => !s)} className="font-semibold hover:text-brand">
                 {t('c.evidence', { n: m.citations.length })} {showCite ? '▲' : '▾'}

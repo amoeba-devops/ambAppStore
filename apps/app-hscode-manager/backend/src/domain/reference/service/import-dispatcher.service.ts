@@ -6,10 +6,26 @@ import { ImportBatch } from '../entity/import-batch.entity';
 import { BaoCaoHangChiTietAdapter } from '../adapters/bao-cao-hang-chi-tiet.adapter';
 import { BaoCaoToKhaiAdapter } from '../adapters/bao-cao-to-khai.adapter';
 import { VmsgAdapter } from '../adapters/vmsg.adapter';
+import { HeuristicFallbackAdapter } from '../adapters/heuristic-fallback.adapter';
 import { ImportAdapter } from '../adapters/import-adapter.interface';
 import { DedupeEmbedService } from './dedupe-embed.service';
 
-const HS_HEADER_TOKENS = ['mã hs', 'ma hs', 'hs code', 'hscode', 'mã số hàng hóa'];
+// HS 헤더 토큰(ko/en/vi) — 상단 제목행을 건너뛰고 실제 헤더행을 찾는 데 사용.
+const HS_HEADER_TOKENS = [
+  'mã hs',
+  'ma hs',
+  'hs code',
+  'hscode',
+  'hs',
+  'mã số hàng hóa',
+  'mã số',
+  '세번',
+  '세번부호',
+  'hs코드',
+  'hs 코드',
+  'hs번호',
+  'tariff',
+];
 
 /**
  * 형식 자동 감지 → 어댑터 디스패치 → 정규화 → 중복제거/임베딩 → 배치 요약.
@@ -27,8 +43,10 @@ export class ImportDispatcherService {
     baoCaoHangChiTiet: BaoCaoHangChiTietAdapter,
     baoCaoToKhai: BaoCaoToKhaiAdapter,
     vmsg: VmsgAdapter,
+    heuristicFallback: HeuristicFallbackAdapter,
   ) {
-    this.adapters = [baoCaoHangChiTiet, baoCaoToKhai, vmsg];
+    // 특정 형식 어댑터 우선, 미매칭 시 휴리스틱 폴백(임의 양식 HS+품명 컬럼 추론)으로 분석.
+    this.adapters = [baoCaoHangChiTiet, baoCaoToKhai, vmsg, heuristicFallback];
   }
 
   async import(

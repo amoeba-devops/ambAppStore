@@ -11,6 +11,7 @@ import { DedupeEmbedService } from './service/dedupe-embed.service';
 import { BaoCaoHangChiTietAdapter } from './adapters/bao-cao-hang-chi-tiet.adapter';
 import { BaoCaoToKhaiAdapter } from './adapters/bao-cao-to-khai.adapter';
 import { VmsgAdapter } from './adapters/vmsg.adapter';
+import { HeuristicFallbackAdapter } from './adapters/heuristic-fallback.adapter';
 
 /** SCR-005 참조(Reference) — RAG 참조 코퍼스 import/관리 (FR-040/044, FN-040/041). */
 @Module({
@@ -23,6 +24,7 @@ import { VmsgAdapter } from './adapters/vmsg.adapter';
     BaoCaoHangChiTietAdapter,
     BaoCaoToKhaiAdapter,
     VmsgAdapter,
+    HeuristicFallbackAdapter,
   ],
   exports: [ReferenceService],
 })

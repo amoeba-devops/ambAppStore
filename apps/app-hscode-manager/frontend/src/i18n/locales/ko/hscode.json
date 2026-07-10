@@ -259,5 +259,8 @@
   "h.colDate": "일시",
   "h.reviewN": "검토 {{n}}",
   "h.open": "다시 열기",
-  "h.empty": "이력이 없습니다."
+  "h.empty": "이력이 없습니다.",
+  "c.generalBased": "일반 추정",
+  "rb.declSkip": "{{n}}건 제외",
+  "rb.declNone": "분석된 행이 없습니다 — HS·품명 컬럼을 확인해 주세요."
 }
