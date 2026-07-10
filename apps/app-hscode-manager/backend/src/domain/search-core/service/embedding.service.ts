@@ -26,7 +26,8 @@ export class EmbeddingService {
     // 외부 API 공급자 사용 시에만 필요(셀프호스트는 불필요).
     this.apiKey = this.config.get<string>('EMBEDDING_API_KEY', '') || '';
     this.dimensions = Number(this.config.get<string>('EMBEDDING_DIMENSIONS', '1024'));
-    this.timeoutMs = Number(this.config.get<string>('EMBEDDING_TIMEOUT_MS', '15000'));
+    // 기본 60s — CPU TEI(BGE-M3)는 다청크 배치 임베딩이 느려 15s면 타임아웃→전량 폴백(0 임베딩) 발생.
+    this.timeoutMs = Number(this.config.get<string>('EMBEDDING_TIMEOUT_MS', '60000'));
   }
 
   /** 공급자 + 엔드포인트가 있으면 활성(셀프호스트는 API 키 불요). */
