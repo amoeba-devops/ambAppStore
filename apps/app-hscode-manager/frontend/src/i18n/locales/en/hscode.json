@@ -259,5 +259,8 @@
   "h.colDate": "Date",
   "h.reviewN": "{{n}} review",
   "h.open": "Open",
-  "h.empty": "No history."
+  "h.empty": "No history.",
+  "c.generalBased": "General estimate",
+  "rb.declSkip": "{{n}} skipped",
+  "rb.declNone": "No rows analyzed — please check HS/name columns."
 }
