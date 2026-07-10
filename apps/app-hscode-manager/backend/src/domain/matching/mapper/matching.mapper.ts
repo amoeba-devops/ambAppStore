@@ -21,6 +21,7 @@ export class MatchingMapper {
       matchedCount: r.matchedCount,
       reviewCount: r.reviewCount,
       confirmedCount: r.confirmedCount,
+      processedCount: r.processedCount,
       parseNote: r.parseNote,
       createdAt: r.createdAt,
     };

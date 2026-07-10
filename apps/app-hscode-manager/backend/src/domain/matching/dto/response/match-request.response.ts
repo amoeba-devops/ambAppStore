@@ -8,6 +8,7 @@ export class MatchRequestResponse {
   matchedCount: number;
   reviewCount: number;
   confirmedCount: number;
+  processedCount: number;
   parseNote: string | null;
   createdAt: Date;
 }

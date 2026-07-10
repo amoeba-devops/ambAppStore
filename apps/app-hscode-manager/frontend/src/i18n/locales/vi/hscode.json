@@ -262,5 +262,6 @@
   "h.empty": "Chưa có lịch sử.",
   "c.generalBased": "Ước tính chung",
   "rb.declSkip": "Bỏ {{n}}",
-  "rb.declNone": "Không phân tích được dòng nào — vui lòng kiểm tra cột HS/tên hàng."
+  "rb.declNone": "Không phân tích được dòng nào — vui lòng kiểm tra cột HS/tên hàng.",
+  "m.analyzingN": "Đang phân tích… {{done}}/{{total}}"
 }
