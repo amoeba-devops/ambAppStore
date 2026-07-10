@@ -31,7 +31,7 @@ interface ColumnMap {
 }
 
 const DEFAULT_MODEL = 'claude-opus-4-8';
-const MAX_ITEMS = 100; // 동기 처리 상한(초과 시 잘라내고 note에 명시). 대량 비동기는 후속.
+const MAX_ITEMS = 2000; // 비동기(BullMQ) 처리 상한(초과 시 잘라내고 note에 명시).
 
 const HEURISTIC_TOKENS: Record<keyof ColumnMap, string[]> = {
   name: ['품명', '품목', '상품', 'name', 'product', 'description', 'desc', 'item', 'tên hàng', 'hàng hóa', 'mô tả', '내용', '규격'],
@@ -115,7 +115,7 @@ export class DocumentParserService {
       });
     });
 
-    const truncated = rows.length > MAX_ITEMS ? ` (${rows.length}행 중 ${MAX_ITEMS}행만 처리 — 대량은 후속 비동기)` : '';
+    const truncated = rows.length > MAX_ITEMS ? ` (${rows.length}행 중 상한 ${MAX_ITEMS}행만 처리)` : '';
     const fallbackNote = forceReview ? ' · 컬럼 자동인식 실패 → 1열을 품명으로 가정, 검토 필요' : '';
     const note = `컬럼매핑=${mappedBy} name#${map.name}${map.material !== null ? ` material#${map.material}` : ''}${map.usage !== null ? ` usage#${map.usage}` : ''}${map.quantity !== null ? ` qty#${map.quantity}` : ''}${fallbackNote}${truncated}`;
 

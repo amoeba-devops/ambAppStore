@@ -18,6 +18,9 @@ export function useMatchRequest(id: string | undefined) {
     queryKey: ['match-request', id],
     queryFn: () => matchingService.getRequest(id as string),
     enabled: !!id,
+    // 비동기 처리 중(PROCESSING)에는 폴링, READY 되면 중지.
+    refetchInterval: (query) =>
+      query.state.data?.request?.status === 'PROCESSING' ? 1500 : false,
   });
 }
 

@@ -262,5 +262,6 @@
   "h.empty": "No history.",
   "c.generalBased": "General estimate",
   "rb.declSkip": "{{n}} skipped",
-  "rb.declNone": "No rows analyzed — please check HS/name columns."
+  "rb.declNone": "No rows analyzed — please check HS/name columns.",
+  "m.analyzingN": "Analyzing… {{done}}/{{total}}"
 }

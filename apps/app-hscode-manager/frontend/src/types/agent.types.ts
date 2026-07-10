@@ -39,6 +39,7 @@ export interface MatchRequest {
   matchedCount: number;
   reviewCount: number;
   confirmedCount: number;
+  processedCount: number;
   parseNote: string | null;
   createdAt: string;
 }
