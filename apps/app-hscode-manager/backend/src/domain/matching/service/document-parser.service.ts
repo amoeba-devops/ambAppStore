@@ -1,7 +1,7 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
-import { Workbook } from 'exceljs';
+import * as XLSX from 'xlsx';
 import { AppConfigService } from '../../admin-settings/service/app-config.service';
 import { BusinessException } from '../../../common/exceptions/business.exception';
 import { ERROR_CODES } from '../../../common/error-codes';
@@ -42,7 +42,7 @@ const HEURISTIC_TOKENS: Record<keyof ColumnMap, string[]> = {
 
 /**
  * 자유 양식 문서 파서 (Phase 2, Step 2-1) — 고객사 다양한 엑셀/CSV → 정규화 품목 리스트.
- * 1) exceljs로 시트 매트릭스 추출. 2) **AI가 컬럼 의미 추론**(품명/성분/용도/수량) — 설정 Claude.
+ * 1) SheetJS로 시트 매트릭스 추출(.xlsx/.xls/.csv/.ods 자동 감지). 2) **AI가 컬럼 의미 추론**(품명/성분/용도/수량) — 설정 Claude.
  * 3) AI 미가용/실패 시 헤더 토큰 휴리스틱 폴백. 품명 없는 행은 검토 플래그.
  * PDF는 현재 미지원(명확한 400) — 후속 과제.
  */
@@ -65,7 +65,7 @@ export class DocumentParserService {
       );
     }
     const isCsv = lower.endsWith('.csv');
-    const { header, rows } = await this.extractMatrix(buffer, isCsv);
+    const { header, rows } = this.extractMatrix(buffer);
     if (rows.length === 0) {
       throw new BusinessException(
         ERROR_CODES.KNOWLEDGE_EMPTY_CONTENT,
@@ -122,21 +122,24 @@ export class DocumentParserService {
     return { sourceType: isCsv ? 'CSV' : 'EXCEL', items, note, mappedBy: mappedBy === 'FALLBACK' ? 'HEURISTIC' : mappedBy };
   }
 
-  /** exceljs로 첫 시트 → 헤더행 + 데이터행(문자열 매트릭스). */
-  private async extractMatrix(
-    buffer: Buffer,
-    isCsv: boolean,
-  ): Promise<{ header: string[]; rows: unknown[][] }> {
-    let worksheet;
+  /**
+   * SheetJS로 첫 시트 → 헤더행 + 데이터행(문자열 매트릭스).
+   * **.xlsx / .xls(레거시 BIFF) / .csv / .ods** 를 형식 자동 감지로 모두 처리(exceljs는 .xls 미지원 → 교체).
+   */
+  private extractMatrix(buffer: Buffer): { header: string[]; rows: unknown[][] } {
+    let matrix: unknown[][];
     try {
-      const wb = new Workbook();
-      if (isCsv) {
-        const { Readable } = await import('stream');
-        await wb.csv.read(Readable.from(buffer.toString('utf-8')));
-      } else {
-        await wb.xlsx.load(buffer as unknown as ArrayBuffer);
-      }
-      worksheet = wb.worksheets[0];
+      const wb = XLSX.read(buffer, { type: 'buffer', cellDates: false });
+      const sheetName = wb.SheetNames[0];
+      const ws = sheetName ? wb.Sheets[sheetName] : undefined;
+      if (!ws) throw new Error('no worksheet');
+      // header:1 → 배열의 배열, raw:false → 서식된 문자열, defval:'' → 빈 셀 보존.
+      matrix = XLSX.utils.sheet_to_json(ws, {
+        header: 1,
+        defval: '',
+        blankrows: false,
+        raw: false,
+      }) as unknown[][];
     } catch (err) {
       throw new BusinessException(
         ERROR_CODES.KNOWLEDGE_PARSE_FAILED,
@@ -144,19 +147,7 @@ export class DocumentParserService {
         HttpStatus.BAD_REQUEST,
       );
     }
-    if (!worksheet) {
-      throw new BusinessException(
-        ERROR_CODES.KNOWLEDGE_PARSE_FAILED,
-        'No worksheet found',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-    const matrix: unknown[][] = [];
-    worksheet.eachRow((row) => {
-      const values = row.values as unknown[];
-      matrix.push(values.slice(1)); // exceljs values는 1-based
-    });
-    if (matrix.length < 1) return { header: [], rows: [] };
+    if (!matrix || matrix.length < 1) return { header: [], rows: [] };
 
     // 헤더행 자동 탐지: 상단 제목/메타 행을 건너뛰기 위해 첫 ~8행 중
     // 컬럼 토큰(품명/성분/용도/수량) 매칭 점수가 가장 높은 행을 헤더로 선택.
