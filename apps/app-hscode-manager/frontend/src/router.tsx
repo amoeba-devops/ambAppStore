@@ -11,6 +11,11 @@ import AttributeExcelPage from './pages/AttributeExcelPage';
 import ResultDetailPage from './pages/ResultDetailPage';
 import ReferencePage from './pages/ReferencePage';
 import AdminSettingsPage from './pages/AdminSettingsPage';
+import KnowledgeBaseDashboardPage from './pages/KnowledgeBaseDashboardPage';
+import KnowledgeBaseListPage from './pages/KnowledgeBaseListPage';
+import KnowledgeBaseDetailPage from './pages/KnowledgeBaseDetailPage';
+import KnowledgeBasePostEditPage from './pages/KnowledgeBasePostEditPage';
+import KnowledgeBaseAdminPage from './pages/KnowledgeBaseAdminPage';
 
 export const router = createBrowserRouter(
   [
@@ -25,6 +30,14 @@ export const router = createBrowserRouter(
         { path: 'chat', element: <ChatPage /> },
         { path: 'history', element: <HistoryPage /> },
         { path: 'reference-build', element: <ReferenceBuildPage /> },
+
+        // 지식창고 (Knowledge Base) — 게시판형 참조 라이브러리
+        { path: 'knowledge-base', element: <KnowledgeBaseDashboardPage /> },
+        { path: 'knowledge-base/posts', element: <KnowledgeBaseListPage /> },
+        { path: 'knowledge-base/posts/new', element: <KnowledgeBasePostEditPage /> },
+        { path: 'knowledge-base/posts/:id', element: <KnowledgeBaseDetailPage /> },
+        { path: 'knowledge-base/posts/:id/edit', element: <KnowledgeBasePostEditPage /> },
+        { path: 'knowledge-base/admin', element: <KnowledgeBaseAdminPage /> },
 
         // 레거시/보조 기능
         { path: 'search/qa', element: <QaSearchPage /> },

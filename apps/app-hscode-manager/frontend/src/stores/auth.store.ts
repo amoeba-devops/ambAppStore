@@ -15,6 +15,7 @@ interface AuthState {
   setAuth: (token: string, user: AuthUser) => void;
   clear: () => void;
   isAdmin: () => boolean;
+  isSuperAdmin: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -29,4 +30,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ token: null, user: null });
   },
   isAdmin: () => get().user?.roles?.includes('ADMIN') ?? false,
+  // 지식창고 쓰기(@SuperAdminOnly)는 전 테넌트 공용 데이터 오염 방지 목적 — SUPER_ADMIN만.
+  isSuperAdmin: () => get().user?.roles?.includes('SUPER_ADMIN') ?? false,
 }));

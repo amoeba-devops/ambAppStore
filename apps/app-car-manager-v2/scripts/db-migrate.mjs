@@ -4,6 +4,7 @@
  *
  *   node scripts/db-migrate.mjs dev       # uses DATABASE_URL_DEV from .env
  *   node scripts/db-migrate.mjs staging   # uses DATABASE_URL_STAGING from .env
+ *   node scripts/db-migrate.mjs prod      # uses DATABASE_URL_PROD from .env (Neon prod branch)
  *
  * Reads .env at app-car-manager-v2 root, picks the URL by key, sets it as
  * DATABASE_URL in the child process, then invokes the same `drizzle-kit migrate`
@@ -20,7 +21,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const ENV_PATH = resolve(ROOT, '.env');
 
-const VALID_TARGETS = ['dev', 'staging'];
+const VALID_TARGETS = ['dev', 'staging', 'prod'];
 const target = process.argv[2];
 
 if (!target || !VALID_TARGETS.includes(target)) {

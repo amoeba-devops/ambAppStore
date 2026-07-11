@@ -18,6 +18,7 @@ import { AdminSettingsModule } from './domain/admin-settings/admin-settings.modu
 import { KnowledgeModule } from './domain/knowledge/knowledge.module';
 import { MatchingModule } from './domain/matching/matching.module';
 import { ChatModule } from './domain/chat/chat.module';
+import { KnowledgeBaseModule } from './domain/knowledge-base/knowledge-base.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { ChatModule } from './domain/chat/chat.module';
     KnowledgeModule,
     MatchingModule,
     ChatModule,
+    KnowledgeBaseModule,
   ],
   controllers: [HealthController],
   providers: [
