@@ -369,6 +369,8 @@
         "productEn": "Product (EN)",
         "platform": "Platform",
         "pv": "PV",
+        "impression": "Impression",
+        "ctr": "CTR%",
         "cvr": "CVR%",
         "items": "Items",
         "gmv": "GMV",
@@ -468,7 +470,13 @@
         "trafficLabel": "Traffic report",
         "trafficSubtitle": "Sessions, PV, conversion",
         "affiliateLabel": "Affiliate report",
-        "affiliateSubtitle": "Commission payments"
+        "affiliateSubtitle": "Commission payments",
+        "affiliateCreatorLabel": "Affiliate · Creator Order",
+        "affiliateCreatorSubtitle": "Standard + shop-ads commission",
+        "affiliatePartnerLabel": "Affiliate · Partner Order",
+        "affiliatePartnerSubtitle": "Partner-collab commission",
+        "affiliateNonCollabLabel": "Affiliate · Non-collaboration Order",
+        "affiliateNonCollabSubtitle": "Self-attributed commission"
       },
       "fileSlot": {
         "required": "required",

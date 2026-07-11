@@ -21,6 +21,7 @@ import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listTripsForVehicle } from '@/server/queries/trips.queries';
 import { getVehicle } from '@/server/queries/vehicles.queries';
 import { TripHistorySection } from '../../trips/_components/trip-history-section';
+import { VehicleDeleteButton } from './_components/vehicle-delete-button';
 
 const STATUS_TONE: Record<CarVehicleStatus, 'success' | 'info' | 'warning' | 'neutral'> = {
   AVAILABLE: 'success',
@@ -96,11 +97,23 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
                     <h2 className="text-2xl font-bold text-text font-mono tracking-tight">{vehicle.cvhPlateNumber}</h2>
                     <Badge tone={STATUS_TONE[vehicle.cvhStatus]}>{tStatus(vehicle.cvhStatus)}</Badge>
                   </div>
-                  {/* Inline Edit — mirrors the header `actions` slot for mobile
-                   * users who no longer see the header right buttons. */}
-                  <Button variant="secondary" size="sm" iconLeft={<Edit3 />} asChild className="shrink-0">
-                    <Link href={`/vehicles/${vehicle.cvhId}/edit`}>{tA('edit')}</Link>
-                  </Button>
+                  {/* Inline Edit + Delete — visible on all sizes.
+                   * On mobile (< sm): icon-only for compact layout.
+                   * On desktop (sm+): shows text labels. */}
+                  <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                    <Button variant="secondary" size="sm" className="px-2 sm:px-3" asChild>
+                      <Link href={`/vehicles/${vehicle.cvhId}/edit`} aria-label={tA('edit')}>
+                        <Edit3 className="h-4 w-4" />
+                        <span className="hidden sm:inline ml-1.5">{tA('edit')}</span>
+                      </Link>
+                    </Button>
+                    <VehicleDeleteButton
+                      vehicleId={vehicle.cvhId}
+                      plateNumber={vehicle.cvhPlateNumber}
+                      variant="ghost"
+                      size="sm"
+                    />
+                  </div>
                 </div>
                 {vehicle.cvhNotes && <p className="mt-1 text-text-muted">{vehicle.cvhNotes}</p>}
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-5">

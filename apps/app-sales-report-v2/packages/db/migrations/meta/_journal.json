@@ -43,6 +43,97 @@
       "when": 1778830268179,
       "tag": "0005_add_period_snapshots",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779370094414,
+      "tag": "0006_add_archive_files",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1779370094415,
+      "tag": "0007_add_archive_raw_bytes",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779370094416,
+      "tag": "0008_prime_cost_versions",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1780044800301,
+      "tag": "0009_selling_price_versions",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1780044800302,
+      "tag": "0010_listing_price_versions",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1780044800303,
+      "tag": "0011_prime_cost_is_combo",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1780044800304,
+      "tag": "0012_prime_cost_combo_meta",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1780044800305,
+      "tag": "0013_prime_cost_variation_name",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1780044800306,
+      "tag": "0014_prime_cost_gtin_hscode",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1780044800307,
+      "tag": "0015_fx_rates",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1780044800308,
+      "tag": "0016_period_snapshot_fx_rate",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1780044800309,
+      "tag": "0017_drop_psp_fx_rate_snapshot",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1782518400000,
+      "tag": "0018_archive_file_type_affiliate_split",
+      "breakpoints": true
     }
   ]
 }

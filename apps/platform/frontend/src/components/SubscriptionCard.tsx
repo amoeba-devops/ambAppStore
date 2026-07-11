@@ -24,9 +24,10 @@ const STATUS_KEYS: Record<string, string> = {
 
 const APP_ICONS: Record<string, string> = {
   'app-car-manager': '🚗',
-  'app-car-manager-v2': '🚙',
+  'app-car-manager-v2': '🚐',
   'app-hscode': '📦',
   'app-sales-report': '📊',
+  'app-sales-report-v2': '💹',
   'app-stock-management': '📈',
 };
 

@@ -89,6 +89,9 @@ export function NewTripForm({
   const [stopovers, setStopovers] = useState<string[]>([]);
   /* Per-field error flags. Set on failed submit, cleared as user types. */
   const [fieldErrors, setFieldErrors] = useState<{ pickup?: boolean; dropoff?: boolean; scheduledAt?: boolean; driver?: boolean; vehicle?: boolean }>({});
+  /* Track whether user has made any changes — draft is only saved when dirty. */
+  const [isDirty, setIsDirty] = useState(false);
+  const markDirty = () => setIsDirty(true);
 
   /* Auto-persist form state. Restore offer shown via banner on mount if a
    * non-stale draft exists. Cleared on successful submit (router.push fires
@@ -121,6 +124,7 @@ export function NewTripForm({
     label: { primary: t('draftLabelNew'), secondary: draftSecondary },
     href: '/trips/new',
     entity: 'trip',
+    isDirty,
   });
 
   const handleRestoreDraft = () => {
@@ -137,17 +141,23 @@ export function NewTripForm({
     setDriverId(v.driverId);
     setVehicleId(v.vehicleId);
     setStopovers(v.stopovers);
+    setIsDirty(true); // Restored draft should be persisted
     dismissDraft();
   };
 
   const addStopover = () => {
     if (stopovers.length >= 10) return;
     setStopovers((s) => [...s, '']);
+    markDirty();
   };
-  const removeStopover = (i: number) =>
+  const removeStopover = (i: number) => {
     setStopovers((s) => s.filter((_, idx) => idx !== i));
-  const updateStopover = (i: number, value: string) =>
+    markDirty();
+  };
+  const updateStopover = (i: number, value: string) => {
     setStopovers((s) => s.map((v, idx) => (idx === i ? value : v)));
+    markDirty();
+  };
 
   const onSubmit = () => {
     /* Guard against double-submit: Enter key + click race, useTransition
@@ -247,6 +257,7 @@ export function NewTripForm({
                 value={pickup}
                 onChange={(val) => {
                   setPickup(val);
+                  markDirty();
                   if (fieldErrors.pickup && val.trim()) setFieldErrors((p) => ({ ...p, pickup: false }));
                 }}
                 error={fieldErrors.pickup}
@@ -259,6 +270,7 @@ export function NewTripForm({
                 value={dropoff}
                 onChange={(val) => {
                   setDropoff(val);
+                  markDirty();
                   if (fieldErrors.dropoff && val.trim()) setFieldErrors((p) => ({ ...p, dropoff: false }));
                 }}
                 error={fieldErrors.dropoff}
@@ -327,6 +339,7 @@ export function NewTripForm({
                   value={scheduledAt}
                   onChange={(e) => {
                     setScheduledAt(e.target.value);
+                    markDirty();
                     if (fieldErrors.scheduledAt && e.target.value) setFieldErrors((p) => ({ ...p, scheduledAt: false }));
                   }}
                   error={fieldErrors.scheduledAt}
@@ -340,11 +353,11 @@ export function NewTripForm({
                     min={1}
                     inputMode="numeric"
                     value={durationValue}
-                    onChange={(e) => setDurationValue(e.target.value)}
+                    onChange={(e) => { setDurationValue(e.target.value); markDirty(); }}
                     placeholder={t('durationValuePlaceholder')}
                     className="w-16 shrink-0"
                   />
-                  <Select value={durationUnit} onValueChange={(v) => setDurationUnit(v as DurationUnit)}>
+                  <Select value={durationUnit} onValueChange={(v) => { setDurationUnit(v as DurationUnit); markDirty(); }}>
                     <SelectTrigger className="flex-1 min-w-0"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="minutes">{t('unitMinutes')}</SelectItem>
@@ -372,7 +385,7 @@ export function NewTripForm({
                     }}
                   />
                 ) : (
-                  <Select value={passengerId} onValueChange={setPassengerId}>
+                  <Select value={passengerId} onValueChange={(v) => { setPassengerId(v); markDirty(); }}>
                     <SelectTrigger className="w-full min-w-0 h-auto py-1.5">
                       <SelectValue placeholder={t('passengerPlaceholder')} />
                     </SelectTrigger>
@@ -392,7 +405,7 @@ export function NewTripForm({
               <FormField label={t('purpose')} inline className="min-w-0">
                 <Input
                   value={purpose}
-                  onChange={(e) => setPurpose(e.target.value)}
+                  onChange={(e) => { setPurpose(e.target.value); markDirty(); }}
                   placeholder={t('purposePlaceholder')}
                   maxLength={255}
                   className="w-full"
@@ -401,7 +414,7 @@ export function NewTripForm({
             </div>
             <NotesDisclosure
               notes={notes}
-              setNotes={setNotes}
+              setNotes={(v) => { setNotes(v); markDirty(); }}
               labelOpen={t('addNotes')}
               labelField={t('notes')}
               placeholder={t('notesPlaceholder')}
@@ -416,6 +429,7 @@ export function NewTripForm({
                   value={driverId}
                   onChange={(v) => {
                     setDriverId(v);
+                    markDirty();
                     if (fieldErrors.driver && v) setFieldErrors((p) => ({ ...p, driver: false }));
                   }}
                   placeholder={t('driverPlaceholder')}
@@ -434,6 +448,7 @@ export function NewTripForm({
                   value={vehicleId}
                   onChange={(v) => {
                     setVehicleId(v);
+                    markDirty();
                     if (fieldErrors.vehicle && v) setFieldErrors((p) => ({ ...p, vehicle: false }));
                   }}
                   placeholder={t('vehiclePlaceholder')}

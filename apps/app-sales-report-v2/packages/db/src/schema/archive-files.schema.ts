@@ -36,6 +36,11 @@ export const archiveFileTypeEnum = pgEnum('sal_archive_file_type', [
   'OFF_PLATFORM_ADS',
   'TRAFFIC',
   'AFFILIATE',
+  // Added in migration 0018 — TikTok split the single Affiliate export into 3
+  // order-level reports. AFFILIATE remains as the "Creator" variant for
+  // backward compat; the next two are new slot types.
+  'AFFILIATE_PARTNER',
+  'AFFILIATE_NONCOLLAB',
 ]);
 
 /**

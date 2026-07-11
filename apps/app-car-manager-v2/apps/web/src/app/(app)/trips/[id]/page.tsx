@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
+  AlertTriangle,
   Car,
   CheckCircle2,
   ChevronLeft,
@@ -286,19 +287,21 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
                   icon={<Car />}
                   label={tDetail('vehicle')}
                   value={trip.vehiclePlate ?? tDetail('notAssigned')}
-                  muted={!trip.vehiclePlate}
+                  muted={!trip.vehiclePlate && !trip.vehicleDeletedAt}
                   mono={!!trip.vehiclePlate}
                   lines={trip.vehicleModel ? [{ text: trip.vehicleModel }] : []}
+                  deletedWarning={trip.vehicleDeletedAt ? tDetail('vehicleDeleted') : undefined}
                 />
                 <PropertyRow
                   icon={<User />}
                   label={tDetail('driver')}
                   value={trip.driverName ?? tDetail('notAssigned')}
-                  muted={!trip.driverName}
+                  muted={!trip.driverName && !trip.driverDeletedAt}
                   avatar={trip.driverName ?? undefined}
                   lines={trip.driverPhone ? [
                     { icon: <Phone className="h-3 w-3" />, text: trip.driverPhone, mono: true },
                   ] : []}
+                  deletedWarning={trip.driverDeletedAt ? tDetail('driverDeleted') : undefined}
                 />
               </dl>
             </section>
@@ -354,7 +357,8 @@ function SectionTitle({
 /** Property row in the right rail — semantic <dt>/<dd> pair with hairline-divider
  *  rhythm. Icon + uppercase label, then value (semibold) and optional sub-lines.
  *  `muted` softens the value tone for unassigned fields ("Not assigned").
- *  `avatar`: nếu truyền vào, render Avatar trước value (Passenger/Driver rows). */
+ *  `avatar`: nếu truyền vào, render Avatar trước value (Passenger/Driver rows).
+ *  `deletedWarning`: if set, shows a danger badge indicating the entity was deleted. */
 function PropertyRow({
   icon,
   label,
@@ -363,6 +367,7 @@ function PropertyRow({
   mono,
   muted,
   avatar,
+  deletedWarning,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -371,6 +376,8 @@ function PropertyRow({
   mono?: boolean;
   muted?: boolean;
   avatar?: string;
+  /** Warning message shown when the referenced entity was soft-deleted */
+  deletedWarning?: string;
 }) {
   return (
     <div className="py-3 first:pt-3 last:pb-3">
@@ -386,6 +393,12 @@ function PropertyRow({
         {avatar && <Avatar name={avatar} size="xs" />}
         <span className="min-w-0 truncate">{value}</span>
       </dd>
+      {deletedWarning && (
+        <dd className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-1 rounded bg-danger-soft text-danger text-xs font-medium">
+          <AlertTriangle className="h-3 w-3 shrink-0" />
+          <span>{deletedWarning}</span>
+        </dd>
+      )}
       {lines.map((ln, i) => (
         <dd
           key={i}

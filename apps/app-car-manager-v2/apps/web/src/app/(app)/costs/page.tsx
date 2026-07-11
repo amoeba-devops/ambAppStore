@@ -1,8 +1,9 @@
 import { getTranslations, getLocale } from 'next-intl/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Download, FileText, Fuel, Plus, Receipt, User, Wrench } from 'lucide-react';
+import { FileText, Fuel, Plus, Receipt, User, Wrench } from 'lucide-react';
 import { Button, chartColors, cn } from '@car-v2/ui';
+import { ExportDropdown } from '@/components/export-dropdown';
 import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
@@ -129,9 +130,15 @@ export default async function CostsPage({ searchParams }: PageProps) {
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('costs') }]}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="md" iconLeft={<Download />} asChild>
-              <a href="/api/v1/expenses/export" download>{tA('export')}</a>
-            </Button>
+            <ExportDropdown
+              baseUrl="/api/v1/expenses/export"
+              labels={{
+                export: tA('export'),
+                excel: tA('exportExcel'),
+                pdf: tA('exportPdf'),
+                csv: tA('exportCsv'),
+              }}
+            />
             <Button variant="accent" size="md" iconLeft={<Plus />} asChild>
               <Link href="/expenses/new">{t('recordExpense')}</Link>
             </Button>
@@ -246,6 +253,9 @@ export default async function CostsPage({ searchParams }: PageProps) {
                 submittedBy: t('submittedBy'),
                 receiptTitle: t('receiptTitle'),
                 notesLabel: t('notesLabel'),
+                tripDeleted: t('tripDeleted'),
+                driverDeleted: t('driverDeleted'),
+                vehicleDeleted: t('vehicleDeleted'),
               }}
               typeLabel={tType(selected.expType)}
               amountFormatted={formatVnd(selected.expAmount)}

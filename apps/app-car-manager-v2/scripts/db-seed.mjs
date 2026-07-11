@@ -9,12 +9,20 @@
  * seed IDs below. Safe to re-run.
  *
  * Seed:
- *   • 1 tenant (HanaTech VN)
- *   • 4 users: 1 Admin (Park Joon-ho) + 3 Drivers (Tú, Hùng, Đức)
- *   • 3 drivers (rows in car_drivers, FK to user)
- *   • 3 vehicles (51K-238.91, 30A-556.07, 51F-712.34)
- *   • 5 trips covering 5 of 7 states
+ *   • 1 demo tenant (neutral demo identity — no real brand)
+ *   • 4 users: 1 Admin (Park Joon-ho) + 3 Drivers (Bảo, Hiếu, Lâm)
+ *   • 3 drivers (rows in car_drivers, FK to user) — placeholder licences
+ *   • 3 vehicles (Peugeot, Sedona, Cross) — placeholder plates
+ *   • 5 trips covering 5 of 7 states (already pair each driver with their car)
  *   • Audit log entries for each trip
+ *
+ * Vehicle ↔ driver pairing is NOT a fixed column (no cvh_default_driver_id) —
+ * it is expressed through trips, matching the app model. The sample trips below
+ * pair Bảo→Peugeot, Hiếu→Sedona, Lâm→Cross.
+ *
+ * The user/driver/vehicle upserts use ON CONFLICT … DO UPDATE so re-running the
+ * seed MIGRATES an org that was previously seeded with the old demo data to
+ * these values (deterministic IDs are kept so trip/audit FKs stay intact).
  */
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -54,6 +62,11 @@ const ENT_ID = '00000000-0000-4000-8000-000000000010';
 // Users — UUID v4 fixed for seed reproducibility.
 // The Admin user_id matches the JWT.sub in dev-login (so /dev-login session sees this seed).
 const U_ADMIN = '00000000-0000-4000-8000-000000000001';
+/* IDs kept stable for FK/idempotency. The identifier suffix is historical —
+ * the rows now hold the real fleet drivers:
+ *   U_TU/D_TU   → Nguyễn Quốc Bảo   (drives Peugeot)
+ *   U_HUNG/D_HUNG → Phan Huỳnh Hiếu (drives Sedona)
+ *   U_DUC/D_DUC → Nguyễn Minh Lâm   (drives Cross) */
 const U_TU    = '11111111-1111-1111-1111-111111111101';
 const U_HUNG  = '11111111-1111-1111-1111-111111111102';
 const U_DUC   = '11111111-1111-1111-1111-111111111103';
@@ -62,6 +75,7 @@ const D_TU   = '22222222-2222-2222-2222-222222222201';
 const D_HUNG = '22222222-2222-2222-2222-222222222202';
 const D_DUC  = '22222222-2222-2222-2222-222222222203';
 
+/*   V_STARIA → Peugeot · V_CARNIVAL → Sedona · V_CAMRY → Cross */
 const V_STARIA  = '33333333-3333-3333-3333-333333333301';
 const V_CARNIVAL = '33333333-3333-3333-3333-333333333302';
 const V_CAMRY   = '33333333-3333-3333-3333-333333333303';
@@ -83,35 +97,54 @@ try {
   await sql`
     INSERT INTO car_users (usr_id, ent_id, usr_ama_user_id, usr_email, usr_name, usr_local_role, usr_ama_role_snapshot)
     VALUES
-      (${U_ADMIN}, ${ENT_ID}, ${U_ADMIN}, 'park.joonho@hanatech.vn',  'Park Joon-ho',   'ADMIN',  'OWNER'),
-      (${U_TU},    ${ENT_ID}, ${U_TU},    'tu.nguyen@hanatech.vn',    'Nguyễn Văn Tú',  'DRIVER', 'MEMBER'),
-      (${U_HUNG},  ${ENT_ID}, ${U_HUNG},  'hung.tran@hanatech.vn',    'Trần Quốc Hùng', 'DRIVER', 'MEMBER'),
-      (${U_DUC},   ${ENT_ID}, ${U_DUC},   'duc.le@hanatech.vn',       'Lê Minh Đức',    'DRIVER', 'MEMBER')
-    ON CONFLICT (usr_id) DO NOTHING
+      (${U_ADMIN}, ${ENT_ID}, ${U_ADMIN}, 'park.joonho@demo.local',  'Park Joon-ho',     'ADMIN',  'OWNER'),
+      (${U_TU},    ${ENT_ID}, ${U_TU},    'bao.nguyen@demo.local',   'Nguyễn Quốc Bảo',  'DRIVER', 'MEMBER'),
+      (${U_HUNG},  ${ENT_ID}, ${U_HUNG},  'hieu.phan@demo.local',    'Phan Huỳnh Hiếu',  'DRIVER', 'MEMBER'),
+      (${U_DUC},   ${ENT_ID}, ${U_DUC},   'lam.nguyen@demo.local',   'Nguyễn Minh Lâm',  'DRIVER', 'MEMBER')
+    ON CONFLICT (usr_id) DO UPDATE SET
+      usr_email             = EXCLUDED.usr_email,
+      usr_name              = EXCLUDED.usr_name,
+      usr_local_role        = EXCLUDED.usr_local_role,
+      usr_ama_role_snapshot = EXCLUDED.usr_ama_role_snapshot
   `;
-  console.log('  ✓ 4 users');
+  console.log('  ✓ 4 users (Park Joon-ho + Bảo, Hiếu, Lâm)');
 
-  // Drivers
+  // Drivers — placeholder licences (TBD), fill real values via the app later.
   await sql`
     INSERT INTO car_drivers (drv_id, ent_id, drv_user_id, drv_license_number, drv_license_class, drv_license_expiry, drv_phone, drv_status)
     VALUES
-      (${D_TU},   ${ENT_ID}, ${U_TU},   'B2-1234567', 'B2', '2028-08-12', '+84 90 555 8819', 'ON_TRIP'),
-      (${D_HUNG}, ${ENT_ID}, ${U_HUNG}, 'B2-1108800', 'B2', '2027-02-04', '+84 91 444 7720', 'AVAILABLE'),
-      (${D_DUC},  ${ENT_ID}, ${U_DUC},  'B2-1090012', 'B2', '2026-05-22', '+84 90 778 1132', 'OFF_DUTY')
-    ON CONFLICT (drv_id) DO NOTHING
+      (${D_TU},   ${ENT_ID}, ${U_TU},   'TBD-0001', 'B2', '2028-12-31', NULL, 'AVAILABLE'),
+      (${D_HUNG}, ${ENT_ID}, ${U_HUNG}, 'TBD-0002', 'B2', '2028-12-31', NULL, 'AVAILABLE'),
+      (${D_DUC},  ${ENT_ID}, ${U_DUC},  'TBD-0003', 'B2', '2028-12-31', NULL, 'AVAILABLE')
+    ON CONFLICT (drv_id) DO UPDATE SET
+      drv_license_number = EXCLUDED.drv_license_number,
+      drv_license_class  = EXCLUDED.drv_license_class,
+      drv_license_expiry = EXCLUDED.drv_license_expiry,
+      drv_phone          = EXCLUDED.drv_phone,
+      drv_status         = EXCLUDED.drv_status
   `;
-  console.log('  ✓ 3 drivers');
+  console.log('  ✓ 3 drivers (Bảo, Hiếu, Lâm — placeholder licences)');
 
-  // Vehicles
+  // Vehicles — placeholder plates (TBD), fill real values via the app later.
   await sql`
     INSERT INTO car_vehicles (cvh_id, ent_id, cvh_plate_number, cvh_model, cvh_make, cvh_year, cvh_color, cvh_status, cvh_odometer_km, cvh_last_oil_change_km, cvh_last_oil_change_at, cvh_home_base)
     VALUES
-      (${V_STARIA},   ${ENT_ID}, '51K-238.91', 'Hyundai Staria 11',   'Hyundai', 2023, 'Pearl White',  'IN_USE',       18420, 15000, '2026-03-15', 'HCMC HQ'),
-      (${V_CARNIVAL}, ${ENT_ID}, '30A-556.07', 'Kia Carnival SX',      'Kia',     2022, 'Aurora Black', 'AVAILABLE',    42118, 35000, '2025-12-20', 'HCMC HQ'),
-      (${V_CAMRY},    ${ENT_ID}, '51F-712.34', 'Toyota Camry 2.5Q',    'Toyota',  2021, 'Silver',       'MAINTENANCE',  67830, 65000, '2026-04-22', 'HCMC HQ')
-    ON CONFLICT (cvh_id) DO NOTHING
+      (${V_STARIA},   ${ENT_ID}, 'TBD-0001', 'Peugeot', 'Peugeot', NULL, NULL, 'AVAILABLE', 0, NULL, NULL, NULL),
+      (${V_CARNIVAL}, ${ENT_ID}, 'TBD-0002', 'Sedona',  'Kia',     NULL, NULL, 'AVAILABLE', 0, NULL, NULL, NULL),
+      (${V_CAMRY},    ${ENT_ID}, 'TBD-0003', 'Cross',   NULL,      NULL, NULL, 'AVAILABLE', 0, NULL, NULL, NULL)
+    ON CONFLICT (cvh_id) DO UPDATE SET
+      cvh_plate_number       = EXCLUDED.cvh_plate_number,
+      cvh_model              = EXCLUDED.cvh_model,
+      cvh_make               = EXCLUDED.cvh_make,
+      cvh_year               = EXCLUDED.cvh_year,
+      cvh_color              = EXCLUDED.cvh_color,
+      cvh_status             = EXCLUDED.cvh_status,
+      cvh_odometer_km        = EXCLUDED.cvh_odometer_km,
+      cvh_last_oil_change_km = EXCLUDED.cvh_last_oil_change_km,
+      cvh_last_oil_change_at = EXCLUDED.cvh_last_oil_change_at,
+      cvh_home_base          = EXCLUDED.cvh_home_base
   `;
-  console.log('  ✓ 3 vehicles');
+  console.log('  ✓ 3 vehicles (Peugeot, Sedona, Cross — placeholder plates)');
 
   // Trips — 5 trips covering 5 of 7 states
   //   T1 IN_PROGRESS  (Tú/Staria)

@@ -6,17 +6,20 @@ import { useTranslations } from 'next-intl';
 import { Calendar, Check, Loader2, Receipt, ShieldAlert, UserPlus } from 'lucide-react';
 import { Card, cn, toast } from '@car-v2/ui';
 import type { CarNotification, NotificationTemplatePayload } from '@car-v2/db/schema';
+import type { LocalRole } from '@car-v2/shared/auth';
 import { markNotificationReadAction } from '@/server/actions/notifications/notification.actions';
 
 interface InboxListProps {
   items: CarNotification[];
+  /** Current user's local role for role-based notification content. */
+  userRole: LocalRole;
 }
 
 /* Renders the notification stream. Tap on a notification: marks it read +
  * navigates to the related entity if `ntfEntityId` is present (trips: link to
  * `/trips/[id]`; expenses: link to `/expenses` for now — detail page is a
  * follow-up). Empty handling done by parent. */
-export function InboxList({ items }: InboxListProps) {
+export function InboxList({ items, userRole }: InboxListProps) {
   const t = useTranslations('inbox');
   const tEvents = useTranslations('notifications.events');
   const [pending, startTransition] = useTransition();
@@ -37,7 +40,7 @@ export function InboxList({ items }: InboxListProps) {
         const isRead = n.ntfReadAt !== null;
         const Icon = pickIcon(n.ntfEvent);
         const href = linkFor(n);
-        const { title, body } = resolveCopy(n, tEvents);
+        const { title, body } = resolveCopy(n, tEvents, userRole);
 
         const inner = (
           <Card
@@ -132,6 +135,7 @@ export function InboxList({ items }: InboxListProps) {
 function resolveCopy(
   n: CarNotification,
   tEvents: ReturnType<typeof useTranslations>,
+  userRole: LocalRole,
 ): { title: string; body: string | null } {
   const payload = n.ntfTemplatePayload as NotificationTemplatePayload | null;
   if (!payload) {
@@ -140,16 +144,17 @@ function resolveCopy(
   /* `useTranslations` throws if the key is missing — wrap so a new event
    * deployed before its JSON copy doesn't crash the whole inbox. */
   try {
-    const subjectKey = `${n.ntfEvent}.subject`;
-    const bodyKey = pickBodyKey(n.ntfEvent, payload);
+    const subjectKey = pickSubjectKey(n.ntfEvent, userRole);
+    const bodyKey = pickBodyKey(n.ntfEvent, payload, userRole);
     const interp = {
       ref: payload.ref,
       route: payload.route ?? '',
       reason: payload.reason ?? '',
       amount: payload.amount ?? '',
       description: payload.description ?? '',
+      actorName: payload.actorName ?? '',
     };
-    const title = tEvents(subjectKey, interp);
+    const title = tEvents(`${n.ntfEvent}.${subjectKey}`, interp);
     const body = tEvents(`${n.ntfEvent}.${bodyKey}`, interp);
     return { title, body };
   } catch {
@@ -157,10 +162,28 @@ function resolveCopy(
   }
 }
 
+/* Mirror of notification-template.service.pickSubjectKey — kept duplicated to
+ * avoid pulling a server-only module into the client bundle. Both must stay
+ * in sync if a new conditional subject variant is added. */
+function pickSubjectKey(event: string, userRole: LocalRole): 'subject' | 'subjectDriver' {
+  if (event === 'TRIP.CANCELLED' && userRole === 'DRIVER') {
+    return 'subjectDriver';
+  }
+  return 'subject';
+}
+
 /* Mirror of notification-template.service.pickBodyKey — kept duplicated to
  * avoid pulling a server-only module into the client bundle. Both must stay
  * in sync if a new conditional body variant is added. */
-function pickBodyKey(event: string, payload: NotificationTemplatePayload): 'body' | 'bodyWithRoute' | 'bodyWithReason' {
+function pickBodyKey(
+  event: string,
+  payload: NotificationTemplatePayload,
+  userRole: LocalRole,
+): 'body' | 'bodyWithRoute' | 'bodyWithReason' | 'bodyDriver' | 'bodyDriverWithReason' {
+  /* TRIP.CANCELLED has role-specific variants for Driver recipients. */
+  if (event === 'TRIP.CANCELLED' && userRole === 'DRIVER') {
+    return payload.reason ? 'bodyDriverWithReason' : 'bodyDriver';
+  }
   if ((event === 'TRIP.ASSIGNED' || event === 'TRIP.NEEDS_ASSIGNMENT') && payload.route) {
     return 'bodyWithRoute';
   }

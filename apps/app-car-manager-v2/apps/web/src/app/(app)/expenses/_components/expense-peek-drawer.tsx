@@ -4,6 +4,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import {
+  AlertTriangle,
   ArrowUpRight,
   Calendar,
   Clock,
@@ -121,10 +122,10 @@ export function ExpensePeekDrawer({ expense, attachments }: ExpensePeekDrawerPro
             <dl className="grid grid-cols-1 gap-x-6 gap-y-3.5 text-sm sm:grid-cols-2">
               <Field icon={<Calendar />} label={tE('occurredAt')} value={occurredAt} />
               <Field icon={<Clock />} label={tE('submittedAt')} value={submittedAt} />
-              <Field icon={<UserIcon />} label={t('fDriver')} value={expense.driverName ?? '—'} />
+              <Field icon={<UserIcon />} label={t('fDriver')} value={expense.driverName ?? '—'} deletedWarning={expense.driverDeletedAt ? t('driverDeleted') : undefined} />
               <Field icon={<UserIcon />} label={t('submittedBy')} value={expense.submitterName ?? '—'} />
-              <Field icon={<Receipt />} label={t('fLinkedTrip')} value={expense.tripRef ?? '—'} mono />
-              <Field icon={<Receipt />} label={t('fVehicle')} value={expense.vehiclePlate ?? '—'} mono />
+              <Field icon={<Receipt />} label={t('fLinkedTrip')} value={expense.tripRef ?? '—'} mono deletedWarning={expense.tripDeletedAt ? t('tripDeleted') : undefined} />
+              <Field icon={<Receipt />} label={t('fVehicle')} value={expense.vehiclePlate ?? '—'} mono deletedWarning={expense.vehicleDeletedAt ? t('vehicleDeleted') : undefined} />
             </dl>
             {expense.expNote && (
               <div className="mt-4 border-t border-border pt-4">
@@ -159,11 +160,13 @@ function Field({
   label,
   value,
   mono,
+  deletedWarning,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   mono?: boolean;
+  deletedWarning?: string;
 }) {
   return (
     <div className="flex items-start gap-2.5">
@@ -173,6 +176,12 @@ function Field({
       <div className="min-w-0">
         <dt className="text-[11px] font-medium text-text-muted">{label}</dt>
         <dd className={cn('truncate text-text font-medium', mono && 'font-mono tabular')}>{value}</dd>
+        {deletedWarning && (
+          <dd className="mt-1 inline-flex items-center gap-1 rounded bg-danger-soft px-1.5 py-0.5 text-[10px] font-medium text-danger">
+            <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+            <span>{deletedWarning}</span>
+          </dd>
+        )}
       </div>
     </div>
   );

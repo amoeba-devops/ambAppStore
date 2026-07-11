@@ -151,7 +151,7 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
                     value={r.traffic.totalPageViews}
                     tone="info"
                     unit="views"
-                    hint={`${r.traffic.productCount} products · shop ${fmtCompact(r.traffic.pvShopTab)} + live ${fmtCompact(r.traffic.pvLive)} + video ${fmtCompact(r.traffic.pvVideo)} + card ${fmtCompact(r.traffic.pvProductCard)}`}
+                    hint={`${r.traffic.productCount} products · unique product impressions`}
                   />
                 </div>
               )}
@@ -161,24 +161,11 @@ export function TikTokMetricsPreviewCard({ file, trafficFile = null, affiliateFi
                 </div>
               )}
 
-              {r.affiliate && (
-                <div>
-                  <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
-                    {t('section.affiliate')}
-                  </div>
-                  <Card
-                    label="Total Affiliate Commission"
-                    value={r.affiliate.totalCommission}
-                    tone="error"
-                    hint={`${r.affiliate.activeCreatorCount}/${r.affiliate.creatorCount} active creators · ${fmtCompact(r.affiliate.totalItemsSold)} items`}
-                  />
-                </div>
-              )}
-              {!r.affiliate && affiliateFile === null && (
-                <div className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-500">
-                  {t('hint.uploadTikTokAffiliate')}
-                </div>
-              )}
+              {/* Affiliate preview removed — moved from creator-aggregated to
+                  order-level across 3 files (Creator / Partner / Non-collab).
+                  Preview pipeline keeps the merged map internal; the wizard
+                  will show a separate affiliate summary card once that UI is
+                  designed. See REQ-20260528-tiktok-affiliate-3-files. */}
 
               {r.missingFromMaster.length > 0 && (
                 <details open className="rounded-md border border-warning-500/30 bg-warning-500/5 px-3 py-2 text-xs">

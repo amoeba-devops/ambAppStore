@@ -53,6 +53,10 @@ const nextConfig = {
   env: publicEnv,
   transpilePackages: ['@car-v2/db', '@car-v2/shared', '@car-v2/ui'],
   outputFileTracingRoot: __dirname,
+  /* pdfmake must run as a native Node module (not bundled by webpack) because
+   * it relies on its own virtual font system and binary handling. Without this,
+   * the bundled version may hang or produce errors. */
+  serverExternalPackages: ['pdfmake'],
   /* Per-page bundles only pull the symbols they actually use from these
    * barrel packages instead of the whole module graph. Biggest win is
    * `@car-v2/ui`, whose barrel re-exports recharts (~280KB) via the chart

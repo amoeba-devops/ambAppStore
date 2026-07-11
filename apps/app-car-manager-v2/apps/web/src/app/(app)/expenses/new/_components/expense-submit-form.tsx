@@ -11,6 +11,7 @@ import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
 import { useFormDraft } from '@/hooks/use-form-draft';
 import { submitExpenseAction } from '@/server/actions/expenses/expense.actions';
 import { formatActionError } from '@/lib/format-action-error';
+import { apiPath } from '@/lib/base-path';
 import { AmountInput } from './amount-input';
 import { ExpenseTypeChipGrid, type ExpenseType } from './expense-type-chip-grid';
 import { ReceiptCameraInput } from './receipt-camera-input';
@@ -90,6 +91,10 @@ export function ExpenseSubmitForm({
    * a meaningful resume target. Re-pick on resume. */
   const [files, setFiles] = useState<File[]>([]);
 
+  /* Track whether user has made any changes — draft is only saved when dirty. */
+  const [isDirty, setIsDirty] = useState(false);
+  const markDirty = () => setIsDirty(true);
+
   /* Draft cache — auto-save on change, surface in sidebar `Chi phí` (STAFF) /
    * `Ghi nhận chi phí` (Driver), restore via banner on next visit. Receipts
    * are intentionally excluded (see comment above). */
@@ -117,6 +122,7 @@ export function ExpenseSubmitForm({
     label: { primary: t('draftLabelNew'), secondary: draftSecondary },
     href: tripId ? `/expenses/new?tripId=${tripId}` : '/expenses/new',
     entity: 'expense',
+    isDirty,
   });
 
   const handleRestoreDraft = () => {
@@ -128,6 +134,7 @@ export function ExpenseSubmitForm({
     setNote(v.note);
     setVehicleId(v.vehicleId);
     setDriverId(v.driverId);
+    setIsDirty(true); // Restored draft should be persisted
     dismissDraft();
   };
   /* Sub-stage of the submit transition. `pending` from useTransition is true
@@ -245,7 +252,7 @@ export function ExpenseSubmitForm({
   }
 
   async function requestPresigned(f: File): Promise<{ uploadUrl: string; key: string }> {
-    const res = await fetch('/api/v1/expenses/upload-presigned', {
+    const res = await fetch(apiPath('/api/v1/expenses/upload-presigned'), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -310,13 +317,13 @@ export function ExpenseSubmitForm({
             {/* Expense type */}
             <div>
               <Label id="exp-type-label" required className="mb-2 block">{t('typeLabel')}</Label>
-              <ExpenseTypeChipGrid value={type} onChange={setType} labelledBy="exp-type-label" />
+              <ExpenseTypeChipGrid value={type} onChange={(v) => { setType(v); markDirty(); }} labelledBy="exp-type-label" />
             </div>
 
             {/* Amount */}
             <div>
               <Label htmlFor="exp-amount" required className="mb-2 block">{t('amountLabel')}</Label>
-              <AmountInput id="exp-amount" value={amount} onChange={setAmount} placeholder={t('amountPlaceholder')} />
+              <AmountInput id="exp-amount" value={amount} onChange={(v) => { setAmount(v); markDirty(); }} placeholder={t('amountPlaceholder')} />
             </div>
 
             {/* Vehicle picker — shown only when not linked to a trip. */}
@@ -326,7 +333,7 @@ export function ExpenseSubmitForm({
                 <select
                   id="exp-vehicle"
                   value={vehicleId}
-                  onChange={(e) => setVehicleId(e.target.value)}
+                  onChange={(e) => { setVehicleId(e.target.value); markDirty(); }}
                   required
                   className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
@@ -349,7 +356,7 @@ export function ExpenseSubmitForm({
                 <select
                   id="exp-driver"
                   value={driverId}
-                  onChange={(e) => setDriverId(e.target.value)}
+                  onChange={(e) => { setDriverId(e.target.value); markDirty(); }}
                   className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <option value="">{t('driverPlaceholder')}</option>
@@ -367,7 +374,7 @@ export function ExpenseSubmitForm({
                 id="exp-date"
                 type="date"
                 value={occurredAt}
-                onChange={(e) => setOccurredAt(e.target.value)}
+                onChange={(e) => { setOccurredAt(e.target.value); markDirty(); }}
                 max={new Date().toISOString().slice(0, 10)}
                 required
               />
@@ -379,7 +386,7 @@ export function ExpenseSubmitForm({
               <Textarea
                 id="exp-note"
                 value={note}
-                onChange={(e) => setNote(e.target.value)}
+                onChange={(e) => { setNote(e.target.value); markDirty(); }}
                 placeholder={t('notePlaceholder')}
                 rows={3}
               />

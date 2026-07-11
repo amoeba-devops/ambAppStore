@@ -55,7 +55,7 @@ export default async function InboxPage() {
             />
           </Card>
         ) : (
-          <InboxList items={items} />
+          <InboxList items={items} userRole={user.role} />
         )}
       </div>
     </>

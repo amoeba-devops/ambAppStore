@@ -1,0 +1,78 @@
+PHẦN MỀM QUẢN LÝ XE TẢI NỘI BỘ
+TRUCK MANAGEMENT SYSTEM
+1. TỔNG QUAN
+1.1  Bối cảnh
+Công ty hiện đang quản lý 3–4 xe tải nội bộ phục vụ vận chuyển hàng hóa cho khách hàng. Toàn bộ dữ liệu hiện đang được lưu thủ công trên file Excel (.xls) — mỗi xe một file, mỗi tháng một sheet. Cách làm này dẫn đến khó tổng hợp đa xe, dễ sai sót, và mất nhiều thời gian báo cáo cuối tháng.
+1.2  Mục tiêu
+Số hóa toàn bộ quy trình theo dõi hoạt động xe tải nội bộ.
+Ghi nhận chi tiết từng chuyến đi: thời gian, lộ trình, số km đồng hồ, nhiên liệu tiêu thụ, doanh thu, chi phí phát sinh.
+Tự động tính toán lợi nhuận từng chuyến và tổng hợp theo xe / theo tháng.
+Hỗ trợ nhập liệu từ upload file Excel
+Cung cấp dashboard &amp; báo cáo nhanh cho cấp quản lý.
+2. CẤU TRÚC DỮ LIỆU
+2.1
+Bảng TRUCK – Thông tin xe
+Mô tả
+Mã xe
+Biển số xe (VD: 50E-32407)
+Tên gọi / mô tả xe
+Định mức tiêu hao (L/km)
+Số km đồng hồ hiện tại
+Trạng thái : active / inactive/...
+Ghi chú
+2.2
+Bảng TRIP_LOG – Nhật ký chuyến đi
+Mô tả
+Xe thực hiện chuyến
+Ngày thực hiện
+Tên khách hàng 
+Giờ bắt đầu 
+Giờ kết thúc
+Điểm lấy hàng / xuất phát
+Điểm giao hàng / đến
+Số km đồng hồ lúc bắt đầu
+Số km đồng hồ lúc kết thúc
+Tổng km đoạn này (auto = end - start)
+Giá nhiên liệu tại thời điểm (VND/lít)
+Lượng nhiên liệu tiêu thụ (lít)
+Chi phí nhiên liệu (= fuel_qty × fuel_price)
+Phí cầu đường (VND)
+Chi phí phát sinh khác (VND)
+Ghi chú chi phí khác (xăng thêm, vá vỏ, rửa xe, phí bãi...)
+Doanh thu chuyến (VND) 
+Lợi nhuận (= selling - fuel_cost - toll_fee - other_fee)
+Số vận đơn / bill of lading
+Số CDF 
+Tham khảo file excel gửi kèm 
+2.3
+Bảng MONTHLY_COST – Chi phí cố định theo xe/tháng
+Mô tả
+Xe áp dụng
+Tháng
+Lương tài xế
+Khấu hao xe
+Tổng chi phí cố định tháng đó
+Tổng doanh thu tháng (lấy từ trip_log)
+Tổng xăng dầu tháng (lấy từ trip_log)
+Tổng phí cầu đường tháng
+Tổng chi phí phát sinh tháng
+Lợi nhuận ròng = billing - fixed_cost - variable_costs
+Example: 
+TRUCK 50E-32407
+ OCT 25
+SALARY
+                11,345,000 
+Depreciation for truck
+                  3,541,667 
+Gasoline charge
+                  6,101,852 
+Parking and other charge
+                  2,670,000 
+Toll gate tiecket charge
+                      200,000 
+Total cost
+                23,858,519 
+Total Billing
+                25,080,000 
+Profit
+                  1,221,481 

@@ -24,6 +24,9 @@ export const updateTripSchema = z.object({
   duration_minutes: z.number().int().min(5).max(1440).nullable().optional(),
   purpose: z.string().trim().max(255).nullable().optional(),
   notes: z.string().trim().max(2000).nullable().optional(),
+  /* Stopovers CRUD — pass full array to replace existing stopovers.
+   * Empty array clears all stopovers. Undefined = no change. */
+  stopovers: z.array(z.string().trim().min(1).max(2000)).max(10).optional(),
 });
 export type UpdateTripInput = z.infer<typeof updateTripSchema>;
 

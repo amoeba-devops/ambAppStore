@@ -1,8 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
-import { Calendar, FileSpreadsheet, FileText } from 'lucide-react';
 import {
-  Button,
   Card,
   CardContent,
   CardDescription,
@@ -15,6 +13,7 @@ import {
   LineChart,
   StackedBarChart,
 } from '@car-v2/ui';
+import { ExportDropdown } from '@/components/export-dropdown';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import {
@@ -23,8 +22,9 @@ import {
   getSpendByWeek,
   getVehicleUtilization,
 } from '@/server/queries/reports.queries';
+import { PeriodPicker } from './_components/period-picker';
 
-const PERIOD_WEEKS = 12;
+const DEFAULT_PERIOD_WEEKS = 12;
 
 /* Color palette per category — khớp chartColors order. */
 const CATEGORY_COLOR: Record<string, string> = {
@@ -55,26 +55,46 @@ function deltaKind(value: number): 'up' | 'down' {
   return value >= 0 ? 'up' : 'down';
 }
 
-export default async function ReportsPage() {
+interface ReportsPageProps {
+  searchParams: Promise<{ weeks?: string }>;
+}
+
+export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const actor = await getCurrentUser();
   // RBAC: chỉ ADMIN/MANAGER xem báo cáo, driver redirect /today.
   if (actor.role === 'DRIVER') {
     redirect('/today');
   }
 
+  const sp = await searchParams;
+  const periodWeeks = Math.min(52, Math.max(1, Number(sp.weeks ?? DEFAULT_PERIOD_WEEKS)));
+
   const t       = await getTranslations('screens.reports');
   const tNav    = await getTranslations('nav');
   const tCo     = await getTranslations('company');
   const tR      = await getTranslations('reports');
   const tCat    = await getTranslations('reports.categories');
+  const tA      = await getTranslations('actions');
 
   // Parallel fetch
   const [kpis, categorySpend, weeklySpend, utilization] = await Promise.all([
-    getReportKpis(actor.entId, PERIOD_WEEKS),
-    getSpendByCategory(actor.entId, PERIOD_WEEKS),
-    getSpendByWeek(actor.entId, PERIOD_WEEKS),
-    getVehicleUtilization(actor.entId, PERIOD_WEEKS),
+    getReportKpis(actor.entId, periodWeeks),
+    getSpendByCategory(actor.entId, periodWeeks),
+    getSpendByWeek(actor.entId, periodWeeks),
+    getVehicleUtilization(actor.entId, periodWeeks),
   ]);
+
+  const periodOptions = [
+    { key: '4w',  weeks: 4,  label: tR('period4w') },
+    { key: '8w',  weeks: 8,  label: tR('period8w') },
+    { key: '12w', weeks: 12, label: tR('period12w') },
+    { key: '3m',  weeks: 13, label: tR('period3m') },
+    { key: '6m',  weeks: 26, label: tR('period6m') },
+  ];
+
+  const exportParams: Record<string, string> = periodWeeks !== DEFAULT_PERIOD_WEEKS
+    ? { weeks: String(periodWeeks) }
+    : {};
 
   const totalCategorySpend = categorySpend.reduce((s, c) => s + c.amountVnd, 0);
   const SPEND_MIX = categorySpend
@@ -105,9 +125,22 @@ export default async function ReportsPage() {
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('reports') }]}
         actions={
           <>
-            <Button variant="ghost" size="md" iconLeft={<Calendar />}>{tR('period')}</Button>
-            <Button variant="secondary" size="md" iconLeft={<FileSpreadsheet />}>{tR('actionExcel')}</Button>
-            <Button variant="accent" size="md" iconLeft={<FileText />}>{tR('actionPdf')}</Button>
+            <PeriodPicker
+              options={periodOptions}
+              currentWeeks={periodWeeks}
+              labels={{ period: tR('period') }}
+            />
+            <ExportDropdown
+              baseUrl="/api/v1/reports/export"
+              queryParams={exportParams}
+              labels={{
+                export: tA('export'),
+                excel: tA('exportExcel'),
+                pdf: tA('exportPdf'),
+                csv: tA('exportCsv'),
+              }}
+              variant="secondary"
+            />
           </>
         }
       />
@@ -158,7 +191,7 @@ export default async function ReportsPage() {
             <CardContent>
               {SPEND_MIX.length === 0 ? (
                 <div className="py-8 text-center text-sm text-text-muted">
-                  {tR('emptyNoExpense', { weeks: PERIOD_WEEKS })}
+                  {tR('emptyNoExpense', { weeks: periodWeeks })}
                 </div>
               ) : (
                 <div className="flex items-center gap-5">

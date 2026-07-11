@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Loader2, MapPin } from 'lucide-react';
 import { Input, cn } from '@car-v2/ui';
+import { apiPath } from '@/lib/base-path';
 
 interface Prediction {
   placeId: string;
@@ -72,7 +73,7 @@ export function AddressAutocomplete({
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await fetch('/api/v1/places/autocomplete', {
+        const res = await fetch(apiPath('/api/v1/places/autocomplete'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

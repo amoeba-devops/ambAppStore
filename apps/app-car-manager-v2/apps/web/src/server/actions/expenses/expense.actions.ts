@@ -16,6 +16,10 @@ import {
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { logAudit } from '@/server/services/audit-log.service';
+import {
+  checkExpenseDeleteWarnings,
+  type ExpenseDeleteWarning,
+} from '@/server/services/expense-delete-check.service';
 import { runAction } from '../_helpers';
 
 /* Expense submission server action.
@@ -256,4 +260,89 @@ export async function submitExpenseAction(
  * re-deriving the schema interactions — the audit-log + notification fan-out
  * had subtleties (recipients query, EXPENSE.REJECTED requiring a reason)
  * that aren't worth re-discovering. */
+
+/* ─── Delete Expense ─────────────────────────────────────────────────────────
+ *
+ * Soft delete an expense. Returns warnings about attachments / linked trips
+ * but does NOT block (soft-warning approach per driver deletion pattern). */
+
+/**
+ * Get warnings before deleting an expense.
+ * Returns warnings about attachments and linked trip.
+ * Does NOT block deletion (soft-warning approach).
+ */
+export async function getExpenseDeleteWarningsAction(
+  expenseId: string,
+): Promise<ActionResult<{ warnings: ExpenseDeleteWarning[] }>> {
+  return runAction(async () => {
+    const actor = await getCurrentUser();
+    // Any authenticated user can check warnings for their own expenses
+    // (role check is done in deleteExpenseAction)
+
+    const result = await checkExpenseDeleteWarnings(actor.entId, expenseId);
+    return { warnings: result.warnings };
+  });
+}
+
+export async function deleteExpenseAction(
+  id: string,
+): Promise<ActionResult<{ id: string }>> {
+  return runAction(async () => {
+    const actor = await getCurrentUser();
+
+    // Fetch expense to check ownership
+    const existing = await db
+      .select({
+        expId: carExpenses.expId,
+        expType: carExpenses.expType,
+        expAmount: carExpenses.expAmount,
+        expStatus: carExpenses.expStatus,
+        expSubmittedBy: carExpenses.expSubmittedBy,
+        expDriverId: carExpenses.expDriverId,
+      })
+      .from(carExpenses)
+      .where(
+        and(
+          eq(carExpenses.expId, id),
+          eq(carExpenses.entId, actor.entId),
+          isNull(carExpenses.expDeletedAt),
+        ),
+      )
+      .limit(1)
+      .then((rows) => rows[0]);
+
+    if (!existing) throw new CarError('CAR-E0404', 404, 'Expense not found');
+
+    // Permission check: ADMIN/MANAGER can delete any expense,
+    // DRIVER can only delete their own submitted expenses
+    if (actor.role === 'DRIVER') {
+      if (existing.expSubmittedBy !== actor.userId) {
+        throw new CarError('CAR-E0403', 403, 'You can only delete your own expenses');
+      }
+    }
+
+    // Soft delete
+    await db
+      .update(carExpenses)
+      .set({ expDeletedAt: new Date(), expUpdatedAt: new Date() })
+      .where(and(eq(carExpenses.expId, id), eq(carExpenses.entId, actor.entId)));
+
+    await logAudit({
+      entId: actor.entId,
+      userId: actor.userId,
+      action: 'EXPENSE.DELETE',
+      entity: 'Expense',
+      entityId: id,
+      before: {
+        type: existing.expType,
+        amount: existing.expAmount,
+        status: existing.expStatus,
+      },
+    });
+
+    revalidatePath('/expenses');
+    revalidatePath('/costs');
+    return { id };
+  });
+}
 

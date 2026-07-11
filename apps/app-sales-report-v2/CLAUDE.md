@@ -221,4 +221,4 @@ Theo root [CLAUDE.md](../../CLAUDE.md), khi tag `[요구사항]` / `[requirement
 - ❌ **Hard-code 48 formula params** — phải đọc từ `sal_formula_configs` (FR-23, NFR-07)
 - ❌ **Apply Shopee CM formula cho TikTok** — TikTok không có Brand Ads, Off-Platform, Seller Vouchers
 - ❌ Quên `Item Sold = Quantity − Quantity Returned` cho Shopee, hoặc `IF(Q=return, 0, Q)` cho TikTok
-- ❌ Treat Free Gift như cancelled — Free Gift PHẢI ADD Prime Cost vào Total Prime Cost, chỉ exclude revenue
+- ❌ Cộng Free Gift Prime Cost vào `Total Prime Cost` — Free Gift PC phải track riêng ở `primeCostFreeGift` và được trừ trong CM như một dòng tách biệt (tránh double-subtract). `Total Prime Cost` chỉ gồm `kept rows`; revenue của Free Gift vẫn exclude.

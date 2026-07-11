@@ -17,6 +17,8 @@ export interface ProductMetric {
   platform: 'SHOPEE' | 'TIKTOK';
   pv: number;
   cvr: number; // 0..1
+  /** Unique click-through rate (decimal 0..1). TikTok only — undefined for Shopee. */
+  ctr?: number;
   items: number;
   gmv: number;
   netGmv: number;

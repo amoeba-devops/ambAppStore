@@ -140,10 +140,11 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Total Affiliate Commission — Shopee',
-        description: 'Field Map — sum of {Chi phí(₫)}',
+        description:
+          'Platform total đọc trực tiếp từ Shopee Affiliate file = SUM của {Chi phí(₫)} tất cả rows. Không nhân với NMV. Lưu ý: một product có nhiều SKU variations (combo + regular) → mỗi variation row trong Product Breakdown table hiển thị cùng product-level chiPhi; tổng các row trong table có thể > Total (vì duplicate per variation), nhưng Total platform-level luôn = file total.',
         dataSources: ['Shopee Affiliate CSV'],
-        formula: 'Sum of {Chi phí(₫)}',
-        versions: 1,
+        formula: 'SUM of {Chi phí(₫)} over all rows in Shopee Affiliate file',
+        versions: 3,
       },
       {
         metric: 'Total Affiliate Booking Fee — Shopee',
@@ -309,10 +310,11 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Affiliate Commission — Shopee',
-        description: 'Allocated',
-        dataSources: ['Calculated'],
-        formula: '{Total Affiliate Commission — Shopee} × {NMV — Shopee} / {Total NMV — Shopee}',
-        versions: 1,
+        description:
+          'Per-SKU value = product-level chiPhi (SUM của {Chi phí(₫)} từ file mà {Tên sản phẩm} = P). Lấy thẳng từ file, không nhân NMV. Multi-variation cùng product → mỗi row nhận giá trị giống nhau. Tên không match Sales breakdown → rớt vào row "Others".',
+        dataSources: ['Shopee Affiliate CSV'],
+        formula: 'SUM of {Chi phí(₫)} WHERE {Tên sản phẩm} = P',
+        versions: 3,
       },
       {
         metric: 'Affiliate Booking Fee — Shopee',
@@ -368,17 +370,20 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
     title: 'Platform-Level Formulas — TikTok',
     items: [
       {
-        metric: 'Total Page View — TikTok',
+        metric: 'Total Impression — TikTok',
+        description:
+          'Platform total = SUM of per-SKU {Impression — TikTok}. TikTok\'s metric is unique product impressions (Lượt hiển thị sản phẩm độc nhất); it replaces the previous "Page View" naming.',
         dataSources: ['Calculated'],
-        formula: 'Sum of {Page View — TikTok}',
-        versions: 2,
+        formula: 'Sum of {Impression — TikTok}',
+        versions: 3,
       },
       {
         metric: 'Conversion Rate — TikTok',
+        description: 'Item Sold ÷ Impression (unique product impressions).',
         dataSources: ['Calculated'],
-        formula: '{Total Item Sold — TikTok} / {Total Page View — TikTok}',
+        formula: '{Total Item Sold — TikTok} / {Total Impression — TikTok}',
         unit: '%',
-        versions: 1,
+        versions: 2,
       },
       {
         metric: 'Total Item Sold — TikTok',
@@ -448,10 +453,11 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Total Affiliate Commission — TikTok',
-        description: 'Field Map — sum of {Hoa hồng ước tính}',
-        dataSources: ['TikTok Affiliate CSV'],
-        formula: 'Sum of {Hoa hồng ước tính}',
-        versions: 1,
+        description:
+          'Platform total = SUM of per-SKU {Affiliate Commission — TikTok} over all TikTok SKUs (including row "Others" for product names not in Sales breakdown).',
+        dataSources: ['Calculated'],
+        formula: 'SUM of {Affiliate Commission — TikTok} over all SKUs',
+        versions: 2,
       },
       {
         metric: 'Total Affiliate Booking Fee — TikTok',
@@ -469,11 +475,12 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Platform Fee Rate — TikTok',
-        description: 'Constant — set once in Formula Config',
+        description:
+          'Constant set by TikTok Shop policy. 24% until 2026-05-08, then 26% from 2026-05-09 onwards (current rate). Operator can override per ingest if TikTok issues a new rate.',
         dataSources: ['Constant'],
-        formula: '24',
+        formula: '26',
         unit: '%',
-        versions: 1,
+        versions: 2,
       },
       {
         metric: 'Total Platform Fee — TikTok',
@@ -526,19 +533,29 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
         versions: 1,
       },
       {
-        metric: 'Page View — TikTok',
-        description: 'Look up from TikTok Traffic CSV',
-        dataSources: ['TikTok Traffic CSV'],
-        formula:
-          '{Lượt xem trang từ tab Cửa hàng} + {Lượt xem trang từ LIVE} + {Lượt xem trang từ video} + {Lượt xem trang từ thẻ sản phẩm}',
+        metric: 'Impression — TikTok',
+        description:
+          'Per-SKU unique product impressions, looked up from the TikTok Traffic XLSX. Replaces the previous "Page View — TikTok" metric — TikTok consolidated 4 separate page-view sources (Tab Cửa hàng + LIVE + Video + Thẻ sản phẩm) into a single canonical column "Lượt hiển thị sản phẩm độc nhất".',
+        dataSources: ['TikTok Traffic XLSX'],
+        formula: '{Lượt hiển thị sản phẩm độc nhất}',
+        versions: 3,
+      },
+      {
+        metric: 'CTR — TikTok',
+        description:
+          'Look up from TikTok Traffic XLSX. Unique click-through rate per product.',
+        dataSources: ['TikTok Traffic XLSX'],
+        formula: '{CTR độc nhất}',
+        unit: '%',
         versions: 1,
       },
       {
         metric: 'Conversion Rate per Product — TikTok',
+        description: 'Item Sold ÷ Impression (unique product impressions).',
         dataSources: ['Calculated'],
-        formula: '{Item Sold — TikTok} / {Page View — TikTok}',
+        formula: '{Item Sold — TikTok} / {Impression — TikTok}',
         unit: '%',
-        versions: 1,
+        versions: 2,
       },
       {
         metric: 'Item Sold — TikTok',
@@ -590,10 +607,17 @@ export const FORMULA_SECTIONS: FormulaSection[] = [
       },
       {
         metric: 'Affiliate Commission — TikTok',
-        description: 'Allocated',
-        dataSources: ['Calculated'],
-        formula: '{Total Affiliate Commission — TikTok} × {NMV — TikTok} / {Total NMV — TikTok}',
-        versions: 1,
+        description:
+          'Per-SKU value. Product-level cost = SUM over (Creator ∪ Partner ∪ Non-collab) WHERE {Trạng thái đơn hàng} = "Đã quyết toán" AND {Tên sản phẩm} = P, of (({Thanh toán hoa hồng tiêu chuẩn ước tính} | {Thanh toán hoa hồng ước tính}) + {Thanh toán hoa hồng Quảng cáo cửa hàng ước tính}). Per-SKU = product-level × ({NMV — TikTok of SKU} / {Sum NMV — TikTok of same name P}). Tên không match Sales breakdown → rớt vào row "Others".',
+        dataSources: [
+          'TikTok Affiliate Creator XLSX',
+          'TikTok Affiliate Partner XLSX',
+          'TikTok Affiliate Non-collab XLSX',
+          'Calculated',
+        ],
+        formula:
+          '(SUM over 3 affiliate files WHERE {Trạng thái đơn hàng} = "Đã quyết toán" AND {Tên sản phẩm} = P OF (({Thanh toán hoa hồng tiêu chuẩn ước tính} | {Thanh toán hoa hồng ước tính}) + {Thanh toán hoa hồng Quảng cáo cửa hàng ước tính})) × ({NMV — TikTok} / {Sum NMV — TikTok of same name})',
+        versions: 2,
       },
       {
         metric: 'Affiliate Booking Fee — TikTok',

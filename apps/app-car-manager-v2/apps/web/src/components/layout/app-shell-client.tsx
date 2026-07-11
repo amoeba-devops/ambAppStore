@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn, Toaster } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
+import { NotificationSound } from '@/components/notification-sound';
 import { InstallPrompt } from '@/components/pwa/install-prompt';
 import { PushConfigProvider } from '@/components/pwa/push-config-context';
 import { PushPromptStrip } from '@/components/pwa/push-prompt-strip';
@@ -151,6 +152,7 @@ export function AppShellClient({
           />
           <InstallPrompt />
           <Toaster />
+          <NotificationSound />
         </div>
       </PushConfigProvider>
       </UserDisplayProvider>
