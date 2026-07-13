@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getVehicle } from '@/server/queries/vehicles.queries';
-import { listFleetDrivers } from '@/server/queries/drivers.queries';
+import { listFleetDrivers, getDriverAnyStatus } from '@/server/queries/drivers.queries';
 import { TruckVehicleForm } from '../../_components/truck-vehicle-form';
 
 export default async function EditTruckVehiclePage({ params }: { params: Promise<{ id: string }> }) {
@@ -12,10 +12,24 @@ export default async function EditTruckVehiclePage({ params }: { params: Promise
   const v = await getVehicle(user.entId, id);
   if (!v || v.cvhType !== 'TRUCK') notFound();
 
-  const drivers = (await listFleetDrivers(user.entId, 'TRUCK')).map((d) => ({
+  const activeDrivers = await listFleetDrivers(user.entId, 'TRUCK');
+  const drivers: { id: string; name: string; stale?: boolean }[] = activeDrivers.map((d) => ({
     id: d.drvId,
     name: d.user.usrName ?? d.user.usrEmail ?? d.drvId,
   }));
+  /* The saved default driver may have since been removed or lost TRUCK access —
+   * surface it as a disabled option instead of letting the Select render blank
+   * with no indication a stale reference is still stored (edge-case audit). */
+  if (v.cvhDefaultDriverId && !activeDrivers.some((d) => d.drvId === v.cvhDefaultDriverId)) {
+    const stale = await getDriverAnyStatus(user.entId, v.cvhDefaultDriverId);
+    if (stale) {
+      drivers.push({
+        id: stale.drvId,
+        name: stale.user.usrName ?? stale.user.usrEmail ?? stale.drvId,
+        stale: true,
+      });
+    }
+  }
   const t = await getTranslations('screens.truckFleet');
   const initial = {
     plate: v.cvhPlateNumber,

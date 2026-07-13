@@ -29,8 +29,15 @@ export default async function EditTruckTripPage({ params }: { params: Promise<{ 
     getLatestTruckReportForMonth(user.entId, tripMonth),
     getTripCostAttachmentsView(user.entId, trip.trpId),
   ]);
-  const vehicleOptions = vehicles.map((v) => ({ id: v.cvhId, label: `${v.cvhPlateNumber} · ${v.cvhModel}` }));
-  const driverOptions = drivers.map((d) => ({ id: d.drvId, label: d.user.usrName ?? d.user.usrEmail ?? d.drvId }));
+  const vehicleOptions = vehicles.map((v) => ({
+    id: v.cvhId,
+    label: `${v.cvhPlateNumber} · ${v.cvhModel}`,
+    defaultDriverId: v.cvhDefaultDriverId ?? undefined,
+  }));
+  const driverOptions = drivers.map((d) => {
+    const name = d.user.usrName ?? d.user.usrEmail ?? d.drvId;
+    return { id: d.drvId, label: d.drvPhone ? `${name} · ${d.drvPhone}` : name };
+  });
 
   const initial = {
     scheduledAt: new Date(trip.trpScheduledAt).toISOString().slice(0, 10),

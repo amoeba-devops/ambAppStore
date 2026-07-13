@@ -20,6 +20,10 @@ import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { resolveFleetAccess } from '@/lib/auth/fleet-access';
 import { logAudit } from '@/server/services/audit-log.service';
 import { notifyUser, notifyMany } from '@/server/services/notification.service';
+import {
+  checkFleetAccessRevokeWarnings,
+  type FleetAccessRevokeWarning,
+} from '@/server/services/fleet-access-check.service';
 import { runAction } from '../_helpers';
 
 const FLEET_ADMIN_PATHS = ['/settings/fleet-access', '/users'];
@@ -259,6 +263,24 @@ export async function grantFleetAccessAction(
 
     revalidateFleetAdmin();
     return { ok: true as const };
+  });
+}
+
+/**
+ * Get warnings before revoking a user's department access.
+ * Returns warnings about vehicles that have this user as their default
+ * driver. Does NOT block revocation (soft-warning approach).
+ */
+export async function getFleetAccessRevokeWarningsAction(
+  input: unknown,
+): Promise<ActionResult<{ warnings: FleetAccessRevokeWarning[] }>> {
+  return runAction(async () => {
+    const actor = await getCurrentUser();
+    requireRole(actor.role, ['ADMIN']);
+    const dto = revokeFleetAccessSchema.parse(input);
+
+    const warnings = await checkFleetAccessRevokeWarnings(actor.entId, dto.userId, dto.vehicleType);
+    return { warnings };
   });
 }
 

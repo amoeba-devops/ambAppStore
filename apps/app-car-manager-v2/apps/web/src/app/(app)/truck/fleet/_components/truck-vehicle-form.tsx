@@ -59,8 +59,10 @@ export function TruckVehicleForm({
   /** When set, the form edits this vehicle (calls updateVehicleAction). */
   vehicleId?: string;
   initial?: Partial<typeof EMPTY>;
-  /** Truck drivers for the "Tài xế mặc định" select. */
-  drivers?: { id: string; name: string }[];
+  /** Truck drivers for the "Tài xế mặc định" select. A `stale` entry is the
+   * vehicle's saved default driver who no longer has active TRUCK access —
+   * shown disabled instead of leaving the Select blank. */
+  drivers?: { id: string; name: string; stale?: boolean }[];
 } = {}) {
   const t = useTranslations('screens.truckFleet.form');
   const tFuel = useTranslations('vehicles.fuel');
@@ -201,8 +203,8 @@ export function TruckVehicleForm({
                 <SelectContent>
                   <SelectItem value={NO_DRIVER}>{t('driverNone')}</SelectItem>
                   {drivers.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
+                    <SelectItem key={d.id} value={d.id} disabled={d.stale}>
+                      {d.stale ? `${d.name} ${t('driverStaleSuffix')}` : d.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -169,6 +169,26 @@ export async function getDriver(entId: string, id: string): Promise<DriverWithUs
   return { ...row[0].driver, user: row[0].user };
 }
 
+/**
+ * Look up a driver by id regardless of soft-delete or fleet-access status —
+ * used to display a stale `cvh_default_driver_id` reference (a vehicle's
+ * saved default driver who has since been removed or lost department access)
+ * instead of silently rendering blank.
+ */
+export async function getDriverAnyStatus(entId: string, id: string): Promise<DriverWithUser | null> {
+  const row = await db
+    .select({
+      driver: carDrivers,
+      user: { usrName: carUsers.usrName, usrEmail: carUsers.usrEmail },
+    })
+    .from(carDrivers)
+    .innerJoin(carUsers, eq(carDrivers.drvUserId, carUsers.usrId))
+    .where(and(eq(carDrivers.drvId, id), eq(carDrivers.entId, entId)))
+    .limit(1);
+  if (!row[0]) return null;
+  return { ...row[0].driver, user: row[0].user, isDeleted: row[0].driver.drvDeletedAt !== null };
+}
+
 /** Look up a driver row by the underlying user (used to enforce driver self-actions). */
 export async function getDriverByUserId(entId: string, userId: string): Promise<CarDriver | null> {
   const row = await db.query.carDrivers.findFirst({

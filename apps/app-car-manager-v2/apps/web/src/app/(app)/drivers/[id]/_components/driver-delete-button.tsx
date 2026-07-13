@@ -58,10 +58,17 @@ export function DriverDeleteButton({
             ? t('warningActiveTrips', { count: w.count })
             : w.type === 'pending_expenses'
               ? t('warningPendingExpenses', { count: w.count })
-              : w.message,
+              : w.type === 'default_driver_vehicles'
+                ? t('warningDefaultDriverVehicles', { count: w.count })
+                : w.message,
         refs: w.refs?.map((ref) => ({
           ...ref,
-          href: w.type === 'active_trips' ? `/trips/${ref.id}` : `/costs?highlight=${ref.id}`,
+          href:
+            w.type === 'active_trips'
+              ? `/trips/${ref.id}`
+              : w.type === 'default_driver_vehicles'
+                ? `/truck/fleet/${ref.id}/edit`
+                : `/costs?highlight=${ref.id}`,
         })),
       }));
     }

@@ -41,6 +41,8 @@ export interface InitialCostAttachment extends ExistingCostAttachment {
 export interface OptionItem {
   id: string;
   label: string;
+  /** Vehicle's assigned default driver (cvh_default_driver_id) — drives auto-fill on vehicle select. */
+  defaultDriverId?: string;
 }
 
 export type TruckTripFormInitial = Partial<{
@@ -213,6 +215,8 @@ export function TruckTripForm({
   /* Derived summary data. */
   const vehicleLabel = vehicles.find((v) => v.id === f.vehicleId)?.label ?? null;
   const driverLabel = drivers.find((d) => d.id === f.driverId)?.label ?? null;
+  const selectedVehicleDefaultDriverId = vehicles.find((v) => v.id === f.vehicleId)?.defaultDriverId;
+  const isDriverAutoFilled = !!selectedVehicleDefaultDriverId && selectedVehicleDefaultDriverId === f.driverId;
   const kmNums = stops.map((s) => (s.km.trim() ? Number(s.km) : null));
   const firstKm = kmNums.find((v) => v != null);
   const lastKm = [...kmNums].reverse().find((v) => v != null);
@@ -336,7 +340,14 @@ export function TruckTripForm({
                 <Input type="date" value={f.scheduledAt} onChange={set('scheduledAt')} />
               </FormField>
               <FormField label={t('vehicle')} required inline>
-                <Select value={f.vehicleId} onValueChange={(v) => setF((s) => ({ ...s, vehicleId: v }))}>
+                <Select
+                  value={f.vehicleId}
+                  onValueChange={(v) => {
+                    const defaultDriverId = vehicles.find((o) => o.id === v)?.defaultDriverId;
+                    const canAutoFill = !isDriver && !!defaultDriverId && drivers.some((d) => d.id === defaultDriverId);
+                    setF((s) => ({ ...s, vehicleId: v, driverId: canAutoFill ? defaultDriverId : s.driverId }));
+                  }}
+                >
                   <SelectTrigger className="w-full lg:h-11 lg:text-[15px]">
                     <SelectValue placeholder={t('selectVehicle')} />
                   </SelectTrigger>
@@ -348,7 +359,13 @@ export function TruckTripForm({
                 </Select>
               </FormField>
               {!isDriver && (
-                <FormField label={t('driver')} required inline className="sm:col-span-2">
+                <FormField
+                  label={t('driver')}
+                  required
+                  inline
+                  className="sm:col-span-2"
+                  hint={isDriverAutoFilled && driverLabel ? t('driverAutoFilled', { driver: driverLabel }) : undefined}
+                >
                   <Select value={f.driverId} onValueChange={(v) => setF((s) => ({ ...s, driverId: v }))}>
                     <SelectTrigger className="w-full lg:h-11 lg:text-[15px]">
                       <SelectValue placeholder={t('selectDriver')} />
