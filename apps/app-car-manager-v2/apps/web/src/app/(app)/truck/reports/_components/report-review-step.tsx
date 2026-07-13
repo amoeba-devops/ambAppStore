@@ -35,6 +35,9 @@ export function ReportReviewStep({ reviews }: { reviews: TruckReportReview[] }) 
   const locale = useLocale();
   const loc = bcp47(locale);
   const [pending, start] = useTransition();
+  /* Report format (REQ-20260713): default to the client "Tổng kết chi phí tháng"
+   * single-sheet template; "Chi tiết đầy đủ" = the legacy 3-sheet PNL workbook. */
+  const [fmt, setFmt] = useState<'MONTHLY_SUMMARY' | 'PNL'>('MONTHLY_SUMMARY');
 
   const month = reviews[0]?.month ?? '';
   const vnd = (n: number) => Math.round(n).toLocaleString(loc) + ' ₫';
@@ -109,10 +112,10 @@ export function ReportReviewStep({ reviews }: { reviews: TruckReportReview[] }) 
           }
         }
       }
-      /* 2. Generate one Chi-phí-&-lợi-nhuận report per selected region. */
+      /* 2. Generate one report per selected region in the chosen format. */
       const regions = reviews.filter((r) => r.vehicles.length > 0).map((r) => r.region);
       for (const region of regions) {
-        const res = await generateTruckReportAction({ month, region, type: 'PNL' });
+        const res = await generateTruckReportAction({ month, region, type: fmt });
         if (!res.success) {
           toast.error(formatActionError(res.error, tErr));
           return;
@@ -157,6 +160,49 @@ export function ReportReviewStep({ reviews }: { reviews: TruckReportReview[] }) 
           · {t('reviewSubtitle')}
         </div>
       </div>
+
+      {/* Report format picker (REQ-20260713) — Monthly Summary (client template)
+          vs the detailed 3-sheet PNL. */}
+      <fieldset className="space-y-2">
+        <legend className="text-xs font-medium uppercase tracking-wider text-text-faint">
+          {t('selectFormat')}
+        </legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {(['MONTHLY_SUMMARY', 'PNL'] as const).map((opt) => {
+            const active = fmt === opt;
+            return (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setFmt(opt)}
+                disabled={pending}
+                aria-pressed={active}
+                className={cn(
+                  'flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors',
+                  active ? 'border-accent bg-accent/5 ring-1 ring-accent' : 'border-border hover:bg-surface-2',
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      'flex h-4 w-4 items-center justify-center rounded-full border',
+                      active ? 'border-accent' : 'border-border',
+                    )}
+                  >
+                    {active && <span className="h-2 w-2 rounded-full bg-accent" />}
+                  </span>
+                  <span className="text-sm font-semibold text-text">
+                    {opt === 'MONTHLY_SUMMARY' ? t('type_MONTHLY_SUMMARY') : t('type_PNL')}
+                  </span>
+                </div>
+                <span className="pl-6 text-xs text-text-muted">
+                  {opt === 'MONTHLY_SUMMARY' ? t('formatSummaryHint') : t('formatDetailHint')}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
 
       {reviews.map((review) => {
         const editable = !review.closed;

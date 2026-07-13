@@ -4,6 +4,8 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
 import { db } from '@car-v2/db/client';
 import { carTruckReports, carUsers, TRUCK_REPORT_TYPES, type TruckReportType } from '@car-v2/db/schema';
 import type { ActionResult } from '@car-v2/shared/errors';
@@ -19,6 +21,11 @@ import {
 } from '@/server/queries/truck-finance.queries';
 import { getTruckReportExport } from '@/server/queries/truck-report-export.queries';
 import { buildTruckReportWorkbook } from '@/server/lib/truck-report-workbook';
+import {
+  buildTruckMonthlySummaryWorkbook,
+  type SummaryTranslator,
+} from '@/server/lib/truck-monthly-summary-workbook';
+import { routing } from '@/i18n/routing';
 import { buildExcel, type ExcelColumn } from '@/server/lib/excel';
 import { putObject } from '@/lib/s3-client';
 import { logAudit } from '@/server/services/audit-log.service';
@@ -31,18 +38,34 @@ function monthLabel(month: string): string {
   return `Tháng ${Number(m)}/${y}`;
 }
 
-/* Report file content is Vietnamese (operational document for the VN company),
- * matching the existing truck Excel exports. The UI chrome is i18n'd separately. */
+/* MONTHLY_SUMMARY file content follows the GENERATOR's UI language (i18n,
+ * exportContent.truckMonthlySummary — vi reproduces the client template
+ * verbatim). The legacy PNL/TRIP_LOG/VEHICLE files stay Vietnamese (operational
+ * documents for the VN company). REPORT_NAME below is the stored list name
+ * (trr_name) — Vietnamese like the rest of the stored data. */
 const REPORT_NAME: Record<string, string> = {
   PNL: 'Báo cáo chi phí & lợi nhuận',
   TRIP_LOG: 'Báo cáo nhật ký chuyến',
   VEHICLE: 'Báo cáo phương tiện',
+  MONTHLY_SUMMARY: 'Tổng kết chi phí tháng',
 };
 
 /* Report-file scope suffix (VN, like the rest of this file's content). */
 const REGION_LABEL: Record<string, string> = { HCM: 'HCM', DONG_NAI: 'Đồng Nai', BAIKSAN: 'Baiksan' };
 function regionSuffix(region: string | null): string {
   return region ? `Khu vực ${REGION_LABEL[region] ?? region}` : 'Tất cả khu vực';
+}
+
+const BCP47: Record<string, string> = { vi: 'vi-VN', en: 'en-US', ko: 'ko-KR' };
+
+/** UI locale of the current request — the in-app switcher cookie, same
+ * resolution as i18n/request.ts. The MONTHLY_SUMMARY file's language is baked
+ * at generation time from THIS (downloads share the stored file). */
+async function resolveUiLocale(): Promise<string> {
+  const cookieLocale = (await cookies()).get('NEXT_LOCALE')?.value ?? '';
+  return (routing.locales as readonly string[]).includes(cookieLocale)
+    ? cookieLocale
+    : routing.defaultLocale;
 }
 
 async function buildReportWorkbook(
@@ -52,6 +75,28 @@ async function buildReportWorkbook(
   region: string | null,
   generatedAt: Date,
 ): Promise<Buffer> {
+  if (type === 'MONTHLY_SUMMARY') {
+    /* Client "Tổng kết chi phí tháng" single-sheet template (REQ-20260713).
+     * includeIdle=true so maintenance/idle trucks appear and the TỔNG row
+     * reconciles with the A/B/C blocks. Same core numbers as everything else.
+     * File TEXT follows the generator's UI language — vi = template verbatim. */
+    const locale = await resolveUiLocale();
+    const tSummary = await getTranslations({ locale, namespace: 'exportContent.truckMonthlySummary' });
+    const t = tSummary as unknown as SummaryTranslator;
+    const tRegion = await getTranslations({ locale, namespace: 'region' });
+    const [y = '', mm = ''] = month.split('-');
+    const data = await getTruckReportExport(actor, month, region, { includeIdle: true });
+    return buildTruckMonthlySummaryWorkbook(data, {
+      monthLabel: t('monthValue', { m: String(Number(mm)), y }),
+      regionLabel: region
+        ? t('scopeRegion', { name: tRegion(region as Parameters<typeof tRegion>[0]) })
+        : t('scopeAll'),
+      generatedAt,
+      bcp47: BCP47[locale] ?? 'vi-VN',
+      t,
+    });
+  }
+
   if (type === 'PNL') {
     /* Comprehensive report (client NEW RULE template): a 3-sheet styled workbook
      * — trip log + per-vehicle P&L + fleet total + glossary. Numbers come from

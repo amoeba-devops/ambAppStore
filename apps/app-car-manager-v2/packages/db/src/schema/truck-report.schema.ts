@@ -9,7 +9,8 @@ import { vehicleTypeEnum } from './vehicles.schema';
  * `car_users.usr_truck_reports_seen_at` as "Mới" (new).
  *
  * `trr_type`: PNL (chi phí & lợi nhuận) | TRIP_LOG (nhật ký chuyến) |
- * VEHICLE (phương tiện). `trr_format`: EXCEL (PDF reserved).
+ * VEHICLE (phương tiện) | MONTHLY_SUMMARY (tổng kết chi phí tháng — 1 sheet
+ * theo template khách, REQ-20260713). `trr_format`: EXCEL (PDF reserved).
  */
 export const carTruckReports = pgTable(
   'car_truck_reports',
@@ -54,6 +55,8 @@ export const carTruckReports = pgTable(
 export type CarTruckReport = typeof carTruckReports.$inferSelect;
 export type CarTruckReportInsert = typeof carTruckReports.$inferInsert;
 
-/** Allowed report types (mirrors trr_type). */
-export const TRUCK_REPORT_TYPES = ['PNL', 'TRIP_LOG', 'VEHICLE'] as const;
+/** Allowed report types (mirrors trr_type). MONTHLY_SUMMARY = the client
+ * "Tổng kết chi phí tháng" single-sheet template (REQ-20260713); 'MONTHLY_SUMMARY'
+ * is 15 chars → fits trr_type varchar(16) with no DDL change. */
+export const TRUCK_REPORT_TYPES = ['PNL', 'TRIP_LOG', 'VEHICLE', 'MONTHLY_SUMMARY'] as const;
 export type TruckReportType = (typeof TRUCK_REPORT_TYPES)[number];

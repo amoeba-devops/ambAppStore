@@ -58,6 +58,9 @@ export interface ReportTripLogRow {
 /** One row of the "Chi phí & Lợi nhuận — theo xe" sheet. */
 export interface ReportVehiclePnlRow {
   plate: string;
+  /** Vehicle model / internal name ("Tên xe") — feeds the client template's
+   * "Xe / Tài xế" column note (REQ-20260713 B46). */
+  model: string | null;
   driver: string | null;
   depreciation: number; // Khấu hao xe
   salary: number; // Lương tài xế
@@ -67,6 +70,36 @@ export interface ReportVehiclePnlRow {
   fuel: number; // Phí xăng dầu
   extra: number; // Tổng phí phát sinh
   net: number; // Lợi nhuận ròng
+  /* Monthly Summary template additions (REQ-20260713). */
+  tripCount: number; // Số chuyến
+  km: number; // Σ km chuyến trong tháng
+  liters: number; // Nhiên liệu (L): km × định mức (allocated) hoặc Σ lít chuyến
+  costTotal: number; // Tổng chi phí xe = biến đổi + cố định (= revenue − net)
+  /** Business status for the template: MAINTENANCE (xe bảo dưỡng, cvh_status) |
+   * PROFIT (net ≥ 0) | LOSS (net < 0). Labels resolved in the workbook. */
+  status: 'PROFIT' | 'LOSS' | 'MAINTENANCE';
+}
+
+/** KPI header block of the Monthly Summary template (REQ-20260713 §3.2). */
+export interface TruckReportSummary {
+  truckCount: number; // Tổng xe trong khu vực (kể cả bảo dưỡng)
+  activeCount: number; // Xe hoạt động (cvh_status ≠ MAINTENANCE)
+  maintenanceCount: number; // Xe bảo dưỡng (cvh_status = MAINTENANCE)
+  tripCount: number; // Tổng chuyến
+  totalKm: number; // Tổng km
+  avgTripsPerActive: number; // TB chuyến / xe hoạt động (QĐ-5)
+  avgKmPerActive: number; // TB km / xe hoạt động
+  revenue: number;
+  netProfit: number;
+  margin: number; // netProfit / revenue (0 khi revenue = 0)
+}
+
+/** Author header of the Monthly Summary template. Company name/address/tel-fax
+ * + logo are fixed to the client template inside the workbook builder (user
+ * decision 2026-07-14) — only app-mappable info is carried here. */
+export interface TruckReportHeader {
+  /** Display name of the user who generated the report ("Người lập"). */
+  preparedBy: string | null;
 }
 
 export interface TruckReportExport {
@@ -76,10 +109,13 @@ export interface TruckReportExport {
   fuel: { avgPrice: number; consumption: number; invoiceCount: number };
   trips: ReportTripLogRow[];
   vehicles: ReportVehiclePnlRow[];
+  summary: TruckReportSummary;
+  header: TruckReportHeader;
   totals: {
     salary: number;
     revenue: number;
     fixedOther: number; // depreciation + insurance (Tổng hợp gộp khấu hao)
+    depreciation: number; // Khấu hao (tách riêng cho template — B23)
     toll: number;
     fuel: number;
     extra: number;
@@ -96,6 +132,12 @@ export async function getTruckReportExport(
   actor: AuthContext,
   month: string,
   region: string | null,
+  /** includeIdle (REQ-20260713): also emit a per-vehicle row for TRUCKs with NO
+   * completed trip this month (e.g. under maintenance) — they still carry fixed
+   * costs — and compute `totals` as Σ of the per-vehicle rows so the template's
+   * TỔNG row reconciles exactly with the A/B/C blocks. Off (default) keeps the
+   * legacy PNL behaviour: rows for trip-vehicles only, totals via a region call. */
+  opts: { includeIdle?: boolean } = {},
 ): Promise<TruckReportExport> {
   const start = new Date(`${month}-01T00:00:00.000Z`);
   const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
@@ -222,25 +264,84 @@ export async function getTruckReportExport(
     };
   });
 
-  /* Per-vehicle P&L via the core service (one call per distinct vehicle so each
-   * row carries its own fixed costs). Vehicles = those with a trip this month. */
-  const vehIds = [...new Set(rows.map((r) => r.vehicleId).filter((v): v is string => !!v))];
-  const plateByVeh = new Map<string, string>();
-  const driverByVeh = new Map<string, string | null>();
-  for (const r of rows) {
-    if (r.vehicleId) {
-      plateByVeh.set(r.vehicleId, r.plate ?? '—');
-      if (!driverByVeh.has(r.vehicleId)) driverByVeh.set(r.vehicleId, r.driver);
-    }
+  /* Scope vehicles = every live TRUCK in the region (all regions when null),
+   * with its default driver's name (QĐ-1b / B46). This is the authoritative
+   * vehicle set — it includes idle/maintenance trucks that had no trip. */
+  const scopeVehicles = await db
+    .select({
+      id: carVehicles.cvhId,
+      plate: carVehicles.cvhPlateNumber,
+      model: carVehicles.cvhModel,
+      status: carVehicles.cvhStatus,
+      defaultDriver: carUsers.usrName,
+    })
+    .from(carVehicles)
+    .leftJoin(carDrivers, eq(carVehicles.cvhDefaultDriverId, carDrivers.drvId))
+    .leftJoin(carUsers, eq(carDrivers.drvUserId, carUsers.usrId))
+    .where(
+      and(
+        eq(carVehicles.entId, actor.entId),
+        eq(carVehicles.cvhType, 'TRUCK'),
+        isNull(carVehicles.cvhDeletedAt),
+        region ? eq(carVehicles.cvhRegion, region) : undefined,
+      ),
+    )
+    .orderBy(asc(carVehicles.cvhPlateNumber));
+
+  interface VInfo {
+    plate: string;
+    model: string | null;
+    status: string;
+    defaultDriver: string | null;
   }
+  const vinfo = new Map<string, VInfo>();
+  for (const v of scopeVehicles) {
+    vinfo.set(v.id, { plate: v.plate ?? '—', model: v.model, status: v.status, defaultDriver: v.defaultDriver });
+  }
+  /* A trip-vehicle missing from scopeVehicles (e.g. soft-deleted since) still
+   * gets a row from its trip data so the legacy PNL export loses nobody. */
+  const tripDriverByVeh = new Map<string, string | null>();
+  for (const r of rows) {
+    if (!r.vehicleId) continue;
+    if (!vinfo.has(r.vehicleId)) {
+      vinfo.set(r.vehicleId, { plate: r.plate ?? '—', model: null, status: 'AVAILABLE', defaultDriver: null });
+    }
+    if (!tripDriverByVeh.has(r.vehicleId)) tripDriverByVeh.set(r.vehicleId, r.driver);
+  }
+
+  /* Per-vehicle km / litres / trip aggregate from the month's completed trips,
+   * mirroring the trip-log fuel model (allocated litres when a snapshot exists). */
+  const aggByVeh = new Map<string, { km: number; liters: number }>();
+  for (const t of rows) {
+    if (!t.vehicleId) continue;
+    const km = t.so != null && t.eo != null ? t.eo - t.so : 0;
+    const snap = snapshots.forTrip(month, t.vehicleId);
+    const liters = snap ? km * snap.consumption : parseAmount(t.fuelLiters);
+    const g = aggByVeh.get(t.vehicleId) ?? { km: 0, liters: 0 };
+    g.km += km;
+    g.liters += liters;
+    aggByVeh.set(t.vehicleId, g);
+  }
+
+  const vehiclesWithTrips = new Set(rows.map((r) => r.vehicleId).filter((v): v is string => !!v));
+  const rowVehicleIds = opts.includeIdle ? [...vinfo.keys()] : [...vehiclesWithTrips];
+
+  /* Per-vehicle P&L via the core service (one call per vehicle so each row
+   * carries its own fixed costs — incl. depreciation + default-driver salary
+   * for an idle truck). */
   const vehicles: ReportVehiclePnlRow[] = [];
   await Promise.all(
-    vehIds.map(async (vid) => {
+    rowVehicleIds.map(async (vid) => {
       const [p] = await computeTruckPnl(actor, { vehicleId: vid, months: [month] });
       if (!p) return;
+      const info = vinfo.get(vid);
+      const agg = aggByVeh.get(vid) ?? { km: 0, liters: 0 };
+      const status: ReportVehiclePnlRow['status'] =
+        info?.status === 'MAINTENANCE' ? 'MAINTENANCE' : p.netProfit >= 0 ? 'PROFIT' : 'LOSS';
       vehicles.push({
-        plate: plateByVeh.get(vid) ?? '—',
-        driver: driverByVeh.get(vid) ?? null,
+        plate: info?.plate ?? '—',
+        model: info?.model ?? null,
+        driver: info?.defaultDriver ?? tripDriverByVeh.get(vid) ?? null,
         depreciation: p.depreciation,
         salary: p.salary,
         revenue: p.revenue,
@@ -249,22 +350,81 @@ export async function getTruckReportExport(
         fuel: p.fuelCost,
         extra: p.extraTotal,
         net: p.netProfit,
+        tripCount: p.tripCount,
+        km: agg.km,
+        liters: Math.round(agg.liters * 10) / 10,
+        costTotal: p.variableCost + p.fixedCost,
+        status,
       });
     }),
   );
   vehicles.sort((a, b) => a.plate.localeCompare(b.plate));
 
-  /* Fleet total for the (month × region) — region-level core call. */
-  const [tot] = await computeTruckPnl(actor, { region, months: [month] });
-  const totals = {
-    salary: tot?.salary ?? 0,
-    revenue: tot?.revenue ?? 0,
-    fixedOther: (tot?.depreciation ?? 0) + (tot?.insurance ?? 0),
-    toll: tot?.tollFee ?? 0,
-    fuel: tot?.fuelCost ?? 0,
-    extra: tot?.extraTotal ?? 0,
-    net: tot?.netProfit ?? 0,
+  /* Totals. includeIdle → Σ of the per-vehicle rows so the template's TỔNG row
+   * reconciles exactly with A/B/C (no fleet-level driverSalary path). Otherwise
+   * the legacy region-level call (keeps PNL export byte-for-byte unchanged). */
+  let totals: TruckReportExport['totals'];
+  if (opts.includeIdle) {
+    totals = vehicles.reduce(
+      (a, v) => ({
+        salary: a.salary + v.salary,
+        revenue: a.revenue + v.revenue,
+        fixedOther: a.fixedOther + v.depreciation + v.fixedOther, // dep + insurance (PNL totals convention)
+        depreciation: a.depreciation + v.depreciation,
+        toll: a.toll + v.toll,
+        fuel: a.fuel + v.fuel,
+        extra: a.extra + v.extra,
+        net: a.net + v.net,
+      }),
+      { salary: 0, revenue: 0, fixedOther: 0, depreciation: 0, toll: 0, fuel: 0, extra: 0, net: 0 },
+    );
+  } else {
+    const [tot] = await computeTruckPnl(actor, { region, months: [month] });
+    totals = {
+      salary: tot?.salary ?? 0,
+      revenue: tot?.revenue ?? 0,
+      fixedOther: (tot?.depreciation ?? 0) + (tot?.insurance ?? 0),
+      depreciation: tot?.depreciation ?? 0,
+      toll: tot?.tollFee ?? 0,
+      fuel: tot?.fuelCost ?? 0,
+      extra: tot?.extraTotal ?? 0,
+      net: tot?.netProfit ?? 0,
+    };
+  }
+
+  /* KPI summary — counts over ALL scope trucks; averages over active trucks
+   * (QĐ-5). tripCount/totalKm sum the emitted rows so they equal the E-table
+   * SUM exactly. */
+  const truckCount = scopeVehicles.length;
+  const maintenanceCount = scopeVehicles.filter((v) => v.status === 'MAINTENANCE').length;
+  const activeCount = truckCount - maintenanceCount;
+  const sumTripCount = vehicles.reduce((a, v) => a + v.tripCount, 0);
+  const sumKm = vehicles.reduce((a, v) => a + v.km, 0);
+  const summary: TruckReportSummary = {
+    truckCount,
+    activeCount,
+    maintenanceCount,
+    tripCount: sumTripCount,
+    totalKm: sumKm,
+    avgTripsPerActive: activeCount > 0 ? sumTripCount / activeCount : 0,
+    avgKmPerActive: activeCount > 0 ? sumKm / activeCount : 0,
+    revenue: totals.revenue,
+    netProfit: totals.net,
+    margin: totals.revenue !== 0 ? totals.net / totals.revenue : 0,
   };
+
+  /* "Người lập" = the CURRENT user generating the report (their car_users
+   * display name; JWT name as fallback). Only needed for the Monthly Summary
+   * template, so skip the lookup on the legacy PNL path. */
+  let header: TruckReportHeader = { preparedBy: null };
+  if (opts.includeIdle) {
+    const [author] = await db
+      .select({ name: carUsers.usrName })
+      .from(carUsers)
+      .where(and(eq(carUsers.entId, actor.entId), eq(carUsers.usrId, actor.userId)))
+      .limit(1);
+    header = { preparedBy: author?.name ?? actor.name ?? null };
+  }
 
   /* "Official" when the scope has a frozen snapshot — since PLAN-20260707 that
    * is the report's own recomputed snapshot (inserted before this runs); legacy
@@ -278,6 +438,8 @@ export async function getTruckReportExport(
     fuel: { avgPrice: fuel.avgPrice, consumption: fuel.consumption, invoiceCount: fuel.invoiceCount },
     trips,
     vehicles,
+    summary,
+    header,
     totals,
   };
 }
