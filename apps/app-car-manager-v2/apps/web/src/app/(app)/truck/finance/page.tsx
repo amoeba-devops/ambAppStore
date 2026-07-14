@@ -168,6 +168,17 @@ export default async function TruckFinancePage({
             options={trucks.map((v) => ({ value: v.cvhId, label: v.cvhPlateNumber }))}
           />
           <ReportStatusBadge reportedAt={latestReport?.createdAt ?? null} stale={stale} locale={locale} />
+          {/* Once a report exists for this month, give a 1-click path to it —
+           * the banner-generate flow doesn't navigate to /truck/reports, so
+           * without this the file is only reachable via the sidebar menu. */}
+          {latestReport && (
+            <a
+              href={`${BASE_PATH}/truck/reports?month=${month}`}
+              className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
+            >
+              {t('viewReport')} →
+            </a>
+          )}
         </div>
 
         {/* Month summary cards */}

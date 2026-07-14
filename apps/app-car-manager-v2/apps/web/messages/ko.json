@@ -681,7 +681,8 @@
       "genAllDone": "{count}개 지역의 평균을 생성·확정했습니다.",
       "genAllPartial": "{count}개 지역 확정. 주유 전표 부족: {regions}.",
       "genAllNone": "평균을 확정할 데이터가 있는 지역이 없습니다(주유 전표 없음).",
-      "provCta": "월 손익 & 주유 전표 열기"
+      "provCta": "월 손익 & 주유 전표 열기",
+      "viewReport": "보고서 보기"
     },
     "truckReportStatus": {
       "reportAt": "보고서 · {date}",

@@ -681,7 +681,8 @@
       "genAllDone": "Generated & finalized the average for {count} region(s).",
       "genAllPartial": "Finalized {count} region(s). Still missing fuel invoices: {regions}.",
       "genAllNone": "No region has enough data to finalize the average (missing fuel invoices).",
-      "provCta": "Open P&L & Fuel invoices"
+      "provCta": "Open P&L & Fuel invoices",
+      "viewReport": "View report"
     },
     "truckReportStatus": {
       "reportAt": "Report · {date}",

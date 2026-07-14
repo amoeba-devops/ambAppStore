@@ -681,7 +681,8 @@
       "genAllDone": "Đã lập báo cáo & chốt bình quân cho {count} khu vực.",
       "genAllPartial": "Đã chốt {count} khu vực. Còn thiếu hoá đơn xăng: {regions}.",
       "genAllNone": "Chưa khu vực nào đủ dữ liệu để chốt bình quân (thiếu hoá đơn xăng).",
-      "provCta": "Mở P&L & Hoá đơn xăng"
+      "provCta": "Mở P&L & Hoá đơn xăng",
+      "viewReport": "Xem báo cáo"
     },
     "truckReportStatus": {
       "reportAt": "Đã lập BC · {date}",
