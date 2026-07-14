@@ -1611,6 +1611,8 @@
       "statusProfit": "Profit",
       "statusLoss": "Loss",
       "statusMaintenance": "Maintenance",
+      "statusIdle": "Idle",
+      "statusBreakeven": "Break-even",
       "totalRow": "Total",
       "totalTrucks": "{n} trucks",
       "footer": "Figures computed at {ts}. Fuel cost is allocated by the monthly consumption rate and average fuel price."

@@ -1611,6 +1611,8 @@
       "statusProfit": "흑자",
       "statusLoss": "적자",
       "statusMaintenance": "정비중",
+      "statusIdle": "미운행",
+      "statusBreakeven": "손익분기",
       "totalRow": "합계 / Total",
       "totalTrucks": "{n}대",
       "footer": "{ts} 기준 산출. 유류비는 월 소비율·평균 유가 기준으로 배분됩니다."

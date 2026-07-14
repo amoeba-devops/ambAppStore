@@ -75,9 +75,11 @@ export interface ReportVehiclePnlRow {
   km: number; // Σ km chuyến trong tháng
   liters: number; // Nhiên liệu (L): km × định mức (allocated) hoặc Σ lít chuyến
   costTotal: number; // Tổng chi phí xe = biến đổi + cố định (= revenue − net)
-  /** Business status for the template: MAINTENANCE (xe bảo dưỡng, cvh_status) |
-   * PROFIT (net ≥ 0) | LOSS (net < 0). Labels resolved in the workbook. */
-  status: 'PROFIT' | 'LOSS' | 'MAINTENANCE';
+  /** Business status for the template (priority order): MAINTENANCE (xe bảo
+   * dưỡng, cvh_status) | IDLE (không bảo dưỡng nhưng 0 chuyến trong tháng —
+   * chỉ gánh chi phí cố định) | BREAKEVEN (net = 0) | PROFIT (net > 0) | LOSS
+   * (net < 0). Labels resolved in the workbook. */
+  status: 'PROFIT' | 'LOSS' | 'MAINTENANCE' | 'IDLE' | 'BREAKEVEN';
 }
 
 /** KPI header block of the Monthly Summary template (REQ-20260713 §3.2). */
@@ -336,8 +338,18 @@ export async function getTruckReportExport(
       if (!p) return;
       const info = vinfo.get(vid);
       const agg = aggByVeh.get(vid) ?? { km: 0, liters: 0 };
+      /* Priority: maintenance (cvh_status) → idle (ran no trip this month, but
+       * still carries fixed costs) → break-even (net exactly 0) → profit/loss. */
       const status: ReportVehiclePnlRow['status'] =
-        info?.status === 'MAINTENANCE' ? 'MAINTENANCE' : p.netProfit >= 0 ? 'PROFIT' : 'LOSS';
+        info?.status === 'MAINTENANCE'
+          ? 'MAINTENANCE'
+          : p.tripCount === 0
+            ? 'IDLE'
+            : p.netProfit === 0
+              ? 'BREAKEVEN'
+              : p.netProfit > 0
+                ? 'PROFIT'
+                : 'LOSS';
       vehicles.push({
         plate: info?.plate ?? '—',
         model: info?.model ?? null,

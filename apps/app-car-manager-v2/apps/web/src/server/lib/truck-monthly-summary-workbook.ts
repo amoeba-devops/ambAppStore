@@ -41,6 +41,7 @@ const RED = 'FFA32D2D';
 const AMBER = 'FF854F0B';
 const MUTE_IT = 'FF9CA3AF';
 const BLACK = 'FF000000';
+const SLATE = 'FF475569'; // break-even text (neutral — operated, landed flat)
 
 const LIGHT = 'FFF0F4F8'; // zebra band + KPI fill
 const META_FILL = 'FFF8F9FA';
@@ -49,6 +50,8 @@ const TOTAL_FILL = 'FFEEF2FF';
 const GREEN_FILL = 'FFEAF3DE';
 const RED_FILL = 'FFFCEBEB';
 const AMBER_FILL = 'FFFEF3C7';
+const NEUTRAL_FILL = 'FFF1F3F5'; // idle badge (muted gray — didn't run)
+const SLATE_FILL = 'FFE8EDF3'; // break-even badge (cool slate)
 
 const B_LIGHT = 'FFDEE2E6'; // hairline under data rows
 const B_META = 'FFC8CAD0';
@@ -288,7 +291,16 @@ export async function buildTruckMonthlySummaryWorkbook(
     ws.getRow(r).height = 19.5;
     const bg = i % 2 === 0 ? LIGHT : WHITE;
     const idle = v.status === 'MAINTENANCE' || v.tripCount === 0;
-    const rowColor = v.status === 'MAINTENANCE' ? AMBER : v.net >= 0 ? GREEN : RED;
+    const rowColor =
+      v.status === 'MAINTENANCE'
+        ? AMBER
+        : v.status === 'IDLE'
+          ? GRAY
+          : v.status === 'BREAKEVEN'
+            ? SLATE
+            : v.status === 'PROFIT'
+              ? GREEN
+              : RED; // LOSS
     const who = [v.driver, v.model].filter(Boolean).join(' · ') || DASH;
     set(`B${r}`, who, { size: 8, color: GRAY, fill: bg, align: 'left' });
     set(`C${r}`, v.plate, { size: 8, color: GRAY, fill: bg, align: 'center' });
@@ -307,9 +319,26 @@ export async function buildTruckMonthlySummaryWorkbook(
       set(`J${r}`, { formula: `F${r}-G${r}`, result: v.net } as ExcelJS.CellValue, { fmt: MONEY, bold: true, color: rowColor, fill: bg, align: 'right' });
       set(`K${r}`, { formula: `IFERROR(J${r}/F${r},"")`, result: v.revenue !== 0 ? v.net / v.revenue : '' } as ExcelJS.CellValue, { fmt: PERCENT, color: rowColor, fill: bg, align: 'center' });
     }
-    const stFill = v.status === 'MAINTENANCE' ? AMBER_FILL : v.status === 'PROFIT' ? GREEN_FILL : RED_FILL;
+    const stFill =
+      v.status === 'MAINTENANCE'
+        ? AMBER_FILL
+        : v.status === 'IDLE'
+          ? NEUTRAL_FILL
+          : v.status === 'BREAKEVEN'
+            ? SLATE_FILL
+            : v.status === 'PROFIT'
+              ? GREEN_FILL
+              : RED_FILL; // LOSS
     const stText =
-      v.status === 'MAINTENANCE' ? t('statusMaintenance') : v.status === 'PROFIT' ? t('statusProfit') : t('statusLoss');
+      v.status === 'MAINTENANCE'
+        ? t('statusMaintenance')
+        : v.status === 'IDLE'
+          ? t('statusIdle')
+          : v.status === 'BREAKEVEN'
+            ? t('statusBreakeven')
+            : v.status === 'PROFIT'
+              ? t('statusProfit')
+              : t('statusLoss'); // LOSS
     set(`L${r}`, stText, { size: 8, bold: true, color: rowColor, fill: stFill, align: 'center' });
   });
 

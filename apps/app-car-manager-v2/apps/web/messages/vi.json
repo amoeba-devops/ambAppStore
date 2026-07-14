@@ -1611,6 +1611,8 @@
       "statusProfit": "Có lãi",
       "statusLoss": "Lỗ",
       "statusMaintenance": "Bảo dưỡng",
+      "statusIdle": "Nhàn rỗi",
+      "statusBreakeven": "Hòa vốn",
       "totalRow": "Tổng / Total",
       "totalTrucks": "{n} xe",
       "footer": "Số liệu tính lúc {ts}. Phí nhiên liệu phân bổ theo định mức & giá xăng bình quân tháng."
