@@ -23,6 +23,7 @@ import { ListRowActions } from '@/components/list-row-actions';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
+import { getDriverNamesByIds } from '@/server/queries/drivers.queries';
 import { getTruckFixedCostsByMonth } from '@/server/queries/truck-fixed-cost.queries';
 
 const STATUS_TONE: Record<CarVehicleStatus, 'success' | 'info' | 'warning' | 'neutral'> = {
@@ -74,6 +75,15 @@ export default async function TruckFleetPage({
     if (fStatus && v.cvhStatus !== fStatus) return false;
     return true;
   });
+
+  /* Resolve default-driver names in one batch (no N+1) so the roster can show
+   * each truck's assigned driver; unlinked trucks fall back to an empty cell. */
+  const driverNames = await getDriverNamesByIds(
+    user.entId,
+    [...new Set(trucks.map((v) => v.cvhDefaultDriverId).filter((id): id is string => !!id))],
+  );
+  const driverName = (v: (typeof trucks)[number]) =>
+    v.cvhDefaultDriverId ? (driverNames.get(v.cvhDefaultDriverId) ?? null) : null;
 
   return (
     <>
@@ -149,6 +159,7 @@ export default async function TruckFleetPage({
                       <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted">
                         <span className="text-text">{regionLabel(v.cvhRegion)}</span>
                         <span className="tabular">· {v.cvhOdometerKm.toLocaleString(loc)} km</span>
+                        {driverName(v) ? <span className="truncate">· {driverName(v)}</span> : null}
                       </div>
                     </Link>
                   </li>
@@ -164,6 +175,7 @@ export default async function TruckFleetPage({
                   <TableHead>{t('thCode')}</TableHead>
                   <TableHead>{t('thPlate')}</TableHead>
                   <TableHead>{t('thModel')}</TableHead>
+                  <TableHead>{t('thDriver')}</TableHead>
                   <TableHead>{t('thRegion')}</TableHead>
                   <TableHead className="text-right">{t('thConsumption')}</TableHead>
                   <TableHead className="text-right">{t('thDepreciation')}</TableHead>
@@ -183,6 +195,9 @@ export default async function TruckFleetPage({
                       <TableCell className="whitespace-nowrap font-mono text-text-muted">{v.cvhCode ?? '—'}</TableCell>
                       <TableCell className="whitespace-nowrap font-mono font-semibold text-text">{v.cvhPlateNumber}</TableCell>
                       <TableCell className="text-text">{v.cvhModel}</TableCell>
+                      <TableCell className="whitespace-nowrap text-text-muted">
+                        {driverName(v) ?? '—'}
+                      </TableCell>
                       <TableCell className="whitespace-nowrap text-text-muted">{regionLabel(v.cvhRegion)}</TableCell>
                       <TableCell className="text-right tabular text-text-muted">
                         {v.cvhFuelQuota ? `${v.cvhFuelQuota} L/100km` : '—'}

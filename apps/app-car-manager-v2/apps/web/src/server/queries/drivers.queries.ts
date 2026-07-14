@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, asc, eq, ilike, isNotNull, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, isNotNull, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import {
   carDrivers,
@@ -187,6 +187,29 @@ export async function getDriverAnyStatus(entId: string, id: string): Promise<Dri
     .limit(1);
   if (!row[0]) return null;
   return { ...row[0].driver, user: row[0].user, isDeleted: row[0].driver.drvDeletedAt !== null };
+}
+
+/**
+ * Resolve display names for a set of driver ids in one query — used by the truck
+ * roster to show each vehicle's default driver without an N+1 lookup. Ignores
+ * soft-delete / fleet-access status so a still-linked (but stale) driver renders
+ * a name; unlinked vehicles simply have no entry (caller shows empty).
+ */
+export async function getDriverNamesByIds(entId: string, ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({
+      drvId: carDrivers.drvId,
+      usrName: carUsers.usrName,
+      usrEmail: carUsers.usrEmail,
+    })
+    .from(carDrivers)
+    .innerJoin(carUsers, eq(carDrivers.drvUserId, carUsers.usrId))
+    .where(and(eq(carDrivers.entId, entId), inArray(carDrivers.drvId, ids)));
+
+  const map = new Map<string, string>();
+  for (const r of rows) map.set(r.drvId, r.usrName ?? r.usrEmail ?? r.drvId);
+  return map;
 }
 
 /** Look up a driver row by the underlying user (used to enforce driver self-actions). */
