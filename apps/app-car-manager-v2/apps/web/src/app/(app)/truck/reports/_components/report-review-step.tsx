@@ -114,19 +114,24 @@ export function ReportReviewStep({ reviews }: { reviews: TruckReportReview[] }) 
       }
       /* 2. Generate one report per selected region in the chosen format. */
       const regions = reviews.filter((r) => r.vehicles.length > 0).map((r) => r.region);
+      let lastReportId: string | undefined;
       for (const region of regions) {
         const res = await generateTruckReportAction({ month, region, type: fmt });
         if (!res.success) {
           toast.error(formatActionError(res.error, tErr));
           return;
         }
+        lastReportId = res.data.id;
       }
       toast.success(
         regions.length > 1
           ? t('createdToastRegions', { n: regions.length, month: monthLabel })
           : t('createdToast', { month: monthLabel }),
       );
-      router.push('/truck/reports');
+      /* Land on the report list and auto-download the file just generated. With
+       * several regions this carries the newest (last) one; the rest stay one
+       * click away on the list now in view. */
+      router.push(lastReportId ? `/truck/reports?dl=${lastReportId}` : '/truck/reports');
       router.refresh();
     });
 

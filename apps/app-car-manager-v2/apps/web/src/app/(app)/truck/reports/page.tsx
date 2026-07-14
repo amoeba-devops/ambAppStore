@@ -18,6 +18,7 @@ import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getTruckReportsSeenAt, listTruckReports, type TruckReportRow } from '@/server/queries/truck-report.queries';
 import { MonthPicker } from '@/components/inputs/month-picker';
 import { MarkReportsSeen } from './_components/mark-reports-seen';
+import { AutoDownloadReport } from './_components/auto-download-report';
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
@@ -30,11 +31,14 @@ function bcp47(locale: string): string {
 export default async function TruckReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ month?: string; dl?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
   const monthFilter = /^\d{4}-\d{2}$/.test(sp.month ?? '') ? sp.month : undefined;
+  /* ?dl=<reportId> — set by the "Lập báo cáo" wizard so the just-generated file
+   * auto-downloads on arrival. Guard to a UUID shape before trusting it. */
+  const autoDlId = /^[0-9a-fA-F-]{36}$/.test(sp.dl ?? '') ? sp.dl : undefined;
   const t = await getTranslations('screens.truckReports');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
@@ -65,6 +69,7 @@ export default async function TruckReportsPage({
   return (
     <>
       <MarkReportsSeen />
+      {autoDlId && <AutoDownloadReport reportId={autoDlId} />}
       <PageHeader
         title={t('title')}
         subtitle={t('subtitle', { count: reports.length })}
