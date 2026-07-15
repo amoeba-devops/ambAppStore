@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { verifyAmaJwt } from '@/lib/auth/verify-jwt';
 import { absoluteUrl } from '@/lib/request-origin';
+import { isLocale, LOCALE_COOKIE } from '@/i18n/config';
 
 const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? 'amb_session';
 const PUBLIC_PATHS = ['/api/v1/health', '/session-expired', '/dev-login', '/_next', '/favicon.ico'];
@@ -13,12 +14,29 @@ const cookieAttrs = {
   path: '/',
 };
 
+// Locale cookie is NOT httpOnly — the in-app language switcher reads/writes it
+// client-side. Same cross-site attrs as the session cookie so it survives the
+// AMA iframe context.
+const localeCookieAttrs = {
+  httpOnly: false,
+  secure: IS_PROD,
+  sameSite: IS_PROD ? ('none' as const) : ('lax' as const),
+  path: '/',
+};
+
 export async function middleware(req: NextRequest) {
   const { pathname, searchParams } = req.nextUrl;
 
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
+
+  // AMA embeds the iframe as `?ama_token=…&locale=ko`. Persist a supported
+  // locale to the `sal_locale` cookie so next-intl (getRequestLocale) picks it
+  // up on every RSC render. Unsupported values (e.g. `vi`, not in this app's
+  // locale set) are ignored → falls back to the default / in-app switcher.
+  const localeParam = searchParams.get('locale');
+  const incomingLocale = isLocale(localeParam) ? localeParam : null;
 
   const incomingToken = searchParams.get('ama_token');
   if (incomingToken) {
@@ -32,8 +50,10 @@ export async function middleware(req: NextRequest) {
     // catalog instead of back to the app dashboard.
     const cleanUrl = req.nextUrl.clone();
     cleanUrl.searchParams.delete('ama_token');
+    cleanUrl.searchParams.delete('locale');
     const res = NextResponse.redirect(cleanUrl);
     res.cookies.set(SESSION_COOKIE, incomingToken, cookieAttrs);
+    if (incomingLocale) res.cookies.set(LOCALE_COOKIE, incomingLocale, localeCookieAttrs);
     return res;
   }
 
@@ -52,7 +72,10 @@ export async function middleware(req: NextRequest) {
     requestHeaders.set('x-user-role', claims.role);
     if (claims.email) requestHeaders.set('x-user-email', claims.email);
     if (claims.name) requestHeaders.set('x-user-name', encodeURIComponent(claims.name));
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    const res = NextResponse.next({ request: { headers: requestHeaders } });
+    // Honor a locale carried on an in-iframe navigation (no ama_token) too.
+    if (incomingLocale) res.cookies.set(LOCALE_COOKIE, incomingLocale, localeCookieAttrs);
+    return res;
   } catch {
     // Cookie present but verify failed — most common cause: cookie minted by
     // a sibling v2 app on the same origin with different `app_code`. Clear the
