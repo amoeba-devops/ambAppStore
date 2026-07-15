@@ -16,10 +16,14 @@ import { computeTruckPnl } from '@car-v2/core/truck';
 import type { CarVehicleStatus } from '@car-v2/db/schema';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
+import { ParamSelect } from '@/components/inputs/param-select';
 import { PageHeader } from '@/components/layout/page-header';
+import { ReportStatusBadge } from '@/components/truck/report-status-badge';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { getTruckReportStatus, type TruckReportStatus } from '@/server/queries/truck-report.queries';
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
+import { Info } from 'lucide-react';
 import { PeriodPicker } from './_components/period-picker';
 import { isPeriodPreset, type PeriodPreset } from './_components/period-presets';
 
@@ -63,14 +67,15 @@ function monthsForPreset(p: PeriodPreset): string[] {
   }
 }
 
-const YMD = /^\d{4}-\d{2}-\d{2}$/;
 
-/** All 'YYYY-MM' months a custom [from,to] date range spans (capped at 24). */
-function monthsBetween(fromYmd: string, toYmd: string): string[] {
-  let y = Number(fromYmd.slice(0, 4));
-  let m = Number(fromYmd.slice(5, 7));
-  const ty = Number(toYmd.slice(0, 4));
-  const tm = Number(toYmd.slice(5, 7));
+const YM = /^\d{4}-\d{2}$/;
+
+/** All 'YYYY-MM' months a custom [from,to] month range spans (capped at 24). */
+function monthsBetween(fromYm: string, toYm: string): string[] {
+  let y = Number(fromYm.slice(0, 4));
+  let m = Number(fromYm.slice(5, 7));
+  const ty = Number(toYm.slice(0, 4));
+  const tm = Number(toYm.slice(5, 7));
   const out: string[] = [];
   while ((y < ty || (y === ty && m <= tm)) && out.length < 24) {
     out.push(`${y}-${String(m).padStart(2, '0')}`);
@@ -100,14 +105,16 @@ function pctDelta(curr: number, prev: number): number | null {
 export default async function TruckDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; from?: string; to?: string; region?: string }>;
+  searchParams: Promise<{ period?: string; from?: string; to?: string; region?: string; vehicle?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
   const region =
     sp.region && (TRUCK_REGIONS as readonly string[]).includes(sp.region) ? sp.region : undefined;
-  const customFrom = sp.from && YMD.test(sp.from) ? sp.from : undefined;
-  const customTo = sp.to && YMD.test(sp.to) ? sp.to : undefined;
+  /* Custom month/year range (?from=&to= in YYYY-MM) takes precedence over a
+   * preset; falls back to `thisMonth` when neither is a valid range. */
+  const customFrom = sp.from && YM.test(sp.from) ? sp.from : undefined;
+  const customTo = sp.to && YM.test(sp.to) ? sp.to : undefined;
   const isCustom = !!(customFrom && customTo && customFrom <= customTo);
   const preset: PeriodPreset | null = isCustom
     ? null
@@ -126,36 +133,51 @@ export default async function TruckDashboardPage({
   const locale = await getLocale();
   const loc = bcp47(locale);
 
+  const monthYear = (m: string) =>
+    new Date(`${m}-01T00:00:00Z`).toLocaleDateString(loc, { month: 'short', year: 'numeric' });
   const kpiMonths = isCustom ? monthsBetween(customFrom!, customTo!) : monthsForPreset(preset!);
   const trendMonths = lastNMonths(6);
   const periodLabel = isCustom
-    ? `${new Date(customFrom!).toLocaleDateString(loc)} – ${new Date(customTo!).toLocaleDateString(loc)}`
+    ? `${monthYear(customFrom!)} – ${monthYear(customTo!)}`
     : tPeriod(preset!);
 
-  const [kpiRows, prevRows, trendRows, trucks, allTrips, regionRowsRaw] = await Promise.all([
-    computeTruckPnl(user, { months: kpiMonths, region }),
-    computeTruckPnl(user, { months: prevMonths(kpiMonths), region }),
-    computeTruckPnl(user, { months: trendMonths, region }),
-    listVehicles(user.entId, 'active', 'TRUCK'),
+  const trucks = await listVehicles(user.entId, 'active', 'TRUCK');
+  /* Vehicle is a step-2 filter under region (Sheet-2 D1): the dropdown lists
+   * only the chosen region's trucks, and the filter is honoured only when a
+   * region is active and the vehicle belongs to it. */
+  const regionTrucks = region ? trucks.filter((v) => v.cvhRegion === region) : [];
+  const vehicleId =
+    region && sp.vehicle && regionTrucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
+
+  const [kpiRows, prevRows, trendRows, allTrips, regionRowsRaw] = await Promise.all([
+    computeTruckPnl(user, { months: kpiMonths, region, vehicleId }),
+    computeTruckPnl(user, { months: prevMonths(kpiMonths), region, vehicleId }),
+    computeTruckPnl(user, { months: trendMonths, region, vehicleId }),
     listTruckTrips(user.entId),
     /* Per-region breakdown over the selected period (always all regions, even
-     * when filtered — so the breakdown stays a comparison). */
+     * when filtered — so the breakdown stays a comparison). Report status is
+     * only meaningful for a single-month period (a range can't map to one
+     * generation event), so it's only fetched then. */
     Promise.all(
       TRUCK_REGIONS.map(async (r) => {
-        const rows = await computeTruckPnl(user, { months: kpiMonths, region: r });
-        return rows.reduce(
+        const [rows, status] = await Promise.all([
+          computeTruckPnl(user, { months: kpiMonths, region: r }),
+          kpiMonths.length === 1 ? getTruckReportStatus(user.entId, kpiMonths[0]!, r) : Promise.resolve(null),
+        ]);
+        const acc = rows.reduce(
           (a, x) => ({
-            region: r,
             revenue: a.revenue + x.revenue,
             netProfit: a.netProfit + x.netProfit,
             tripCount: a.tripCount + x.tripCount,
           }),
-          { region: r, revenue: 0, netProfit: 0, tripCount: 0 },
+          { revenue: 0, netProfit: 0, tripCount: 0 },
         );
+        return { region: r, ...acc, status: status as TruckReportStatus | null };
       }),
     ),
   ]);
   const regionRows = regionRowsRaw;
+  const showReportStatus = kpiMonths.length === 1;
 
   /* Sum the per-month rows across the selected period. */
   const acc = kpiRows.reduce(
@@ -185,9 +207,6 @@ export default async function TruckDashboardPage({
   const billingDelta = pctDelta(acc.revenue, prevAcc.revenue);
   const profitDelta = pctDelta(acc.netProfit, prevAcc.netProfit);
 
-  /* Cost split (variable vs fixed). driverSalary is folded into fixedCost by
-   * the service (fleet-level); back it out for the breakdown row. */
-  const driverSalary = acc.fixedCost - acc.salary - acc.depreciation - acc.insurance;
   const variablePct = totalCost > 0 ? Math.round((acc.variableCost / totalCost) * 100) : 0;
   const fixedPct = totalCost > 0 ? 100 - variablePct : 0;
 
@@ -293,9 +312,29 @@ export default async function TruckDashboardPage({
           ))}
         </div>
 
+        {/* Vehicle filter — step 2 after a region is chosen (Sheet-2 D1);
+         * lists only that region's trucks. */}
+        {region && regionTrucks.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="mr-1 text-xs font-medium uppercase tracking-wide text-text-faint">{t('byVehicle')}</span>
+            <ParamSelect
+              param="vehicle"
+              value={vehicleId}
+              allLabel={t('allVehicles')}
+              options={regionTrucks.map((v) => ({ value: v.cvhId, label: v.cvhPlateNumber }))}
+            />
+          </div>
+        )}
+
+        {/* Disclaimer note (QA P2 item 4) */}
+        <div className="flex items-start gap-2 rounded-md border border-border bg-surface-2/50 px-3 py-2.5">
+          <Info className="h-4 w-4 shrink-0 text-text-faint mt-0.5" />
+          <p className="text-xs text-text-muted leading-relaxed">{t('disclaimer')}</p>
+        </div>
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Kpi label={t('kpiRevenue')} value={vnd(acc.revenue)} valueMobile={vndCompact(acc.revenue)} delta={billingDelta} vsPrev={t('vsPrev')} />
-          <Kpi label={t('kpiCost')} value={vnd(totalCost)} valueMobile={vndCompact(totalCost)} subtitle={t('kpiCostSub')} />
+          <Kpi label={t('kpiRevenue')} value={vnd(acc.revenue)} valueMobile={vndCompact(acc.revenue)} delta={billingDelta} vsPrev={t('vsPrev')} tooltip={t('tooltipRevenue')} />
+          <Kpi label={t('kpiCost')} value={vnd(totalCost)} valueMobile={vndCompact(totalCost)} subtitle={t('kpiCostSub')} tooltip={t('tooltipCost')} />
           <Kpi
             label={t('kpiProfit')}
             value={vnd(acc.netProfit)}
@@ -303,6 +342,7 @@ export default async function TruckDashboardPage({
             tone={acc.netProfit >= 0 ? 'success' : 'danger'}
             delta={profitDelta}
             vsPrev={t('vsPrev')}
+            tooltip={t('tooltipProfit')}
           />
           <Kpi label={t('kpiTrips')} value={acc.tripCount.toLocaleString(loc)} subtitle={t('kpiTripsSub')} />
         </div>
@@ -355,10 +395,8 @@ export default async function TruckDashboardPage({
             sub={`${fixedPct}% · ${t('perMonth')}`}
             total={vnd(acc.fixedCost)}
             rows={[
-              [tPnl('salary'), vnd(acc.salary)],
               [tPnl('depreciation'), vnd(acc.depreciation)],
               [tPnl('insurance'), vnd(acc.insurance)],
-              [tPnl('driverSalary'), vnd(driverSalary)],
             ]}
           />
         </div>
@@ -381,6 +419,11 @@ export default async function TruckDashboardPage({
                     {tPnl('netProfit')}: {vndCompact(rr.netProfit)}
                   </span>
                 </div>
+                {rr.status && (
+                  <div className="mt-1.5">
+                    <ReportStatusBadge reportedAt={rr.status.reportedAt} stale={rr.status.stale} locale={locale} />
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -392,6 +435,7 @@ export default async function TruckDashboardPage({
                   <TableHead className="text-right">{tPnl('revenue')}</TableHead>
                   <TableHead className="text-right">{tPnl('netProfit')}</TableHead>
                   <TableHead className="text-right">{t('kpiTrips')}</TableHead>
+                  {showReportStatus && <TableHead>{t('thReportStatus')}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -405,6 +449,13 @@ export default async function TruckDashboardPage({
                       {vnd(rr.netProfit)}
                     </TableCell>
                     <TableCell className="text-right tabular">{rr.tripCount.toLocaleString(loc)}</TableCell>
+                    {showReportStatus && (
+                      <TableCell>
+                        {rr.status && (
+                          <ReportStatusBadge reportedAt={rr.status.reportedAt} stale={rr.status.stale} locale={locale} />
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -459,6 +510,9 @@ export default async function TruckDashboardPage({
                       </div>
                       <div className="text-right shrink-0">
                         <div className="text-sm tabular text-text">{vndCompact(trip.breakdown.revenue)}</div>
+                        <div className="text-xs tabular text-text-faint">
+                          {vndCompact(trip.breakdown.fuelCost + trip.breakdown.tollFee + trip.breakdown.extraTotal)}
+                        </div>
                         <div className={'text-xs tabular font-semibold ' + (trip.breakdown.profit >= 0 ? 'text-success' : 'text-danger')}>
                           {vndCompact(trip.breakdown.profit)}
                         </div>
@@ -473,18 +527,22 @@ export default async function TruckDashboardPage({
                     <TableRow>
                       <TableHead>{tTrips('thDate')}</TableHead>
                       <TableHead>{tTrips('thCustomer')}</TableHead>
+                      <TableHead className="text-right">{t('thCost')}</TableHead>
                       <TableHead className="text-right">{tTrips('thRevenue')}</TableHead>
                       <TableHead className="text-right">{tTrips('thProfit')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recent.map((trip) => (
+                    {recent.map((trip) => {
+                      const tripCost = trip.breakdown.fuelCost + trip.breakdown.tollFee + trip.breakdown.extraTotal;
+                      return (
                       <ClickableTableRow key={trip.trpId} href={`/truck/trips/${trip.trpId}`}>
                         <TableCell className="whitespace-nowrap">
                           <div className="text-text">{date(trip.scheduledAt)}</div>
                           <div className="text-xs text-text-faint font-mono">{trip.ref}</div>
                         </TableCell>
                         <TableCell className="text-text">{trip.customer ?? '—'}</TableCell>
+                        <TableCell className="text-right tabular text-text-muted">{vnd(tripCost)}</TableCell>
                         <TableCell className="text-right tabular">{vnd(trip.breakdown.revenue)}</TableCell>
                         <TableCell
                           className={
@@ -495,7 +553,8 @@ export default async function TruckDashboardPage({
                           {vnd(trip.breakdown.profit)}
                         </TableCell>
                       </ClickableTableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -516,20 +575,30 @@ function Kpi({
   subtitle,
   delta,
   vsPrev,
+  tooltip,
 }: {
   label: string;
   value: string;
-  /** Compact form shown < sm (e.g. "150 tr"); `value` (exact) shows ≥ sm.
-   * Omit for short values (counts) that already fit on mobile. */
   valueMobile?: string;
   tone?: 'success' | 'danger';
   subtitle?: string;
   delta?: number | null;
   vsPrev?: string;
+  tooltip?: string;
 }) {
   return (
     <Card className="px-4 py-3">
-      <div className="text-xs font-medium uppercase tracking-wide text-text-muted mb-1.5">{label}</div>
+      <div className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-text-muted mb-1.5">
+        {label}
+        {tooltip && (
+          <span className="relative group cursor-help">
+            <Info className="h-3.5 w-3.5 text-text-faint" />
+            <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-60 rounded-md border border-border bg-surface px-3 py-2 text-xs font-normal normal-case tracking-normal text-text shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-40 whitespace-pre-line">
+              {tooltip}
+            </span>
+          </span>
+        )}
+      </div>
       <div
         className={
           'text-xl md:text-2xl font-bold tabular leading-none whitespace-nowrap ' +

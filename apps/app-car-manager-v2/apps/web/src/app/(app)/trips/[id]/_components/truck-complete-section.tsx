@@ -10,9 +10,33 @@ import {
   completeTruckTripAction,
 } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
+import { CostReceiptInput, type ExistingCostAttachment } from '@/components/truck/cost-receipt-input';
+import { uploadTruckCostFile } from '@/lib/truck-cost-upload';
 
 const numF = (s: string) => (s.trim() === '' ? undefined : Number(s));
 const numI = (s: string) => (s.trim() === '' ? undefined : Math.trunc(Number(s)));
+
+type CostKind = 'FUEL' | 'TOLL' | 'EXTRA';
+interface ReceiptBucket {
+  existing: ExistingCostAttachment[];
+  files: File[];
+}
+const RECEIPT_LABEL: Record<CostKind, string> = {
+  FUEL: 'fuelReceipts',
+  TOLL: 'tollReceipts',
+  EXTRA: 'extraReceipts',
+};
+
+/** Attachments already saved on the trip (e.g. added at create time) — the
+ * completion form shows them so completing doesn't silently drop them. */
+export interface CompleteSectionAttachment {
+  id: string;
+  costKind: CostKind;
+  s3Key: string;
+  mime: string;
+  sizeBytes: number;
+  signedUrl: string | null;
+}
 
 interface ExtraRow {
   name: string;
@@ -25,14 +49,41 @@ interface ExtraRow {
  * ({name, amount} with +). Uses the driver-self action when mode='driver',
  * else the staff action.
  */
-export function TruckCompleteSection({ tripId, mode }: { tripId: string; mode: 'driver' | 'staff' }) {
+export function TruckCompleteSection({
+  tripId,
+  mode,
+  existingAttachments = [],
+}: {
+  tripId: string;
+  mode: 'driver' | 'staff';
+  existingAttachments?: CompleteSectionAttachment[];
+}) {
   const t = useTranslations('screens.truckComplete');
+  const tR = useTranslations('screens.truckTrips.form');
   const tErr = useTranslations();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [f, setF] = useState({ startTime: '', endTime: '', endOdo: '', fuelLiters: '', toll: '' });
   const [extras, setExtras] = useState<ExtraRow[]>([]);
+
+  /* Receipt buckets (REQ-20260709) — seeded with any attachments already on the
+   * trip so completing reconciles the full set instead of dropping them. */
+  const [receipts, setReceipts] = useState<Record<CostKind, ReceiptBucket>>(() => {
+    const init: Record<CostKind, ReceiptBucket> = {
+      FUEL: { existing: [], files: [] },
+      TOLL: { existing: [], files: [] },
+      EXTRA: { existing: [], files: [] },
+    };
+    for (const a of existingAttachments) {
+      init[a.costKind].existing.push({ id: a.id, s3Key: a.s3Key, mime: a.mime, sizeBytes: a.sizeBytes, signedUrl: a.signedUrl });
+    }
+    return init;
+  });
+  const setBucketExisting = (k: CostKind, next: ExistingCostAttachment[]) =>
+    setReceipts((r) => ({ ...r, [k]: { ...r[k], existing: next } }));
+  const setBucketFiles = (k: CostKind, next: File[]) =>
+    setReceipts((r) => ({ ...r, [k]: { ...r[k], files: next } }));
 
   const set =
     (k: keyof typeof f) =>
@@ -44,8 +95,31 @@ export function TruckCompleteSection({ tripId, mode }: { tripId: string; mode: '
     setExtras((x) => x.map((row, j) => (j === i ? { ...row, [k]: v } : row)));
   const removeExtra = (i: number) => setExtras((x) => x.filter((_, j) => j !== i));
 
+  const buildCostAttachments = async (): Promise<
+    { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number }[]
+  > => {
+    const out: { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number }[] = [];
+    for (const k of ['FUEL', 'TOLL', 'EXTRA'] as const) {
+      for (const e of receipts[k].existing) {
+        out.push({ cost_kind: k, s3_key: e.s3Key, mime: e.mime, size_bytes: e.sizeBytes });
+      }
+      for (const file of receipts[k].files) {
+        const up = await uploadTruckCostFile(file);
+        out.push({ cost_kind: k, ...up });
+      }
+    }
+    return out;
+  };
+
   const submit = () => {
     startTransition(async () => {
+      let cost_attachments: { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number }[];
+      try {
+        cost_attachments = await buildCostAttachments();
+      } catch {
+        toast.error(tR('receiptUploadFailed'));
+        return;
+      }
       const payload = {
         trip_id: tripId,
         start_time: f.startTime || undefined,
@@ -56,6 +130,7 @@ export function TruckCompleteSection({ tripId, mode }: { tripId: string; mode: '
         extra_costs: extras
           .filter((e) => e.name.trim() !== '' && e.amount.trim() !== '')
           .map((e) => ({ name: e.name.trim(), amount: Number(e.amount) })),
+        cost_attachments,
       };
       const res =
         mode === 'driver'
@@ -129,6 +204,23 @@ export function TruckCompleteSection({ tripId, mode }: { tripId: string; mode: '
             {t('extraAdd')}
           </Button>
         </div>
+      </div>
+
+      {/* Receipt/invoice attachments (REQ-20260709) — one bucket per cost kind. */}
+      <div className="space-y-3 pt-2 border-t border-border">
+        <div className="text-xs font-medium text-text-muted uppercase tracking-wide">{tR('receiptsSection')}</div>
+        {(['FUEL', 'TOLL', 'EXTRA'] as const).map((k) => (
+          <div key={k} className="space-y-1.5">
+            <div className="text-xs text-text-muted">{tR(RECEIPT_LABEL[k])}</div>
+            <CostReceiptInput
+              existing={receipts[k].existing}
+              onExistingChange={(next) => setBucketExisting(k, next)}
+              files={receipts[k].files}
+              onFilesChange={(next) => setBucketFiles(k, next)}
+              disabled={pending}
+            />
+          </div>
+        ))}
       </div>
 
       <div className="flex gap-2 justify-end pt-2 border-t border-border">

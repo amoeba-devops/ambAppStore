@@ -117,35 +117,39 @@ try {
   //    finance ledger, recent trips. Dates are RELATIVE to now so "Tháng này"
   //    always has data: monthsAgo=0 (current month, day 1 so never future) and
   //    monthsAgo=1 (previous month → real period-over-period %). vehicle → region.
-  //    [ref, veh, drv, cust, bol, from, to, monthsAgo, dom, liters, price, toll, revenue, endOdo]
+  //    [ref, veh, drv, cust, bol, from, to, monthsAgo, dom, liters, price, toll, revenue, startOdo, endOdo]
+  //    startOdo/endOdo feed the km-based fuel ALLOCATION (PLAN-20260707) — the
+  //    3 current-month HCM trips' km (120+100+100=320) pair with the fuel
+  //    invoices seeded below (160L) for a clean 0.5 L/km demo consumption.
   const done = [
-    ['TRK-1001', TK.hcm2, D_DRV_TRUCK, 'Công ty TNHH ABC Logistics', 'BOL-24061', 'Kho Sóng Thần, Bình Dương', 'Cảng Cát Lái, TP.HCM',      0, 1, 62, 22000, 250000, 9800000, 118420],
-    ['TRK-1002', TK.hcm2, DRV2_D,      'Nhà máy Samsung SEHC',       'BOL-24062', 'KCN Cao, TP.Thủ Đức',       'Cảng Cái Mép, Bà Rịa',      0, 1, 88, 22000, 380000, 14200000, 118980],
-    ['TRK-1003', TK.hcm2, D_DRV_TRUCK, 'Kho vận Gemadept',           'BOL-24063', 'Cảng Cát Lái',              'Kho Long Bình, TP.Thủ Đức', 0, 1, 45, 21500, 150000, 6500000, 119400],
-    ['TRK-2001', TK.dn1,  DRV3_D,      'Công ty Gỗ Trường Thành',    'BOL-24064', 'KCN Amata, Biên Hòa',       'Cảng Cát Lái, TP.HCM',      0, 1, 70, 22000, 300000, 11000000, 205300],
-    ['TRK-3001', TK.bs1,  DRV3_D,      'Xi măng Hà Tiên',            'BOL-24067', 'Nhà máy Kiên Lương',        'Trạm trộn Baiksan',         0, 1, 92, 21500, 410000, 15200000, 302400],
-    ['TRK-0901', TK.hcm2, DRV2_D,      'Nhà máy Bosch Đồng Nai',     'BOL-24051', 'KCN Long Thành',            'ICD Tân Cảng Long Bình',    1, 9, 55, 21800, 220000, 8600000, 90110],
-    ['TRK-0902', TK.dn1,  DRV2_D,      'Công ty Nhựa Long Thành',    'BOL-24052', 'KCN Nhơn Trạch',            'Cảng Cát Lái',              1, 14, 60, 22000, 260000, 9200000, 90980],
-    ['TRK-0903', TK.dn2,  DRV3_D,      'Kho vận Gemadept',           'BOL-24053', 'KCN Long Thành',            'Cảng Cát Lái',              1, 20, 50, 21800, 200000, 7800000, 60110],
-    ['TRK-0904', TK.bs1,  D_DRV_TRUCK, 'Thép Hòa Phát',              'BOL-24054', 'Cảng Baiksan',              'KCN Long An',               1, 24, 78, 22000, 350000, 12800000, 300100],
+    ['TRK-1001', TK.hcm2, D_DRV_TRUCK, 'Công ty TNHH ABC Logistics', 'BOL-24061', 'Kho Sóng Thần, Bình Dương', 'Cảng Cát Lái, TP.HCM',      0, 1, 62, 22000, 250000, 9800000, 118300, 118420],
+    ['TRK-1002', TK.hcm2, DRV2_D,      'Nhà máy Samsung SEHC',       'BOL-24062', 'KCN Cao, TP.Thủ Đức',       'Cảng Cái Mép, Bà Rịa',      0, 1, 88, 22000, 380000, 14200000, 118880, 118980],
+    ['TRK-1003', TK.hcm2, D_DRV_TRUCK, 'Kho vận Gemadept',           'BOL-24063', 'Cảng Cát Lái',              'Kho Long Bình, TP.Thủ Đức', 0, 1, 45, 21500, 150000, 6500000, 119300, 119400],
+    ['TRK-2001', TK.dn1,  DRV3_D,      'Công ty Gỗ Trường Thành',    'BOL-24064', 'KCN Amata, Biên Hòa',       'Cảng Cát Lái, TP.HCM',      0, 1, 70, 22000, 300000, 11000000, 205150, 205300],
+    ['TRK-3001', TK.bs1,  DRV3_D,      'Xi măng Hà Tiên',            'BOL-24067', 'Nhà máy Kiên Lương',        'Trạm trộn Baiksan',         0, 1, 92, 21500, 410000, 15200000, 302200, 302400],
+    ['TRK-0901', TK.hcm2, DRV2_D,      'Nhà máy Bosch Đồng Nai',     'BOL-24051', 'KCN Long Thành',            'ICD Tân Cảng Long Bình',    1, 9, 55, 21800, 220000, 8600000, 89990, 90110],
+    ['TRK-0902', TK.dn1,  DRV2_D,      'Công ty Nhựa Long Thành',    'BOL-24052', 'KCN Nhơn Trạch',            'Cảng Cát Lái',              1, 14, 60, 22000, 260000, 9200000, 90850, 90980],
+    ['TRK-0903', TK.dn2,  DRV3_D,      'Kho vận Gemadept',           'BOL-24053', 'KCN Long Thành',            'Cảng Cát Lái',              1, 20, 50, 21800, 200000, 7800000, 60000, 60110],
+    ['TRK-0904', TK.bs1,  D_DRV_TRUCK, 'Thép Hòa Phát',              'BOL-24054', 'Cảng Baiksan',              'KCN Long An',               1, 24, 78, 22000, 350000, 12800000, 299950, 300100],
   ];
-  for (const [ref, veh, drv, cust, bol, from, to, monthsAgo, dom, liters, price, toll, rev, odo] of done) {
+  for (const [ref, veh, drv, cust, bol, from, to, monthsAgo, dom, liters, price, toll, rev, startOdo, endOdo] of done) {
     const id = 'd7000000-0000-4000-8000-0000000' + ref.replace(/\D/g, '').padStart(5, '0');
     await sql`
       INSERT INTO car_trips
         (trp_id, ent_id, trp_ref, trp_kind, trp_creator_id, trp_driver_id, trp_vehicle_id, trp_status,
          trp_customer, trp_bol, trp_pickup_address, trp_dropoff_address, trp_scheduled_at, trp_duration_minutes,
-         trp_fuel_liters, trp_fuel_price, trp_toll_fee, trp_revenue, trp_end_odometer)
+         trp_fuel_liters, trp_fuel_price, trp_toll_fee, trp_revenue, trp_start_odometer, trp_end_odometer)
       VALUES
         (${id}, ${ENT}, ${ref}, 'LOG', ${U_MGR_TRUCK}, ${drv}, ${veh}, 'COMPLETED',
          ${cust}, ${bol}, ${from}, ${to},
          date_trunc('month', now()) - make_interval(months => ${monthsAgo}) + make_interval(days => ${dom - 1}, hours => 8),
-         240, ${liters}, ${price}, ${toll}, ${rev}, ${odo})
+         240, ${liters}, ${price}, ${toll}, ${rev}, ${startOdo}, ${endOdo})
       ON CONFLICT (trp_id) DO UPDATE SET
         trp_status='COMPLETED', trp_customer=EXCLUDED.trp_customer, trp_vehicle_id=EXCLUDED.trp_vehicle_id,
         trp_driver_id=EXCLUDED.trp_driver_id, trp_scheduled_at=EXCLUDED.trp_scheduled_at,
         trp_fuel_liters=EXCLUDED.trp_fuel_liters, trp_fuel_price=EXCLUDED.trp_fuel_price,
-        trp_toll_fee=EXCLUDED.trp_toll_fee, trp_revenue=EXCLUDED.trp_revenue`;
+        trp_toll_fee=EXCLUDED.trp_toll_fee, trp_revenue=EXCLUDED.trp_revenue,
+        trp_start_odometer=EXCLUDED.trp_start_odometer, trp_end_odometer=EXCLUDED.trp_end_odometer`;
   }
   console.log(`  ✓ ${done.length} COMPLETED trips (current + previous month, across regions)`);
 
@@ -166,6 +170,26 @@ try {
       ON CONFLICT (trp_id) DO UPDATE SET trp_status=EXCLUDED.trp_status, trp_driver_id=EXCLUDED.trp_driver_id, trp_vehicle_id=EXCLUDED.trp_vehicle_id`;
   }
   console.log(`  ✓ ${open.length} open trips for driver Trần Văn Sơn (Cần hoàn thành)`);
+
+  // 6. Fuel invoices for HCM (current month) → 08-tong-quan-pnl / 09-lap-bao-cao
+  //    shots show a populated "Hoá đơn xăng dầu" panel + the "Phân bổ theo bình
+  //    quân" allocation badge instead of the empty/fallback state.
+  const fuelInvoices = [
+    ['f7000000-0000-4000-8000-000000000001', 3, 'Petrolimex Sóng Thần', 90, 22000],
+    ['f7000000-0000-4000-8000-000000000002', 18, 'PVOil Thủ Đức', 70, 22500],
+  ];
+  for (const [id, dom, station, liters, price] of fuelInvoices) {
+    await sql`
+      INSERT INTO car_truck_fuel_invoices
+        (tfi_id, ent_id, tfi_vehicle_type, tfi_month, tfi_region, tfi_date, tfi_station, tfi_liters, tfi_price)
+      VALUES
+        (${id}, ${ENT}, 'TRUCK', to_char(date_trunc('month', now()), 'YYYY-MM'), 'HCM',
+         (date_trunc('month', now()) + make_interval(days => ${dom - 1}))::date, ${station}, ${liters}, ${price})
+      ON CONFLICT (tfi_id) DO UPDATE SET
+        tfi_month=EXCLUDED.tfi_month, tfi_date=EXCLUDED.tfi_date, tfi_station=EXCLUDED.tfi_station,
+        tfi_liters=EXCLUDED.tfi_liters, tfi_price=EXCLUDED.tfi_price, tfi_deleted_at=NULL`;
+  }
+  console.log(`  ✓ ${fuelInvoices.length} fuel invoices (HCM, current month) for the P&L/report allocation shots`);
 
   const cnt = await sql`SELECT trp_status, count(*)::int n FROM car_trips WHERE ent_id=${ENT} AND trp_kind='LOG' AND trp_deleted_at IS NULL GROUP BY trp_status ORDER BY trp_status`;
   console.log('\n  LOG trips now:', JSON.stringify(cnt));

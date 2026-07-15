@@ -12,6 +12,8 @@ import {
   completeTruckTrip,
   updateTruckTrip,
   deleteTruckTrip,
+  syncTripCostAttachments,
+  type TripCostAttachmentInput,
 } from '@car-v2/core/truck';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import {
@@ -83,6 +85,29 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 /**
+ * Reconcile a trip's receipt attachments to the DTO's desired set.
+ *
+ * `undefined` means "don't touch" (caller didn't manage attachments) — we skip
+ * the sync entirely so a form that omits the field never clobbers existing
+ * receipts. An explicit array (even empty) IS the full desired set: empty
+ * clears all. The manager + completion forms always send the full array.
+ */
+async function maybeSyncAttachments(
+  entId: string,
+  tripId: string,
+  atts: { cost_kind: 'FUEL' | 'TOLL' | 'EXTRA'; s3_key: string; mime: string; size_bytes: number }[] | undefined,
+): Promise<void> {
+  if (atts === undefined) return;
+  const mapped: TripCostAttachmentInput[] = atts.map((a) => ({
+    costKind: a.cost_kind,
+    s3Key: a.s3_key,
+    mime: a.mime,
+    sizeBytes: a.size_bytes,
+  }));
+  await syncTripCostAttachments(entId, tripId, mapped);
+}
+
+/**
  * Create a truck trip-log entry.
  *
  * - ADMIN/MANAGER: full access, can assign any driver + set revenue.
@@ -151,10 +176,7 @@ export async function createTruckTripAction(input: unknown): Promise<ActionResul
 
     /* Log a finished trip in one step when the manager supplied metrics. */
     if (actor.role !== 'DRIVER' && dto.mark_completed && trip.trpDriverId && trip.trpVehicleId) {
-      const extraCosts =
-        dto.other_amount && dto.other_amount > 0
-          ? [{ name: dto.other_note?.trim() || 'Other', amount: dto.other_amount }]
-          : [];
+      const extraCosts = dto.extra_costs ?? [];
       const res = await completeTruckTrip(actor, trip.trpId, {
         endOdometer: dto.end_odometer ?? null,
         fuelLiters: dto.fuel_liters ?? null,
@@ -163,6 +185,10 @@ export async function createTruckTripAction(input: unknown): Promise<ActionResul
       });
       trip = res.trip;
     }
+
+    /* Persist trip-cost receipt attachments (REQ-20260709). No existing rows on
+     * create → sync just inserts the uploaded keys. */
+    await maybeSyncAttachments(actor.entId, trip.trpId, dto.cost_attachments);
 
     await logAudit({
       entId: actor.entId,
@@ -245,6 +271,9 @@ export async function completeTruckTripAction(input: unknown): Promise<ActionRes
       extraCosts: dto.extra_costs ?? [],
     });
 
+    /* Reconcile receipt attachments (insert new, soft-delete removed). */
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
+
     await logAudit({
       entId: actor.entId,
       userId: actor.userId,
@@ -293,6 +322,9 @@ export async function driverCompleteTruckTripAction(input: unknown): Promise<Act
       extraCosts: dto.extra_costs ?? [],
     });
 
+    /* Reconcile receipt attachments (insert new, soft-delete removed). */
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
+
     await logAudit({
       entId: actor.entId,
       userId: actor.userId,
@@ -328,10 +360,7 @@ export async function updateTruckTripAction(input: unknown): Promise<ActionResul
     if (curTrip) await assertTruckMonthOpen(actor.entId, curTrip.trpScheduledAt, await regionOfVehicle(actor.entId, curTrip.trpVehicleId));
     await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at), await regionOfVehicle(actor.entId, dto.vehicle_id));
 
-    const extraCosts =
-      dto.other_amount && dto.other_amount > 0
-        ? [{ name: dto.other_note?.trim() || 'Other', amount: dto.other_amount }]
-        : [];
+    const extraCosts = dto.extra_costs ?? [];
     const stopovers: StopoverInput[] | undefined = dto.stopovers?.map((s) => ({
       type: s.type,
       address: s.address,
@@ -357,6 +386,9 @@ export async function updateTruckTripAction(input: unknown): Promise<ActionResul
       extraCosts,
       stopovers,
     });
+
+    /* Reconcile receipt attachments (insert new, soft-delete removed). */
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
 
     await logAudit({
       entId: actor.entId,
@@ -416,12 +448,19 @@ export async function patchTruckTripCostsAction(input: unknown): Promise<ActionR
     if (!trip) throw new CarError('CAR-E0404', 404, 'Trip not found');
     await assertTruckMonthOpen(actor.entId, trip.trpScheduledAt, await regionOfVehicle(actor.entId, trip.trpVehicleId));
 
-    const patch: Partial<{ trpTollFee: string; trpRevenue: string; trpFuelLiters: string }> = {};
+    const patch: Partial<{ trpTollFee: string; trpRevenue: string; trpFuelLiters: string; trpFuelPrice: string }> = {};
     if (dto.toll_fee !== undefined) patch.trpTollFee = String(dto.toll_fee);
     if (dto.revenue !== undefined) patch.trpRevenue = String(dto.revenue);
     if (dto.fuel_cost !== undefined) {
       const price = Number(trip.trpFuelPrice ?? 0);
-      if (price > 0) patch.trpFuelLiters = String(Math.round((dto.fuel_cost / price) * 100) / 100);
+      if (price > 0) {
+        patch.trpFuelLiters = String(Math.round((dto.fuel_cost / price) * 100) / 100);
+      } else {
+        /* No unit price on the trip → store the amount as liters × 1 đ so the
+         * edit persists (it used to be silently dropped). */
+        patch.trpFuelPrice = '1';
+        patch.trpFuelLiters = String(dto.fuel_cost);
+      }
     }
     if (Object.keys(patch).length > 0) {
       await db

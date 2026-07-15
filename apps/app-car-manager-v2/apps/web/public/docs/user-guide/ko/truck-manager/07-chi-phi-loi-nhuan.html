@@ -37,6 +37,8 @@
         <a class="sidebar__link" href="08-tong-quan-pnl.html">손익 개요</a>
         <a class="sidebar__link" href="09-lap-bao-cao.html">보고서 작성</a>
         <a class="sidebar__link" href="10-danh-sach-bao-cao.html">보고서 목록</a>
+        <a class="sidebar__link" href="11-import-excel.html">엑셀 가져오기</a>
+        <a class="sidebar__link" href="12-cau-hinh.html">트럭 설정</a>
       </div>
       <div class="sidebar__group">
         <div class="sidebar__group-label">트럭 · 기사</div>
@@ -69,8 +71,8 @@
         <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/finance</code></dd><dt>기간</dt><dd>상단에서 월 선택</dd></dl></div>
         <figure><img src="../../assets/img/screenshots/ko/truck-manager/07-finance.png" alt="선택 월의 운행별 장부 (데스크톱)"><figcaption>선택 월의 운행별 장부 (데스크톱)</figcaption></figure>
         <figure><img src="../../assets/img/screenshots/ko/truck-manager/07-finance-mobile.png" alt="휴대폰 비용 & 손익 (모바일)"><figcaption>휴대폰 비용 & 손익 (모바일)</figcaption></figure>
-<h2>사용 단계</h2><ol><li>상단에서 <strong>월</strong> 선택.</li><li>3개 탭 이동: <strong>운행별</strong> · <strong>손익 개요</strong> · <strong>영수증 &amp; 월 비용</strong>.</li><li>영수증 &amp; 비용 탭에서 <strong>고정비</strong>(급여·감가·보험)와 <strong>연료 영수증</strong> 입력.</li><li>수치 확정 시 지역별 <strong>월 마감</strong>.</li></ol>
-<h2>로직 / 규칙</h2><ul><li>월 고정비는 이익 계산 시 <strong>총비용에 합산</strong>.</li><li><strong>마감</strong> = 해당 (월 × 지역) 운행/비용 수정 잠금, 보고서 읽기 전용. <strong>재개</strong> 가능(관리자만).</li><li>마감 시 <strong>연료 단가·정액</strong>을 확정해 일관된 비용 계산.</li></ul>
+<h2>사용 단계</h2><ol><li>상단 필터에서 <strong>월</strong>·<strong>지역</strong>·<strong>차량</strong> 선택.</li><li>2개 탭 이동: <strong>운행별</strong>(현재 화면)과 <strong>손익 개요</strong>(<a href="08-tong-quan-pnl.html">손익 개요</a> 참고).</li><li>상단 7개 요약 카드 확인: 매출·연료·통행료·기타·기사 급여·고정비·순이익.</li><li>필터 옆 상태 배지 확인: <strong>보고서 작성됨 · 시각</strong> 또는 <strong>미작성</strong>.</li><li>운행 행 클릭 시 <a href="04-chi-tiet-chuyen.html">상세</a> 열림; <strong>Excel 내보내기</strong>로 장부 다운로드.</li></ol>
+<h2>로직 / 규칙</h2><ul><li><strong>기울임체 단가·리터</strong> = 임시 수치(운행별 직접 입력) — 해당 월/지역 <strong>보고서 미작성</strong> 상태.</li><li><a href="09-lap-bao-cao.html">보고서 작성</a> 후에는 두 값이 <strong>공식</strong> 수치(지역 평균 배분)로 바뀌고 기울임체가 사라집니다.</li><li>수동 "마감" 단계는 더 이상 없습니다 — 데이터 수정 후 보고서를 다시 작성하면 공식 수치가 갱신됩니다. 마지막 작성 이후 변경이 있으면 배지가 <strong>"데이터 변경됨, 재작성 필요"</strong>(노란색)로 바뀝니다.</li></ul>
 
         <nav class="pager">
           <a class="pager__prev" href="06-tai-xe.html"><span>← 이전</span><strong>기사</strong></a>

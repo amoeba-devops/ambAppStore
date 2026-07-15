@@ -564,7 +564,7 @@
       "사용 단계",
       "로직 / 규칙"
     ],
-    "snippet": "앱에서 열기 /truck/finance → URL /truck/finance 기간 상단에서 월 선택 선택 월의 운행별 장부 (데스크톱) 휴대폰 비용 & 손익 (모바일) 사용 단계 상단에서 월 선택. 3개 탭 이동: 운행별 · 손익 개요 · 영수증 & 월 비용 . 영수증 & 비용 탭에서 고정비 (급여·감가·보험)와 연료 영수증 입력. 수치 확정 시 지역별 월 마감 . 로직 / 규칙 월 고정비는 이익 계산 시 총비용에 합산 . 마감 = 해당 (월 × 지역) 운행/비용 수정 잠금, 보고서 읽기 전용. 재개 가능(관리자만). 마감 시 연료 단가·정액 을 확정해 일관된 비용 계산. ← 이전 기사 다음 → 손익 개요"
+    "snippet": "앱에서 열기 /truck/finance → URL /truck/finance 기간 상단에서 월 선택 선택 월의 운행별 장부 (데스크톱) 휴대폰 비용 & 손익 (모바일) 사용 단계 상단 필터에서 월 · 지역 · 차량 선택. 2개 탭 이동: 운행별 (현재 화면)과 손익 개요 ( 손익 개요 참고). 상단 7개 요약 카드 확인: 매출·연료·통행료·기타·기사 급여·고정비·순이익. 필터 옆 상태 배지 확인: 보고서 작성됨 · 시각 또는 미작성 . 운행 행 클릭 시 상세 열림; Excel 내보내기 로 장부 다운로드. 로직 / 규칙 기울임체 단가·리터 = 임시 수치(운행별 직접 입력) — 해당 월/지역 보고서 미작성 상태. 보고서 작성 후에는 두 값이 공식 수치(지역 평균 배분)로 바뀌고 기울임체가 사라집니다. 수동 \"마"
   },
   {
     "url": "ko/truck-manager/08-tong-quan-pnl.html",
@@ -575,7 +575,7 @@
       "사용 단계",
       "로직 / 규칙"
     ],
-    "snippet": "앱에서 열기 /truck/pnl → URL /truck/pnl 내용 지역·월별 손익 집계 지역별 손익 개요 (데스크톱) 휴대폰 손익 개요 (모바일) 사용 단계 기간/지역을 선택해 매출·비용·이익 집계 확인. HCM / 동나이 / Baiksan 간 효율 비교. 필요 시 Excel 내보내기 . 로직 / 규칙 기간의 완료 운행 + 고정비 에서 산출. 손익은 비용 & 손익 메뉴의 한 탭. ← 이전 비용 & 손익 다음 → 보고서 작성"
+    "snippet": "앱에서 열기 /truck/pnl → URL /truck/pnl 내용 지역·월별 손익 집계 + 주유 영수증 지역별 손익 개요(HCM, 주유 영수증 포함) (데스크톱) 휴대폰 손익 개요 (모바일) 사용 단계 기간/지역을 선택해 최근 3개월 매출·비용·이익 집계 확인. 각 월 열 아래에 보고서 작성됨 · 시각 또는 미작성 배지 표시. 지역 필터로 HCM / 동나이 / Baiksan 효율 비교, 또는 차량별 필터. 특정 지역 을 선택하면 아래에 주유 영수증 블록 표시: 4개 지표(평균 단가, 연비, 총 영수증 리터, 월 총 km)와 영수증 목록. 새 영수증 입력: 날짜·주유소·리터·단가 입력 후 추가 . 필요 시 Excel 내보내기 . 로직 / 규칙 기간의 완료 운행 + 고정비 에서 산출. 평균 단가 = 해당 월·"
   },
   {
     "url": "ko/truck-manager/09-lap-bao-cao.html",
@@ -584,9 +584,10 @@
     "title": "보고서 작성",
     "headings": [
       "사용 단계",
+      "3단계 — 연료비 배분",
       "로직 / 규칙(오류 차단)"
     ],
-    "snippet": "앱에서 열기 /truck/reports/new → URL /truck/reports/new 절차 3단계: 월 → 지역 → 확인 1단계 — 월 선택 (데스크톱) 휴대폰 보고서 작성 (모바일) 사용 단계 1단계 — 월 선택 : 보고할 월 선택. 2단계 — 지역 선택 : 한 지역(HCM/동나이/Baiksan) 또는 전체 지역 . 3단계 — 확인 & 작성 : 집계 수치 검토 후 생성. 생성된 보고서 Excel 다운로드(또는 보고서 목록 에서). 로직 / 규칙(오류 차단) 데이터 없는 월 → 2단계로 진행 불가, 1단계에서 즉시 경고. 해당 월에 운행 없는 지역 → 3단계로 진행 불가, 2단계에서 즉시 경고. 보고서는 지역명 과 함께 명명되어 목록에 저장. ← 이전 손익 개요 다음 → 보고서 목록"
+    "snippet": "앱에서 열기 /truck/reports/new → URL /truck/reports/new 절차 3단계: 월 → 지역 → 확인 1단계 — 월 선택 (데스크톱) 휴대폰 보고서 작성 (모바일) 사용 단계 1단계 — 월 선택 : 보고할 월 선택. 2단계 — 지역 선택 : 한 지역(HCM/동나이/Baiksan) 또는 전체 지역 . 3단계 — 확인 & 작성 : 집계 수치와 배분 배지를 확인한 후 생성. 생성된 보고서 Excel 다운로드(또는 보고서 목록 에서). 3단계 — 지역 평균 기반 연료비 배분 (데스크톱) 휴대폰 3단계 (모바일) 3단계 — 연료비 배분 평균 배분 배지(초록) = 이 지역의 주유 영수증·운행 km 데이터가 충분함 — 연료비 열이 잠기고 연비 기준으로 자동 계산. 수동 임시 집계 배지(노랑) ="
   },
   {
     "url": "ko/truck-manager/10-danh-sach-bao-cao.html",
@@ -597,7 +598,29 @@
       "사용 단계",
       "로직 / 규칙"
     ],
-    "snippet": "앱에서 열기 /truck/reports → URL /truck/reports 내용 작성된 보고서 작성된 보고서 목록 (데스크톱) 휴대폰 보고서 목록 (모바일) 사용 단계 작성된 보고서 확인(월·지역·작성자·시각). 다운로드 로 Excel 파일 받기. 보고서 작성 으로 신규 생성( 보고서 작성 ). 로직 / 규칙 새 보고서는 이 페이지를 열기 전까지 신규 배지 표시. 보고서 파일은 서버(S3)에 저장되어 언제든 재다운로드. ← 이전 보고서 작성"
+    "snippet": "앱에서 열기 /truck/reports → URL /truck/reports 내용 작성된 보고서 작성된 보고서 목록 (데스크톱) 휴대폰 보고서 목록 (모바일) 사용 단계 작성된 보고서 확인(월·지역·작성자·시각). 다운로드 로 Excel 파일 받기. 보고서 작성 으로 신규 생성( 보고서 작성 ). 로직 / 규칙 새 보고서는 이 페이지를 열기 전까지 신규 배지 표시. 보고서 파일은 서버(S3)에 저장되어 언제든 재다운로드. ← 이전 보고서 작성 다음 → 엑셀 가져오기"
+  },
+  {
+    "url": "ko/truck-manager/11-import-excel.html",
+    "locale": "ko",
+    "section": "truck-manager",
+    "title": "엑셀 가져오기",
+    "headings": [
+      "사용 단계",
+      "로직 / 규칙"
+    ],
+    "snippet": "앱에서 열기 /truck/import → URL /truck/import 목적 다른 곳에 있던 운행 데이터를 엑셀로 일괄 등록 엑셀 가져오기 화면 (데스크톱) 휴대폰 엑셀 가져오기 (모바일) 사용 단계 템플릿 다운로드 로 올바른 열 구조 확인. 파일 전체에 적용할 차량 과 기사 선택(파일 하나 = 차량 1대 + 기사 1명). 작성한 .xlsx / .xls 파일을 드래그하거나 선택. 시트가 여러 개면 시트 선택 에서 가져올 시트 선택 — 시트 하나 = 한 달. 열 매핑 확인: 열 이름으로 자동 추정되며 수동 변경 가능. 날짜 열은 필수. 미리보기 표에서 유효 (초록)· 오류 (빨강, 주로 날짜 누락) 행 수 확인. N행 가져오기 클릭 — 유효한 행만 등록됨. 로직 / 규칙 CR-Vietnam-Truck-v1 "
+  },
+  {
+    "url": "ko/truck-manager/12-cau-hinh.html",
+    "locale": "ko",
+    "section": "truck-manager",
+    "title": "트럭 설정",
+    "headings": [
+      "사용 단계",
+      "로직 / 규칙"
+    ],
+    "snippet": "앱에서 열기 /truck/settings → URL /truck/settings 내용 차고지 주소 및 고정비 입력 경로 트럭 설정 화면 (데스크톱) 휴대폰 설정 (모바일) 사용 단계 차고지 주소 입력 — 운행 등록 시 출발지 · 복귀지 에 자동으로 채워져 매번 입력할 필요가 없습니다. 저장 (또는 비우려면 주소 삭제 ). 고정비 카드는 요약만 표시 — 클릭하면 손익 개요 로 이동해 차량별·월별 고정비(급여·감가상각·보험)를 확인할 수 있습니다. 로직 / 규칙 차량 기본 감가상각은 차량 수정 화면에서, 기사 기본 급여는 기사 프로필에서 입력 — 해당 월에 별도 고정비가 없으면 이 값이 자동 합산됩니다. 차고지 주소는 자동 채움용 제안 일 뿐 — 운행 등록 시 언제든 수동으로 수정 가능합니다. ← 이전 엑셀 가"
   },
   {
     "url": "vi/admin/00-tong-quan.html",
@@ -1156,7 +1179,7 @@
       "Các bước sử dụng",
       "Logic / Quy tắc"
     ],
-    "snippet": "Mở trang trong app /truck/finance → URL /truck/finance Kỳ Chọn tháng ở đầu trang Sổ theo chuyến của tháng đã chọn (desktop) Chi phí & Lợi nhuận trên điện thoại (điện thoại) Các bước sử dụng Chọn tháng ở đầu trang. Chuyển giữa 3 tab: Theo chuyến (sổ từng chuyến) · Tổng quan P&L · Hoá đơn & Chi phí tháng . Ở tab Hoá đơn & Chi phí: nhập chi phí cố định (lương, khấu hao, bảo hiểm) và hoá đơn nhiên liệ"
+    "snippet": "Mở trang trong app /truck/finance → URL /truck/finance Kỳ Chọn tháng ở đầu trang Sổ theo chuyến của tháng đã chọn (desktop) Chi phí & Lợi nhuận trên điện thoại (điện thoại) Các bước sử dụng Chọn tháng , khu vực và xe ở thanh lọc đầu trang. Chuyển giữa 2 tab: Theo chuyến (sổ từng chuyến, đang xem) và Tổng quan P&L (xem Tổng quan P&L ). Đọc 7 thẻ tổng hợp đầu trang: doanh thu, nhiên liệu, cầu đường,"
   },
   {
     "url": "vi/truck-manager/08-tong-quan-pnl.html",
@@ -1167,7 +1190,7 @@
       "Các bước sử dụng",
       "Logic / Quy tắc"
     ],
-    "snippet": "Mở trang trong app /truck/pnl → URL /truck/pnl Nội dung Lãi/lỗ tổng hợp theo khu vực & tháng Tổng quan P&L theo khu vực (desktop) Tổng quan P&L trên điện thoại (điện thoại) Các bước sử dụng Chọn kỳ / khu vực để xem doanh thu – chi phí – lợi nhuận tổng hợp. So sánh hiệu quả giữa HCM / Đồng Nai / Baiksan . Bấm Xuất Excel nếu cần lấy số liệu ra ngoài. Logic / Quy tắc Số liệu lấy từ các chuyến đã hoàn"
+    "snippet": "Mở trang trong app /truck/pnl → URL /truck/pnl Nội dung Lãi/lỗ tổng hợp theo khu vực & tháng + hoá đơn xăng dầu Tổng quan P&L (khu vực HCM) kèm hoá đơn xăng dầu (desktop) Tổng quan P&L trên điện thoại (điện thoại) Các bước sử dụng Chọn kỳ / khu vực để xem doanh thu – chi phí – lợi nhuận tổng hợp 3 tháng gần nhất. Mỗi cột tháng có huy hiệu Đã lập BC · giờ hoặc Chưa lập báo cáo ngay dưới tên tháng. "
   },
   {
     "url": "vi/truck-manager/09-lap-bao-cao.html",
@@ -1176,9 +1199,10 @@
     "title": "Lập báo cáo",
     "headings": [
       "Các bước sử dụng",
+      "Bước 3 — phân bổ phí xăng",
       "Logic / Quy tắc (chặn lỗi)"
     ],
-    "snippet": "Mở trang trong app /truck/reports/new → URL /truck/reports/new Quy trình 3 bước: Chọn tháng → Chọn khu vực → Xác nhận Bước 1 — chọn tháng (desktop) Lập báo cáo trên điện thoại (điện thoại) Các bước sử dụng Bước 1 — Chọn tháng : chọn tháng cần lập báo cáo. Bước 2 — Chọn khu vực : chọn một khu vực (HCM/Đồng Nai/Baiksan) hoặc toàn khu vực . Bước 3 — Xác nhận & Lập báo cáo : xem lại số liệu tổng hợp r"
+    "snippet": "Mở trang trong app /truck/reports/new → URL /truck/reports/new Quy trình 3 bước: Chọn tháng → Chọn khu vực → Xác nhận Bước 1 — chọn tháng (desktop) Lập báo cáo trên điện thoại (điện thoại) Các bước sử dụng Bước 1 — Chọn tháng : chọn tháng cần lập báo cáo. Bước 2 — Chọn khu vực : chọn một khu vực (HCM/Đồng Nai/Baiksan) hoặc toàn khu vực . Bước 3 — Xác nhận & Lập báo cáo : xem lại số liệu, kiểm tra "
   },
   {
     "url": "vi/truck-manager/10-danh-sach-bao-cao.html",
@@ -1190,5 +1214,27 @@
       "Logic / Quy tắc"
     ],
     "snippet": "Mở trang trong app /truck/reports → URL /truck/reports Nội dung Các báo cáo đã lập Danh sách báo cáo đã lập (desktop) Danh sách báo cáo trên điện thoại (điện thoại) Các bước sử dụng Xem các báo cáo đã lập (tháng · khu vực · người lập · thời điểm). Bấm Tải về để lấy file Excel. Bấm Lập báo cáo để tạo báo cáo mới (xem Lập báo cáo ). Logic / Quy tắc Báo cáo mới có nhãn Mới cho đến khi bạn xem trang n"
+  },
+  {
+    "url": "vi/truck-manager/11-import-excel.html",
+    "locale": "vi",
+    "section": "truck-manager",
+    "title": "Import Excel",
+    "headings": [
+      "Các bước sử dụng",
+      "Logic / Quy tắc"
+    ],
+    "snippet": "Mở trang trong app /truck/import → URL /truck/import Mục đích Nhập hàng loạt nhật ký chuyến từ file Excel — dùng khi đã có sẵn dữ liệu chạy xe ở nơi khác Màn hình Import Excel (desktop) Import Excel trên điện thoại (điện thoại) Các bước sử dụng Bấm Tải file mẫu để lấy đúng cấu trúc cột. Chọn Xe và Tài xế áp dụng cho toàn bộ file (một file chỉ gán cho một xe + một tài xế). Kéo-thả hoặc bấm để chọn "
+  },
+  {
+    "url": "vi/truck-manager/12-cau-hinh.html",
+    "locale": "vi",
+    "section": "truck-manager",
+    "title": "Cấu hình xe tải",
+    "headings": [
+      "Các bước sử dụng",
+      "Logic / Quy tắc"
+    ],
+    "snippet": "Mở trang trong app /truck/settings → URL /truck/settings Nội dung Địa chỉ bãi xe và lối vào chi phí cố định Màn hình Cấu hình xe tải (desktop) Cấu hình trên điện thoại (điện thoại) Các bước sử dụng Nhập Địa chỉ bãi xe — địa chỉ này tự động điền vào điểm Xuất phát và Về bãi khi lập chuyến mới, đỡ phải gõ lại mỗi lần. Bấm Lưu (hoặc Xoá địa chỉ nếu muốn bỏ trống). Thẻ Chi phí cố định chỉ hiển thị tóm"
   }
 ]

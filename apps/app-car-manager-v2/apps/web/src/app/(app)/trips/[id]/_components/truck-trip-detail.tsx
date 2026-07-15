@@ -1,10 +1,12 @@
 import { getLocale, getTranslations } from 'next-intl/server';
-import { MapPin, Navigation, PackageCheck, PackageOpen } from 'lucide-react';
+import { FileText, MapPin, Navigation, PackageCheck, PackageOpen } from 'lucide-react';
 import { Badge, Card } from '@car-v2/ui';
 import type { TruckCostBreakdown } from '@car-v2/core/truck';
 import type { CarTripStopover, CarStopType } from '@car-v2/db/schema';
 import { MapPreview } from '@/components/inputs/map-preview';
 import { PageHeader } from '@/components/layout/page-header';
+import { ReportStatusBadge } from '@/components/truck/report-status-badge';
+import type { TruckReportStatus } from '@/server/queries/truck-report.queries';
 import { TruckCompleteSection } from './truck-complete-section';
 
 function bcp47(locale: string): string {
@@ -26,6 +28,16 @@ export interface TruckTripDetailProps {
   vehiclePlate: string | null;
   driverName: string | null;
   extras: { name: string; amount: number }[];
+  /** Receipt/invoice attachments grouped by cost kind (REQ-20260709). `s3Key`
+   * is carried so the completion form can echo kept attachments back on save. */
+  costAttachments?: {
+    id: string;
+    costKind: 'FUEL' | 'TOLL' | 'EXTRA';
+    s3Key: string;
+    mime: string;
+    sizeBytes: number;
+    signedUrl: string | null;
+  }[];
   breakdown: TruckCostBreakdown;
   completed: boolean;
   canComplete: boolean;
@@ -40,6 +52,9 @@ export interface TruckTripDetailProps {
   hideFinancials?: boolean;
   /** Ordered stopovers (REQ-20260623). When empty, falls back to pickup→dropoff display. */
   stopovers?: CarTripStopover[];
+  /** When was the report covering this trip's (month, region) last generated,
+   * and is it stale — null when the trip isn't completed yet (no cost card). */
+  reportStatus?: TruckReportStatus | null;
 }
 
 /** Truck (LOG) trip detail — read-only breakdown when completed, otherwise the
@@ -82,7 +97,12 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
 
   const costCard = (
     <Card variant="outline" className="p-4 space-y-2">
-      <div className="text-sm font-semibold text-text mb-1">{t('costTitle')}</div>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="text-sm font-semibold text-text">{t('costTitle')}</div>
+        {props.reportStatus && (
+          <ReportStatusBadge reportedAt={props.reportStatus.reportedAt} stale={props.reportStatus.stale} locale={locale} />
+        )}
+      </div>
       <CostRow label={t('fuel')} value={vnd(props.breakdown.fuelCost)} />
       <CostRow label={t('toll')} value={vnd(props.breakdown.tollFee)} />
       {props.extras.map((e, i) => (
@@ -102,6 +122,56 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
       )}
     </Card>
   );
+
+  /* Receipt/invoice attachments (REQ-20260709), grouped by cost kind. Server-
+   * rendered read-only tiles — images inline, PDFs as an open-in-new-tab tile.
+   * Omitted entirely when the trip carries no attachments. */
+  const attachments = props.costAttachments ?? [];
+  const receiptGroups: { kind: 'FUEL' | 'TOLL' | 'EXTRA'; label: string }[] = [
+    { kind: 'FUEL', label: t('fuel') },
+    { kind: 'TOLL', label: t('toll') },
+    { kind: 'EXTRA', label: t('receiptsExtra') },
+  ];
+  const receiptsCard =
+    attachments.length > 0 ? (
+      <Card variant="outline" className="p-4 space-y-3">
+        <div className="text-sm font-semibold text-text">{t('receiptsTitle')}</div>
+        {receiptGroups.map((g) => {
+          const items = attachments.filter((a) => a.costKind === g.kind);
+          if (items.length === 0) return null;
+          return (
+            <div key={g.kind} className="space-y-1.5">
+              <div className="text-xs text-text-muted uppercase tracking-wide">{g.label}</div>
+              <ul className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {items.map((a) => (
+                  <li key={a.id} className="relative aspect-square rounded-lg overflow-hidden border border-border bg-surface-2">
+                    {a.signedUrl ? (
+                      <a href={a.signedUrl} target="_blank" rel="noopener noreferrer" className="block h-full w-full">
+                        {a.mime.startsWith('image/') ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={a.signedUrl} alt={g.label} loading="lazy" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="h-full w-full flex flex-col items-center justify-center gap-1 text-text-muted">
+                            <FileText className="h-7 w-7" strokeWidth={1.5} aria-hidden />
+                            <span className="text-[10px] font-semibold uppercase tracking-wide">
+                              {a.mime.replace(/^application\//, '')}
+                            </span>
+                          </div>
+                        )}
+                      </a>
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center text-text-faint">
+                        <FileText className="h-7 w-7" strokeWidth={1.5} aria-hidden />
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+      </Card>
+    ) : null;
 
   return (
     <>
@@ -134,7 +204,10 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
            * the full desktop width instead of a narrow center strip. Mobile stacks. */
           <div className="grid gap-5 lg:grid-cols-3 lg:items-start">
             <div className="space-y-5 lg:col-span-2">{infoBlock}</div>
-            <div className="space-y-5">{costCard}</div>
+            <div className="space-y-5">
+              {costCard}
+              {receiptsCard}
+            </div>
           </div>
         ) : (
           /* Open trips lead with the completion form, kept at a comfortable
@@ -142,10 +215,11 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
           <div className="max-w-3xl space-y-5">
             {infoBlock}
             {props.canComplete ? (
-              <TruckCompleteSection tripId={props.tripId} mode={props.mode} />
+              <TruckCompleteSection tripId={props.tripId} mode={props.mode} existingAttachments={attachments} />
             ) : (
               <div className="text-sm text-text-muted">{t('notCompletable')}</div>
             )}
+            {receiptsCard}
           </div>
         )}
       </div>

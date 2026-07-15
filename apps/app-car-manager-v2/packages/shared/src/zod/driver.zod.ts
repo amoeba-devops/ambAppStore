@@ -13,10 +13,11 @@ export const createDriverSchema = z.object({
   vehicle_type: z.enum(['CAR', 'TRUCK']).optional(),
   /* Fixed monthly salary (TRUCK drivers) — null clears it. */
   fixed_salary: z.number().nonnegative().max(1_000_000_000).nullable().optional(),
+  /* Initial status (QA P2) — the form defaults AVAILABLE; omitted = DB default. */
+  status: z.enum(['AVAILABLE', 'ON_TRIP', 'OFF_DUTY', 'UNAVAILABLE']).optional(),
 });
 export type CreateDriverInput = z.infer<typeof createDriverSchema>;
 
-export const updateDriverSchema = createDriverSchema.omit({ user_id: true, vehicle_type: true }).partial().extend({
-  status: z.enum(['AVAILABLE', 'ON_TRIP', 'OFF_DUTY', 'UNAVAILABLE']).optional(),
-});
+/* `status` is inherited from the create schema (already optional). */
+export const updateDriverSchema = createDriverSchema.omit({ user_id: true, vehicle_type: true }).partial();
 export type UpdateDriverInput = z.infer<typeof updateDriverSchema>;

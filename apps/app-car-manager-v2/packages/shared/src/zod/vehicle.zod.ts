@@ -34,6 +34,11 @@ export const createVehicleSchema = z.object({
   fuel_quota: z.number().nonnegative().max(200).optional(),
   /* Operating region (TRUCK). Code from TRUCK_REGIONS; empty string clears it. */
   region: z.enum(TRUCK_REGIONS).optional().or(z.literal('')),
+  /* Default driver (TRUCK, QA 2026-07). drv_id; empty string clears it. Feeds the
+   * vehicle's monthly P&L salary via the driver's fixed salary. */
+  default_driver_id: z.string().uuid().optional().or(z.literal('')),
+  /* Monthly depreciation (VND). Vehicle-level default fixed cost. */
+  depreciation: z.number().nonnegative().max(1_000_000_000).optional(),
 });
 export type CreateVehicleInput = z.infer<typeof createVehicleSchema>;
 

@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, asc, eq, ilike, isNotNull, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, isNotNull, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import {
   carDrivers,
@@ -63,7 +63,9 @@ export async function listFleetDrivers(
       ),
     )
     .where(and(eq(carDrivers.entId, entId), isNull(carDrivers.drvDeletedAt)))
-    .orderBy(asc(carUsers.usrName));
+    /* Stable order: name, then drvId as tiebreaker so same-named drivers keep a
+     * deterministic position across reloads (QA "2 lists lúc này lúc kia"). */
+    .orderBy(asc(carUsers.usrName), asc(carDrivers.drvId));
 
   return rows.map((r) => ({ ...r.driver, user: r.user, isDeleted: false }));
 }
@@ -165,6 +167,49 @@ export async function getDriver(entId: string, id: string): Promise<DriverWithUs
     .limit(1);
   if (!row[0]) return null;
   return { ...row[0].driver, user: row[0].user };
+}
+
+/**
+ * Look up a driver by id regardless of soft-delete or fleet-access status —
+ * used to display a stale `cvh_default_driver_id` reference (a vehicle's
+ * saved default driver who has since been removed or lost department access)
+ * instead of silently rendering blank.
+ */
+export async function getDriverAnyStatus(entId: string, id: string): Promise<DriverWithUser | null> {
+  const row = await db
+    .select({
+      driver: carDrivers,
+      user: { usrName: carUsers.usrName, usrEmail: carUsers.usrEmail },
+    })
+    .from(carDrivers)
+    .innerJoin(carUsers, eq(carDrivers.drvUserId, carUsers.usrId))
+    .where(and(eq(carDrivers.drvId, id), eq(carDrivers.entId, entId)))
+    .limit(1);
+  if (!row[0]) return null;
+  return { ...row[0].driver, user: row[0].user, isDeleted: row[0].driver.drvDeletedAt !== null };
+}
+
+/**
+ * Resolve display names for a set of driver ids in one query — used by the truck
+ * roster to show each vehicle's default driver without an N+1 lookup. Ignores
+ * soft-delete / fleet-access status so a still-linked (but stale) driver renders
+ * a name; unlinked vehicles simply have no entry (caller shows empty).
+ */
+export async function getDriverNamesByIds(entId: string, ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({
+      drvId: carDrivers.drvId,
+      usrName: carUsers.usrName,
+      usrEmail: carUsers.usrEmail,
+    })
+    .from(carDrivers)
+    .innerJoin(carUsers, eq(carDrivers.drvUserId, carUsers.usrId))
+    .where(and(eq(carDrivers.entId, entId), inArray(carDrivers.drvId, ids)));
+
+  const map = new Map<string, string>();
+  for (const r of rows) map.set(r.drvId, r.usrName ?? r.usrEmail ?? r.drvId);
+  return map;
 }
 
 /** Look up a driver row by the underlying user (used to enforce driver self-actions). */

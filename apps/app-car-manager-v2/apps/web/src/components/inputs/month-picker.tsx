@@ -18,5 +18,5 @@ export function MonthPicker({ value, paramName = 'month' }: { value: string; par
     router.push(qs ? `${pathname}?${qs}` : pathname);
   };
 
-  return <Input type="month" value={value} onChange={onChange} className="w-44" />;
+  return <Input type="month" value={value} onChange={onChange} className="w-44 rounded-md" />;
 }

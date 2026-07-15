@@ -48,6 +48,8 @@ const PATH_RULES: PathRule[] = [
   // Manager truck surface (/truck/*). Most-specific first (…/new before list).
   { prefix: '/truck/reports/new', byRole: { ADMIN: 'truck-manager/09-lap-bao-cao.html', MANAGER: 'truck-manager/09-lap-bao-cao.html' } },
   { prefix: '/truck/reports', byRole: { ADMIN: 'truck-manager/10-danh-sach-bao-cao.html', MANAGER: 'truck-manager/10-danh-sach-bao-cao.html' } },
+  { prefix: '/truck/import', byRole: { ADMIN: 'truck-manager/11-import-excel.html', MANAGER: 'truck-manager/11-import-excel.html' } },
+  { prefix: '/truck/settings', byRole: { ADMIN: 'truck-manager/12-cau-hinh.html', MANAGER: 'truck-manager/12-cau-hinh.html' } },
   { prefix: '/truck/trips/new', byRole: { ADMIN: 'truck-manager/03-lap-chuyen.html', MANAGER: 'truck-manager/03-lap-chuyen.html' } },
   { prefix: '/truck/trips', byRole: { ADMIN: 'truck-manager/02-nhat-ky-chuyen.html', MANAGER: 'truck-manager/02-nhat-ky-chuyen.html' } },
   { prefix: '/truck/fleet', byRole: { ADMIN: 'truck-manager/05-doi-xe.html', MANAGER: 'truck-manager/05-doi-xe.html' } },

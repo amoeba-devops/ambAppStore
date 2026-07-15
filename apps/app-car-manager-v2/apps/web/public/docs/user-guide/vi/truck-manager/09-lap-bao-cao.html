@@ -37,6 +37,8 @@
         <a class="sidebar__link" href="08-tong-quan-pnl.html">Tổng quan P&L</a>
         <a class="sidebar__link is-active" href="09-lap-bao-cao.html">Lập báo cáo</a>
         <a class="sidebar__link" href="10-danh-sach-bao-cao.html">Danh sách báo cáo</a>
+        <a class="sidebar__link" href="11-import-excel.html">Import Excel</a>
+        <a class="sidebar__link" href="12-cau-hinh.html">Cấu hình xe tải</a>
       </div>
       <div class="sidebar__group">
         <div class="sidebar__group-label">Xe tải · Tài xế</div>
@@ -69,8 +71,11 @@
         <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/reports/new</code></dd><dt>Quy trình</dt><dd>3 bước: Chọn tháng → Chọn khu vực → Xác nhận</dd></dl></div>
         <figure><img src="../../assets/img/screenshots/vi/truck-manager/10-report-new.png" alt="Bước 1 — chọn tháng (desktop)"><figcaption>Bước 1 — chọn tháng (desktop)</figcaption></figure>
         <figure><img src="../../assets/img/screenshots/vi/truck-manager/10-report-new-mobile.png" alt="Lập báo cáo trên điện thoại (điện thoại)"><figcaption>Lập báo cáo trên điện thoại (điện thoại)</figcaption></figure>
-<h2>Các bước sử dụng</h2><ol><li><strong>Bước 1 — Chọn tháng</strong>: chọn tháng cần lập báo cáo.</li><li><strong>Bước 2 — Chọn khu vực</strong>: chọn một khu vực (HCM/Đồng Nai/Baiksan) hoặc <strong>toàn khu vực</strong>.</li><li><strong>Bước 3 — Xác nhận &amp; Lập báo cáo</strong>: xem lại số liệu tổng hợp rồi bấm tạo.</li><li>Tải file Excel của báo cáo vừa tạo (hoặc từ <a href="10-danh-sach-bao-cao.html">Danh sách báo cáo</a>).</li></ol>
-<h2>Logic / Quy tắc (chặn lỗi)</h2><ul><li>Tháng <strong>không có dữ liệu</strong> → không cho sang bước 2, báo lỗi ngay tại bước 1.</li><li>Khu vực <strong>không có chuyến</strong> trong tháng đó → không cho sang bước 3, báo lỗi ngay tại bước 2.</li><li>Báo cáo được đặt tên kèm <strong>khu vực</strong> và lưu vào Danh sách báo cáo.</li></ul>
+<h2>Các bước sử dụng</h2><ol><li><strong>Bước 1 — Chọn tháng</strong>: chọn tháng cần lập báo cáo.</li><li><strong>Bước 2 — Chọn khu vực</strong>: chọn một khu vực (HCM/Đồng Nai/Baiksan) hoặc <strong>toàn khu vực</strong>.</li><li><strong>Bước 3 — Xác nhận &amp; Lập báo cáo</strong>: xem lại số liệu, kiểm tra huy hiệu phân bổ, rồi bấm tạo.</li><li>Tải file Excel của báo cáo vừa tạo (hoặc từ <a href="10-danh-sach-bao-cao.html">Danh sách báo cáo</a>).</li></ol>
+        <figure><img src="../../assets/img/screenshots/vi/truck-manager/10-report-new-step3.png" alt="Bước 3 — phân bổ phí xăng theo bình quân khu vực (desktop)"><figcaption>Bước 3 — phân bổ phí xăng theo bình quân khu vực (desktop)</figcaption></figure>
+        <figure><img src="../../assets/img/screenshots/vi/truck-manager/10-report-new-step3-mobile.png" alt="Bước 3 trên điện thoại (điện thoại)"><figcaption>Bước 3 trên điện thoại (điện thoại)</figcaption></figure>
+<h2>Bước 3 — phân bổ phí xăng</h2><ul><li>Huy hiệu <strong>Phân bổ theo bình quân</strong> (xanh) = khu vực này đã đủ hoá đơn xăng + km chuyến — cột <strong>Phí xăng</strong> khoá, tự tính theo định mức.</li><li>Huy hiệu <strong>Tạm tính thủ công</strong> (vàng) = còn thiếu dữ liệu — cột Phí xăng vẫn sửa tay được; nên bổ sung hoá đơn ở <a href="08-tong-quan-pnl.html">Tổng quan P&amp;L</a> trước khi lập.</li><li>Có chuyến chưa nhập km công tơ → hệ thống cảnh báo; chuyến đó tạm tính phí xăng bằng 0.</li><li>Vẫn sửa được <strong>Cầu đường</strong> và <strong>Doanh thu</strong> trực tiếp trên bảng trước khi bấm tạo.</li></ul>
+<h2>Logic / Quy tắc (chặn lỗi)</h2><ul><li>Tháng <strong>không có dữ liệu</strong> → không cho sang bước 2, báo lỗi ngay tại bước 1.</li><li>Khu vực <strong>không có chuyến</strong> trong tháng đó → không cho sang bước 3, báo lỗi ngay tại bước 2.</li><li><strong>Lập lại nhiều lần không sao</strong> — mỗi lần bấm tạo, hệ thống tính lại từ dữ liệu mới nhất và ghi đè số chính thức; báo cáo cũ vẫn giữ trong <a href="10-danh-sach-bao-cao.html">Danh sách báo cáo</a> để đối chiếu.</li><li>Báo cáo được đặt tên kèm <strong>khu vực</strong> và lưu vào Danh sách báo cáo.</li></ul>
 
         <nav class="pager">
           <a class="pager__prev" href="08-tong-quan-pnl.html"><span>← Trước</span><strong>Tổng quan P&L</strong></a>

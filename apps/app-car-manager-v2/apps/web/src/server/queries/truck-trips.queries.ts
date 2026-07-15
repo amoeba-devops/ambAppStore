@@ -14,10 +14,76 @@ import {
   parseAmount,
   truckTripFuelCost,
   loadTruckRegionSnapshots,
+  getTripCostAttachments,
   type TruckCostBreakdown,
 } from '@car-v2/core/truck';
+import { getSignedGetUrl } from '@/lib/s3-client';
 
 const monthKey = (d: Date): string => d.toISOString().slice(0, 7);
+
+/**
+ * Snapshot-aware cost breakdown for ONE trip — the exact rule `listTruckTrips`
+ * applies per row (official km × consumption × avg price once the trip's
+ * (month, region) has a fuel snapshot; otherwise the trip's own litres ×
+ * price). The trip-detail pages go through this so detail always matches the
+ * list / finance / P&L / report numbers (PLAN-20260707 S1.5).
+ */
+export async function getTruckTripBreakdown(
+  entId: string,
+  trip: {
+    trpScheduledAt: Date;
+    trpVehicleId: string | null;
+    trpStartOdometer: number | null;
+    trpEndOdometer: number | null;
+    trpFuelLiters: string | null;
+    trpFuelPrice: string | null;
+    trpTollFee: string | null;
+    trpRevenue: string | null;
+  },
+  extraAmounts: number[],
+): Promise<{
+  breakdown: TruckCostBreakdown;
+  finalized: boolean;
+  /** The trip's month + resolved operating region ('' = vehicle has no
+   * region) — feeds `getTruckReportStatus` so the detail page can show WHEN
+   * the report covering this trip was last generated. */
+  month: string;
+  region: string;
+}> {
+  const month = monthKey(trip.trpScheduledAt);
+  const snapshots = await loadTruckRegionSnapshots(entId, [month]);
+  const region = trip.trpVehicleId ? snapshots.vehicleRegion.get(trip.trpVehicleId) ?? '' : '';
+  const snap = snapshots.forTrip(month, trip.trpVehicleId);
+  if (!snap) {
+    return {
+      breakdown: computeTruckCost({
+        fuelLiters: parseAmount(trip.trpFuelLiters),
+        fuelPrice: parseAmount(trip.trpFuelPrice),
+        tollFee: parseAmount(trip.trpTollFee),
+        extraCosts: extraAmounts,
+        revenue: parseAmount(trip.trpRevenue),
+      }),
+      finalized: false,
+      month,
+      region,
+    };
+  }
+  const km =
+    trip.trpStartOdometer != null && trip.trpEndOdometer != null
+      ? trip.trpEndOdometer - trip.trpStartOdometer
+      : 0;
+  const fuelCost = truckTripFuelCost({ km, consumption: snap.consumption, avgPrice: snap.avgPrice });
+  const tollFee = Math.round(parseAmount(trip.trpTollFee));
+  const extraTotal = Math.round(extraAmounts.reduce((s, n) => s + (n || 0), 0));
+  const revenue = Math.round(parseAmount(trip.trpRevenue));
+  const totalCost = fuelCost + tollFee + extraTotal;
+  return {
+    breakdown: { fuelCost, tollFee, extraTotal, totalCost, revenue, profit: revenue - totalCost },
+    finalized: true,
+    month,
+    region,
+  };
+}
 
 export interface TruckTripRow {
   trpId: string;
@@ -28,11 +94,30 @@ export interface TruckTripRow {
   status: CarTripStatus;
   /** Vehicle plate / driver name for the trip-log table (design columns). */
   plate: string | null;
+  /** Vehicle operating region code (cvh_region) — "Khu vực" column (QA P2). */
+  region: string | null;
   driver: string | null;
   /** Distance = end − start odometer when both present. */
   km: number | null;
   breakdown: TruckCostBreakdown;
   updatedAt: Date | null;
+  /* ── Extra detail for the trip-log Excel export (feedback #4). Not shown in
+   * the on-screen table; populated for every row so "Tải xuống" mirrors the
+   * monthly report's detailed columns. ── */
+  startTime: Date | null;
+  endTime: Date | null;
+  startOdometer: number | null;
+  endOdometer: number | null;
+  pickup: string | null;
+  dropoff: string | null;
+  cdf: string | null;
+  notes: string | null;
+  /** Joined names of the trip's extra-cost lines ("Tên phí khác"). */
+  extraNote: string | null;
+  /** Fuel unit price for the export: month-avg when finalized, else own price. */
+  fuelUnitPrice: number;
+  /** Litres for the export: km × consumption when finalized, else own litres. */
+  fuelLiters: number;
   /** true once the trip's month is closed → fuel/profit are the official
    * month-end figures; false → provisional (liters × price). Lets list views
    * flag "Tạm tính" and keeps profit consistent with the finance/P&L screens. */
@@ -46,6 +131,10 @@ export interface ListTruckTripsOpts {
   month?: string;
   /** Restrict to one vehicle. */
   vehicleId?: string;
+  /** Restrict to one driver (Sheet-2 T7). */
+  driverId?: string;
+  /** Restrict to vehicles in one operating region (cvh_region code, QA P2). */
+  region?: string;
   /** 'complete' = COMPLETED only · 'ongoing' = not completed · else all. */
   status?: 'all' | 'complete' | 'ongoing';
 }
@@ -74,8 +163,25 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
     if (search) filters.push(search);
   }
   if (opts.vehicleId) filters.push(eq(carTrips.trpVehicleId, opts.vehicleId));
+  if (opts.driverId) filters.push(eq(carTrips.trpDriverId, opts.driverId));
   if (opts.status === 'complete') filters.push(eq(carTrips.trpStatus, 'COMPLETED'));
   else if (opts.status === 'ongoing') filters.push(ne(carTrips.trpStatus, 'COMPLETED'));
+  /* Region scope (QA P2) — a trip's region is its vehicle's cvh_region, so
+   * resolve the region's vehicle ids first. No vehicles in region → no rows. */
+  if (opts.region) {
+    const vrows = await db
+      .select({ id: carVehicles.cvhId })
+      .from(carVehicles)
+      .where(
+        and(
+          eq(carVehicles.entId, entId),
+          eq(carVehicles.cvhRegion, opts.region),
+          isNull(carVehicles.cvhDeletedAt),
+        ),
+      );
+    if (vrows.length === 0) return [];
+    filters.push(inArray(carTrips.trpVehicleId, vrows.map((v) => v.id)));
+  }
 
   const trips = await db
     .select()
@@ -86,27 +192,41 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
   const ids = trips.map((t) => t.trpId);
   const extras = ids.length
     ? await db
-        .select({ trpId: carTripExtraCosts.trpId, amount: carTripExtraCosts.tecAmount })
+        .select({ trpId: carTripExtraCosts.trpId, name: carTripExtraCosts.tecName, amount: carTripExtraCosts.tecAmount })
         .from(carTripExtraCosts)
         .where(and(eq(carTripExtraCosts.entId, entId), inArray(carTripExtraCosts.trpId, ids)))
     : [];
   const extraByTrip = new Map<string, number[]>();
+  const extraNoteByTrip = new Map<string, string[]>();
   for (const e of extras) {
     const arr = extraByTrip.get(e.trpId) ?? [];
     arr.push(parseAmount(e.amount));
     extraByTrip.set(e.trpId, arr);
+    if (e.name?.trim()) {
+      const narr = extraNoteByTrip.get(e.trpId) ?? [];
+      narr.push(e.name.trim());
+      extraNoteByTrip.set(e.trpId, narr);
+    }
   }
 
   /* Plate + driver name for the table columns — batch lookups keep the main
    * query a flat select. */
   const vehIds = [...new Set(trips.map((t) => t.trpVehicleId).filter((v): v is string => !!v))];
   const plateByVeh = new Map<string, string>();
+  const regionByVeh = new Map<string, string | null>();
   if (vehIds.length) {
     const vrows = await db
-      .select({ id: carVehicles.cvhId, plate: carVehicles.cvhPlateNumber })
+      .select({
+        id: carVehicles.cvhId,
+        plate: carVehicles.cvhPlateNumber,
+        region: carVehicles.cvhRegion,
+      })
       .from(carVehicles)
       .where(and(eq(carVehicles.entId, entId), inArray(carVehicles.cvhId, vehIds)));
-    for (const v of vrows) plateByVeh.set(v.id, v.plate);
+    for (const v of vrows) {
+      plateByVeh.set(v.id, v.plate);
+      regionByVeh.set(v.id, v.region);
+    }
   }
   const drvIds = [...new Set(trips.map((t) => t.trpDriverId).filter((v): v is string => !!v))];
   const driverByDrv = new Map<string, string>();
@@ -151,6 +271,11 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
       });
     }
 
+    /* Fuel unit price + litres shown in the export mirror the fuel-cost rule:
+     * the frozen month-end snapshot when finalized, else the trip's own entry. */
+    const fuelUnitPrice = snap ? snap.avgPrice : parseAmount(t.trpFuelPrice);
+    const fuelLiters = snap ? (km ?? 0) * snap.consumption : parseAmount(t.trpFuelLiters);
+
     return {
       trpId: t.trpId,
       ref: t.trpRef,
@@ -159,10 +284,22 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
       bol: t.trpBol,
       status: t.trpStatus,
       plate: t.trpVehicleId ? plateByVeh.get(t.trpVehicleId) ?? null : null,
+      region: t.trpVehicleId ? regionByVeh.get(t.trpVehicleId) ?? null : null,
       driver: t.trpDriverId ? driverByDrv.get(t.trpDriverId) ?? null : null,
       km,
       breakdown,
       updatedAt: t.trpUpdatedAt,
+      startTime: t.trpStartedAt,
+      endTime: t.trpEndedAt,
+      startOdometer: t.trpStartOdometer,
+      endOdometer: t.trpEndOdometer,
+      pickup: t.trpPickupAddress,
+      dropoff: t.trpDropoffAddress,
+      cdf: t.trpCdf,
+      notes: t.trpNotes,
+      extraNote: (extraNoteByTrip.get(t.trpId) ?? []).join(', ') || null,
+      fuelUnitPrice,
+      fuelLiters,
       finalized: !!snap,
     };
   });
@@ -226,6 +363,38 @@ export async function getLatestVehiclesByDriver(entId: string): Promise<Map<stri
     if (r.driverId && r.plate && !map.has(r.driverId)) map.set(r.driverId, r.plate);
   }
   return map;
+}
+
+export type TripCostKind = 'FUEL' | 'TOLL' | 'EXTRA';
+
+export interface TripCostAttachmentView {
+  id: string;
+  costKind: TripCostKind;
+  /** S3 key — the form echoes this back on save so kept attachments survive. */
+  s3Key: string;
+  mime: string;
+  sizeBytes: number;
+  /** Pre-signed GET URL (15-min TTL). Null when S3 isn't configured (dev). */
+  signedUrl: string | null;
+}
+
+/** Live trip-cost receipt attachments (REQ-20260709) with signed GET URLs, for
+ * the trip detail + edit form. Grouped by the caller via `costKind`. */
+export async function getTripCostAttachmentsView(
+  entId: string,
+  tripId: string,
+): Promise<TripCostAttachmentView[]> {
+  const rows = await getTripCostAttachments(entId, tripId);
+  return Promise.all(
+    rows.map(async (r) => ({
+      id: r.tcaId,
+      costKind: r.tcaCostKind as TripCostKind,
+      s3Key: r.tcaS3Key,
+      mime: r.tcaMime,
+      sizeBytes: r.tcaSizeBytes,
+      signedUrl: await getSignedGetUrl(r.tcaS3Key),
+    })),
+  );
 }
 
 /** Structured extra-cost rows for one truck trip (detail breakdown). */

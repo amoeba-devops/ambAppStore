@@ -5,7 +5,11 @@ import { Button } from '@car-v2/ui';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { getTruckReportsSeenAt, listTruckReports } from '@/server/queries/truck-report.queries';
+import {
+  getTruckExportedRegionsByMonth,
+  getTruckReportsSeenAt,
+  listTruckReports,
+} from '@/server/queries/truck-report.queries';
 import {
   getTruckReportReview,
   getTruckMonthTripCounts,
@@ -18,33 +22,40 @@ import { ReportReviewStep } from '../_components/report-review-step';
 /**
  * Lập báo cáo — 3-step flow:
  *   - no `?month`                    → Bước 1: month grid (ReportMonthStep).
- *   - `?month=…` (no region)         → Bước 2: region picker (ReportRegionStep).
- *   - `?month=…&region=<all|CODE>`   → Bước 3: region-scoped per-vehicle review
- *                                       + confirm (ReportReviewStep). `all` →
- *                                       whole-fleet reconciliation.
+ *   - `?month=…` (no regions)        → Bước 2: region multi-picker (ReportRegionStep).
+ *   - `?month=…&regions=A,B`         → Bước 3: one review section per selected
+ *                                       region + confirm (ReportReviewStep). On
+ *                                       confirm it fans out one report per region.
  */
 export default async function NewTruckReportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; region?: string }>;
+  searchParams: Promise<{ month?: string; regions?: string; region?: string }>;
 }) {
   const user = await getCurrentUser(); // truck layout already gates DRIVER + fleet access
   const sp = await searchParams;
   const rawMonth = sp.month ?? '';
   const month = /^\d{4}-\d{2}$/.test(rawMonth) ? rawMonth : null;
-  const rawRegion = sp.region ?? '';
+  /* Multi-select regions via `?regions=A,B`; `?region=` kept for legacy single
+   * links. Filter to valid codes and re-order to the canonical TRUCK_REGIONS
+   * order so sections render consistently regardless of click order. */
   const regionCodes: readonly string[] = TRUCK_REGIONS;
-  const regionChosen = rawRegion === 'all' || regionCodes.includes(rawRegion);
-  const region = regionCodes.includes(rawRegion) ? rawRegion : null; // 'all' → null (whole fleet)
+  const picked = new Set(
+    (sp.regions ?? sp.region ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => regionCodes.includes(s)),
+  );
+  const regions = regionCodes.filter((r) => picked.has(r));
 
   const t = await getTranslations('screens.truckReports');
   const tA = await getTranslations('actions');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
 
-  /* Bước 3 — region-scoped review + confirm. */
-  if (month && regionChosen) {
-    const review = await getTruckReportReview(user, month, region);
+  /* Bước 3 — one review section per selected region + confirm. */
+  if (month && regions.length > 0) {
+    const reviews = await Promise.all(regions.map((r) => getTruckReportReview(user, month, r)));
     const backToRegion = `/truck/reports/new?month=${month}`;
     return (
       <>
@@ -69,7 +80,7 @@ export default async function NewTruckReportPage({
           }
         />
         <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6">
-          <ReportReviewStep review={review} />
+          <ReportReviewStep reviews={reviews} />
         </div>
       </>
     );
@@ -109,9 +120,10 @@ export default async function NewTruckReportPage({
 
   /* Bước 1 — pick the month. */
   const seenAt = await getTruckReportsSeenAt(user.entId, user.userId);
-  const [reports, monthCounts] = await Promise.all([
+  const [reports, monthCounts, exportedRegions] = await Promise.all([
     listTruckReports(user.entId, seenAt),
     getTruckMonthTripCounts(user.entId),
+    getTruckExportedRegionsByMonth(user.entId),
   ]);
   const exportedMonths = [...new Set(reports.map((r) => r.month))];
 
@@ -136,7 +148,12 @@ export default async function NewTruckReportPage({
         }
       />
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6">
-        <ReportMonthStep exportedMonths={exportedMonths} monthCounts={monthCounts} />
+        <ReportMonthStep
+          exportedMonths={exportedMonths}
+          exportedRegions={exportedRegions}
+          regionTotal={TRUCK_REGIONS.length}
+          monthCounts={monthCounts}
+        />
       </div>
     </>
   );

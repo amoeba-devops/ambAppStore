@@ -39,12 +39,17 @@ export async function createVehicleAction(input: unknown): Promise<ActionResult<
         cvhTonnage: data.tonnage != null ? String(data.tonnage) : null,
         cvhFuelQuota: data.fuel_quota != null ? String(data.fuel_quota) : null,
         cvhRegion: data.region || null,
+        cvhDefaultDriverId: data.default_driver_id || null,
+        cvhDepreciation: data.depreciation != null ? String(data.depreciation) : null,
         cvhOdometerKm: data.odometer_km ?? 0,
         cvhOilIntervalKm: data.oil_interval_km ?? 5000,
         cvhOilIntervalMonths: data.oil_interval_months ?? 3,
         cvhLastOilChangeKm: data.last_oil_change_km ?? null,
         cvhHomeBase: data.home_base ?? null,
         cvhNotes: data.notes ?? null,
+        /* Set updated_at on insert so the roster "Cập nhật" column isn't blank
+         * right after create (Sheet-2 F8). */
+        cvhUpdatedAt: new Date(),
       })
       .returning();
     if (!created) throw new CarError('CAR-E0500', 500, 'Insert returned no row');
@@ -95,6 +100,9 @@ export async function updateVehicleAction(id: string, input: unknown): Promise<A
     if (data.tonnage    !== undefined) patch.cvhTonnage = data.tonnage != null ? String(data.tonnage) : null;
     if (data.fuel_quota !== undefined) patch.cvhFuelQuota = data.fuel_quota != null ? String(data.fuel_quota) : null;
     if (data.region     !== undefined) patch.cvhRegion = data.region || null;
+    if (data.default_driver_id !== undefined) patch.cvhDefaultDriverId = data.default_driver_id || null;
+    if (data.depreciation      !== undefined)
+      patch.cvhDepreciation = data.depreciation != null ? String(data.depreciation) : null;
 
     const [updated] = await db
       .update(carVehicles)

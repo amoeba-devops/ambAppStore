@@ -20,6 +20,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { listAudit, listAuditActors } from '@/server/queries/audit.queries';
 import { AuditActorFilter } from './_components/audit-actor-filter';
+import { AuditContentCell } from './_components/audit-content-cell';
 
 /* Map common action verbs to a tone for visual scanning. */
 function toneFor(action: string): 'success' | 'info' | 'warning' | 'danger' | 'accent' | 'neutral' {
@@ -48,6 +49,14 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
   const tAu    = await getTranslations('audit');
   const user   = await getCurrentUser();
   requireRole(user.role, ['ADMIN']);
+
+  /* Human-readable action label (Sheet-2 A2) — map the code's verb to a
+   * translated phrase; the raw code stays as a hover tooltip for traceability
+   * and the affected object is already shown in the Entity column. */
+  const actionLabel = (action: string): string => {
+    const verb = action.split('.').pop() ?? action;
+    return tAu.has(`verb.${verb}`) ? tAu(`verb.${verb}`) : action;
+  };
 
   /* Lấy danh sách actor distinct trong tenant để render dropdown.
    * Đồng thời whitelist `actorIdRaw` — chỉ cho phép filter ID nằm trong danh sách
@@ -138,7 +147,8 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
                   <TableHead>{tAu('thAction')}</TableHead>
                   <TableHead>{tAu('thEntity')}</TableHead>
                   <TableHead>{tAu('thRef')}</TableHead>
-                  <TableHead className="w-[140px]">{tAu('thIp')}</TableHead>
+                  <TableHead className="w-[140px] hidden lg:table-cell">{tAu('thIp')}</TableHead>
+                  <TableHead>{tAu('thContent')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -158,13 +168,23 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge tone={toneFor(row.audAction)} size="sm">
-                        <span className="font-mono tabular text-[10.5px]">{row.audAction}</span>
-                      </Badge>
+                      <span title={row.audAction}>
+                        <Badge tone={toneFor(row.audAction)} size="sm">{actionLabel(row.audAction)}</Badge>
+                      </span>
                     </TableCell>
                     <TableCell className="text-text-muted">{row.audEntity}</TableCell>
                     <TableCell className="font-mono text-xs text-text tabular">{row.audEntityRef ?? '—'}</TableCell>
-                    <TableCell className="font-mono text-xs text-text-faint tabular">{row.audIp ?? '—'}</TableCell>
+                    <TableCell className="font-mono text-xs text-text-faint tabular hidden lg:table-cell">{row.audIp ?? '—'}</TableCell>
+                    <TableCell className="text-xs text-text-muted">
+                      <AuditContentCell
+                        before={row.audBefore}
+                        after={row.audAfter}
+                        action={row.audAction}
+                        entityRef={row.audEntityRef}
+                        actorName={row.actorName}
+                        timestamp={new Date(row.audCreatedAt).toISOString().replace('T', ' ').slice(0, 19)}
+                      />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

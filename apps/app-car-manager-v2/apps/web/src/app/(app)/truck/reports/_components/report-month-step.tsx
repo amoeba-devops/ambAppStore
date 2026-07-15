@@ -14,9 +14,15 @@ import { ReportStepper } from './report-stepper';
  */
 export function ReportMonthStep({
   exportedMonths,
+  exportedRegions,
+  regionTotal,
   monthCounts,
 }: {
   exportedMonths: string[];
+  /** YYYY-MM → distinct operating regions that have ≥1 report (for "X/N khu vực"). */
+  exportedRegions: Record<string, string[]>;
+  /** Total number of operating regions (denominator of the badge). */
+  regionTotal: number;
   /** YYYY-MM → completed-trip count. A month with 0 can't advance. */
   monthCounts: Record<string, number>;
 }) {
@@ -68,6 +74,7 @@ export function ReportMonthStep({
             const mm = String(m).padStart(2, '0');
             const key = `${year}-${mm}`;
             const last = new Date(year, m, 0).getDate();
+            const doneRegions = exportedRegions[key]?.length ?? 0;
             const isExported = exported.has(key);
             const isSelected = selected === key;
             const count = monthCounts[key] ?? 0;
@@ -95,7 +102,11 @@ export function ReportMonthStep({
                 </div>
                 <div className="mt-1.5 flex items-center gap-1.5">
                   <Badge tone={isExported ? 'success' : 'neutral'} size="sm">
-                    {isExported ? t('exported') : t('open')}
+                    {doneRegions > 0
+                      ? t('exportedRegions', { done: doneRegions, total: regionTotal })
+                      : isExported
+                        ? t('exported')
+                        : t('open')}
                   </Badge>
                   <span className={cn('text-[11px] tabular', hasData ? 'text-text-muted' : 'text-text-faint')}>
                     {hasData ? t('nTrips', { n: count }) : t('noTrips')}

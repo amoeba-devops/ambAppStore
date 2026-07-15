@@ -32,7 +32,7 @@ export async function GET(req: Request) {
 
   const header = [
     'Ngày', 'Phương tiện', 'Tài xế', 'Khách hàng', 'Km',
-    'Phí cầu đường', 'Phát sinh', 'Đơn giá', 'Lít', 'Phí xăng',
+    'Phí cầu đường', 'Phát sinh', 'Đơn giá', 'Lít', 'Phí nhiên liệu',
     'Doanh thu', 'Lợi nhuận', 'Trạng thái',
   ];
   const body = rows.map((r) => [
@@ -48,7 +48,7 @@ export async function GET(req: Request) {
     r.fuelCost,
     r.revenue,
     r.profit,
-    r.finalized ? 'Đã chốt' : 'Tạm tính',
+    r.finalized ? 'Đã lập BC' : 'Tạm tính',
   ]);
 
   const ws = XLSX.utils.aoa_to_sheet([header, ...body]);

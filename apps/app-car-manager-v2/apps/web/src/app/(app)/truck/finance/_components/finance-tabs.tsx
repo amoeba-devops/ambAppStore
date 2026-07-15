@@ -13,7 +13,7 @@ export async function FinanceTabs({
   month,
   vehicleId,
 }: {
-  active: 'trips' | 'overview' | 'invoices';
+  active: 'trips' | 'overview';
   month?: string;
   vehicleId?: string;
 }) {
@@ -30,7 +30,6 @@ export async function FinanceTabs({
   const tabs: { key: typeof active; label: string; href: string }[] = [
     { key: 'trips', label: t('tabTrips'), href: withParams('/truck/finance') },
     { key: 'overview', label: t('tabOverview'), href: withParams('/truck/pnl?tab=overview') },
-    { key: 'invoices', label: t('tabInvoices'), href: withParams('/truck/pnl?tab=invoices') },
   ];
 
   return (

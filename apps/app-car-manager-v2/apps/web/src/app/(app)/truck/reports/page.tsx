@@ -16,8 +16,9 @@ import {
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getTruckReportsSeenAt, listTruckReports, type TruckReportRow } from '@/server/queries/truck-report.queries';
+import { MonthPicker } from '@/components/inputs/month-picker';
 import { MarkReportsSeen } from './_components/mark-reports-seen';
-import { ReportMonthFilter } from './_components/report-month-filter';
+import { AutoDownloadReport } from './_components/auto-download-report';
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
@@ -30,11 +31,14 @@ function bcp47(locale: string): string {
 export default async function TruckReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ month?: string; dl?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
   const monthFilter = /^\d{4}-\d{2}$/.test(sp.month ?? '') ? sp.month : undefined;
+  /* ?dl=<reportId> — set by the "Lập báo cáo" wizard so the just-generated file
+   * auto-downloads on arrival. Guard to a UUID shape before trusting it. */
+  const autoDlId = /^[0-9a-fA-F-]{36}$/.test(sp.dl ?? '') ? sp.dl : undefined;
   const t = await getTranslations('screens.truckReports');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
@@ -48,8 +52,7 @@ export default async function TruckReportsPage({
     new Date(`${m}-01T00:00:00Z`).toLocaleDateString(loc, { month: 'long', year: 'numeric' });
   const dateTime = (d: Date) => new Date(d).toLocaleString(loc);
 
-  /* Month filter ("Lọc theo tháng") — options from all reports; list narrows. */
-  const monthOptions = [...new Set(reports.map((r) => r.month))].map((m) => ({ value: m, label: monthLabel(m) }));
+  /* Month filter ("Lọc theo tháng") — unified month picker (Sheet-2 RL1). */
   const shown = monthFilter ? reports.filter((r) => r.month === monthFilter) : reports;
 
   /* Group by month, preserving the newest-first order of the flat list. */
@@ -66,6 +69,7 @@ export default async function TruckReportsPage({
   return (
     <>
       <MarkReportsSeen />
+      {autoDlId && <AutoDownloadReport reportId={autoDlId} />}
       <PageHeader
         title={t('title')}
         subtitle={t('subtitle', { count: reports.length })}
@@ -81,7 +85,12 @@ export default async function TruckReportsPage({
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-5">
-        {monthOptions.length > 0 && <ReportMonthFilter months={monthOptions} value={monthFilter} />}
+        {reports.length > 0 && (
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-text-muted">{t('filterByMonth')}</span>
+            <MonthPicker value={monthFilter ?? ''} />
+          </label>
+        )}
         {groups.length === 0 ? (
           <Card>
             <EmptyState

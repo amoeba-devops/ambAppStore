@@ -137,7 +137,12 @@ export default async function FleetAccessPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <FleetMemberControls userId={m.usrId} depts={m.depts} implicit={m.implicit} />
+                      <FleetMemberControls
+                        userId={m.usrId}
+                        memberName={m.name ?? m.email ?? m.usrId}
+                        depts={m.depts}
+                        implicit={m.implicit}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

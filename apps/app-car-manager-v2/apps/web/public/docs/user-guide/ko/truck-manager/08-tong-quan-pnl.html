@@ -37,6 +37,8 @@
         <a class="sidebar__link is-active" href="08-tong-quan-pnl.html">손익 개요</a>
         <a class="sidebar__link" href="09-lap-bao-cao.html">보고서 작성</a>
         <a class="sidebar__link" href="10-danh-sach-bao-cao.html">보고서 목록</a>
+        <a class="sidebar__link" href="11-import-excel.html">엑셀 가져오기</a>
+        <a class="sidebar__link" href="12-cau-hinh.html">트럭 설정</a>
       </div>
       <div class="sidebar__group">
         <div class="sidebar__group-label">트럭 · 기사</div>
@@ -66,11 +68,11 @@
           </a>
         </p>
 
-        <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/pnl</code></dd><dt>내용</dt><dd>지역·월별 손익 집계</dd></dl></div>
-        <figure><img src="../../assets/img/screenshots/ko/truck-manager/08-pnl.png" alt="지역별 손익 개요 (데스크톱)"><figcaption>지역별 손익 개요 (데스크톱)</figcaption></figure>
+        <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/pnl</code></dd><dt>내용</dt><dd>지역·월별 손익 집계 + 주유 영수증</dd></dl></div>
+        <figure><img src="../../assets/img/screenshots/ko/truck-manager/08-pnl.png" alt="지역별 손익 개요(HCM, 주유 영수증 포함) (데스크톱)"><figcaption>지역별 손익 개요(HCM, 주유 영수증 포함) (데스크톱)</figcaption></figure>
         <figure><img src="../../assets/img/screenshots/ko/truck-manager/08-pnl-mobile.png" alt="휴대폰 손익 개요 (모바일)"><figcaption>휴대폰 손익 개요 (모바일)</figcaption></figure>
-<h2>사용 단계</h2><ol><li>기간/지역을 선택해 매출·비용·이익 집계 확인.</li><li><strong>HCM / 동나이 / Baiksan</strong> 간 효율 비교.</li><li>필요 시 <strong>Excel 내보내기</strong>.</li></ol>
-<h2>로직 / 규칙</h2><ul><li>기간의 <strong>완료 운행</strong> + <strong>고정비</strong>에서 산출.</li><li>손익은 <a href="07-chi-phi-loi-nhuan.html">비용 &amp; 손익</a> 메뉴의 한 탭.</li></ul>
+<h2>사용 단계</h2><ol><li>기간/지역을 선택해 최근 3개월 매출·비용·이익 집계 확인.</li><li>각 월 열 아래에 <strong>보고서 작성됨 · 시각</strong> 또는 <strong>미작성</strong> 배지 표시.</li><li>지역 필터로 <strong>HCM / 동나이 / Baiksan</strong> 효율 비교, 또는 차량별 필터.</li><li><strong>특정 지역</strong>을 선택하면 아래에 <strong>주유 영수증</strong> 블록 표시: 4개 지표(평균 단가, 연비, 총 영수증 리터, 월 총 km)와 영수증 목록.</li><li>새 영수증 입력: 날짜·주유소·리터·단가 입력 후 <strong>추가</strong>.</li><li>필요 시 <strong>Excel 내보내기</strong>.</li></ol>
+<h2>로직 / 규칙</h2><ul><li>기간의 <strong>완료 운행</strong> + <strong>고정비</strong>에서 산출.</li><li><strong>평균 단가</strong> = 해당 월·지역 주유 영수증 단가의 산술 평균; <strong>연비</strong> = 영수증 총 리터 ÷ 같은 지역 완료 운행 총 km.</li><li>이 두 값은 <a href="09-lap-bao-cao.html">보고서 작성</a>이 운행별 연료비를 배분하는 <strong>입력값</strong>입니다 — 정확한 수치를 위해 보고서 작성 <strong>전에</strong> 영수증을 충분히 입력하세요.</li><li>손익은 <a href="07-chi-phi-loi-nhuan.html">비용 &amp; 손익</a> 메뉴의 한 탭.</li></ul>
 
         <nav class="pager">
           <a class="pager__prev" href="07-chi-phi-loi-nhuan.html"><span>← 이전</span><strong>비용 & 손익</strong></a>

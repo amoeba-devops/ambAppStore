@@ -37,6 +37,8 @@
         <a class="sidebar__link is-active" href="08-tong-quan-pnl.html">Tổng quan P&L</a>
         <a class="sidebar__link" href="09-lap-bao-cao.html">Lập báo cáo</a>
         <a class="sidebar__link" href="10-danh-sach-bao-cao.html">Danh sách báo cáo</a>
+        <a class="sidebar__link" href="11-import-excel.html">Import Excel</a>
+        <a class="sidebar__link" href="12-cau-hinh.html">Cấu hình xe tải</a>
       </div>
       <div class="sidebar__group">
         <div class="sidebar__group-label">Xe tải · Tài xế</div>
@@ -66,11 +68,11 @@
           </a>
         </p>
 
-        <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/pnl</code></dd><dt>Nội dung</dt><dd>Lãi/lỗ tổng hợp theo khu vực &amp; tháng</dd></dl></div>
-        <figure><img src="../../assets/img/screenshots/vi/truck-manager/08-pnl.png" alt="Tổng quan P&L theo khu vực (desktop)"><figcaption>Tổng quan P&L theo khu vực (desktop)</figcaption></figure>
+        <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/pnl</code></dd><dt>Nội dung</dt><dd>Lãi/lỗ tổng hợp theo khu vực &amp; tháng + hoá đơn xăng dầu</dd></dl></div>
+        <figure><img src="../../assets/img/screenshots/vi/truck-manager/08-pnl.png" alt="Tổng quan P&L (khu vực HCM) kèm hoá đơn xăng dầu (desktop)"><figcaption>Tổng quan P&L (khu vực HCM) kèm hoá đơn xăng dầu (desktop)</figcaption></figure>
         <figure><img src="../../assets/img/screenshots/vi/truck-manager/08-pnl-mobile.png" alt="Tổng quan P&L trên điện thoại (điện thoại)"><figcaption>Tổng quan P&L trên điện thoại (điện thoại)</figcaption></figure>
-<h2>Các bước sử dụng</h2><ol><li>Chọn kỳ / khu vực để xem doanh thu – chi phí – lợi nhuận tổng hợp.</li><li>So sánh hiệu quả giữa <strong>HCM / Đồng Nai / Baiksan</strong>.</li><li>Bấm <strong>Xuất Excel</strong> nếu cần lấy số liệu ra ngoài.</li></ol>
-<h2>Logic / Quy tắc</h2><ul><li>Số liệu lấy từ các <strong>chuyến đã hoàn thành</strong> + <strong>chi phí cố định</strong> của kỳ.</li><li>P&amp;L là một tab trong menu <a href="07-chi-phi-loi-nhuan.html">Chi phí &amp; Lợi nhuận</a>.</li></ul>
+<h2>Các bước sử dụng</h2><ol><li>Chọn kỳ / khu vực để xem doanh thu – chi phí – lợi nhuận tổng hợp 3 tháng gần nhất.</li><li>Mỗi cột tháng có huy hiệu <strong>Đã lập BC · giờ</strong> hoặc <strong>Chưa lập báo cáo</strong> ngay dưới tên tháng.</li><li>So sánh hiệu quả giữa <strong>HCM / Đồng Nai / Baiksan</strong> bằng bộ lọc khu vực, hoặc lọc theo từng xe.</li><li>Chọn <strong>một khu vực cụ thể</strong> để hiện khối <strong>Hoá đơn xăng dầu</strong> phía dưới: 4 chỉ số (Giá bình quân, Định mức tiêu hao, Tổng lít hoá đơn, Tổng km trong tháng) và danh sách hoá đơn.</li><li>Nhập hoá đơn mới: ngày, cây xăng, số lít, đơn giá → bấm <strong>Thêm</strong>.</li><li>Bấm <strong>Xuất Excel</strong> nếu cần lấy số liệu ra ngoài.</li></ol>
+<h2>Logic / Quy tắc</h2><ul><li>Số liệu lấy từ các <strong>chuyến đã hoàn thành</strong> + <strong>chi phí cố định</strong> của kỳ.</li><li><strong>Giá bình quân</strong> = trung bình cộng đơn giá các hoá đơn xăng trong tháng của khu vực; <strong>Định mức tiêu hao</strong> = tổng lít hoá đơn ÷ tổng km các chuyến hoàn thành cùng khu vực.</li><li>Hai chỉ số này là <strong>đầu vào</strong> để <a href="09-lap-bao-cao.html">Lập báo cáo</a> phân bổ phí xăng cho từng chuyến — nhập đủ hoá đơn <strong>trước khi</strong> lập báo cáo để số liệu chính xác.</li><li>P&amp;L là một tab trong menu <a href="07-chi-phi-loi-nhuan.html">Chi phí &amp; Lợi nhuận</a>.</li></ul>
 
         <nav class="pager">
           <a class="pager__prev" href="07-chi-phi-loi-nhuan.html"><span>← Trước</span><strong>Chi phí & Lợi nhuận</strong></a>

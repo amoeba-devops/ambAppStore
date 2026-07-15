@@ -6,7 +6,6 @@ import {
   FilePlus,
   FileText,
   IdCard,
-  KeyRound,
   LayoutDashboard,
   Receipt,
   ScrollText,
@@ -138,10 +137,13 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'costs',       href: '/costs',         Icon: Receipt,         group: 'workspace', roles: STAFF, fleet: 'CAR'  },
   /* Admin-only tenant tools. */
   { key: 'users',       href: '/users',         Icon: UserCog,         group: 'admin',     roles: ADMIN  },
-  /* Fleet department access — grant/revoke CAR/TRUCK + approve manager requests. */
-  { key: 'fleetAccess', href: '/settings/fleet-access', Icon: KeyRound, group: 'admin',     roles: ADMIN  },
-  { key: 'settings',    href: '/settings',      Icon: SettingsIcon,    group: 'admin',     roles: ADMIN  },
+  /* Fleet department access — grant/revoke CAR/TRUCK + approve manager requests.
+   * TẠM ẨN khỏi menu (QA feedback 2026-07): trang + route vẫn hoạt động, truy cập
+   * trực tiếp qua /settings/fleet-access. Bỏ comment để hiện lại. */
+  // { key: 'fleetAccess', href: '/settings/fleet-access', Icon: KeyRound, group: 'admin',     roles: ADMIN  },
   { key: 'audit',       href: '/audit',         Icon: ScrollText,      group: 'admin',     roles: ADMIN  },
+  /* Cài đặt luôn nằm cuối danh sách (QA feedback 2026-07). */
+  { key: 'settings',    href: '/settings',      Icon: SettingsIcon,    group: 'admin',     roles: ADMIN  },
 ];
 
 /**

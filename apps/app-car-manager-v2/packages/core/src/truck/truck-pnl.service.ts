@@ -216,6 +216,54 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
     row.insurance += Math.round(parseAmount(f.tfcInsurance));
   }
 
+  /* Vehicle-level fixed-cost defaults (QA 2026-07, "1 xe ↔ 1 tài xế"): for a
+   * per-vehicle or per-region view, any (vehicle, month) WITHOUT a manual
+   * car_truck_fixed_costs row falls back to the vehicle's own depreciation +
+   * its default driver's fixed salary. Scoped to these views only — the
+   * all-trucks aggregate keeps its fleet-level driverSalary (avoids double
+   * count, since driverSalary is 0 when a vehicle/region filter is set). */
+  const scopeIds = q.vehicleId ? [q.vehicleId] : regionVehicleIds;
+  if (scopeIds && scopeIds.length) {
+    const vdefs = await db
+      .select({ id: carVehicles.cvhId, dep: carVehicles.cvhDepreciation, drv: carVehicles.cvhDefaultDriverId })
+      .from(carVehicles)
+      .where(
+        and(
+          eq(carVehicles.entId, actor.entId),
+          inArray(carVehicles.cvhId, scopeIds),
+          isNull(carVehicles.cvhDeletedAt),
+        ),
+      );
+    const drvIds = [...new Set(vdefs.map((v) => v.drv).filter((x): x is string => !!x))];
+    const salByDrv = new Map<string, number>();
+    if (drvIds.length) {
+      const drows = await db
+        .select({ id: carDrivers.drvId, sal: carDrivers.drvFixedSalary })
+        .from(carDrivers)
+        .where(
+          and(
+            eq(carDrivers.entId, actor.entId),
+            inArray(carDrivers.drvId, drvIds),
+            isNull(carDrivers.drvDeletedAt),
+          ),
+        );
+      for (const d of drows) salByDrv.set(d.id, Math.round(parseAmount(d.sal)));
+    }
+    const tfcSeen = new Set(fixed.map((f) => `${f.cvhId}|${f.tfcMonth}`));
+    for (const v of vdefs) {
+      const dep = v.dep != null ? Math.round(parseAmount(v.dep)) : 0;
+      const sal = v.drv ? (salByDrv.get(v.drv) ?? 0) : 0;
+      if (dep === 0 && sal === 0) continue;
+      for (const m of months) {
+        if (tfcSeen.has(`${v.id}|${m}`)) continue; // a manual fixed-cost row wins
+        const row = rows.get(m);
+        if (!row) continue;
+        row.depreciation += dep;
+        row.salary += sal;
+      }
+    }
+  }
+
   for (const row of rows.values()) {
     row.driverSalary = driverSalaryTotal;
     row.variableCost = row.fuelCost + row.tollFee + row.extraTotal;

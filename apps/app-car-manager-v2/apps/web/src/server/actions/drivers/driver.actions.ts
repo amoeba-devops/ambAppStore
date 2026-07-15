@@ -38,7 +38,12 @@ export async function createDriverAction(input: unknown): Promise<ActionResult<C
         drvPhone: data.phone?.trim() || null,
         drvEmergencyContact: data.emergency_contact ?? null,
         drvFixedSalary: data.fixed_salary != null ? String(data.fixed_salary) : null,
+        /* Initial status (QA P2) — omitted falls back to the DB default. */
+        ...(data.status ? { drvStatus: data.status } : {}),
         drvNotes: data.notes ?? null,
+        /* Set updated_at on insert so the roster "Cập nhật" column isn't blank
+         * right after create (Sheet-2 DR8). */
+        drvUpdatedAt: new Date(),
       })
       .returning();
     if (!created) throw new CarError('CAR-E0500', 500, 'Insert returned no row');

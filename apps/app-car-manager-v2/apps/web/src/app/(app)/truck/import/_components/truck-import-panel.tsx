@@ -172,7 +172,9 @@ export function TruckImportPanel({ vehicles, drivers }: { vehicles: OptionItem[]
         return;
       }
       toast.success(t('importedToast', { count: res.data.count }));
-      router.push('/truck/trips');
+      /* Land on the trip log filtered to the month just imported so the user
+       * SEES the loaded rows immediately (QA: "tải lên, rồi sao nữa?"). */
+      router.push(res.data.month ? `/truck/trips?month=${res.data.month}` : '/truck/trips');
       router.refresh();
     });
   };

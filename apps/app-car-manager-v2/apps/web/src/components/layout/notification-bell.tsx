@@ -73,3 +73,58 @@ export function NotificationBell({ variant = 'desktop', className }: Notificatio
     </Link>
   );
 }
+
+/**
+ * Sidebar-footer variant (QA P2 R3): the bell moved OUT of the per-page header
+ * — sitting next to the page title made it read as a page feature ("[Hộp thư]
+ * tại trang Tài xế?"). Here it renders as a full-width row (icon + label +
+ * unread badge) in the app rail, clearly application-level. Same /inbox target
+ * and unread count as the header bell it replaces.
+ */
+export function SidebarInboxLink({ collapsed }: { collapsed: boolean }) {
+  const { unreadNotifications } = useUserDisplay();
+  const tNav = useTranslations('nav');
+  const badgeText = unreadNotifications > 9 ? '9+' : String(unreadNotifications);
+  const label = tNav('inbox');
+
+  if (collapsed) {
+    return (
+      <Link
+        href="/inbox"
+        aria-label={label}
+        title={label}
+        className={cn(
+          'relative mx-auto flex items-center justify-center h-9 w-9 rounded',
+          'text-text-muted hover:bg-surface-2 hover:text-text',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        )}
+      >
+        <Bell className="h-4 w-4" aria-hidden />
+        {unreadNotifications > 0 && (
+          <span className="absolute top-0.5 right-0.5 min-w-[16px] h-[16px] px-0.5 inline-flex items-center justify-center rounded-full bg-danger text-white text-[9px] font-bold leading-none tabular-nums ring-2 ring-surface">
+            {badgeText}
+          </span>
+        )}
+      </Link>
+    );
+  }
+  return (
+    <Link
+      href="/inbox"
+      aria-label={label}
+      className={cn(
+        'group flex items-center gap-2.5 h-9 w-full rounded px-2 text-sm font-medium',
+        'text-text-muted hover:bg-surface-2 hover:text-text transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+      )}
+    >
+      <Bell className="h-4 w-4 shrink-0" aria-hidden />
+      <span className="flex-1 truncate text-left">{label}</span>
+      {unreadNotifications > 0 && (
+        <span className="min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full bg-danger text-white text-[10px] font-bold leading-none tabular-nums">
+          {badgeText}
+        </span>
+      )}
+    </Link>
+  );
+}

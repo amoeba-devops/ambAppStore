@@ -4,6 +4,7 @@ import { db } from '@car-v2/db/client';
 import {
   carTruckMonthClose,
   carTruckFuelInvoices,
+  carTruckFixedCosts,
   carTrips,
   carTripExtraCosts,
   carVehicles,
@@ -12,25 +13,7 @@ import {
 } from '@car-v2/db/schema';
 import { CarError } from '@car-v2/shared/errors';
 import { parseAmount, truckTripFuelCost, computeTruckPnl, loadTruckRegionSnapshots } from '@car-v2/core/truck';
-import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import type { AuthContext } from '@/lib/auth/get-current-user';
-
-/** Months (of the given set) whose TRUCK book is closed. */
-export async function getClosedTruckMonths(entId: string, months: string[]): Promise<Set<string>> {
-  if (months.length === 0) return new Set();
-  const rows = await db
-    .select({ m: carTruckMonthClose.tmcMonth })
-    .from(carTruckMonthClose)
-    .where(
-      and(
-        eq(carTruckMonthClose.entId, entId),
-        eq(carTruckMonthClose.tmcVehicleType, 'TRUCK'),
-        inArray(carTruckMonthClose.tmcMonth, months),
-        isNull(carTruckMonthClose.tmcDeletedAt),
-      ),
-    );
-  return new Set(rows.map((r) => r.m));
-}
 
 /** Is (ent, TRUCK, month, region) closed? `region` null = the whole-fleet
  * (legacy / "all regions") close; a region code = that region's close. */
@@ -111,6 +94,28 @@ export async function listFuelInvoices(
     liters: parseAmount(r.tfiLiters),
     price: parseAmount(r.tfiPrice),
   }));
+}
+
+/**
+ * Distinct operating regions that have ≥1 fuel invoice in the month. The finance
+ * banner uses this to tell apart a provisional region that just needs a report
+ * generated (it HAS invoices → the month-end average is computable) from one
+ * that can't be reconciled yet (no invoices → adding a report won't finalize it).
+ */
+export async function getTruckInvoiceRegions(entId: string, month: string): Promise<Set<string>> {
+  const rows = await db
+    .selectDistinct({ region: carTruckFuelInvoices.tfiRegion })
+    .from(carTruckFuelInvoices)
+    .where(
+      and(
+        eq(carTruckFuelInvoices.entId, entId),
+        eq(carTruckFuelInvoices.tfiVehicleType, 'TRUCK'),
+        eq(carTruckFuelInvoices.tfiMonth, month),
+        isNull(carTruckFuelInvoices.tfiDeletedAt),
+        isNotNull(carTruckFuelInvoices.tfiRegion),
+      ),
+    );
+  return new Set(rows.map((r) => r.region).filter((r): r is string => !!r));
 }
 
 export interface FuelStats {
@@ -208,52 +213,15 @@ export async function getTruckMonthCloseInfo(
   return { closed: true, closedAt: row.tmcClosedAt, snapshot };
 }
 
-export interface TruckRegionCloseState {
-  region: string;
-  closed: boolean;
-  closedAt: Date | null;
-  snapshot: TruckMonthCloseInfo['snapshot'];
-}
-
-/** Close state of every region for a month — drives the chốt-sổ-theo-khu-vực UI. */
-export async function getTruckRegionCloseStates(
-  entId: string,
-  month: string,
-): Promise<TruckRegionCloseState[]> {
-  const rows = await db
-    .select()
-    .from(carTruckMonthClose)
-    .where(
-      and(
-        eq(carTruckMonthClose.entId, entId),
-        eq(carTruckMonthClose.tmcVehicleType, 'TRUCK'),
-        eq(carTruckMonthClose.tmcMonth, month),
-        isNotNull(carTruckMonthClose.tmcRegion),
-        isNull(carTruckMonthClose.tmcDeletedAt),
-      ),
-    );
-  const byRegion = new Map<string, (typeof rows)[number]>();
-  for (const r of rows) if (r.tmcRegion) byRegion.set(r.tmcRegion, r);
-  return TRUCK_REGIONS.map((region) => {
-    const row = byRegion.get(region);
-    const snapshot =
-      row && row.tmcAvgPrice != null && row.tmcConsumption != null
-        ? {
-            avgPrice: parseAmount(row.tmcAvgPrice),
-            consumption: parseAmount(row.tmcConsumption),
-            totalLiters: parseAmount(row.tmcTotalLiters),
-            totalKm: parseAmount(row.tmcTotalKm),
-          }
-        : null;
-    return { region, closed: !!row, closedAt: row?.tmcClosedAt ?? null, snapshot };
-  });
-}
-
 export interface TruckFinanceTripRow {
   trpId: string;
   ref: string;
   scheduledAt: Date;
   vehicleId: string | null;
+  /** Operating region of the trip's vehicle (cvh_region); null when unassigned.
+   * Lets the finance screen group provisional trips by the region that still
+   * needs a month-end report. */
+  region: string | null;
   plate: string | null;
   model: string | null;
   driver: string | null;
@@ -270,6 +238,8 @@ export interface TruckFinanceTripRow {
   profit: number;
   /** true once the trip's month is closed → fuel/profit are official. */
   finalized: boolean;
+  /** Last-modified timestamp for the "Cập nhật" column (Sheet-2 P7). */
+  updatedAt: Date | null;
 }
 
 /**
@@ -298,6 +268,7 @@ export async function listTruckFinanceTrips(
         vehicleId: carTrips.trpVehicleId,
         plate: carVehicles.cvhPlateNumber,
         model: carVehicles.cvhModel,
+        region: carVehicles.cvhRegion,
         driver: carUsers.usrName,
         fuelLiters: carTrips.trpFuelLiters,
         fuelPrice: carTrips.trpFuelPrice,
@@ -305,6 +276,7 @@ export async function listTruckFinanceTrips(
         eo: carTrips.trpEndOdometer,
         toll: carTrips.trpTollFee,
         revenue: carTrips.trpRevenue,
+        updatedAt: carTrips.trpUpdatedAt,
       })
       .from(carTrips)
       .leftJoin(carVehicles, eq(carTrips.trpVehicleId, carVehicles.cvhId))
@@ -364,6 +336,7 @@ export async function listTruckFinanceTrips(
       ref: t.ref,
       scheduledAt: t.scheduledAt,
       vehicleId: t.vehicleId,
+      region: t.region,
       plate: t.plate,
       model: t.model,
       driver: t.driver,
@@ -377,42 +350,54 @@ export async function listTruckFinanceTrips(
       revenue,
       profit: revenue - fuelCost - toll - extra,
       finalized,
+      updatedAt: t.updatedAt,
     };
   });
 }
 
-export interface TruckMonthAdjustment {
-  reason: string;
-  reopenedBy: string | null;
-  reopenedAt: Date | null;
+/** Latest fixed-cost edit touching a month — with trips' updated_at it feeds
+ * the "data changed since the last report" stale badge (PLAN-20260707 R13:
+ * fixed costs aren't in the fuel snapshot, they're always computed live). */
+export async function getTruckFixedCostsLastUpdated(
+  entId: string,
+  month: string,
+): Promise<Date | null> {
+  const rows = await db
+    .select({ u: carTruckFixedCosts.tfcUpdatedAt })
+    .from(carTruckFixedCosts)
+    .where(and(eq(carTruckFixedCosts.entId, entId), eq(carTruckFixedCosts.tfcMonth, month)))
+    .orderBy(desc(carTruckFixedCosts.tfcUpdatedAt))
+    .limit(1);
+  return rows[0]?.u ?? null;
 }
 
-/** Reopen history for a (month, region) = soft-deleted close rows carrying a
- * reason. `region` null = whole-fleet (legacy) close history. */
-export async function listTruckMonthAdjustments(
+/** Latest `trp_updated_at` among a (month, region)'s COMPLETED log trips —
+ * feeds the "data changed since the last report" staleness check alongside
+ * getTruckFixedCostsLastUpdated (PLAN-20260707 R13). `region` null = all
+ * regions (matches a whole-fleet report scope). */
+export async function getTruckTripsMaxUpdatedAt(
   entId: string,
   month: string,
   region: string | null = null,
-): Promise<TruckMonthAdjustment[]> {
-  const rows = await db
-    .select()
-    .from(carTruckMonthClose)
+): Promise<Date | null> {
+  const start = new Date(`${month}-01T00:00:00.000Z`);
+  const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
+  const [row] = await db
+    .select({ u: sql<Date | null>`max(${carTrips.trpUpdatedAt})` })
+    .from(carTrips)
+    .leftJoin(carVehicles, eq(carTrips.trpVehicleId, carVehicles.cvhId))
     .where(
       and(
-        eq(carTruckMonthClose.entId, entId),
-        eq(carTruckMonthClose.tmcVehicleType, 'TRUCK'),
-        eq(carTruckMonthClose.tmcMonth, month),
-        region == null ? isNull(carTruckMonthClose.tmcRegion) : eq(carTruckMonthClose.tmcRegion, region),
-        isNotNull(carTruckMonthClose.tmcDeletedAt),
-        isNotNull(carTruckMonthClose.tmcReopenReason),
+        eq(carTrips.entId, entId),
+        eq(carTrips.trpKind, 'LOG'),
+        eq(carTrips.trpStatus, 'COMPLETED'),
+        isNull(carTrips.trpDeletedAt),
+        gte(carTrips.trpScheduledAt, start),
+        lt(carTrips.trpScheduledAt, end),
+        region ? eq(carVehicles.cvhRegion, region) : undefined,
       ),
-    )
-    .orderBy(desc(carTruckMonthClose.tmcReopenedAt));
-  return rows.map((r) => ({
-    reason: r.tmcReopenReason ?? '',
-    reopenedBy: r.tmcReopenedBy,
-    reopenedAt: r.tmcReopenedAt,
-  }));
+    );
+  return row?.u ?? null;
 }
 
 /* ── Report review (REQ-20260629, design "Lập báo cáo" Bước 2) ──────────────── */
@@ -453,6 +438,14 @@ export interface TruckReportReview {
   region: string | null;
   /** Closed → trips are locked, the review table is read-only. */
   closed: boolean;
+  /** The reconciliation is computable (F5: invoices + km + price > 0) → the
+   * table previews ALLOCATED fuel (km × consumption × avg price — exactly what
+   * "Lập báo cáo" will freeze) and the fuel column is read-only. Otherwise the
+   * trips keep their own manually-entered numbers, editable. */
+  allocatable: boolean;
+  /** COMPLETED trips currently missing odometer km — their allocated fuel is 0
+   * (surfaced as a warning so the operator fixes the km before generating). */
+  kmZeroCount: number;
   /** Fleet-level month fuel reconciliation (same number for every vehicle —
    * our fuel model is fleet-monthly, not per-vehicle). */
   avgPrice: number;
@@ -476,6 +469,11 @@ export interface TruckReportReview {
  * fixed cost) and the fleet-level fuel reconciliation. Mirrors the design's
  * confirm screen so a manager can sanity-check (and edit) costs before the
  * report is generated. Read-only when the month is closed.
+ *
+ * When the reconciliation is computable (`allocatable`), each trip's fuel is
+ * the ALLOCATED preview — km × consumption × avg price, the exact numbers
+ * "Lập báo cáo" will freeze — so what the manager confirms is what the file
+ * gets (PLAN-20260707).
  */
 export async function getTruckReportReview(
   actor: AuthContext,
@@ -489,8 +487,20 @@ export async function getTruckReportReview(
     getTruckMonthCloseInfo(actor.entId, month, region),
   ]);
 
+  /* F5 — the chốt-sổ validity rule, evaluated live. */
+  const allocatable = stats.totalKm > 0 && stats.invoiceLiters > 0 && stats.avgPrice > 0;
+  let kmZeroCount = 0;
+
   const byVeh = new Map<string, ReportReviewVehicle>();
   for (const t of trips) {
+    if (t.km <= 0) kmZeroCount += 1;
+    /* Allocation preview with the LIVE factors — generation always recomputes,
+     * so the review must show what the next report will freeze (also when an
+     * older snapshot exists: regenerating replaces it). */
+    const fuelCost = allocatable
+      ? truckTripFuelCost({ km: t.km, consumption: stats.consumption, avgPrice: stats.avgPrice })
+      : t.fuelCost;
+    const profit = t.revenue - fuelCost - t.toll - t.extra;
     const key = t.vehicleId ?? '∅';
     let g = byVeh.get(key);
     if (!g) {
@@ -517,17 +527,17 @@ export async function getTruckReportReview(
       km: t.km,
       toll: t.toll,
       extra: t.extra,
-      fuelCost: t.fuelCost,
+      fuelCost,
       revenue: t.revenue,
-      profit: t.profit,
+      profit,
       finalized: t.finalized,
     });
     g.tripCount += 1;
-    g.totalFuel += t.fuelCost;
+    g.totalFuel += fuelCost;
     g.totalToll += t.toll;
     g.totalExtra += t.extra;
     g.totalRevenue += t.revenue;
-    g.variableProfit += t.profit;
+    g.variableProfit += profit;
   }
 
   const vehicles = [...byVeh.values()].sort((a, b) => a.plate.localeCompare(b.plate));
@@ -557,6 +567,8 @@ export async function getTruckReportReview(
     month,
     region,
     closed: closeInfo.closed,
+    allocatable,
+    kmZeroCount,
     avgPrice: stats.avgPrice,
     consumption: stats.consumption,
     refuelCount: stats.invoiceCount,

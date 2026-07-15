@@ -62,6 +62,16 @@ const envSchema = z.object({
     .optional()
     .transform((v) => (v ? Number(v) : 10_485_760)),
 
+  /* Truck trip-cost receipt upload — a SEPARATE ceiling from the car Expense
+   * S3_MAX_UPLOAD_BYTES above (REQ-20260709). Higher default (50MB) for hi-res
+   * invoice scans / multi-page PDFs; kept independent so tuning one feature
+   * never shifts the other. */
+  TRUCK_S3_MAX_UPLOAD_BYTES: z
+    .string()
+    .regex(/^\d+$/)
+    .optional()
+    .transform((v) => (v ? Number(v) : 52_428_800)),
+
   /* Module 2 — Expense + Maintenance. */
   EXPENSE_LOCK_DAYS: z
     .string()
@@ -160,6 +170,13 @@ export function getS3Config():
 /** Module 2 — expense edit lock window in days (default 7). */
 export function getExpenseLockDays(): number {
   return loadEnv().EXPENSE_LOCK_DAYS as number;
+}
+
+/** Truck trip-cost receipt upload cap in bytes (REQ-20260709, default 50MB).
+ * Separate from the car Expense S3_MAX_UPLOAD_BYTES so the two upload surfaces
+ * tune independently. */
+export function getTruckUploadMaxBytes(): number {
+  return loadEnv().TRUCK_S3_MAX_UPLOAD_BYTES as number;
 }
 
 /** Bearer secret expected by /api/v1/cron/* routes. Null = cron disabled. */
