@@ -46,7 +46,7 @@ export type AmaJwtClaims = z.infer<typeof amaJwtClaimsSchema>;
 
 export type LocalRole = 'OPERATOR' | 'MANAGER' | 'ADMIN';
 
-export function mapAmaRoleToLocal(amaRole: AmaJwtClaims['role']): LocalRole {
+export function mapAmaRoleToLocal(amaRole: AmaJwtClaims['role'] | (string & {})): LocalRole {
   switch (amaRole) {
     case 'OWNER':
     case 'MASTER':
@@ -57,6 +57,11 @@ export function mapAmaRoleToLocal(amaRole: AmaJwtClaims['role']): LocalRole {
       return 'MANAGER';
     case 'MEMBER':
     case 'VIEWER':
+      return 'OPERATOR';
+    default:
+      // Bulk-sync feeds raw role strings straight from AMA's
+      // /entity-settings/members API, so guard any role AMA might add later —
+      // lowest privilege (OPERATOR) instead of an undefined local role.
       return 'OPERATOR';
   }
 }

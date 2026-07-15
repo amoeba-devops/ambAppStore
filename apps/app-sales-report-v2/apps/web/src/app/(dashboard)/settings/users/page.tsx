@@ -11,7 +11,10 @@ export default async function UserManagementPage() {
 
   const res = await listUsersAction({});
   const realRows = res.success ? res.data.rows : [];
-  const mockSeeds = getAmaMockMembers();
+  // Demo roster only — real tenants see solely their own ent_id-scoped
+  // sal_users (auto-provisioned at login + "Sync from AMA"). Injecting the
+  // fixed mock list for a real tenant would leak cross-tenant data.
+  const mockSeeds = process.env.DEMO_AUTO_LOGIN === 'true' ? getAmaMockMembers() : [];
   const t = await getTranslations('usersPage');
 
   return (

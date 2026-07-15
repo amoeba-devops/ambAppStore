@@ -279,6 +279,13 @@ export async function syncFromAmaAction(): Promise<ActionResult<SyncSummary>> {
     requireRole(user.role, ['ADMIN']);
 
     const amaClient = createAmaClient();
+    if (!amaClient) {
+      throw new SalError(
+        'SAL-E0503',
+        400,
+        'AMA member sync is not configured for this environment',
+      );
+    }
     const amaMembers = await amaClient.fetchEntityMembers(user.entId);
     const amaIds = new Set(amaMembers.map((m) => m.amaUserId));
 
