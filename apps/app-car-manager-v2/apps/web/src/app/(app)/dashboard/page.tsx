@@ -7,7 +7,7 @@ import { carUsers } from '@car-v2/db/schema';
 import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { listDrivers } from '@/server/queries/drivers.queries';
+import { listNonTruckDrivers } from '@/server/queries/drivers.queries';
 import { getTrip, listTrips, listTripsForCalendar } from '@/server/queries/trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { rangeForView } from './_components/calendar/utils';
@@ -55,7 +55,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       page: 1,
     }),
     listVehicles(user.entId),
-    listDrivers(user.entId),
+    listNonTruckDrivers(user.entId),
     db
       .select({ id: carUsers.usrId, name: carUsers.usrName, role: carUsers.usrLocalRole })
       .from(carUsers)

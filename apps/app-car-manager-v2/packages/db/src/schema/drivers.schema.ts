@@ -2,6 +2,7 @@ import { isNull } from 'drizzle-orm';
 import {
   char,
   date,
+  decimal,
   index,
   pgEnum,
   pgTable,
@@ -48,6 +49,9 @@ export const carDrivers = pgTable(
     drvPhone: varchar('drv_phone', { length: 20 }),
     drvStatus: driverStatusEnum('drv_status').notNull().default('AVAILABLE'),
     drvEmergencyContact: varchar('drv_emergency_contact', { length: 100 }),
+    /* Fixed monthly salary — TRUCK drivers only; feeds the truck P&L driver-
+     * salary line. NULL = not set (treated as 0). DECIMAL string convention. */
+    drvFixedSalary: decimal('drv_fixed_salary', { precision: 14, scale: 2 }),
     drvNotes: text('drv_notes'),
     drvCreatedAt: timestamp('drv_created_at', { withTimezone: true }).defaultNow().notNull(),
     drvUpdatedAt: timestamp('drv_updated_at', { withTimezone: true }),

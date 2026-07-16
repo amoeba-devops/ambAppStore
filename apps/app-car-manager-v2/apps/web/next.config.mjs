@@ -51,7 +51,7 @@ const publicEnv = {
 const nextConfig = {
   basePath,
   env: publicEnv,
-  transpilePackages: ['@car-v2/db', '@car-v2/shared', '@car-v2/ui'],
+  transpilePackages: ['@car-v2/core', '@car-v2/db', '@car-v2/shared', '@car-v2/ui'],
   outputFileTracingRoot: __dirname,
   /* pdfmake must run as a native Node module (not bundled by webpack) because
    * it relies on its own virtual font system and binary handling. Without this,

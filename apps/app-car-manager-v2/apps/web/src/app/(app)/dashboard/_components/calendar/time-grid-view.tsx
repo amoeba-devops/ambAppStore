@@ -70,7 +70,7 @@ function toBox(startMin: number, endMin: number): { topPx: number; heightPx: num
   const vStart = clampMin(startMin);
   const vEnd = clampMin(endMin);
   let topPx = ((vStart - WIN_START_MIN) / 60) * HOUR_HEIGHT;
-  let heightPx = Math.max(MIN_EVENT_PX, ((vEnd - vStart) / 60) * HOUR_HEIGHT - 2);
+  const heightPx = Math.max(MIN_EVENT_PX, ((vEnd - vStart) / 60) * HOUR_HEIGHT - 2);
   if (topPx + heightPx > TOTAL_HEIGHT) topPx = Math.max(0, TOTAL_HEIGHT - heightPx);
   return { topPx, heightPx };
 }

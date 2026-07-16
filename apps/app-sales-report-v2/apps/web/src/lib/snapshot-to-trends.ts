@@ -35,11 +35,17 @@ export function snapshotsToWeekPoints(rows: PeriodSnapshotRow[]): WeekPoint[] {
     const tiktokAffBookingFee =
       totalGmvBoth > 0 ? (manualInputs.affiliateBookingFees * tiktok.totalGmv) / totalGmvBoth : 0;
 
-    // TikTok Platform Fee (rate-based per ingest constant, with snapshot-stored fallback)
+    // TikTok Platform Fee — prefer the generic formula-config snapshot block
+    // (FR-23); fall back to the legacy `tiktokPlatformFeeRatePct` field for
+    // snapshots written before that rollout.
+    const cfgRateRaw = constants?.formulaConfig?.['tiktok_platform_fee_rate_pct']?.value;
+    const cfgRate = cfgRateRaw != null ? Number(cfgRateRaw) : undefined;
+    const ratePctTrends = Number.isFinite(cfgRate)
+      ? (cfgRate as number)
+      : (constants?.tiktokPlatformFeeRatePct ?? 24);
     const tiktokPlatformFee =
       tiktok.totalPlatformFee ??
-      (tiktok.totalGmv - tiktok.totalSellerDiscount) *
-        ((constants?.tiktokPlatformFeeRatePct ?? 24) / 100);
+      (tiktok.totalGmv - tiktok.totalSellerDiscount) * (ratePctTrends / 100);
 
     // Per-channel CM (mirrors snapshot-to-report.ts)
     const shopeeCm =

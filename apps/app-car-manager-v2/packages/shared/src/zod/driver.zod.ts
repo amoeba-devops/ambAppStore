@@ -8,10 +8,16 @@ export const createDriverSchema = z.object({
   phone: z.string().trim().max(20).optional(),
   emergency_contact: z.string().trim().max(100).optional(),
   notes: z.string().trim().max(2000).optional(),
+  /* When set (driver created from a department surface), the action also grants
+   * that fleet membership so the new driver shows up in the dept roster. */
+  vehicle_type: z.enum(['CAR', 'TRUCK']).optional(),
+  /* Fixed monthly salary (TRUCK drivers) — null clears it. */
+  fixed_salary: z.number().nonnegative().max(1_000_000_000).nullable().optional(),
+  /* Initial status (QA P2) — the form defaults AVAILABLE; omitted = DB default. */
+  status: z.enum(['AVAILABLE', 'ON_TRIP', 'OFF_DUTY', 'UNAVAILABLE']).optional(),
 });
 export type CreateDriverInput = z.infer<typeof createDriverSchema>;
 
-export const updateDriverSchema = createDriverSchema.omit({ user_id: true }).partial().extend({
-  status: z.enum(['AVAILABLE', 'ON_TRIP', 'OFF_DUTY', 'UNAVAILABLE']).optional(),
-});
+/* `status` is inherited from the create schema (already optional). */
+export const updateDriverSchema = createDriverSchema.omit({ user_id: true, vehicle_type: true }).partial();
 export type UpdateDriverInput = z.infer<typeof updateDriverSchema>;

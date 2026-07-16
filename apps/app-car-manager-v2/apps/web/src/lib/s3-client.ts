@@ -1,5 +1,5 @@
 import 'server-only';
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 let cached: S3Client | null = null;
@@ -40,12 +40,43 @@ export function getS3Bucket(): string {
  *
  * Returns null if the S3 client isn't configured — caller can degrade to the
  * old "metadata only" rendering instead of a hard crash on dev branches
- * without AWS creds. */
-export async function getSignedGetUrl(key: string, expiresIn = 900): Promise<string | null> {
+ * without AWS creds.
+ *
+ * `downloadFilename` (optional): serve as an attachment under this name instead
+ * of the S3 key's basename (which is a uuid for generated reports). Signed into
+ * the URL via ResponseContentDisposition; RFC 5987 encoding so Vietnamese and
+ * Korean names survive (same pattern as excelResponse). */
+export async function getSignedGetUrl(
+  key: string,
+  expiresIn = 900,
+  downloadFilename?: string,
+): Promise<string | null> {
   try {
-    const cmd = new GetObjectCommand({ Bucket: getS3Bucket(), Key: key });
+    const cmd = new GetObjectCommand({
+      Bucket: getS3Bucket(),
+      Key: key,
+      ...(downloadFilename
+        ? {
+            ResponseContentDisposition: `attachment; filename="${downloadFilename.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(downloadFilename)}`,
+          }
+        : {}),
+    });
     return await getSignedUrl(getS3Client(), cmd, { expiresIn });
   } catch {
     return null;
   }
+}
+
+/* Server-side upload of a generated file (e.g. a report workbook). Unlike
+ * receipts — which the browser PUTs straight to S3 via a presigned URL — these
+ * are built on the server, so we push the bytes directly. Throws if S3 isn't
+ * configured (caller surfaces a clear error). */
+export async function putObject(key: string, body: Uint8Array, contentType: string): Promise<void> {
+  const cmd = new PutObjectCommand({
+    Bucket: getS3Bucket(),
+    Key: key,
+    Body: body,
+    ContentType: contentType,
+  });
+  await getS3Client().send(cmd);
 }

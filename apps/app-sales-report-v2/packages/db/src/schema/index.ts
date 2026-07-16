@@ -8,3 +8,4 @@ export * from './action-logs.schema.js';
 export * from './period-snapshots.schema.js';
 export * from './archive-files.schema.js';
 export * from './fx-rates.schema.js';
+export * from './formula-configs.schema.js';

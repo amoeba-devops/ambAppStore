@@ -54,3 +54,14 @@
   --c7: 152 76% 36%;   /* #15A36E  Toll       — green */
   --c8: 280 80% 50%;   /* #A626E0  Inspection — magenta */
 }
+
+/* Truck fleet department theme (REQ-20260617) — accent swaps from blue to
+ * orange (#C2410C) to match the prototype. Scoped to the truck workspace via
+ * [data-dept="truck"] on <html>, toggled by DeptThemeEffect in the truck
+ * route-group layout. Car workspace keeps the default blue accent. */
+:root[data-dept='truck'] {
+  --accent:      18 88% 40%;   /* #C2410C */
+  --accent-fg:   0 0% 100%;
+  --accent-soft: 24 90% 94%;   /* light orange tint */
+  --ring:        18 88% 50%;
+}

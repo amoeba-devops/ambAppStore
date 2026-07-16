@@ -7,6 +7,7 @@ import { type ActionResult } from '@car-v2/shared/errors';
 import {
   updateAppNameSchema,
   updateCurrencySchema,
+  updateDepotAddressSchema,
   updateNotifPrefSchema,
   updateRetentionSchema,
   updateTenantNameSchema,
@@ -212,6 +213,27 @@ export async function updateRetentionAction(
       current.tnsRetentionAuditYears,
       data.years,
       { tnsRetentionAuditYears: data.years },
+    );
+  });
+}
+
+/* ─── Truck depot address ─────────────────────────────────────────────── */
+export async function updateDepotAddressAction(
+  input: unknown,
+): Promise<ActionResult<CarTenantSettings>> {
+  return runAction(async () => {
+    const actor = await getCurrentUser();
+    requireRole(actor.role, ['ADMIN', 'MANAGER']);
+    const data = updateDepotAddressSchema.parse(input);
+    const current = await loadCurrentRow(actor.entId, actor.userId);
+    const normalized = data.depot_address === '' ? null : data.depot_address;
+    return persistAndAudit(
+      actor.entId,
+      actor.userId,
+      'depotAddress',
+      current.tnsDepotAddress,
+      normalized,
+      { tnsDepotAddress: normalized },
     );
   });
 }

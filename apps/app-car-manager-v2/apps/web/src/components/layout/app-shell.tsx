@@ -1,9 +1,13 @@
+import { cookies } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { resolveFleetAccess } from '@/lib/auth/fleet-access';
+import type { FleetDept } from './nav-items';
 import { countTodayExpenses } from '@/server/queries/expenses.queries';
 import { countUnreadNotifications } from '@/server/queries/notifications.queries';
 import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
 import { countPendingTrips } from '@/server/queries/trips.queries';
+import { countNewTruckReports } from '@/server/queries/truck-report.queries';
 import { AppShellClient } from './app-shell-client';
 
 /**
@@ -33,17 +37,28 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
    * entry is STAFF-only). Skip the query entirely for DRIVER to save a
    * round-trip on every page render. */
   const wantsTodayCost = user.role === 'ADMIN' || user.role === 'MANAGER';
-  const [pendingTripCount, todayExpenseCount, unreadNotificationCount, settings, tCo, tRoot] = await Promise.all([
+  const [pendingTripCount, todayExpenseCount, unreadNotificationCount, settings, fleetAccess, tCo, tRoot] = await Promise.all([
     countPendingTrips({ entId: user.entId, role: user.role, userId: user.userId }),
     wantsTodayCost ? countTodayExpenses(user.entId) : Promise.resolve(0),
     /* In-app inbox badge — all roles see it. Index on (ntfUserId, ntfReadAt)
      * keeps this lookup index-only even at high volume. */
     countUnreadNotifications(user.entId, user.userId),
     getTenantSettings(user.entId),
+    /* Fleet departments this user may enter — drives the dept switch +
+     * department-scoped nav. ADMIN → both; others → membership rows. */
+    resolveFleetAccess(user),
     getTranslations('company'),
     /* Root namespace — `appName` is a top-level i18n key (vi: "Fleet"). */
     getTranslations(),
   ]);
+
+  /* "Mới" badge on the truck Reports nav — only for staff who can enter the
+   * truck workspace, so non-truck users never pay for the query. Depends on
+   * resolved fleetAccess, so it runs after the parallel batch. */
+  const newReportCount =
+    (user.role === 'ADMIN' || user.role === 'MANAGER') && fleetAccess.includes('TRUCK')
+      ? await countNewTruckReports(user.entId, user.userId)
+      : 0;
 
   const defaultTenantName = tCo('tenantDefault');
   /* Resolution order: DB-stored tenant name → JWT-issued entity name →
@@ -57,13 +72,31 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   const defaultAppName = tRoot('appName');
   const resolvedAppName = settings?.tnsAppName?.trim() || defaultAppName;
 
+  /* Sticky workspace seed: remembered cookie clamped to what the user may
+   * enter; drivers are locked to their single membership. The client
+   * DeptProvider takes over from here, syncing as the user navigates. */
+  const cookieDept = (await cookies()).get('ccms.fleet.dept')?.value;
+  const initialDept: FleetDept =
+    user.role === 'DRIVER'
+      ? fleetAccess.includes('TRUCK')
+        ? 'TRUCK'
+        : 'CAR'
+      : cookieDept === 'TRUCK' && fleetAccess.includes('TRUCK')
+        ? 'TRUCK'
+        : cookieDept === 'CAR' && fleetAccess.includes('CAR')
+          ? 'CAR'
+          : (fleetAccess[0] ?? 'CAR');
+
   return (
     <AppShellClient
       role={user.role}
+      fleetAccess={fleetAccess}
+      initialDept={initialDept}
       userName={user.name}
       userEmail={user.email}
       pendingTripCount={pendingTripCount}
       todayExpenseCount={todayExpenseCount}
+      newReportCount={newReportCount}
       unreadNotificationCount={unreadNotificationCount}
       vapidPublicKey={process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC}
       basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''}

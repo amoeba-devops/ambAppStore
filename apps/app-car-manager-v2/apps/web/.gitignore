@@ -3,3 +3,8 @@
 src/server/lib/fonts/*.otf
 src/server/lib/fonts/*.ttf
 
+
+# Playwright test artifacts
+test-results/
+playwright-report/
+e2e-shots/

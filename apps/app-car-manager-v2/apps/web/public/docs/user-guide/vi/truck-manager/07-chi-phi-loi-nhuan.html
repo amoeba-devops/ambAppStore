@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chi phí & Lợi nhuận — Amoeba Car Manager v2</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <a href="../index.html" class="header__brand" title="Amoeba Car Manager v2" aria-label="Amoeba Car Manager v2">
+        <span class="header__brand-mark">A</span>
+        <span class="header__brand-desktop">Amoeba Car Manager v2 <span class="header__brand-sub">· Hướng dẫn</span></span><span class="header__brand-mobile">Hướng dẫn</span>
+      </a>
+      <div class="header__tools">
+        <div class="search">
+          <input id="guide-search-input" class="search__input" type="search" placeholder="Tìm trong hướng dẫn… (/)" aria-label="Tìm kiếm">
+          <div id="guide-search-results" class="search__results"></div>
+        </div>
+        <span class="lang-switch"><a href="#" class="is-active" data-lang="vi"><span class="lang-name">Tiếng Việt</span><span class="lang-code">VI</span></a><a href="#" data-lang="ko"><span class="lang-name">한국어</span><span class="lang-code">KO</span></a></span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Xe tải · Quản lý</div>
+        <a class="sidebar__link" href="00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="01-bang-dieu-khien.html">Bảng điều khiển</a>
+        <a class="sidebar__link" href="02-nhat-ky-chuyen.html">Nhật ký chuyến</a>
+        <a class="sidebar__link" href="03-lap-chuyen.html">Lập chuyến</a>
+        <a class="sidebar__link" href="04-chi-tiet-chuyen.html">Chi tiết chuyến</a>
+        <a class="sidebar__link" href="05-doi-xe.html">Đội xe</a>
+        <a class="sidebar__link" href="06-tai-xe.html">Tài xế</a>
+        <a class="sidebar__link is-active" href="07-chi-phi-loi-nhuan.html">Chi phí & Lợi nhuận</a>
+        <a class="sidebar__link" href="08-tong-quan-pnl.html">Tổng quan P&L</a>
+        <a class="sidebar__link" href="09-lap-bao-cao.html">Lập báo cáo</a>
+        <a class="sidebar__link" href="10-danh-sach-bao-cao.html">Danh sách báo cáo</a>
+        <a class="sidebar__link" href="11-import-excel.html">Import Excel</a>
+        <a class="sidebar__link" href="12-cau-hinh.html">Cấu hình xe tải</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Xe tải · Tài xế</div>
+        <a class="sidebar__link" href="../truck-driver/00-tong-quan.html">Tổng quan</a>
+        <a class="sidebar__link" href="../truck-driver/01-hom-nay.html">Hôm nay</a>
+        <a class="sidebar__link" href="../truck-driver/02-hoan-thanh-chuyen.html">Hoàn thành chuyến</a>
+        <a class="sidebar__link" href="../truck-driver/03-ghi-chuyen-moi.html">Ghi chuyến mới</a>
+      </div>
+      <div class="sidebar__group">
+        <div class="sidebar__group-label">Chung</div>
+        <a class="sidebar__link" href="../common/01-dang-nhap.html">Đăng nhập</a>
+        <a class="sidebar__link" href="../common/03-ngon-ngu.html">Đổi ngôn ngữ</a>
+        <a class="sidebar__link" href="../common/04-thong-bao.html">Thông báo</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="content">
+        <div class="breadcrumb"><a href="../index.html">Trang chủ</a> · Xe tải · Quản lý · Chi phí & Lợi nhuận</div>
+        <h1>Chi phí & Lợi nhuận</h1>
+        <!-- APP_LINK_CTA -->
+        <p class="app-link-cta-row">
+          <a class="app-link-cta" href="/truck/finance" target="_parent" rel="noopener">
+            <span>Mở trang trong app</span>
+            <span class="app-link-cta__route">/truck/finance</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+
+        <div class="intro"><dl class="intro__row"><dt>URL</dt><dd><code>/truck/finance</code></dd><dt>Kỳ</dt><dd>Chọn tháng ở đầu trang</dd></dl></div>
+        <figure><img src="../../assets/img/screenshots/vi/truck-manager/07-finance.png" alt="Sổ theo chuyến của tháng đã chọn (desktop)"><figcaption>Sổ theo chuyến của tháng đã chọn (desktop)</figcaption></figure>
+        <figure><img src="../../assets/img/screenshots/vi/truck-manager/07-finance-mobile.png" alt="Chi phí & Lợi nhuận trên điện thoại (điện thoại)"><figcaption>Chi phí & Lợi nhuận trên điện thoại (điện thoại)</figcaption></figure>
+<h2>Các bước sử dụng</h2><ol><li>Chọn <strong>tháng</strong>, <strong>khu vực</strong> và <strong>xe</strong> ở thanh lọc đầu trang.</li><li>Chuyển giữa 2 tab: <strong>Theo chuyến</strong> (sổ từng chuyến, đang xem) và <strong>Tổng quan P&amp;L</strong> (xem <a href="08-tong-quan-pnl.html">Tổng quan P&amp;L</a>).</li><li>Đọc 7 thẻ tổng hợp đầu trang: doanh thu, nhiên liệu, cầu đường, phát sinh, lương tài xế, chi phí cố định, lợi nhuận ròng.</li><li>Xem huy hiệu trạng thái cạnh bộ lọc: <strong>Đã lập BC · giờ</strong> (đã có báo cáo) hoặc <strong>Chưa lập báo cáo</strong>.</li><li>Bấm một dòng chuyến để mở <a href="04-chi-tiet-chuyen.html">chi tiết</a>; bấm <strong>Xuất Excel</strong> để tải sổ ra ngoài.</li></ol>
+<h2>Logic / Quy tắc</h2><ul><li><strong>Đơn giá &amp; Lít hiển thị nghiêng</strong> = số tạm tính (tự nhập từng chuyến) khi tháng/khu vực <strong>chưa lập báo cáo</strong>.</li><li>Sau khi <a href="09-lap-bao-cao.html">lập báo cáo</a>, hai cột này đổi sang số <strong>chính thức</strong> (phân bổ theo bình quân khu vực) và hết in nghiêng.</li><li>Không còn bước "đóng sổ" thủ công — cứ sửa dữ liệu rồi lập lại báo cáo là số chính thức cập nhật theo. Huy hiệu chuyển màu vàng <strong>"dữ liệu đã thay đổi, cần lập lại"</strong> khi có thay đổi sau lần lập gần nhất.</li></ul>
+
+        <nav class="pager">
+          <a class="pager__prev" href="06-tai-xe.html"><span>← Trước</span><strong>Tài xế</strong></a>
+          <a class="pager__next" href="08-tong-quan-pnl.html"><span>Tiếp theo →</span><strong>Tổng quan P&L</strong></a>
+        </nav>
+      </article>
+      <footer class="footer">Cập nhật 01-07-2026 · Phản hồi: <a href="mailto:dev@amoeba.group">dev@amoeba.group</a></footer>
+    </main>
+  </div>
+  <script src="../../assets/js/sidebar.js"></script>
+  <script src="../../assets/js/lang-switch.js"></script>
+  <script src="../../assets/js/lightbox.js"></script>
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/app-link.js"></script>
+</body>
+</html>

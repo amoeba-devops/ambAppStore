@@ -21,6 +21,7 @@ import {
   toast,
 } from '@car-v2/ui';
 import type { CarUserLocalRole } from '@car-v2/db/schema';
+import { AMA_ROLES } from '@car-v2/shared/auth';
 import { updateMemberAction } from '@/server/actions/users/update-member.action';
 import { formatActionError } from '@/lib/format-action-error';
 
@@ -52,7 +53,12 @@ export function EditMemberForm({
 }: EditMemberFormProps) {
   const router = useRouter();
   const t = useTranslations('users.edit');
+  const tList = useTranslations('users.list');
   const tErr = useTranslations();
+
+  /* Verbatim AMA role → localized label, with raw-code fallback. */
+  const amaRoleLabel = (role: string): string =>
+    (AMA_ROLES as readonly string[]).includes(role) ? tList(`amaRoleOption.${role}`) : role;
   const [pending, startTransition] = useTransition();
   const [localRole, setLocalRole] = useState<CarUserLocalRole>(initialLocalRole);
   const [blocked, setBlocked] = useState(initialBlocked);
@@ -100,7 +106,7 @@ export function EditMemberForm({
             {amaRoleSnapshot && (
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2">
                 <span className="text-text-muted text-xs sm:text-sm">{t('amaRoleLabel')}</span>
-                <Badge tone="neutral" size="sm">{amaRoleSnapshot}</Badge>
+                <Badge tone="neutral" size="sm" title={amaRoleSnapshot}>{amaRoleLabel(amaRoleSnapshot)}</Badge>
               </div>
             )}
             {AMA_MEMBERS_URL && (

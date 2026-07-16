@@ -3,7 +3,7 @@
 import { useTransition } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Calendar, Check, Loader2, Receipt, ShieldAlert, UserPlus } from 'lucide-react';
+import { Calendar, Check, KeyRound, Loader2, Receipt, ShieldAlert, Truck, UserPlus } from 'lucide-react';
 import { Card, cn, toast } from '@car-v2/ui';
 import type { CarNotification, NotificationTemplatePayload } from '@car-v2/db/schema';
 import type { LocalRole } from '@car-v2/shared/auth';
@@ -187,6 +187,9 @@ function pickBodyKey(
   if ((event === 'TRIP.ASSIGNED' || event === 'TRIP.NEEDS_ASSIGNMENT') && payload.route) {
     return 'bodyWithRoute';
   }
+  if ((event === 'TRUCK_TRIP.ASSIGNED' || event === 'TRUCK_TRIP.COMPLETED') && payload.route) {
+    return 'bodyWithRoute';
+  }
   if ((event === 'TRIP.REJECTED' || event === 'TRIP.CANCELLED') && payload.reason) {
     return 'bodyWithReason';
   }
@@ -199,6 +202,8 @@ function pickIcon(event: string) {
   if (event.startsWith('TRIP.ASSIGN')) return UserPlus;
   if (event.startsWith('TRIP.REJECT')) return ShieldAlert;
   if (event.startsWith('TRIP.')) return Calendar;
+  if (event.startsWith('TRUCK_TRIP.')) return Truck;
+  if (event.startsWith('FLEET.')) return KeyRound;
   if (event.startsWith('EXPENSE.')) return Receipt;
   return Check;
 }
@@ -207,7 +212,9 @@ function pickIcon(event: string) {
  * to the trip detail; expense events to the list (detail page is a future
  * follow-up). Unknown families return null and the row is a plain button. */
 function linkFor(n: CarNotification): string | null {
+  if (n.ntfEvent.startsWith('FLEET.')) return '/settings/fleet-access';
   if (!n.ntfEntityId) return null;
+  if (n.ntfEvent.startsWith('TRUCK_TRIP.')) return `/trips/${n.ntfEntityId}`;
   if (n.ntfEvent.startsWith('TRIP.')) return `/trips/${n.ntfEntityId}`;
   if (n.ntfEvent.startsWith('EXPENSE.')) return `/expenses`;
   return null;

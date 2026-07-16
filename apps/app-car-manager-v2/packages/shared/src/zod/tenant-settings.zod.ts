@@ -37,3 +37,9 @@ export const updateRetentionSchema = z.object({
   years: z.number().int().positive().nullable(),
 });
 export type UpdateRetentionInput = z.infer<typeof updateRetentionSchema>;
+
+/** Truck depot address — default origin/return for all truck trip forms. */
+export const updateDepotAddressSchema = z.object({
+  depot_address: z.string().trim().max(500).nullable(),
+});
+export type UpdateDepotAddressInput = z.infer<typeof updateDepotAddressSchema>;

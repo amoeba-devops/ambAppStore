@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@car-v2/db/client';
-import { carDrivers, carUsers, type CarDriver } from '@car-v2/db/schema';
+import { carDrivers, carUserFleetAccess, carUsers, type CarDriver } from '@car-v2/db/schema';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import { createDriverSchema, updateDriverSchema } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
@@ -37,7 +37,13 @@ export async function createDriverAction(input: unknown): Promise<ActionResult<C
         drvLicenseExpiry: data.license_expiry,
         drvPhone: data.phone?.trim() || null,
         drvEmergencyContact: data.emergency_contact ?? null,
+        drvFixedSalary: data.fixed_salary != null ? String(data.fixed_salary) : null,
+        /* Initial status (QA P2) — omitted falls back to the DB default. */
+        ...(data.status ? { drvStatus: data.status } : {}),
         drvNotes: data.notes ?? null,
+        /* Set updated_at on insert so the roster "Cập nhật" column isn't blank
+         * right after create (Sheet-2 DR8). */
+        drvUpdatedAt: new Date(),
       })
       .returning();
     if (!created) throw new CarError('CAR-E0500', 500, 'Insert returned no row');
@@ -51,6 +57,41 @@ export async function createDriverAction(input: unknown): Promise<ActionResult<C
       entityRef: user.usrName ?? data.license_number,
       after: { license: created.drvLicenseNumber, user_id: created.drvUserId },
     });
+
+    /* Created from a department surface (e.g. /truck/drivers/new) → also grant
+     * that fleet membership so the driver appears in the dept roster, which is
+     * filtered by car_user_fleet_access. Idempotent: skip if already present.
+     * ADMIN + MANAGER both allowed (gated above). */
+    if (data.vehicle_type) {
+      const existing = await db.query.carUserFleetAccess.findFirst({
+        where: and(
+          eq(carUserFleetAccess.entId, actor.entId),
+          eq(carUserFleetAccess.usrId, data.user_id),
+          eq(carUserFleetAccess.ufaVehicleType, data.vehicle_type),
+          isNull(carUserFleetAccess.ufaDeletedAt),
+        ),
+      });
+      if (!existing) {
+        await db.insert(carUserFleetAccess).values({
+          ufaId: randomUUID(),
+          entId: actor.entId,
+          usrId: data.user_id,
+          ufaVehicleType: data.vehicle_type,
+          ufaGrantedBy: actor.userId,
+        });
+        await logAudit({
+          entId: actor.entId,
+          userId: actor.userId,
+          action: 'FLEET.ACCESS_GRANTED',
+          entity: 'User',
+          entityId: data.user_id,
+          entityRef: user.usrName ?? user.usrEmail ?? data.user_id,
+          after: { vehicleType: data.vehicle_type, via: 'DRIVER.CREATE' },
+        });
+      }
+      revalidatePath(data.vehicle_type === 'TRUCK' ? '/truck/drivers' : '/drivers');
+      if (data.vehicle_type === 'TRUCK') revalidatePath('/truck/pnl');
+    }
 
     revalidatePath('/drivers');
     return created;
@@ -76,6 +117,7 @@ export async function updateDriverAction(id: string, input: unknown): Promise<Ac
     if (data.notes          !== undefined) patch.drvNotes = data.notes;
     if (data.status         !== undefined) patch.drvStatus = data.status;
     if (data.phone          !== undefined) patch.drvPhone = data.phone.trim() || null;
+    if (data.fixed_salary   !== undefined) patch.drvFixedSalary = data.fixed_salary != null ? String(data.fixed_salary) : null;
 
     const [updated] = await db
       .update(carDrivers)
@@ -96,6 +138,8 @@ export async function updateDriverAction(id: string, input: unknown): Promise<Ac
 
     revalidatePath('/drivers');
     revalidatePath(`/drivers/${id}`);
+    /* Salary feeds the truck P&L driver-salary line. */
+    if (data.fixed_salary !== undefined) revalidatePath('/truck/pnl');
     return updated;
   });
 }

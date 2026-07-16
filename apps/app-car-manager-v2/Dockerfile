@@ -26,6 +26,7 @@ WORKDIR /app
 # Copy package manifests first for better layer caching
 COPY package.json package-lock.json turbo.json tsconfig.base.json ./
 COPY apps/web/package.json ./apps/web/
+COPY packages/core/package.json ./packages/core/
 COPY packages/db/package.json ./packages/db/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/ui/package.json ./packages/ui/

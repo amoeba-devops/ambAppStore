@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
-import { carTrips, carExpenses } from '@car-v2/db/schema';
+import { carTrips, carExpenses, carVehicles } from '@car-v2/db/schema';
 
 /** Format trip subtitle: "Jun 3 · HCM → Biên Hòa" */
 function formatTripSubtitle(
@@ -30,7 +30,7 @@ function formatExpenseSubtitle(amount: string, currency: string): string {
 }
 
 export interface DriverDeleteWarning {
-  type: 'active_trips' | 'pending_expenses';
+  type: 'active_trips' | 'pending_expenses' | 'default_driver_vehicles';
   count: number;
   message: string;
   /** IDs/refs for linking - max 3 shown */
@@ -61,6 +61,7 @@ export interface DriverDeleteCheckResult {
  * Checks:
  * 1. Active trips (PENDING_DRIVER_CONFIRMATION, CONFIRMED, IN_PROGRESS)
  * 2. Pending expenses awaiting approval
+ * 3. Vehicles that have this driver set as their default driver
  */
 export async function checkDriverDeleteWarnings(
   entId: string,
@@ -138,6 +139,36 @@ export async function checkDriverDeleteWarnings(
         id: e.expId,
         label: e.expType,
         subtitle: formatExpenseSubtitle(e.expAmount, e.expCurrency),
+      })),
+    });
+  }
+
+  // 3. Check vehicles that have this driver as their default driver
+  const defaultDriverVehicles = await db
+    .select({
+      cvhId: carVehicles.cvhId,
+      cvhPlateNumber: carVehicles.cvhPlateNumber,
+      cvhModel: carVehicles.cvhModel,
+    })
+    .from(carVehicles)
+    .where(
+      and(
+        eq(carVehicles.entId, entId),
+        eq(carVehicles.cvhDefaultDriverId, driverId),
+        isNull(carVehicles.cvhDeletedAt),
+      ),
+    )
+    .limit(4);
+
+  if (defaultDriverVehicles.length > 0) {
+    warnings.push({
+      type: 'default_driver_vehicles',
+      count: defaultDriverVehicles.length,
+      message: `${defaultDriverVehicles.length} vehicle(s) have this driver set as default`,
+      refs: defaultDriverVehicles.slice(0, 3).map((v) => ({
+        id: v.cvhId,
+        label: v.cvhPlateNumber,
+        subtitle: v.cvhModel,
       })),
     });
   }

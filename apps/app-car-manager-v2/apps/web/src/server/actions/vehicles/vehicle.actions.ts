@@ -29,16 +29,27 @@ export async function createVehicleAction(input: unknown): Promise<ActionResult<
         cvhId: randomUUID(),
         entId: actor.entId,
         cvhPlateNumber: data.plate_number,
+        cvhCode: data.code ?? null,
         cvhModel: data.model,
         cvhMake: data.make ?? null,
         cvhYear: data.year ?? null,
         cvhColor: data.color ?? null,
         cvhFuelType: data.fuel_type ?? 'PETROL',
+        cvhType: data.vehicle_type ?? 'CAR',
+        cvhTonnage: data.tonnage != null ? String(data.tonnage) : null,
+        cvhFuelQuota: data.fuel_quota != null ? String(data.fuel_quota) : null,
+        cvhRegion: data.region || null,
+        cvhDefaultDriverId: data.default_driver_id || null,
+        cvhDepreciation: data.depreciation != null ? String(data.depreciation) : null,
         cvhOdometerKm: data.odometer_km ?? 0,
         cvhOilIntervalKm: data.oil_interval_km ?? 5000,
         cvhOilIntervalMonths: data.oil_interval_months ?? 3,
+        cvhLastOilChangeKm: data.last_oil_change_km ?? null,
         cvhHomeBase: data.home_base ?? null,
         cvhNotes: data.notes ?? null,
+        /* Set updated_at on insert so the roster "Cập nhật" column isn't blank
+         * right after create (Sheet-2 F8). */
+        cvhUpdatedAt: new Date(),
       })
       .returning();
     if (!created) throw new CarError('CAR-E0500', 500, 'Insert returned no row');
@@ -54,6 +65,7 @@ export async function createVehicleAction(input: unknown): Promise<ActionResult<
     });
 
     revalidatePath('/vehicles');
+    revalidatePath('/truck/fleet');
     return created;
   });
 }
@@ -71,6 +83,7 @@ export async function updateVehicleAction(id: string, input: unknown): Promise<A
 
     const patch: Partial<typeof carVehicles.$inferInsert> = { cvhUpdatedAt: new Date() };
     if (data.plate_number !== undefined) patch.cvhPlateNumber = data.plate_number;
+    if (data.code        !== undefined) patch.cvhCode = data.code;
     if (data.model       !== undefined) patch.cvhModel = data.model;
     if (data.make        !== undefined) patch.cvhMake = data.make;
     if (data.year        !== undefined) patch.cvhYear = data.year;
@@ -80,8 +93,16 @@ export async function updateVehicleAction(id: string, input: unknown): Promise<A
     if (data.odometer_km !== undefined) patch.cvhOdometerKm = data.odometer_km;
     if (data.oil_interval_km     !== undefined) patch.cvhOilIntervalKm = data.oil_interval_km;
     if (data.oil_interval_months !== undefined) patch.cvhOilIntervalMonths = data.oil_interval_months;
+    if (data.last_oil_change_km  !== undefined) patch.cvhLastOilChangeKm = data.last_oil_change_km;
     if (data.home_base !== undefined) patch.cvhHomeBase = data.home_base;
     if (data.notes     !== undefined) patch.cvhNotes = data.notes;
+    if (data.vehicle_type !== undefined) patch.cvhType = data.vehicle_type;
+    if (data.tonnage    !== undefined) patch.cvhTonnage = data.tonnage != null ? String(data.tonnage) : null;
+    if (data.fuel_quota !== undefined) patch.cvhFuelQuota = data.fuel_quota != null ? String(data.fuel_quota) : null;
+    if (data.region     !== undefined) patch.cvhRegion = data.region || null;
+    if (data.default_driver_id !== undefined) patch.cvhDefaultDriverId = data.default_driver_id || null;
+    if (data.depreciation      !== undefined)
+      patch.cvhDepreciation = data.depreciation != null ? String(data.depreciation) : null;
 
     const [updated] = await db
       .update(carVehicles)
@@ -103,6 +124,7 @@ export async function updateVehicleAction(id: string, input: unknown): Promise<A
 
     revalidatePath('/vehicles');
     revalidatePath(`/vehicles/${id}`);
+    revalidatePath('/truck/fleet');
     return updated;
   });
 }

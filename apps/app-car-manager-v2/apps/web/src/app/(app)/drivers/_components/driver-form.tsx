@@ -23,7 +23,8 @@ import {
   Textarea,
   toast,
 } from '@car-v2/ui';
-import type { CarDriver, CarDriverLicenseClass, CarDriverStatus } from '@car-v2/db/schema';
+import type { CarDriver, CarDriverLicenseClass, CarDriverStatus, CarVehicleType } from '@car-v2/db/schema';
+import { MoneyInput } from '@/components/inputs/money-input';
 import { ConfirmDeleteDialog, type DeleteWarningRef } from '@/components/dialogs/confirm-delete-dialog';
 import { RefDetailPanel } from '@/components/dialogs/ref-detail-panel';
 import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
@@ -55,6 +56,7 @@ interface DriverDraftValues {
   phone: string;
   status: CarDriverStatus;
   emergencyContact: string;
+  fixedSalary: string;
   notes: string;
 }
 
@@ -64,9 +66,12 @@ const STATUSES: CarDriverStatus[] = ['AVAILABLE', 'ON_TRIP', 'OFF_DUTY', 'UNAVAI
 interface DriverFormProps {
   driver?: CarDriver & { user?: { usrName?: string | null; usrEmail?: string | null } };
   userCandidates?: { usrId: string; usrName: string | null; usrEmail: string | null }[];
+  /** When creating from a department surface (e.g. truck): the new driver is
+   * also granted that fleet membership, and navigation returns to its roster. */
+  dept?: CarVehicleType;
 }
 
-export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
+export function DriverForm({ driver, userCandidates = [], dept }: DriverFormProps) {
   const t       = useTranslations('drivers.form');
   const tList   = useTranslations('drivers.list');
   const tStatus = useTranslations('drivers.status');
@@ -86,7 +91,9 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
   const [phone, setPhone] = useState(driver?.drvPhone ?? '');
   const [status, setStatus] = useState<CarDriverStatus>(driver?.drvStatus ?? 'AVAILABLE');
   const [emergencyContact, setEmergencyContact] = useState(driver?.drvEmergencyContact ?? '');
+  const [fixedSalary, setFixedSalary] = useState(driver?.drvFixedSalary ?? '');
   const [notes, setNotes] = useState(driver?.drvNotes ?? '');
+  const isTruck = dept === 'TRUCK';
 
   /* Track whether user has made any changes — draft is only saved when dirty. */
   const [isDirty, setIsDirty] = useState(false);
@@ -100,6 +107,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
     phone,
     status,
     emergencyContact,
+    fixedSalary,
     notes,
   };
   const driverLabel = isEdit
@@ -119,10 +127,14 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
             .join(' · ') || undefined,
       };
   const { draft, clearDraft, dismissDraft } = useFormDraft<DriverDraftValues>({
-    key: isEdit ? `driver:edit:${driver!.drvId}` : 'driver:new',
+    key: isEdit ? `driver:edit:${driver!.drvId}` : dept ? `driver:new:${dept}` : 'driver:new',
     values: draftValues,
     label: driverLabel,
-    href: isEdit ? `/drivers/${driver!.drvId}/edit` : '/drivers/new',
+    href: isEdit
+      ? `/drivers/${driver!.drvId}/edit`
+      : dept === 'TRUCK'
+        ? '/truck/drivers/new'
+        : '/drivers/new',
     entity: 'driver',
     isDirty,
   });
@@ -137,6 +149,7 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
     setPhone(v.phone);
     setStatus(v.status);
     setEmergencyContact(v.emergencyContact);
+    setFixedSalary(v.fixedSalary ?? '');
     setNotes(v.notes);
     setIsDirty(true); // Restored draft should be persisted
     dismissDraft();
@@ -168,6 +181,9 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
         phone: phone.trim() || undefined,
         emergency_contact: emergencyContact.trim() || undefined,
         notes: notes.trim() || undefined,
+        /* Salary is a TRUCK-only field; leave undefined elsewhere so update
+         * never touches it. Empty input clears it (null). */
+        fixed_salary: isTruck ? (fixedSalary.trim() === '' ? null : Number(fixedSalary)) : undefined,
       };
 
       /* Phone là contact info local trong car_drivers — KHÔNG đẩy ngược lên
@@ -178,12 +194,17 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
         : await createDriverAction({
             ...basePayload,
             user_id: userId,
+            vehicle_type: dept,
+            status,
           });
 
       if (result.success) {
         clearDraft();
         toast.success(isEdit ? t('tUpdated') : t('tAdded'));
-        router.push(`/drivers/${result.data.drvId}`);
+        /* Truck create returns to its roster; car create opens the detail. */
+        router.push(
+          isEdit || !dept ? `/drivers/${result.data.drvId}` : '/truck/drivers',
+        );
         router.refresh();
       } else {
         toast.error(isEdit ? t('errUpdate') : t('errCreate'), {
@@ -198,7 +219,9 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
     const result = await deleteDriverAction(driver.drvId);
     if (result.success) {
       toast.success(t('tRemoved'));
-      router.push('/drivers');
+      /* Return to the roster the driver belongs to (Sheet-2 DR11) — truck
+       * drivers back to /truck/drivers, not the car roster. */
+      router.push(dept === 'TRUCK' ? '/truck/drivers' : '/drivers');
       router.refresh();
     } else {
       toast.error(t('errRemove'), { description: formatActionError(result.error, tErr) });
@@ -309,18 +332,17 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
             <Field label={t('expiry')} required hint={t('expiryHint')}>
               <Input type="date" value={licenseExpiry} onChange={(e) => { setLicenseExpiry(e.target.value); markDirty(); }} />
             </Field>
-            {isEdit && (
-              <Field label={t('status')}>
-                <Select value={status} onValueChange={(v) => { setStatus(v as CarDriverStatus); markDirty(); }}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>{tStatus(s)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )}
+            {/* Status renders on create too (QA P2) — defaults to AVAILABLE. */}
+            <Field label={t('status')}>
+              <Select value={status} onValueChange={(v) => { setStatus(v as CarDriverStatus); markDirty(); }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>{tStatus(s)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
             {/* Phone là contact info local trong car_drivers (admin gọi tài xế).
              *  Login = email, không liên quan SĐT. Render cả ở create + edit mode. */}
             <Field label={t('phone')}>
@@ -344,6 +366,15 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
             <Field label={t('emergencyContact')}>
               <Input value={emergencyContact ?? ''} onChange={(e) => { setEmergencyContact(e.target.value); markDirty(); }} placeholder={t('emergencyPlaceholder')} maxLength={100} />
             </Field>
+            {isTruck && (
+              <Field label={t('fixedSalary')} hint={t('fixedSalaryHint')}>
+                <MoneyInput
+                  value={fixedSalary ?? ''}
+                  onChange={(v) => { setFixedSalary(v); markDirty(); }}
+                  placeholder={t('fixedSalaryPlaceholder')}
+                />
+              </Field>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -367,7 +398,9 @@ export function DriverForm({ driver, userCandidates = [] }: DriverFormProps) {
           </Button>
         )}
         <Button type="button" variant="secondary" size="lg" className="flex-1 md:flex-initial" asChild>
-          <Link href={isEdit ? `/drivers/${driver.drvId}` : '/drivers'}>{tA('cancel')}</Link>
+          <Link href={isEdit ? `/drivers/${driver.drvId}` : dept === 'TRUCK' ? '/truck/drivers' : '/drivers'}>
+            {tA('cancel')}
+          </Link>
         </Button>
         <Button
           type="submit"

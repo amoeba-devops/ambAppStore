@@ -8,7 +8,7 @@
  * Cache (P5 PWA):
  *   - precache offline fallback + manifest + a couple icons (~5 KB)
  *   - /_next/static/* and /icons/*           → cache-first  (immutable)
- *   - same-origin HTML navigation             → network-first 3s, then offline.html
+ *   - same-origin HTML navigation             → network-first; offline.html only when truly offline
  *   - /api/v1/*                               → network-only (no stale data)
  *   - cross-origin (Google Maps embed etc.)   → bypass (browser default)
  *   - non-GET                                 → bypass
@@ -28,9 +28,14 @@
 /* v3 → v4: Added notification sound (sounds/notification.wav) to precache.
  * v4 → v5: Enhanced PWA notifications with action buttons, renotify, and
  *          critical alert detection for cancel/accident events.
+ * v6 → v7: Navigation no longer times out at 3s. A slow-but-reachable server
+ *          (Render/Neon cold start, heavy dashboard render ~2.6s warm) was
+ *          being shown the offline page while the user was actually online.
+ *          Now we wait for the real response and only serve offline.html on a
+ *          genuine network failure (fetch reject) or navigator.onLine === false.
  * The `activate` handler nukes any cache whose name isn't in `keep`, so this
  * bump one-time-clears old caches without the sound file. */
-const CACHE_VERSION = 'fleet-v5';
+const CACHE_VERSION = 'fleet-v7';
 const TRIP_CACHE = CACHE_VERSION + '-trips';
 /* `_next/static/*` lives in its own cache so the size cap can trim it WITHOUT
  * risking the precached offline.html / manifest / icons (which share
@@ -63,8 +68,6 @@ const PRECACHE_URLS = [
   BASE + 'icons/icon-192.png',
   BASE + 'sounds/notification.wav',
 ];
-
-const NAV_TIMEOUT_MS = 3000;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -321,18 +324,33 @@ async function networkFirstWithCache(req, cacheName) {
 
 async function networkFirstNavigation(req) {
   const cache = await caches.open(CACHE_VERSION);
-  try {
-    const networkPromise = fetch(req);
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('nav-timeout')), NAV_TIMEOUT_MS),
+
+  /* Fast path: the browser is certain there's no connection — serve the
+   * fallback immediately instead of waiting for fetch to fail. `onLine` is
+   * only trusted for its `false` value (a `true` can be a captive network
+   * with no real internet), so a false negative just falls through to the
+   * fetch below and fails there if the network really is down. */
+  if (self.navigator && self.navigator.onLine === false) {
+    return (
+      (await cache.match(OFFLINE_URL)) ||
+      new Response('Offline', { status: 503, statusText: 'Offline' })
     );
-    const res = await Promise.race([networkPromise, timeoutPromise]);
-    return res;
+  }
+
+  try {
+    /* Network-first with NO artificial timeout. A slow render (Render/Neon
+     * cold start, or a heavy dashboard that takes ~2.6s even warm) is NOT
+     * "offline" — the previous 3s race showed everyone the offline page while
+     * the server was still responding. We now wait for the real response and
+     * only fall back on a genuine network failure (fetch reject). The
+     * browser's own network timeout is the ultimate backstop for the rare
+     * connected-but-hung socket. */
+    return await fetch(req);
   } catch (err) {
     const cached = await cache.match(OFFLINE_URL);
     if (cached) return cached;
-    /* If even the offline page isn't cached (very early in install lifecycle),
-     * surface the network error rather than hanging. */
+    /* Offline page not cached yet (very early in install lifecycle) — surface
+     * the error rather than hanging. */
     return new Response('Offline', { status: 503, statusText: 'Offline' });
   }
 }

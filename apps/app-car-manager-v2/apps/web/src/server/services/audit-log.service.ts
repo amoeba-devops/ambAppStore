@@ -4,7 +4,15 @@ import { headers } from 'next/headers';
 import { db } from '@car-v2/db/client';
 import { carAuditLogs } from '@car-v2/db/schema';
 
-export type AuditEntity = 'Trip' | 'Vehicle' | 'Driver' | 'Expense' | 'User' | 'System';
+export type AuditEntity =
+  | 'Trip'
+  | 'Vehicle'
+  | 'Driver'
+  | 'Expense'
+  | 'User'
+  | 'System'
+  | 'TruckMonth'
+  | 'TruckReport';
 
 interface LogAuditInput {
   entId: string;
@@ -40,7 +48,9 @@ export async function logAudit(input: LogAuditInput): Promise<void> {
       audAction: input.action,
       audEntity: input.entity,
       audEntityId: input.entityId ?? null,
-      audEntityRef: input.entityRef ?? null,
+      /* Column is varchar(40) — clamp so a long label (e.g. report names) can't
+       * abort the whole audit row (found via TRUCK_REPORT.GENERATED). */
+      audEntityRef: input.entityRef ? input.entityRef.slice(0, 40) : null,
       audBefore: input.before == null ? null : (input.before as object),
       audAfter: input.after == null ? null : (input.after as object),
       audIp: ip,
