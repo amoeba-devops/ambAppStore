@@ -41,9 +41,16 @@ RUN npm ci --include=dev
 # Copy source after install (so deps cache survives src edits)
 COPY . .
 
-# Build-time env: basePath must be present when `next build` runs
+# Build-time env: basePath must be present when `next build` runs.
+# NEXT_PUBLIC_* are inlined into the JS bundle at build time (used in client code
+# + next.config.mjs CSP), so they MUST be ARGs here — .env is runtime-only and is
+# excluded from the build context (.dockerignore). Rebuild whenever they change.
 ARG BASE_PATH=/app-sales-report-v2
 ENV BASE_PATH=${BASE_PATH}
+ARG NEXT_PUBLIC_AMA_ORIGIN=https://ama.amoeba.site
+ENV NEXT_PUBLIC_AMA_ORIGIN=${NEXT_PUBLIC_AMA_ORIGIN}
+ARG NEXT_PUBLIC_PRIME_COST_VERSIONING=off
+ENV NEXT_PUBLIC_PRIME_COST_VERSIONING=${NEXT_PUBLIC_PRIME_COST_VERSIONING}
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
