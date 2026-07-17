@@ -410,6 +410,7 @@
         "end_time": "Giờ kết thúc",
         "customer": "Khách hàng",
         "pickup": "Điểm lấy hàng",
+        "stopover": "Điểm ghé",
         "dropoff": "Điểm giao hàng",
         "odo_start": "Đồng hồ đầu",
         "odo_end": "Đồng hồ cuối",

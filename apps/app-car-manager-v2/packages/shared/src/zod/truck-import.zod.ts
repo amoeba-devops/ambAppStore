@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 /**
  * Truck Excel import (REQ-20260617, format CR-Vietnam-Truck-v1).
- * Template column order (17). The Vehicle column is informational — the actual
+ * Template column order (18). The Vehicle column is informational — the actual
  * truck + driver are chosen in the import UI (one file = one truck per the SRS).
  */
 export const TRUCK_IMPORT_HEADERS = [
@@ -12,6 +12,7 @@ export const TRUCK_IMPORT_HEADERS = [
   'Giờ kết thúc',
   'Khách hàng',
   'Điểm lấy hàng',
+  'Điểm ghé',
   'Điểm giao hàng',
   'Km đầu',
   'Km cuối',
@@ -32,6 +33,7 @@ export const truckImportRowSchema = z.object({
   end_time: z.string().optional(),
   customer: z.string().optional(),
   pickup: z.string().optional(),
+  stopover: z.string().optional(),
   dropoff: z.string().optional(),
   odo_start: z.number().int().nonnegative().optional(),
   odo_end: z.number().int().nonnegative().optional(),

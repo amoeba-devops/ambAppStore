@@ -81,6 +81,17 @@ export async function importTruckTripsAction(
     let created = 0;
     try {
       for (const row of dto.rows) {
+        /* "Điểm ghé" (waypoint) → give the trip a proper PICKUP → WAYPOINT →
+         * DELIVERY route (matching the manual trip form) so the stop isn't
+         * dropped. Only when present; rows without it keep the flat
+         * pickup/dropoff addresses only, exactly as before. */
+        const stopovers = row.stopover?.trim()
+          ? [
+              { type: 'PICKUP' as const, address: row.pickup?.trim() || '-' },
+              { type: 'WAYPOINT' as const, address: row.stopover.trim() },
+              { type: 'DELIVERY' as const, address: row.dropoff?.trim() || '-' },
+            ]
+          : undefined;
         let trip;
         for (let attempt = 0; attempt < 3; attempt++) {
           const ref = await nextTripRef(actor.entId);
@@ -98,6 +109,7 @@ export async function importTruckTripsAction(
               fuelPrice: row.fuel_price ?? null,
               revenue: row.revenue ?? null,
               startOdometer: row.odo_start ?? null,
+              stopovers,
             });
             break;
           } catch (err) {

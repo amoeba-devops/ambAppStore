@@ -410,6 +410,7 @@
         "end_time": "End time",
         "customer": "Customer",
         "pickup": "Pickup",
+        "stopover": "Waypoint",
         "dropoff": "Drop-off",
         "odo_start": "Odo start",
         "odo_end": "Odo end",

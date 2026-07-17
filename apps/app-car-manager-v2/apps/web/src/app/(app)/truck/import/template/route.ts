@@ -5,7 +5,7 @@ import { hasFleet } from '@/lib/auth/fleet-access';
 
 /**
  * GET /truck/import/template — downloads the CR-Vietnam-Truck-v1 .xlsx template
- * (17-column header row). The actual truck + driver are chosen in the import UI.
+ * (18-column header row). The actual truck + driver are chosen in the import UI.
  */
 export async function GET() {
   let user;

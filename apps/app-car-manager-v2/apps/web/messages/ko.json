@@ -410,6 +410,7 @@
         "end_time": "종료 시간",
         "customer": "고객",
         "pickup": "상차지",
+        "stopover": "경유지",
         "dropoff": "하차지",
         "odo_start": "시작 주행",
         "odo_end": "종료 주행",
