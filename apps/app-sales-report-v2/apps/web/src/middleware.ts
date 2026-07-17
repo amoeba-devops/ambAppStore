@@ -22,8 +22,9 @@ export async function middleware(req: NextRequest) {
 
   const incomingToken = searchParams.get('ama_token');
   if (incomingToken) {
+    let tokenClaims;
     try {
-      await verifyAmaJwt(incomingToken);
+      tokenClaims = await verifyAmaJwt(incomingToken);
     } catch {
       return new NextResponse('Invalid token', { status: 401 });
     }
@@ -32,7 +33,13 @@ export async function middleware(req: NextRequest) {
       if (key !== 'ama_token') cleanUrl.searchParams.set(key, value);
     });
     const res = NextResponse.redirect(cleanUrl);
-    res.cookies.set(SESSION_COOKIE, incomingToken, cookieAttrs);
+    // Anchor maxAge to the JWT's own exp so the cookie never outlives the token.
+    // Without maxAge the browser writes a session cookie that cross-site iframes
+    // (and iOS Safari PWA) drop immediately — every reload then hits
+    // no-cookie → /session-expired. (Same fix applied to car-manager-v2.)
+    const nowSec = Math.floor(Date.now() / 1000);
+    const maxAgeSec = Math.max(60, tokenClaims.exp - nowSec);
+    res.cookies.set(SESSION_COOKIE, incomingToken, { ...cookieAttrs, maxAge: maxAgeSec });
     return res;
   }
 
