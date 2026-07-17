@@ -19,6 +19,19 @@ function isUniqueViolation(err: unknown): boolean {
   return typeof err === 'object' && err !== null && (err as { code?: string }).code === '23505';
 }
 
+/* Combine the row's date with a "Giờ bắt đầu/kết thúc" time-of-day ("8:00",
+ * "08:30", "8:00:00") into a local Date — same frame as the manual complete
+ * flow — so the sheet's start/end time is kept instead of dropped. Returns null
+ * when either part is missing/unparseable (trip then keeps no start / end=now). */
+function combineDateTime(dateStr: string, time: string | undefined): Date | null {
+  if (!time) return null;
+  const d = /^(\d{4}-\d{2}-\d{2})/.exec(dateStr.trim());
+  const t = /^(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(time.trim());
+  if (!d?.[1] || !t?.[1] || !t?.[2]) return null;
+  const dt = new Date(`${d[1]}T${t[1].padStart(2, '0')}:${t[2]}:${t[3] ?? '00'}`);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
 /**
  * Bulk-import a truck's monthly trip log from a parsed Excel sheet. One file =
  * one truck + driver (chosen in the UI); each row becomes a COMPLETED LOG trip
@@ -99,6 +112,11 @@ export async function importTruckTripsAction(
             ? [{ name: row.other_note?.trim() || 'Other', amount: row.other_amount }]
             : [];
         await completeTruckTrip(actor, trip.trpId, {
+          /* Keep the sheet's Giờ bắt đầu / Giờ kết thúc as the trip's actual
+           * start/end (trpStartedAt/trpEndedAt), matching the manual complete
+           * flow — previously dropped (end defaulted to import time). */
+          startedAt: combineDateTime(row.date, row.start_time),
+          finishedAt: combineDateTime(row.date, row.end_time),
           endOdometer: row.odo_end ?? null,
           fuelLiters: row.fuel_liters ?? null,
           tollFee: row.toll ?? null,
