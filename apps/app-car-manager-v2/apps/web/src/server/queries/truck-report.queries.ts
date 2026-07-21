@@ -1,7 +1,8 @@
 import 'server-only';
-import { and, desc, eq, gt, inArray, isNotNull, isNull, or } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNull, or } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTruckReports, carUsers, type TruckReportType } from '@car-v2/db/schema';
+import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { getTruckFixedCostsLastUpdated, getTruckTripsMaxUpdatedAt } from './truck-finance.queries';
 
 export interface TruckReportRow {
@@ -17,9 +18,11 @@ export interface TruckReportRow {
 }
 
 /**
- * Per month (YYYY-MM), the distinct operating regions that have ≥1 live report.
- * Drives the month picker's "Đã xuất X/3 khu vực" badge. Legacy whole-fleet rows
- * (trr_region NULL) are excluded — they can't be attributed to a region.
+ * Per month (YYYY-MM), the distinct operating regions covered by ≥1 live report.
+ * Drives the month picker's "Đã xuất X/3 khu vực" badge. A consolidated
+ * "Tất cả khu vực" report (trr_region NULL) covers EVERY region, so it counts
+ * toward all of them (BUG-260721: a month reported only via a consolidated
+ * report showed the wrong "X/3" — it undercounted the covered regions).
  */
 export async function getTruckExportedRegionsByMonth(
   entId: string,
@@ -31,13 +34,14 @@ export async function getTruckExportedRegionsByMonth(
       and(
         eq(carTruckReports.entId, entId),
         isNull(carTruckReports.trrDeletedAt),
-        isNotNull(carTruckReports.trrRegion),
       ),
     );
   const sets: Record<string, Set<string>> = {};
   for (const r of rows) {
-    if (!r.region) continue;
-    (sets[r.month] ??= new Set()).add(r.region);
+    const set = (sets[r.month] ??= new Set());
+    if (r.region) set.add(r.region);
+    /* Consolidated report → covers all operating regions. */
+    else for (const code of TRUCK_REGIONS) set.add(code);
   }
   const out: Record<string, string[]> = {};
   for (const [m, set] of Object.entries(sets)) out[m] = [...set];

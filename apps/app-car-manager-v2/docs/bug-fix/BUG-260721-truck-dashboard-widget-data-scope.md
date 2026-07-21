@@ -115,6 +115,16 @@ Feedback KH màn Chi phí & Lợi nhuận: (1) "Thông tin mô tả chưa đúng
 
 **Hệ quả:** sau khi lập báo cáo, chuyến → "Đã lập BC" (kể cả không hoá đơn); banner "còn tạm tính" tự ẩn (vì `!finalized` giờ = chưa có báo cáo) → hết mâu thuẫn "mô tả chưa đúng". **Số tiền không đổi** — khu vực không hoá đơn giữ nguyên số xăng nhập tay; khu vực có hoá đơn vẫn bình quân như cũ. Verify: `tsc`(core+web)+lint sạch, local 3 màn 200 OK; số thật verify trên staging.
 
+## Đợt 7 (cùng ngày) — badge "Đã xuất X/3 khu vực" (Lập báo cáo · Bước 1) đếm sai khi có báo cáo consolidated
+
+Feedback KH: "Trạng thái lập báo cáo cập nhật không đúng" ở màn **Lập báo cáo** (`/truck/reports/new`, bước chọn tháng).
+
+**Nguyên nhân:** cùng họ bug với Đợt 5/6 (Baiksan "Chưa lập" + chuyến "Tạm tính" hoài) nhưng ở một hàm khác chưa được sửa: `getTruckExportedRegionsByMonth` (drive badge "Đã xuất X/3 khu vực" trên lưới chọn tháng) lọc `isNotNull(trrRegion)` — **loại trừ hẳn báo cáo consolidated** ("Tất cả khu vực", `trrRegion=NULL`). Tháng có báo cáo consolidated (phủ mọi vùng) + báo cáo riêng cho 1-2 vùng → badge chỉ đếm được các vùng có báo cáo RIÊNG, thiếu vùng chỉ được phủ bởi consolidated → hiện sai số ("2/3" thay vì "3/3").
+
+**Sửa (`truck-report.queries.ts`):** bỏ filter `isNotNull(trrRegion)`; khi gặp report `trrRegion=NULL` → cộng **toàn bộ** `TRUCK_REGIONS` vào set khu vực-đã-xuất của tháng đó (vì consolidated phủ hết). Report có `trrRegion` cụ thể vẫn chỉ cộng đúng vùng đó.
+
+Verify: `tsc --noEmit` sạch, local render `/truck/reports/new` 200 không lỗi (entity dev local không có báo cáo nên không minh hoạ được X/3 thật — cần staging, nơi có báo cáo HCM+Đồng Nai riêng + 1 báo cáo "Tất cả khu vực" phủ Baiksan).
+
 ## Ghi chú / Chống tái diễn
 - **Mọi widget trên một trang có filter phải khai báo rõ nó theo filter nào** — hoặc áp filter, hoặc comment lý do cố ý bỏ qua (như fleet-status bỏ qua vehicle filter).
 - **Tổng hiển thị và các thành phần liệt kê phải cùng một danh sách khoản mục** — khi thêm khoản mới vào `fixedCost`/`totalCost` (như `driverSalary` trước đây), phải rà mọi chỗ render breakdown (dashboard CostSplit, donut, P&L CostCard — cả 3 đều đã dính).
