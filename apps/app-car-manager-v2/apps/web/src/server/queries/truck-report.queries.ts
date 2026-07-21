@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, desc, eq, gt, inArray, isNotNull, isNull } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNotNull, isNull, or } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTruckReports, carUsers, type TruckReportType } from '@car-v2/db/schema';
 import { getTruckFixedCostsLastUpdated, getTruckTripsMaxUpdatedAt } from './truck-finance.queries';
@@ -71,7 +71,13 @@ export async function listTruckReports(
 }
 
 /** Latest report for a (month, region) — drives the finance/P&L status badge.
- * Returns the newest report's creation timestamp regardless of report type. */
+ * Returns the newest report's creation timestamp regardless of report type.
+ *
+ * A region is "reported" when EITHER a report scoped to that region OR a
+ * consolidated "Tất cả khu vực" report (trr_region NULL) exists for the month —
+ * the consolidated report covers every region, so without the NULL match the
+ * dashboard's per-region status showed "Chưa lập báo cáo" for regions only
+ * covered by an all-regions report (BUG-260721). */
 export async function getLatestTruckReportForMonth(
   entId: string,
   month: string,
@@ -82,7 +88,13 @@ export async function getLatestTruckReportForMonth(
     eq(carTruckReports.trrMonth, month),
     isNull(carTruckReports.trrDeletedAt),
   ];
-  if (region) conds.push(eq(carTruckReports.trrRegion, region));
+  if (region) {
+    const regionCond = or(
+      eq(carTruckReports.trrRegion, region),
+      isNull(carTruckReports.trrRegion),
+    );
+    if (regionCond) conds.push(regionCond);
+  }
   const [row] = await db
     .select({ createdAt: carTruckReports.trrCreatedAt, name: carTruckReports.trrName })
     .from(carTruckReports)
