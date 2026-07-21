@@ -229,11 +229,14 @@ export async function getTruckReportExport(
     const extra = Math.round(ex.amount);
     const toll = Math.round(parseAmount(t.toll));
     const revenue = Math.round(parseAmount(t.revenue));
+    /* "Đã lập BC" once a report covers this (month, region) — the report row is
+     * inserted before this workbook builds, so it's reported here (2026-07-21).
+     * The snapshot only drives fuel: reconciled when present, else own price. */
     const snap = snapshots.forTrip(month, t.vehicleId);
-    const finalized = snap != null;
-    const avgPrice = finalized ? snap.avgPrice : parseAmount(t.fuelPrice);
-    const liters = finalized ? km * snap.consumption : parseAmount(t.fuelLiters);
-    const fuelCost = finalized
+    const finalized = snapshots.isReported(month, t.vehicleId);
+    const avgPrice = snap ? snap.avgPrice : parseAmount(t.fuelPrice);
+    const liters = snap ? km * snap.consumption : parseAmount(t.fuelLiters);
+    const fuelCost = snap
       ? truckTripFuelCost({ km, consumption: snap.consumption, avgPrice: snap.avgPrice })
       : Math.round(parseAmount(t.fuelLiters) * parseAmount(t.fuelPrice));
     const route = routeByTrip.get(t.trpId) ?? {};

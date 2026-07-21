@@ -322,13 +322,15 @@ export async function listTruckFinanceTrips(
     const toll = Math.round(parseAmount(t.toll));
     const extra = Math.round(extraByTrip.get(t.trpId) ?? 0);
     const revenue = Math.round(parseAmount(t.revenue));
-    /* Region-scoped snapshot: official fuel only when this trip's region's
-     * month is closed (or a whole-fleet close exists). */
+    /* "Đã lập BC" once a report exists for this trip's (month, region) — even
+     * without fuel invoices ("Lập báo cáo = chốt luôn", 2026-07-21). The frozen
+     * snapshot (invoices → avg price + consumption) only drives the fuel COST:
+     * reconciled when present, else the trip's own litres × price. */
     const snap = snapshots.forTrip(opts.month, t.vehicleId);
-    const finalized = snap != null;
-    const unitPrice = finalized ? snap.avgPrice : parseAmount(t.fuelPrice);
-    const liters = finalized ? km * snap.consumption : parseAmount(t.fuelLiters);
-    const fuelCost = finalized
+    const finalized = snapshots.isReported(opts.month, t.vehicleId);
+    const unitPrice = snap ? snap.avgPrice : parseAmount(t.fuelPrice);
+    const liters = snap ? km * snap.consumption : parseAmount(t.fuelLiters);
+    const fuelCost = snap
       ? truckTripFuelCost({ km, consumption: snap.consumption, avgPrice: snap.avgPrice })
       : Math.round(parseAmount(t.fuelLiters) * parseAmount(t.fuelPrice));
     return {

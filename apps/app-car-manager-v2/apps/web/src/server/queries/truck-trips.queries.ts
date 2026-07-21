@@ -54,6 +54,9 @@ export async function getTruckTripBreakdown(
   const snapshots = await loadTruckRegionSnapshots(entId, [month]);
   const region = trip.trpVehicleId ? snapshots.vehicleRegion.get(trip.trpVehicleId) ?? '' : '';
   const snap = snapshots.forTrip(month, trip.trpVehicleId);
+  /* "Đã lập BC" = a report exists for this (month, region), even without a fuel
+   * snapshot (2026-07-21); the snapshot only drives the fuel cost. */
+  const finalized = snapshots.isReported(month, trip.trpVehicleId);
   if (!snap) {
     return {
       breakdown: computeTruckCost({
@@ -63,7 +66,7 @@ export async function getTruckTripBreakdown(
         extraCosts: extraAmounts,
         revenue: parseAmount(trip.trpRevenue),
       }),
-      finalized: false,
+      finalized,
       month,
       region,
     };
@@ -79,7 +82,7 @@ export async function getTruckTripBreakdown(
   const totalCost = fuelCost + tollFee + extraTotal;
   return {
     breakdown: { fuelCost, tollFee, extraTotal, totalCost, revenue, profit: revenue - totalCost },
-    finalized: true,
+    finalized,
     month,
     region,
   };
@@ -251,7 +254,8 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
         ? t.trpEndOdometer - t.trpStartOdometer
         : null;
     const extraCosts = extraByTrip.get(t.trpId) ?? [];
-    const snap = snapshots.forTrip(monthKey(t.trpScheduledAt), t.trpVehicleId);
+    const mk = monthKey(t.trpScheduledAt);
+    const snap = snapshots.forTrip(mk, t.trpVehicleId);
 
     let breakdown: TruckCostBreakdown;
     if (snap) {
@@ -300,7 +304,9 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
       extraNote: (extraNoteByTrip.get(t.trpId) ?? []).join(', ') || null,
       fuelUnitPrice,
       fuelLiters,
-      finalized: !!snap,
+      /* "Đã lập BC" = a report exists for this (month, region), even without a
+       * fuel snapshot (2026-07-21); snapshot only drives fuel cost above. */
+      finalized: snapshots.isReported(mk, t.trpVehicleId),
     };
   });
 }

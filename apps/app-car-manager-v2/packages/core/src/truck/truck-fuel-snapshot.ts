@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTruckMonthClose, carTruckReports, carVehicles } from '@car-v2/db/schema';
 import { parseAmount } from './truck-cost';
@@ -9,10 +9,17 @@ import { parseAmount } from './truck-cost';
  * invoice price + consumption) and freezes it onto the report row; the LATEST
  * live report per (ent, month, region) is the official snapshot. Legacy
  * car_truck_month_close rows (the removed manual chốt sổ) remain as fallback so
- * historical closed months keep their numbers. A trip's official fuel cost
- * depends on ITS region (= its vehicle's cvh_region): when that (month, region)
- * has a snapshot it's km × consumption × avg price, otherwise the trip's own
- * litres × price.
+ * historical closed months keep their numbers.
+ *
+ * TWO distinct concepts (decoupled 2026-07-21, BUG-260721):
+ *  - `isReported(month, vehicle)` — a report EXISTS for the trip's (month,
+ *    region) (or a consolidated "all regions" report covers it). Drives the
+ *    "Đã lập BC" vs "Tạm tính" status. Generating a report finalizes the trip
+ *    even when there are no fuel invoices to reconcile against.
+ *  - `forTrip(month, vehicle)` — the frozen fuel snapshot for that (month,
+ *    region), or null. Drives the fuel COST: when present, km × consumption ×
+ *    avg price; when null (report exists but no invoices, or no report), the
+ *    trip's own litres × price. So "finalized" no longer implies a snapshot.
  *
  * `loadTruckRegionSnapshots` batches the lookups every fuel-computing site
  * needs (P&L, trip list, finance list, exports) so the rule stays identical
@@ -26,13 +33,18 @@ export interface RegionSnapshot {
 const snapKey = (month: string, region: string): string => `${month}|${region}`;
 
 export interface TruckRegionSnapshots {
-  /** Keyed `${month}|${region}` — only present when that region's month is
-   * closed AND has a computable snapshot. region '' = unassigned (never closed). */
+  /** Keyed `${month}|${region}` — only present when that region's month has a
+   * computable fuel snapshot (invoices → avg price + consumption). region '' =
+   * a consolidated "all regions" / legacy whole-fleet snapshot. */
   snap: Map<string, RegionSnapshot>;
   /** vehicleId → region code ('' when the vehicle has no region). */
   vehicleRegion: Map<string, string>;
-  /** Look up the snapshot for a trip given its month + vehicle id. */
+  /** Look up the frozen fuel snapshot for a trip (null → use own litres×price). */
   forTrip(month: string, vehicleId: string | null): RegionSnapshot | null;
+  /** True when a report/close exists for the trip's (month, region) — or a
+   * consolidated (region '') one covers it — regardless of whether a fuel
+   * snapshot was frozen. Drives the "Đã lập BC" status. */
+  isReported(month: string, vehicleId: string | null): boolean;
 }
 
 export async function loadTruckRegionSnapshots(
@@ -40,6 +52,9 @@ export async function loadTruckRegionSnapshots(
   months: string[],
 ): Promise<TruckRegionSnapshots> {
   const snap = new Map<string, RegionSnapshot>();
+  /* Every (month, region) that has ≥1 live report or legacy close — regardless
+   * of whether a fuel snapshot could be computed. region '' = consolidated. */
+  const reported = new Set<string>();
   const vehicleRegion = new Map<string, string>();
 
   if (months.length > 0) {
@@ -61,6 +76,8 @@ export async function loadTruckRegionSnapshots(
             isNull(carTruckMonthClose.tmcDeletedAt),
           ),
         ),
+      /* ALL live reports (snapshot or not) — needed for `reported`; the `snap`
+       * map is filled only from the rows that actually froze a snapshot. */
       db
         .select({
           month: carTruckReports.trrMonth,
@@ -75,8 +92,6 @@ export async function loadTruckRegionSnapshots(
             eq(carTruckReports.trrVehicleType, 'TRUCK'),
             inArray(carTruckReports.trrMonth, uniqMonths),
             isNull(carTruckReports.trrDeletedAt),
-            isNotNull(carTruckReports.trrAvgPrice),
-            isNotNull(carTruckReports.trrConsumption),
           ),
         )
         .orderBy(asc(carTruckReports.trrCreatedAt)),
@@ -84,6 +99,7 @@ export async function loadTruckRegionSnapshots(
     /* Legacy closes first, then report snapshots in creation order — each
      * overwrite leaves the NEWEST report as the official (month, region) value. */
     for (const c of closeRows) {
+      reported.add(snapKey(c.month, c.region ?? ''));
       if (c.avgPrice != null && c.consumption != null) {
         snap.set(snapKey(c.month, c.region ?? ''), {
           avgPrice: parseAmount(c.avgPrice),
@@ -92,10 +108,13 @@ export async function loadTruckRegionSnapshots(
       }
     }
     for (const r of reportRows) {
-      snap.set(snapKey(r.month, r.region ?? ''), {
-        avgPrice: parseAmount(r.avgPrice),
-        consumption: parseAmount(r.consumption),
-      });
+      reported.add(snapKey(r.month, r.region ?? ''));
+      if (r.avgPrice != null && r.consumption != null) {
+        snap.set(snapKey(r.month, r.region ?? ''), {
+          avgPrice: parseAmount(r.avgPrice),
+          consumption: parseAmount(r.consumption),
+        });
+      }
     }
   }
 
@@ -110,10 +129,14 @@ export async function loadTruckRegionSnapshots(
     vehicleRegion,
     forTrip(month, vehicleId) {
       const region = vehicleId ? vehicleRegion.get(vehicleId) ?? '' : '';
-      /* Prefer the trip's own region close; fall back to a whole-fleet close
-       * (region '' — a legacy per-month close, or an "all regions" close) so
-       * existing closes keep finalizing every trip. */
+      /* Prefer the trip's own region snapshot; fall back to a whole-fleet /
+       * consolidated one (region '') so an "all regions" report reconciles
+       * every trip. */
       return snap.get(snapKey(month, region)) ?? snap.get(snapKey(month, '')) ?? null;
+    },
+    isReported(month, vehicleId) {
+      const region = vehicleId ? vehicleRegion.get(vehicleId) ?? '' : '';
+      return reported.has(snapKey(month, region)) || reported.has(snapKey(month, ''));
     },
   };
 }

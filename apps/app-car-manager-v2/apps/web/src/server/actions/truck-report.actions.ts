@@ -348,12 +348,10 @@ export async function generateAllRegionsTruckReportsAction(
         pending.push(region);
         continue;
       }
-      /* F5 gate — only a region with invoices + km + price is reconcilable. */
-      const stats = await getTruckFuelStats(actor.entId, month, region);
-      if (!(stats.totalKm > 0 && stats.invoiceLiters > 0 && stats.avgPrice > 0)) {
-        pending.push(region);
-        continue;
-      }
+      /* "Lập báo cáo = chốt luôn" (2026-07-21): report EVERY region with trips,
+       * even without fuel invoices. generateOneTruckReport freezes the month-end
+       * average only when computable (F5) — otherwise the report still exists
+       * and finalizes the region's trips at their entered fuel cost. */
       await generateOneTruckReport(actor, { month, type: 'PNL', region });
       finalized.push(region);
     }

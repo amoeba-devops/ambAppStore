@@ -99,6 +99,22 @@ Feedback KH trên card "Tổng phí cố định" (CostSplit dashboard): (1) kh�
 
 Verify: `tsc --noEmit` + `next lint` + 3 JSON sạch. Local: card cố định = "Lương tài xế + Khấu hao" (bỏ Bảo hiểm), fleet page render 200 OK. Số thật (khấu hao ≠ 0 ở fleet, reconciliation) verify trên staging sau deploy.
 
+## Đợt 6 (cùng ngày) — "Lập báo cáo = chốt luôn": tách `finalized` khỏi snapshot
+
+Feedback KH màn Chi phí & Lợi nhuận: (1) "Thông tin mô tả chưa đúng"; (2) "sau khi đã xuất báo cáo, cứ giữ tạm tính hoài".
+
+**Điều tra (staging):** báo cáo đã lập cho mọi khu vực (badge "Đã lập BC") nhưng 12/13 dòng chuyến vẫn "Tạm tính"; banner báo "chưa có hoá đơn xăng cho khu vực này". Nguyên nhân: cờ `finalized` per-chuyến = `snap != null` (CÓ snapshot xăng), mà snapshot chỉ tạo khi có hoá đơn xăng (F5). Khu vực không hoá đơn → báo cáo không snapshot → chuyến "Tạm tính" mãi dù báo cáo tồn tại → mâu thuẫn badge "Đã lập BC" vs chuyến "Tạm tính" (fix 755c3c9 làm lộ rõ vì badge nay đếm cả báo cáo consolidated).
+
+**Quyết định KH (AskUserQuestion):** "Lập báo cáo = chốt luôn" — lập báo cáo là chốt chuyến, kể cả khu vực không hoá đơn (giữ số xăng nhập tay, không bình quân); khi CÓ hoá đơn thì vẫn tính lại theo bình quân.
+
+**Sửa — tách 2 khái niệm trong `loadTruckRegionSnapshots` (`truck-fuel-snapshot.ts`):**
+- `forTrip(month, vehicle)` → snapshot xăng (null = dùng số nhập tay). Chỉ quyết định CÁCH tính phí xăng.
+- `isReported(month, vehicle)` (MỚI) → có báo cáo cho (tháng, khu vực) chưa, kể cả báo cáo consolidated (region '') phủ mọi vùng, **bất kể có snapshot hay không**. Quyết định nhãn "Đã lập BC" vs "Tạm tính". Query report bỏ filter `isNotNull(avgPrice/consumption)` để lấy cả báo cáo không snapshot vào tập `reported`.
+- Đổi mọi caller: `finalized = snapshots.isReported(...)` thay vì `snap != null`; phí xăng vẫn `snap ? bình quân : nhập tay`. Sửa ở: `listTruckFinanceTrips`, `listTruckTrips`, `getTruckTripBreakdown`, `truck-report-export.queries` (cột trạng thái trong file báo cáo).
+- `generateAllRegionsTruckReportsAction`: gỡ F5 gate (không bỏ qua khu vực thiếu hoá đơn nữa) → nút "Lập báo cáo khu vực còn tạm tính" giờ chốt cả khu vực không hoá đơn.
+
+**Hệ quả:** sau khi lập báo cáo, chuyến → "Đã lập BC" (kể cả không hoá đơn); banner "còn tạm tính" tự ẩn (vì `!finalized` giờ = chưa có báo cáo) → hết mâu thuẫn "mô tả chưa đúng". **Số tiền không đổi** — khu vực không hoá đơn giữ nguyên số xăng nhập tay; khu vực có hoá đơn vẫn bình quân như cũ. Verify: `tsc`(core+web)+lint sạch, local 3 màn 200 OK; số thật verify trên staging.
+
 ## Ghi chú / Chống tái diễn
 - **Mọi widget trên một trang có filter phải khai báo rõ nó theo filter nào** — hoặc áp filter, hoặc comment lý do cố ý bỏ qua (như fleet-status bỏ qua vehicle filter).
 - **Tổng hiển thị và các thành phần liệt kê phải cùng một danh sách khoản mục** — khi thêm khoản mới vào `fixedCost`/`totalCost` (như `driverSalary` trước đây), phải rà mọi chỗ render breakdown (dashboard CostSplit, donut, P&L CostCard — cả 3 đều đã dính).
