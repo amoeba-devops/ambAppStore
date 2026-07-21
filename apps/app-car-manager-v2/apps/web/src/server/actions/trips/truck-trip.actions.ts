@@ -207,6 +207,11 @@ export async function createTruckTripAction(input: unknown): Promise<ActionResul
 
     revalidatePath('/truck/trips');
     revalidatePath('/today');
+    /* mark_completed may have written revenue/cost figures directly (see
+     * completeTruckTrip call above) — keep finance/P&L/dashboard in sync. */
+    revalidatePath('/truck/finance');
+    revalidatePath('/truck/pnl');
+    revalidatePath('/truck/dashboard');
     return { id: trip.trpId };
   });
 }
@@ -288,6 +293,9 @@ export async function completeTruckTripAction(input: unknown): Promise<ActionRes
 
     revalidatePath('/truck/trips');
     revalidatePath(`/truck/trips/${res.trip.trpId}`);
+    revalidatePath('/truck/finance');
+    revalidatePath('/truck/pnl');
+    revalidatePath('/truck/dashboard');
     return { id: res.trip.trpId };
   });
 }
@@ -340,6 +348,9 @@ export async function driverCompleteTruckTripAction(input: unknown): Promise<Act
     revalidatePath('/today');
     revalidatePath('/trips');
     revalidatePath(`/trips/${res.trip.trpId}`);
+    revalidatePath('/truck/finance');
+    revalidatePath('/truck/pnl');
+    revalidatePath('/truck/dashboard');
     return { id: res.trip.trpId };
   });
 }
@@ -402,6 +413,9 @@ export async function updateTruckTripAction(input: unknown): Promise<ActionResul
 
     revalidatePath('/truck/trips');
     revalidatePath(`/truck/trips/${res.trip.trpId}`);
+    revalidatePath('/truck/finance');
+    revalidatePath('/truck/pnl');
+    revalidatePath('/truck/dashboard');
     return { id: res.trip.trpId };
   });
 }
@@ -524,6 +538,9 @@ export async function deleteTruckTripAction(input: unknown): Promise<ActionResul
       entityId: dto.trip_id,
     });
     revalidatePath('/truck/trips');
+    revalidatePath('/truck/finance');
+    revalidatePath('/truck/pnl');
+    revalidatePath('/truck/dashboard');
     return { id: dto.trip_id };
   });
 }
