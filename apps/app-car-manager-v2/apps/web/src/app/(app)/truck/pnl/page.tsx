@@ -174,9 +174,13 @@ export default async function TruckPnlPage({
               total={vnd(selected.fixedCost)}
               hint={t('fixedHint')}
               rows={[
+                /* All four components of fixedCost so the rows sum to the
+                 * total (driverSalary is fleet-level, 0 under a vehicle or
+                 * region filter — same rule as the P&L table row). */
                 [t('salary'), vnd(selected.salary)],
                 [t('depreciation'), vnd(selected.depreciation)],
                 [t('insurance'), vnd(selected.insurance)],
+                [t('driverSalary'), vnd(selected.driverSalary)],
               ]}
             />
           </div>
