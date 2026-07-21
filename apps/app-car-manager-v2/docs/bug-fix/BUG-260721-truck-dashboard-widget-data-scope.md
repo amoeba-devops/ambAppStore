@@ -79,6 +79,26 @@ Verify: `tsc --noEmit` (web+core) sạch, `next lint` sạch. Local render 200 k
 
 Donut toàn đội giờ hiện Lương (theo xe) 38M + Khấu hao 4M; tâm 48.8M = Σ lát (4.2+0.9+1.7+38+4). Trước fix toàn đội = 38M (thiếu 4M khấu hao). **Follow-up cùng lượt:** tooltip `tooltipCost`/`tooltipProfit` bỏ "+ Lương tài xế" (giờ gộp trong "Lương") — sửa vi/en/ko.
 
+## Đợt 5 (cùng ngày) — Card "Tổng phí cố định": khấu hao sai nguồn, đổi nhãn lương, bỏ bảo hiểm
+
+Feedback KH trên card "Tổng phí cố định" (CostSplit dashboard): (1) khấu hao không cập nhật đúng; (2) thêm mục Lương; (3) bỏ Bảo hiểm.
+
+**Điều tra:** form nhập chi phí cố định theo xe (`truck-fixed-cost-row`, `car_truck_fixed_costs`) **đã chết** (không render ở màn nào — settings page chỉ link sang P&L). Nên: nguồn lương DUY NHẤT = lương tài xế mặc định của xe; nguồn khấu hao DUY NHẤT = trường "Khấu hao/tháng" (`cvh_depreciation`) ở màn Sửa xe.
+
+**Quyết định KH (AskUserQuestion):** (1 lương) "1 dòng Lương tài xế" — không có nguồn lương thứ 2 nên đổi nhãn thay vì tạo dòng rỗng; (2 bảo hiểm) "Bỏ hẳn khỏi mô hình"; (3 khấu hao) "số hiển thị sai".
+
+**Bug khấu hao (xác định):** bảng **Đội xe** `/truck/fleet` cột "Khấu hao" đọc `getTruckFixedCostsByMonth` (bảng nhập tay đã chết) → luôn "—" dù xe đã nhập `cvh_depreciation`; P&L/dashboard thì đọc đúng (qua fallback). → sửa cột này đọc `cvh_depreciation` (nguồn thật), gỡ import `getTruckFixedCostsByMonth`.
+
+**Sửa:**
+- Đổi nhãn i18n `screens.truckPnl.salary`: "Lương (theo xe)" → "Lương tài xế" (vi/en/ko) → áp dụng card dashboard + P&L + METRICS.
+- Bỏ Bảo hiểm khỏi: `fixedCost` core (`= salary + depreciation`), donut + CostSplit (dashboard), CostCard + METRICS (P&L), export P&L. Field `insurance` giữ trên row (=0) cho shape report export. **Không đổi số** (insurance vốn = 0, không có input).
+- Fleet roster: khấu hao đọc `cvh_depreciation`.
+- Tooltip/subtitle: bỏ "Bảo hiểm", nhãn lương → "Lương tài xế".
+
+**CHƯA làm (chờ xác nhận — rủi ro template khách):** báo cáo tháng (`truck-report-workbook`, `truck-monthly-summary-workbook`) vẫn còn insurance gộp trong `fixedOther` (row-number + reconciliation cố định). Insurance ở đó = 0 nên hiển thị "0"; bỏ khỏi template khách cần làm riêng, có kiểm layout.
+
+Verify: `tsc --noEmit` + `next lint` + 3 JSON sạch. Local: card cố định = "Lương tài xế + Khấu hao" (bỏ Bảo hiểm), fleet page render 200 OK. Số thật (khấu hao ≠ 0 ở fleet, reconciliation) verify trên staging sau deploy.
+
 ## Ghi chú / Chống tái diễn
 - **Mọi widget trên một trang có filter phải khai báo rõ nó theo filter nào** — hoặc áp filter, hoặc comment lý do cố ý bỏ qua (như fleet-status bỏ qua vehicle filter).
 - **Tổng hiển thị và các thành phần liệt kê phải cùng một danh sách khoản mục** — khi thêm khoản mới vào `fixedCost`/`totalCost` (như `driverSalary` trước đây), phải rà mọi chỗ render breakdown (dashboard CostSplit, donut, P&L CostCard — cả 3 đều đã dính).

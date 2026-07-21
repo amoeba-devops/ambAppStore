@@ -247,7 +247,9 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
 
   for (const row of rows.values()) {
     row.variableCost = row.fuelCost + row.tollFee + row.extraTotal;
-    row.fixedCost = row.salary + row.depreciation + row.insurance;
+    /* Insurance removed from the fixed-cost model (2026-07-21) — field kept on
+     * the row (=0) for the report export shape, but no longer summed or shown. */
+    row.fixedCost = row.salary + row.depreciation;
     row.netProfit = row.revenue - row.variableCost - row.fixedCost;
   }
 

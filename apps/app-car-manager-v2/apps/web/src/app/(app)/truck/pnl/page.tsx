@@ -53,7 +53,6 @@ const METRICS: MetricDef[] = [
   { key: 'variableCost', labelKey: 'variable', kind: 'subtotal' },
   { key: 'salary', labelKey: 'salary' },
   { key: 'depreciation', labelKey: 'depreciation' },
-  { key: 'insurance', labelKey: 'insurance' },
   { key: 'fixedCost', labelKey: 'fixed', kind: 'subtotal' },
   { key: 'tripCount', labelKey: 'trips', kind: 'count' },
   { key: 'netProfit', labelKey: 'netProfit', kind: 'profit' },
@@ -173,11 +172,10 @@ export default async function TruckPnlPage({
               total={vnd(selected.fixedCost)}
               hint={t('fixedHint')}
               rows={[
-                /* The three components of fixedCost so the rows sum to the
-                 * total. `salary` now includes per-vehicle driver salary. */
+                /* Fixed cost = driver salary + depreciation (insurance dropped
+                 * from the model 2026-07-21); rows sum to the total. */
                 [t('salary'), vnd(selected.salary)],
                 [t('depreciation'), vnd(selected.depreciation)],
-                [t('insurance'), vnd(selected.insurance)],
               ]}
             />
           </div>

@@ -279,7 +279,6 @@ export default async function TruckDashboardPage({
     { name: tPnl('other'), value: acc.extraTotal, color: 'hsl(var(--c3))' },
     { name: tPnl('salary'), value: acc.salary, color: 'hsl(var(--c2))' },
     { name: tPnl('depreciation'), value: acc.depreciation, color: 'hsl(var(--c4))' },
-    { name: tPnl('insurance'), value: acc.insurance, color: 'hsl(var(--c6))' },
   ].filter((d) => d.value > 0);
 
   const statusOrder: CarVehicleStatus[] = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'RETIRED'];
@@ -438,11 +437,10 @@ export default async function TruckDashboardPage({
             sub={`${fixedPct}% · ${t('perMonth')}`}
             total={vnd(acc.fixedCost)}
             rows={[
-              /* The three components of fixedCost, so the rows sum to the
-               * total. `salary` now includes per-vehicle driver salary. */
+              /* Fixed cost = driver salary + depreciation (insurance dropped
+               * from the model 2026-07-21); rows sum to the total. */
               [tPnl('salary'), vnd(acc.salary)],
               [tPnl('depreciation'), vnd(acc.depreciation)],
-              [tPnl('insurance'), vnd(acc.insurance)],
             ]}
           />
         </div>
