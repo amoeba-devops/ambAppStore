@@ -208,9 +208,7 @@ export default async function TruckDashboardPage({
   const regionRows = regionRowsRaw;
   const showReportStatus = kpiMonths.length === 1;
 
-  /* Sum the per-month rows across the selected period. driverSalary is part of
-   * fixedCost, so it must be carried too — otherwise the fixed-cost breakdown
-   * (CostSplit rows / donut slices) wouldn't add up to the totals shown. */
+  /* Sum the per-month rows across the selected period. */
   const acc = kpiRows.reduce(
     (a, r) => ({
       revenue: a.revenue + r.revenue,
@@ -224,9 +222,8 @@ export default async function TruckDashboardPage({
       salary: a.salary + r.salary,
       depreciation: a.depreciation + r.depreciation,
       insurance: a.insurance + r.insurance,
-      driverSalary: a.driverSalary + r.driverSalary,
     }),
-    { revenue: 0, variableCost: 0, fixedCost: 0, netProfit: 0, tripCount: 0, fuelCost: 0, tollFee: 0, extraTotal: 0, salary: 0, depreciation: 0, insurance: 0, driverSalary: 0 },
+    { revenue: 0, variableCost: 0, fixedCost: 0, netProfit: 0, tripCount: 0, fuelCost: 0, tollFee: 0, extraTotal: 0, salary: 0, depreciation: 0, insurance: 0 },
   );
   const totalCost = acc.variableCost + acc.fixedCost;
   /* Recent trips honour the same period window as the KPIs (kpiMonths is
@@ -274,8 +271,8 @@ export default async function TruckDashboardPage({
   ];
 
   /* Every component of totalCost must appear as a slice — the donut's center
-   * shows totalCost, so a missing slice (driverSalary was absent before) makes
-   * the center disagree with the visible parts. */
+   * shows totalCost, so a missing slice would make the center disagree with
+   * the visible parts. (salary now includes per-vehicle driver salary.) */
   const donut = [
     { name: tPnl('fuel'), value: acc.fuelCost, color: 'hsl(var(--c1))' },
     { name: tPnl('toll'), value: acc.tollFee, color: 'hsl(var(--c7))' },
@@ -283,7 +280,6 @@ export default async function TruckDashboardPage({
     { name: tPnl('salary'), value: acc.salary, color: 'hsl(var(--c2))' },
     { name: tPnl('depreciation'), value: acc.depreciation, color: 'hsl(var(--c4))' },
     { name: tPnl('insurance'), value: acc.insurance, color: 'hsl(var(--c6))' },
-    { name: tPnl('driverSalary'), value: acc.driverSalary, color: 'hsl(var(--c5))' },
   ].filter((d) => d.value > 0);
 
   const statusOrder: CarVehicleStatus[] = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'RETIRED'];
@@ -442,13 +438,11 @@ export default async function TruckDashboardPage({
             sub={`${fixedPct}% · ${t('perMonth')}`}
             total={vnd(acc.fixedCost)}
             rows={[
-              /* All four components of fixedCost, so the rows sum to the total
-               * (salary + driverSalary were missing before — the card looked
-               * like it showed a bigger total than its parts). */
+              /* The three components of fixedCost, so the rows sum to the
+               * total. `salary` now includes per-vehicle driver salary. */
               [tPnl('salary'), vnd(acc.salary)],
               [tPnl('depreciation'), vnd(acc.depreciation)],
               [tPnl('insurance'), vnd(acc.insurance)],
-              [tPnl('driverSalary'), vnd(acc.driverSalary)],
             ]}
           />
         </div>

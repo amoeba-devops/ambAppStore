@@ -45,7 +45,6 @@ export async function GET(req: Request) {
         { k: 'Lương (theo xe)', v: r.salary },
         { k: 'Khấu hao', v: r.depreciation },
         { k: 'Bảo hiểm', v: r.insurance },
-        { k: 'Lương tài xế', v: r.driverSalary },
         { k: 'Chi phí cố định', v: r.fixedCost },
         { k: 'Số chuyến', v: r.tripCount },
         { k: 'Lợi nhuận ròng', v: r.netProfit },

@@ -5,7 +5,6 @@ import {
   carTripExtraCosts,
   carTruckFixedCosts,
   carDrivers,
-  carUserFleetAccess,
   carVehicles,
 } from '@car-v2/db/schema';
 import type { FleetActor } from '../types';
@@ -32,8 +31,9 @@ export interface TruckPnlRow {
   salary: number;
   depreciation: number;
   insurance: number;
-  /** Sum of truck drivers' fixed monthly salary (fleet-level; 0 when filtered
-   * to a single vehicle since driver salary isn't per-vehicle). */
+  /** @deprecated Always 0 since 2026-07-21. Driver salary now folds into
+   * `salary` (per-vehicle default-driver salary) in every view; kept only for
+   * the stored P&L row shape. */
   driverSalary: number;
   fixedCost: number;
   tripCount: number;
@@ -166,27 +166,6 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
    * otherwise the trip's own liters × price (fallback below). */
   const snapshots = await loadTruckRegionSnapshots(actor.entId, months);
 
-  /* Driver fixed salary — fleet-level monthly recurring cost. Only attributed
-   * in the all-trucks view; a single-vehicle filter leaves it 0 because driver
-   * salary isn't tied to a specific vehicle. */
-  let driverSalaryTotal = 0;
-  if (!q.vehicleId && !q.region) {
-    const drvRows = await db
-      .select({ salary: carDrivers.drvFixedSalary })
-      .from(carDrivers)
-      .innerJoin(
-        carUserFleetAccess,
-        and(
-          eq(carUserFleetAccess.usrId, carDrivers.drvUserId),
-          eq(carUserFleetAccess.entId, actor.entId),
-          eq(carUserFleetAccess.ufaVehicleType, 'TRUCK'),
-          isNull(carUserFleetAccess.ufaDeletedAt),
-        ),
-      )
-      .where(and(eq(carDrivers.entId, actor.entId), isNull(carDrivers.drvDeletedAt)));
-    driverSalaryTotal = drvRows.reduce((s, r) => s + Math.round(parseAmount(r.salary)), 0);
-  }
-
   const rows = new Map<string, TruckPnlRow>();
   for (const m of months) rows.set(m, emptyRow(m));
 
@@ -216,58 +195,59 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
     row.insurance += Math.round(parseAmount(f.tfcInsurance));
   }
 
-  /* Vehicle-level fixed-cost defaults (QA 2026-07, "1 xe ↔ 1 tài xế"): for a
-   * per-vehicle or per-region view, any (vehicle, month) WITHOUT a manual
-   * car_truck_fixed_costs row falls back to the vehicle's own depreciation +
-   * its default driver's fixed salary. Scoped to these views only — the
-   * all-trucks aggregate keeps its fleet-level driverSalary (avoids double
-   * count, since driverSalary is 0 when a vehicle/region filter is set). */
-  const scopeIds = q.vehicleId ? [q.vehicleId] : regionVehicleIds;
-  if (scopeIds && scopeIds.length) {
-    const vdefs = await db
-      .select({ id: carVehicles.cvhId, dep: carVehicles.cvhDepreciation, drv: carVehicles.cvhDefaultDriverId })
-      .from(carVehicles)
+  /* Vehicle-level fixed-cost defaults (QA 2026-07 "1 xe ↔ 1 tài xế", extended
+   * to the fleet aggregate 2026-07-21): every truck in scope WITHOUT a manual
+   * car_truck_fixed_costs row for a month falls back to its own depreciation +
+   * its default driver's fixed salary (folded into `salary`). Applied to ALL
+   * views — per-vehicle, per-region, AND all-trucks — so the fleet total = Σ
+   * per-vehicle = the per-region breakdown = the monthly report. (Previously
+   * the all-trucks view skipped this and instead summed a fleet-wide roster
+   * driver salary, which omitted depreciation and disagreed with the report;
+   * that path is removed. `driverSalary` stays for the P&L row shape but is
+   * always 0 now — driver salary lives in `salary`.) */
+  const vdefConds = [
+    eq(carVehicles.entId, actor.entId),
+    eq(carVehicles.cvhType, 'TRUCK'),
+    isNull(carVehicles.cvhDeletedAt),
+  ];
+  if (q.vehicleId) vdefConds.push(eq(carVehicles.cvhId, q.vehicleId));
+  else if (regionVehicleIds) vdefConds.push(inArray(carVehicles.cvhId, regionVehicleIds));
+  const vdefs = await db
+    .select({ id: carVehicles.cvhId, dep: carVehicles.cvhDepreciation, drv: carVehicles.cvhDefaultDriverId })
+    .from(carVehicles)
+    .where(and(...vdefConds));
+  const drvIds = [...new Set(vdefs.map((v) => v.drv).filter((x): x is string => !!x))];
+  const salByDrv = new Map<string, number>();
+  if (drvIds.length) {
+    const drows = await db
+      .select({ id: carDrivers.drvId, sal: carDrivers.drvFixedSalary })
+      .from(carDrivers)
       .where(
         and(
-          eq(carVehicles.entId, actor.entId),
-          inArray(carVehicles.cvhId, scopeIds),
-          isNull(carVehicles.cvhDeletedAt),
+          eq(carDrivers.entId, actor.entId),
+          inArray(carDrivers.drvId, drvIds),
+          isNull(carDrivers.drvDeletedAt),
         ),
       );
-    const drvIds = [...new Set(vdefs.map((v) => v.drv).filter((x): x is string => !!x))];
-    const salByDrv = new Map<string, number>();
-    if (drvIds.length) {
-      const drows = await db
-        .select({ id: carDrivers.drvId, sal: carDrivers.drvFixedSalary })
-        .from(carDrivers)
-        .where(
-          and(
-            eq(carDrivers.entId, actor.entId),
-            inArray(carDrivers.drvId, drvIds),
-            isNull(carDrivers.drvDeletedAt),
-          ),
-        );
-      for (const d of drows) salByDrv.set(d.id, Math.round(parseAmount(d.sal)));
-    }
-    const tfcSeen = new Set(fixed.map((f) => `${f.cvhId}|${f.tfcMonth}`));
-    for (const v of vdefs) {
-      const dep = v.dep != null ? Math.round(parseAmount(v.dep)) : 0;
-      const sal = v.drv ? (salByDrv.get(v.drv) ?? 0) : 0;
-      if (dep === 0 && sal === 0) continue;
-      for (const m of months) {
-        if (tfcSeen.has(`${v.id}|${m}`)) continue; // a manual fixed-cost row wins
-        const row = rows.get(m);
-        if (!row) continue;
-        row.depreciation += dep;
-        row.salary += sal;
-      }
+    for (const d of drows) salByDrv.set(d.id, Math.round(parseAmount(d.sal)));
+  }
+  const tfcSeen = new Set(fixed.map((f) => `${f.cvhId}|${f.tfcMonth}`));
+  for (const v of vdefs) {
+    const dep = v.dep != null ? Math.round(parseAmount(v.dep)) : 0;
+    const sal = v.drv ? (salByDrv.get(v.drv) ?? 0) : 0;
+    if (dep === 0 && sal === 0) continue;
+    for (const m of months) {
+      if (tfcSeen.has(`${v.id}|${m}`)) continue; // a manual fixed-cost row wins
+      const row = rows.get(m);
+      if (!row) continue;
+      row.depreciation += dep;
+      row.salary += sal;
     }
   }
 
   for (const row of rows.values()) {
-    row.driverSalary = driverSalaryTotal;
     row.variableCost = row.fuelCost + row.tollFee + row.extraTotal;
-    row.fixedCost = row.salary + row.depreciation + row.insurance + row.driverSalary;
+    row.fixedCost = row.salary + row.depreciation + row.insurance;
     row.netProfit = row.revenue - row.variableCost - row.fixedCost;
   }
 

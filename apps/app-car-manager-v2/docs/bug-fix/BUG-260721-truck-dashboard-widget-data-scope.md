@@ -52,6 +52,22 @@ Verify đợt 2 (SSR fetch + DOMParser + đếm barData trong RSC payload):
 
 Verify: 3 JSON parse OK; SSR fetch `/truck/dashboard` xác nhận chuỗi mới render, chuỗi cũ ("bãi", "Tổng chi phí cố định − Tổng xăng dầu") đã biến mất.
 
+## Đợt 4 (cùng ngày) — Donut "Cơ cấu chi phí" thiếu lương/khấu hao ở view toàn đội (quyết định KH: "Fleet = tổng các xe")
+
+**Triệu chứng:** donut "Cơ cấu chi phí" (view Tất cả xe) chỉ hiện nhiên liệu/cầu đường/phát sinh + "Lương tài xế", **thiếu Lương (theo xe) và Khấu hao**. Lọc HCM thì lại có (khấu hao 1M, lương 12M).
+
+**Root cause (`packages/core/src/truck/truck-pnl.service.ts`):** phần "vehicle-default fallback" (khấu hao từ `cvh_depreciation` + lương tài xế mặc định của xe) chỉ chạy khi có filter xe/khu vực (`scopeIds = q.vehicleId ? [id] : regionVehicleIds`; ở view toàn đội `regionVehicleIds = null` → bỏ qua). View toàn đội thay bằng `driverSalary` = tổng lương **tất cả** tài xế qua fleet-access, và khấu hao = 0 (không có dòng nhập tay). → dashboard tự mâu thuẫn: KPI/donut (toàn đội) bỏ khấu hao, nhưng bảng "Theo khu vực" ngay dưới + báo cáo tháng chính thức (`getTruckReportExport`, đã per-vehicle) lại có.
+
+**Quyết định KH (AskUserQuestion 2026-07-21):** **"Fleet = tổng các xe"** — view toàn đội tính giống per-vehicle để KPI = Σ khu vực = Σ P&L per-xe = báo cáo.
+
+**Sửa:**
+- `truck-pnl.service.ts`: bỏ hẳn block fleet-roster `driverSalaryTotal` (+ import `carUserFleetAccess`); áp vehicle-default fallback cho **mọi** view (fleet = tất cả xe TRUCK); `fixedCost = salary + depreciation + insurance` (bỏ số hạng `driverSalary`). Field `driverSalary` giữ lại trong interface = 0 (đánh dấu @deprecated) để không phá shape P&L row / export.
+- Gỡ hiển thị "Lương tài xế" (giờ luôn 0, đã gộp vào `salary`): dashboard donut + CostSplit; P&L METRICS row + CostCard row; finance summary card (grid 7→6 cột); pnl/export route dòng Excel.
+- **Per-vehicle/region view KHÔNG đổi** (đã dùng fallback từ trước); **báo cáo tháng KHÔNG đổi** (đường per-vehicle riêng). Chỉ fleet view đổi → giờ khớp mọi nơi.
+- Lưu ý KH đã chấp nhận: tổng lương chuyển từ "toàn bộ tài xế" sang "tổng lương tài xế mặc-định-của-xe" — nếu có tài xế không gắn xe thì số lương có thể đổi.
+
+Verify: `tsc --noEmit` (web+core) sạch, `next lint` sạch. Local render 200 không lỗi, card cố định còn 3 dòng (bỏ "Lương tài xế"). Reconciliation bằng số thật cần staging (entity dev local có fixed cost = 0 nên không minh hoạ được số khác 0).
+
 ## Ghi chú / Chống tái diễn
 - **Mọi widget trên một trang có filter phải khai báo rõ nó theo filter nào** — hoặc áp filter, hoặc comment lý do cố ý bỏ qua (như fleet-status bỏ qua vehicle filter).
 - **Tổng hiển thị và các thành phần liệt kê phải cùng một danh sách khoản mục** — khi thêm khoản mới vào `fixedCost`/`totalCost` (như `driverSalary` trước đây), phải rà mọi chỗ render breakdown (dashboard CostSplit, donut, P&L CostCard — cả 3 đều đã dính).

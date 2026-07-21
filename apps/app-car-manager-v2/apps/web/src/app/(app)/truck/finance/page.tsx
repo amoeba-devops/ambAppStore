@@ -125,7 +125,9 @@ export default async function TruckFinancePage({
         [t('sumFuel'), summary.fuelCost],
         [t('sumToll'), summary.tollFee],
         [t('sumOther'), summary.extraTotal],
-        [t('sumDriverSalary'), summary.driverSalary],
+        /* Driver salary folds into fixedCost now (no separate fleet-roster
+         * line) — the fixed-cost total below covers salary + depreciation +
+         * insurance. */
         [t('sumFixed'), summary.fixedCost],
         [t('sumNet'), summary.netProfit, 'profit'],
       ]
@@ -183,7 +185,7 @@ export default async function TruckFinancePage({
 
         {/* Month summary cards */}
         {summary && (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
             {summaryCards.map(([label, value, kind]) => (
               <Card key={label} variant="outline" className="p-3">
                 <div className="text-xs text-text-muted">{label}</div>
