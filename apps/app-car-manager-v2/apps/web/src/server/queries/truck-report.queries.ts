@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, desc, eq, gt, inArray, isNull, or } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, or } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTruckReports, carUsers, type TruckReportType } from '@car-v2/db/schema';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
@@ -140,30 +140,6 @@ export async function getTruckReportStatus(
     (tripsUpdatedAt != null && tripsUpdatedAt > latest.createdAt) ||
     (fixedUpdatedAt != null && fixedUpdatedAt > latest.createdAt);
   return { reportedAt: latest.createdAt, stale };
-}
-
-/** Latest report dates for multiple months — drives the P&L banner. */
-export async function getLatestTruckReportDates(
-  entId: string,
-  months: string[],
-): Promise<Map<string, Date>> {
-  if (months.length === 0) return new Map();
-  const rows = await db
-    .select({ month: carTruckReports.trrMonth, createdAt: carTruckReports.trrCreatedAt })
-    .from(carTruckReports)
-    .where(
-      and(
-        eq(carTruckReports.entId, entId),
-        inArray(carTruckReports.trrMonth, months),
-        isNull(carTruckReports.trrDeletedAt),
-      ),
-    )
-    .orderBy(desc(carTruckReports.trrCreatedAt));
-  const out = new Map<string, Date>();
-  for (const r of rows) {
-    if (!out.has(r.month)) out.set(r.month, r.createdAt);
-  }
-  return out;
 }
 
 /** One report (ent-scoped) for the download handler. */
