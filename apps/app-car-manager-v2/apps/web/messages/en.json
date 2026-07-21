@@ -234,8 +234,8 @@
       "disclaimer": "Note: Dashboard data is updated in real-time and is for estimation purposes only. For accuracy, please generate a monthly report.",
       "thCost": "Cost",
       "tooltipRevenue": "Total revenue from all trips in the period.",
-      "tooltipCost": "Total cost = Fuel cost + Toll fees + Incidental costs + Salary + Vehicle depreciation + Insurance + Driver salary",
-      "tooltipProfit": "Net profit = Total revenue − Total cost (fuel + toll + incidental + salary + depreciation + insurance + driver salary)",
+      "tooltipCost": "Total cost = Fuel cost + Toll fees + Incidental costs + Salary (incl. driver salary) + Vehicle depreciation + Insurance",
+      "tooltipProfit": "Net profit = Total revenue − Total cost (fuel + toll + incidental + salary + depreciation + insurance)",
       "byVehicle": "By vehicle",
       "allVehicles": "All vehicles"
     },

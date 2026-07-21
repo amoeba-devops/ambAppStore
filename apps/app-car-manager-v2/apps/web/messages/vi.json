@@ -234,8 +234,8 @@
       "disclaimer": "Lưu ý: Dữ liệu trên Bảng điều khiển được cập nhật theo thời gian thực và chỉ mang tính ước tính. Để đảm bảo độ chính xác, vui lòng tạo báo cáo theo từng tháng.",
       "thCost": "Chi phí",
       "tooltipRevenue": "Tổng doanh thu từ tất cả các chuyến đi trong kỳ.",
-      "tooltipCost": "Tổng chi phí = Phí nhiên liệu + Phí cầu đường + Chi phí phát sinh + Lương + Khấu hao xe + Bảo hiểm + Lương tài xế",
-      "tooltipProfit": "Lợi nhuận ròng = Tổng doanh thu − Tổng chi phí (nhiên liệu + cầu đường + phát sinh + lương + khấu hao + bảo hiểm + lương tài xế)",
+      "tooltipCost": "Tổng chi phí = Phí nhiên liệu + Phí cầu đường + Chi phí phát sinh + Lương (đã gồm lương tài xế) + Khấu hao xe + Bảo hiểm",
+      "tooltipProfit": "Lợi nhuận ròng = Tổng doanh thu − Tổng chi phí (nhiên liệu + cầu đường + phát sinh + lương + khấu hao + bảo hiểm)",
       "byVehicle": "Theo xe",
       "allVehicles": "Tất cả xe"
     },

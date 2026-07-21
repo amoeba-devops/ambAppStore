@@ -66,7 +66,18 @@ Verify: 3 JSON parse OK; SSR fetch `/truck/dashboard` xác nhận chuỗi mới 
 - **Per-vehicle/region view KHÔNG đổi** (đã dùng fallback từ trước); **báo cáo tháng KHÔNG đổi** (đường per-vehicle riêng). Chỉ fleet view đổi → giờ khớp mọi nơi.
 - Lưu ý KH đã chấp nhận: tổng lương chuyển từ "toàn bộ tài xế" sang "tổng lương tài xế mặc-định-của-xe" — nếu có tài xế không gắn xe thì số lương có thể đổi.
 
-Verify: `tsc --noEmit` (web+core) sạch, `next lint` sạch. Local render 200 không lỗi, card cố định còn 3 dòng (bỏ "Lương tài xế"). Reconciliation bằng số thật cần staging (entity dev local có fixed cost = 0 nên không minh hoạ được số khác 0).
+Verify: `tsc --noEmit` (web+core) sạch, `next lint` sạch. Local render 200 không lỗi, card cố định còn 3 dòng (bỏ "Lương tài xế").
+
+**Verify reconciliation trên staging (dữ liệu thật, sau deploy commit 1ea077a):**
+| | Lương | Khấu hao | Tổng cố định |
+|---|---|---|---|
+| HCM | 12M | 1M | 13M |
+| Đồng Nai | 10M | 2M | 12M |
+| Baiksan | 16M | 1M | 17M |
+| **Σ khu vực** | **38M** | **4M** | **42M** |
+| **Toàn đội (KPI)** | **38M** | **4M** | **42M** ✅ khớp tuyệt đối |
+
+Donut toàn đội giờ hiện Lương (theo xe) 38M + Khấu hao 4M; tâm 48.8M = Σ lát (4.2+0.9+1.7+38+4). Trước fix toàn đội = 38M (thiếu 4M khấu hao). **Follow-up cùng lượt:** tooltip `tooltipCost`/`tooltipProfit` bỏ "+ Lương tài xế" (giờ gộp trong "Lương") — sửa vi/en/ko.
 
 ## Ghi chú / Chống tái diễn
 - **Mọi widget trên một trang có filter phải khai báo rõ nó theo filter nào** — hoặc áp filter, hoặc comment lý do cố ý bỏ qua (như fleet-status bỏ qua vehicle filter).
