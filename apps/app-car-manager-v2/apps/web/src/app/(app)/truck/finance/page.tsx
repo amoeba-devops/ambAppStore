@@ -1,5 +1,5 @@
 import { getLocale, getTranslations } from 'next-intl/server';
-import { AlertTriangle, Coins, Download } from 'lucide-react';
+import { AlertTriangle, Coins, Download, Info } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -267,7 +267,12 @@ export default async function TruckFinancePage({
                   <TableHead className="text-right">{t('thOther')}</TableHead>
                   <TableHead className="text-right">{t('thUnitPrice')}</TableHead>
                   <TableHead className="text-right">{t('thLiters')}</TableHead>
-                  <TableHead className="text-right">{t('thFuel')}</TableHead>
+                  <TableHead className="text-right">
+                    <span className="inline-flex items-center justify-end gap-1" title={t('thFuelHint')}>
+                      {t('thFuel')}
+                      <Info className="h-3.5 w-3.5 text-text-faint" />
+                    </span>
+                  </TableHead>
                   <TableHead className="text-right">{t('thRevenue')}</TableHead>
                   <TableHead className="text-right">{t('thProfit')}</TableHead>
                   <TableHead>{t('thStatus')}</TableHead>
@@ -287,14 +292,23 @@ export default async function TruckFinancePage({
                     <TableCell className="text-right tabular">{num(r.km)} km</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(r.toll)}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(r.extra)}</TableCell>
-                    <TableCell className={cn('text-right tabular', !r.finalized && 'text-text-faint italic')}>
+                    <TableCell className={cn('text-right tabular', !r.fuelReconciled && 'text-text-faint italic')}>
                       {vnd(r.unitPrice)}
                     </TableCell>
-                    <TableCell className={cn('text-right tabular', !r.finalized && 'text-text-faint italic')}>
+                    <TableCell className={cn('text-right tabular', !r.fuelReconciled && 'text-text-faint italic')}>
                       {num(r.liters, 1)}
                     </TableCell>
-                    <TableCell className={cn('text-right tabular', !r.finalized && 'text-text-faint italic')}>
-                      {vnd(r.fuelCost)}
+                    <TableCell className={cn('text-right tabular', !r.fuelReconciled && 'text-text-faint italic')}>
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span>{vnd(r.fuelCost)}</span>
+                        <Badge
+                          tone={r.fuelReconciled ? 'success' : 'warning'}
+                          size="sm"
+                          title={r.fuelReconciled ? t('fuelReconciledTooltip') : t('fuelNotReconciledTooltip')}
+                        >
+                          {r.fuelReconciled ? t('fuelReconciledLabel') : t('fuelNotReconciledLabel')}
+                        </Badge>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right tabular">{vnd(r.revenue)}</TableCell>
                     <TableCell

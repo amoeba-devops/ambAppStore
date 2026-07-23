@@ -236,8 +236,15 @@ export interface TruckFinanceTripRow {
   fuelCost: number;
   revenue: number;
   profit: number;
-  /** true once the trip's month is closed → fuel/profit are official. */
+  /** true once a report exists for this trip's (month, region) — "Đã lập BC"
+   * vs "Tạm tính" (2026-07-21: no longer implies the fuel figure is reconciled,
+   * see `fuelReconciled`). */
   finalized: boolean;
+  /** true when unitPrice/liters/fuelCost above are the frozen month-end average
+   * (invoices + km reconciled); false when they're the trip's own entered
+   * fuel liters × price (no snapshot yet for this month/region — needs fuel
+   * invoices AND odometer km, then "Lập báo cáo" again to reconcile). */
+  fuelReconciled: boolean;
   /** Last-modified timestamp for the "Cập nhật" column (Sheet-2 P7). */
   updatedAt: Date | null;
 }
@@ -328,6 +335,7 @@ export async function listTruckFinanceTrips(
      * reconciled when present, else the trip's own litres × price. */
     const snap = snapshots.forTrip(opts.month, t.vehicleId);
     const finalized = snapshots.isReported(opts.month, t.vehicleId);
+    const fuelReconciled = snap != null;
     const unitPrice = snap ? snap.avgPrice : parseAmount(t.fuelPrice);
     const liters = snap ? km * snap.consumption : parseAmount(t.fuelLiters);
     const fuelCost = snap
@@ -352,6 +360,7 @@ export async function listTruckFinanceTrips(
       revenue,
       profit: revenue - fuelCost - toll - extra,
       finalized,
+      fuelReconciled,
       updatedAt: t.updatedAt,
     };
   });
