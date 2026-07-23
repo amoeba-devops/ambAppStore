@@ -60,6 +60,7 @@ export function TruckCompleteSection({
 }) {
   const t = useTranslations('screens.truckComplete');
   const tR = useTranslations('screens.truckTrips.form');
+  const tFuel = useTranslations('screens.truckFinance');
   const tErr = useTranslations();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -140,7 +141,14 @@ export function TruckCompleteSection({
         toast.error(formatActionError(res.error, tErr));
         return;
       }
-      toast.success(t('completedToast'));
+      /* Say how the per-trip fuel was treated: recomputed from the region's
+       * month-end average ("Bình quân") or kept as the entered litres × price
+       * ("Tự nhập" — region has no fuel invoices reconciled yet). */
+      toast.success(t('completedToast'), {
+        description: res.data.fuelReconciled
+          ? tFuel('fuelRecalcedToast')
+          : tFuel('fuelNotRecalcedToast'),
+      });
       router.refresh();
     });
   };

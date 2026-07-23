@@ -651,6 +651,8 @@
       "fuelPartialReconciledLabel": "Mixed",
       "fuelPartialReconciledTooltip": "Some trips in this scope are averaged, others still use their own entered figures (different regions/vehicles with different invoice status). Check per-trip for the exact figure.",
       "thFuelHint": "\"Averaged\" = calculated from the official region/month average fuel price. \"Manual\" = still using each trip's own entered fuel figures (missing fuel invoices or odometer km needed to average).",
+      "fuelRecalcedToast": "Fuel cost recalculated from the region's averaged price.",
+      "fuelNotRecalcedToast": "Fuel cost is the manually entered value, not yet averaged by km. Add fuel invoices for the region, then generate the report.",
       "allTrucks": "All vehicles",
       "allRegions": "All regions",
       "sumRevenue": "Monthly revenue",

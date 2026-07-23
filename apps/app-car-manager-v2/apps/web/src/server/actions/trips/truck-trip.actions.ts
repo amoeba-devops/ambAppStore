@@ -13,6 +13,7 @@ import {
   updateTruckTrip,
   deleteTruckTrip,
   syncTripCostAttachments,
+  loadTruckRegionSnapshots,
   type TripCostAttachmentInput,
 } from '@car-v2/core/truck';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
@@ -85,6 +86,24 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 /**
+ * After a trip mutation, is the trip's fuel cost now driven by the region's
+ * frozen month-end average (km × consumption × avg price) — or still the trip's
+ * own entered litres × price? Lets the client toast tell the user whether saving
+ * actually recalculated the per-trip fuel ("Bình quân") or left it manual
+ * ("Tự nhập"). Only meaningful once the trip is COMPLETED (open trips aren't in
+ * the P&L), so anything else short-circuits to false without a query.
+ */
+async function tripFuelReconciled(
+  entId: string,
+  trip: { trpStatus: string; trpScheduledAt: Date; trpVehicleId: string | null },
+): Promise<boolean> {
+  if (trip.trpStatus !== 'COMPLETED') return false;
+  const month = trip.trpScheduledAt.toISOString().slice(0, 7);
+  const snaps = await loadTruckRegionSnapshots(entId, [month]);
+  return snaps.forTrip(month, trip.trpVehicleId) != null;
+}
+
+/**
  * Reconcile a trip's receipt attachments to the DTO's desired set.
  *
  * `undefined` means "don't touch" (caller didn't manage attachments) — we skip
@@ -117,7 +136,9 @@ async function maybeSyncAttachments(
  * A manager may log a finished trip in one step (mark_completed=true with
  * metrics). Drivers create an open trip (CONFIRMED) and complete it separately.
  */
-export async function createTruckTripAction(input: unknown): Promise<ActionResult<{ id: string }>> {
+export async function createTruckTripAction(
+  input: unknown,
+): Promise<ActionResult<{ id: string; fuelReconciled: boolean }>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
     requireRole(actor.role, ['ADMIN', 'MANAGER', 'DRIVER']);
@@ -212,7 +233,7 @@ export async function createTruckTripAction(input: unknown): Promise<ActionResul
     revalidatePath('/truck/finance');
     revalidatePath('/truck/pnl');
     revalidatePath('/truck/dashboard');
-    return { id: trip.trpId };
+    return { id: trip.trpId, fuelReconciled: await tripFuelReconciled(actor.entId, trip) };
   });
 }
 
@@ -255,7 +276,9 @@ export async function assignTruckTripAction(input: unknown): Promise<ActionResul
  * Complete / edit metrics of a truck trip. STAFF for now (manager corrections);
  * driver self-completion is wired in P-E with ownership enforcement.
  */
-export async function completeTruckTripAction(input: unknown): Promise<ActionResult<{ id: string }>> {
+export async function completeTruckTripAction(
+  input: unknown,
+): Promise<ActionResult<{ id: string; fuelReconciled: boolean }>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
@@ -296,7 +319,7 @@ export async function completeTruckTripAction(input: unknown): Promise<ActionRes
     revalidatePath('/truck/finance');
     revalidatePath('/truck/pnl');
     revalidatePath('/truck/dashboard');
-    return { id: res.trip.trpId };
+    return { id: res.trip.trpId, fuelReconciled: await tripFuelReconciled(actor.entId, res.trip) };
   });
 }
 
@@ -304,7 +327,9 @@ export async function completeTruckTripAction(input: unknown): Promise<ActionRes
  * Driver self-completion of their assigned truck trip (P-E). Ownership: the
  * trip's driver must be the caller's driver record. Reuses core completeTruckTrip.
  */
-export async function driverCompleteTruckTripAction(input: unknown): Promise<ActionResult<{ id: string }>> {
+export async function driverCompleteTruckTripAction(
+  input: unknown,
+): Promise<ActionResult<{ id: string; fuelReconciled: boolean }>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
     requireRole(actor.role, ['DRIVER']);
@@ -351,12 +376,14 @@ export async function driverCompleteTruckTripAction(input: unknown): Promise<Act
     revalidatePath('/truck/finance');
     revalidatePath('/truck/pnl');
     revalidatePath('/truck/dashboard');
-    return { id: res.trip.trpId };
+    return { id: res.trip.trpId, fuelReconciled: await tripFuelReconciled(actor.entId, res.trip) };
   });
 }
 
 /** Edit a truck trip-log (manager correction). */
-export async function updateTruckTripAction(input: unknown): Promise<ActionResult<{ id: string }>> {
+export async function updateTruckTripAction(
+  input: unknown,
+): Promise<ActionResult<{ id: string; fuelReconciled: boolean }>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
@@ -416,7 +443,7 @@ export async function updateTruckTripAction(input: unknown): Promise<ActionResul
     revalidatePath('/truck/finance');
     revalidatePath('/truck/pnl');
     revalidatePath('/truck/dashboard');
-    return { id: res.trip.trpId };
+    return { id: res.trip.trpId, fuelReconciled: await tripFuelReconciled(actor.entId, res.trip) };
   });
 }
 

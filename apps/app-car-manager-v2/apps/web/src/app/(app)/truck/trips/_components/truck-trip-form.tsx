@@ -114,6 +114,7 @@ export function TruckTripForm({
   initial?: TruckTripFormInitial;
 }) {
   const t = useTranslations('screens.truckTrips.form');
+  const tFuel = useTranslations('screens.truckFinance');
   const tErr = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -281,7 +282,18 @@ export function TruckTripForm({
         toast.error(formatActionError(res.error, tErr));
         return;
       }
-      toast.success(tripId ? t('updatedToast') : t('createdToast'));
+      /* Tell the user how the per-trip fuel was treated on save: recomputed from
+       * the region's month-end average ("Bình quân") vs kept as the entered
+       * litres × price ("Tự nhập"). Only shown when logging a completed trip —
+       * an open/assigned trip has no fuel figure to recalculate yet. */
+      toast.success(tripId ? t('updatedToast') : t('createdToast'), {
+        description:
+          !isDriver && markCompleted
+            ? res.data.fuelReconciled
+              ? tFuel('fuelRecalcedToast')
+              : tFuel('fuelNotRecalcedToast')
+            : undefined,
+      });
       router.push(
         isDriver ? '/today' : (tripId ? `/truck/trips/${tripId}` : '/truck/trips'),
       );
