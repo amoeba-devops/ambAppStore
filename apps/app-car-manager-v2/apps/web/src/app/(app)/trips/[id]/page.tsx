@@ -72,7 +72,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
     const isStaffUser = user.role === 'ADMIN' || user.role === 'MANAGER';
     const extras = await getTripExtraCosts(user.entId, trip.trpId);
     const costAttachments = await getTripCostAttachmentsView(user.entId, trip.trpId);
-    const { breakdown, month, region } = await getTruckTripBreakdown(user.entId, trip, extras.map((e) => e.amount));
+    const { breakdown, fuelReconciled, month, region } = await getTruckTripBreakdown(user.entId, trip, extras.map((e) => e.amount));
     const completed = trip.trpStatus === 'COMPLETED';
     const canComplete =
       !completed &&
@@ -97,6 +97,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
         extras={extras}
         costAttachments={costAttachments}
         breakdown={breakdown}
+        fuelReconciled={completed ? fuelReconciled : undefined}
         completed={completed}
         canComplete={canComplete}
         mode={user.role === 'DRIVER' ? 'driver' : 'staff'}

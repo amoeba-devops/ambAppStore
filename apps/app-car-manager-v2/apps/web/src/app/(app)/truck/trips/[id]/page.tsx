@@ -23,7 +23,7 @@ export default async function TruckTripDetailPage({ params }: { params: Promise<
     getTripStopovers(user.entId, trip.trpId),
     getTripCostAttachmentsView(user.entId, trip.trpId),
   ]);
-  const { breakdown, month, region } = await getTruckTripBreakdown(user.entId, trip, extras.map((e) => e.amount));
+  const { breakdown, fuelReconciled, month, region } = await getTruckTripBreakdown(user.entId, trip, extras.map((e) => e.amount));
   const completed = trip.trpStatus === 'COMPLETED';
   const canComplete = !completed && (trip.trpStatus === 'CONFIRMED' || trip.trpStatus === 'IN_PROGRESS');
   const reportStatus = completed ? await getTruckReportStatus(user.entId, month, region || null) : null;
@@ -44,6 +44,7 @@ export default async function TruckTripDetailPage({ params }: { params: Promise<
       extras={extras}
       costAttachments={costAttachments}
       breakdown={breakdown}
+      fuelReconciled={completed ? fuelReconciled : undefined}
       completed={completed}
       canComplete={canComplete}
       stopovers={stopovers}

@@ -648,6 +648,8 @@
       "fuelNotReconciledLabel": "Tự nhập",
       "fuelReconciledTooltip": "Đã tính theo giá xăng bình quân của khu vực/tháng (từ hoá đơn xăng đã nhập).",
       "fuelNotReconciledTooltip": "Chưa tính bình quân — đang dùng số xăng tự nhập của chuyến. Cần đủ hoá đơn xăng VÀ km đồng hồ (ODO) cho khu vực/tháng này, sau đó lập lại báo cáo để tính bình quân.",
+      "fuelPartialReconciledLabel": "Hỗn hợp",
+      "fuelPartialReconciledTooltip": "Một phần chuyến trong phạm vi này đã tính bình quân, phần còn lại vẫn dùng số tự nhập (do khác khu vực/xe với tình trạng hoá đơn khác nhau). Xem theo từng chuyến để biết chính xác.",
       "thFuelHint": "Nhãn \"Bình quân\" = đã tính theo giá xăng bình quân (chính thức). Nhãn \"Tự nhập\" = còn dùng số xăng tự nhập từng chuyến (thiếu hoá đơn xăng hoặc km đồng hồ để tính bình quân).",
       "allTrucks": "Tất cả phương tiện",
       "allRegions": "Tất cả khu vực",

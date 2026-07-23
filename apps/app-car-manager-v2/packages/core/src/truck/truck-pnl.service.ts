@@ -38,6 +38,12 @@ export interface TruckPnlRow {
   fixedCost: number;
   tripCount: number;
   netProfit: number;
+  /** How many of this row's `tripCount` trips had their fuel cost reconciled
+   * to the month-end average (vs their own entered litres × price). Compare to
+   * `tripCount`: 0 = none reconciled ("Tự nhập"), equal = fully reconciled
+   * ("Bình quân"), in between = mixed (some regions/vehicles in this scope
+   * have a snapshot, some don't) — 2026-07-21. */
+  fuelReconciledTripCount: number;
 }
 
 export interface TruckPnlQuery {
@@ -64,6 +70,7 @@ function emptyRow(month: string): TruckPnlRow {
     fixedCost: 0,
     tripCount: 0,
     netProfit: 0,
+    fuelReconciledTripCount: 0,
   };
 }
 
@@ -179,6 +186,7 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
       const km =
         t.startOdometer != null && t.endOdometer != null ? t.endOdometer - t.startOdometer : 0;
       row.fuelCost += truckTripFuelCost({ km, consumption: snap.consumption, avgPrice: snap.avgPrice });
+      row.fuelReconciledTripCount += 1;
     } else {
       row.fuelCost += Math.round(parseAmount(t.fuelLiters) * parseAmount(t.fuelPrice));
     }

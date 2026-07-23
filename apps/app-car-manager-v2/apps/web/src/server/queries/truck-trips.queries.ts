@@ -44,6 +44,10 @@ export async function getTruckTripBreakdown(
 ): Promise<{
   breakdown: TruckCostBreakdown;
   finalized: boolean;
+  /** true when `breakdown.fuelCost` is the reconciled month-end average (vs
+   * the trip's own entered litres × price) — independent of `finalized`
+   * (2026-07-21, see loadTruckRegionSnapshots). */
+  fuelReconciled: boolean;
   /** The trip's month + resolved operating region ('' = vehicle has no
    * region) — feeds `getTruckReportStatus` so the detail page can show WHEN
    * the report covering this trip was last generated. */
@@ -67,6 +71,7 @@ export async function getTruckTripBreakdown(
         revenue: parseAmount(trip.trpRevenue),
       }),
       finalized,
+      fuelReconciled: false,
       month,
       region,
     };
@@ -83,6 +88,7 @@ export async function getTruckTripBreakdown(
   return {
     breakdown: { fuelCost, tollFee, extraTotal, totalCost, revenue, profit: revenue - totalCost },
     finalized,
+    fuelReconciled: true,
     month,
     region,
   };

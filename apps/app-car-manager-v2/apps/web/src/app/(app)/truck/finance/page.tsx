@@ -24,6 +24,7 @@ import { FinanceTabs } from './_components/finance-tabs';
 import { GenerateAllRegionsButton } from './_components/generate-all-regions-button';
 import { PageHeader } from '@/components/layout/page-header';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
+import { FuelReconciliationBadge } from '@/components/truck/fuel-reconciliation-badge';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import {
@@ -301,13 +302,7 @@ export default async function TruckFinancePage({
                     <TableCell className={cn('text-right tabular', !r.fuelReconciled && 'text-text-faint italic')}>
                       <div className="flex flex-col items-end gap-0.5">
                         <span>{vnd(r.fuelCost)}</span>
-                        <Badge
-                          tone={r.fuelReconciled ? 'success' : 'warning'}
-                          size="sm"
-                          title={r.fuelReconciled ? t('fuelReconciledTooltip') : t('fuelNotReconciledTooltip')}
-                        >
-                          {r.fuelReconciled ? t('fuelReconciledLabel') : t('fuelNotReconciledLabel')}
-                        </Badge>
+                        <FuelReconciliationBadge state={r.fuelReconciled ? 'full' : 'none'} />
                       </div>
                     </TableCell>
                     <TableCell className="text-right tabular">{vnd(r.revenue)}</TableCell>

@@ -16,6 +16,7 @@ import {
   listFuelInvoices,
 } from '@/server/queries/truck-finance.queries';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
+import { FuelReconciliationBadge, fuelReconciliationState } from '@/components/truck/fuel-reconciliation-badge';
 import { FinanceTabs } from '../finance/_components/finance-tabs';
 import { FuelInvoicePanel } from './_components/fuel-invoice-panel';
 
@@ -161,7 +162,15 @@ export default async function TruckPnlPage({
               total={vnd(selected.variableCost)}
               hint={t('variableHint')}
               rows={[
-                [t('fuel'), vnd(selected.fuelCost)],
+                [
+                  t('fuel'),
+                  <>
+                    {vnd(selected.fuelCost)}
+                    <FuelReconciliationBadge
+                      state={fuelReconciliationState(selected.fuelReconciledTripCount, selected.tripCount)}
+                    />
+                  </>,
+                ],
                 [t('toll'), vnd(selected.tollFee)],
                 [t('other'), vnd(selected.extraTotal)],
               ]}
@@ -226,7 +235,16 @@ export default async function TruckPnlPage({
                             def.kind === 'profit' && (n >= 0 ? 'text-success' : 'text-danger'),
                           )}
                         >
-                          {fmt(def, n)}
+                          {def.key === 'fuelCost' ? (
+                            <div className="flex flex-col items-end gap-1">
+                              <span>{fmt(def, n)}</span>
+                              <FuelReconciliationBadge
+                                state={fuelReconciliationState(row.fuelReconciledTripCount, row.tripCount)}
+                              />
+                            </div>
+                          ) : (
+                            fmt(def, n)
+                          )}
                         </td>
                       );
                     })}
@@ -297,7 +315,7 @@ function CostCard({
   title: string;
   total: string;
   hint: string;
-  rows: [string, string][];
+  rows: [string, React.ReactNode][];
 }) {
   return (
     <Card variant="outline" className="p-4 space-y-2">
@@ -310,7 +328,7 @@ function CostCard({
         {rows.map(([label, value]) => (
           <li key={label} className="flex justify-between text-sm">
             <span className="text-text-muted">{label}</span>
-            <span className="tabular text-text">{value}</span>
+            <span className="tabular text-text inline-flex items-center gap-1.5">{value}</span>
           </li>
         ))}
       </ul>

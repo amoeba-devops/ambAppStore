@@ -6,6 +6,7 @@ import type { CarTripStopover, CarStopType } from '@car-v2/db/schema';
 import { MapPreview } from '@/components/inputs/map-preview';
 import { PageHeader } from '@/components/layout/page-header';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
+import { FuelReconciliationBadge } from '@/components/truck/fuel-reconciliation-badge';
 import type { TruckReportStatus } from '@/server/queries/truck-report.queries';
 import { TruckCompleteSection } from './truck-complete-section';
 
@@ -39,6 +40,10 @@ export interface TruckTripDetailProps {
     signedUrl: string | null;
   }[];
   breakdown: TruckCostBreakdown;
+  /** Whether `breakdown.fuelCost` is the reconciled month-end average or the
+   * trip's own entered figure — undefined when the trip isn't completed yet
+   * (no fuel cost to qualify). */
+  fuelReconciled?: boolean;
   completed: boolean;
   canComplete: boolean;
   /** Which completion action to call. */
@@ -103,7 +108,15 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
           <ReportStatusBadge reportedAt={props.reportStatus.reportedAt} stale={props.reportStatus.stale} locale={locale} />
         )}
       </div>
-      <CostRow label={t('fuel')} value={vnd(props.breakdown.fuelCost)} />
+      <CostRow
+        label={t('fuel')}
+        value={vnd(props.breakdown.fuelCost)}
+        badge={
+          props.fuelReconciled !== undefined ? (
+            <FuelReconciliationBadge state={props.fuelReconciled ? 'full' : 'none'} />
+          ) : undefined
+        }
+      />
       <CostRow label={t('toll')} value={vnd(props.breakdown.tollFee)} />
       {props.extras.map((e, i) => (
         <CostRow key={i} label={e.name} value={vnd(e.amount)} />
@@ -306,22 +319,27 @@ function CostRow({
   value,
   strong,
   tone,
+  badge,
 }: {
   label: string;
   value: string;
   strong?: boolean;
   tone?: 'success' | 'danger';
+  badge?: React.ReactNode;
 }) {
   return (
     <div className={'flex items-center justify-between text-sm ' + (strong ? 'pt-2 border-t border-border font-semibold' : '')}>
       <span className="text-text-muted">{label}</span>
-      <span
-        className={
-          'tabular ' +
-          (tone === 'success' ? 'text-success font-semibold' : tone === 'danger' ? 'text-danger font-semibold' : 'text-text')
-        }
-      >
-        {value}
+      <span className="inline-flex items-center gap-1.5">
+        <span
+          className={
+            'tabular ' +
+            (tone === 'success' ? 'text-success font-semibold' : tone === 'danger' ? 'text-danger font-semibold' : 'text-text')
+          }
+        >
+          {value}
+        </span>
+        {badge}
       </span>
     </div>
   );
