@@ -8,7 +8,7 @@ import {
   carVehicles,
 } from '@car-v2/db/schema';
 import type { FleetActor } from '../types';
-import { parseAmount, truckTripFuelCost } from './truck-cost';
+import { parseAmount } from './truck-cost';
 import { loadTruckRegionSnapshots } from './truck-fuel-snapshot';
 
 /**
@@ -38,12 +38,14 @@ export interface TruckPnlRow {
   fixedCost: number;
   tripCount: number;
   netProfit: number;
-  /** How many of this row's `tripCount` trips had their fuel cost reconciled
-   * to the month-end average (vs their own entered litres × price). Compare to
-   * `tripCount`: 0 = none reconciled ("Tự nhập"), equal = fully reconciled
-   * ("Bình quân"), in between = mixed (some regions/vehicles in this scope
-   * have a snapshot, some don't) — 2026-07-21. */
-  fuelReconciledTripCount: number;
+  /** Per-fuel-mode trip counts within this row (REQ-20260724) → drives the
+   * aggregate fuel badge (all-same mode → that badge; blend → "Hỗn hợp"):
+   *  - averaged: fuel = frozen month-end reconciliation (invoices)
+   *  - vehicleRate: fuel = km × (định mức/100) × giá của xe (mặc định)
+   *  - unset: vehicle has no quota/price → fuel counted as 0 */
+  fuelAveragedTripCount: number;
+  fuelVehicleRateTripCount: number;
+  fuelUnsetTripCount: number;
 }
 
 export interface TruckPnlQuery {
@@ -70,7 +72,9 @@ function emptyRow(month: string): TruckPnlRow {
     fixedCost: 0,
     tripCount: 0,
     netProfit: 0,
-    fuelReconciledTripCount: 0,
+    fuelAveragedTripCount: 0,
+    fuelVehicleRateTripCount: 0,
+    fuelUnsetTripCount: 0,
   };
 }
 
@@ -181,15 +185,15 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
     const row = rows.get(mk);
     if (!row) continue;
     row.revenue += Math.round(parseAmount(t.revenue));
-    const snap = snapshots.forTrip(mk, t.vehicleId);
-    if (snap) {
-      const km =
-        t.startOdometer != null && t.endOdometer != null ? t.endOdometer - t.startOdometer : 0;
-      row.fuelCost += truckTripFuelCost({ km, consumption: snap.consumption, avgPrice: snap.avgPrice });
-      row.fuelReconciledTripCount += 1;
-    } else {
-      row.fuelCost += Math.round(parseAmount(t.fuelLiters) * parseAmount(t.fuelPrice));
-    }
+    const km =
+      t.startOdometer != null && t.endOdometer != null ? t.endOdometer - t.startOdometer : 0;
+    /* Fuel = frozen snapshot → vehicle rate → 0 (REQ-20260724), same precedence
+     * everywhere via the shared helper. */
+    const fuel = snapshots.fuelForTrip(mk, t.vehicleId, km);
+    row.fuelCost += fuel.cost;
+    if (fuel.mode === 'AVERAGED') row.fuelAveragedTripCount += 1;
+    else if (fuel.mode === 'VEHICLE_RATE') row.fuelVehicleRateTripCount += 1;
+    else row.fuelUnsetTripCount += 1;
     row.tollFee += Math.round(parseAmount(t.tollFee));
     row.extraTotal += Math.round(extraByTrip.get(t.trpId) ?? 0);
     row.tripCount += 1;

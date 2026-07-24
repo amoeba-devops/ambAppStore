@@ -61,6 +61,12 @@ export const carVehicles = pgTable(
      * tiêu hao L/100km; cvh_tonnage = tải trọng (tấn). */
     cvhTonnage: decimal('cvh_tonnage', { precision: 6, scale: 2 }),
     cvhFuelQuota: decimal('cvh_fuel_quota', { precision: 6, scale: 2 }),
+    /* Per-vehicle fuel unit price (VND/L), REQ-20260724. Combined with
+     * cvh_fuel_quota (L/100km) this drives the DEFAULT per-trip fuel cost —
+     * km × (cvh_fuel_quota/100) × cvh_fuel_price — used live (no invoices) when
+     * the trip's month/region has no frozen reconciliation snapshot. Nullable;
+     * when either quota or price is unset the trip shows "Chưa đặt định mức". */
+    cvhFuelPrice: decimal('cvh_fuel_price', { precision: 14, scale: 2 }),
     /* Operating region (REQ-20260630, "Khu vực"). Code from TRUCK_REGIONS
      * (HCM / DONG_NAI / BAIKSAN); nullable. Drives the region-scoped dashboard
      * breakdown + region-scoped month close (a trip inherits its vehicle's

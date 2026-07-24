@@ -16,7 +16,7 @@ import {
   listFuelInvoices,
 } from '@/server/queries/truck-finance.queries';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
-import { FuelReconciliationBadge, fuelReconciliationState } from '@/components/truck/fuel-reconciliation-badge';
+import { FuelReconciliationBadge, aggregateFuelMode } from '@/components/truck/fuel-reconciliation-badge';
 import { FinanceTabs } from '../finance/_components/finance-tabs';
 import { FuelInvoicePanel } from './_components/fuel-invoice-panel';
 
@@ -167,7 +167,11 @@ export default async function TruckPnlPage({
                   <>
                     {vnd(selected.fuelCost)}
                     <FuelReconciliationBadge
-                      state={fuelReconciliationState(selected.fuelReconciledTripCount, selected.tripCount)}
+                      mode={aggregateFuelMode({
+                        averaged: selected.fuelAveragedTripCount,
+                        vehicleRate: selected.fuelVehicleRateTripCount,
+                        unset: selected.fuelUnsetTripCount,
+                      })}
                     />
                   </>,
                 ],
@@ -239,7 +243,11 @@ export default async function TruckPnlPage({
                             <div className="flex flex-col items-end gap-1">
                               <span>{fmt(def, n)}</span>
                               <FuelReconciliationBadge
-                                state={fuelReconciliationState(row.fuelReconciledTripCount, row.tripCount)}
+                                mode={aggregateFuelMode({
+                                  averaged: row.fuelAveragedTripCount,
+                                  vehicleRate: row.fuelVehicleRateTripCount,
+                                  unset: row.fuelUnsetTripCount,
+                                })}
                               />
                             </div>
                           ) : (

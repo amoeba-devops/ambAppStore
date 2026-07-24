@@ -11,7 +11,6 @@ import {
 } from '@car-v2/db/schema';
 import {
   parseAmount,
-  truckTripFuelCost,
   computeTruckPnl,
   loadTruckRegionSnapshots,
 } from '@car-v2/core/truck';
@@ -232,13 +231,12 @@ export async function getTruckReportExport(
     /* "Đã lập BC" once a report covers this (month, region) — the report row is
      * inserted before this workbook builds, so it's reported here (2026-07-21).
      * The snapshot only drives fuel: reconciled when present, else own price. */
-    const snap = snapshots.forTrip(month, t.vehicleId);
     const finalized = snapshots.isReported(month, t.vehicleId);
-    const avgPrice = snap ? snap.avgPrice : parseAmount(t.fuelPrice);
-    const liters = snap ? km * snap.consumption : parseAmount(t.fuelLiters);
-    const fuelCost = snap
-      ? truckTripFuelCost({ km, consumption: snap.consumption, avgPrice: snap.avgPrice })
-      : Math.round(parseAmount(t.fuelLiters) * parseAmount(t.fuelPrice));
+    /* Fuel = frozen snapshot → vehicle rate → 0 (REQ-20260724), shared helper. */
+    const fuel = snapshots.fuelForTrip(month, t.vehicleId, km);
+    const avgPrice = fuel.unitPrice;
+    const liters = fuel.liters;
+    const fuelCost = fuel.cost;
     const route = routeByTrip.get(t.trpId) ?? {};
     return {
       date: t.scheduledAt,
@@ -320,8 +318,7 @@ export async function getTruckReportExport(
   for (const t of rows) {
     if (!t.vehicleId) continue;
     const km = t.so != null && t.eo != null ? t.eo - t.so : 0;
-    const snap = snapshots.forTrip(month, t.vehicleId);
-    const liters = snap ? km * snap.consumption : parseAmount(t.fuelLiters);
+    const liters = snapshots.fuelForTrip(month, t.vehicleId, km).liters;
     const g = aggByVeh.get(t.vehicleId) ?? { km: 0, liters: 0 };
     g.km += km;
     g.liters += liters;

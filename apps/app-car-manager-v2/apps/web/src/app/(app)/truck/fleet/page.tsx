@@ -202,7 +202,10 @@ export default async function TruckFleetPage({
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-text-muted">{regionLabel(v.cvhRegion)}</TableCell>
                       <TableCell className="text-right tabular text-text-muted">
-                        {v.cvhFuelQuota ? `${v.cvhFuelQuota} L/100km` : '—'}
+                        <div>{v.cvhFuelQuota ? `${v.cvhFuelQuota} L/100km` : '—'}</div>
+                        {v.cvhFuelPrice ? (
+                          <div className="text-xs text-text-faint">{vnd(Math.round(Number(v.cvhFuelPrice)))}/L</div>
+                        ) : null}
                       </TableCell>
                       <TableCell className="text-right tabular text-text-muted">
                         {deprec > 0 ? vnd(deprec) : '—'}

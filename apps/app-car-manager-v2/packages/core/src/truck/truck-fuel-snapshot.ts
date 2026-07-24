@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTruckMonthClose, carTruckReports, carVehicles } from '@car-v2/db/schema';
-import { parseAmount } from './truck-cost';
+import { parseAmount, truckTripFuelCost, truckTripFuelCostByVehicleRate } from './truck-cost';
 
 /**
  * Region-scoped month-end fuel snapshot (REQ-20260630, report-based since
@@ -30,6 +30,27 @@ export interface RegionSnapshot {
   consumption: number;
 }
 
+/** Per-vehicle default fuel rate (REQ-20260724): quota L/100km + price đ/L. */
+export interface VehicleFuelRate {
+  quotaPer100Km: number;
+  pricePerLitre: number;
+}
+
+/** How a trip's fuel cost was derived (drives the badge + toast copy):
+ *  - AVERAGED     → frozen month-end reconciliation (km × consumption × avg price)
+ *  - VEHICLE_RATE → the vehicle's own quota × price (km × quota/100 × price)
+ *  - UNSET        → no snapshot AND the vehicle lacks quota/price → cost 0 */
+export type TruckFuelMode = 'AVERAGED' | 'VEHICLE_RATE' | 'UNSET';
+
+export interface TruckTripFuel {
+  cost: number;
+  /** Unit price shown (đ/L): avg price (averaged) or vehicle price (rate); 0 when unset. */
+  unitPrice: number;
+  /** Litres shown: km × consumption; 0 when unset. */
+  liters: number;
+  mode: TruckFuelMode;
+}
+
 const snapKey = (month: string, region: string): string => `${month}|${region}`;
 
 export interface TruckRegionSnapshots {
@@ -39,8 +60,17 @@ export interface TruckRegionSnapshots {
   snap: Map<string, RegionSnapshot>;
   /** vehicleId → region code ('' when the vehicle has no region). */
   vehicleRegion: Map<string, string>;
-  /** Look up the frozen fuel snapshot for a trip (null → use own litres×price). */
+  /** vehicleId → its own fuel rate (quota + price), when both are set. */
+  vehicleRate: Map<string, VehicleFuelRate>;
+  /** Look up the frozen fuel snapshot for a trip (null → use vehicle rate). */
   forTrip(month: string, vehicleId: string | null): RegionSnapshot | null;
+  /**
+   * The trip's per-trip fuel cost + display figures, applying the full
+   * precedence (REQ-20260724): frozen snapshot → vehicle rate → unset(0).
+   * `km` = end − start odometer. This is the single source every fuel-showing
+   * screen calls so the rule stays identical everywhere.
+   */
+  fuelForTrip(month: string, vehicleId: string | null, km: number): TruckTripFuel;
   /** True when a report/close exists for the trip's (month, region) — or a
    * consolidated (region '') one covers it — regardless of whether a fuel
    * snapshot was frozen. Drives the "Đã lập BC" status. */
@@ -118,21 +148,61 @@ export async function loadTruckRegionSnapshots(
     }
   }
 
+  const vehicleRate = new Map<string, VehicleFuelRate>();
   const vrows = await db
-    .select({ id: carVehicles.cvhId, region: carVehicles.cvhRegion })
+    .select({
+      id: carVehicles.cvhId,
+      region: carVehicles.cvhRegion,
+      quota: carVehicles.cvhFuelQuota,
+      price: carVehicles.cvhFuelPrice,
+    })
     .from(carVehicles)
     .where(and(eq(carVehicles.entId, entId), eq(carVehicles.cvhType, 'TRUCK')));
-  for (const v of vrows) vehicleRegion.set(v.id, v.region ?? '');
+  for (const v of vrows) {
+    vehicleRegion.set(v.id, v.region ?? '');
+    const quota = parseAmount(v.quota);
+    const price = parseAmount(v.price);
+    if (quota > 0 && price > 0) vehicleRate.set(v.id, { quotaPer100Km: quota, pricePerLitre: price });
+  }
+
+  const forTrip = (month: string, vehicleId: string | null): RegionSnapshot | null => {
+    const region = vehicleId ? vehicleRegion.get(vehicleId) ?? '' : '';
+    /* Prefer the trip's own region snapshot; fall back to a whole-fleet /
+     * consolidated one (region '') so an "all regions" report reconciles
+     * every trip. */
+    return snap.get(snapKey(month, region)) ?? snap.get(snapKey(month, '')) ?? null;
+  };
 
   return {
     snap,
     vehicleRegion,
-    forTrip(month, vehicleId) {
-      const region = vehicleId ? vehicleRegion.get(vehicleId) ?? '' : '';
-      /* Prefer the trip's own region snapshot; fall back to a whole-fleet /
-       * consolidated one (region '') so an "all regions" report reconciles
-       * every trip. */
-      return snap.get(snapKey(month, region)) ?? snap.get(snapKey(month, '')) ?? null;
+    vehicleRate,
+    forTrip,
+    fuelForTrip(month, vehicleId, km) {
+      const s = forTrip(month, vehicleId);
+      if (s) {
+        return {
+          cost: truckTripFuelCost({ km, consumption: s.consumption, avgPrice: s.avgPrice }),
+          unitPrice: s.avgPrice,
+          liters: km > 0 ? km * s.consumption : 0,
+          mode: 'AVERAGED',
+        };
+      }
+      const rate = vehicleId ? vehicleRate.get(vehicleId) : undefined;
+      if (rate) {
+        const consumption = rate.quotaPer100Km / 100;
+        return {
+          cost: truckTripFuelCostByVehicleRate({
+            km,
+            quotaPer100Km: rate.quotaPer100Km,
+            pricePerLitre: rate.pricePerLitre,
+          }),
+          unitPrice: rate.pricePerLitre,
+          liters: km > 0 ? km * consumption : 0,
+          mode: 'VEHICLE_RATE',
+        };
+      }
+      return { cost: 0, unitPrice: 0, liters: 0, mode: 'UNSET' };
     },
     isReported(month, vehicleId) {
       const region = vehicleId ? vehicleRegion.get(vehicleId) ?? '' : '';

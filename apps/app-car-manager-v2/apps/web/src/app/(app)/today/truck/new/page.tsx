@@ -26,6 +26,8 @@ export default async function DriverTruckNewTripPage() {
   const vehicleOptions = vehicles.map((v) => ({
     id: v.cvhId,
     label: `${v.cvhPlateNumber} · ${v.cvhModel}`,
+    fuelQuota: v.cvhFuelQuota != null ? Number(v.cvhFuelQuota) : null,
+    fuelPrice: v.cvhFuelPrice != null ? Number(v.cvhFuelPrice) : null,
   }));
 
   const t = await getTranslations('screens.truckTrips');

@@ -65,3 +65,34 @@ export function truckTripFuelCost(input: {
   if (km <= 0) return 0;
   return Math.round(km * (input.consumption ?? 0) * (input.avgPrice ?? 0));
 }
+
+/**
+ * DEFAULT per-trip fuel cost from the vehicle's own rate (REQ-20260724), used
+ * live when the trip's month/region has NO frozen reconciliation snapshot — so
+ * editing km recomputes the fuel immediately without any fuel invoices:
+ *
+ *   fuel cost = km × (quotaPer100Km / 100) × pricePerLitre
+ *
+ * `quotaPer100Km` = car_vehicles.cvh_fuel_quota (định mức, L/100km);
+ * `pricePerLitre` = car_vehicles.cvh_fuel_price (đ/L). Returns 0 when km ≤ 0 or
+ * either rate is missing/≤0 (the trip then surfaces the "Chưa đặt định mức"
+ * badge — the vehicle needs its quota + price set). Rounded to whole đồng.
+ */
+export function truckTripFuelCostByVehicleRate(input: {
+  km: number | null;
+  quotaPer100Km: number | null;
+  pricePerLitre: number | null;
+}): number {
+  const km = input.km ?? 0;
+  const quota = input.quotaPer100Km ?? 0;
+  const price = input.pricePerLitre ?? 0;
+  if (km <= 0 || quota <= 0 || price <= 0) return 0;
+  return Math.round(km * (quota / 100) * price);
+}
+
+/** True when the vehicle has both a fuel quota and price set (> 0) — i.e. the
+ * vehicle-rate default fuel cost is computable. Drives the "Theo định mức" vs
+ * "Chưa đặt định mức" distinction. */
+export function hasVehicleFuelRate(quotaPer100Km: number | null, pricePerLitre: number | null): boolean {
+  return (quotaPer100Km ?? 0) > 0 && (pricePerLitre ?? 0) > 0;
+}

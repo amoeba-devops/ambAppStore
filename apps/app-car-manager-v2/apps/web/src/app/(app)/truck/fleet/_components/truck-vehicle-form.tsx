@@ -40,6 +40,7 @@ const EMPTY = {
   year: '',
   tonnage: '',
   fuelQuota: '',
+  fuelPrice: '',
   fuelType: 'DIESEL',
   region: '',
   defaultDriverId: '',
@@ -93,6 +94,7 @@ export function TruckVehicleForm({
         vehicle_type: 'TRUCK' as const,
         tonnage: f.tonnage ? Number(f.tonnage) : undefined,
         fuel_quota: f.fuelQuota ? Number(f.fuelQuota) : undefined,
+        fuel_price: f.fuelPrice ? Number(f.fuelPrice) : undefined,
         region: (f.region || undefined) as (typeof TRUCK_REGIONS)[number] | undefined,
         default_driver_id: f.defaultDriverId || undefined,
         depreciation: f.depreciation ? Number(f.depreciation) : undefined,
@@ -158,7 +160,10 @@ export function TruckVehicleForm({
               <Input type="number" step="0.1" value={f.tonnage} onChange={set('tonnage')} placeholder="4.5" />
             </Field>
             <Field label={t('fuelQuota')}>
-              <Input type="number" step="0.1" value={f.fuelQuota} onChange={set('fuelQuota')} placeholder="6.5" />
+              <Input type="number" step="0.1" value={f.fuelQuota} onChange={set('fuelQuota')} placeholder="30" />
+            </Field>
+            <Field label={t('fuelPrice')}>
+              <Input type="number" step="1" value={f.fuelPrice} onChange={set('fuelPrice')} placeholder="25000" />
             </Field>
             <Field label={t('fuelType')}>
               <Select value={f.fuelType} onValueChange={(v) => setF((s) => ({ ...s, fuelType: v }))}>

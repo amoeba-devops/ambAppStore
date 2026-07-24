@@ -24,6 +24,7 @@ import { formatActionError } from '@/lib/format-action-error';
 import { FormField } from '@/components/forms/form-section';
 import { MoneyInput } from '@/components/inputs/money-input';
 import { CostReceiptInput, type ExistingCostAttachment } from '@/components/truck/cost-receipt-input';
+import { fuelToastDescription } from '@/components/truck/fuel-toast';
 import { uploadTruckCostFile } from '@/lib/truck-cost-upload';
 import { StopBuilder, makeDefaultStops, type StopField } from './stop-builder';
 import type { CarStopType, CarTripStopover } from '@car-v2/db/schema';
@@ -43,6 +44,10 @@ export interface OptionItem {
   label: string;
   /** Vehicle's assigned default driver (cvh_default_driver_id) — drives auto-fill on vehicle select. */
   defaultDriverId?: string;
+  /** Vehicle fuel rate (REQ-20260724) — định mức L/100km + giá đ/L. Drives the
+   * read-only fuel preview: fuel = km × (quota/100) × price. */
+  fuelQuota?: number | null;
+  fuelPrice?: number | null;
 }
 
 export type TruckTripFormInitial = Partial<{
@@ -190,15 +195,31 @@ export function TruckTripForm({
   /* Setter for MoneyInput (receives the raw digit string, not an event). */
   const setNum = (k: keyof typeof EMPTY_FIELDS) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
-  /* Live profit preview. */
+  /* Selected vehicle's fuel rate → the DEFAULT per-trip fuel (REQ-20260724):
+   * fuel = km × (định mức/100) × giá của xe. Litres/đơn giá are no longer
+   * entered per trip; they're derived from the vehicle here. */
+  const selectedVehicle = vehicles.find((v) => v.id === f.vehicleId);
+  const vehicleQuota = selectedVehicle?.fuelQuota ?? null;
+  const vehiclePrice = selectedVehicle?.fuelPrice ?? null;
+  const hasVehicleRate = (vehicleQuota ?? 0) > 0 && (vehiclePrice ?? 0) > 0;
+
+  /* Live profit preview. Fuel = km × vehicle rate (the actual cost model);
+   * 0 when the vehicle has no rate set (surfaced as a hint in the summary). */
   const preview = useMemo(() => {
-    const fuelCost = Math.round((numF(f.fuelLiters) ?? 0) * (numF(f.fuelPrice) ?? 0));
+    const kmNums = stops.map((s) => (s.km.trim() ? Number(s.km) : null));
+    const first = kmNums.find((v) => v != null);
+    const last = [...kmNums].reverse().find((v) => v != null);
+    const km = first != null && last != null && last > first ? last - first : 0;
+    const fuelCost =
+      km > 0 && (vehicleQuota ?? 0) > 0 && (vehiclePrice ?? 0) > 0
+        ? Math.round(km * ((vehicleQuota as number) / 100) * (vehiclePrice as number))
+        : 0;
     const toll = Math.round(numF(f.toll) ?? 0);
     const extraTotal = extras.reduce((s, e) => s + Math.round(numF(e.amount) ?? 0), 0);
     const revenue = Math.round(numF(f.revenue) ?? 0);
     const totalCost = fuelCost + toll + extraTotal;
     return { fuelCost, totalCost, revenue, profit: revenue - totalCost };
-  }, [f.fuelLiters, f.fuelPrice, f.toll, f.revenue, extras]);
+  }, [stops, vehicleQuota, vehiclePrice, f.toll, f.revenue, extras]);
 
   /* Extract pickup/dropoff from stops for the API (summary + notification). */
   const pickupStop = stops.find((s) => s.type === 'PICKUP');
@@ -214,9 +235,9 @@ export function TruckTripForm({
   const dirty = f.vehicleId !== '' && (isDriver || f.driverId !== '') && stopsValid;
 
   /* Derived summary data. */
-  const vehicleLabel = vehicles.find((v) => v.id === f.vehicleId)?.label ?? null;
+  const vehicleLabel = selectedVehicle?.label ?? null;
   const driverLabel = drivers.find((d) => d.id === f.driverId)?.label ?? null;
-  const selectedVehicleDefaultDriverId = vehicles.find((v) => v.id === f.vehicleId)?.defaultDriverId;
+  const selectedVehicleDefaultDriverId = selectedVehicle?.defaultDriverId;
   const isDriverAutoFilled = !!selectedVehicleDefaultDriverId && selectedVehicleDefaultDriverId === f.driverId;
   const kmNums = stops.map((s) => (s.km.trim() ? Number(s.km) : null));
   const firstKm = kmNums.find((v) => v != null);
@@ -282,17 +303,12 @@ export function TruckTripForm({
         toast.error(formatActionError(res.error, tErr));
         return;
       }
-      /* Tell the user how the per-trip fuel was treated on save: recomputed from
-       * the region's month-end average ("Bình quân") vs kept as the entered
-       * litres × price ("Tự nhập"). Only shown when logging a completed trip —
-       * an open/assigned trip has no fuel figure to recalculate yet. */
+      /* Tell the user how the per-trip fuel was treated on save (REQ-20260724):
+       * averaged (invoices) / vehicle rate (km × định mức × giá xe) / unset
+       * (xe chưa đặt định mức → 0). Server returns null for a non-completed
+       * trip → no fuel note. */
       toast.success(tripId ? t('updatedToast') : t('createdToast'), {
-        description:
-          !isDriver && markCompleted
-            ? res.data.fuelReconciled
-              ? tFuel('fuelRecalcedToast')
-              : tFuel('fuelNotRecalcedToast')
-            : undefined,
+        description: fuelToastDescription(res.data.fuelMode, tFuel),
       });
       router.push(
         isDriver ? '/today' : (tripId ? `/truck/trips/${tripId}` : '/truck/trips'),
@@ -318,6 +334,26 @@ export function TruckTripForm({
           />
         </div>
       ))}
+    </div>
+  );
+
+  /* Fuel is derived from the vehicle's rate (REQ-20260724) — no per-trip litres/
+   * price input. Read-only info: computed preview, or a prompt to set the rate. */
+  const fuelInfo = (
+    <div className="rounded-md border border-border bg-surface-2/40 px-3 py-2.5 text-sm space-y-0.5 sm:col-span-2">
+      {!f.vehicleId ? (
+        <p className="text-text-faint">{t('fuelSelectVehicleFirst')}</p>
+      ) : hasVehicleRate ? (
+        <>
+          <p className="text-text-muted">{t('fuelByVehicleHint')}</p>
+          <p className="text-text">
+            {vehicleQuota} L/100km × {vnd(vehiclePrice as number)}/L ={' '}
+            <span className="font-semibold">{vnd(preview.fuelCost)}</span>
+          </p>
+        </>
+      ) : (
+        <p className="text-warning">{t('fuelRateNotSet')}</p>
+      )}
     </div>
   );
 
@@ -421,12 +457,7 @@ export function TruckTripForm({
           {isDriver ? (
             <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionCost')}>
               <div className={GRID}>
-                <FormField label={t('fuelLiters')} inline>
-                  <Input type="number" step="0.01" value={f.fuelLiters} onChange={set('fuelLiters')} />
-                </FormField>
-                <FormField label={t('fuelPrice')} inline>
-                  <MoneyInput value={f.fuelPrice} onChange={setNum('fuelPrice')} />
-                </FormField>
+                {fuelInfo}
                 <FormField label={t('toll')} inline className="sm:col-span-2">
                   <MoneyInput value={f.toll} onChange={setNum('toll')} />
                 </FormField>
@@ -437,12 +468,7 @@ export function TruckTripForm({
           ) : markCompleted ? (
             <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionCostRevenue')}>
               <div className={GRID}>
-                <FormField label={t('fuelLiters')} inline>
-                  <Input type="number" step="0.01" value={f.fuelLiters} onChange={set('fuelLiters')} />
-                </FormField>
-                <FormField label={t('fuelPrice')} inline>
-                  <MoneyInput value={f.fuelPrice} onChange={setNum('fuelPrice')} />
-                </FormField>
+                {fuelInfo}
                 <FormField label={t('toll')} inline>
                   <MoneyInput value={f.toll} onChange={setNum('toll')} />
                 </FormField>
@@ -456,9 +482,6 @@ export function TruckTripForm({
           ) : (
             <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionPlan')} hint={t('sectionPlanHint')}>
               <div className={GRID}>
-                <FormField label={t('fuelPrice')} inline>
-                  <MoneyInput value={f.fuelPrice} onChange={setNum('fuelPrice')} />
-                </FormField>
                 <FormField label={t('revenue')} inline>
                   <MoneyInput value={f.revenue} onChange={setNum('revenue')} />
                 </FormField>

@@ -11,6 +11,7 @@ import {
 } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
 import { CostReceiptInput, type ExistingCostAttachment } from '@/components/truck/cost-receipt-input';
+import { fuelToastDescription } from '@/components/truck/fuel-toast';
 import { uploadTruckCostFile } from '@/lib/truck-cost-upload';
 
 const numF = (s: string) => (s.trim() === '' ? undefined : Number(s));
@@ -141,13 +142,10 @@ export function TruckCompleteSection({
         toast.error(formatActionError(res.error, tErr));
         return;
       }
-      /* Say how the per-trip fuel was treated: recomputed from the region's
-       * month-end average ("Bình quân") or kept as the entered litres × price
-       * ("Tự nhập" — region has no fuel invoices reconciled yet). */
+      /* Say how the per-trip fuel was treated (REQ-20260724): averaged (invoices)
+       * / vehicle rate (km × định mức × giá xe) / unset (xe chưa đặt → 0). */
       toast.success(t('completedToast'), {
-        description: res.data.fuelReconciled
-          ? tFuel('fuelRecalcedToast')
-          : tFuel('fuelNotRecalcedToast'),
+        description: fuelToastDescription(res.data.fuelMode, tFuel),
       });
       router.refresh();
     });
@@ -175,13 +173,13 @@ export function TruckCompleteSection({
         <Field label={t('endOdo')}>
           <Input type="number" value={f.endOdo} onChange={set('endOdo')} />
         </Field>
-        <Field label={t('fuelLiters')}>
-          <Input type="number" step="0.01" value={f.fuelLiters} onChange={set('fuelLiters')} />
-        </Field>
         <Field label={t('toll')}>
           <Input type="number" value={f.toll} onChange={set('toll')} />
         </Field>
       </div>
+      {/* Fuel is derived from the vehicle's rate × km (REQ-20260724) — no litres
+       * input; entering the end odometer (km) is what drives the fuel cost. */}
+      <p className="text-xs text-text-muted">{tFuel('fuelByTripKmHint')}</p>
 
       <div>
         <div className="flex items-center justify-between mb-2">

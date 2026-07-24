@@ -6,7 +6,7 @@ import type { CarTripStopover, CarStopType } from '@car-v2/db/schema';
 import { MapPreview } from '@/components/inputs/map-preview';
 import { PageHeader } from '@/components/layout/page-header';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
-import { FuelReconciliationBadge } from '@/components/truck/fuel-reconciliation-badge';
+import { FuelReconciliationBadge, type FuelBadgeMode } from '@/components/truck/fuel-reconciliation-badge';
 import type { TruckReportStatus } from '@/server/queries/truck-report.queries';
 import { TruckCompleteSection } from './truck-complete-section';
 
@@ -40,10 +40,10 @@ export interface TruckTripDetailProps {
     signedUrl: string | null;
   }[];
   breakdown: TruckCostBreakdown;
-  /** Whether `breakdown.fuelCost` is the reconciled month-end average or the
-   * trip's own entered figure — undefined when the trip isn't completed yet
-   * (no fuel cost to qualify). */
-  fuelReconciled?: boolean;
+  /** How `breakdown.fuelCost` was derived (REQ-20260724): AVERAGED | VEHICLE_RATE
+   * | UNSET — undefined when the trip isn't completed yet (no fuel cost to
+   * qualify). */
+  fuelMode?: FuelBadgeMode;
   completed: boolean;
   canComplete: boolean;
   /** Which completion action to call. */
@@ -111,11 +111,7 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
       <CostRow
         label={t('fuel')}
         value={vnd(props.breakdown.fuelCost)}
-        badge={
-          props.fuelReconciled !== undefined ? (
-            <FuelReconciliationBadge state={props.fuelReconciled ? 'full' : 'none'} />
-          ) : undefined
-        }
+        badge={props.fuelMode !== undefined ? <FuelReconciliationBadge mode={props.fuelMode} /> : undefined}
       />
       <CostRow label={t('toll')} value={vnd(props.breakdown.tollFee)} />
       {props.extras.map((e, i) => (

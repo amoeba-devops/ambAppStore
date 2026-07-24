@@ -293,16 +293,16 @@ export default async function TruckFinancePage({
                     <TableCell className="text-right tabular">{num(r.km)} km</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(r.toll)}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(r.extra)}</TableCell>
-                    <TableCell className={cn('text-right tabular', !r.fuelReconciled && 'text-text-faint italic')}>
+                    <TableCell className={cn('text-right tabular', r.fuelMode === 'UNSET' && 'text-text-faint italic')}>
                       {vnd(r.unitPrice)}
                     </TableCell>
-                    <TableCell className={cn('text-right tabular', !r.fuelReconciled && 'text-text-faint italic')}>
+                    <TableCell className={cn('text-right tabular', r.fuelMode === 'UNSET' && 'text-text-faint italic')}>
                       {num(r.liters, 1)}
                     </TableCell>
-                    <TableCell className={cn('text-right tabular', !r.fuelReconciled && 'text-text-faint italic')}>
+                    <TableCell className={cn('text-right tabular', r.fuelMode === 'UNSET' && 'text-text-faint italic')}>
                       <div className="flex flex-col items-end gap-0.5">
                         <span>{vnd(r.fuelCost)}</span>
-                        <FuelReconciliationBadge state={r.fuelReconciled ? 'full' : 'none'} />
+                        <FuelReconciliationBadge mode={r.fuelMode} />
                       </div>
                     </TableCell>
                     <TableCell className="text-right tabular">{vnd(r.revenue)}</TableCell>

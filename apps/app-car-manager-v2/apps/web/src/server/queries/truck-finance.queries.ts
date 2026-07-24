@@ -12,7 +12,7 @@ import {
   carUsers,
 } from '@car-v2/db/schema';
 import { CarError } from '@car-v2/shared/errors';
-import { parseAmount, truckTripFuelCost, computeTruckPnl, loadTruckRegionSnapshots } from '@car-v2/core/truck';
+import { parseAmount, truckTripFuelCost, computeTruckPnl, loadTruckRegionSnapshots, type TruckFuelMode } from '@car-v2/core/truck';
 import type { AuthContext } from '@/lib/auth/get-current-user';
 
 /** Is (ent, TRUCK, month, region) closed? `region` null = the whole-fleet
@@ -240,11 +240,11 @@ export interface TruckFinanceTripRow {
    * vs "Tạm tính" (2026-07-21: no longer implies the fuel figure is reconciled,
    * see `fuelReconciled`). */
   finalized: boolean;
-  /** true when unitPrice/liters/fuelCost above are the frozen month-end average
-   * (invoices + km reconciled); false when they're the trip's own entered
-   * fuel liters × price (no snapshot yet for this month/region — needs fuel
-   * invoices AND odometer km, then "Lập báo cáo" again to reconcile). */
-  fuelReconciled: boolean;
+  /** How unitPrice/liters/fuelCost above were derived (REQ-20260724):
+   *  - AVERAGED     frozen month-end reconciliation (invoices + km)
+   *  - VEHICLE_RATE km × (xe định mức/100) × giá của xe (mặc định, live)
+   *  - UNSET        xe chưa đặt định mức/giá → phí 0 */
+  fuelMode: TruckFuelMode;
   /** Last-modified timestamp for the "Cập nhật" column (Sheet-2 P7). */
   updatedAt: Date | null;
 }
@@ -330,17 +330,12 @@ export async function listTruckFinanceTrips(
     const extra = Math.round(extraByTrip.get(t.trpId) ?? 0);
     const revenue = Math.round(parseAmount(t.revenue));
     /* "Đã lập BC" once a report exists for this trip's (month, region) — even
-     * without fuel invoices ("Lập báo cáo = chốt luôn", 2026-07-21). The frozen
-     * snapshot (invoices → avg price + consumption) only drives the fuel COST:
-     * reconciled when present, else the trip's own litres × price. */
-    const snap = snapshots.forTrip(opts.month, t.vehicleId);
+     * without fuel invoices ("Lập báo cáo = chốt luôn", 2026-07-21). Fuel cost
+     * itself follows the shared precedence: frozen snapshot → vehicle rate →
+     * 0 (REQ-20260724). */
     const finalized = snapshots.isReported(opts.month, t.vehicleId);
-    const fuelReconciled = snap != null;
-    const unitPrice = snap ? snap.avgPrice : parseAmount(t.fuelPrice);
-    const liters = snap ? km * snap.consumption : parseAmount(t.fuelLiters);
-    const fuelCost = snap
-      ? truckTripFuelCost({ km, consumption: snap.consumption, avgPrice: snap.avgPrice })
-      : Math.round(parseAmount(t.fuelLiters) * parseAmount(t.fuelPrice));
+    const fuel = snapshots.fuelForTrip(opts.month, t.vehicleId, km);
+    const fuelCost = fuel.cost;
     return {
       trpId: t.trpId,
       ref: t.ref,
@@ -354,13 +349,13 @@ export async function listTruckFinanceTrips(
       km,
       toll,
       extra,
-      unitPrice,
-      liters,
+      unitPrice: fuel.unitPrice,
+      liters: fuel.liters,
       fuelCost,
       revenue,
       profit: revenue - fuelCost - toll - extra,
       finalized,
-      fuelReconciled,
+      fuelMode: fuel.mode,
       updatedAt: t.updatedAt,
     };
   });
