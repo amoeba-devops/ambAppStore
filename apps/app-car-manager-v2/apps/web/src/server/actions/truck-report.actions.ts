@@ -206,7 +206,16 @@ async function generateOneTruckReport(
      * so older screens/reports keep working. */
     getTruckFuelStatsByVehicle(actor.entId, month, region ?? undefined),
   ]);
-  const hasSnapshot = stats.totalKm > 0 && stats.invoiceLiters > 0 && stats.avgPrice > 0;
+  /* The region pool is LEGACY. Once any invoice in the scope names its vehicle,
+   * writing a region snapshot too would let vehicles WITHOUT an invoice draw
+   * from fuel that already belongs to another truck — double-counting the
+   * month's spend. So per-vehicle wins outright; trucks with no invoice fall
+   * back to their own định mức instead. */
+  const hasSnapshot =
+    vehicleFuel.length === 0 &&
+    stats.totalKm > 0 &&
+    stats.invoiceLiters > 0 &&
+    stats.avgPrice > 0;
 
   const id = randomUUID();
   /* Pin the exact generation moment: stamped into the workbook itself AND

@@ -19,6 +19,7 @@ import {
   computeTruckPnl,
   loadTruckRegionSnapshots,
   loadTruckFixedAllocation,
+  truckTripFuelCostByVehicleRate,
   type TruckFuelMode,
 } from '@car-v2/core/truck';
 import type { AuthContext } from '@/lib/auth/get-current-user';
@@ -630,12 +631,14 @@ export async function getTruckReportReview(
   /** Operating region scope; `null` = all regions (whole-fleet reconciliation). */
   region: string | null = null,
 ): Promise<TruckReportReview> {
-  const [trips, stats, closeInfo, vehicleFuel, invoices] = await Promise.all([
+  const [trips, stats, closeInfo, vehicleFuel, invoices, snapshots] = await Promise.all([
     listTruckFinanceTrips(actor.entId, { month, region }),
     getTruckFuelStats(actor.entId, month, region ?? undefined),
     getTruckMonthCloseInfo(actor.entId, month, region),
     getTruckFuelStatsByVehicle(actor.entId, month, region ?? undefined),
     listFuelInvoices(actor.entId, month, region ?? undefined),
+    /* For the vehicle-rate fallback preview below. */
+    loadTruckRegionSnapshots(actor.entId, [month]),
   ]);
   /* "Số lần đổ xăng" per vehicle (the card in the review wizard). */
   const refuelCountByVehicle = new Map<string, number>();
@@ -657,7 +660,19 @@ export async function getTruckReportReview(
   for (const t of trips) {
     if (t.km <= 0) kmZeroCount += 1;
     const vf = t.vehicleId ? byVehFuel.get(t.vehicleId) : undefined;
-    const fuelCost = vf ? Math.round(t.km * vf.costPerKm) : t.fuelCost;
+    /* No invoice for THIS truck: once the scope has per-vehicle invoices the
+     * generated report drops the region pool, so preview what the trip will
+     * actually become — its own định mức × km (0 when unset). */
+    const rate = t.vehicleId ? snapshots.vehicleRate.get(t.vehicleId) : undefined;
+    const fuelCost = vf
+      ? Math.round(t.km * vf.costPerKm)
+      : vehicleFuel.length > 0
+        ? truckTripFuelCostByVehicleRate({
+            km: t.km,
+            quotaPer100Km: rate?.quotaPer100Km ?? 0,
+            pricePerLitre: rate?.pricePerLitre ?? 0,
+          })
+        : t.fuelCost;
     const profit = t.revenue - fuelCost - t.toll - t.extra;
     const key = t.vehicleId ?? '∅';
     let g = byVeh.get(key);
