@@ -165,22 +165,35 @@ export async function loadTruckRegionSnapshots(
         });
       }
     }
+    /* Only the NEWEST live report per (month, region) defines that scope's
+     * snapshot — and it defines the MODE too. Mixing tiers across generations
+     * would double-count: an older region-pool report would keep feeding
+     * vehicles that the newest (per-vehicle) report deliberately leaves to
+     * their own định mức. Reports arrive in ascending creation order, so the
+     * last write per scope wins. */
+    const latestByScope = new Map<string, (typeof reportRows)[number]>();
     for (const r of reportRows) {
-      reported.add(snapKey(r.month, r.region ?? ''));
-      if (r.avgPrice != null && r.consumption != null) {
-        snap.set(snapKey(r.month, r.region ?? ''), {
+      const key = snapKey(r.month, r.region ?? '');
+      reported.add(key);
+      latestByScope.set(key, r);
+    }
+    for (const [key, r] of latestByScope) {
+      const vf = r.vehicleFuel ?? [];
+      if (vf.length > 0) {
+        /* Per-vehicle freeze supersedes any region pool for this scope. */
+        snap.delete(key);
+        for (const v of vf) {
+          if (!v?.vehicleId || !(v.costPerKm > 0)) continue;
+          vehicleSnap.set(snapKey(r.month, v.vehicleId), {
+            costPerKm: v.costPerKm,
+            avgPrice: v.avgPrice,
+            consumption: v.km > 0 ? v.liters / v.km : 0,
+          });
+        }
+      } else if (r.avgPrice != null && r.consumption != null) {
+        snap.set(key, {
           avgPrice: parseAmount(r.avgPrice),
           consumption: parseAmount(r.consumption),
-        });
-      }
-      /* Per-vehicle freeze (REQ-20260726) — newest report covering a vehicle
-       * wins, same "creation order, last write" rule as the region snapshot. */
-      for (const v of r.vehicleFuel ?? []) {
-        if (!v?.vehicleId || !(v.costPerKm > 0)) continue;
-        vehicleSnap.set(snapKey(r.month, v.vehicleId), {
-          costPerKm: v.costPerKm,
-          avgPrice: v.avgPrice,
-          consumption: v.km > 0 ? v.liters / v.km : 0,
         });
       }
     }
