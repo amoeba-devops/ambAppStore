@@ -567,6 +567,17 @@ export interface ReportReviewVehicle {
   variableProfit: number;
   /** Monthly fixed cost (salary/depreciation/insurance/driver) for this truck. */
   fixedCost: number;
+  /** THIS vehicle's own monthly fuel reconciliation (REQ-20260726) — what the
+   * report will freeze, so the preview matches the generated numbers exactly.
+   * `allocatable` false → the vehicle has no invoice (or no km) and its trips
+   * keep whatever the current rule gives them. */
+  fuelAllocatable: boolean;
+  fuelMoney: number;
+  fuelLiters: number;
+  fuelAvgPrice: number;
+  fuelConsumption: number;
+  fuelCostPerKm: number;
+  refuelCount: number;
   trips: ReportReviewTrip[];
 }
 
@@ -619,25 +630,34 @@ export async function getTruckReportReview(
   /** Operating region scope; `null` = all regions (whole-fleet reconciliation). */
   region: string | null = null,
 ): Promise<TruckReportReview> {
-  const [trips, stats, closeInfo] = await Promise.all([
+  const [trips, stats, closeInfo, vehicleFuel, invoices] = await Promise.all([
     listTruckFinanceTrips(actor.entId, { month, region }),
     getTruckFuelStats(actor.entId, month, region ?? undefined),
     getTruckMonthCloseInfo(actor.entId, month, region),
+    getTruckFuelStatsByVehicle(actor.entId, month, region ?? undefined),
+    listFuelInvoices(actor.entId, month, region ?? undefined),
   ]);
+  /* "Số lần đổ xăng" per vehicle (the card in the review wizard). */
+  const refuelCountByVehicle = new Map<string, number>();
+  for (const i of invoices) {
+    if (!i.vehicleId) continue;
+    refuelCountByVehicle.set(i.vehicleId, (refuelCountByVehicle.get(i.vehicleId) ?? 0) + 1);
+  }
 
   /* F5 — the chốt-sổ validity rule, evaluated live. */
   const allocatable = stats.totalKm > 0 && stats.invoiceLiters > 0 && stats.avgPrice > 0;
   let kmZeroCount = 0;
 
+  /* PER-VEHICLE preview (REQ-20260726) — the review must show exactly what
+   * "Lập báo cáo" is about to freeze: each vehicle's own fuel spend spread over
+   * ITS trips by km. Vehicles without an invoice keep the current rule. */
+  const byVehFuel = new Map(vehicleFuel.map((v) => [v.vehicleId, v]));
+
   const byVeh = new Map<string, ReportReviewVehicle>();
   for (const t of trips) {
     if (t.km <= 0) kmZeroCount += 1;
-    /* Allocation preview with the LIVE factors — generation always recomputes,
-     * so the review must show what the next report will freeze (also when an
-     * older snapshot exists: regenerating replaces it). */
-    const fuelCost = allocatable
-      ? truckTripFuelCost({ km: t.km, consumption: stats.consumption, avgPrice: stats.avgPrice })
-      : t.fuelCost;
+    const vf = t.vehicleId ? byVehFuel.get(t.vehicleId) : undefined;
+    const fuelCost = vf ? Math.round(t.km * vf.costPerKm) : t.fuelCost;
     const profit = t.revenue - fuelCost - t.toll - t.extra;
     const key = t.vehicleId ?? '∅';
     let g = byVeh.get(key);
@@ -653,6 +673,13 @@ export async function getTruckReportReview(
         totalRevenue: 0,
         variableProfit: 0,
         fixedCost: 0,
+        fuelAllocatable: !!vf,
+        fuelMoney: vf?.money ?? 0,
+        fuelLiters: vf?.liters ?? 0,
+        fuelAvgPrice: vf?.avgPrice ?? 0,
+        fuelConsumption: vf && vf.km > 0 ? vf.liters / vf.km : 0,
+        fuelCostPerKm: vf?.costPerKm ?? 0,
+        refuelCount: refuelCountByVehicle.get(t.vehicleId ?? '') ?? 0,
         trips: [],
       };
       byVeh.set(key, g);
