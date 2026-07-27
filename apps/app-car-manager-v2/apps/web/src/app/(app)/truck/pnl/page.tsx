@@ -285,7 +285,16 @@ export default async function TruckPnlPage({
                 ))}
               </div>
             )}
-            <FuelInvoicePanel month={month} region={region} invoices={invoices} locked={regionLocked} />
+            <FuelInvoicePanel
+              month={month}
+              region={region}
+              invoices={invoices}
+              /* Only this region's trucks — an invoice belongs to one of them. */
+              vehicles={trucks
+                .filter((v) => v.cvhRegion === region)
+                .map((v) => ({ id: v.cvhId, plate: v.cvhPlateNumber }))}
+              locked={regionLocked}
+            />
             <p className="text-xs text-text-faint">{t('monthEndFormula')}</p>
           </div>
         ) : (

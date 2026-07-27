@@ -328,7 +328,9 @@
       "adjustmentHistory": "Adjustment history",
       "reopenedEntry": "Month reopened",
       "reasonLabel": "Reason",
-      "reopenAdminOnly": "Only an Admin can reopen"
+      "reopenAdminOnly": "Only an Admin can reopen",
+      "invoiceSelectVehicle": "— Select vehicle —",
+      "invoiceNoVehicle": "No vehicle"
     },
     "truckComplete": {
       "completeCta": "Complete trip",
@@ -1950,7 +1952,10 @@
   "layout": {
     "sidebarAria": "Primary",
     "mobileNavAria": "Mobile navigation",
-    "moreSheet": { "title": "More menu", "description": "Additional navigation items" },
+    "moreSheet": {
+      "title": "More menu",
+      "description": "Additional navigation items"
+    },
     "breadcrumbAria": "Breadcrumb",
     "back": "Back",
     "dept": {

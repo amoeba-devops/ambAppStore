@@ -328,7 +328,9 @@
       "adjustmentHistory": "Lịch sử điều chỉnh",
       "reopenedEntry": "Đã mở lại tháng",
       "reasonLabel": "Lý do",
-      "reopenAdminOnly": "Chỉ Quản trị viên mới được mở lại"
+      "reopenAdminOnly": "Chỉ Quản trị viên mới được mở lại",
+      "invoiceSelectVehicle": "— Chọn xe —",
+      "invoiceNoVehicle": "Chưa gán xe"
     },
     "truckComplete": {
       "completeCta": "Hoàn thành chuyến đi",
@@ -1950,7 +1952,10 @@
   "layout": {
     "sidebarAria": "Điều hướng chính",
     "mobileNavAria": "Điều hướng mobile",
-    "moreSheet": { "title": "Menu khác", "description": "Các mục điều hướng khác" },
+    "moreSheet": {
+      "title": "Menu khác",
+      "description": "Các mục điều hướng khác"
+    },
     "breadcrumbAria": "Đường dẫn điều hướng",
     "back": "Quay lại",
     "dept": {

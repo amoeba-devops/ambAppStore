@@ -31,6 +31,10 @@ export async function addFuelInvoiceAction(input: unknown): Promise<ActionResult
         date: z.string().regex(DATE),
         station: z.string().trim().max(120).optional(),
         region: z.enum(TRUCK_REGIONS),
+        /* Vehicle the fuel was filled for (REQ-20260726) — drives the per-trip
+         * allocation. Optional for backwards compatibility; without it the
+         * invoice only feeds the legacy region-pool reconciliation. */
+        vehicle_id: z.string().uuid().optional().or(z.literal('')),
         liters: z.number().nonnegative(),
         price: z.number().nonnegative(),
       })
@@ -46,6 +50,7 @@ export async function addFuelInvoiceAction(input: unknown): Promise<ActionResult
       tfiVehicleType: 'TRUCK',
       tfiMonth: month,
       tfiRegion: dto.region,
+      tfiVehicleId: dto.vehicle_id || null,
       tfiDate: dto.date,
       tfiStation: dto.station ?? null,
       tfiLiters: String(dto.liters),

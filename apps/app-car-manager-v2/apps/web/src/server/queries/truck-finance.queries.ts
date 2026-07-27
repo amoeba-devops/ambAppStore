@@ -10,6 +10,7 @@ import {
   carVehicles,
   carDrivers,
   carUsers,
+  type TruckReportVehicleFuel,
 } from '@car-v2/db/schema';
 import { CarError } from '@car-v2/shared/errors';
 import {
@@ -70,6 +71,8 @@ export interface FuelInvoiceRow {
   date: string;
   station: string | null;
   region: string | null;
+  /** Vehicle the fuel was filled for; null = legacy region-level invoice. */
+  vehicleId: string | null;
   liters: number;
   price: number;
 }
@@ -98,6 +101,7 @@ export async function listFuelInvoices(
     date: r.tfiDate,
     station: r.tfiStation,
     region: r.tfiRegion,
+    vehicleId: r.tfiVehicleId,
     liters: parseAmount(r.tfiLiters),
     price: parseAmount(r.tfiPrice),
   }));
@@ -178,6 +182,109 @@ export async function getTruckFuelStats(entId: string, month: string, region?: s
     totalKm,
     consumption: totalKm > 0 ? invoiceLiters / totalKm : 0,
   };
+}
+
+/**
+ * Per-VEHICLE monthly fuel reconciliation (REQ-20260726) — the inputs the
+ * report freezes so each trip is charged from ITS OWN vehicle's fuel spend:
+ *
+ *   money     = Σ (litres × unit price) of that vehicle's invoices this month
+ *   km        = Σ km of that vehicle's COMPLETED log trips this month
+ *   costPerKm = money ÷ km   →  phí chuyến = km chuyến × costPerKm
+ *
+ * So Σ over the vehicle's trips reconciles exactly to `money`. Vehicles with no
+ * invoice, or no km, are omitted (nothing to allocate — those trips fall back to
+ * the vehicle's configured định mức). Scoped to `region` when given so a
+ * region report only freezes its own vehicles.
+ */
+export async function getTruckFuelStatsByVehicle(
+  entId: string,
+  month: string,
+  region?: string,
+): Promise<TruckReportVehicleFuel[]> {
+  const start = new Date(`${month}-01T00:00:00.000Z`);
+  const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
+
+  const [invoices, trips] = await Promise.all([
+    db
+      .select({
+        vehicleId: carTruckFuelInvoices.tfiVehicleId,
+        liters: carTruckFuelInvoices.tfiLiters,
+        price: carTruckFuelInvoices.tfiPrice,
+      })
+      .from(carTruckFuelInvoices)
+      .leftJoin(carVehicles, eq(carTruckFuelInvoices.tfiVehicleId, carVehicles.cvhId))
+      .where(
+        and(
+          eq(carTruckFuelInvoices.entId, entId),
+          eq(carTruckFuelInvoices.tfiVehicleType, 'TRUCK'),
+          eq(carTruckFuelInvoices.tfiMonth, month),
+          isNull(carTruckFuelInvoices.tfiDeletedAt),
+          isNotNull(carTruckFuelInvoices.tfiVehicleId),
+          region ? eq(carVehicles.cvhRegion, region) : undefined,
+        ),
+      ),
+    db
+      .select({
+        vehicleId: carTrips.trpVehicleId,
+        so: carTrips.trpStartOdometer,
+        eo: carTrips.trpEndOdometer,
+      })
+      .from(carTrips)
+      .leftJoin(carVehicles, eq(carTrips.trpVehicleId, carVehicles.cvhId))
+      .where(
+        and(
+          eq(carTrips.entId, entId),
+          eq(carTrips.trpKind, 'LOG'),
+          eq(carTrips.trpStatus, 'COMPLETED'),
+          isNull(carTrips.trpDeletedAt),
+          gte(carTrips.trpScheduledAt, start),
+          lt(carTrips.trpScheduledAt, end),
+          region ? eq(carVehicles.cvhRegion, region) : undefined,
+        ),
+      ),
+  ]);
+
+  const agg = new Map<string, { money: number; liters: number; prices: number[]; km: number }>();
+  const get = (id: string) => {
+    let g = agg.get(id);
+    if (!g) {
+      g = { money: 0, liters: 0, prices: [], km: 0 };
+      agg.set(id, g);
+    }
+    return g;
+  };
+  for (const i of invoices) {
+    if (!i.vehicleId) continue;
+    const liters = parseAmount(i.liters);
+    const price = parseAmount(i.price);
+    const g = get(i.vehicleId);
+    g.money += liters * price;
+    g.liters += liters;
+    g.prices.push(price);
+  }
+  for (const t of trips) {
+    if (!t.vehicleId) continue;
+    if (t.so == null || t.eo == null) continue;
+    const km = t.eo - t.so;
+    if (km > 0) get(t.vehicleId).km += km;
+  }
+
+  const out: TruckReportVehicleFuel[] = [];
+  for (const [vehicleId, g] of agg) {
+    if (g.money <= 0 || g.km <= 0) continue; // nothing to allocate
+    out.push({
+      vehicleId,
+      money: Math.round(g.money),
+      liters: Math.round(g.liters * 100) / 100,
+      km: g.km,
+      costPerKm: Math.round((g.money / g.km) * 10000) / 10000,
+      avgPrice: g.prices.length
+        ? Math.round(g.prices.reduce((a, b) => a + b, 0) / g.prices.length)
+        : 0,
+    });
+  }
+  return out;
 }
 
 export interface TruckMonthCloseInfo {

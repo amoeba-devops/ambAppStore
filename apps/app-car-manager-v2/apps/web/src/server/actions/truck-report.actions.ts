@@ -16,6 +16,7 @@ import { requireFleet } from '@/lib/auth/fleet-access';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import {
   getTruckFuelStats,
+  getTruckFuelStatsByVehicle,
   getTruckRegionTripCounts,
   listTruckFinanceTrips,
 } from '@/server/queries/truck-finance.queries';
@@ -198,7 +199,13 @@ async function generateOneTruckReport(
 
   /* Month-end reconciliation, recomputed NOW (F1–F4). Only frozen when
    * computable (F5) — otherwise NULL → screens keep provisional numbers. */
-  const stats = await getTruckFuelStats(actor.entId, month, region ?? undefined);
+  const [stats, vehicleFuel] = await Promise.all([
+    getTruckFuelStats(actor.entId, month, region ?? undefined),
+    /* Per-vehicle freeze (REQ-20260726): each vehicle's own fuel spend ÷ its own
+     * km. Preferred over the region pool below; the region columns stay filled
+     * so older screens/reports keep working. */
+    getTruckFuelStatsByVehicle(actor.entId, month, region ?? undefined),
+  ]);
   const hasSnapshot = stats.totalKm > 0 && stats.invoiceLiters > 0 && stats.avgPrice > 0;
 
   const id = randomUUID();
@@ -228,6 +235,7 @@ async function generateOneTruckReport(
     trrConsumption: hasSnapshot ? String(stats.consumption) : null,
     trrTotalLiters: hasSnapshot ? String(stats.invoiceLiters) : null,
     trrTotalKm: hasSnapshot ? String(stats.totalKm) : null,
+    trrVehicleFuel: vehicleFuel.length > 0 ? vehicleFuel : null,
   });
 
   try {

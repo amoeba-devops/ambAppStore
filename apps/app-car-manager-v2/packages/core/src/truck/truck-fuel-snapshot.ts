@@ -30,6 +30,20 @@ export interface RegionSnapshot {
   consumption: number;
 }
 
+/**
+ * A vehicle's frozen monthly fuel reconciliation (REQ-20260726): its OWN fuel
+ * spend for the month, spread over its trips by km. `costPerKm = money ÷ km`,
+ * so `Σ over the vehicle's trips (km × costPerKm) = money` — the allocation
+ * reconciles exactly to what that vehicle actually spent on fuel.
+ */
+export interface VehicleFuelSnapshot {
+  costPerKm: number;
+  /** Mean invoice unit price (đ/L) — shown as the trip's "Đơn giá". */
+  avgPrice: number;
+  /** Litres ÷ km — shown as the trip's "Lít" (km × consumption). */
+  consumption: number;
+}
+
 /** Per-vehicle default fuel rate (REQ-20260724): quota L/100km + price đ/L. */
 export interface VehicleFuelRate {
   quotaPer100Km: number;
@@ -37,7 +51,10 @@ export interface VehicleFuelRate {
 }
 
 /** How a trip's fuel cost was derived (drives the badge + toast copy):
- *  - AVERAGED     → frozen month-end reconciliation (km × consumption × avg price)
+ *  - AVERAGED     → frozen month-end reconciliation. Since REQ-20260726 this is
+ *    preferably the VEHICLE's own spend spread over its trips by km
+ *    (`km × costPerKm`); legacy reports fall back to the region pool
+ *    (`km × consumption × avgPrice`).
  *  - VEHICLE_RATE → the vehicle's own quota × price (km × quota/100 × price)
  *  - UNSET        → no snapshot AND the vehicle lacks quota/price → cost 0 */
 export type TruckFuelMode = 'AVERAGED' | 'VEHICLE_RATE' | 'UNSET';
@@ -63,6 +80,9 @@ export interface TruckRegionSnapshots {
    * computable fuel snapshot (invoices → avg price + consumption). region '' =
    * a consolidated "all regions" / legacy whole-fleet snapshot. */
   snap: Map<string, RegionSnapshot>;
+  /** Keyed `${month}|${vehicleId}` — the vehicle's OWN frozen reconciliation
+   * (REQ-20260726). Takes precedence over the region pool. */
+  vehicleSnap: Map<string, VehicleFuelSnapshot>;
   /** vehicleId → region code ('' when the vehicle has no region). */
   vehicleRegion: Map<string, string>;
   /** vehicleId → its own fuel rate (quota + price), when both are set. */
@@ -87,6 +107,8 @@ export async function loadTruckRegionSnapshots(
   months: string[],
 ): Promise<TruckRegionSnapshots> {
   const snap = new Map<string, RegionSnapshot>();
+  /* Per-vehicle frozen reconciliation (REQ-20260726) — wins over `snap`. */
+  const vehicleSnap = new Map<string, VehicleFuelSnapshot>();
   /* Every (month, region) that has ≥1 live report or legacy close — regardless
    * of whether a fuel snapshot could be computed. region '' = consolidated. */
   const reported = new Set<string>();
@@ -119,6 +141,7 @@ export async function loadTruckRegionSnapshots(
           region: carTruckReports.trrRegion,
           avgPrice: carTruckReports.trrAvgPrice,
           consumption: carTruckReports.trrConsumption,
+          vehicleFuel: carTruckReports.trrVehicleFuel,
         })
         .from(carTruckReports)
         .where(
@@ -148,6 +171,16 @@ export async function loadTruckRegionSnapshots(
         snap.set(snapKey(r.month, r.region ?? ''), {
           avgPrice: parseAmount(r.avgPrice),
           consumption: parseAmount(r.consumption),
+        });
+      }
+      /* Per-vehicle freeze (REQ-20260726) — newest report covering a vehicle
+       * wins, same "creation order, last write" rule as the region snapshot. */
+      for (const v of r.vehicleFuel ?? []) {
+        if (!v?.vehicleId || !(v.costPerKm > 0)) continue;
+        vehicleSnap.set(snapKey(r.month, v.vehicleId), {
+          costPerKm: v.costPerKm,
+          avgPrice: v.avgPrice,
+          consumption: v.km > 0 ? v.liters / v.km : 0,
         });
       }
     }
@@ -180,10 +213,23 @@ export async function loadTruckRegionSnapshots(
 
   return {
     snap,
+    vehicleSnap,
     vehicleRegion,
     vehicleRate,
     forTrip,
     fuelForTrip(month, vehicleId, km) {
+      /* 1) The vehicle's OWN frozen spend, spread by km (REQ-20260726). */
+      const vs = vehicleId ? vehicleSnap.get(snapKey(month, vehicleId)) : undefined;
+      if (vs) {
+        return {
+          cost: km > 0 ? Math.round(km * vs.costPerKm) : 0,
+          unitPrice: vs.avgPrice,
+          liters: km > 0 ? km * vs.consumption : 0,
+          costPerKm: Math.round(vs.costPerKm),
+          mode: 'AVERAGED',
+        };
+      }
+      /* 2) Legacy region-pool snapshot (reports made before 0024). */
       const s = forTrip(month, vehicleId);
       if (s) {
         return {
@@ -194,6 +240,7 @@ export async function loadTruckRegionSnapshots(
           mode: 'AVERAGED',
         };
       }
+      /* 3) The vehicle's configured rate (định mức + giá của xe). */
       const rate = vehicleId ? vehicleRate.get(vehicleId) : undefined;
       if (rate) {
         const consumption = rate.quotaPer100Km / 100;

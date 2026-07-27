@@ -328,7 +328,9 @@
       "adjustmentHistory": "조정 이력",
       "reopenedEntry": "월 재오픈됨",
       "reasonLabel": "사유",
-      "reopenAdminOnly": "관리자만 재오픈할 수 있습니다"
+      "reopenAdminOnly": "관리자만 재오픈할 수 있습니다",
+      "invoiceSelectVehicle": "— 차량 선택 —",
+      "invoiceNoVehicle": "차량 미지정"
     },
     "truckComplete": {
       "completeCta": "운행 완료",
@@ -1950,7 +1952,10 @@
   "layout": {
     "sidebarAria": "기본",
     "mobileNavAria": "모바일 네비게이션",
-    "moreSheet": { "title": "기타 메뉴", "description": "추가 탐색 항목" },
+    "moreSheet": {
+      "title": "기타 메뉴",
+      "description": "추가 탐색 항목"
+    },
     "breadcrumbAria": "이동 경로",
     "back": "뒤로",
     "dept": {
