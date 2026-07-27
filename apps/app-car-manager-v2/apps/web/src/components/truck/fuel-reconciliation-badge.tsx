@@ -49,8 +49,10 @@ export async function FuelReconciliationBadge({
     );
   }
   if (mode === 'VEHICLE_RATE') {
+    /* Neutral, not a confident colour: this is an ESTIMATE (no invoice yet),
+     * and it must not read as official spend next to the green "Bình quân". */
     return (
-      <Badge tone="info" size={size} title={t('fuelVehicleRateTooltip')}>
+      <Badge tone="neutral" size={size} title={t('fuelVehicleRateTooltip')}>
         {t('fuelVehicleRateLabel')}
       </Badge>
     );

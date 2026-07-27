@@ -120,10 +120,21 @@ export default async function TruckFinancePage({
   const qs = q ? `&q=${encodeURIComponent(q)}` : '';
   const exportHref = `${BASE_PATH}/truck/finance/export?month=${month}${vehicleId ? `&vehicle=${vehicleId}` : ''}${qs}`;
 
-  const summaryCards: [string, number, ('profit' | 'plain')?][] = summary
+  /* The fuel total can mix ACTUAL spend (allocated from invoices) with an
+   * ESTIMATE (vehicle rate, no invoice yet). Never let the two hide inside one
+   * number — spell the split out under the KPI so nobody reads an estimate as
+   * money already spent. */
+  const fuelActual = rows.reduce((s, r) => s + (r.fuelMode === 'AVERAGED' ? r.fuelCost : 0), 0);
+  const fuelEstimated = rows.reduce((s, r) => s + (r.fuelMode === 'VEHICLE_RATE' ? r.fuelCost : 0), 0);
+  const fuelSplitNote =
+    fuelEstimated > 0 && fuelActual > 0
+      ? t('kpiFuelSplit', { actual: vnd(fuelActual), est: vnd(fuelEstimated) })
+      : undefined;
+
+  const summaryCards: [string, number, ('profit' | 'plain')?, string?][] = summary
     ? [
         [t('sumRevenue'), summary.revenue],
-        [t('sumFuel'), summary.fuelCost],
+        [t('sumFuel'), summary.fuelCost, undefined, fuelSplitNote],
         [t('sumToll'), summary.tollFee],
         [t('sumOther'), summary.extraTotal],
         /* Driver salary folds into fixedCost now (no separate fleet-roster
@@ -187,7 +198,7 @@ export default async function TruckFinancePage({
         {/* Month summary cards */}
         {summary && (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-            {summaryCards.map(([label, value, kind]) => (
+            {summaryCards.map(([label, value, kind, note]) => (
               <Card key={label} variant="outline" className="p-3">
                 <div className="text-xs text-text-muted">{label}</div>
                 <div
@@ -198,6 +209,7 @@ export default async function TruckFinancePage({
                 >
                   {vnd(value)}
                 </div>
+                {note && <div className="mt-0.5 text-[11px] leading-tight text-text-faint">{note}</div>}
               </Card>
             ))}
           </div>
