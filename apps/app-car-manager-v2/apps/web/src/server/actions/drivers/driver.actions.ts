@@ -1,9 +1,15 @@
 'use server';
 import { randomUUID } from 'node:crypto';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, ne } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@car-v2/db/client';
-import { carDrivers, carUserFleetAccess, carUsers, type CarDriver } from '@car-v2/db/schema';
+import {
+  carDrivers,
+  carUserFleetAccess,
+  carUsers,
+  carVehicles,
+  type CarDriver,
+} from '@car-v2/db/schema';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import { createDriverSchema, updateDriverSchema } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
@@ -63,6 +69,47 @@ export async function createDriverAction(input: unknown): Promise<ActionResult<C
      * filtered by car_user_fleet_access. Idempotent: skip if already present.
      * ADMIN + MANAGER both allowed (gated above). */
     if (data.vehicle_type) {
+      /* A DRIVER belongs to exactly ONE department (same rule enforced by
+       * grantFleetAccessAction). Creating them as a driver of `vehicle_type`
+       * MEANS they now drive for that department, so retire memberships of the
+       * other one instead of throwing — a throw would dead-end the admin, who
+       * would have to revoke via /settings/fleet-access (hidden from the menu)
+       * before retrying.
+       *
+       * Without this, a driver soft-deleted in one dept and re-created in the
+       * other ended up holding BOTH rows (the stale one survives the delete):
+       * they showed in both rosters yet were assignable in neither. Managers /
+       * admins are untouched — multi-department access is legitimate for them
+       * (that IS the request/approve flow). */
+      if (user.usrLocalRole === 'DRIVER') {
+        const retired = await db
+          .update(carUserFleetAccess)
+          .set({ ufaDeletedAt: new Date() })
+          .where(
+            and(
+              eq(carUserFleetAccess.entId, actor.entId),
+              eq(carUserFleetAccess.usrId, data.user_id),
+              ne(carUserFleetAccess.ufaVehicleType, data.vehicle_type),
+              isNull(carUserFleetAccess.ufaDeletedAt),
+            ),
+          )
+          .returning({ type: carUserFleetAccess.ufaVehicleType });
+
+        for (const r of retired) {
+          await logAudit({
+            entId: actor.entId,
+            userId: actor.userId,
+            action: 'FLEET.ACCESS_REVOKED',
+            entity: 'User',
+            entityId: data.user_id,
+            entityRef: user.usrName ?? user.usrEmail ?? data.user_id,
+            before: { vehicleType: r.type },
+            after: { vehicleType: data.vehicle_type, via: 'DRIVER.CREATE' },
+          });
+          revalidatePath(r.type === 'TRUCK' ? '/truck/drivers' : '/drivers');
+        }
+      }
+
       const existing = await db.query.carUserFleetAccess.findFirst({
         where: and(
           eq(carUserFleetAccess.entId, actor.entId),
@@ -154,6 +201,7 @@ export async function deleteDriverAction(id: string): Promise<ActionResult<{ id:
       .select({
         driver: carDrivers,
         userName: carUsers.usrName,
+        userRole: carUsers.usrLocalRole,
       })
       .from(carDrivers)
       .leftJoin(carUsers, eq(carDrivers.drvUserId, carUsers.usrId))
@@ -174,6 +222,46 @@ export async function deleteDriverAction(id: string): Promise<ActionResult<{ id:
       .set({ drvDeletedAt: new Date(), drvUpdatedAt: new Date() })
       .where(and(eq(carDrivers.drvId, id), eq(carDrivers.entId, actor.entId)));
 
+    /* A deleted driver must not stay a vehicle's default driver. The truck P&L
+     * reads the default driver's fixed salary but joins with
+     * `drv_deleted_at IS NULL`, so a dangling reference makes the salary line
+     * silently drop to 0 while /truck/fleet keeps printing the name
+     * (getDriverNamesByIds ignores soft-delete) — the numbers go wrong with no
+     * visible cause. Clearing it instead surfaces the gap: the vehicle shows no
+     * default driver, prompting a reassignment. checkDriverDeleteWarnings
+     * already warns about these vehicles before the admin confirms. */
+    const unlinked = await db
+      .update(carVehicles)
+      .set({ cvhDefaultDriverId: null, cvhUpdatedAt: new Date() })
+      .where(
+        and(
+          eq(carVehicles.entId, actor.entId),
+          eq(carVehicles.cvhDefaultDriverId, id),
+          isNull(carVehicles.cvhDeletedAt),
+        ),
+      )
+      .returning({ id: carVehicles.cvhId, plate: carVehicles.cvhPlateNumber });
+
+    /* A DRIVER's fleet membership only says which fleet they drive for, so it
+     * dies with the driver record — leaving it behind is what let a re-created
+     * driver end up in both departments. A MANAGER/ADMIN's membership is
+     * workspace access that has nothing to do with this driver row: revoking it
+     * would lock them out of /truck entirely. */
+    const revoked =
+      existing.userRole === 'DRIVER'
+        ? await db
+            .update(carUserFleetAccess)
+            .set({ ufaDeletedAt: new Date() })
+            .where(
+              and(
+                eq(carUserFleetAccess.entId, actor.entId),
+                eq(carUserFleetAccess.usrId, existing.driver.drvUserId),
+                isNull(carUserFleetAccess.ufaDeletedAt),
+              ),
+            )
+            .returning({ type: carUserFleetAccess.ufaVehicleType })
+        : [];
+
     await logAudit({
       entId: actor.entId,
       userId: actor.userId,
@@ -182,9 +270,22 @@ export async function deleteDriverAction(id: string): Promise<ActionResult<{ id:
       entityId: id,
       entityRef: existing.userName ?? existing.driver.drvLicenseNumber,
       before: { license: existing.driver.drvLicenseNumber, status: existing.driver.drvStatus },
+      after: {
+        unlinkedDefaultDriverVehicles: unlinked.map((v) => v.plate),
+        revokedFleetAccess: revoked.map((r) => r.type),
+      },
     });
 
     revalidatePath('/drivers');
+    /* The truck surfaces read this driver too: its roster is membership-filtered,
+     * the fleet roster prints the default-driver column, and the P&L / finance
+     * pages sum the salary we just detached. */
+    if (revoked.length > 0) revalidatePath('/truck/drivers');
+    if (unlinked.length > 0) {
+      revalidatePath('/truck/fleet');
+      revalidatePath('/truck/pnl');
+      revalidatePath('/truck/finance');
+    }
     return { id };
   });
 }
