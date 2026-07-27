@@ -240,6 +240,9 @@ export interface TruckFinanceTripRow {
    * vs "Tạm tính" (2026-07-21: no longer implies the fuel figure is reconciled,
    * see `fuelReconciled`). */
   finalized: boolean;
+  /** Cost of one km for this trip (đ/km) — lets the table explain the fuel
+   * figure per-trip as `{km} km × {fuelCostPerKm} ₫/km`. */
+  fuelCostPerKm: number;
   /** How unitPrice/liters/fuelCost above were derived (REQ-20260724):
    *  - AVERAGED     frozen month-end reconciliation (invoices + km)
    *  - VEHICLE_RATE km × (xe định mức/100) × giá của xe (mặc định, live)
@@ -355,6 +358,7 @@ export async function listTruckFinanceTrips(
       revenue,
       profit: revenue - fuelCost - toll - extra,
       finalized,
+      fuelCostPerKm: fuel.costPerKm,
       fuelMode: fuel.mode,
       updatedAt: t.updatedAt,
     };

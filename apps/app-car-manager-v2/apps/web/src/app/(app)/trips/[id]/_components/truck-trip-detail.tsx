@@ -44,6 +44,10 @@ export interface TruckTripDetailProps {
    * | UNSET — undefined when the trip isn't completed yet (no fuel cost to
    * qualify). */
   fuelMode?: FuelBadgeMode;
+  /** This trip's km + cost per km — rendered under the fuel row as
+   * `{km} km × {đ}/km` so the figure explains itself (REQ-20260724 UX). */
+  fuelKm?: number;
+  fuelCostPerKm?: number;
   completed: boolean;
   canComplete: boolean;
   /** Which completion action to call. */
@@ -112,6 +116,11 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
         label={t('fuel')}
         value={vnd(props.breakdown.fuelCost)}
         badge={props.fuelMode !== undefined ? <FuelReconciliationBadge mode={props.fuelMode} /> : undefined}
+        note={
+          props.fuelMode && props.fuelMode !== 'UNSET' && (props.fuelKm ?? 0) > 0
+            ? `${(props.fuelKm as number).toLocaleString(loc)} km × ${vnd(props.fuelCostPerKm ?? 0)}/km`
+            : undefined
+        }
       />
       <CostRow label={t('toll')} value={vnd(props.breakdown.tollFee)} />
       {props.extras.map((e, i) => (
@@ -316,26 +325,32 @@ function CostRow({
   strong,
   tone,
   badge,
+  note,
 }: {
   label: string;
   value: string;
   strong?: boolean;
   tone?: 'success' | 'danger';
   badge?: React.ReactNode;
+  /** Small muted line under the value — used to spell out the fuel arithmetic. */
+  note?: string;
 }) {
   return (
-    <div className={'flex items-center justify-between text-sm ' + (strong ? 'pt-2 border-t border-border font-semibold' : '')}>
+    <div className={'flex items-start justify-between text-sm ' + (strong ? 'pt-2 border-t border-border font-semibold' : '')}>
       <span className="text-text-muted">{label}</span>
-      <span className="inline-flex items-center gap-1.5">
-        <span
-          className={
-            'tabular ' +
-            (tone === 'success' ? 'text-success font-semibold' : tone === 'danger' ? 'text-danger font-semibold' : 'text-text')
-          }
-        >
-          {value}
+      <span className="inline-flex flex-col items-end gap-0.5">
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            className={
+              'tabular ' +
+              (tone === 'success' ? 'text-success font-semibold' : tone === 'danger' ? 'text-danger font-semibold' : 'text-text')
+            }
+          >
+            {value}
+          </span>
+          {badge}
         </span>
-        {badge}
+        {note && <span className="text-xs font-normal text-text-faint">{note}</span>}
       </span>
     </div>
   );

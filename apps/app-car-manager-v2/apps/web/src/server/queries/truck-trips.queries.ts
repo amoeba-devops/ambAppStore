@@ -47,6 +47,10 @@ export async function getTruckTripBreakdown(
    * month-end reconciliation) | VEHICLE_RATE (km × xe định mức/100 × giá xe) |
    * UNSET (xe chưa đặt định mức/giá → 0). Independent of `finalized`. */
   fuelMode: TruckFuelMode;
+  /** This trip's km (end − start odometer) + cost of one km (đ/km) — the detail
+   * page shows `{km} km × {fuelCostPerKm} ₫/km` under the fuel row. */
+  km: number;
+  fuelCostPerKm: number;
   /** The trip's month + resolved operating region ('' = vehicle has no
    * region) — feeds `getTruckReportStatus` so the detail page can show WHEN
    * the report covering this trip was last generated. */
@@ -73,6 +77,8 @@ export async function getTruckTripBreakdown(
     breakdown: { fuelCost: fuel.cost, tollFee, extraTotal, totalCost, revenue, profit: revenue - totalCost },
     finalized,
     fuelMode: fuel.mode,
+    km,
+    fuelCostPerKm: fuel.costPerKm,
     month,
     region,
   };

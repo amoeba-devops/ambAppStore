@@ -48,6 +48,11 @@ export interface TruckTripFuel {
   unitPrice: number;
   /** Litres shown: km × consumption; 0 when unset. */
   liters: number;
+  /** Cost of ONE km for this trip (đ/km) = consumption × unitPrice. Lets the UI
+   * explain the figure per-trip as `{km} km × {costPerKm} ₫/km = {cost}` — the
+   * same shape in both modes, and it makes plain that km drives the cost
+   * (REQ-20260724 UX). 0 when unset. */
+  costPerKm: number;
   mode: TruckFuelMode;
 }
 
@@ -185,6 +190,7 @@ export async function loadTruckRegionSnapshots(
           cost: truckTripFuelCost({ km, consumption: s.consumption, avgPrice: s.avgPrice }),
           unitPrice: s.avgPrice,
           liters: km > 0 ? km * s.consumption : 0,
+          costPerKm: Math.round(s.consumption * s.avgPrice),
           mode: 'AVERAGED',
         };
       }
@@ -199,10 +205,11 @@ export async function loadTruckRegionSnapshots(
           }),
           unitPrice: rate.pricePerLitre,
           liters: km > 0 ? km * consumption : 0,
+          costPerKm: Math.round(consumption * rate.pricePerLitre),
           mode: 'VEHICLE_RATE',
         };
       }
-      return { cost: 0, unitPrice: 0, liters: 0, mode: 'UNSET' };
+      return { cost: 0, unitPrice: 0, liters: 0, costPerKm: 0, mode: 'UNSET' };
     },
     isReported(month, vehicleId) {
       const region = vehicleId ? vehicleRegion.get(vehicleId) ?? '' : '';

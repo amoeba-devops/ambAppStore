@@ -302,6 +302,13 @@ export default async function TruckFinancePage({
                     <TableCell className={cn('text-right tabular', r.fuelMode === 'UNSET' && 'text-text-faint italic')}>
                       <div className="flex flex-col items-end gap-0.5">
                         <span>{vnd(r.fuelCost)}</span>
+                        {/* Per-trip arithmetic — makes plain that THIS trip's km
+                          * drives the figure (same shape in both fuel modes). */}
+                        {r.fuelMode !== 'UNSET' && r.km > 0 && (
+                          <span className="text-xs font-normal not-italic text-text-faint whitespace-nowrap">
+                            {num(r.km)} km × {vnd(r.fuelCostPerKm)}/km
+                          </span>
+                        )}
                         <FuelReconciliationBadge mode={r.fuelMode} />
                       </div>
                     </TableCell>

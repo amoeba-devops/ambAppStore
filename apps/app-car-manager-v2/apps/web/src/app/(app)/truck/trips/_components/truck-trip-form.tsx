@@ -346,9 +346,15 @@ export function TruckTripForm({
       ) : hasVehicleRate ? (
         <>
           <p className="text-text-muted">{t('fuelByVehicleHint')}</p>
+          {/* Per-trip arithmetic first (km is what the user is editing), with the
+            * vehicle rate spelled out underneath. */}
           <p className="text-text">
-            {vehicleQuota} L/100km × {vnd(vehiclePrice as number)}/L ={' '}
+            {(totalKm ?? 0).toLocaleString('vi-VN')} km ×{' '}
+            {vnd(Math.round(((vehicleQuota as number) / 100) * (vehiclePrice as number)))}/km ={' '}
             <span className="font-semibold">{vnd(preview.fuelCost)}</span>
+          </p>
+          <p className="text-xs text-text-faint">
+            {vehicleQuota} L/100km × {vnd(vehiclePrice as number)}/L
           </p>
         </>
       ) : (
