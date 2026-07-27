@@ -27,7 +27,9 @@ export default async function NewTripPage() {
    * entId ở đây để khớp pattern. */
   const [drivers, vehicles, users] = await Promise.all([
     listNonTruckDrivers(user.entId),
-    listVehicles(user.entId),
+    /* 'CAR' — trước đây picker xe không lọc nên gán được xe tải cho chuyến điều
+     * xe khách, dù picker tài xế đã chặn tài xế tải. */
+    listVehicles(user.entId, 'active', 'CAR'),
     db
       .select({
         id: carUsers.usrId,

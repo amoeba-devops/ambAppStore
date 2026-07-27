@@ -42,7 +42,7 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
       .from(carUsers)
       .where(and(eq(carUsers.entId, user.entId), isNull(carUsers.usrDeletedAt))),
     listNonTruckDrivers(user.entId),
-    listVehicles(user.entId),
+    listVehicles(user.entId, 'active', 'CAR'),
     db.query.carTripStopovers.findMany({
       where: eq(carTripStopovers.tstTripId, id),
       orderBy: (t, { asc }) => asc(t.tstOrder),

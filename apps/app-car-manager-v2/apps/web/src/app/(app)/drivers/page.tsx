@@ -53,8 +53,10 @@ export default async function DriversPage({ searchParams }: PageProps) {
   const statusFilter: DriverFilter = ['active', 'deleted', 'all'].includes(sp.status ?? '')
     ? (sp.status as DriverFilter)
     : 'active';
-  /* listDrivers enforce ent_id; search filter cũng chỉ chạy trong tenant scope. */
-  const drivers = await listDrivers(user.entId, searchQ, statusFilter);
+  /* listDrivers enforce ent_id; search filter cũng chỉ chạy trong tenant scope.
+   * dept='CAR' để roster này không kéo tài xế xe tải sang — họ thuộc
+   * /truck/drivers (REQ-20260617). */
+  const drivers = await listDrivers(user.entId, searchQ, statusFilter, 'CAR');
 
   const activeDrivers = drivers.filter((d) => !d.isDeleted);
   const deletedCount = drivers.filter((d) => d.isDeleted).length;

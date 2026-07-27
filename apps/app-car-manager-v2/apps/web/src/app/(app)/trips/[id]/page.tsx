@@ -127,7 +127,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
   const isStaff = user.role === 'ADMIN' || user.role === 'MANAGER';
   const [drivers, vehicles, auditRows] = await Promise.all([
     isStaff ? listNonTruckDrivers(user.entId) : Promise.resolve([]),
-    isStaff ? listVehicles(user.entId) : Promise.resolve([]),
+    isStaff ? listVehicles(user.entId, 'active', 'CAR') : Promise.resolve([]),
     listAuditForEntity(user.entId, 'Trip', id),
   ]);
 

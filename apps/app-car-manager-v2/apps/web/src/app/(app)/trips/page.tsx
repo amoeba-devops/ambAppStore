@@ -182,7 +182,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
     if (user.role === 'ADMIN' || user.role === 'MANAGER') {
       const [drivers, vehicles] = await Promise.all([
         listNonTruckDrivers(user.entId),
-        listVehicles(user.entId),
+        listVehicles(user.entId, 'active', 'CAR'),
       ]);
       peekDrivers = drivers.map((d) => ({
         id: d.drvId,

@@ -18,6 +18,9 @@ export default async function EditVehiclePage({ params }: { params: Promise<{ id
 
   const vehicle = await getVehicle(user.entId, id);
   if (!vehicle) notFound();
+  /* Trucks edit through their own form — this one has no Mã xe / tải trọng /
+   * định mức / giá dầu / khu vực / tài xế mặc định / khấu hao field. */
+  if (vehicle.cvhType === 'TRUCK') redirect(`/truck/fleet/${id}/edit`);
 
   return (
     <>

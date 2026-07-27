@@ -48,8 +48,10 @@ export default async function ExpenseNewPage({ searchParams }: ExpenseNewPagePro
   let drivers: DriverOption[] = [];
   if (!tripId) {
     const [vRows, dRows] = await Promise.all([
-      listVehicles(user.entId),
-      isStaff ? listDrivers(user.entId) : Promise.resolve([]),
+      /* Cả 2 select đều scope 'CAR': chi phí xe tải được ghi trong form hoàn
+       * thành chuyến ở /truck, không qua đây. */
+      listVehicles(user.entId, 'active', 'CAR'),
+      isStaff ? listDrivers(user.entId, undefined, 'active', 'CAR') : Promise.resolve([]),
     ]);
     vehicles = vRows
       .filter((v) => v.cvhStatus !== 'RETIRED')

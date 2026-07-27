@@ -39,7 +39,9 @@ export default async function VehiclesPage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
 
   const deletedFilter: VehicleDeletedFilter = (['active', 'deleted', 'all'].includes(sp.deleted ?? '') ? sp.deleted : 'active') as VehicleDeletedFilter;
-  const vehicles = await listVehicles(user.entId, deletedFilter);
+  /* 'CAR' only — xe tải có roster riêng ở /truck/fleet. Không lọc thì cả 4 thẻ
+   * tổng hợp bên dưới cũng cộng luôn xe tải (REQ-20260617). */
+  const vehicles = await listVehicles(user.entId, deletedFilter, 'CAR');
 
   const summary = {
     total: vehicles.length,

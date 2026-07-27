@@ -102,15 +102,40 @@ export async function listNonTruckDrivers(entId: string): Promise<DriverWithUser
   return rows.map((r) => ({ ...r.driver, user: r.user, isDeleted: false }));
 }
 
+/** Membership predicate for one fleet department.
+ *
+ * TRUCK is EXISTS (explicit membership row), CAR is NOT EXISTS TRUCK — the same
+ * asymmetry `listFleetDrivers` / `listNonTruckDrivers` already encode. A driver
+ * created from `/drivers/new` gets no CAR row (createDriverAction only grants
+ * when the caller passes a dept), so `EXISTS CAR` would hide them; until that
+ * gap is closed, "car driver" has to mean "not tagged TRUCK" (BUG-260624).
+ */
+function deptPredicate(entId: string, dept: CarVehicleType): SQL {
+  const exists = sql`EXISTS (
+    SELECT 1 FROM car_user_fleet_access f
+    WHERE f.usr_id = ${carDrivers.drvUserId}
+      AND f.ent_id = ${entId}
+      AND f.ufa_vehicle_type = 'TRUCK'
+      AND f.ufa_deleted_at IS NULL
+  )`;
+  return dept === 'TRUCK' ? exists : sql`NOT ${exists}`;
+}
+
 /** List drivers trong 1 tenant, optional free-text search trên tên/email/license/phone.
  *  Ent_id filter là bắt buộc (multi-tenancy).
- *  @param filter - 'active' (default), 'deleted', or 'all' */
+ *  @param filter - 'active' (default), 'deleted', or 'all'
+ *  @param dept - restrict to one fleet department (CAR/TRUCK). Omit for the
+ *    whole tenant roster. The car workspace passes 'CAR' so trucks' drivers stay
+ *    in `/truck/drivers` (REQ-20260617 department separation). */
 export async function listDrivers(
   entId: string,
   q?: string,
   filter: DriverListFilter = 'active',
+  dept?: CarVehicleType,
 ): Promise<DriverWithUser[]> {
   const filters: SQL[] = [eq(carDrivers.entId, entId)];
+
+  if (dept) filters.push(deptPredicate(entId, dept));
 
   // Apply deleted filter
   if (filter === 'active') {
