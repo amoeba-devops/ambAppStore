@@ -49,6 +49,9 @@ export async function GET(req: NextRequest) {
     q,
     dateRange,
     page: 1,
+    /* Export của /trips = chuyến điều xe. Chuyến xe tải xuất qua
+     * /truck/reports (mẫu Excel riêng, có doanh thu + chi phí chuyến). */
+    kind: 'DISPATCH',
   });
   /* Re-fetch up to N pages to bypass per-call limit if needed — MVP simple. */
   const MAX_ROWS = 1000;

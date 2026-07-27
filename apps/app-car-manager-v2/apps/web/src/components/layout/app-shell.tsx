@@ -38,7 +38,11 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
    * round-trip on every page render. */
   const wantsTodayCost = user.role === 'ADMIN' || user.role === 'MANAGER';
   const [pendingTripCount, todayExpenseCount, unreadNotificationCount, settings, fleetAccess, tCo, tRoot] = await Promise.all([
-    countPendingTrips({ entId: user.entId, role: user.role, userId: user.userId }),
+    /* Badge sits on the `trips` nav item, which is fleet:'CAR' — so it must
+     * count dispatch trips only. (Truck LOG trips are auto-CONFIRMED on assign
+     * and never enter a PENDING_* status, so this is a no-op today; it stops the
+     * badge drifting if the truck flow ever gains a pending state.) */
+    countPendingTrips({ entId: user.entId, role: user.role, userId: user.userId, kind: 'DISPATCH' }),
     wantsTodayCost ? countTodayExpenses(user.entId) : Promise.resolve(0),
     /* In-app inbox badge — all roles see it. Index on (ntfUserId, ntfReadAt)
      * keeps this lookup index-only even at high volume. */

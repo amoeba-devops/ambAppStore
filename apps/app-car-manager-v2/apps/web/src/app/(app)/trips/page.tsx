@@ -145,6 +145,9 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         q: searchQ,
         dateRange,
         deletedFilter,
+        /* Kanban điều xe: cột = trạng thái của state machine DISPATCH. Chuyến
+         * LOG auto-CONFIRMED nên trước đây dồn hết vào 1 cột ở đây. */
+        kind: 'DISPATCH',
       }),
       peekPromise,
     ]);
@@ -163,6 +166,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         dateRange,
         page,
         deletedFilter,
+        kind: 'DISPATCH',
       }),
       peekPromise,
     ]);

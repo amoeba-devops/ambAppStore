@@ -8,6 +8,7 @@ import {
   carUsers,
   carVehicles,
   type CarTrip,
+  type CarTripKind,
   type CarTripStatus,
 } from '@car-v2/db/schema';
 import { CarError } from '@car-v2/shared/errors';
@@ -42,6 +43,10 @@ interface ListInput {
   page?: number;
   /** Filter by soft-deleted status. Mặc định 'active' (chỉ hiện trip chưa xóa). */
   deletedFilter?: TripDeletedFilter;
+  /** Restrict to one fleet's trips: 'DISPATCH' (car) | 'LOG' (truck cargo).
+   *  Omit for both. Car-workspace screens pass 'DISPATCH' so the truck trip log
+   *  stays in /truck/trips (REQ-20260617). */
+  kind?: CarTripKind;
 }
 
 export async function listTrips({
@@ -53,10 +58,13 @@ export async function listTrips({
   dateRange = 'all',
   page = 1,
   deletedFilter = 'active',
+  kind,
 }: ListInput): Promise<{ items: TripListItem[]; total: number; page: number; pageSize: number }> {
   /* Per PRD R-3 (REQ §3.7): Admin sees all, Manager sees own (creator OR passenger),
    * Driver sees only trips assigned to them. */
   const filters: SQL[] = [eq(carTrips.entId, entId)];
+
+  if (kind) filters.push(eq(carTrips.trpKind, kind));
 
   /* Soft-delete filter: 'active' only shows live trips, 'deleted' only shows
    * soft-deleted, 'all' shows both. Default 'active' for normal operations. */
@@ -159,13 +167,16 @@ export async function countPendingTrips(args: {
   entId: string;
   role: LocalRole;
   userId: string;
+  kind?: CarTripKind;
 }): Promise<number> {
-  const { entId, role, userId } = args;
+  const { entId, role, userId, kind } = args;
   const filters: SQL[] = [
     eq(carTrips.entId, entId),
     isNull(carTrips.trpDeletedAt),
     inArray(carTrips.trpStatus, ['PENDING_ASSIGNMENT', 'PENDING_DRIVER_CONFIRMATION']),
   ];
+
+  if (kind) filters.push(eq(carTrips.trpKind, kind));
 
   if (role === 'MANAGER') {
     const visibility = or(eq(carTrips.trpCreatorId, userId), eq(carTrips.trpPassengerId, userId));
@@ -198,14 +209,17 @@ export async function listTripsForCalendar(args: {
   userId: string;
   rangeStart: Date;
   rangeEnd: Date;
+  kind?: CarTripKind;
 }): Promise<TripListItem[]> {
-  const { entId, role, userId, rangeStart, rangeEnd } = args;
+  const { entId, role, userId, rangeStart, rangeEnd, kind } = args;
   const filters: SQL[] = [
     eq(carTrips.entId, entId),
     isNull(carTrips.trpDeletedAt),
     gte(carTrips.trpScheduledAt, rangeStart),
     lt(carTrips.trpScheduledAt, rangeEnd),
   ];
+
+  if (kind) filters.push(eq(carTrips.trpKind, kind));
 
   if (role === 'MANAGER') {
     const visibility = or(eq(carTrips.trpCreatorId, userId), eq(carTrips.trpPassengerId, userId));
@@ -270,9 +284,12 @@ export async function listTripsForBoard(args: {
   q?: string;
   dateRange?: TripDateRange;
   deletedFilter?: TripDeletedFilter;
+  kind?: CarTripKind;
 }): Promise<{ items: TripListItem[]; capped: boolean }> {
-  const { entId, role, userId, q, dateRange = 'all', deletedFilter = 'active' } = args;
+  const { entId, role, userId, q, dateRange = 'all', deletedFilter = 'active', kind } = args;
   const filters: SQL[] = [eq(carTrips.entId, entId)];
+
+  if (kind) filters.push(eq(carTrips.trpKind, kind));
 
   /* Soft-delete filter: 'active' only shows live trips, 'deleted' only shows
    * soft-deleted, 'all' shows both. Default 'active' for normal operations. */

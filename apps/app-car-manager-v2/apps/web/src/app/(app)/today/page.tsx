@@ -66,6 +66,11 @@ export default async function TodayPage() {
       role: user.role,
       userId: user.userId,
       status: 'all',
+      /* Nhánh staff của /today là bản tóm tắt điều xe hôm nay (hero + giờ khởi
+       * hành), không phải nhật trình xe tải. Nhánh DRIVER bên dưới vẫn dùng
+       * listTripsForDriver KHÔNG lọc — tài xế xe tải cần thấy chuyến LOG của
+       * mình, TruckDriverToday tự lọc kind trong bộ nhớ. */
+      kind: 'DISPATCH',
     });
     myTrips = items;
   }

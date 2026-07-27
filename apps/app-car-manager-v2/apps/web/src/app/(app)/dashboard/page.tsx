@@ -43,6 +43,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       userId: user.userId,
       rangeStart: range.start,
       rangeEnd: range.end,
+      /* Lịch điều xe — chuyến xe tải (LOG) có màn riêng /truck/trips.
+       * fetchTripsForCalendarAction (client re-fetch khi đổi tháng) phải truyền
+       * cùng giá trị, nếu không chuyến xe tải hiện lại ngay lần đổi tháng đầu. */
+      kind: 'DISPATCH',
     }),
     /* Side panel "Trips" list — broader scope than the calendar range so the
      * user sees recent past + future activity. Pagination is the same query
@@ -53,8 +57,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       userId: user.userId,
       status: 'all',
       page: 1,
+      kind: 'DISPATCH',
     }),
-    listVehicles(user.entId),
+    /* 'CAR' — vehicle legend + booking form của workspace xe con; xe tải có
+     * dashboard riêng ở /truck/dashboard. */
+    listVehicles(user.entId, 'active', 'CAR'),
     listNonTruckDrivers(user.entId),
     db
       .select({ id: carUsers.usrId, name: carUsers.usrName, role: carUsers.usrLocalRole })
