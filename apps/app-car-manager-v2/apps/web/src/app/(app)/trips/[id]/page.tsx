@@ -72,7 +72,18 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
     const isStaffUser = user.role === 'ADMIN' || user.role === 'MANAGER';
     const extras = await getTripExtraCosts(user.entId, trip.trpId);
     const costAttachments = await getTripCostAttachmentsView(user.entId, trip.trpId);
-    const { breakdown, fuelMode, km: fuelKm, fuelCostPerKm, month, region } = await getTruckTripBreakdown(user.entId, trip, extras.map((e) => e.amount));
+    const {
+      breakdown,
+      fuelMode,
+      km: fuelKm,
+      fuelCostPerKm,
+      salaryAllocated,
+      depreciationAllocated,
+      profitAfterFixed,
+      fixedTripCount,
+      month,
+      region,
+    } = await getTruckTripBreakdown(user.entId, trip, extras.map((e) => e.amount));
     const completed = trip.trpStatus === 'COMPLETED';
     const canComplete =
       !completed &&
@@ -100,6 +111,10 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
         fuelMode={completed ? fuelMode : undefined}
         fuelKm={fuelKm}
         fuelCostPerKm={fuelCostPerKm}
+        salaryAllocated={completed ? salaryAllocated : undefined}
+        depreciationAllocated={completed ? depreciationAllocated : undefined}
+        profitAfterFixed={completed ? profitAfterFixed : undefined}
+        fixedTripCount={fixedTripCount}
         completed={completed}
         canComplete={canComplete}
         mode={user.role === 'DRIVER' ? 'driver' : 'staff'}

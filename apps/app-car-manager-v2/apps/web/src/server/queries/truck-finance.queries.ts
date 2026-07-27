@@ -12,7 +12,14 @@ import {
   carUsers,
 } from '@car-v2/db/schema';
 import { CarError } from '@car-v2/shared/errors';
-import { parseAmount, truckTripFuelCost, computeTruckPnl, loadTruckRegionSnapshots, type TruckFuelMode } from '@car-v2/core/truck';
+import {
+  parseAmount,
+  truckTripFuelCost,
+  computeTruckPnl,
+  loadTruckRegionSnapshots,
+  loadTruckFixedAllocation,
+  type TruckFuelMode,
+} from '@car-v2/core/truck';
 import type { AuthContext } from '@/lib/auth/get-current-user';
 
 /** Is (ent, TRUCK, month, region) closed? `region` null = the whole-fleet
@@ -243,6 +250,15 @@ export interface TruckFinanceTripRow {
   /** Cost of one km for this trip (đ/km) — lets the table explain the fuel
    * figure per-trip as `{km} km × {fuelCostPerKm} ₫/km`. */
   fuelCostPerKm: number;
+  /** This trip's slice of the month's fixed cost (client Sheet3 "phân bổ theo
+   * chuyến") = monthly salary/depreciation of its vehicle ÷ that vehicle's
+   * completed trips in the month. */
+  salaryAllocated: number;
+  depreciationAllocated: number;
+  /** revenue − fuel − toll − extra − (salary + depreciation allocated) — the
+   * customer's "Lợi nhuận theo chuyến". `profit` above stays the VARIABLE-only
+   * figure the Excel exports and report review are built on. */
+  profitAfterFixed: number;
   /** How unitPrice/liters/fuelCost above were derived (REQ-20260724):
    *  - AVERAGED     frozen month-end reconciliation (invoices + km)
    *  - VEHICLE_RATE km × (xe định mức/100) × giá của xe (mặc định, live)
@@ -267,8 +283,9 @@ export async function listTruckFinanceTrips(
   const start = new Date(`${opts.month}-01T00:00:00.000Z`);
   const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
 
-  const [snapshots, trips] = await Promise.all([
+  const [snapshots, fixedAlloc, trips] = await Promise.all([
     loadTruckRegionSnapshots(entId, [opts.month]),
+    loadTruckFixedAllocation(entId, [opts.month]),
     db
       .select({
         trpId: carTrips.trpId,
@@ -339,6 +356,7 @@ export async function listTruckFinanceTrips(
     const finalized = snapshots.isReported(opts.month, t.vehicleId);
     const fuel = snapshots.fuelForTrip(opts.month, t.vehicleId, km);
     const fuelCost = fuel.cost;
+    const fixedShare = fixedAlloc.forTrip(opts.month, t.vehicleId);
     return {
       trpId: t.trpId,
       ref: t.ref,
@@ -359,6 +377,9 @@ export async function listTruckFinanceTrips(
       profit: revenue - fuelCost - toll - extra,
       finalized,
       fuelCostPerKm: fuel.costPerKm,
+      salaryAllocated: fixedShare.salary,
+      depreciationAllocated: fixedShare.depreciation,
+      profitAfterFixed: revenue - fuelCost - toll - extra - fixedShare.total,
       fuelMode: fuel.mode,
       updatedAt: t.updatedAt,
     };

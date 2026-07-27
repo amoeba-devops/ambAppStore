@@ -12,6 +12,7 @@ import {
 import {
   parseAmount,
   loadTruckRegionSnapshots,
+  loadTruckFixedAllocation,
   getTripCostAttachments,
   type TruckCostBreakdown,
   type TruckFuelMode,
@@ -51,6 +52,13 @@ export async function getTruckTripBreakdown(
    * page shows `{km} km × {fuelCostPerKm} ₫/km` under the fuel row. */
   km: number;
   fuelCostPerKm: number;
+  /** This trip's slice of the month's fixed cost (Sheet3 "phân bổ theo chuyến")
+   * + the profit after it. `breakdown.profit` stays variable-only. */
+  salaryAllocated: number;
+  depreciationAllocated: number;
+  profitAfterFixed: number;
+  /** Trips the month's fixed cost was split across (for the "÷ N chuyến" note). */
+  fixedTripCount: number;
   /** The trip's month + resolved operating region ('' = vehicle has no
    * region) — feeds `getTruckReportStatus` so the detail page can show WHEN
    * the report covering this trip was last generated. */
@@ -58,7 +66,10 @@ export async function getTruckTripBreakdown(
   region: string;
 }> {
   const month = monthKey(trip.trpScheduledAt);
-  const snapshots = await loadTruckRegionSnapshots(entId, [month]);
+  const [snapshots, fixedAlloc] = await Promise.all([
+    loadTruckRegionSnapshots(entId, [month]),
+    loadTruckFixedAllocation(entId, [month]),
+  ]);
   const region = trip.trpVehicleId ? snapshots.vehicleRegion.get(trip.trpVehicleId) ?? '' : '';
   /* "Đã lập BC" = a report exists for this (month, region), even without a fuel
    * snapshot (2026-07-21); the snapshot only drives the fuel cost. */
@@ -69,6 +80,7 @@ export async function getTruckTripBreakdown(
       : 0;
   /* Fuel = frozen snapshot → vehicle rate → 0 (REQ-20260724), shared helper. */
   const fuel = snapshots.fuelForTrip(month, trip.trpVehicleId, km);
+  const fixedShare = fixedAlloc.forTrip(month, trip.trpVehicleId);
   const tollFee = Math.round(parseAmount(trip.trpTollFee));
   const extraTotal = Math.round(extraAmounts.reduce((s, n) => s + (n || 0), 0));
   const revenue = Math.round(parseAmount(trip.trpRevenue));
@@ -79,6 +91,10 @@ export async function getTruckTripBreakdown(
     fuelMode: fuel.mode,
     km,
     fuelCostPerKm: fuel.costPerKm,
+    salaryAllocated: fixedShare.salary,
+    depreciationAllocated: fixedShare.depreciation,
+    profitAfterFixed: revenue - totalCost - fixedShare.total,
+    fixedTripCount: fixedShare.tripCount,
     month,
     region,
   };
