@@ -27,7 +27,18 @@ export default async function NewDriverPage() {
   const user = await getCurrentUser();
   if (user.role !== 'ADMIN' && user.role !== 'MANAGER') redirect('/drivers');
 
-  const candidates = await listDriverCandidates(user.entId);
+  /* 'CAR' on BOTH calls below.
+   *
+   * The query arg keeps people committed to the truck fleet out of the picker —
+   * previously both new-driver pages passed no department and offered the exact
+   * same list.
+   *
+   * The form prop makes createDriverAction actually grant the CAR membership.
+   * Without it `vehicle_type` arrived undefined and the action skipped its whole
+   * fleet-access block, so a driver created here got NO membership row at all —
+   * and if the picked user happened to hold TRUCK, that row survived and put the
+   * brand-new "car" driver in the truck roster instead. */
+  const candidates = await listDriverCandidates(user.entId, 'CAR');
 
   return (
     <>
@@ -77,7 +88,7 @@ export default async function NewDriverPage() {
             </CardContent>
           </Card>
         ) : (
-          <DriverForm userCandidates={candidates} />
+          <DriverForm userCandidates={candidates} dept="CAR" />
         )}
       </div>
     </>

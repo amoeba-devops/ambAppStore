@@ -249,26 +249,68 @@ export async function getDriverByUserId(entId: string, userId: string): Promise<
   return row ?? null;
 }
 
+export interface DriverCandidate extends Pick<CarUser, 'usrId' | 'usrName' | 'usrEmail'> {
+  /** Shown next to the name so the admin can see they are about to make a
+   * MANAGER/ADMIN into a driver — that is how three managers ended up holding
+   * driver rows and carrying trucks' salary lines. */
+  usrLocalRole: CarUser['usrLocalRole'];
+}
+
 /**
- * Users in this tenant who can become a driver — i.e. role=DRIVER (or MEMBER if
- * not yet mapped) and not already linked to a live car_drivers row.
- * Used to populate the driver-create form's user select.
+ * Users in this tenant who can become a driver of `dept` — not already linked to
+ * a live car_drivers row, and not committed to the OTHER department.
+ *
+ * `dept` matters because a DRIVER belongs to exactly ONE department. Without it
+ * both /drivers/new and /truck/drivers/new offered the identical list, so an
+ * admin creating a CAR driver could pick someone who already holds TRUCK: the
+ * new driver then surfaced in the TRUCK roster and never in the car one (the car
+ * roster is the complement of TRUCK), and their /today rendered the truck
+ * screen. Nothing reported an error — the driver simply appeared in the wrong
+ * app.
+ *
+ * Users with NO membership stay eligible for both: that is a fresh AMA member,
+ * the normal case. Someone who holds `dept` already stays eligible too — a
+ * manager of both departments legitimately shows in either picker.
  */
-export async function listDriverCandidates(entId: string): Promise<Pick<CarUser, 'usrId' | 'usrName' | 'usrEmail'>[]> {
+export async function listDriverCandidates(
+  entId: string,
+  dept?: CarVehicleType,
+): Promise<DriverCandidate[]> {
   const alreadyLinked = await db
     .select({ id: carDrivers.drvUserId })
     .from(carDrivers)
     .where(and(eq(carDrivers.entId, entId), isNull(carDrivers.drvDeletedAt)));
   const linkedIds = alreadyLinked.map((r) => r.id);
 
+  /* Belongs to the other department and not to this one → not a candidate here.
+   * Kept as one SQL predicate (rather than a second round-trip) so the
+   * exclusion can never drift out of sync with the membership rows. */
+  const wrongDept = (d: CarVehicleType): SQL => {
+    const holds = (type: CarVehicleType) => sql`EXISTS (
+      SELECT 1 FROM car_user_fleet_access f
+      WHERE f.usr_id = ${carUsers.usrId}
+        AND f.ent_id = ${entId}
+        AND f.ufa_vehicle_type = ${type}
+        AND f.ufa_deleted_at IS NULL
+    )`;
+    const other: CarVehicleType = d === 'TRUCK' ? 'CAR' : 'TRUCK';
+    return sql`NOT (${holds(other)} AND NOT ${holds(d)})`;
+  };
+
   const candidates = await db
-    .select({ usrId: carUsers.usrId, usrName: carUsers.usrName, usrEmail: carUsers.usrEmail })
+    .select({
+      usrId: carUsers.usrId,
+      usrName: carUsers.usrName,
+      usrEmail: carUsers.usrEmail,
+      usrLocalRole: carUsers.usrLocalRole,
+    })
     .from(carUsers)
     .where(
       and(
         eq(carUsers.entId, entId),
         isNull(carUsers.usrDeletedAt),
         linkedIds.length > 0 ? notInArray(carUsers.usrId, linkedIds) : sql`true`,
+        dept ? wrongDept(dept) : sql`true`,
       ),
     )
     .orderBy(asc(carUsers.usrName));
