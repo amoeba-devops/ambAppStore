@@ -80,8 +80,16 @@ export default async function TodayPage() {
    * same component admins use — keeping the visual identity consistent across
    * roles per user feedback. */
   if (user.role === 'DRIVER') {
-    /* Truck drivers get a completion-oriented Today (no dispatch hero). */
-    const isTruckDriver = (await resolveFleetAccess(user)).includes('TRUCK');
+    /* Truck drivers get a completion-oriented Today (no dispatch hero).
+     *
+     * CAR wins the tie. A DRIVER is meant to hold exactly one department, but
+     * when the data drifts — a delete-then-recreate, a hand-edited membership —
+     * this was the ONE place resolving the ambiguity TRUCK-first, while
+     * middleware's manager bounce (middleware.ts) and landingPathFor both
+     * resolve CAR-first. The disagreement showed up as a car driver landing on
+     * the truck Today screen. */
+    const fleets = await resolveFleetAccess(user);
+    const isTruckDriver = fleets.includes('TRUCK') && !fleets.includes('CAR');
     /* Truck subtitle counts trips still needing a log (not "today" — a truck
      * log can be back-dated), which is the number the driver actually acts on. */
     const truckTodoCount = myTrips.filter(

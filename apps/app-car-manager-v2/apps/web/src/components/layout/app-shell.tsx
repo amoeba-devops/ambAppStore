@@ -67,8 +67,15 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
 
   /* CRITICAL maintenance alerts for the sticky banner (Module 2, REQ-20260519
    * Q7). STAFF only — the nav entry and the page are STAFF-scoped and a driver
-   * has no way to act on one. `getCriticalUnresolvedAlerts` is already CAR-only. */
-  const criticalAlerts = wantsTodayCost
+   * has no way to act on one.
+   *
+   * Also CAR-access only. The alerts themselves are CAR-only
+   * (`getCriticalUnresolvedAlerts` joins on cvh_type='CAR'), but the banner
+   * rides above EVERY page — so a TRUCK-only manager was being shown a car's
+   * overdue oil change, and the banner's link bounced off /maintenance's CAR
+   * fleet gate straight back to /truck/dashboard. A dead-end warning about a
+   * vehicle they cannot even open. */
+  const criticalAlerts = wantsTodayCost && fleetAccess.includes('CAR')
     ? (await getCriticalUnresolvedAlerts(user.entId))
         .filter((r) => r.alert.malType === 'OIL_OVERDUE' || r.alert.malType === 'INSPECTION_OVERDUE')
         .map((r) => ({
@@ -96,9 +103,14 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   const cookieDept = (await cookies()).get('ccms.fleet.dept')?.value;
   const initialDept: FleetDept =
     user.role === 'DRIVER'
-      ? fleetAccess.includes('TRUCK')
-        ? 'TRUCK'
-        : 'CAR'
+      ? /* CAR-first on a tie, matching /today's view pick and middleware's
+         * manager bounce. A driver should only ever have one department; this
+         * ordering only decides what happens when the data says otherwise. */
+        fleetAccess.includes('CAR')
+        ? 'CAR'
+        : fleetAccess.includes('TRUCK')
+          ? 'TRUCK'
+          : 'CAR'
       : cookieDept === 'TRUCK' && fleetAccess.includes('TRUCK')
         ? 'TRUCK'
         : cookieDept === 'CAR' && fleetAccess.includes('CAR')
