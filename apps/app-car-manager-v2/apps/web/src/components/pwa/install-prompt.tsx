@@ -124,8 +124,31 @@ export function InstallPrompt() {
     <div
       role="dialog"
       aria-labelledby="pwa-install-title"
-      className="fixed inset-x-0 bottom-0 z-50 px-3 pb-3"
-      style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+      /* Sits ABOVE the mobile bottom-tab band, never on top of it.
+       *
+       * This was `bottom-0 z-50` while BottomTabNav is `z-40`, so on a phone the
+       * banner covered the entire tab bar — including the elevated Dashboard
+       * button that protrudes 20px above it — and navigation was simply dead
+       * until someone dismissed the banner. It shows unprompted on iOS Safari
+       * and on Android as soon as Chrome fires `beforeinstallprompt`, so the
+       * first thing a new mobile user met was a nav bar that ignored taps.
+       *
+       * The offset matches the band every other floating element uses:
+       * 56px (h-14) + the device safe-area inset, same expression as <main>'s
+       * reserved padding and the Fab's own bottom. The extra 20px clears the
+       * elevated Dashboard button, which ElevatedDashboardTab lifts `-top-5`
+       * above the bar — clearing only the bar itself still left the card sitting
+       * on that button's top edge. Desktop has no bottom nav (`md:hidden`), so
+       * there it goes back to the viewport edge.
+       *
+       * Trade-off: on the CAR screens that have a Fab (z-30, 16px above the same
+       * band) the banner card will overlap it while visible. That is one
+       * dismissible promo briefly covering "+ Tạo", versus every tab being
+       * untappable — and truck screens have no Fab at all. */
+      className={
+        'fixed inset-x-0 z-50 px-3 pb-3 ' +
+        'bottom-[calc(56px+env(safe-area-inset-bottom,0px)+20px)] md:bottom-0'
+      }
     >
       <div className="mx-auto max-w-md rounded-2xl border border-border bg-surface shadow-lg px-4 py-3.5">
         <div className="flex items-start gap-3">
