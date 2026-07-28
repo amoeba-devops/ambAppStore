@@ -5,6 +5,7 @@ import { resolveFleetAccess } from '@/lib/auth/fleet-access';
 import type { FleetDept } from './nav-items';
 import { countTodayExpenses } from '@/server/queries/expenses.queries';
 import { countUnreadNotifications } from '@/server/queries/notifications.queries';
+import { getCriticalUnresolvedAlerts } from '@/server/queries/maintenance-alerts.queries';
 import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
 import { countPendingTrips } from '@/server/queries/trips.queries';
 import { countNewTruckReports } from '@/server/queries/truck-report.queries';
@@ -64,6 +65,19 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       ? await countNewTruckReports(user.entId, user.userId)
       : 0;
 
+  /* CRITICAL maintenance alerts for the sticky banner (Module 2, REQ-20260519
+   * Q7). STAFF only — the nav entry and the page are STAFF-scoped and a driver
+   * has no way to act on one. `getCriticalUnresolvedAlerts` is already CAR-only. */
+  const criticalAlerts = wantsTodayCost
+    ? (await getCriticalUnresolvedAlerts(user.entId))
+        .filter((r) => r.alert.malType === 'OIL_OVERDUE' || r.alert.malType === 'INSPECTION_OVERDUE')
+        .map((r) => ({
+          alertId: r.alert.malId,
+          vehiclePlate: r.vehiclePlate ?? '—',
+          type: r.alert.malType as 'OIL_OVERDUE' | 'INSPECTION_OVERDUE',
+        }))
+    : [];
+
   const defaultTenantName = tCo('tenantDefault');
   /* Resolution order: DB-stored tenant name → JWT-issued entity name →
    * i18n default. Each is checked for non-empty content so a "  " whitespace
@@ -108,6 +122,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       tenantDefaultName={defaultTenantName}
       appName={resolvedAppName}
       appDefaultName={defaultAppName}
+      criticalAlerts={criticalAlerts}
     >
       {children}
     </AppShellClient>

@@ -6,9 +6,11 @@ import { useTranslations } from 'next-intl';
 
 const STORAGE_KEY = 'ccms.oil-banner.dismissed';
 
-interface BannerItem {
+export interface CriticalAlertItem {
   alertId: string;
   vehiclePlate: string;
+  /** Only the CRITICAL types reach the banner — deriveAlertCandidates assigns
+   * CRITICAL to exactly these two. */
   type: 'OIL_OVERDUE' | 'INSPECTION_OVERDUE';
 }
 
@@ -22,7 +24,7 @@ interface BannerItem {
  * getCriticalUnresolvedAlerts(entId) and passes a serialized list down.
  * Empty list → banner renders nothing.
  */
-export function OilOverdueBanner({ items }: { items: BannerItem[] }) {
+export function OilOverdueBanner({ items }: { items: CriticalAlertItem[] }) {
   const t = useTranslations('maintenance.banner');
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
@@ -55,15 +57,15 @@ export function OilOverdueBanner({ items }: { items: BannerItem[] }) {
     <div className="sticky top-0 z-30 bg-danger text-danger-fg">
       <div className="px-4 md:px-6 py-2 flex items-center gap-3">
         <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-        <Link
-          href={`/vehicles?alert=${first.alertId}`}
-          className="text-sm font-medium truncate hover:underline"
-        >
+        {/* Both links land on the alert list. They previously pointed at
+         * /vehicles?alert=… and /today — placeholders from when Module 2 had no
+         * screen of its own; neither destination did anything with the alert. */}
+        <Link href="/maintenance" className="text-sm font-medium truncate hover:underline">
           {t(`label_${first.type}`, { plate: first.vehiclePlate })}
           {extraCount > 0 && <span className="ml-2 opacity-80">+{extraCount}</span>}
         </Link>
         <Link
-          href="/today"
+          href="/maintenance"
           className="text-xs underline-offset-2 hover:underline ml-auto hidden md:inline"
         >
           {t('viewAll')}

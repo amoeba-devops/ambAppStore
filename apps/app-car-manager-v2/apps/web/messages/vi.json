@@ -49,7 +49,8 @@
     "moreAria": "Mở menu khác",
     "truckTripsShort": "Chuyến",
     "truckFleetShort": "Đội xe",
-    "truckDriversShort": "Tài xế"
+    "truckDriversShort": "Tài xế",
+    "maintenance": "Cảnh báo bảo dưỡng"
   },
   "region": {
     "HCM": "HCM",
@@ -808,6 +809,12 @@
       "stepName1": "Chọn tháng",
       "stepName2": "Xác nhận & Lập báo cáo",
       "thFuelTrip": "Phí nhiên liệu (chuyến)"
+    },
+    "maintenance": {
+      "subtitle": "{count} cảnh báo · {unresolved} chưa đóng",
+      "status_UNRESOLVED": "Chưa đóng",
+      "status_RESOLVED": "Đã đóng",
+      "status_ALL": "Tất cả"
     }
   },
   "phase": {

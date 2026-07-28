@@ -8,6 +8,7 @@ import { NotificationSound } from '@/components/notification-sound';
 import { InstallPrompt } from '@/components/pwa/install-prompt';
 import { PushConfigProvider } from '@/components/pwa/push-config-context';
 import { PushPromptStrip } from '@/components/pwa/push-prompt-strip';
+import { OilOverdueBanner, type CriticalAlertItem } from '@/components/maintenance/oil-overdue-banner';
 import { BottomTabNav } from './bottom-tab-nav';
 import { DeptProvider } from './dept-context';
 import type { FleetDept } from './nav-items';
@@ -53,6 +54,8 @@ interface AppShellClientProps {
   appName: string;
   /** i18n default used when the admin clears the customized app name. */
   appDefaultName: string;
+  /** Unresolved CRITICAL maintenance alerts (staff only; empty for drivers). */
+  criticalAlerts: CriticalAlertItem[];
   children: React.ReactNode;
 }
 
@@ -89,6 +92,7 @@ export function AppShellClient({
   tenantDefaultName,
   appName,
   appDefaultName,
+  criticalAlerts,
   children,
 }: AppShellClientProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -155,6 +159,10 @@ export function AppShellClient({
            * the inset live keeps the reserved band exact on every device. */}
           <main className="flex-1 min-w-0 flex flex-col md:pb-0 pb-[calc(56px+env(safe-area-inset-bottom,0px))]">
             <PushPromptStrip />
+            {/* Module 2 (REQ-20260519 Q7): CRITICAL maintenance alerts ride a
+             * sticky band above every page for staff. Renders nothing when the
+             * list is empty or the user dismissed it this session. */}
+            <OilOverdueBanner items={criticalAlerts} />
             {children}
           </main>
           <div className="hidden md:contents">

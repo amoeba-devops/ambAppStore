@@ -102,7 +102,9 @@ function requiredFleet(pathname: string): 'CAR' | 'TRUCK' | null {
     pathname === '/trips' || pathname.startsWith('/trips/') ||
     pathname === '/vehicles' || pathname.startsWith('/vehicles/') ||
     pathname === '/costs' || pathname.startsWith('/costs/') ||
-    pathname === '/reports' || pathname.startsWith('/reports/')
+    pathname === '/reports' || pathname.startsWith('/reports/') ||
+    /* Module 2 alerts are raised against CAR vehicles only. */
+    pathname === '/maintenance' || pathname.startsWith('/maintenance/')
   ) {
     return 'CAR';
   }

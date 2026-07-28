@@ -12,6 +12,7 @@ import {
   Settings as SettingsIcon,
   Truck,
   UserCog,
+  Wrench,
   User as UserIcon,
   type LucideIcon,
 } from 'lucide-react';
@@ -29,6 +30,7 @@ export type NavKey =
   | 'costs'
   | 'vehicles'
   | 'drivers'
+  | 'maintenance'
   | 'users'
   | 'settings'
   | 'fleetAccess'
@@ -135,6 +137,14 @@ export const NAV_ITEMS: NavItem[] = [
   /* Operating-cost ledger (Module 2). STAFF only — drivers see their own
    * history at `/expenses` via `expensesNew` instead. */
   { key: 'costs',       href: '/costs',         Icon: Receipt,         group: 'workspace', roles: STAFF, fleet: 'CAR'  },
+  /* Cảnh báo bảo dưỡng (Module 2, REQ-20260519). CAR-scoped — the evaluator
+   * scans cars only and each alert deep-links to /vehicles/:id.
+   *
+   * Deliberately LAST among the car workspace items: this is the 6th, which
+   * tips BottomTabNav's CAR STAFF layout past its 4 flat slots into the "Thêm"
+   * overflow sheet. Ordering it here means the sheet swallows `costs` +
+   * `maintenance` (the two least-frequent) instead of displacing `drivers`. */
+  { key: 'maintenance', href: '/maintenance',   Icon: Wrench,          group: 'workspace', roles: STAFF, fleet: 'CAR'  },
   /* Admin-only tenant tools. */
   { key: 'users',       href: '/users',         Icon: UserCog,         group: 'admin',     roles: ADMIN  },
   /* Fleet department access — grant/revoke CAR/TRUCK + approve manager requests.
@@ -172,7 +182,7 @@ export function deptForPath(pathname: string): FleetDept {
  * is department-NEUTRAL: it must NOT change the active workspace, otherwise the
  * sidebar "jumps" back to car the moment a truck-workspace user opens a shared
  * admin page (BUG-20260622). */
-const CAR_PREFIXES = ['/dashboard', '/trips', '/vehicles', '/costs', '/expenses'] as const;
+const CAR_PREFIXES = ['/dashboard', '/trips', '/vehicles', '/costs', '/expenses', '/maintenance'] as const;
 
 /**
  * The department a path UNAMBIGUOUSLY belongs to, or `null` when the path is

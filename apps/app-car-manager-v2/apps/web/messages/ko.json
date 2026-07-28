@@ -49,7 +49,8 @@
     "moreAria": "추가 메뉴 열기",
     "truckTripsShort": "운행",
     "truckFleetShort": "차량",
-    "truckDriversShort": "기사"
+    "truckDriversShort": "기사",
+    "maintenance": "정비 알림"
   },
   "region": {
     "HCM": "HCM",
@@ -808,6 +809,12 @@
       "stepName1": "월 선택",
       "stepName2": "확인 및 작성",
       "thFuelTrip": "유류비(운행)"
+    },
+    "maintenance": {
+      "subtitle": "알림 {count}건 · 미처리 {unresolved}건",
+      "status_UNRESOLVED": "미처리",
+      "status_RESOLVED": "처리 완료",
+      "status_ALL": "전체"
     }
   },
   "phase": {
