@@ -4,6 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import { Button } from '@car-v2/ui';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { driverIdentity } from '@/lib/format-person-option';
 import { listDrivers } from '@/server/queries/drivers.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import {
@@ -64,7 +65,7 @@ export default async function ExpenseNewPage({ searchParams }: ExpenseNewPagePro
       id: d.drvId,
       /* drivers query returns CarDriver joined with usrName via `.user`.
        * Fall back to plate-style display if the user record is missing. */
-      name: d.user.usrName ?? d.user.usrEmail ?? d.drvId.slice(0, 8),
+      name: driverIdentity(d),
     }));
   }
 

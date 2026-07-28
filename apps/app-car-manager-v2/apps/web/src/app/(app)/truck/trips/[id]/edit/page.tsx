@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { AlertTriangle } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { driverIdentity } from '@/lib/format-person-option';
 import { getTrip } from '@/server/queries/trips.queries';
 import { getTripExtraCosts, getTripCostAttachmentsView } from '@/server/queries/truck-trips.queries';
 import { getTripStopovers } from '@/server/queries/stopovers.queries';
@@ -37,7 +38,7 @@ export default async function EditTruckTripPage({ params }: { params: Promise<{ 
     fuelPrice: v.cvhFuelPrice != null ? Number(v.cvhFuelPrice) : null,
   }));
   const driverOptions = drivers.map((d) => {
-    const name = d.user.usrName ?? d.user.usrEmail ?? d.drvId;
+    const name = driverIdentity(d);
     return { id: d.drvId, label: d.drvPhone ? `${name} · ${d.drvPhone}` : name };
   });
 

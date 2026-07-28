@@ -19,6 +19,7 @@ import type { CarTripStatus } from '@car-v2/db/schema';
 import { MapPreview } from '@/components/inputs/map-preview';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { driverIdentity } from '@/lib/format-person-option';
 import { listAuditForEntity } from '@/server/queries/audit.queries';
 import { listNonTruckDrivers, getDriverByUserId } from '@/server/queries/drivers.queries';
 import { getTrip } from '@/server/queries/trips.queries';
@@ -141,7 +142,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
 
   const driverOptions = drivers.map((d) => ({
     id: d.drvId,
-    label: `${d.user.usrName} — ${d.drvLicenseNumber} (${d.drvLicenseClass})`,
+    label: `${driverIdentity(d)} — ${d.drvLicenseNumber} (${d.drvLicenseClass})`,
   }));
   const vehicleOptions = vehicles
     .filter((v) => v.cvhStatus !== 'RETIRED' && v.cvhStatus !== 'MAINTENANCE')

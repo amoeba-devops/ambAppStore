@@ -21,6 +21,7 @@ import { MonthPicker } from '@/components/inputs/month-picker';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
+import { driverIdentity } from '@/lib/format-person-option';
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { listFleetDrivers } from '@/server/queries/drivers.queries';
@@ -66,7 +67,7 @@ export default async function TruckTripsPage({
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
   const date = (d: Date) => new Date(d).toLocaleDateString(loc);
   const plateOptions = trucks.map((v) => ({ id: v.cvhId, label: v.cvhPlateNumber }));
-  const driverOptions = fleetDrivers.map((d) => ({ id: d.drvId, label: d.user.usrName ?? d.user.usrEmail ?? d.drvId }));
+  const driverOptions = fleetDrivers.map((d) => ({ id: d.drvId, label: driverIdentity(d) }));
 
   const exportParams = new URLSearchParams();
   if (q) exportParams.set('q', q);

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { driverIdentity } from '@/lib/format-person-option';
 import { getVehicle } from '@/server/queries/vehicles.queries';
 import { listFleetDrivers, getDriverAnyStatus } from '@/server/queries/drivers.queries';
 import { TruckVehicleForm } from '../../_components/truck-vehicle-form';
@@ -15,7 +16,7 @@ export default async function EditTruckVehiclePage({ params }: { params: Promise
   const activeDrivers = await listFleetDrivers(user.entId, 'TRUCK');
   const drivers: { id: string; name: string; stale?: boolean }[] = activeDrivers.map((d) => ({
     id: d.drvId,
-    name: d.user.usrName ?? d.user.usrEmail ?? d.drvId,
+    name: driverIdentity(d),
   }));
   /* The saved default driver may have since been removed or lost TRUCK access —
    * surface it as a disabled option instead of letting the Select render blank
@@ -25,7 +26,7 @@ export default async function EditTruckVehiclePage({ params }: { params: Promise
     if (stale) {
       drivers.push({
         id: stale.drvId,
-        name: stale.user.usrName ?? stale.user.usrEmail ?? stale.drvId,
+        name: driverIdentity(stale),
         stale: true,
       });
     }
