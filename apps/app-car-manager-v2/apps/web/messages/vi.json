@@ -1085,7 +1085,6 @@
   },
   "dashboard": {
     "title": "Bảng điều khiển",
-    "subtitle": "{count} chuyến trong tháng · vai trò {role}",
     "calendar": {
       "today": "Hôm nay",
       "month": "Tháng",
@@ -1106,7 +1105,8 @@
       "filterTo": "Đến ngày",
       "filterApply": "Áp dụng",
       "filterCancel": "Huỷ",
-      "clearFilter": "Xoá bộ lọc"
+      "clearFilter": "Xoá bộ lọc",
+      "tripCount": "{count} chuyến"
     },
     "colorMode": {
       "byVehicle": "Theo xe",
@@ -1171,7 +1171,8 @@
       "viewAll": "Xem tất cả",
       "empty": "Chưa có chuyến nào",
       "emptyAction": "Tạo chuyến đầu tiên"
-    }
+    },
+    "subtitleRole": "Vai trò {role}"
   },
   "vehicles": {
     "status": {
@@ -1406,7 +1407,11 @@
       "syncedAgo": "Đồng bộ AMA {time}",
       "notFound": "Không tìm thấy user nào khớp \"{query}\".",
       "emptyMembers": "Chưa có ai đăng nhập vào car-v2.",
-      "emptyHint": "Thành viên xuất hiện ở đây sau lần đăng nhập đầu tiên. Để mời thêm:"
+      "emptyHint": "Thành viên xuất hiện ở đây sau lần đăng nhập đầu tiên. Để mời thêm:",
+      "deptFilterAll": "Tất cả phòng ban",
+      "deptBoth": "Cả hai phòng ban",
+      "deptNone": "Chưa gán",
+      "deptFilterEmpty": "Không có ai khớp bộ lọc phòng ban này."
     },
     "peek": {
       "a11yTitle": "Chi tiết người dùng {name}",
@@ -1510,7 +1515,12 @@
       "save": "Lưu thay đổi",
       "cancel": "Hủy",
       "saving": "Đang lưu…",
-      "updatedToast": "Đã cập nhật {name}"
+      "updatedToast": "Đã cập nhật {name}",
+      "deptLabel": "Phòng ban",
+      "deptDescDriver": "Tài xế chỉ thuộc một phòng ban. Chọn phòng khác sẽ chuyển họ sang phòng đó.",
+      "deptDescStaff": "Quản lý có thể thuộc cả hai phòng ban.",
+      "deptAdminHint": "Quản trị viên luôn vào được cả hai phòng ban — không cần cấp.",
+      "deptNoneWarning": "Chưa gán phòng ban: người này không hiện trong danh sách của app nào."
     }
   },
   "costs": {

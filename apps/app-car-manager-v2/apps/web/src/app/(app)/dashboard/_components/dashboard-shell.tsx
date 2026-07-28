@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { TripDetail, TripListItem } from '@/server/queries/trips.queries';
 import type { CarVehicleStatus } from '@car-v2/db/schema';
@@ -19,12 +19,10 @@ interface PeekContext {
 
 interface DashboardShellProps {
   initialTrips: TripListItem[];
-  recentTrips: TripListItem[];
   vehicles: Array<{
     id: string;
     plate: string;
     status: CarVehicleStatus;
-    activeTripCount: number;
   }>;
   passengers: Array<{ id: string; label: string }>;
   drivers: Array<{ id: string; label: string }>;
@@ -37,6 +35,9 @@ interface DashboardShellProps {
   createSignal?: boolean;
   peek?: PeekContext | null;
 }
+
+/** Rows the rail shows before it scrolls — same cap the server used to apply. */
+const RAIL_TRIPS_LIMIT = 12;
 
 interface DialogState {
   open: boolean;
@@ -54,7 +55,6 @@ interface DialogState {
  */
 export function DashboardShell({
   initialTrips,
-  recentTrips,
   vehicles,
   passengers,
   drivers,
@@ -67,6 +67,38 @@ export function DashboardShell({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [dialog, setDialog] = useState<DialogState>({ open: false, mode: 'create' });
+
+  /* Trips the calendar currently shows. The period selector lives inside
+   * DashboardView, which reports its fetched set up here so the right rail
+   * renders the SAME window. Previously the rail took a separate server-side
+   * all-time listing and a legend count frozen at first paint, so moving the
+   * calendar to another month left both untouched — the reported bug.
+   *
+   * `setVisibleTrips` is passed down directly: useState setters are referentially
+   * stable, so the child's publish effect can depend on it without re-firing. */
+  const [visibleTrips, setVisibleTrips] = useState<TripListItem[]>(initialTrips);
+
+  /* Newest first — the rail is a "what happened / is about to happen in this
+   * window" list, matching the order the old server query produced. */
+  const railTrips = useMemo(
+    () =>
+      [...visibleTrips]
+        .sort((a, b) => new Date(b.trpScheduledAt).getTime() - new Date(a.trpScheduledAt).getTime())
+        .slice(0, RAIL_TRIPS_LIMIT),
+    [visibleTrips],
+  );
+
+  /* Per-vehicle IN_PROGRESS count for the legend's "In Use (n)" badge, derived
+   * from the same visible window (was computed server-side over the initial
+   * month only). */
+  const legendVehicles = useMemo(() => {
+    const active = new Map<string, number>();
+    for (const tr of visibleTrips) {
+      if (tr.trpStatus !== 'IN_PROGRESS' || !tr.trpVehicleId) continue;
+      active.set(tr.trpVehicleId, (active.get(tr.trpVehicleId) ?? 0) + 1);
+    }
+    return vehicles.map((v) => ({ ...v, activeTripCount: active.get(v.id) ?? 0 }));
+  }, [vehicles, visibleTrips]);
 
   /* Dynamic available-height for the calendar card. PushPromptStrip can
    * appear/disappear inside <main> (when the user enables Web Push or
@@ -170,6 +202,7 @@ export function DashboardShell({
             onSlotCreate={(when, vehicleId) =>
               openCreate({ scheduledAt: when, vehicleId: vehicleId ?? undefined })
             }
+            onVisibleTripsChange={setVisibleTrips}
           />
         </section>
         {/* Right rail behaviour by breakpoint:
@@ -191,9 +224,9 @@ export function DashboardShell({
          *     internally. Trips overflow scrolls inside the panel. */}
         <aside className="flex flex-col gap-3 lg:block lg:relative">
           <div className="contents lg:absolute lg:inset-0 lg:flex lg:flex-col lg:gap-3">
-            <VehicleLegend vehicles={vehicles} />
+            <VehicleLegend vehicles={legendVehicles} />
             <TripsListPanel
-              trips={recentTrips}
+              trips={railTrips}
               highlightId={highlightId}
               onCreateClick={() => openCreate()}
             />

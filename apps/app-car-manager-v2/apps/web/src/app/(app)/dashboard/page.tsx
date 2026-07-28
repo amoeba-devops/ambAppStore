@@ -7,8 +7,9 @@ import { carUsers } from '@car-v2/db/schema';
 import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { driverIdentity, personIdentity } from '@/lib/format-person-option';
 import { listNonTruckDrivers } from '@/server/queries/drivers.queries';
-import { getTrip, listTrips, listTripsForCalendar } from '@/server/queries/trips.queries';
+import { getTrip, listTripsForCalendar } from '@/server/queries/trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { rangeForView } from './_components/calendar/utils';
 import { DashboardCreateButton } from './_components/dashboard-create-button';
@@ -17,8 +18,6 @@ import { DashboardShell } from './_components/dashboard-shell';
 interface DashboardPageProps {
   searchParams: Promise<{ peek?: string; highlight?: string; create?: string }>;
 }
-
-const RECENT_TRIPS_LIMIT = 12;
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const sp = await searchParams;
@@ -36,7 +35,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
    * when the user navigates. */
   const range = rangeForView(new Date(), 'month');
 
-  const [calendarTrips, recentListing, vehiclesRaw, drivers, users, peekTrip] = await Promise.all([
+  const [calendarTrips, vehiclesRaw, drivers, users, peekTrip] = await Promise.all([
     listTripsForCalendar({
       entId: user.entId,
       role: user.role,
@@ -48,51 +47,44 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
        * cùng giá trị, nếu không chuyến xe tải hiện lại ngay lần đổi tháng đầu. */
       kind: 'DISPATCH',
     }),
-    /* Side panel "Trips" list — broader scope than the calendar range so the
-     * user sees recent past + future activity. Pagination is the same query
-     * used by /trips, just truncated. */
-    listTrips({
-      entId: user.entId,
-      role: user.role,
-      userId: user.userId,
-      status: 'all',
-      page: 1,
-      kind: 'DISPATCH',
-    }),
+    /* The side panel's "Trips" list used to be a SECOND, all-time listing here.
+     * It is gone: the rail now renders whatever window the calendar is showing
+     * (DashboardShell derives it from the client-fetched set), which is what the
+     * period selector is expected to control. One less query per render, and the
+     * two halves of the page can no longer disagree. */
     /* 'CAR' — vehicle legend + booking form của workspace xe con; xe tải có
      * dashboard riêng ở /truck/dashboard. */
     listVehicles(user.entId, 'active', 'CAR'),
     listNonTruckDrivers(user.entId),
     db
-      .select({ id: carUsers.usrId, name: carUsers.usrName, role: carUsers.usrLocalRole })
+      .select({
+        id: carUsers.usrId,
+        name: carUsers.usrName,
+        email: carUsers.usrEmail,
+        role: carUsers.usrLocalRole,
+      })
       .from(carUsers)
       .where(and(eq(carUsers.entId, user.entId), isNull(carUsers.usrDeletedAt))),
     sp.peek ? getTrip(user.entId, sp.peek) : Promise.resolve(null),
   ]);
 
-  const recentTrips = recentListing.items.slice(0, RECENT_TRIPS_LIMIT);
-
-  /* Per-vehicle active trip count (IN_PROGRESS) — feeds VehicleLegend
-   * "In Use ({count})" badge. Cheap derived value, no extra query. */
-  const activeByVehicle = new Map<string, number>();
-  for (const tr of calendarTrips) {
-    if (tr.trpStatus !== 'IN_PROGRESS' || !tr.trpVehicleId) continue;
-    activeByVehicle.set(tr.trpVehicleId, (activeByVehicle.get(tr.trpVehicleId) ?? 0) + 1);
-  }
-
+  /* Legend rows only — the "In Use ({count})" badge is derived client-side from
+   * the visible period, so counting here would just freeze it at this month. */
   const legendVehicles = vehiclesRaw.map((v) => ({
     id: v.cvhId,
     plate: v.cvhPlateNumber,
     status: v.cvhStatus,
-    activeTripCount: activeByVehicle.get(v.cvhId) ?? 0,
   }));
 
   const passengerOptions = users
     .filter((u) => u.role !== 'DRIVER')
-    .map((u) => ({ id: u.id, label: u.name ?? u.id }));
+    /* Email đi kèm tên vì tên hiển thị không duy nhất — /trips/new và
+     * /trips/[id]/edit đã hiện email từ trước, dialog tạo nhanh này thì chưa,
+     * nên cùng một danh sách hành khách lại trông khác nhau tuỳ màn. */
+    .map((u) => ({ id: u.id, label: personIdentity({ usrName: u.name, usrEmail: u.email }, u.id) }));
   const driverOptions = drivers.map((d) => ({
     id: d.drvId,
-    label: `${d.user.usrName} — ${d.drvLicenseClass}`,
+    label: `${driverIdentity(d)} — ${d.drvLicenseClass}`,
   }));
   const formVehicleOptions = vehiclesRaw
     .filter((v) => v.cvhStatus !== 'RETIRED' && v.cvhStatus !== 'MAINTENANCE')
@@ -108,7 +100,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           user.role === 'ADMIN' || user.role === 'MANAGER'
             ? drivers.map((d) => ({
                 id: d.drvId,
-                label: `${d.user.usrName} — ${d.drvLicenseNumber} (${d.drvLicenseClass})`,
+                label: `${driverIdentity(d)} — ${d.drvLicenseNumber} (${d.drvLicenseClass})`,
               }))
             : [],
         vehicles:
@@ -125,7 +117,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     <>
       <PageHeader
         title={tD('title')}
-        subtitle={tD('subtitle', { count: calendarTrips.length, role: user.role })}
+        /* Role only. The trip count moved into the calendar toolbar, next to the
+         * period navigator: this header is server-rendered once, so any number
+         * here is stuck on the month the page loaded with — which read as a bug
+         * the moment the user navigated to another month. */
+        subtitle={tD('subtitleRole', { role: user.role })}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('dashboard') }]}
         actions={<DashboardCreateButton />}
         mobileVariant="brand"
@@ -140,7 +136,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-5">
         <DashboardShell
           initialTrips={calendarTrips}
-          recentTrips={recentTrips}
           vehicles={legendVehicles}
           passengers={passengerOptions}
           drivers={driverOptions}

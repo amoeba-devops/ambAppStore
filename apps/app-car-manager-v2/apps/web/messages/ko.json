@@ -1085,7 +1085,6 @@
   },
   "dashboard": {
     "title": "대시보드",
-    "subtitle": "이번 달 {count}건 운행 · 역할 {role}",
     "calendar": {
       "today": "오늘",
       "month": "월",
@@ -1106,7 +1105,8 @@
       "filterTo": "종료일",
       "filterApply": "적용",
       "filterCancel": "취소",
-      "clearFilter": "필터 지우기"
+      "clearFilter": "필터 지우기",
+      "tripCount": "{count}건"
     },
     "colorMode": {
       "byVehicle": "차량별",
@@ -1171,7 +1171,8 @@
       "viewAll": "전체 보기",
       "empty": "아직 운행이 없습니다",
       "emptyAction": "첫 운행 만들기"
-    }
+    },
+    "subtitleRole": "역할 {role}"
   },
   "vehicles": {
     "status": {
@@ -1406,7 +1407,11 @@
       "syncedAgo": "AMA 동기화 {time}",
       "notFound": "\"{query}\"에 일치하는 사용자가 없습니다.",
       "emptyMembers": "아직 car-v2에 로그인한 사용자가 없습니다.",
-      "emptyHint": "사용자는 첫 로그인 후 여기 표시됩니다. 멤버 초대는:"
+      "emptyHint": "사용자는 첫 로그인 후 여기 표시됩니다. 멤버 초대는:",
+      "deptFilterAll": "전체 부서",
+      "deptBoth": "두 부서 모두",
+      "deptNone": "미지정",
+      "deptFilterEmpty": "이 부서 필터에 해당하는 사용자가 없습니다."
     },
     "peek": {
       "a11yTitle": "사용자 상세 — {name}",
@@ -1510,7 +1515,12 @@
       "save": "변경 저장",
       "cancel": "취소",
       "saving": "저장 중…",
-      "updatedToast": "{name} 업데이트됨"
+      "updatedToast": "{name} 업데이트됨",
+      "deptLabel": "부서",
+      "deptDescDriver": "기사는 한 부서에만 속합니다. 다른 부서를 선택하면 해당 부서로 이동합니다.",
+      "deptDescStaff": "매니저는 두 부서에 모두 속할 수 있습니다.",
+      "deptAdminHint": "관리자는 항상 두 부서에 모두 접근합니다 — 별도 부여가 필요 없습니다.",
+      "deptNoneWarning": "부서 미지정: 어느 앱의 목록에도 표시되지 않습니다."
     }
   },
   "costs": {

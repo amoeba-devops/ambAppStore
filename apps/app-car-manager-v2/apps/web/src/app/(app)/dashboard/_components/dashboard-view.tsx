@@ -68,6 +68,12 @@ interface DashboardViewProps {
   highlightId?: string | null;
   /** Click empty calendar slot → parent opens TripFormDialog with prefill. */
   onSlotCreate: (when: Date, vehicleId: string | null) => void;
+  /** Publishes the trips currently on screen so the sibling right rail can
+   * show the SAME period. The period lives in this component's state, so
+   * without this the rail kept rendering whatever the server sent on first
+   * paint: the user moved the calendar to May and the "Trips" / "Vehicles"
+   * panels stayed on today's month. */
+  onVisibleTripsChange?: (trips: TripListItem[]) => void;
 }
 
 export function DashboardView({
@@ -76,6 +82,7 @@ export function DashboardView({
   currentUser,
   highlightId,
   onSlotCreate,
+  onVisibleTripsChange,
 }: DashboardViewProps) {
   const router = useRouter();
   const t = useTranslations('dashboard.calendar');
@@ -190,6 +197,13 @@ export function DashboardView({
       }
     });
   }, [anchor, view, rangeFilter, t, tErr]);
+
+  /* Publish the on-screen set upward. Covers every path that changes it: the
+   * range refetch above, the optimistic drag reorder, and the post-mutation
+   * resync from `initialTrips` — so the rail never disagrees with the grid. */
+  useEffect(() => {
+    onVisibleTripsChange?.(trips);
+  }, [trips, onVisibleTripsChange]);
 
   const events = useMemo<CalendarEvent[]>(() => trips.map(tripToCalendarEvent), [trips]);
 
@@ -311,6 +325,7 @@ export function DashboardView({
         onQuickFilter={handleQuickFilter}
         onCustomRange={handleCustomRange}
         onClearFilter={handleClearFilter}
+        tripCount={trips.length}
       />
       {/* Calendar viewport.
        *   - Mobile: fits within remaining viewport space (subtract page

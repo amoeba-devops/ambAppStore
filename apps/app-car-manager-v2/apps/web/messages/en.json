@@ -1085,7 +1085,6 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "{count} trips this month · role {role}",
     "calendar": {
       "today": "Today",
       "month": "Month",
@@ -1106,7 +1105,8 @@
       "filterTo": "To",
       "filterApply": "Apply",
       "filterCancel": "Cancel",
-      "clearFilter": "Clear filter"
+      "clearFilter": "Clear filter",
+      "tripCount": "{count} trips"
     },
     "colorMode": {
       "byVehicle": "By Vehicle",
@@ -1171,7 +1171,8 @@
       "viewAll": "View all",
       "empty": "No trips yet",
       "emptyAction": "Create the first trip"
-    }
+    },
+    "subtitleRole": "Role {role}"
   },
   "vehicles": {
     "status": {
@@ -1406,7 +1407,11 @@
       "syncedAgo": "AMA synced {time}",
       "notFound": "No user matches \"{query}\".",
       "emptyMembers": "Nobody has signed in to car-v2 yet.",
-      "emptyHint": "Members appear here after their first sign-in. To invite more:"
+      "emptyHint": "Members appear here after their first sign-in. To invite more:",
+      "deptFilterAll": "All departments",
+      "deptBoth": "Both departments",
+      "deptNone": "Unassigned",
+      "deptFilterEmpty": "Nobody matches this department filter."
     },
     "peek": {
       "a11yTitle": "User details — {name}",
@@ -1510,7 +1515,12 @@
       "save": "Save changes",
       "cancel": "Cancel",
       "saving": "Saving…",
-      "updatedToast": "Updated {name}"
+      "updatedToast": "Updated {name}",
+      "deptLabel": "Department",
+      "deptDescDriver": "A driver belongs to one department. Picking the other moves them there.",
+      "deptDescStaff": "A manager can belong to both departments.",
+      "deptAdminHint": "Admins always reach both departments — nothing to grant.",
+      "deptNoneWarning": "No department: this person appears in neither app's lists."
     }
   },
   "costs": {
