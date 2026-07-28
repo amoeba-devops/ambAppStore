@@ -170,6 +170,7 @@ export function AppShellClient({
           </div>
           <BottomTabNav
             role={role}
+            fleetAccess={fleetAccess}
             pendingTripCount={pendingTripCount}
             todayExpenseCount={todayExpenseCount}
             newReportCount={newReportCount}
