@@ -215,6 +215,23 @@ async function insertAlert(
   return row;
 }
 
+/**
+ * Staff who should hear about a CAR vehicle's maintenance alert.
+ *
+ * CAR access is part of the condition, not just the role. These alerts only ever
+ * concern CAR vehicles (`evaluateAllTenants` filters on cvh_type) and the
+ * notification deep-links to `/vehicles/{id}`, which middleware bounces a
+ * TRUCK-only manager away from — so without the department check we were filling
+ * their inbox with dead ends. Staging had already sent 4 such notifications to
+ * Lê Hoàng (MANAGER, TRUCK only), all 4 still unread.
+ *
+ * This is the same leak the sticky banner had; fixing the banner alone left the
+ * inbox / email / push channel untouched.
+ *
+ * ADMIN needs no membership row — resolveFleetAccess grants them both fleets
+ * implicitly, so requiring a CAR row would silence the very people who own the
+ * fleet.
+ */
 async function loadAlertRecipients(entId: string): Promise<string[]> {
   const rows = await db
     .select({ usrId: carUsers.usrId })
@@ -224,6 +241,13 @@ async function loadAlertRecipients(entId: string): Promise<string[]> {
         eq(carUsers.entId, entId),
         isNull(carUsers.usrDeletedAt),
         sql`${carUsers.usrLocalRole} IN ('ADMIN', 'MANAGER')`,
+        sql`(${carUsers.usrLocalRole} = 'ADMIN' OR EXISTS (
+          SELECT 1 FROM car_user_fleet_access f
+          WHERE f.usr_id = ${carUsers.usrId}
+            AND f.ent_id = ${entId}
+            AND f.ufa_vehicle_type = 'CAR'
+            AND f.ufa_deleted_at IS NULL
+        ))`,
       ),
     );
   return rows.map((r) => r.usrId);
