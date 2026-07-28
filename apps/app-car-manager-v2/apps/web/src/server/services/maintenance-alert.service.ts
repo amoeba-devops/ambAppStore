@@ -57,12 +57,19 @@ export interface EvaluatorResult {
 
 export async function evaluateAllTenants(): Promise<EvaluatorResult> {
   /* Fetch all live vehicles globally; group by ent_id in memory. Cheap for
-   * the expected scale (≤ a few hundred vehicles across all tenants). */
+   * the expected scale (≤ a few hundred vehicles across all tenants).
+   *
+   * CAR only. Maintenance Alert is a car-workspace module (PRD Module 2 — oil
+   * interval + đăng kiểm), and its notification deep-links to /vehicles/{id},
+   * which now redirects trucks away. Trucks carry their own cost model under
+   * /truck and are not serviced from this screen, so scanning them produced
+   * alerts nobody owned. `vehiclesScanned` therefore counts cars only. */
   const vehicles = await db
     .select()
     .from(carVehicles)
     .where(
       and(
+        eq(carVehicles.cvhType, 'CAR'),
         isNull(carVehicles.cvhDeletedAt),
         sql`${carVehicles.cvhStatus} <> 'RETIRED'`,
       ),
