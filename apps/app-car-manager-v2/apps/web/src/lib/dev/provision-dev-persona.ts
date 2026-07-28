@@ -68,7 +68,35 @@ export async function provisionDevPersona(sub: string, entId: string): Promise<v
       }
     }
 
-    /* car_user_fleet_access — one live row per (user, dept). */
+    /* car_user_fleet_access — one live row per (user, dept).
+     *
+     * A DRIVER belongs to exactly ONE department (same invariant enforced by
+     * grantFleetAccessAction and createDriverAction). This helper only ever
+     * INSERTS, so when a driver's real membership has since moved to the other
+     * department, granting `p.depts` on top would leave them holding BOTH —
+     * visible in both rosters, assignable in neither. That is a bootstrap
+     * helper silently re-creating a bug the app now prevents.
+     *
+     * So for a driver persona, `depts` is a seed default, not an assertion:
+     * grant it only when the user has NO live membership at all. Whatever a
+     * real admin (or a data fix) set afterwards wins. Managers/admins keep the
+     * additive behaviour — holding two departments is legitimate for them, and
+     * "QL 2 phòng" needs both rows to exist. */
+    if (localRoleFor(p) === 'DRIVER') {
+      const any = await db
+        .select({ id: carUserFleetAccess.ufaId })
+        .from(carUserFleetAccess)
+        .where(
+          and(
+            eq(carUserFleetAccess.entId, DEV_ENT_ID),
+            eq(carUserFleetAccess.usrId, sub),
+            isNull(carUserFleetAccess.ufaDeletedAt),
+          ),
+        )
+        .limit(1);
+      if (any.length > 0) return;
+    }
+
     for (const dept of p.depts) {
       const mem = await db
         .select({ id: carUserFleetAccess.ufaId })
