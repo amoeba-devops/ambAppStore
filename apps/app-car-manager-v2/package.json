@@ -29,6 +29,7 @@
     "db:heal:dev": "node scripts/db-heal-usr-id.mjs dev",
     "db:heal:staging": "node scripts/db-heal-usr-id.mjs staging",
     "db:studio": "npm run db:studio -w @car-v2/db",
+    "audit:fleet": "node scripts/audit-fleet-integrity.mjs",
     "cron:maintenance": "node scripts/trigger-maintenance-cron.mjs",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
   },
