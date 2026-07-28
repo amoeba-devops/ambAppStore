@@ -1,6 +1,6 @@
 'use server';
 import { randomUUID } from 'node:crypto';
-import { and, eq, isNull, ne } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull, ne } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@car-v2/db/client';
 import {
@@ -32,27 +32,81 @@ export async function createDriverAction(input: unknown): Promise<ActionResult<C
     });
     if (!user) throw new CarError('CAR-E0404', 404, 'User not found in this tenant');
 
-    const [created] = await db
-      .insert(carDrivers)
-      .values({
-        drvId: randomUUID(),
-        entId: actor.entId,
-        drvUserId: data.user_id,
-        drvLicenseNumber: data.license_number,
-        drvLicenseClass: data.license_class,
-        drvLicenseExpiry: data.license_expiry,
-        drvPhone: data.phone?.trim() || null,
-        drvEmergencyContact: data.emergency_contact ?? null,
-        drvFixedSalary: data.fixed_salary != null ? String(data.fixed_salary) : null,
-        /* Initial status (QA P2) — omitted falls back to the DB default. */
-        ...(data.status ? { drvStatus: data.status } : {}),
-        drvNotes: data.notes ?? null,
-        /* Set updated_at on insert so the roster "Cập nhật" column isn't blank
-         * right after create (Sheet-2 DR8). */
-        drvUpdatedAt: new Date(),
-      })
-      .returning();
-    if (!created) throw new CarError('CAR-E0500', 500, 'Insert returned no row');
+    /* One live driver row per user. `listDriverCandidates` already hides users
+     * who have one, so this only catches a stale form / direct action POST —
+     * but a second live row would put the user in the roster twice and break
+     * the "at most one live driver record per user" invariant. */
+    const live = await db.query.carDrivers.findFirst({
+      where: and(
+        eq(carDrivers.entId, actor.entId),
+        eq(carDrivers.drvUserId, data.user_id),
+        isNull(carDrivers.drvDeletedAt),
+      ),
+    });
+    if (live) {
+      throw new CarError('CAR-E0409', 409, 'This user is already a driver');
+    }
+
+    const fields = {
+      drvLicenseNumber: data.license_number,
+      drvLicenseClass: data.license_class,
+      drvLicenseExpiry: data.license_expiry,
+      drvPhone: data.phone?.trim() || null,
+      drvEmergencyContact: data.emergency_contact ?? null,
+      drvFixedSalary: data.fixed_salary != null ? String(data.fixed_salary) : null,
+      /* Initial status (QA P2) — omitted falls back to the schema default,
+       * which the revive path has to spell out (the old row keeps whatever
+       * status it was retired with, e.g. ON_LEAVE). */
+      drvStatus: data.status ?? ('AVAILABLE' as const),
+      drvNotes: data.notes ?? null,
+      /* Set updated_at on insert so the roster "Cập nhật" column isn't blank
+       * right after create (Sheet-2 DR8). */
+      drvUpdatedAt: new Date(),
+    };
+
+    /* Re-linking someone who was a driver before REVIVES their retired row
+     * instead of minting a new drv_id.
+     *
+     * car_trips.trp_driver_id and car_expenses.exp_driver_id point at drv_id,
+     * and deleteDriverAction leaves those references on the row it soft-
+     * deletes. A fresh id therefore strands the driver's entire history: they
+     * open /today and see an empty screen, while /truck/trips keeps printing
+     * their name (getDriverNamesByIds ignores soft-delete) so nobody notices
+     * anything is wrong. Seen on staging 2026-07-27 — TR-3024 and TR-3025 were
+     * orphaned exactly this way by a delete-then-recreate.
+     *
+     * The MOST RECENTLY retired row wins: that is the one whose history the
+     * last delete orphaned, so reviving it is the honest undo. */
+    const retired = await db
+      .select({ id: carDrivers.drvId, deletedAt: carDrivers.drvDeletedAt })
+      .from(carDrivers)
+      .where(
+        and(
+          eq(carDrivers.entId, actor.entId),
+          eq(carDrivers.drvUserId, data.user_id),
+          isNotNull(carDrivers.drvDeletedAt),
+        ),
+      )
+      .orderBy(desc(carDrivers.drvDeletedAt))
+      .limit(1);
+
+    const revive = retired[0];
+    const [created] = revive
+      ? await db
+          .update(carDrivers)
+          .set({ ...fields, drvDeletedAt: null })
+          .where(and(eq(carDrivers.drvId, revive.id), eq(carDrivers.entId, actor.entId)))
+          .returning()
+      : await db
+          .insert(carDrivers)
+          .values({
+            drvId: randomUUID(),
+            entId: actor.entId,
+            drvUserId: data.user_id,
+            ...fields,
+          })
+          .returning();
+    if (!created) throw new CarError('CAR-E0500', 500, revive ? 'Revive returned no row' : 'Insert returned no row');
 
     await logAudit({
       entId: actor.entId,
@@ -61,7 +115,13 @@ export async function createDriverAction(input: unknown): Promise<ActionResult<C
       entity: 'Driver',
       entityId: created.drvId,
       entityRef: user.usrName ?? data.license_number,
-      after: { license: created.drvLicenseNumber, user_id: created.drvUserId },
+      after: {
+        license: created.drvLicenseNumber,
+        user_id: created.drvUserId,
+        /* Says whether this reattached an existing history or started fresh —
+         * the difference matters when reconciling a driver's trip list. */
+        ...(revive ? { revivedDriverId: revive.id, retiredAt: revive.deletedAt } : {}),
+      },
     });
 
     /* Created from a department surface (e.g. /truck/drivers/new) → also grant

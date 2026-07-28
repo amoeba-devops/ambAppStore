@@ -56,15 +56,37 @@ export async function provisionDevPersona(sub: string, entId: string): Promise<v
         )
         .limit(1);
       if (drv.length === 0) {
-        await db.insert(carDrivers).values({
-          drvId: p.driver.drvId,
-          entId: DEV_ENT_ID,
-          drvUserId: sub,
-          drvLicenseNumber: p.driver.license,
-          drvLicenseClass: 'B2',
-          drvLicenseExpiry: '2030-12-31',
-          drvStatus: 'AVAILABLE',
-        });
+        /* REVIVE, never re-insert. `p.driver.drvId` is a FIXED uuid, so once an
+         * admin has soft-deleted this persona's driver row, a plain insert
+         * collides on the primary key. The throw was swallowed by the catch at
+         * the bottom of this function — taking the fleet-access grant below with
+         * it — so the persona was left with NO driver row AND NO department, and
+         * logging in again could never repair it. Observed on staging
+         * 2026-07-28: "Tài xế Xe con" deleted at 06:38 stayed department-less.
+         *
+         * Reviving also keeps whatever trips/expenses referenced the row, the
+         * same reason createDriverAction revives rather than mints a new id. */
+        await db
+          .insert(carDrivers)
+          .values({
+            drvId: p.driver.drvId,
+            entId: DEV_ENT_ID,
+            drvUserId: sub,
+            drvLicenseNumber: p.driver.license,
+            drvLicenseClass: 'B2',
+            drvLicenseExpiry: '2030-12-31',
+            drvStatus: 'AVAILABLE',
+          })
+          .onConflictDoUpdate({
+            target: carDrivers.drvId,
+            set: {
+              drvDeletedAt: null,
+              drvUserId: sub,
+              drvLicenseNumber: p.driver.license,
+              drvStatus: 'AVAILABLE',
+              drvUpdatedAt: new Date(),
+            },
+          });
       }
     }
 

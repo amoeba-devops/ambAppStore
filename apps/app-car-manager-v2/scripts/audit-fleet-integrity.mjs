@@ -104,6 +104,23 @@ const CHECKS = [
   ['DRIVER', 'every driver record points at a real user', `
     select d.drv_id from car_drivers d
     where not exists (select 1 from car_users u where u.usr_id = d.drv_user_id)`],
+  /* Delete-then-recreate used to mint a NEW drv_id, stranding every trip on the
+   * row it just retired: the driver opened /today to an empty screen while
+   * /truck/trips still printed their name (getDriverNamesByIds ignores
+   * soft-delete), so nothing looked broken. createDriverAction now revives the
+   * retired row instead — this check catches any split that predates that fix,
+   * or one made by hand in SQL. A retired row keeping its trips is FINE on its
+   * own (that is a former driver's history); the defect is history sitting on a
+   * retired row while the SAME user has a live row to sit on. */
+  ['DRIVER', "no user's trips are split across a retired and a live driver row", `
+    select u.usr_name, count(*) as stranded_trips
+    from car_trips t
+    join car_drivers dead on dead.drv_id = t.trp_driver_id
+    join car_users u on u.usr_id = dead.drv_user_id
+    where t.trp_deleted_at is null and dead.drv_deleted_at is not null
+      and exists (select 1 from car_drivers live where live.drv_user_id = dead.drv_user_id
+        and live.ent_id = dead.ent_id and live.drv_deleted_at is null)
+    group by u.usr_id, u.usr_name`],
 
   ['TRIP', 'no DISPATCH trip on a TRUCK', `
     select t.trp_ref, v.cvh_plate_number from car_trips t
@@ -128,6 +145,18 @@ const CHECKS = [
     join car_vehicles v on v.cvh_id = t.trp_vehicle_id
     join car_drivers d on d.drv_id = t.trp_driver_id
     where t.trp_deleted_at is null and (v.cvh_type = 'TRUCK') <> (${IS_TRUCK})`],
+  /* An in-flight trip whose driver no longer exists can never move: nobody can
+   * accept, start or finish it, and it keeps occupying the calendar. Deleting a
+   * driver is deliberately soft-warning-only (PRD: the admin is warned and may
+   * proceed), so this is not unreachable by design — it is the signal to go
+   * reassign. Completed / cancelled trips on a retired driver are history and
+   * are NOT flagged. */
+  ['TRIP', 'no in-flight trip is assigned to a deleted driver', `
+    select t.trp_ref, t.trp_status, u.usr_name from car_trips t
+    join car_drivers d on d.drv_id = t.trp_driver_id
+    join car_users u on u.usr_id = d.drv_user_id
+    where t.trp_deleted_at is null and d.drv_deleted_at is not null
+      and t.trp_status in ('PENDING_DRIVER_CONFIRMATION', 'CONFIRMED', 'IN_PROGRESS')`],
   ['TRIP', 'no cross-tenant vehicle reference', `
     select t.trp_ref from car_trips t join car_vehicles v on v.cvh_id = t.trp_vehicle_id
     where t.ent_id <> v.ent_id`],
@@ -152,6 +181,17 @@ const CHECKS = [
   ['MODULE', 'no maintenance alert raised against a truck', `
     select a.mal_id, v.cvh_plate_number from car_maintenance_alerts a
     join car_vehicles v on v.cvh_id = a.mal_vehicle_id where v.cvh_type = 'TRUCK'`],
+  /* Same split as the DRIVER check above, on the expense side — a claim the
+   * driver filed but can no longer see in their own list. */
+  ['MODULE', "no user's expenses are split across a retired and a live driver row", `
+    select u.usr_name, count(*) as stranded_expenses
+    from car_expenses e
+    join car_drivers dead on dead.drv_id = e.exp_driver_id
+    join car_users u on u.usr_id = dead.drv_user_id
+    where e.exp_deleted_at is null and dead.drv_deleted_at is not null
+      and exists (select 1 from car_drivers live where live.drv_user_id = dead.drv_user_id
+        and live.ent_id = dead.ent_id and live.drv_deleted_at is null)
+    group by u.usr_id, u.usr_name`],
 ];
 
 const results = [];
