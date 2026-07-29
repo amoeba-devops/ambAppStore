@@ -133,7 +133,16 @@ export default async function DriversPage({ searchParams }: PageProps) {
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <div className={`font-semibold text-text truncate ${isDeleted ? 'line-through' : ''}`}>{d.user.usrName}</div>
-                              <div className="text-xs text-text-faint truncate font-mono tabular">{d.drvPhone ?? '—'}</div>
+                              {/* Email directly under the name — the one field that
+                                * tells two same-named drivers apart. This card was the
+                                * last person-list still showing only a phone here,
+                                * while the desktop table beside it, /truck/drivers and
+                                * every picker already carried the email. Phone moved
+                                * down to the license meta row (same shape as the truck
+                                * roster's mobile card) rather than being dropped. */}
+                              {d.user.usrEmail && (
+                                <div className="text-xs text-text-faint truncate">{d.user.usrEmail}</div>
+                              )}
                             </div>
                             {isDeleted ? (
                               <Badge tone="danger" size="sm">{tList('deletedBadge')}</Badge>
@@ -144,6 +153,9 @@ export default async function DriversPage({ searchParams }: PageProps) {
                           <div className="mt-2 text-xs text-text-muted">
                             <span className="font-mono tabular">{d.drvLicenseNumber}</span>
                             <span className="text-text-faint ml-1">· {d.drvLicenseClass}</span>
+                            {d.drvPhone && (
+                              <span className="text-text-faint ml-1 font-mono tabular">· {d.drvPhone}</span>
+                            )}
                           </div>
                           {!isDeleted && daysLeft <= 30 && (
                             <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-danger bg-danger-soft px-2 py-0.5 rounded">
