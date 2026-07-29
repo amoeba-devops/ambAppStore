@@ -18,6 +18,7 @@ import {
   EmptyState,
 } from '@car-v2/ui';
 import type { CarTripStatus } from '@car-v2/db/schema';
+import { driverDept } from '@/components/layout/nav-items';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { resolveFleetAccess } from '@/lib/auth/fleet-access';
@@ -82,14 +83,12 @@ export default async function TodayPage() {
   if (user.role === 'DRIVER') {
     /* Truck drivers get a completion-oriented Today (no dispatch hero).
      *
-     * CAR wins the tie. A DRIVER is meant to hold exactly one department, but
-     * when the data drifts — a delete-then-recreate, a hand-edited membership —
-     * this was the ONE place resolving the ambiguity TRUCK-first, while
-     * middleware's manager bounce (middleware.ts) and landingPathFor both
-     * resolve CAR-first. The disagreement showed up as a car driver landing on
-     * the truck Today screen. */
+     * `driverDept` owns the CAR-wins-the-tie rule for every surface (page body,
+     * shell chrome, first-paint theme) — see its doc comment. Inlining it here
+     * is how this screen and the chrome around it came to disagree in the first
+     * place. */
     const fleets = await resolveFleetAccess(user);
-    const isTruckDriver = fleets.includes('TRUCK') && !fleets.includes('CAR');
+    const isTruckDriver = driverDept(fleets) === 'TRUCK';
     /* Truck subtitle counts trips still needing a log (not "today" — a truck
      * log can be back-dated), which is the number the driver actually acts on. */
     const truckTodoCount = myTrips.filter(

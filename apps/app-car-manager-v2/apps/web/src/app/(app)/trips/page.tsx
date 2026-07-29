@@ -19,6 +19,7 @@ import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { ExportDropdown } from '@/components/export-dropdown';
 import type { CarTripStatus } from '@car-v2/db/schema';
 import { Fab } from '@/components/layout/fab';
+import { driverDept } from '@/components/layout/nav-items';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { resolveFleetAccess } from '@/lib/auth/fleet-access';
@@ -91,8 +92,11 @@ export default async function TripsListPage({ searchParams }: PageProps) {
     const driverTrips = driver
       ? await listTripsForDriver(user.entId, driver.drvId, 100)
       : [];
-    /* Truck drivers get the to-complete/completed list (no dispatch statuses). */
-    const isTruckDriver = (await resolveFleetAccess(user)).includes('TRUCK');
+    /* Truck drivers get the to-complete/completed list (no dispatch statuses).
+     * `driverDept`, not a bare `.includes('TRUCK')` — this screen and /today are
+     * the same driver's two tabs, so resolving the tie differently here showed
+     * one of them the truck list and the other the dispatch list. */
+    const isTruckDriver = driverDept(await resolveFleetAccess(user)) === 'TRUCK';
     return (
       <>
         <PageHeader

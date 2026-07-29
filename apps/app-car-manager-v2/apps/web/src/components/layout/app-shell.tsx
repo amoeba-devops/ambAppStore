@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { resolveFleetAccess } from '@/lib/auth/fleet-access';
-import type { FleetDept } from './nav-items';
+import { driverDept, type FleetDept } from './nav-items';
 import { countTodayExpenses } from '@/server/queries/expenses.queries';
 import { countUnreadNotifications } from '@/server/queries/notifications.queries';
 import { getCriticalUnresolvedAlerts } from '@/server/queries/maintenance-alerts.queries';
@@ -103,14 +103,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   const cookieDept = (await cookies()).get('ccms.fleet.dept')?.value;
   const initialDept: FleetDept =
     user.role === 'DRIVER'
-      ? /* CAR-first on a tie, matching /today's view pick and middleware's
-         * manager bounce. A driver should only ever have one department; this
-         * ordering only decides what happens when the data says otherwise. */
-        fleetAccess.includes('CAR')
-        ? 'CAR'
-        : fleetAccess.includes('TRUCK')
-          ? 'TRUCK'
-          : 'CAR'
+      ? driverDept(fleetAccess)
       : cookieDept === 'TRUCK' && fleetAccess.includes('TRUCK')
         ? 'TRUCK'
         : cookieDept === 'CAR' && fleetAccess.includes('CAR')
