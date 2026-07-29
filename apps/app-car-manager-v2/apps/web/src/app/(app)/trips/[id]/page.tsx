@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import {
   AlertTriangle,
   Car,
@@ -19,6 +19,7 @@ import type { CarTripStatus } from '@car-v2/db/schema';
 import { MapPreview } from '@/components/inputs/map-preview';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { hasFleet } from '@/lib/auth/fleet-access';
 import { driverIdentity } from '@/lib/format-person-option';
 import { listAuditForEntity } from '@/server/queries/audit.queries';
 import { listNonTruckDrivers, getDriverByUserId } from '@/server/queries/drivers.queries';
@@ -65,12 +66,22 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
    * completion section). Returns early so the car dispatch layout below is
    * never touched for trucks. */
   if (trip.trpKind === 'LOG') {
+    const isStaffUser = user.role === 'ADMIN' || user.role === 'MANAGER';
+    /* Staff belong on the canonical truck route: this shared page has no truck
+     * breadcrumb, no manage actions, and its back button falls through to
+     * `/trips` — a DISPATCH-only list that never contains a LOG trip (the same
+     * dead end the driver detail had, BUG-20260729). Truck-log links reach here
+     * from dept-neutral places (notification `/trips/{id}`, the recent-trips
+     * table on a driver/vehicle detail), so redirect rather than patch the
+     * label. Mirrors `/vehicles/[id]` → `/truck/fleet/[id]/edit` for trucks.
+     * Drivers stay: their own roster IS `/trips`. */
+    if (isStaffUser && (await hasFleet(user, 'TRUCK'))) redirect(`/truck/trips/${trip.trpId}`);
+
     let isAssignedDriver = false;
     if (user.role === 'DRIVER' && trip.trpDriverId) {
       const actorDriver = await getDriverByUserId(user.entId, user.userId);
       isAssignedDriver = actorDriver?.drvId === trip.trpDriverId;
     }
-    const isStaffUser = user.role === 'ADMIN' || user.role === 'MANAGER';
     const extras = await getTripExtraCosts(user.entId, trip.trpId);
     const costAttachments = await getTripCostAttachmentsView(user.entId, trip.trpId);
     const {
