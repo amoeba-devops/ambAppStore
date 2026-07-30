@@ -87,11 +87,11 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 /**
- * After a trip mutation, HOW is the trip's fuel cost derived (REQ-20260724) —
+ * After a trip mutation, HOW is the trip's fuel cost derived —
  * so the client toast can tell the user what happened:
- *  - AVERAGED     frozen month-end reconciliation (invoices)
- *  - VEHICLE_RATE km × (xe định mức/100) × giá của xe (mặc định, live)
- *  - UNSET        xe chưa đặt định mức/giá → phí 0
+ *  - AVERAGED frozen month-end allocation of the vehicle's fuel spend
+ *  - LIVE     same allocation from the month's fuel recorded so far (tạm tính)
+ *  - UNSET    xe chưa có chi phí nhiên liệu trong tháng → phí 0
  * Returns null for a non-COMPLETED trip (open trips aren't costed yet) so the
  * client shows no fuel note. km doesn't affect the mode, so we pass 0.
  */
@@ -201,8 +201,13 @@ export async function createTruckTripAction(
     if (actor.role !== 'DRIVER' && dto.mark_completed && trip.trpDriverId && trip.trpVehicleId) {
       const extraCosts = dto.extra_costs ?? [];
       const res = await completeTruckTrip(actor, trip.trpId, {
+        /* Times the manager typed — otherwise completeTruckTrip stamps "now" as
+         * the end and leaves the start empty, which the report prints as "—". */
+        startedAt: dto.start_time ? new Date(dto.start_time) : null,
+        finishedAt: dto.end_time ? new Date(dto.end_time) : null,
         endOdometer: dto.end_odometer ?? null,
         fuelLiters: dto.fuel_liters ?? null,
+        fuelPrice: dto.fuel_price ?? null,
         tollFee: dto.toll_fee ?? null,
         extraCosts,
       });
@@ -297,6 +302,7 @@ export async function completeTruckTripAction(
       finishedAt: dto.end_time ? new Date(dto.end_time) : null,
       endOdometer: dto.end_odometer ?? null,
       fuelLiters: dto.fuel_liters ?? null,
+      fuelPrice: dto.fuel_price ?? null,
       tollFee: dto.toll_fee ?? null,
       extraCosts: dto.extra_costs ?? [],
     });
@@ -353,6 +359,7 @@ export async function driverCompleteTruckTripAction(
       finishedAt: dto.end_time ? new Date(dto.end_time) : null,
       endOdometer: dto.end_odometer ?? null,
       fuelLiters: dto.fuel_liters ?? null,
+      fuelPrice: dto.fuel_price ?? null,
       tollFee: dto.toll_fee ?? null,
       extraCosts: dto.extra_costs ?? [],
     });
@@ -423,6 +430,9 @@ export async function updateTruckTripAction(
       endOdometer: dto.end_odometer ?? null,
       fuelLiters: dto.fuel_liters ?? null,
       tollFee: dto.toll_fee ?? null,
+      notes: dto.notes,
+      startedAt: dto.start_time ? new Date(dto.start_time) : undefined,
+      finishedAt: dto.end_time ? new Date(dto.end_time) : undefined,
       extraCosts,
       stopovers,
     });

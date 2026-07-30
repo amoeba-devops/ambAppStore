@@ -102,7 +102,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
       (isStaffUser || isAssignedDriver) &&
       (trip.trpStatus === 'CONFIRMED' || trip.trpStatus === 'IN_PROGRESS');
     /* Only completed trips show the cost card — skip the query otherwise. */
-    const reportStatus = completed ? await getTruckReportStatus(user.entId, month, region || null) : null;
+    const reportStatus = completed ? await getTruckReportStatus(user.entId, month, region || null, trip.trpUpdatedAt ?? trip.trpCreatedAt) : null;
 
     return (
       <TruckTripDetail

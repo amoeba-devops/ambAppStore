@@ -40,9 +40,8 @@ export interface TruckTripDetailProps {
     signedUrl: string | null;
   }[];
   breakdown: TruckCostBreakdown;
-  /** How `breakdown.fuelCost` was derived (REQ-20260724): AVERAGED | VEHICLE_RATE
-   * | UNSET — undefined when the trip isn't completed yet (no fuel cost to
-   * qualify). */
+  /** How `breakdown.fuelCost` was derived: AVERAGED | LIVE | UNSET —
+   * undefined when the trip isn't completed yet (no fuel cost to qualify). */
   fuelMode?: FuelBadgeMode;
   /** This trip's km + cost per km — rendered under the fuel row as
    * `{km} km × {đ}/km` so the figure explains itself (REQ-20260724 UX). */
@@ -116,7 +115,7 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="text-sm font-semibold text-text">{t('costTitle')}</div>
         {props.reportStatus && (
-          <ReportStatusBadge reportedAt={props.reportStatus.reportedAt} stale={props.reportStatus.stale} locale={locale} />
+          <ReportStatusBadge reportedAt={props.reportStatus.reportedAt} stale={props.reportStatus.stale} covered={props.reportStatus.covered} locale={locale} />
         )}
       </div>
       <CostRow

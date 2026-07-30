@@ -23,8 +23,6 @@ export default async function NewTruckTripPage() {
     id: v.cvhId,
     label: `${v.cvhPlateNumber} · ${v.cvhModel}`,
     defaultDriverId: v.cvhDefaultDriverId ?? undefined,
-    fuelQuota: v.cvhFuelQuota != null ? Number(v.cvhFuelQuota) : null,
-    fuelPrice: v.cvhFuelPrice != null ? Number(v.cvhFuelPrice) : null,
   }));
   const driverOptions = drivers.map((d) => {
     const name = driverIdentity(d);

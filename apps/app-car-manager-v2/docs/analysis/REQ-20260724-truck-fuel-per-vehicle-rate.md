@@ -1,5 +1,14 @@
 # REQ-20260724 — Phí nhiên liệu theo định mức + giá của XE (tính live theo km, không cần hoá đơn)
 
+> ## ⛔ ĐÃ BỊ THAY THẾ (2026-07-30)
+>
+> KH chốt lại: **phí nhiên liệu KHÔNG tính theo định mức**, mà phân bổ theo
+> `km chuyến × (chi phí nhiên liệu tháng của xe ÷ tổng km tháng của xe)`.
+> Mô hình `km × định mức × giá xe` trong tài liệu này đã bị xoá khỏi code
+> (kể cả field Lít/Đơn giá trên chuyến đã được trả lại).
+> Xem [BUG-260730](../bug-fix/BUG-260730-truck-fuel-allocation-by-monthly-cost.md).
+> Tài liệu giữ lại để tra lịch sử quyết định.
+
 > Yêu cầu KH (dev@amoeba): *"vì sao lại phải nhập hoá đơn xăng để tính lại, tôi cần thay đổi đúng các trường đã cung cấp sẽ tính lại luôn"* → chọn model **KM × định mức × giá theo xe**, và **bổ sung làm mặc định** (giữ bình quân theo hoá đơn đè lên khi có lập báo cáo).
 
 ## 1. Tóm tắt yêu cầu

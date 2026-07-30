@@ -66,7 +66,7 @@ export function TruckCompleteSection({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [f, setF] = useState({ startTime: '', endTime: '', endOdo: '', fuelLiters: '', toll: '' });
+  const [f, setF] = useState({ startTime: '', endTime: '', endOdo: '', fuelLiters: '', fuelPrice: '', toll: '' });
   const [extras, setExtras] = useState<ExtraRow[]>([]);
 
   /* Receipt buckets (REQ-20260709) — seeded with any attachments already on the
@@ -128,6 +128,7 @@ export function TruckCompleteSection({
         end_time: f.endTime || undefined,
         end_odometer: numI(f.endOdo),
         fuel_liters: numF(f.fuelLiters),
+        fuel_price: numF(f.fuelPrice),
         toll_fee: numF(f.toll),
         extra_costs: extras
           .filter((e) => e.name.trim() !== '' && e.amount.trim() !== '')
@@ -142,8 +143,8 @@ export function TruckCompleteSection({
         toast.error(formatActionError(res.error, tErr));
         return;
       }
-      /* Say how the per-trip fuel was treated (REQ-20260724): averaged (invoices)
-       * / vehicle rate (km × định mức × giá xe) / unset (xe chưa đặt → 0). */
+      /* Say how the per-trip fuel was treated: allocated from the month's
+       * finalised figures / provisional from what is recorded so far / none. */
       toast.success(t('completedToast'), {
         description: fuelToastDescription(res.data.fuelMode, tFuel),
       });
@@ -176,10 +177,15 @@ export function TruckCompleteSection({
         <Field label={t('toll')}>
           <Input type="number" value={f.toll} onChange={set('toll')} />
         </Field>
+        {/* Fuel filled on this trip (restored 2026-07-30): the spend that joins
+          * the vehicle's monthly fuel total and is then allocated by km. */}
+        <Field label={tR('fuelLiters')}>
+          <Input type="number" step="0.01" min="0" value={f.fuelLiters} onChange={set('fuelLiters')} />
+        </Field>
+        <Field label={tR('fuelPrice')}>
+          <Input type="number" step="1" min="0" value={f.fuelPrice} onChange={set('fuelPrice')} />
+        </Field>
       </div>
-      {/* Fuel is derived from the vehicle's rate × km (REQ-20260724) — no litres
-       * input; entering the end odometer (km) is what drives the fuel cost. */}
-      <p className="text-xs text-text-muted">{tFuel('fuelByTripKmHint')}</p>
 
       <div>
         <div className="flex items-center justify-between mb-2">

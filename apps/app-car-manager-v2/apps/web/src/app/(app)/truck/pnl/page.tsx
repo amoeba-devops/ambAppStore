@@ -169,7 +169,7 @@ export default async function TruckPnlPage({
                     <FuelReconciliationBadge
                       mode={aggregateFuelMode({
                         averaged: selected.fuelAveragedTripCount,
-                        vehicleRate: selected.fuelVehicleRateTripCount,
+                        live: selected.fuelLiveTripCount,
                         unset: selected.fuelUnsetTripCount,
                       })}
                     />
@@ -245,7 +245,7 @@ export default async function TruckPnlPage({
                               <FuelReconciliationBadge
                                 mode={aggregateFuelMode({
                                   averaged: row.fuelAveragedTripCount,
-                                  vehicleRate: row.fuelVehicleRateTripCount,
+                                  live: row.fuelLiveTripCount,
                                   unset: row.fuelUnsetTripCount,
                                 })}
                               />

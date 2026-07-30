@@ -37,7 +37,7 @@ export default async function TruckTripDetailPage({ params }: { params: Promise<
   } = await getTruckTripBreakdown(user.entId, trip, extras.map((e) => e.amount));
   const completed = trip.trpStatus === 'COMPLETED';
   const canComplete = !completed && (trip.trpStatus === 'CONFIRMED' || trip.trpStatus === 'IN_PROGRESS');
-  const reportStatus = completed ? await getTruckReportStatus(user.entId, month, region || null) : null;
+  const reportStatus = completed ? await getTruckReportStatus(user.entId, month, region || null, trip.trpUpdatedAt ?? trip.trpCreatedAt) : null;
 
   return (
     <TruckTripDetail

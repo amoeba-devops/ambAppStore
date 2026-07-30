@@ -41,10 +41,10 @@ export interface TruckPnlRow {
   /** Per-fuel-mode trip counts within this row (REQ-20260724) → drives the
    * aggregate fuel badge (all-same mode → that badge; blend → "Hỗn hợp"):
    *  - averaged: fuel = frozen month-end reconciliation (invoices)
-   *  - vehicleRate: fuel = km × (định mức/100) × giá của xe (mặc định)
+   *  - live: fuel = km × (chi phí nhiên liệu tháng của xe ÷ km tháng), tạm tính
    *  - unset: vehicle has no quota/price → fuel counted as 0 */
   fuelAveragedTripCount: number;
-  fuelVehicleRateTripCount: number;
+  fuelLiveTripCount: number;
   fuelUnsetTripCount: number;
 }
 
@@ -73,7 +73,7 @@ function emptyRow(month: string): TruckPnlRow {
     tripCount: 0,
     netProfit: 0,
     fuelAveragedTripCount: 0,
-    fuelVehicleRateTripCount: 0,
+    fuelLiveTripCount: 0,
     fuelUnsetTripCount: 0,
   };
 }
@@ -192,7 +192,7 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
     const fuel = snapshots.fuelForTrip(mk, t.vehicleId, km);
     row.fuelCost += fuel.cost;
     if (fuel.mode === 'AVERAGED') row.fuelAveragedTripCount += 1;
-    else if (fuel.mode === 'VEHICLE_RATE') row.fuelVehicleRateTripCount += 1;
+    else if (fuel.mode === 'LIVE') row.fuelLiveTripCount += 1;
     else row.fuelUnsetTripCount += 1;
     row.tollFee += Math.round(parseAmount(t.tollFee));
     row.extraTotal += Math.round(extraByTrip.get(t.trpId) ?? 0);

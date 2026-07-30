@@ -117,6 +117,11 @@ export interface TruckReportStatus {
    * (PLAN-20260707: no lock, so this is the only staleness signal). Always
    * false when reportedAt is null. */
   stale: boolean;
+  /** Per-record variant: false when the record this status is shown next to
+   * (a trip) was created/edited AFTER the report ran — it is simply not in that
+   * report, so calling it "Đã lập BC" is wrong (BUG-260730 case 1). True when
+   * no record timestamp was supplied. */
+  covered: boolean;
 }
 
 /**
@@ -129,9 +134,12 @@ export async function getTruckReportStatus(
   entId: string,
   month: string,
   region: string | null = null,
+  /** The record's own last change — pass a trip's updated_at on per-trip screens
+   * so the badge can say "not in that report" instead of "reported". */
+  changedAt?: Date | null,
 ): Promise<TruckReportStatus> {
   const latest = await getLatestTruckReportForMonth(entId, month, region);
-  if (!latest) return { reportedAt: null, stale: false };
+  if (!latest) return { reportedAt: null, stale: false, covered: false };
   const [tripsUpdatedAt, fixedUpdatedAt] = await Promise.all([
     getTruckTripsMaxUpdatedAt(entId, month, region),
     getTruckFixedCostsLastUpdated(entId, month),
@@ -139,7 +147,8 @@ export async function getTruckReportStatus(
   const stale =
     (tripsUpdatedAt != null && tripsUpdatedAt > latest.createdAt) ||
     (fixedUpdatedAt != null && fixedUpdatedAt > latest.createdAt);
-  return { reportedAt: latest.createdAt, stale };
+  const covered = changedAt == null || latest.createdAt >= changedAt;
+  return { reportedAt: latest.createdAt, stale, covered };
 }
 
 /** One report (ent-scoped) for the download handler. */

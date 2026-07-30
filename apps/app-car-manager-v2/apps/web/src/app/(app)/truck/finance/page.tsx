@@ -125,7 +125,7 @@ export default async function TruckFinancePage({
    * number — spell the split out under the KPI so nobody reads an estimate as
    * money already spent. */
   const fuelActual = rows.reduce((s, r) => s + (r.fuelMode === 'AVERAGED' ? r.fuelCost : 0), 0);
-  const fuelEstimated = rows.reduce((s, r) => s + (r.fuelMode === 'VEHICLE_RATE' ? r.fuelCost : 0), 0);
+  const fuelEstimated = rows.reduce((s, r) => s + (r.fuelMode === 'LIVE' ? r.fuelCost : 0), 0);
   const fuelSplitNote =
     fuelEstimated > 0 && fuelActual > 0
       ? t('kpiFuelSplit', { actual: vnd(fuelActual), est: vnd(fuelEstimated) })

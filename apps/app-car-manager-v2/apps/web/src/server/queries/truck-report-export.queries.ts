@@ -228,11 +228,10 @@ export async function getTruckReportExport(
     const extra = Math.round(ex.amount);
     const toll = Math.round(parseAmount(t.toll));
     const revenue = Math.round(parseAmount(t.revenue));
-    /* "Đã lập BC" once a report covers this (month, region) — the report row is
-     * inserted before this workbook builds, so it's reported here (2026-07-21).
-     * The snapshot only drives fuel: reconciled when present, else own price. */
+    /* No trip timestamp passed on purpose: this workbook IS the report, whose
+     * row was inserted moments ago, so every trip in scope is covered by it. */
     const finalized = snapshots.isReported(month, t.vehicleId);
-    /* Fuel = frozen snapshot → vehicle rate → 0 (REQ-20260724), shared helper. */
+    /* Fuel = frozen snapshot → live pool → 0, shared helper. */
     const fuel = snapshots.fuelForTrip(month, t.vehicleId, km);
     const avgPrice = fuel.unitPrice;
     const liters = fuel.liters;

@@ -44,14 +44,13 @@ export interface OptionItem {
   label: string;
   /** Vehicle's assigned default driver (cvh_default_driver_id) — drives auto-fill on vehicle select. */
   defaultDriverId?: string;
-  /** Vehicle fuel rate (REQ-20260724) — định mức L/100km + giá đ/L. Drives the
-   * read-only fuel preview: fuel = km × (quota/100) × price. */
-  fuelQuota?: number | null;
-  fuelPrice?: number | null;
 }
 
 export type TruckTripFormInitial = Partial<{
   scheduledAt: string;
+  startTime: string;
+  endTime: string;
+  notes: string;
   vehicleId: string;
   driverId: string;
   customer: string;
@@ -73,11 +72,17 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 
 const EMPTY_FIELDS = {
   scheduledAt: todayIso(),
+  /* 'HH:mm' — combined with scheduledAt on submit. The monthly report has a
+   * "Giờ bắt đầu / Giờ kết thúc" column, so a manager logging a finished trip
+   * must be able to say when it actually ran. */
+  startTime: '',
+  endTime: '',
   vehicleId: '',
   driverId: '',
   customer: '',
   bol: '',
   cdf: '',
+  notes: '',
   revenue: '',
   fuelPrice: '',
   fuelLiters: '',
@@ -184,7 +189,7 @@ export function TruckTripForm({
   /* Optional fields stay collapsed by default to keep the form light — they
    * auto-expand on edit when the trip already carries that data. */
   const [showDocs, setShowDocs] = useState(
-    () => !!(initial?.customer || initial?.bol || initial?.cdf),
+    () => !!(initial?.customer || initial?.bol || initial?.cdf || initial?.notes),
   );
 
   const set =
@@ -195,31 +200,21 @@ export function TruckTripForm({
   /* Setter for MoneyInput (receives the raw digit string, not an event). */
   const setNum = (k: keyof typeof EMPTY_FIELDS) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
-  /* Selected vehicle's fuel rate → the DEFAULT per-trip fuel (REQ-20260724):
-   * fuel = km × (định mức/100) × giá của xe. Litres/đơn giá are no longer
-   * entered per trip; they're derived from the vehicle here. */
   const selectedVehicle = vehicles.find((v) => v.id === f.vehicleId);
-  const vehicleQuota = selectedVehicle?.fuelQuota ?? null;
-  const vehiclePrice = selectedVehicle?.fuelPrice ?? null;
-  const hasVehicleRate = (vehicleQuota ?? 0) > 0 && (vehiclePrice ?? 0) > 0;
 
-  /* Live profit preview. Fuel = km × vehicle rate (the actual cost model);
-   * 0 when the vehicle has no rate set (surfaced as a hint in the summary). */
+  /* Live profit preview. Fuel here = what THIS trip recorded (litres × đơn
+   * giá) — the money actually spent. The per-trip cost that lands in P&L is
+   * that spend POOLED per vehicle-month and re-spread by km (a fill-up serves
+   * several trips), which needs the whole month and so is computed server-side;
+   * the month total is identical either way, so the preview stays honest. */
   const preview = useMemo(() => {
-    const kmNums = stops.map((s) => (s.km.trim() ? Number(s.km) : null));
-    const first = kmNums.find((v) => v != null);
-    const last = [...kmNums].reverse().find((v) => v != null);
-    const km = first != null && last != null && last > first ? last - first : 0;
-    const fuelCost =
-      km > 0 && (vehicleQuota ?? 0) > 0 && (vehiclePrice ?? 0) > 0
-        ? Math.round(km * ((vehicleQuota as number) / 100) * (vehiclePrice as number))
-        : 0;
+    const fuelCost = Math.round((numF(f.fuelLiters) ?? 0) * (numF(f.fuelPrice) ?? 0));
     const toll = Math.round(numF(f.toll) ?? 0);
     const extraTotal = extras.reduce((s, e) => s + Math.round(numF(e.amount) ?? 0), 0);
     const revenue = Math.round(numF(f.revenue) ?? 0);
     const totalCost = fuelCost + toll + extraTotal;
     return { fuelCost, totalCost, revenue, profit: revenue - totalCost };
-  }, [stops, vehicleQuota, vehiclePrice, f.toll, f.revenue, extras]);
+  }, [f.fuelLiters, f.fuelPrice, f.toll, f.revenue, extras]);
 
   /* Extract pickup/dropoff from stops for the API (summary + notification). */
   const pickupStop = stops.find((s) => s.type === 'PICKUP');
@@ -283,6 +278,9 @@ export function TruckTripForm({
         dropoff_address: dropoffAddress,
         bol: f.bol.trim() || undefined,
         cdf: f.cdf.trim() || undefined,
+        notes: f.notes.trim() || undefined,
+        start_time: f.startTime ? `${f.scheduledAt}T${f.startTime}` : undefined,
+        end_time: f.endTime ? `${f.scheduledAt}T${f.endTime}` : undefined,
         fuel_price: numF(f.fuelPrice),
         revenue: isDriver ? undefined : numF(f.revenue),
         mark_completed: isDriver ? false : markCompleted,
@@ -337,31 +335,24 @@ export function TruckTripForm({
     </div>
   );
 
-  /* Fuel is derived from the vehicle's rate (REQ-20260724) — no per-trip litres/
-   * price input. Read-only info: computed preview, or a prompt to set the rate. */
-  const fuelInfo = (
-    <div className="rounded-md border border-border bg-surface-2/40 px-3 py-2.5 text-sm space-y-0.5 sm:col-span-2">
-      {!f.vehicleId ? (
-        <p className="text-text-faint">{t('fuelSelectVehicleFirst')}</p>
-      ) : hasVehicleRate ? (
-        <>
-          {/* Per-trip arithmetic first (km is what the user is editing), with the
-            * vehicle rate spelled out underneath. The sentence explaining the
-            * formula was dropped (QA 2026-07-29) — the two lines below already
-            * show it as arithmetic. */}
-          <p className="text-text">
-            {(totalKm ?? 0).toLocaleString('vi-VN')} km ×{' '}
-            {vnd(Math.round(((vehicleQuota as number) / 100) * (vehiclePrice as number)))}/km ={' '}
-            <span className="font-semibold">{vnd(preview.fuelCost)}</span>
-          </p>
-          <p className="text-xs text-text-faint">
-            {vehicleQuota} L/100km × {vnd(vehiclePrice as number)}/L
-          </p>
-        </>
-      ) : (
-        <p className="text-warning">{t('fuelRateNotSet')}</p>
+  /* Fuel entry (restored 2026-07-30): what this trip actually filled — the money
+   * side of the monthly allocation. Deliberately NO explanatory sentence here
+   * (QA asked twice to drop the prose): only the two inputs and, once they add
+   * up, the figure itself. */
+  const fuelInputs = (
+    <>
+      <FormField label={t('fuelLiters')} inline>
+        <Input type="number" step="0.01" min="0" value={f.fuelLiters} onChange={set('fuelLiters')} />
+      </FormField>
+      <FormField label={t('fuelPrice')} inline>
+        <MoneyInput value={f.fuelPrice} onChange={setNum('fuelPrice')} />
+      </FormField>
+      {preview.fuelCost > 0 && (
+        <p className="text-sm text-text sm:col-span-2">
+          {t('previewFuelCost')}: <span className="font-semibold">{vnd(preview.fuelCost)}</span>
+        </p>
       )}
-    </div>
+    </>
   );
 
   return (
@@ -433,6 +424,19 @@ export function TruckTripForm({
                   </Select>
                 </FormField>
               )}
+              {/* Actual run window — only meaningful when logging a finished
+                * trip; a driver-completed trip gets these from the completion
+                * sheet instead. Report column "Giờ bắt đầu / Giờ kết thúc". */}
+              {!isDriver && markCompleted && (
+                <>
+                  <FormField label={t('startTime')} inline>
+                    <Input type="time" value={f.startTime} onChange={set('startTime')} />
+                  </FormField>
+                  <FormField label={t('endTime')} inline>
+                    <Input type="time" value={f.endTime} onChange={set('endTime')} />
+                  </FormField>
+                </>
+              )}
             </div>
           </SectionCard>
 
@@ -451,8 +455,13 @@ export function TruckTripForm({
                 <FormField label={t('bol')} inline>
                   <Input value={f.bol} onChange={set('bol')} />
                 </FormField>
-                <FormField label={t('cdf')} inline className="sm:col-span-2">
+                <FormField label={t('cdf')} inline>
                   <Input value={f.cdf} onChange={set('cdf')} />
+                </FormField>
+                {/* Trip note — the trip-log export has a "Ghi chú" column that
+                  * nothing could fill before (2026-07-30). */}
+                <FormField label={t('notes')} inline className="sm:col-span-2">
+                  <Input value={f.notes} onChange={set('notes')} />
                 </FormField>
               </div>
             </SectionCard>
@@ -464,7 +473,7 @@ export function TruckTripForm({
           {isDriver ? (
             <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionCost')}>
               <div className={GRID}>
-                {fuelInfo}
+                {fuelInputs}
                 <FormField label={t('toll')} inline className="sm:col-span-2">
                   <MoneyInput value={f.toll} onChange={setNum('toll')} />
                 </FormField>
@@ -475,7 +484,7 @@ export function TruckTripForm({
           ) : markCompleted ? (
             <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionCostRevenue')}>
               <div className={GRID}>
-                {fuelInfo}
+                {fuelInputs}
                 <FormField label={t('toll')} inline>
                   <MoneyInput value={f.toll} onChange={setNum('toll')} />
                 </FormField>

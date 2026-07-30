@@ -13,6 +13,13 @@ import { listVehicles } from '@/server/queries/vehicles.queries';
 import { listFleetDrivers } from '@/server/queries/drivers.queries';
 import { TruckTripForm } from '../../_components/truck-trip-form';
 
+/** Date → 'HH:mm' for the form's <input type="time">; '' when unset. */
+function hhmm(d: Date | null): string {
+  if (!d) return '';
+  const x = new Date(d);
+  return `${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`;
+}
+
 export default async function EditTruckTripPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getCurrentUser();
@@ -34,8 +41,6 @@ export default async function EditTruckTripPage({ params }: { params: Promise<{ 
     id: v.cvhId,
     label: `${v.cvhPlateNumber} · ${v.cvhModel}`,
     defaultDriverId: v.cvhDefaultDriverId ?? undefined,
-    fuelQuota: v.cvhFuelQuota != null ? Number(v.cvhFuelQuota) : null,
-    fuelPrice: v.cvhFuelPrice != null ? Number(v.cvhFuelPrice) : null,
   }));
   const driverOptions = drivers.map((d) => {
     const name = driverIdentity(d);
@@ -51,6 +56,10 @@ export default async function EditTruckTripPage({ params }: { params: Promise<{ 
     dropoff: trip.trpDropoffAddress,
     bol: trip.trpBol ?? '',
     cdf: trip.trpCdf ?? '',
+    notes: trip.trpNotes ?? '',
+    /* 'HH:mm' in the viewer's zone — the form recombines them with the date. */
+    startTime: hhmm(trip.trpStartedAt),
+    endTime: hhmm(trip.trpEndedAt),
     revenue: trip.trpRevenue ?? '',
     fuelPrice: trip.trpFuelPrice ?? '',
     fuelLiters: trip.trpFuelLiters ?? '',

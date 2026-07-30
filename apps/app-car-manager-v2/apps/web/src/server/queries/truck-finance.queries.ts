@@ -19,7 +19,7 @@ import {
   computeTruckPnl,
   loadTruckRegionSnapshots,
   loadTruckFixedAllocation,
-  truckTripFuelCostByVehicleRate,
+  loadVehicleFuelPool,
   type TruckFuelMode,
 } from '@car-v2/core/truck';
 import type { AuthContext } from '@/lib/auth/get-current-user';
@@ -186,103 +186,38 @@ export async function getTruckFuelStats(entId: string, month: string, region?: s
 }
 
 /**
- * Per-VEHICLE monthly fuel reconciliation (REQ-20260726) — the inputs the
- * report freezes so each trip is charged from ITS OWN vehicle's fuel spend:
+ * Per-VEHICLE monthly fuel reconciliation — the inputs the report freezes so
+ * each trip is charged from ITS OWN vehicle's fuel spend:
  *
- *   money     = Σ (litres × unit price) of that vehicle's invoices this month
+ *   money     = that vehicle's fuel spend this month (monthly invoices, else the
+ *               fuel recorded on its trips — one channel, never both)
  *   km        = Σ km of that vehicle's COMPLETED log trips this month
  *   costPerKm = money ÷ km   →  phí chuyến = km chuyến × costPerKm
  *
  * So Σ over the vehicle's trips reconciles exactly to `money`. Vehicles with no
- * invoice, or no km, are omitted (nothing to allocate — those trips fall back to
- * the vehicle's configured định mức). Scoped to `region` when given so a
- * region report only freezes its own vehicles.
+ * fuel spend, or no km, are omitted — there is nothing to allocate and those
+ * trips show 0 (never a định mức estimate, QA 2026-07-30).
+ *
+ * Thin wrapper over the shared `loadVehicleFuelPool` so what a report FREEZES is
+ * computed by the exact same code that shows the live figure before it — the two
+ * can then only differ by fuel entered after the report ran.
  */
 export async function getTruckFuelStatsByVehicle(
   entId: string,
   month: string,
   region?: string,
 ): Promise<TruckReportVehicleFuel[]> {
-  const start = new Date(`${month}-01T00:00:00.000Z`);
-  const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
-
-  const [invoices, trips] = await Promise.all([
-    db
-      .select({
-        vehicleId: carTruckFuelInvoices.tfiVehicleId,
-        liters: carTruckFuelInvoices.tfiLiters,
-        price: carTruckFuelInvoices.tfiPrice,
-      })
-      .from(carTruckFuelInvoices)
-      .leftJoin(carVehicles, eq(carTruckFuelInvoices.tfiVehicleId, carVehicles.cvhId))
-      .where(
-        and(
-          eq(carTruckFuelInvoices.entId, entId),
-          eq(carTruckFuelInvoices.tfiVehicleType, 'TRUCK'),
-          eq(carTruckFuelInvoices.tfiMonth, month),
-          isNull(carTruckFuelInvoices.tfiDeletedAt),
-          isNotNull(carTruckFuelInvoices.tfiVehicleId),
-          region ? eq(carVehicles.cvhRegion, region) : undefined,
-        ),
-      ),
-    db
-      .select({
-        vehicleId: carTrips.trpVehicleId,
-        so: carTrips.trpStartOdometer,
-        eo: carTrips.trpEndOdometer,
-      })
-      .from(carTrips)
-      .leftJoin(carVehicles, eq(carTrips.trpVehicleId, carVehicles.cvhId))
-      .where(
-        and(
-          eq(carTrips.entId, entId),
-          eq(carTrips.trpKind, 'LOG'),
-          eq(carTrips.trpStatus, 'COMPLETED'),
-          isNull(carTrips.trpDeletedAt),
-          gte(carTrips.trpScheduledAt, start),
-          lt(carTrips.trpScheduledAt, end),
-          region ? eq(carVehicles.cvhRegion, region) : undefined,
-        ),
-      ),
-  ]);
-
-  const agg = new Map<string, { money: number; liters: number; prices: number[]; km: number }>();
-  const get = (id: string) => {
-    let g = agg.get(id);
-    if (!g) {
-      g = { money: 0, liters: 0, prices: [], km: 0 };
-      agg.set(id, g);
-    }
-    return g;
-  };
-  for (const i of invoices) {
-    if (!i.vehicleId) continue;
-    const liters = parseAmount(i.liters);
-    const price = parseAmount(i.price);
-    const g = get(i.vehicleId);
-    g.money += liters * price;
-    g.liters += liters;
-    g.prices.push(price);
-  }
-  for (const t of trips) {
-    if (!t.vehicleId) continue;
-    if (t.so == null || t.eo == null) continue;
-    const km = t.eo - t.so;
-    if (km > 0) get(t.vehicleId).km += km;
-  }
-
+  const pool = await loadVehicleFuelPool(entId, [month], region);
   const out: TruckReportVehicleFuel[] = [];
-  for (const [vehicleId, g] of agg) {
-    if (g.money <= 0 || g.km <= 0) continue; // nothing to allocate
+  for (const p of pool.values()) {
+    if (p.money <= 0 || p.km <= 0) continue; // nothing to allocate
     out.push({
-      vehicleId,
-      money: Math.round(g.money),
-      liters: Math.round(g.liters * 100) / 100,
-      km: g.km,
-      costPerKm: Math.round((g.money / g.km) * 10000) / 10000,
-      avgPrice: g.prices.length
-        ? Math.round(g.prices.reduce((a, b) => a + b, 0) / g.prices.length)
-        : 0,
+      vehicleId: p.vehicleId,
+      money: p.money,
+      liters: p.liters,
+      km: p.km,
+      costPerKm: p.costPerKm,
+      avgPrice: p.avgPrice,
     });
   }
   return out;
@@ -367,10 +302,10 @@ export interface TruckFinanceTripRow {
    * customer's "Lợi nhuận theo chuyến". `profit` above stays the VARIABLE-only
    * figure the Excel exports and report review are built on. */
   profitAfterFixed: number;
-  /** How unitPrice/liters/fuelCost above were derived (REQ-20260724):
-   *  - AVERAGED     frozen month-end reconciliation (invoices + km)
-   *  - VEHICLE_RATE km × (xe định mức/100) × giá của xe (mặc định, live)
-   *  - UNSET        xe chưa đặt định mức/giá → phí 0 */
+  /** How unitPrice/liters/fuelCost above were derived:
+   *  - AVERAGED frozen month-end allocation (vehicle's fuel spend ÷ its km)
+   *  - LIVE     same allocation from the month's fuel recorded so far
+   *  - UNSET    xe chưa có chi phí nhiên liệu trong tháng → phí 0 */
   fuelMode: TruckFuelMode;
   /** Last-modified timestamp for the "Cập nhật" column (Sheet-2 P7). */
   updatedAt: Date | null;
@@ -457,12 +392,13 @@ export async function listTruckFinanceTrips(
     const toll = Math.round(parseAmount(t.toll));
     const extra = Math.round(extraByTrip.get(t.trpId) ?? 0);
     const revenue = Math.round(parseAmount(t.revenue));
-    /* "Đã lập BC" once a report exists for this trip's (month, region) — even
-     * without fuel invoices ("Lập báo cáo = chốt luôn", 2026-07-21). Fuel cost
-     * itself follows the shared precedence: frozen snapshot → vehicle rate →
-     * 0 (REQ-20260724). */
-    const finalized = snapshots.isReported(opts.month, t.vehicleId);
-    const fuel = snapshots.fuelForTrip(opts.month, t.vehicleId, km);
+    /* "Đã lập BC" once a report for this trip's (month, region) exists AND was
+     * generated after the trip's last change — a trip logged afterwards was
+     * never in it (BUG-260730 case 1). Fuel follows the same coverage test:
+     * frozen snapshot (if it covers the trip) → live pool → 0. */
+    const changedAt = t.updatedAt ?? null;
+    const finalized = snapshots.isReported(opts.month, t.vehicleId, changedAt);
+    const fuel = snapshots.fuelForTrip(opts.month, t.vehicleId, km, changedAt);
     const fuelCost = fuel.cost;
     const fixedShare = fixedAlloc.forTrip(opts.month, t.vehicleId);
     return {
@@ -568,10 +504,10 @@ export interface ReportReviewVehicle {
   variableProfit: number;
   /** Monthly fixed cost (salary/depreciation/insurance/driver) for this truck. */
   fixedCost: number;
-  /** THIS vehicle's own monthly fuel reconciliation (REQ-20260726) — what the
-   * report will freeze, so the preview matches the generated numbers exactly.
-   * `allocatable` false → the vehicle has no invoice (or no km) and its trips
-   * keep whatever the current rule gives them. */
+  /** THIS vehicle's own monthly fuel reconciliation — what the report will
+   * freeze, so the preview matches the generated numbers exactly.
+   * `allocatable` false → no fuel spend (or no km) for the vehicle this month,
+   * so its trips are charged 0. */
   fuelAllocatable: boolean;
   fuelMoney: number;
   fuelLiters: number;
@@ -631,14 +567,12 @@ export async function getTruckReportReview(
   /** Operating region scope; `null` = all regions (whole-fleet reconciliation). */
   region: string | null = null,
 ): Promise<TruckReportReview> {
-  const [trips, stats, closeInfo, vehicleFuel, invoices, snapshots] = await Promise.all([
+  const [trips, stats, closeInfo, vehicleFuel, invoices] = await Promise.all([
     listTruckFinanceTrips(actor.entId, { month, region }),
     getTruckFuelStats(actor.entId, month, region ?? undefined),
     getTruckMonthCloseInfo(actor.entId, month, region),
     getTruckFuelStatsByVehicle(actor.entId, month, region ?? undefined),
     listFuelInvoices(actor.entId, month, region ?? undefined),
-    /* For the vehicle-rate fallback preview below. */
-    loadTruckRegionSnapshots(actor.entId, [month]),
   ]);
   /* "Số lần đổ xăng" per vehicle (the card in the review wizard). */
   const refuelCountByVehicle = new Map<string, number>();
@@ -647,32 +581,28 @@ export async function getTruckReportReview(
     refuelCountByVehicle.set(i.vehicleId, (refuelCountByVehicle.get(i.vehicleId) ?? 0) + 1);
   }
 
-  /* F5 — the chốt-sổ validity rule, evaluated live. */
-  const allocatable = stats.totalKm > 0 && stats.invoiceLiters > 0 && stats.avgPrice > 0;
+  /* Is there anything to allocate in this scope? Any vehicle with fuel spend AND
+   * km qualifies — the pool is what the report freezes. (Until 2026-07-30 this
+   * asked the region invoice stats, so a month whose fuel came from the trips
+   * themselves was labelled "not allocatable" while its trips were, in fact,
+   * being allocated.) */
+  const allocatable = vehicleFuel.length > 0;
   let kmZeroCount = 0;
 
   /* PER-VEHICLE preview (REQ-20260726) — the review must show exactly what
    * "Lập báo cáo" is about to freeze: each vehicle's own fuel spend spread over
-   * ITS trips by km. Vehicles without an invoice keep the current rule. */
+   * ITS trips by km. Vehicles with no fuel spend get 0. */
   const byVehFuel = new Map(vehicleFuel.map((v) => [v.vehicleId, v]));
 
   const byVeh = new Map<string, ReportReviewVehicle>();
   for (const t of trips) {
     if (t.km <= 0) kmZeroCount += 1;
     const vf = t.vehicleId ? byVehFuel.get(t.vehicleId) : undefined;
-    /* No invoice for THIS truck: once the scope has per-vehicle invoices the
-     * generated report drops the region pool, so preview what the trip will
-     * actually become — its own định mức × km (0 when unset). */
-    const rate = t.vehicleId ? snapshots.vehicleRate.get(t.vehicleId) : undefined;
-    const fuelCost = vf
-      ? Math.round(t.km * vf.costPerKm)
-      : vehicleFuel.length > 0
-        ? truckTripFuelCostByVehicleRate({
-            km: t.km,
-            quotaPer100Km: rate?.quotaPer100Km ?? 0,
-            pricePerLitre: rate?.pricePerLitre ?? 0,
-          })
-        : t.fuelCost;
+    /* `vehicleFuel` IS the freeze payload, and `t.fuelCost` is the live figure
+     * from the same pool — so a truck with fuel previews `km × costPerKm`, and
+     * one without previews the 0 it will actually get (no định mức fallback
+     * since 2026-07-30). */
+    const fuelCost = vf ? Math.round(t.km * vf.costPerKm) : t.fuelCost;
     const profit = t.revenue - fuelCost - t.toll - t.extra;
     const key = t.vehicleId ?? '∅';
     let g = byVeh.get(key);

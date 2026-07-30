@@ -12,7 +12,7 @@ export function fuelToastDescription(
   switch (mode) {
     case 'AVERAGED':
       return t('fuelRecalcedToast');
-    case 'VEHICLE_RATE':
+    case 'LIVE':
       return t('fuelVehicleRateToast');
     case 'UNSET':
       return t('fuelUnsetToast');

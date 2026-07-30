@@ -13,11 +13,11 @@ export type FuelBadgeMode = TruckFuelMode | 'MIXED';
  */
 export function aggregateFuelMode(counts: {
   averaged: number;
-  vehicleRate: number;
+  live: number;
   unset: number;
 }): FuelBadgeMode {
-  const present = (['AVERAGED', 'VEHICLE_RATE', 'UNSET'] as const).filter((m) =>
-    m === 'AVERAGED' ? counts.averaged > 0 : m === 'VEHICLE_RATE' ? counts.vehicleRate > 0 : counts.unset > 0,
+  const present = (['AVERAGED', 'LIVE', 'UNSET'] as const).filter((m) =>
+    m === 'AVERAGED' ? counts.averaged > 0 : m === 'LIVE' ? counts.live > 0 : counts.unset > 0,
   );
   if (present.length === 0) return 'UNSET';
   if (present.length === 1) return present[0]!;
@@ -27,10 +27,10 @@ export function aggregateFuelMode(counts: {
 /**
  * How a truck trip's fuel cost was derived — shared indicator for every screen
  * showing a truck fuel figure (Chi phí & LN theo chuyến, chi tiết chuyến, P&L):
- *  - AVERAGED     🟢 "Bình quân"        — frozen month-end reconciliation (invoices)
- *  - VEHICLE_RATE 🔵 "Theo định mức"    — km × (định mức/100) × giá của xe (mặc định)
- *  - UNSET        🟡 "Chưa đặt định mức" — xe thiếu định mức/giá → phí 0
- *  - MIXED        🟡 "Hỗn hợp"          — aggregate blends modes
+ *  - AVERAGED 🟢 "Theo hoá đơn"   — frozen month-end allocation of the vehicle's spend
+ *  - LIVE     ⚪ "Tạm tính"       — same allocation from what is recorded so far
+ *  - UNSET    🟡 "Chưa tính được" — no fuel recorded for the vehicle's month → phí 0
+ *  - MIXED    🟡 "Hỗn hợp"        — aggregate blends modes
  * Independent of `ReportStatusBadge` ("has a report been generated").
  */
 export async function FuelReconciliationBadge({
@@ -48,9 +48,9 @@ export async function FuelReconciliationBadge({
       </Badge>
     );
   }
-  if (mode === 'VEHICLE_RATE') {
-    /* Neutral, not a confident colour: this is an ESTIMATE (no invoice yet),
-     * and it must not read as official spend next to the green "Bình quân". */
+  if (mode === 'LIVE') {
+    /* Neutral, not a confident colour: real money, but still provisional —
+     * more fuel can be recorded before the month is reported. */
     return (
       <Badge tone="neutral" size={size} title={t('fuelVehicleRateTooltip')}>
         {t('fuelVehicleRateLabel')}
