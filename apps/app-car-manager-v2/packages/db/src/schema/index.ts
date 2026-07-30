@@ -4,6 +4,7 @@ export * from './user-fleet-access.schema.js';
 export * from './fleet-access-request.schema.js';
 export * from './trip-extra-cost.schema.js';
 export * from './trip-cost-attachment.schema.js';
+export * from './truck-cost-rate.schema.js';
 export * from './truck-fixed-cost.schema.js';
 export * from './truck-month-close.schema.js';
 export * from './truck-fuel-invoice.schema.js';

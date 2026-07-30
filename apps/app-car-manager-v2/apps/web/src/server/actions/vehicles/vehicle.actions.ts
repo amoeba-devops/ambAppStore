@@ -11,6 +11,7 @@ import {
 } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { logAudit } from '@/server/services/audit-log.service';
+import { recordTruckCostRate } from '@/server/services/truck-cost-rate.service';
 import {
   checkVehicleDeleteWarnings,
   type VehicleDeleteWarning,
@@ -54,6 +55,20 @@ export async function createVehicleAction(input: unknown): Promise<ActionResult<
       })
       .returning();
     if (!created) throw new CarError('CAR-E0500', 500, 'Insert returned no row');
+
+    /* Truck depreciation is an effective-dated rate (0025) — stamp the opening
+     * one so this month onwards is costed, and earlier months are not. */
+    if (created.cvhType === 'TRUCK' && created.cvhDepreciation != null) {
+      await recordTruckCostRate({
+        entId: actor.entId,
+        userId: actor.userId,
+        scope: 'VEHICLE',
+        refId: created.cvhId,
+        kind: 'DEPRECIATION',
+        amount: Number(created.cvhDepreciation),
+        note: 'vehicle created',
+      });
+    }
 
     await logAudit({
       entId: actor.entId,
@@ -112,6 +127,24 @@ export async function updateVehicleAction(id: string, input: unknown): Promise<A
       .where(and(eq(carVehicles.cvhId, id), eq(carVehicles.entId, actor.entId)))
       .returning();
     if (!updated) throw new CarError('CAR-E0500', 500, 'Update returned no row');
+
+    /* Depreciation changed → new rate effective from THIS month; past months keep
+     * what they were reported with (0025). Unchanged edits stamp nothing. */
+    if (
+      updated.cvhType === 'TRUCK' &&
+      data.depreciation !== undefined &&
+      String(existing.cvhDepreciation ?? '') !== String(updated.cvhDepreciation ?? '')
+    ) {
+      await recordTruckCostRate({
+        entId: actor.entId,
+        userId: actor.userId,
+        scope: 'VEHICLE',
+        refId: updated.cvhId,
+        kind: 'DEPRECIATION',
+        amount: updated.cvhDepreciation != null ? Number(updated.cvhDepreciation) : 0,
+        note: 'vehicle form',
+      });
+    }
 
     await logAudit({
       entId: actor.entId,

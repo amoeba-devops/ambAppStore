@@ -329,11 +329,19 @@ export async function getTruckReportExport(
 
   /* Per-vehicle P&L via the core service (one call per vehicle so each row
    * carries its own fixed costs — incl. depreciation + default-driver salary
-   * for an idle truck). */
+   * for an idle truck; that needs `fixedCostWithoutTrips`, which the screens
+   * deliberately leave off). Only when the month HAS trips: in an empty month
+   * every row would otherwise carry fixed cost while the scope total shows 0,
+   * and the sheet would not reconcile. */
+  const includeIdleFixedCost = rows.length > 0;
   const vehicles: ReportVehiclePnlRow[] = [];
   await Promise.all(
     rowVehicleIds.map(async (vid) => {
-      const [p] = await computeTruckPnl(actor, { vehicleId: vid, months: [month] });
+      const [p] = await computeTruckPnl(actor, {
+        vehicleId: vid,
+        months: [month],
+        fixedCostWithoutTrips: includeIdleFixedCost,
+      });
       if (!p) return;
       const info = vinfo.get(vid);
       const agg = aggByVeh.get(vid) ?? { km: 0, liters: 0 };

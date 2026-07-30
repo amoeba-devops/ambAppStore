@@ -1,7 +1,7 @@
 import { and, eq, gte, inArray, isNull, lt } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
-import { carDrivers, carTrips, carTruckFixedCosts, carVehicles } from '@car-v2/db/schema';
-import { parseAmount } from './truck-cost';
+import { carTrips } from '@car-v2/db/schema';
+import { loadTruckFixedMonthly } from './truck-fixed-monthly';
 
 /**
  * Per-trip share of a truck's MONTHLY fixed cost (REQ-20260725, client Sheet3
@@ -58,7 +58,7 @@ export async function loadTruckFixedAllocation(
   const lastStart = new Date(`${last}-01T00:00:00.000Z`);
   const rangeEnd = new Date(Date.UTC(lastStart.getUTCFullYear(), lastStart.getUTCMonth() + 1, 1));
 
-  const [tripRows, fixedRows, vehicleRows] = await Promise.all([
+  const [tripRows, fixedMonthly] = await Promise.all([
     /* Completed log trips in the span — the allocation denominator. */
     db
       .select({ vehicleId: carTrips.trpVehicleId, scheduledAt: carTrips.trpScheduledAt })
@@ -73,48 +73,11 @@ export async function loadTruckFixedAllocation(
           lt(carTrips.trpScheduledAt, rangeEnd),
         ),
       ),
-    /* Manual per-(vehicle, month) fixed cost rows — these win. */
-    db
-      .select({
-        vehicleId: carTruckFixedCosts.cvhId,
-        month: carTruckFixedCosts.tfcMonth,
-        salary: carTruckFixedCosts.tfcSalary,
-        depreciation: carTruckFixedCosts.tfcDepreciation,
-      })
-      .from(carTruckFixedCosts)
-      .where(and(eq(carTruckFixedCosts.entId, entId), inArray(carTruckFixedCosts.tfcMonth, uniqMonths))),
-    /* Vehicle-level defaults (depreciation + default driver's fixed salary). */
-    db
-      .select({
-        id: carVehicles.cvhId,
-        depreciation: carVehicles.cvhDepreciation,
-        driverId: carVehicles.cvhDefaultDriverId,
-      })
-      .from(carVehicles)
-      .where(
-        and(
-          eq(carVehicles.entId, entId),
-          eq(carVehicles.cvhType, 'TRUCK'),
-          isNull(carVehicles.cvhDeletedAt),
-        ),
-      ),
+    /* The month's fixed cost per truck — SAME resolver `computeTruckPnl` uses
+     * (manual row → effective-dated rate history → 0), so Σ(shares) reconciles
+     * with the month total instead of re-deriving it here. */
+    loadTruckFixedMonthly(entId, uniqMonths),
   ]);
-
-  const driverIds = [...new Set(vehicleRows.map((v) => v.driverId).filter((d): d is string => !!d))];
-  const salaryByDriver = new Map<string, number>();
-  if (driverIds.length > 0) {
-    const drows = await db
-      .select({ id: carDrivers.drvId, salary: carDrivers.drvFixedSalary })
-      .from(carDrivers)
-      .where(
-        and(
-          eq(carDrivers.entId, entId),
-          inArray(carDrivers.drvId, driverIds),
-          isNull(carDrivers.drvDeletedAt),
-        ),
-      );
-    for (const d of drows) salaryByDriver.set(d.id, Math.round(parseAmount(d.salary)));
-  }
 
   /* Completed-trip count per (month, vehicle). */
   const tripCount = new Map<string, number>();
@@ -126,19 +89,14 @@ export async function loadTruckFixedAllocation(
     tripCount.set(k, (tripCount.get(k) ?? 0) + 1);
   }
 
-  /* Monthly fixed cost per (month, vehicle) — manual row wins over the default. */
+  /* Monthly fixed cost per (month, vehicle), resolved above. */
   const monthly = new Map<string, { salary: number; depreciation: number }>();
-  for (const v of vehicleRows) {
-    const dep = v.depreciation != null ? Math.round(parseAmount(v.depreciation)) : 0;
-    const sal = v.driverId ? (salaryByDriver.get(v.driverId) ?? 0) : 0;
-    if (dep === 0 && sal === 0) continue;
-    for (const m of uniqMonths) monthly.set(key(m, v.id), { salary: sal, depreciation: dep });
-  }
-  for (const f of fixedRows) {
-    monthly.set(key(f.month, f.vehicleId), {
-      salary: Math.round(parseAmount(f.salary)),
-      depreciation: Math.round(parseAmount(f.depreciation)),
-    });
+  for (const vid of fixedMonthly.vehicleIds) {
+    for (const m of uniqMonths) {
+      const fc = fixedMonthly.forVehicleMonth(m, vid);
+      if (fc.total === 0) continue;
+      monthly.set(key(m, vid), { salary: fc.salary, depreciation: fc.depreciation });
+    }
   }
 
   for (const [k, total] of monthly) {

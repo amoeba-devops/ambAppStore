@@ -14,6 +14,7 @@ import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import { createDriverSchema, updateDriverSchema } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { logAudit } from '@/server/services/audit-log.service';
+import { recordTruckCostRate } from '@/server/services/truck-cost-rate.service';
 import {
   checkDriverDeleteWarnings,
   type DriverDeleteWarning,
@@ -107,6 +108,20 @@ export async function createDriverAction(input: unknown): Promise<ActionResult<C
           })
           .returning();
     if (!created) throw new CarError('CAR-E0500', 500, revive ? 'Revive returned no row' : 'Insert returned no row');
+
+    /* Opening salary rate (0025) — effective this month, so months before the
+     * driver joined stay at 0 instead of inheriting today's salary. */
+    if (created.drvFixedSalary != null) {
+      await recordTruckCostRate({
+        entId: actor.entId,
+        userId: actor.userId,
+        scope: 'DRIVER',
+        refId: created.drvId,
+        kind: 'SALARY',
+        amount: Number(created.drvFixedSalary),
+        note: revive ? 'driver revived' : 'driver created',
+      });
+    }
 
     await logAudit({
       entId: actor.entId,
@@ -232,6 +247,23 @@ export async function updateDriverAction(id: string, input: unknown): Promise<Ac
       .where(and(eq(carDrivers.drvId, id), eq(carDrivers.entId, actor.entId)))
       .returning();
     if (!updated) throw new CarError('CAR-E0500', 500, 'Update returned no row');
+
+    /* Fixed salary is an effective-dated rate (0025): a raise applies from THIS
+     * month on and leaves already-reported months alone. */
+    if (
+      data.fixed_salary !== undefined &&
+      String(existing.drvFixedSalary ?? '') !== String(updated.drvFixedSalary ?? '')
+    ) {
+      await recordTruckCostRate({
+        entId: actor.entId,
+        userId: actor.userId,
+        scope: 'DRIVER',
+        refId: updated.drvId,
+        kind: 'SALARY',
+        amount: updated.drvFixedSalary != null ? Number(updated.drvFixedSalary) : 0,
+        note: 'driver form',
+      });
+    }
 
     await logAudit({
       entId: actor.entId,
