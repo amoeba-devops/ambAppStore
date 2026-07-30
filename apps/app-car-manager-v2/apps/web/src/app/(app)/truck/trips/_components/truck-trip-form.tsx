@@ -345,9 +345,10 @@ export function TruckTripForm({
         <p className="text-text-faint">{t('fuelSelectVehicleFirst')}</p>
       ) : hasVehicleRate ? (
         <>
-          <p className="text-text-muted">{t('fuelByVehicleHint')}</p>
           {/* Per-trip arithmetic first (km is what the user is editing), with the
-            * vehicle rate spelled out underneath. */}
+            * vehicle rate spelled out underneath. The sentence explaining the
+            * formula was dropped (QA 2026-07-29) — the two lines below already
+            * show it as arithmetic. */}
           <p className="text-text">
             {(totalKm ?? 0).toLocaleString('vi-VN')} km ×{' '}
             {vnd(Math.round(((vehicleQuota as number) / 100) * (vehiclePrice as number)))}/km ={' '}

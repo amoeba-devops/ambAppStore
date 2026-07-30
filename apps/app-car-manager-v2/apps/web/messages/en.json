@@ -490,7 +490,6 @@
         "endOdo": "Odometer end",
         "fuelLiters": "Fuel (liters)",
         "fuelPrice": "Price (đ/L)",
-        "fuelByVehicleHint": "Fuel cost is computed from the vehicle's rate (km × quota × price).",
         "fuelRateNotSet": "⚠ Vehicle has no fuel quota/price — fuel cost is 0. Set them in Vehicles.",
         "fuelSelectVehicleFirst": "Select a vehicle to compute fuel cost from its rate.",
         "toll": "Toll fee",

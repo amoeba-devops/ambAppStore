@@ -490,7 +490,6 @@
         "endOdo": "종료 주행거리",
         "fuelLiters": "연료 (리터)",
         "fuelPrice": "단가 (đ/L)",
-        "fuelByVehicleHint": "유류비는 차량 기준으로 계산됩니다 (km × 기준 × 유가).",
         "fuelRateNotSet": "⚠ 차량에 소모 기준/유가가 없어 유류비 = 0. 차량 관리에서 설정하세요.",
         "fuelSelectVehicleFirst": "차량을 선택하면 기준으로 유류비를 계산합니다.",
         "toll": "통행료",

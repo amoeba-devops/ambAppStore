@@ -490,7 +490,6 @@
         "endOdo": "Km đồng hồ cuối",
         "fuelLiters": "Nhiên liệu (lít)",
         "fuelPrice": "Đơn giá (đ/L)",
-        "fuelByVehicleHint": "Phí nhiên liệu tính theo định mức của xe (km × định mức × giá).",
         "fuelRateNotSet": "⚠ Xe chưa đặt định mức/giá xăng — phí nhiên liệu = 0. Vào Phương tiện để đặt.",
         "fuelSelectVehicleFirst": "Chọn xe để tính phí nhiên liệu theo định mức.",
         "toll": "Phí cầu đường",
