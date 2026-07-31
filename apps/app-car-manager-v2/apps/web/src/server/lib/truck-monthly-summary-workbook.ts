@@ -171,6 +171,18 @@ export async function buildTruckMonthlySummaryWorkbook(
   return Buffer.from(buf as ArrayBuffer);
 }
 
+/* ExcelJS rejects a duplicate tab name (case-insensitively) by THROWING, which
+ * would fail the whole report rather than one sheet. The three `sheetName`
+ * messages are distinct by design, so a collision means a locale fell back to
+ * another one's messages — tag the tab with its locale and carry on so the
+ * operator still gets a file. */
+function uniqueSheetName(wb: ExcelJS.Workbook, name: string, locale: string): string {
+  const taken = (n: string) => wb.worksheets.some((s) => s.name.toLowerCase() === n.toLowerCase());
+  if (!taken(name)) return name;
+  const tagged = `${name} (${locale})`.slice(0, 31);
+  return taken(tagged) ? `${locale}-${Date.now() % 100000}` : tagged;
+}
+
 /** Renders one language sheet. Identical numbers on every sheet — only the
  * labels, the locale-formatted separators, and R1's per-language column widths
  * and KPI spans differ. */
@@ -183,7 +195,7 @@ function writeSummarySheet(
 ): void {
   const { t, bcp47 } = spec;
   const typo = spec.locale === 'ko' ? TYPO_KO : TYPO_LATIN;
-  const ws = wb.addWorksheet(t('sheetName'), {
+  const ws = wb.addWorksheet(uniqueSheetName(wb, t('sheetName'), spec.locale), {
     properties: { showGridLines: false },
     views: [{ showGridLines: false }],
   });
