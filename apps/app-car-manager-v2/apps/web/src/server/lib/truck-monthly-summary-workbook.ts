@@ -4,11 +4,17 @@ import type { TruckReportExport } from '@/server/queries/truck-report-export.que
 import { TRUCK_REPORT_LOGO_PNG_BASE64, TRUCK_REPORT_LOGO_SIZE } from './truck-report-logo';
 
 /**
- * "Tổng kết chi phí tháng / Monthly cost summary" — a pixel-faithful rebuild of
- * the client template (BaoCao_DoiXe_T5_2026_Report.xlsx, REQ-20260713): same
- * Arial type, navy (#1F3A5F) section bands, alternating row shading, borders,
- * number formats, and the Cargo Rush logo top-right. Structure (fixed rows):
+ * "Báo cáo xe truck hàng tháng" — a pixel-faithful rebuild of the client
+ * template ("Báo Cáo form (R1).xlsx", REQ-20260713 + R1 revision 2026-07-31):
+ * same Arial type, navy (#1F3A5F) section bands, alternating row shading,
+ * borders, number formats, and the Cargo Rush logo top-right.
  *
+ * R1 = **one file, three sheets** — `tiếng việt` · `English` · `Korean` (that
+ * order), every sheet the same layout with its own language. Each sheet's text
+ * comes from `exportContent.truckMonthlySummary` in that locale's message file,
+ * so the vi sheet reproduces the client template verbatim.
+ *
+ * Structure per sheet (fixed rows):
  *   1     logo (floats top-right)
  *   2-4   company name / address / tel-fax
  *   7     title band
@@ -16,18 +22,31 @@ import { TRUCK_REPORT_LOGO_PNG_BASE64, TRUCK_REPORT_LOGO_SIZE } from './truck-re
  *   11-13 KPI tiles (xe / chuyến / km / lợi nhuận)
  *   15-16 A. Doanh thu
  *   18-25 B. Chi phí (6 dòng + Σ)
- *   27-29 C. Kết quả (lợi nhuận, margin)
+ *   27-29 C. Lợi nhuận (lợi nhuận gộp, margin)
  *   31-34 D. Hiệu quả nhiên liệu
  *   36-37 E. header · 38..  per-truck rows · then TỔNG
  *
- * Numbers come from getTruckReportExport (same core as the finance screen).
- * Aggregates use real Excel formulas (SUM / IFERROR) with cached results, so the
- * file both shows values immediately and recalculates when edited. Invariants:
- * C25 = SUM(C19:C24); C28 = C16 − C25 = KPI profit; the E-table TỔNG row equals
- * the A/B/C blocks column-for-column.
+ * Numbers come from getTruckReportExport (same core as the finance screen) and
+ * are identical on all three sheets — only the text and the locale-formatted
+ * separators differ. Aggregates use real Excel formulas (SUM / IFERROR) with
+ * cached results, so the file both shows values immediately and recalculates
+ * when edited. Invariants: C25 = SUM(C19:C24); C28 = C16 − C25 = KPI profit; the
+ * E-table TỔNG row equals the A/B/C blocks column-for-column.
  */
 
-const FONT = 'Arial';
+/* Typography per sheet. R1's Korean sheet is set in Malgun Gothic with bigger
+ * title / section / KPI type (the client sized it up for Hangul legibility);
+ * vi and en stay Arial at the original sizes. */
+interface Typo {
+  font: string;
+  title: number; // B7 banner
+  section: number; // A..E section bands
+  kpiLabel: number; // row 11 tile captions
+  kpiLabelBold: boolean;
+  totalLabel: number; // B25 "Tổng chi phí"
+}
+const TYPO_LATIN: Typo = { font: 'Arial', title: 13, section: 9, kpiLabel: 7.5, kpiLabelBold: false, totalLabel: 9 };
+const TYPO_KO: Typo = { font: 'Malgun Gothic', title: 20, section: 11, kpiLabel: 8, kpiLabelBold: true, totalLabel: 10 };
 
 /* Palette (exact ARGB from the template). */
 const NAVY = 'FF1F3A5F';
@@ -67,33 +86,59 @@ const DONG_KM = '#,##0" đ/km"';
 const PERCENT = '0.0%';
 const DASH = '—';
 
-/* Company header + logo follow the client template VERBATIM (user decision
- * 2026-07-14): these are fixed, not tenant data — only app-mappable info
- * (người lập, ngày lập, month/region, every number) is dynamic. */
-const COMPANY_NAME = 'Cargo Rush International Co., Ltd';
-const COMPANY_ADDRESS = '77 Nguyễn Trọng Lội, Phường Tân Sơn Nhất, TP.HCM, Vietnam';
-const COMPANY_CONTACT = 'Tel: 84 8 3948 0931~2     Fax: 84 8 3848 5337';
-
 const COLS = ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 const LAST = 'L';
 
+/* Column widths — R1 keeps two sets: the vi sheet is tighter, en/ko widen B, E,
+ * H and I for the longer headers ("Fuel Efficiency (km/L)", "주행 거리 (km)"). */
+const WIDTHS_VI: Record<string, number> = {
+  A: 2, B: 24.44, C: 11.14, D: 8.86, E: 8.86, F: 11.43, G: 10.86, H: 8.71, I: 5, J: 11.43, K: 6.43, L: 9.57, M: 2,
+};
+const WIDTHS_WIDE: Record<string, number> = {
+  A: 2, B: 25.11, C: 11.14, D: 8.86, E: 11.89, F: 11.43, G: 10.86, H: 13.33, I: 18, J: 11.43, K: 6.43, L: 9.57, M: 2,
+};
+
+/* KPI tile spans (rows 11-13) — also per R1: the vi labels fit in 3 columns
+ * each, en/ko need a wider "total trips" tile and a narrower km tile. */
+type Span = readonly [string, string];
+type KpiSpans = readonly [Span, Span, Span, Span]; // trucks · trips · km · profit
+const KPI_SPANS_VI: KpiSpans = [['B', 'C'], ['D', 'F'], ['G', 'I'], ['J', 'L']];
+const KPI_SPANS_WIDE: KpiSpans = [['B', 'C'], ['D', 'G'], ['H', 'I'], ['J', 'L']];
+
 type Align = 'left' | 'center' | 'right';
 
-/** Translator bound to `exportContent.truckMonthlySummary` — the file's TEXT
- * follows the GENERATOR's UI language (REQ follow-up 2026-07-14). vi renders
- * the client template verbatim; en/ko translate the labels. The language is
- * baked into the stored file at generation time (downloads share one file). */
+/* R1 dates are dd/mm/yyyy on ALL THREE sheets (the VN company's convention) —
+ * deliberately not locale-formatted, so the en sheet can't read 05/31 as a
+ * day/month swap. Only the numbers follow the sheet's locale. */
+const pad = (n: number) => String(n).padStart(2, '0');
+function ddmmyyyy(d: Date): string {
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+function ddmmyyyyHm(d: Date): string {
+  return `${ddmmyyyy(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Translator bound to `exportContent.truckMonthlySummary` for ONE locale. */
 export type SummaryTranslator = (key: string, values?: Record<string, string | number>) => string;
 
-export interface MonthlySummaryLabels {
-  monthLabel: string;
-  regionLabel: string;
-  generatedAt: Date;
+/** One sheet of the trilingual workbook. */
+export interface SummarySheetSpec {
+  /** App locale — picks the R1 width/KPI layout (vi is the tight one). */
+  locale: string;
   /** BCP-47 tag for in-file number/date rendering (vi-VN / en-US / ko-KR). */
   bcp47: string;
+  monthLabel: string;
+  regionLabel: string;
   t: SummaryTranslator;
 }
+
+export interface MonthlySummaryLabels {
+  generatedAt: Date;
+  /** One entry per language sheet, in R1's order: vi → en → ko. */
+  sheets: SummarySheetSpec[];
+}
 interface Style {
+  font?: string; // overrides the sheet's typeface (Latin company header on ko)
   fmt?: string;
   align?: Align;
   bold?: boolean;
@@ -110,9 +155,34 @@ export async function buildTruckMonthlySummaryWorkbook(
   data: TruckReportExport,
   labels: MonthlySummaryLabels,
 ): Promise<Buffer> {
-  const { t, bcp47 } = labels;
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Amoeba Car Manager';
+  /* One image entry shared by all three sheets (ExcelJS re-references it). */
+  const logoId = wb.addImage({
+    /* Node Buffer works at runtime; cast bridges ExcelJS's ArrayBuffer-based
+     * Buffer type vs Node 22's Buffer<ArrayBuffer>. */
+    buffer: Buffer.from(TRUCK_REPORT_LOGO_PNG_BASE64, 'base64') as unknown as ExcelJS.Buffer,
+    extension: 'png',
+  });
+  for (const spec of labels.sheets) {
+    writeSummarySheet(wb, logoId, data, labels.generatedAt, spec);
+  }
+  const buf = await wb.xlsx.writeBuffer();
+  return Buffer.from(buf as ArrayBuffer);
+}
+
+/** Renders one language sheet. Identical numbers on every sheet — only the
+ * labels, the locale-formatted separators, and R1's per-language column widths
+ * and KPI spans differ. */
+function writeSummarySheet(
+  wb: ExcelJS.Workbook,
+  logoId: number,
+  data: TruckReportExport,
+  generatedAt: Date,
+  spec: SummarySheetSpec,
+): void {
+  const { t, bcp47 } = spec;
+  const typo = spec.locale === 'ko' ? TYPO_KO : TYPO_LATIN;
   const ws = wb.addWorksheet(t('sheetName'), {
     properties: { showGridLines: false },
     views: [{ showGridLines: false }],
@@ -122,7 +192,7 @@ export async function buildTruckMonthlySummaryWorkbook(
     const cell = ws.getCell(addr);
     if (value !== null && value !== undefined) cell.value = value;
     cell.font = {
-      name: FONT,
+      name: st.font ?? typo.font,
       size: st.size ?? 8.5,
       bold: st.bold,
       italic: st.italic,
@@ -145,10 +215,11 @@ export async function buildTruckMonthlySummaryWorkbook(
     for (const c of COLS) set(`${c}${r}`, null, { ...st, align: 'left' });
   };
 
-  /* Section value line: label in B + value merged across C:L. */
+  /* Section value line: label in B + value merged across C:L. The label always
+   * stays dark — only the figure carries the semantic colour (template). */
   const line = (r: number, label: string, value: ExcelJS.CellValue, st: Style) => {
     band(r, { fill: st.fill, box: st.box, borderColor: st.borderColor });
-    set(`B${r}`, label, { size: st.size, bold: st.bold, color: st.color ?? DARK, fill: st.fill, box: st.box, borderColor: st.borderColor, align: 'left' });
+    set(`B${r}`, label, { size: st.size, bold: st.bold, color: DARK, fill: st.fill, box: st.box, borderColor: st.borderColor, align: 'left' });
     ws.mergeCells(`C${r}:${LAST}${r}`);
     set(`C${r}`, value, { ...st, align: 'right' });
   };
@@ -156,13 +227,12 @@ export async function buildTruckMonthlySummaryWorkbook(
   const sectionHeader = (r: number, text: string) => {
     for (const c of COLS) set(`${c}${r}`, null, { fill: NAVY, noBorder: true });
     ws.mergeCells(`B${r}:${LAST}${r}`);
-    set(`B${r}`, text, { bold: true, size: 9, color: WHITE, fill: NAVY, align: 'left', noBorder: true });
+    set(`B${r}`, text, { bold: true, size: typo.section, color: WHITE, fill: NAVY, align: 'left', noBorder: true });
   };
 
   /* ── Column widths & row heights (exact) ─────────────────────────────────── */
-  const widths: Record<string, number> = {
-    A: 2, B: 36, C: 11.14, D: 8.86, E: 8.86, F: 11.43, G: 10.86, H: 8.71, I: 5, J: 11.43, K: 6.43, L: 9.57, M: 2,
-  };
+  const wide = spec.locale !== 'vi';
+  const widths = wide ? WIDTHS_WIDE : WIDTHS_VI;
   for (const [col, w] of Object.entries(widths)) ws.getColumn(col).width = w;
   const heights: Record<number, number> = {
     1: 7.5, 2: 19.5, 3: 13.5, 4: 13.5, 5: 9.75, 6: 7.5, 7: 24, 8: 15.75, 9: 18, 10: 7.5,
@@ -172,41 +242,39 @@ export async function buildTruckMonthlySummaryWorkbook(
   };
   for (const [r, h] of Object.entries(heights)) ws.getRow(Number(r)).height = h;
 
-  const gen = labels.generatedAt.toLocaleDateString(bcp47, { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const gen = ddmmyyyy(generatedAt);
 
-  /* ── Logo (floats top-right) + company header ────────────────────────────── */
-  const logoId = wb.addImage({
-    /* Node Buffer works at runtime; cast bridges ExcelJS's ArrayBuffer-based
-     * Buffer type vs Node 22's Buffer<ArrayBuffer>. */
-    buffer: Buffer.from(TRUCK_REPORT_LOGO_PNG_BASE64, 'base64') as unknown as ExcelJS.Buffer,
-    extension: 'png',
-  });
+  /* ── Logo (floats top-right) + company header ─────────────────────────────
+   * Company block follows the client template VERBATIM (user decision
+   * 2026-07-14): fixed, not tenant data — only app-mappable info (người lập,
+   * ngày lập, month/region, every number) is dynamic. R1 romanises the address
+   * on the en/ko sheets, so it lives in the message files. */
   ws.addImage(logoId, {
     tl: { col: 10, row: 1 } as ExcelJS.Anchor,
     ext: { width: TRUCK_REPORT_LOGO_SIZE.width, height: TRUCK_REPORT_LOGO_SIZE.height },
     editAs: 'oneCell',
   });
   ws.mergeCells('B2:K2');
-  set('B2', COMPANY_NAME, { size: 12, bold: true, color: NAVY, noBorder: true });
+  set('B2', t('companyName'), { font: TYPO_LATIN.font, size: 12, bold: true, color: NAVY, noBorder: true });
   ws.mergeCells('B3:K3');
-  set('B3', COMPANY_ADDRESS, { size: 8, color: GRAY, noBorder: true });
+  set('B3', t('companyAddress'), { font: TYPO_LATIN.font, size: 8, color: GRAY, noBorder: true });
   ws.mergeCells('B4:K4');
-  set('B4', COMPANY_CONTACT, { size: 8, color: GRAY, noBorder: true });
+  set('B4', t('companyContact'), { font: TYPO_LATIN.font, size: 8, color: GRAY, noBorder: true });
 
   /* ── Title band ──────────────────────────────────────────────────────────── */
   for (const c of COLS) set(`${c}7`, null, { fill: NAVY, noBorder: true });
   ws.mergeCells(`B7:${LAST}7`);
-  set('B7', t('title'), { size: 13, bold: true, color: WHITE, fill: NAVY, align: 'center', noBorder: true });
+  set('B7', t('title'), { size: typo.title, bold: true, color: WHITE, fill: NAVY, align: 'center', noBorder: true });
 
   /* ── Meta rows 8-9 ───────────────────────────────────────────────────────── */
   ws.mergeCells('B8:I8');
-  set('B8', null, { fill: META_FILL, borderColor: B_LIGHT, align: 'center' });
+  set('B8', null, { size: 8, fill: META_FILL, borderColor: B_LIGHT, align: 'center' });
   ws.mergeCells('J8:L8');
   set('J8', t('datePrepared', { date: gen }), { size: 8, color: GRAY, fill: META_FILL, align: 'right', borderColor: B_LIGHT });
   ws.mergeCells('B9:D9');
   set('B9', t('monthField'), { size: 8, color: GRAY, fill: LIGHT, align: 'right', borderColor: B_META });
   ws.mergeCells('E9:H9');
-  set('E9', `${labels.monthLabel} · ${labels.regionLabel}`, { size: 9, bold: true, color: NAVY, fill: LIGHT, align: 'left', borderColor: B_META });
+  set('E9', `${spec.monthLabel} · ${spec.regionLabel}`, { size: 9, bold: true, color: NAVY, fill: LIGHT, align: 'left', borderColor: B_META });
   ws.mergeCells('I9:L9');
   set('I9', t('preparedBy', { name: data.header.preparedBy ?? DASH }), { size: 8, color: GRAY, fill: LIGHT, align: 'right', borderColor: B_META });
 
@@ -214,24 +282,25 @@ export async function buildTruckMonthlySummaryWorkbook(
   const s = data.summary;
   const kpi = (c1: string, c2: string, label: string, value: ExcelJS.CellValue, fmt: string | undefined, valColor: string, sub: string) => {
     for (const r of [11, 12, 13]) ws.mergeCells(`${c1}${r}:${c2}${r}`);
-    set(`${c1}11`, label, { size: 7.5, color: GRAY, fill: LIGHT, align: 'center', borderColor: B_LIGHT });
+    set(`${c1}11`, label, { size: typo.kpiLabel, bold: typo.kpiLabelBold, color: GRAY, fill: LIGHT, align: 'center', borderColor: B_LIGHT });
     set(`${c1}12`, value, { size: 14, bold: true, color: valColor, fill: LIGHT, align: 'center', fmt, borderColor: B_LIGHT });
     set(`${c1}13`, sub, { size: 7.5, italic: true, color: MUTE_IT, fill: LIGHT, align: 'center', borderColor: B_LIGHT });
   };
   const avgKm = Math.round(s.avgKmPerActive).toLocaleString(bcp47);
   const avgTrips = s.avgTripsPerActive.toLocaleString(bcp47, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  kpi('B', 'C', t('kpiTrucks'), t('kpiTrucksValue', { n: s.truckCount }), undefined, BLUE,
+  const [spTrucks, spTrips, spKm, spProfit] = wide ? KPI_SPANS_WIDE : KPI_SPANS_VI;
+  kpi(spTrucks[0], spTrucks[1], t('kpiTrucks'), t('kpiTrucksValue', { n: s.truckCount }), undefined, BLUE,
     t('kpiTrucksSub', { a: s.activeCount, m: s.maintenanceCount }));
-  kpi('D', 'E', t('kpiTrips'), s.tripCount, MONEY, DARK, t('kpiTripsSub', { x: avgTrips }));
-  kpi('F', 'G', t('kpiKm'), s.totalKm, MONEY, DARK, t('kpiKmSub', { x: avgKm }));
-  kpi('H', 'J', t('kpiProfit'), s.netProfit, MONEY_DONG, s.netProfit >= 0 ? GREEN : RED,
+  kpi(spTrips[0], spTrips[1], t('kpiTrips'), s.tripCount, MONEY, DARK, t('kpiTripsSub', { x: avgTrips }));
+  kpi(spKm[0], spKm[1], t('kpiKm'), s.totalKm, MONEY, DARK, t('kpiKmSub', { x: avgKm }));
+  kpi(spProfit[0], spProfit[1], t('kpiProfit'), s.netProfit, MONEY_DONG, s.netProfit >= 0 ? GREEN : RED,
     t('kpiMarginSub', { x: (s.margin * 100).toFixed(1) }));
-  for (const r of [11, 12, 13]) ws.mergeCells(`K${r}:L${r}`);
-  for (const r of [11, 12, 13]) set(`K${r}`, null, { fill: LIGHT, borderColor: B_LIGHT });
 
   /* ── A. Doanh thu ────────────────────────────────────────────────────────── */
   sectionHeader(15, t('secRevenue'));
   line(16, t('lineRevenue'), data.totals.revenue, { fill: WHITE, fmt: MONEY, color: GREEN, bold: true });
+  /* Template bolds the revenue FIGURE only, not its label. */
+  set('B16', t('lineRevenue'), { fill: WHITE, color: DARK, align: 'left' });
 
   /* ── B. Chi phí ──────────────────────────────────────────────────────────── */
   sectionHeader(18, t('secExpenses'));
@@ -251,7 +320,7 @@ export async function buildTruckMonthlySummaryWorkbook(
   line(25, t('lineTotalExpenses'),
     { formula: 'SUM(C19:C24)', result: totalExpenses } as ExcelJS.CellValue,
     { fill: TOTAL_FILL, fmt: MONEY, color: RED, bold: true, size: 9, borderColor: B_INDIGO });
-  set('B25', t('lineTotalExpenses'), { fill: TOTAL_FILL, color: INK, bold: true, size: 9, borderColor: B_INDIGO });
+  set('B25', t('lineTotalExpenses'), { fill: TOTAL_FILL, color: INK, bold: true, size: typo.totalLabel, borderColor: B_INDIGO });
 
   /* ── C. Kết quả ──────────────────────────────────────────────────────────── */
   sectionHeader(27, t('secResult'));
@@ -301,7 +370,9 @@ export async function buildTruckMonthlySummaryWorkbook(
             : v.status === 'PROFIT'
               ? GREEN
               : RED; // LOSS
-    const who = [v.driver, v.model].filter(Boolean).join(' · ') || DASH;
+    /* Column B is "Xe / Truck / 차량" in R1, so lead with the truck (model) and
+     * keep the driver after it — same info, matching the header. */
+    const who = [v.model, v.driver].filter(Boolean).join(' · ') || DASH;
     set(`B${r}`, who, { size: 8, color: GRAY, fill: bg, align: 'left' });
     set(`C${r}`, v.plate, { size: 8, color: GRAY, fill: bg, align: 'center' });
     set(`D${r}`, idle ? DASH : v.tripCount, { fmt: idle ? undefined : MONEY, color: BLACK, fill: bg, align: 'center' });
@@ -364,11 +435,6 @@ export async function buildTruckMonthlySummaryWorkbook(
   const noteR = totR + 2;
   ws.mergeCells(`B${noteR}:${LAST}${noteR}`);
   set(`B${noteR}`,
-    t('footer', {
-      ts: labels.generatedAt.toLocaleString(bcp47, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-    }),
+    t('footer', { ts: ddmmyyyyHm(generatedAt) }),
     { size: 7.5, italic: true, color: MUTE_IT, align: 'left', noBorder: true });
-
-  const buf = await wb.xlsx.writeBuffer();
-  return Buffer.from(buf as ArrayBuffer);
 }

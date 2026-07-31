@@ -5,6 +5,7 @@ import type {
   TableCell,
   StyleDictionary,
 } from 'pdfmake/interfaces';
+import { attachment } from './content-disposition';
 
 /* PDF export utilities using pdfmake.
  *
@@ -284,13 +285,13 @@ async function generatePdfBuffer(docDefinition: TDocumentDefinitions): Promise<B
  * Create a PDF response for NextResponse.
  */
 export function pdfResponse(buffer: Buffer, filename: string): Response {
-  // RFC 5987 encoding for proper filename handling across browsers
-  const encodedFilename = encodeURIComponent(filename).replace(/['()]/g, escape);
   return new Response(new Uint8Array(buffer), {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${filename}"; filename*=UTF-8''${encodedFilename}`,
+      /* Localized filenames reach here (Korean truck P&L), so the ASCII
+       * `filename=` fallback must be sanitised — see content-disposition.ts. */
+      'Content-Disposition': attachment(filename),
       'Cache-Control': 'no-store',
     },
   });

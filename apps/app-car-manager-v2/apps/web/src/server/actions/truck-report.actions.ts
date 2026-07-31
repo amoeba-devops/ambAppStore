@@ -4,7 +4,6 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { db } from '@car-v2/db/client';
 import { carTruckReports, carUsers, TRUCK_REPORT_TYPES, type TruckReportType } from '@car-v2/db/schema';
@@ -24,9 +23,10 @@ import { getTruckReportExport } from '@/server/queries/truck-report-export.queri
 import { buildTruckReportWorkbook } from '@/server/lib/truck-report-workbook';
 import {
   buildTruckMonthlySummaryWorkbook,
+  type SummarySheetSpec,
   type SummaryTranslator,
 } from '@/server/lib/truck-monthly-summary-workbook';
-import { routing } from '@/i18n/routing';
+import { bcp47, monthName, resolveUiLocale } from '@/i18n/ui-locale';
 import { buildExcel, type ExcelColumn } from '@/server/lib/excel';
 import { putObject } from '@/lib/s3-client';
 import { logAudit } from '@/server/services/audit-log.service';
@@ -39,35 +39,39 @@ function monthLabel(month: string): string {
   return `Tháng ${Number(m)}/${y}`;
 }
 
-/* MONTHLY_SUMMARY file content follows the GENERATOR's UI language (i18n,
- * exportContent.truckMonthlySummary — vi reproduces the client template
- * verbatim). The legacy PNL/TRIP_LOG/VEHICLE files stay Vietnamese (operational
- * documents for the VN company). REPORT_NAME below is the stored list name
- * (trr_name) — Vietnamese like the rest of the stored data. */
-const REPORT_NAME: Record<string, string> = {
-  PNL: 'Báo cáo chi phí & lợi nhuận',
-  TRIP_LOG: 'Báo cáo nhật ký chuyến',
-  VEHICLE: 'Báo cáo phương tiện',
-  MONTHLY_SUMMARY: 'Tổng kết chi phí tháng',
-};
+/* MONTHLY_SUMMARY is trilingual — one file with a `tiếng việt`, an `English`
+ * and a `Korean` sheet, exactly like the client template "Báo Cáo form (R1)"
+ * (i18n, exportContent.truckMonthlySummary — vi reproduces it verbatim). No
+ * longer tied to the generator's UI locale: every download carries all three.
+ * The legacy PNL/TRIP_LOG/VEHICLE files stay Vietnamese inside (operational
+ * documents for the VN company) — but their NAME follows the exporter, see
+ * reportName() below. */
 
-/* Report-file scope suffix (VN, like the rest of this file's content). */
+/** Stored list name (`trr_name`), written in the language the user was in when
+ * they pressed "Lập báo cáo" — same source as the download filename. Scoped to
+ * the chosen operating region ("· Khu vực HCM" / "· Tất cả khu vực") so the list
+ * makes the scope obvious; the list still groups by month. Rows generated before
+ * 2026-07-31 keep their Vietnamese name (stored value, not re-rendered). */
+async function reportName(locale: string, type: string, region: string | null): Promise<string> {
+  const t = await getTranslations({ locale, namespace: 'screens.truckReports' });
+  const tRegion = await getTranslations({ locale, namespace: 'region' });
+  /* Dynamic i18n keys — cast as elsewhere in this file. */
+  const typeName = t(`type_${type}` as Parameters<typeof t>[0]);
+  const scope = region
+    ? t('nameScopeRegion', { name: tRegion(region as Parameters<typeof tRegion>[0]) })
+    : t('regionAll');
+  return `${typeName} · ${scope}`;
+}
+
+/* Workbook-internal scope label for the Vietnamese-only legacy reports. */
 const REGION_LABEL: Record<string, string> = { HCM: 'HCM', DONG_NAI: 'Đồng Nai', BAIKSAN: 'Baiksan' };
 function regionSuffix(region: string | null): string {
   return region ? `Khu vực ${REGION_LABEL[region] ?? region}` : 'Tất cả khu vực';
 }
 
-const BCP47: Record<string, string> = { vi: 'vi-VN', en: 'en-US', ko: 'ko-KR' };
-
-/** UI locale of the current request — the in-app switcher cookie, same
- * resolution as i18n/request.ts. The MONTHLY_SUMMARY file's language is baked
- * at generation time from THIS (downloads share the stored file). */
-async function resolveUiLocale(): Promise<string> {
-  const cookieLocale = (await cookies()).get('NEXT_LOCALE')?.value ?? '';
-  return (routing.locales as readonly string[]).includes(cookieLocale)
-    ? cookieLocale
-    : routing.defaultLocale;
-}
+/* Sheet order inside the MONTHLY_SUMMARY file — R1's order, which is also
+ * routing.locales. */
+const SUMMARY_LOCALES = ['vi', 'en', 'ko'] as const;
 
 async function buildReportWorkbook(
   actor: Awaited<ReturnType<typeof getCurrentUser>>,
@@ -77,25 +81,32 @@ async function buildReportWorkbook(
   generatedAt: Date,
 ): Promise<Buffer> {
   if (type === 'MONTHLY_SUMMARY') {
-    /* Client "Tổng kết chi phí tháng" single-sheet template (REQ-20260713).
-     * includeIdle=true so maintenance/idle trucks appear and the TỔNG row
-     * reconciles with the A/B/C blocks. Same core numbers as everything else.
-     * File TEXT follows the generator's UI language — vi = template verbatim. */
-    const locale = await resolveUiLocale();
-    const tSummary = await getTranslations({ locale, namespace: 'exportContent.truckMonthlySummary' });
-    const t = tSummary as unknown as SummaryTranslator;
-    const tRegion = await getTranslations({ locale, namespace: 'region' });
+    /* Client "Báo cáo xe truck hàng tháng" template (REQ-20260713, R1 revision):
+     * ONE file with three same-layout sheets — vi / en / ko. includeIdle=true so
+     * maintenance/idle trucks appear and the TỔNG row reconciles with the A/B/C
+     * blocks. Same core numbers as everything else, on every sheet. */
     const [y = '', mm = ''] = month.split('-');
     const data = await getTruckReportExport(actor, month, region, { includeIdle: true });
-    return buildTruckMonthlySummaryWorkbook(data, {
-      monthLabel: t('monthValue', { m: String(Number(mm)), y }),
-      regionLabel: region
-        ? t('scopeRegion', { name: tRegion(region as Parameters<typeof tRegion>[0]) })
-        : t('scopeAll'),
-      generatedAt,
-      bcp47: BCP47[locale] ?? 'vi-VN',
-      t,
-    });
+    const sheets: SummarySheetSpec[] = [];
+    for (const locale of SUMMARY_LOCALES) {
+      const t = (await getTranslations({
+        locale,
+        namespace: 'exportContent.truckMonthlySummary',
+      })) as unknown as SummaryTranslator;
+      const tRegion = await getTranslations({ locale, namespace: 'region' });
+      /* en spells the month out ("June 2026"), vi/ko use the number — the
+       * message file picks {mn} or {m}. */
+      sheets.push({
+        locale,
+        bcp47: bcp47(locale),
+        monthLabel: t('monthValue', { m: String(Number(mm)), mn: monthName(month, locale), y }),
+        regionLabel: region
+          ? t('scopeRegion', { name: tRegion(region as Parameters<typeof tRegion>[0]) })
+          : t('scopeAll'),
+        t,
+      });
+    }
+    return buildTruckMonthlySummaryWorkbook(data, { generatedAt, sheets });
   }
 
   if (type === 'PNL') {
@@ -224,10 +235,7 @@ async function generateOneTruckReport(
    * (which reads trr_created_at) always agree to the second. */
   const generatedAt = new Date();
   const key = `truck-reports/${actor.entId}/${month}/${type}-${region ?? 'all'}-${id}.xlsx`;
-  /* Report is scoped to the chosen operating region (or all regions) — name it
-   * with that scope ("· Khu vực HCM" / "· Tất cả khu vực") so the list makes the
-   * scope obvious; the list still groups by month. */
-  const name = `${REPORT_NAME[type]} · ${regionSuffix(region)}`;
+  const name = await reportName(await resolveUiLocale(), type, region);
   await db.insert(carTruckReports).values({
     trrId: id,
     entId: actor.entId,

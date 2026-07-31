@@ -1,7 +1,10 @@
 import * as XLSX from 'xlsx';
+import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { hasFleet } from '@/lib/auth/fleet-access';
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
+import { attachment, exportFileName, exportSheetName } from '@/server/lib/export-file-name';
+import { resolveUiLocale } from '@/i18n/ui-locale';
 
 /** GET /truck/trips/export?q=&month= — exports the (filtered) truck trip log
  * as .xlsx. Gated to TRUCK-fleet staff (route handlers bypass the /truck layout
@@ -36,35 +39,39 @@ export async function GET(req: Request) {
 
   /* Detailed column template requested by the client (feedback #4) — mirrors
    * the monthly report's trip-log sheet. Times as HH:MM; money/km stay numeric
-   * so Excel treats them as numbers. CDF (previously always blank) is filled,
-   * and "Tổng chi phí" + "Ghi chú" are added. */
+   * so Excel treats them as numbers. Headers + status come from
+   * exportContent.truckTrips in the exporter's UI language — one language per
+   * file, like the R1 monthly template (no more "Ngày / Date" pairs). */
   const hhmm = (d: Date | null) => (d ? new Date(d).toISOString().slice(11, 16) : '');
+  const locale = await resolveUiLocale();
+  const tCol = await getTranslations({ locale, namespace: 'exportContent.truckTrips' });
+  const tStatus = await getTranslations({ locale, namespace: 'exportContent.status' });
   const header = [
-    'Ref',
-    'Ngày / Date',
-    'Phương tiện / Vehicle',
-    'Tài xế / Driver',
-    'Khách hàng / Customer',
-    'Số Bill / Bill No.',
-    'Mã CDF / CDF Code',
-    'Giờ BĐ / Start',
-    'Giờ KT / End',
-    'Nơi lấy hàng / From',
-    'Nơi giao hàng / To',
-    'ODO đầu (km)',
-    'ODO cuối (km)',
-    'Tổng KM / Total KM',
-    'Cầu đường / Toll (đ)',
-    'Phí khác / Other fee (đ)',
-    'Tên phí khác / Fee name',
-    'Giá dầu BQ / Fuel unit (đ/L)',
-    'Lượng dầu / Litres (L)',
-    'CP dầu / Fuel cost (đ)',
-    'Doanh thu / Selling (đ)',
-    'Tổng chi phí / Total cost (đ)',
-    'Lợi nhuận / Profit (đ)',
-    'Trạng thái / Status',
-    'Ghi chú / Notes',
+    tCol('colRef'),
+    tCol('colDate'),
+    tCol('colVehicle'),
+    tCol('colDriver'),
+    tCol('colCustomer'),
+    tCol('colBill'),
+    tCol('colCdf'),
+    tCol('colStart'),
+    tCol('colEnd'),
+    tCol('colFrom'),
+    tCol('colTo'),
+    tCol('colOdoStart'),
+    tCol('colOdoEnd'),
+    tCol('colKm'),
+    tCol('colToll'),
+    tCol('colOtherFee'),
+    tCol('colFeeName'),
+    tCol('colFuelPrice'),
+    tCol('colLiters'),
+    tCol('colFuelCost'),
+    tCol('colRevenue'),
+    tCol('colTotalCost'),
+    tCol('colProfit'),
+    tCol('colStatus'),
+    tCol('colNotes'),
   ];
   const rows = trips.map((t) => [
     t.ref,
@@ -90,19 +97,30 @@ export async function GET(req: Request) {
     t.breakdown.revenue,
     t.breakdown.totalCost,
     t.breakdown.profit,
-    t.status,
+    tStatus(t.status),
     t.notes ?? '',
   ]);
 
   const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'TruckTrips');
+  XLSX.utils.book_append_sheet(wb, ws, await exportSheetName('exportContent.truckTrips', 'TruckTrips'));
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+  /* Filename in the exporter's language; the month suffix is dropped when the
+   * list isn't filtered by month (export covers every month). */
+  const [y = '', mm = ''] = (month ?? '').split('-');
+  const m = mm ? String(Number(mm)) : '';
+  const fileName = await exportFileName(
+    'screens.truckTrips',
+    month ? 'fileNameMonth' : 'fileName',
+    { y, mm, m },
+    `truck-trips${month ? `-${month}` : ''}`,
+  );
 
   return new Response(new Uint8Array(buf), {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="truck-trips${month ? `-${month}` : ''}.xlsx"`,
+      'Content-Disposition': attachment(`${fileName}.xlsx`),
       'Cache-Control': 'no-store',
     },
   });
