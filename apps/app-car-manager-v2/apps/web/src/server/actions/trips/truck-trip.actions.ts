@@ -460,6 +460,110 @@ export async function updateTruckTripAction(
 }
 
 /**
+ * Driver self-edit of a truck trip-log they own (REQ-20260803).
+ *
+ * A driver creates their own trip at /today/truck/new and fills the costs from
+ * the road, so they must be able to correct that record afterwards — the
+ * manager edit action refuses them (ADMIN/MANAGER only). Same core mutation,
+ * three guards on top:
+ *
+ *  - ownership: the trip must be a LOG trip whose driver IS the caller;
+ *  - the driver field is forced to self, so an edit can never re-assign;
+ *  - revenue is not theirs to touch — the stored value is echoed back, because
+ *    `updateTruckTrip` writes the column unconditionally and a driver payload
+ *    (revenue stripped client-side) would otherwise wipe what a manager typed.
+ *
+ * Odometers fall back to what is stored for the same reason: the driver form
+ * only shows km inputs when editing, so an omitted value means "unchanged",
+ * not "clear the reading the completion sheet recorded".
+ *
+ * The month lock (region-scoped, REQ-20260630) applies exactly as it does for a
+ * manager: a closed month refuses the edit; a merely *reported* month is a soft
+ * warning shown by the page, not a block.
+ */
+export async function driverUpdateTruckTripAction(
+  input: unknown,
+): Promise<ActionResult<{ id: string; fuelMode: TruckFuelMode | null }>> {
+  return runAction(async () => {
+    const actor = await getCurrentUser();
+    requireRole(actor.role, ['DRIVER']);
+    await requireFleet(actor, 'TRUCK');
+    const dto = updateTruckTripSchema.parse(input);
+
+    const driver = await getDriverByUserId(actor.entId, actor.userId);
+    if (!driver) throw new CarError('CAR-E0403', 403, 'Not a driver');
+    const trip = await db.query.carTrips.findFirst({
+      where: and(
+        eq(carTrips.trpId, dto.trip_id),
+        eq(carTrips.entId, actor.entId),
+        isNull(carTrips.trpDeletedAt),
+      ),
+    });
+    if (!trip || trip.trpKind !== 'LOG' || trip.trpDriverId !== driver.drvId) {
+      throw new CarError('CAR-E0403', 403, 'Not your trip');
+    }
+
+    /* Both the trip's current month and the target month must be open. */
+    await assertTruckMonthOpen(actor.entId, trip.trpScheduledAt, await regionOfVehicle(actor.entId, trip.trpVehicleId));
+    await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at), await regionOfVehicle(actor.entId, dto.vehicle_id));
+
+    const stopovers: StopoverInput[] | undefined = dto.stopovers?.map((s) => ({
+      type: s.type,
+      address: s.address,
+      km: s.km ?? null,
+      arrivedAt: s.arrived_at ? new Date(s.arrived_at) : null,
+      notes: s.notes ?? null,
+    }));
+
+    const res = await updateTruckTrip(actor, dto.trip_id, {
+      scheduledAt: new Date(dto.scheduled_at),
+      vehicleId: dto.vehicle_id ?? null,
+      /* Locked to self — a driver edit is never a re-assignment. */
+      driverId: driver.drvId,
+      customer: dto.customer ?? null,
+      pickupAddress: dto.pickup_address,
+      dropoffAddress: dto.dropoff_address,
+      bol: dto.bol ?? null,
+      cdf: dto.cdf ?? null,
+      fuelPrice: dto.fuel_price ?? null,
+      /* Manager's figure, echoed back untouched. */
+      revenue: trip.trpRevenue != null ? Number(trip.trpRevenue) : null,
+      startOdometer: dto.start_odometer ?? trip.trpStartOdometer,
+      endOdometer: dto.end_odometer ?? trip.trpEndOdometer,
+      fuelLiters: dto.fuel_liters ?? null,
+      tollFee: dto.toll_fee ?? null,
+      notes: dto.notes,
+      startedAt: dto.start_time ? new Date(dto.start_time) : undefined,
+      finishedAt: dto.end_time ? new Date(dto.end_time) : undefined,
+      extraCosts: dto.extra_costs ?? [],
+      stopovers,
+    });
+
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
+
+    await logAudit({
+      entId: actor.entId,
+      userId: actor.userId,
+      action: 'TRUCK_TRIP.DRIVER_UPDATE',
+      entity: 'Trip',
+      entityId: res.trip.trpId,
+      entityRef: res.trip.trpRef,
+      after: { totalCost: res.breakdown.totalCost },
+    });
+
+    revalidatePath('/today');
+    revalidatePath(`/today/truck/${res.trip.trpId}`);
+    revalidatePath('/trips');
+    revalidatePath(`/trips/${res.trip.trpId}`);
+    revalidatePath('/truck/trips');
+    revalidatePath('/truck/finance');
+    revalidatePath('/truck/pnl');
+    revalidatePath('/truck/dashboard');
+    return { id: res.trip.trpId, fuelMode: await tripFuelMode(actor.entId, res.trip) };
+  });
+}
+
+/**
  * Cost patch for the report-review screen ("Lập báo cáo · Bước 2"). Adjusts the
  * four per-trip cost figures the design lets a manager tweak before generating
  * the report — toll, extra, fuel, revenue — on an OPEN month only. Mapping to

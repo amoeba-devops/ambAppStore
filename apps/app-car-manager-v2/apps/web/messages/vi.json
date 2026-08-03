@@ -2106,7 +2106,23 @@
       "todoSummary": "{n} chuyến cần hoàn thành",
       "statusPending": "Chờ hoàn thành",
       "statusRunning": "Đang chạy",
-      "completeCta": "Hoàn thành"
+      "completeCta": "Hoàn thành",
+      "editTrip": "Sửa chuyến",
+      "costsTitle": "Chi phí chuyến",
+      "fuelRecordedNote": "Đã ghi nhận {liters} L ({amount}) — phân bổ theo km khi chốt tháng",
+      "updateCosts": "Cập nhật chi phí",
+      "stopsTitle": "Cập nhật điểm dừng",
+      "stops": {
+        "hint": "Chạm vào điểm dừng để cập nhật km và thời gian đến.",
+        "empty": "Chuyến này chưa có điểm dừng chi tiết.",
+        "kmLabel": "Odometer tại điểm (km)",
+        "kmPlaceholder": "Nhập số km",
+        "notesLabel": "Ghi chú",
+        "notesPlaceholder": "Tình trạng, chờ đợi, ...",
+        "cancel": "Hủy",
+        "save": "Cập nhật",
+        "savedToast": "Đã cập nhật điểm dừng"
+      }
     },
     "switchDriver": "Đổi tài xế",
     "title": "Hôm nay",

@@ -37,8 +37,9 @@ export default async function DriverTruckNewTripPage() {
         title={t('newTitle')}
         subtitle={t('newSubtitle')}
         breadcrumbs={[{ label: tToday('title'), href: '/today' }, { label: t('newCrumb') }]}
+        /* Default 'breadcrumb' variant — a form needs the back chevron that
+         * the 'brand' home-route header does not render. */
         back="/today"
-        mobileVariant="brand"
       />
       <div className="px-4 md:px-7 py-4 md:py-6 max-w-7xl mx-auto w-full">
         {/* drivers=[] — DRIVER mode locks the trip to the caller, so no list. */}

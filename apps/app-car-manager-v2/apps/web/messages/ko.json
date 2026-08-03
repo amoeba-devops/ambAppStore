@@ -2106,7 +2106,23 @@
       "todoSummary": "완료할 운행 {n}건",
       "statusPending": "완료 대기",
       "statusRunning": "운행 중",
-      "completeCta": "완료"
+      "completeCta": "완료",
+      "editTrip": "운행 수정",
+      "costsTitle": "운행 비용",
+      "fuelRecordedNote": "{liters} L ({amount}) 기록됨 — 월 마감 시 주행거리 기준 배분",
+      "updateCosts": "비용 수정",
+      "stopsTitle": "경유지 업데이트",
+      "stops": {
+        "hint": "경유지를 눌러 주행거리와 도착 시간을 입력하세요.",
+        "empty": "이 운행에는 등록된 경유지가 없습니다.",
+        "kmLabel": "경유지 주행거리 (km)",
+        "kmPlaceholder": "km 입력",
+        "notesLabel": "비고",
+        "notesPlaceholder": "상태, 대기 시간 등",
+        "cancel": "취소",
+        "save": "업데이트",
+        "savedToast": "경유지를 업데이트했습니다"
+      }
     },
     "switchDriver": "기사 변경",
     "title": "오늘",

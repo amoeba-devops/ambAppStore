@@ -19,7 +19,11 @@ import {
   toast,
 } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
-import { createTruckTripAction, updateTruckTripAction } from '@/server/actions/trips/truck-trip.actions';
+import {
+  createTruckTripAction,
+  updateTruckTripAction,
+  driverUpdateTruckTripAction,
+} from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
 import { FormField } from '@/components/forms/form-section';
 import { MoneyInput } from '@/components/inputs/money-input';
@@ -140,6 +144,9 @@ export function TruckTripForm({
   });
 
   const isDriver = role === 'DRIVER';
+  /* Where Cancel / a successful save lands. A driver editing came from their own
+   * trip page and belongs back on it — /truck/* redirects them to /today. */
+  const driverHome = tripId ? `/today/truck/${tripId}` : '/today';
 
   /* Extra incidental costs — free-text name + amount rows. */
   const [extras, setExtras] = useState<ExtraRow[]>(
@@ -294,9 +301,12 @@ export function TruckTripForm({
         cost_attachments,
         stopovers: stopoversPayload,
       };
-      const res = tripId
-        ? await updateTruckTripAction({ ...payload, trip_id: tripId })
-        : await createTruckTripAction(payload);
+      const res = !tripId
+        ? await createTruckTripAction(payload)
+        : isDriver
+          ? /* Ownership-checked driver self-edit; the manager action is staff-only. */
+            await driverUpdateTruckTripAction({ ...payload, trip_id: tripId })
+          : await updateTruckTripAction({ ...payload, trip_id: tripId });
       if (!res.success) {
         toast.error(formatActionError(res.error, tErr));
         return;
@@ -309,7 +319,7 @@ export function TruckTripForm({
         description: fuelToastDescription(res.data.fuelMode, tFuel),
       });
       router.push(
-        isDriver ? '/today' : (tripId ? `/truck/trips/${tripId}` : '/truck/trips'),
+        isDriver ? driverHome : (tripId ? `/truck/trips/${tripId}` : '/truck/trips'),
       );
       router.refresh();
     });
@@ -440,9 +450,11 @@ export function TruckTripForm({
             </div>
           </SectionCard>
 
-          {/* Route — km inputs only when logging a completed trip. */}
+          {/* Route — km inputs only when logging a completed trip. A driver
+            * creating a trip doesn't know the readings yet (they record them
+            * per stop from the road); editing afterwards, they do. */}
           <SectionCard icon={<Route className="h-4 w-4" />} title={t('sectionRoute')}>
-            <StopBuilder stops={stops} onChange={setStops} showKm={!isDriver && markCompleted} />
+            <StopBuilder stops={stops} onChange={setStops} showKm={isDriver ? !!tripId : markCompleted} />
           </SectionCard>
 
           {/* Customer & documents — optional, collapsed by default. */}
@@ -529,7 +541,7 @@ export function TruckTripForm({
           type="button"
           variant="ghost"
           size="lg"
-          onClick={() => router.push(isDriver ? '/today' : '/truck/trips')}
+          onClick={() => router.push(isDriver ? driverHome : '/truck/trips')}
           disabled={pending}
           className="w-full sm:w-auto"
         >

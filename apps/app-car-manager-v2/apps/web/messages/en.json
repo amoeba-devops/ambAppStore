@@ -2106,7 +2106,23 @@
       "todoSummary": "{n} trips to complete",
       "statusPending": "To complete",
       "statusRunning": "In progress",
-      "completeCta": "Complete"
+      "completeCta": "Complete",
+      "editTrip": "Edit trip",
+      "costsTitle": "Trip costs",
+      "fuelRecordedNote": "Recorded {liters} L ({amount}) — allocated per km at month close",
+      "updateCosts": "Update costs",
+      "stopsTitle": "Update stops",
+      "stops": {
+        "hint": "Tap a stop to record its odometer and arrival time.",
+        "empty": "This trip has no detailed stops.",
+        "kmLabel": "Odometer at stop (km)",
+        "kmPlaceholder": "Enter km",
+        "notesLabel": "Notes",
+        "notesPlaceholder": "Condition, waiting time, ...",
+        "cancel": "Cancel",
+        "save": "Update",
+        "savedToast": "Stop updated"
+      }
     },
     "switchDriver": "Switch driver",
     "title": "Today",
