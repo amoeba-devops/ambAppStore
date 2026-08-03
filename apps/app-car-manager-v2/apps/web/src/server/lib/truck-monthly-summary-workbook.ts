@@ -1,7 +1,7 @@
 import 'server-only';
 import ExcelJS from 'exceljs';
 import type { TruckReportExport } from '@/server/queries/truck-report-export.queries';
-import { TRUCK_REPORT_LOGO_PNG_BASE64, TRUCK_REPORT_LOGO_SIZE } from './truck-report-logo';
+import { loadTruckReportLogo, TRUCK_REPORT_LOGO_SIZE } from './truck-report-logo';
 
 /**
  * "Báo cáo xe truck hàng tháng" — a pixel-faithful rebuild of the client
@@ -157,18 +157,32 @@ export async function buildTruckMonthlySummaryWorkbook(
 ): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Amoeba Car Manager';
-  /* One image entry shared by all three sheets (ExcelJS re-references it). */
-  const logoId = wb.addImage({
-    /* Node Buffer works at runtime; cast bridges ExcelJS's ArrayBuffer-based
-     * Buffer type vs Node 22's Buffer<ArrayBuffer>. */
-    buffer: Buffer.from(TRUCK_REPORT_LOGO_PNG_BASE64, 'base64') as unknown as ExcelJS.Buffer,
-    extension: 'png',
-  });
+  const logoId = await addLogo(wb);
   for (const spec of labels.sheets) {
     writeSummarySheet(wb, logoId, data, labels.generatedAt, spec);
   }
   const buf = await wb.xlsx.writeBuffer();
   return Buffer.from(buf as ArrayBuffer);
+}
+
+/** Registers the brand logo once for the whole workbook — ExcelJS re-references
+ *  the single entry from all three sheets.
+ *
+ *  Returns undefined if the asset can't be read: a report missing its logo is
+ *  still a usable report, whereas throwing here would lose the operator every
+ *  number in it. The error goes to the server log so the deploy gets fixed. */
+async function addLogo(wb: ExcelJS.Workbook): Promise<number | undefined> {
+  try {
+    return wb.addImage({
+      /* Node Buffer works at runtime; cast bridges ExcelJS's ArrayBuffer-based
+       * Buffer type vs Node 22's Buffer<ArrayBuffer>. */
+      buffer: (await loadTruckReportLogo()) as unknown as ExcelJS.Buffer,
+      extension: 'png',
+    });
+  } catch (err) {
+    console.error('[truck-report] logo unavailable, exporting without it', err);
+    return undefined;
+  }
 }
 
 /* ExcelJS rejects a duplicate tab name (case-insensitively) by THROWING, which
@@ -188,7 +202,7 @@ function uniqueSheetName(wb: ExcelJS.Workbook, name: string, locale: string): st
  * and KPI spans differ. */
 function writeSummarySheet(
   wb: ExcelJS.Workbook,
-  logoId: number,
+  logoId: number | undefined,
   data: TruckReportExport,
   generatedAt: Date,
   spec: SummarySheetSpec,
@@ -261,11 +275,13 @@ function writeSummarySheet(
    * 2026-07-14): fixed, not tenant data — only app-mappable info (người lập,
    * ngày lập, month/region, every number) is dynamic. R1 romanises the address
    * on the en/ko sheets, so it lives in the message files. */
-  ws.addImage(logoId, {
-    tl: { col: 10, row: 1 } as ExcelJS.Anchor,
-    ext: { width: TRUCK_REPORT_LOGO_SIZE.width, height: TRUCK_REPORT_LOGO_SIZE.height },
-    editAs: 'oneCell',
-  });
+  if (logoId !== undefined) {
+    ws.addImage(logoId, {
+      tl: { col: 10, row: 1 } as ExcelJS.Anchor,
+      ext: { width: TRUCK_REPORT_LOGO_SIZE.width, height: TRUCK_REPORT_LOGO_SIZE.height },
+      editAs: 'oneCell',
+    });
+  }
   ws.mergeCells('B2:K2');
   set('B2', t('companyName'), { font: TYPO_LATIN.font, size: 12, bold: true, color: NAVY, noBorder: true });
   ws.mergeCells('B3:K3');
