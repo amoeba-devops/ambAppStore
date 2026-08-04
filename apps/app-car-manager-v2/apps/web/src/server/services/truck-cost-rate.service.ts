@@ -71,6 +71,13 @@ export async function recordTruckCostRate(input: {
         carTruckCostRates.tcrKind,
         carTruckCostRates.tcrMonth,
       ],
+      /* `uq_car_truck_cost_rates_live` is a PARTIAL unique index. Postgres only
+       * accepts a partial index as the conflict arbiter when the statement
+       * repeats its predicate, otherwise it refuses to guess and raises 42P10
+       * ("no unique or exclusion constraint matching the ON CONFLICT
+       * specification") — which surfaced as CAR-E0500 on every driver/vehicle
+       * save that carried a salary or depreciation figure. */
+      targetWhere: isNull(carTruckCostRates.tcrDeletedAt),
       set: { tcrAmount: String(amount), tcrNote: input.note ?? null, tcrCreatedBy: input.userId },
     });
 }
