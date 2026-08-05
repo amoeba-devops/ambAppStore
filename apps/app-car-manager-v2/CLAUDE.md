@@ -154,15 +154,16 @@ packages/db (Drizzle)    ← persistence
 
 ### 4.6 Role mapping (AMA → app local)
 
-PRD §4 yêu cầu 3 role: **Admin / Manager / Driver**. AMA chỉ có OWNER/MASTER/MANAGER/MEMBER. Map khi user lần đầu vào app:
+PRD §4 yêu cầu 3 tier quyền: **Admin / Manager / Driver**. AMA phát hành **7 role** (`amb_hr_entity_user_roles.eur_role`) — định nghĩa tập trung ở `AMA_ROLES` (`packages/shared/src/auth/jwt-claims.ts`). Map về 3 tier khi user vào app (`mapAmaRoleToLocal`, có `default` → `DRIVER` để mọi role lạ vẫn sync được):
 
-| AMA role | App role |
+| AMA role | App role (quyền) |
 |---|---|
-| `OWNER`, `MASTER` | `ADMIN` |
+| `OWNER`, `MASTER`, `ADMIN`, `SUPER_ADMIN` | `ADMIN` |
 | `MANAGER` | `MANAGER` |
-| `MEMBER` | `DRIVER` |
+| `MEMBER`, `VIEWER` | `DRIVER` |
 
-Lưu cache trong `car_users.usr_local_role`. Admin có thể đổi role local nhưng AMA role là nguồn cuối — đồng bộ lại mỗi lần login.
+- **Quyền (RBAC)** dùng 3 tier ở `car_users.usr_local_role`. Admin có thể đổi role local; AMA role là nguồn cuối — đồng bộ lại mỗi lần login.
+- **Role AMA gốc (cả 7) được giữ nguyên** ở `car_users.usr_ama_role_snapshot` và hiển thị ở danh sách user (label dịch qua `users.list.amaRoleOption.*`, fallback chuỗi gốc). Đây là kênh "đồng bộ đủ role qua" — KHÔNG bị gom mất.
 
 ### 4.7 Trip State Machine (PRD §9.1)
 

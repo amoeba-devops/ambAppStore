@@ -62,7 +62,7 @@ INSERT INTO amb_entity_custom_apps (
   'https://stg-apps.amoeba.site/app-car-manager-v2',         -- nginx proxies → Render
   'jwt',
   'iframe',
-  'MASTER,MANAGER,MEMBER,VIEWER',                            -- comma-separated, no spaces
+  'SUPER_ADMIN,ADMIN,MASTER,MANAGER',                        -- comma-separated, no spaces (admin+manager tier only; MEMBER/VIEWER excluded)
   10,
   TRUE,
   '<ADMIN_USER_UUID>',                                       -- 👈 admin user registering the link
