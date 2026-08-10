@@ -5,6 +5,7 @@ import { getTrip } from '@/server/queries/trips.queries';
 import { getTripExtraCosts, getTruckTripBreakdown, getTripCostAttachmentsView } from '@/server/queries/truck-trips.queries';
 import { getTruckReportStatus } from '@/server/queries/truck-report.queries';
 import { getTripStopovers } from '@/server/queries/stopovers.queries';
+import { completeInitialOf } from '@/lib/truck-complete-initial';
 import { TruckTripDetail } from '@/app/(app)/trips/[id]/_components/truck-trip-detail';
 import { TruckTripManageActions } from '../_components/truck-trip-manage-actions';
 
@@ -64,6 +65,7 @@ export default async function TruckTripDetailPage({ params }: { params: Promise<
       fixedTripCount={fixedTripCount}
       completed={completed}
       canComplete={canComplete}
+      completeInitial={completeInitialOf(trip)}
       stopovers={stopovers}
       mode="staff"
       backHref="/truck/trips"

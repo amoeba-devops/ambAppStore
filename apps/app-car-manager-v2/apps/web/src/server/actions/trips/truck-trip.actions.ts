@@ -382,6 +382,9 @@ export async function driverCompleteTruckTripAction(
     revalidatePath('/today');
     revalidatePath('/trips');
     revalidatePath(`/trips/${res.trip.trpId}`);
+    /* Where the driver actually submits from (their trip cards link here, not
+     * to `/trips/[id]`) — without it the page keeps rendering the trip as open. */
+    revalidatePath(`/today/truck/${res.trip.trpId}`);
     revalidatePath('/truck/finance');
     revalidatePath('/truck/pnl');
     revalidatePath('/truck/dashboard');

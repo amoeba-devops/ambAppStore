@@ -45,19 +45,52 @@ interface ExtraRow {
 }
 
 /**
- * Truck trip completion (P-E). Opened from the trip detail (not Home, per the
- * driver prototype). Captures the 7 metrics + a structured "other costs" list
- * ({name, amount} with +). Uses the driver-self action when mode='driver',
- * else the staff action.
+ * Figures already on the trip, used to seed the form. Not cosmetic: core's
+ * `completeTruckTrip` deletes and re-inserts the whole extra-cost list, so a
+ * completion submitted with an empty list wipes costs entered earlier (create
+ * form, or the driver's self-edit added in 6a7f99b). Seeding makes the form
+ * show what will actually be saved.
+ */
+export interface CompleteSectionInitial {
+  startedAt?: Date | string | null;
+  endedAt?: Date | string | null;
+  endOdometer?: number | null;
+  fuelLiters?: number | null;
+  fuelPrice?: number | null;
+  tollFee?: number | null;
+  extras?: { name: string; amount: number }[];
+}
+
+/** Date → `YYYY-MM-DDTHH:mm` in the *browser's* zone, which is what
+ * `<input type="datetime-local">` reads back. Only ever runs post-hydration
+ * (the form is collapsed on first paint), so no SSR timezone mismatch. */
+function toLocalInput(d: Date | string | null | undefined): string {
+  if (!d) return '';
+  const dt = new Date(d);
+  if (Number.isNaN(dt.getTime())) return '';
+  return new Date(dt.getTime() - dt.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
+const toInput = (n: number | null | undefined) => (n == null ? '' : String(n));
+
+/**
+ * Truck trip completion (P-E). Opened from a trip detail (not Home, per the
+ * driver prototype) — the shared `/trips/[id]` for staff and deep links, and
+ * the driver's own `/today/truck/[id]`, which is where the driver's trip cards
+ * actually point (FIX-260810). Captures the 7 metrics + a structured "other
+ * costs" list ({name, amount} with +). Uses the driver-self action when
+ * mode='driver', else the staff action.
  */
 export function TruckCompleteSection({
   tripId,
   mode,
   existingAttachments = [],
+  initial,
 }: {
   tripId: string;
   mode: 'driver' | 'staff';
   existingAttachments?: CompleteSectionAttachment[];
+  initial?: CompleteSectionInitial;
 }) {
   const t = useTranslations('screens.truckComplete');
   const tR = useTranslations('screens.truckTrips.form');
@@ -66,8 +99,17 @@ export function TruckCompleteSection({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [f, setF] = useState({ startTime: '', endTime: '', endOdo: '', fuelLiters: '', fuelPrice: '', toll: '' });
-  const [extras, setExtras] = useState<ExtraRow[]>([]);
+  const [f, setF] = useState(() => ({
+    startTime: toLocalInput(initial?.startedAt),
+    endTime: toLocalInput(initial?.endedAt),
+    endOdo: toInput(initial?.endOdometer),
+    fuelLiters: toInput(initial?.fuelLiters),
+    fuelPrice: toInput(initial?.fuelPrice),
+    toll: toInput(initial?.tollFee),
+  }));
+  const [extras, setExtras] = useState<ExtraRow[]>(() =>
+    (initial?.extras ?? []).map((e) => ({ name: e.name, amount: String(e.amount) })),
+  );
 
   /* Receipt buckets (REQ-20260709) — seeded with any attachments already on the
    * trip so completing reconciles the full set instead of dropping them. */

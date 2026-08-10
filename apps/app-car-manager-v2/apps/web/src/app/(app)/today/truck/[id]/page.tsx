@@ -8,9 +8,15 @@ import { requireFleet } from '@/lib/auth/fleet-access';
 import { getTrip } from '@/server/queries/trips.queries';
 import { getTripStopovers } from '@/server/queries/stopovers.queries';
 import { getDriverByUserId } from '@/server/queries/drivers.queries';
-import { getTripExtraCosts, getTruckTripBreakdown } from '@/server/queries/truck-trips.queries';
+import {
+  getTripExtraCosts,
+  getTripCostAttachmentsView,
+  getTruckTripBreakdown,
+} from '@/server/queries/truck-trips.queries';
 import { getLatestTruckReportForMonth } from '@/server/queries/truck-report.queries';
+import { completeInitialOf } from '@/lib/truck-complete-initial';
 import { PageHeader } from '@/components/layout/page-header';
+import { TruckCompleteSection } from '@/components/truck/truck-complete-section';
 import { StopUpdateList } from './_components/stop-update-list';
 
 function bcp47(locale: string): string {
@@ -43,10 +49,11 @@ export default async function DriverTruckTripPage({
   }
 
   const tripMonth = new Date(trip.trpScheduledAt).toISOString().slice(0, 7);
-  const [stopovers, extras, monthReport] = await Promise.all([
+  const [stopovers, extras, monthReport, costAttachments] = await Promise.all([
     getTripStopovers(user.entId, trip.trpId),
     getTripExtraCosts(user.entId, trip.trpId),
     getLatestTruckReportForMonth(user.entId, tripMonth),
+    getTripCostAttachmentsView(user.entId, trip.trpId),
   ]);
   const { breakdown } = await getTruckTripBreakdown(
     user.entId,
@@ -62,6 +69,12 @@ export default async function DriverTruckTripPage({
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
 
   const completed = trip.trpStatus === 'COMPLETED';
+  /* The reason this page exists (BUG-260810): the driver's trip cards point
+   * here, not at the shared `/trips/[id]`, so this is the only screen where a
+   * truck driver can close their own trip. Same gate core enforces in
+   * `completeTruckTrip` — ownership is already settled by the notFound above. */
+  const canComplete =
+    !completed && (trip.trpStatus === 'CONFIRMED' || trip.trpStatus === 'IN_PROGRESS');
   const editHref = `/today/truck/${trip.trpId}/edit`;
 
   /* What this trip actually filled. The costed figure above is the vehicle's
@@ -127,6 +140,20 @@ export default async function DriverTruckTripPage({
           </div>
         )}
 
+        {/* Closing the trip is the whole point of the screen for an open trip,
+          * so it leads — above the costs even on a phone. Collapsed it is a
+          * single button; expanded it becomes the completion form (the same one
+          * staff use), which is why it sits full-width rather than in the
+          * narrow cost rail. */}
+        {canComplete && (
+          <TruckCompleteSection
+            tripId={trip.trpId}
+            mode="driver"
+            existingAttachments={costAttachments}
+            initial={{ ...completeInitialOf(trip), extras }}
+          />
+        )}
+
         {/* On a phone the money comes first — it is what the driver opened the
           * screen for. On a wide screen the stop list becomes the main column
           * and the costs move to a side rail, matching the driver's Today. */}
@@ -144,7 +171,14 @@ export default async function DriverTruckTripPage({
               <CostRow key={i} label={e.name} value={vnd(e.amount)} />
             ))}
             <CostRow label={tDetail('total')} value={vnd(breakdown.totalCost)} strong />
-            <Button asChild variant="accent" size="lg" className="w-full mt-1">
+            {/* Secondary while the trip is open — the completion form above is
+              * the primary action and captures the same figures. */}
+            <Button
+              asChild
+              variant={canComplete ? 'secondary' : 'accent'}
+              size="lg"
+              className="w-full mt-1"
+            >
               <Link href={editHref}>{t('updateCosts')}</Link>
             </Button>
           </Card>

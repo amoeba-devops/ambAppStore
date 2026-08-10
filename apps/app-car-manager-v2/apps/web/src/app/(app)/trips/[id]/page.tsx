@@ -21,6 +21,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { hasFleet } from '@/lib/auth/fleet-access';
 import { driverIdentity } from '@/lib/format-person-option';
+import { completeInitialOf } from '@/lib/truck-complete-initial';
 import { listAuditForEntity } from '@/server/queries/audit.queries';
 import { listNonTruckDrivers, getDriverByUserId } from '@/server/queries/drivers.queries';
 import { getTrip } from '@/server/queries/trips.queries';
@@ -129,6 +130,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
         fixedTripCount={fixedTripCount}
         completed={completed}
         canComplete={canComplete}
+        completeInitial={completeInitialOf(trip)}
         mode={user.role === 'DRIVER' ? 'driver' : 'staff'}
         hideFinancials={user.role === 'DRIVER'}
         reportStatus={reportStatus}

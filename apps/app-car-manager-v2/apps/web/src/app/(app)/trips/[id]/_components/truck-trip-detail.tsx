@@ -8,7 +8,10 @@ import { PageHeader } from '@/components/layout/page-header';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
 import { FuelReconciliationBadge, type FuelBadgeMode } from '@/components/truck/fuel-reconciliation-badge';
 import type { TruckReportStatus } from '@/server/queries/truck-report.queries';
-import { TruckCompleteSection } from './truck-complete-section';
+import {
+  TruckCompleteSection,
+  type CompleteSectionInitial,
+} from '@/components/truck/truck-complete-section';
 
 function bcp47(locale: string): string {
   if (locale === 'vi') return 'vi-VN';
@@ -56,6 +59,9 @@ export interface TruckTripDetailProps {
   fixedTripCount?: number;
   completed: boolean;
   canComplete: boolean;
+  /** Figures already on the trip, seeded into the completion form. `extras`
+   * comes from `extras` above — this carries the scalars only. */
+  completeInitial?: Omit<CompleteSectionInitial, 'extras'>;
   /** Which completion action to call. */
   mode: 'driver' | 'staff';
   /** Back link + parent breadcrumb (manager opens from /truck/trips). */
@@ -251,7 +257,12 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
           <div className="max-w-3xl space-y-5">
             {infoBlock}
             {props.canComplete ? (
-              <TruckCompleteSection tripId={props.tripId} mode={props.mode} existingAttachments={attachments} />
+              <TruckCompleteSection
+                tripId={props.tripId}
+                mode={props.mode}
+                existingAttachments={attachments}
+                initial={{ ...props.completeInitial, extras: props.extras }}
+              />
             ) : (
               <div className="text-sm text-text-muted">{t('notCompletable')}</div>
             )}
