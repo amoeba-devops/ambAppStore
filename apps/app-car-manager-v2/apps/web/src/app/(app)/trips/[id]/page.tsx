@@ -131,6 +131,10 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
         completed={completed}
         canComplete={canComplete}
         completeInitial={completeInitialOf(trip)}
+        /* Their own truck log only. `/truck/trips/[id]/edit` is unreachable for
+         * a DRIVER (the truck layout bounces them to /today), so point at the
+         * driver-side edit route — the same one their own trip page uses. */
+        editHref={isAssignedDriver ? `/today/truck/${trip.trpId}/edit` : undefined}
         mode={user.role === 'DRIVER' ? 'driver' : 'staff'}
         hideFinancials={user.role === 'DRIVER'}
         reportStatus={reportStatus}

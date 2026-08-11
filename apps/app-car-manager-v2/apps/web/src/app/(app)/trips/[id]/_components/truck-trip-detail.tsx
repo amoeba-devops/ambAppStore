@@ -1,6 +1,7 @@
+import Link from 'next/link';
 import { getLocale, getTranslations } from 'next-intl/server';
-import { FileText, MapPin, Navigation, PackageCheck, PackageOpen } from 'lucide-react';
-import { Badge, Card } from '@car-v2/ui';
+import { Edit3, FileText, MapPin, Navigation, PackageCheck, PackageOpen } from 'lucide-react';
+import { Badge, Button, Card } from '@car-v2/ui';
 import type { TruckCostBreakdown } from '@car-v2/core/truck';
 import type { CarTripStopover, CarStopType } from '@car-v2/db/schema';
 import { MapPreview } from '@/components/inputs/map-preview';
@@ -67,8 +68,14 @@ export interface TruckTripDetailProps {
   /** Back link + parent breadcrumb (manager opens from /truck/trips). */
   backHref?: string;
   parentLabel?: string;
-  /** Header actions (manager: edit/delete). */
+  /** Header actions (manager: edit/delete). Desktop only — `PageHeader` never
+   * mirrors `actions` into the mobile app bar. */
   actions?: React.ReactNode;
+  /** Edit destination for the viewer, rendered inline in the body so it also
+   * reaches a phone (see the button below). A driver arriving from a
+   * notification link lands here rather than on their own `/today/truck/[id]`,
+   * so without this they had no way to correct the trip. */
+  editHref?: string;
   /** Drivers don't see revenue/profit — only the cost total. */
   hideFinancials?: boolean;
   /** Ordered stopovers (REQ-20260623). When empty, falls back to pickup→dropoff display. */
@@ -85,6 +92,7 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
   const t = await getTranslations('screens.truckTripDetail');
   const tCo = await getTranslations('company');
   const tNav = await getTranslations('nav');
+  const tToday = await getTranslations('today.truck');
   const locale = await getLocale();
   const loc = bcp47(locale);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
@@ -215,6 +223,20 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
       </Card>
     ) : null;
 
+  /* Edit affordance in the BODY, not the header: `PageHeader.actions` is
+   * desktop-only by design (Edit/Delete are meant to sit inline in the page's
+   * primary card on mobile), and this component asks for the 'brand' mobile bar,
+   * which drops the action slot entirely. A driver on a phone is exactly the
+   * viewer who needs this, so a header button would have been invisible to them. */
+  const editButton = props.editHref ? (
+    <Button asChild variant="secondary" size="lg" className="w-full sm:w-auto">
+      <Link href={props.editHref}>
+        <Edit3 className="h-4 w-4" />
+        {tToday('editTrip')}
+      </Link>
+    </Button>
+  ) : null;
+
   return (
     <>
       <PageHeader
@@ -230,7 +252,14 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
         mobileVariant="brand"
       />
 
-      <div className="flex-1 overflow-auto px-4 md:px-7 py-5 md:py-6 w-full space-y-5">
+      {/* `pb-24` clears the fixed BottomTabNav on mobile. The shell reserves
+        * that band on <main>, but this page's content makes <main> taller than
+        * the viewport, which pushes its padding off-screen — so scrolled to the
+        * end, the last element sits under the nav. Measured: the edit button
+        * below landed at y=788..828 with the nav covering 787..844, i.e. its
+        * lower half was untappable. Same per-page padding the driver's Today
+        * already applies for the same reason. */}
+      <div className="flex-1 overflow-auto px-4 md:px-7 pt-5 md:pt-6 pb-24 md:pb-6 w-full space-y-5">
         <div className="flex items-center gap-3 flex-wrap">
           <Badge tone={props.completed ? 'success' : 'warning'} size="md">
             {props.completed ? t('statusDone') : t('statusOpen')}
@@ -248,6 +277,9 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
             <div className="space-y-5 lg:col-span-2">{infoBlock}</div>
             <div className="space-y-5">
               {costCard}
+              {/* Right after the figures — "these are wrong" is the reason a
+                * driver opens a finished trip at all. */}
+              {editButton}
               {receiptsCard}
             </div>
           </div>
@@ -266,6 +298,9 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
             ) : (
               <div className="text-sm text-text-muted">{t('notCompletable')}</div>
             )}
+            {/* Secondary to completing — an open trip is normally closed from
+              * here, corrected only if something was typed wrong earlier. */}
+            {editButton}
             {receiptsCard}
           </div>
         )}
