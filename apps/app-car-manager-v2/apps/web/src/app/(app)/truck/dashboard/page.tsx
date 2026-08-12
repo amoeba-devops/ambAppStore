@@ -36,12 +36,26 @@ function bcp47(locale: string): string {
 const ym = (y: number, m: number): string =>
   new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 7);
 
+/** First instant of the month AFTER `month` ('YYYY-MM') — exclusive range end. */
+function monthEndExclusive(month: string): Date {
+  const start = new Date(`${month}-01T00:00:00Z`);
+  return new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
+}
+
 function lastNMonths(n: number): string[] {
   const now = new Date();
   const y = now.getUTCFullYear();
   const m = now.getUTCMonth();
   const out: string[] = [];
   for (let i = n - 1; i >= 0; i--) out.push(ym(y, m - i));
+  return out;
+}
+
+/** N months ending at `endYm` inclusive (oldest first). */
+function monthsEnding(n: number, endYm: string): string[] {
+  const d = new Date(`${endYm}-01T00:00:00Z`);
+  const out: string[] = [];
+  for (let i = n - 1; i >= 0; i--) out.push(ym(d.getUTCFullYear(), d.getUTCMonth() - i));
   return out;
 }
 
@@ -136,7 +150,13 @@ export default async function TruckDashboardPage({
   const monthYear = (m: string) =>
     new Date(`${m}-01T00:00:00Z`).toLocaleDateString(loc, { month: 'short', year: 'numeric' });
   const kpiMonths = isCustom ? monthsBetween(customFrom!, customTo!) : monthsForPreset(preset!);
-  const trendMonths = lastNMonths(6);
+  /* Trend chart shows the SELECTED period's months (it used to be pinned to
+   * the last 6 months from today, so YTD / a past custom range changed the
+   * KPIs but not the chart). A single-month selection would render one lonely
+   * bar, so it widens to the 6 months ENDING at that month — still anchored
+   * to the selection, never to "today". */
+  const trendMonths =
+    kpiMonths.length >= 2 ? kpiMonths : monthsEnding(6, kpiMonths[kpiMonths.length - 1]!);
   const periodLabel = isCustom
     ? `${monthYear(customFrom!)} – ${monthYear(customTo!)}`
     : tPeriod(preset!);
@@ -149,11 +169,20 @@ export default async function TruckDashboardPage({
   const vehicleId =
     region && sp.vehicle && regionTrucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
 
+  /* KPI comparison basis: YTD compares with the SAME months of last year
+   * ("so cùng kỳ năm trước" — comparing Jan..Jul against last Jun..Dec is
+   * meaningless); every other selection compares with the equal-length
+   * window immediately before it. */
+  const isYoy = preset === 'ytd';
+  const prevPeriodMonths = isYoy
+    ? kpiMonths.map((m) => `${Number(m.slice(0, 4)) - 1}${m.slice(4)}`)
+    : prevMonths(kpiMonths);
+
   const [kpiRows, prevRows, trendRows, allTrips, regionRowsRaw] = await Promise.all([
     computeTruckPnl(user, { months: kpiMonths, region, vehicleId }),
-    computeTruckPnl(user, { months: prevMonths(kpiMonths), region, vehicleId }),
+    computeTruckPnl(user, { months: prevPeriodMonths, region, vehicleId }),
     computeTruckPnl(user, { months: trendMonths, region, vehicleId }),
-    listTruckTrips(user.entId),
+    listTruckTrips(user.entId, { region, vehicleId }),
     /* Per-region breakdown over the selected period (always all regions, even
      * when filtered — so the breakdown stays a comparison). Report status is
      * only meaningful for a single-month period (a range can't map to one
@@ -197,7 +226,14 @@ export default async function TruckDashboardPage({
     { revenue: 0, variableCost: 0, fixedCost: 0, netProfit: 0, tripCount: 0, fuelCost: 0, tollFee: 0, extraTotal: 0, salary: 0, depreciation: 0, insurance: 0 },
   );
   const totalCost = acc.variableCost + acc.fixedCost;
-  const recent = allTrips.slice(0, 5);
+  /* Recent trips honour the same period window as the KPIs (kpiMonths is
+   * contiguous, so its first/last months bound the range); region/vehicle are
+   * already applied by the query. */
+  const recentStart = new Date(`${kpiMonths[0]}-01T00:00:00Z`);
+  const recentEnd = monthEndExclusive(kpiMonths[kpiMonths.length - 1]!);
+  const recent = allTrips
+    .filter((tr) => tr.scheduledAt >= recentStart && tr.scheduledAt < recentEnd)
+    .slice(0, 5);
 
   /* KPI delta vs the same number of months immediately before the selection. */
   const prevAcc = prevRows.reduce(
@@ -234,17 +270,23 @@ export default async function TruckDashboardPage({
     { key: 'profit', name: tPnl('netProfit'), color: 'hsl(var(--c7))' },
   ];
 
+  /* Every component of totalCost must appear as a slice — the donut's center
+   * shows totalCost, so a missing slice would make the center disagree with
+   * the visible parts. (salary now includes per-vehicle driver salary.) */
   const donut = [
     { name: tPnl('fuel'), value: acc.fuelCost, color: 'hsl(var(--c1))' },
     { name: tPnl('toll'), value: acc.tollFee, color: 'hsl(var(--c7))' },
     { name: tPnl('other'), value: acc.extraTotal, color: 'hsl(var(--c3))' },
     { name: tPnl('salary'), value: acc.salary, color: 'hsl(var(--c2))' },
     { name: tPnl('depreciation'), value: acc.depreciation, color: 'hsl(var(--c4))' },
-    { name: tPnl('insurance'), value: acc.insurance, color: 'hsl(var(--c6))' },
   ].filter((d) => d.value > 0);
 
   const statusOrder: CarVehicleStatus[] = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'RETIRED'];
-  const statusCounts = statusOrder.map((s) => ({ status: s, n: trucks.filter((v) => v.cvhStatus === s).length }));
+  /* Fleet status follows the region filter (the whole page is region-scoped
+   * when one is active); the vehicle filter is intentionally NOT applied —
+   * a one-truck status list carries no information. */
+  const statusTrucks = region ? regionTrucks : trucks;
+  const statusCounts = statusOrder.map((s) => ({ status: s, n: statusTrucks.filter((v) => v.cvhStatus === s).length }));
   const statusTone: Record<CarVehicleStatus, string> = {
     AVAILABLE: 'bg-success',
     IN_USE: 'bg-info',
@@ -333,7 +375,7 @@ export default async function TruckDashboardPage({
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Kpi label={t('kpiRevenue')} value={vnd(acc.revenue)} valueMobile={vndCompact(acc.revenue)} delta={billingDelta} vsPrev={t('vsPrev')} tooltip={t('tooltipRevenue')} />
+          <Kpi label={t('kpiRevenue')} value={vnd(acc.revenue)} valueMobile={vndCompact(acc.revenue)} delta={billingDelta} vsPrev={t(isYoy ? 'vsPrevYoy' : 'vsPrev')} tooltip={t('tooltipRevenue')} />
           <Kpi label={t('kpiCost')} value={vnd(totalCost)} valueMobile={vndCompact(totalCost)} subtitle={t('kpiCostSub')} tooltip={t('tooltipCost')} />
           <Kpi
             label={t('kpiProfit')}
@@ -341,7 +383,7 @@ export default async function TruckDashboardPage({
             valueMobile={vndCompact(acc.netProfit)}
             tone={acc.netProfit >= 0 ? 'success' : 'danger'}
             delta={profitDelta}
-            vsPrev={t('vsPrev')}
+            vsPrev={t(isYoy ? 'vsPrevYoy' : 'vsPrev')}
             tooltip={t('tooltipProfit')}
           />
           <Kpi label={t('kpiTrips')} value={acc.tripCount.toLocaleString(loc)} subtitle={t('kpiTripsSub')} />
@@ -395,8 +437,10 @@ export default async function TruckDashboardPage({
             sub={`${fixedPct}% · ${t('perMonth')}`}
             total={vnd(acc.fixedCost)}
             rows={[
+              /* Fixed cost = driver salary + depreciation (insurance dropped
+               * from the model 2026-07-21); rows sum to the total. */
+              [tPnl('salary'), vnd(acc.salary)],
               [tPnl('depreciation'), vnd(acc.depreciation)],
-              [tPnl('insurance'), vnd(acc.insurance)],
             ]}
           />
         </div>

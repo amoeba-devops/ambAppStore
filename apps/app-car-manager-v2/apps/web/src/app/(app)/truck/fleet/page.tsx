@@ -24,7 +24,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { getDriverNamesByIds } from '@/server/queries/drivers.queries';
-import { getTruckFixedCostsByMonth } from '@/server/queries/truck-fixed-cost.queries';
+import { parseAmount } from '@car-v2/core/truck';
 
 const STATUS_TONE: Record<CarVehicleStatus, 'success' | 'info' | 'warning' | 'neutral'> = {
   AVAILABLE: 'success',
@@ -61,8 +61,6 @@ export default async function TruckFleetPage({
   const regionLabel = (r: string | null) => (r && REGIONS.includes(r) ? tRegion(r) : (r ?? '—'));
 
   const allTrucks = await listVehicles(user.entId, 'active', 'TRUCK');
-  const month = new Date().toISOString().slice(0, 7);
-  const fixedMap = await getTruckFixedCostsByMonth(user.entId, month);
 
   const q = sp.q?.trim().toLowerCase() || undefined;
   const fRegion = sp.region && REGIONS.includes(sp.region) ? sp.region : undefined;
@@ -188,7 +186,11 @@ export default async function TruckFleetPage({
               </TableHeader>
               <TableBody>
                 {trucks.map((v, i) => {
-                  const deprec = fixedMap.get(v.cvhId)?.depreciation ?? 0;
+                  /* Depreciation source of truth is the vehicle's own
+                   * "Khấu hao/tháng" (cvh_depreciation) — same value the P&L
+                   * fallback uses. (Was reading the retired manual fixed-cost
+                   * table, so it always showed "—".) */
+                  const deprec = Math.round(parseAmount(v.cvhDepreciation));
                   return (
                     <ClickableTableRow key={v.cvhId} href={`/truck/fleet/${v.cvhId}/edit`}>
                       <TableCell className="tabular text-text-faint">{i + 1}</TableCell>
@@ -200,7 +202,10 @@ export default async function TruckFleetPage({
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-text-muted">{regionLabel(v.cvhRegion)}</TableCell>
                       <TableCell className="text-right tabular text-text-muted">
-                        {v.cvhFuelQuota ? `${v.cvhFuelQuota} L/100km` : '—'}
+                        <div>{v.cvhFuelQuota ? `${v.cvhFuelQuota} L/100km` : '—'}</div>
+                        {v.cvhFuelPrice ? (
+                          <div className="text-xs text-text-faint">{vnd(Math.round(Number(v.cvhFuelPrice)))}/L</div>
+                        ) : null}
                       </TableCell>
                       <TableCell className="text-right tabular text-text-muted">
                         {deprec > 0 ? vnd(deprec) : '—'}

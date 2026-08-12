@@ -5,6 +5,7 @@ import { ChevronLeft } from 'lucide-react';
 import { Button } from '@car-v2/ui';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { driverRosterRef } from '@/lib/driver-roster';
 import { getDriver, isTruckDriver } from '@/server/queries/drivers.queries';
 import { DriverForm } from '../../_components/driver-form';
 
@@ -20,6 +21,10 @@ export default async function EditDriverPage({ params }: { params: Promise<{ id:
   if (!driver) notFound();
   /* Truck drivers get the fixed-salary field; resolved from fleet membership. */
   const truckDriver = await isTruckDriver(user.entId, driver.drvUserId);
+  /* Same rule as the detail screen — the roster crumb must point at the list the
+   * driver is actually on, not always the car one. */
+  const roster = await driverRosterRef(user, driver.drvUserId);
+  const rosterLabel = roster.dept === 'TRUCK' ? tNav('truckDrivers') : tNav('drivers');
 
   return (
     <>
@@ -28,7 +33,7 @@ export default async function EditDriverPage({ params }: { params: Promise<{ id:
         subtitle={`${driver.drvLicenseNumber} · Class ${driver.drvLicenseClass}`}
         breadcrumbs={[
           { label: tCo('tenant') },
-          { label: tNav('drivers'), href: '/drivers' },
+          { label: rosterLabel, href: roster.href },
           { label: driver.user.usrName ?? id, href: `/drivers/${id}` },
           { label: 'Edit' },
         ]}

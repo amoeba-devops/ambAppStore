@@ -41,6 +41,17 @@ const dateStr = (v: unknown): string => {
   if (v instanceof Date) return v.toISOString().slice(0, 10);
   return String(v ?? '').trim();
 };
+/* Time-of-day cell → "HH:MM". xlsx `cellDates` turns a typed time into a
+ * UTC-based 1899 Date, so read UTC components to recover what the user typed;
+ * a plain text cell ("8:00") passes through unchanged. */
+const timeStr = (v: unknown): string | undefined => {
+  if (v == null || v === '') return undefined;
+  if (v instanceof Date) {
+    return `${String(v.getUTCHours()).padStart(2, '0')}:${String(v.getUTCMinutes()).padStart(2, '0')}`;
+  }
+  const s = String(v).trim();
+  return s === '' ? undefined : s;
+};
 
 /* System fields ← Excel columns. `kw` = header keywords for auto-mapping;
  * `def` = fallback column index (CR-Vietnam-Truck-v1 template order). */
@@ -50,17 +61,18 @@ const FIELDS = [
   { key: 'end_time', kw: ['kết thúc', 'giờ về', 'end'], def: 3 },
   { key: 'customer', kw: ['khách', 'customer'], def: 4 },
   { key: 'pickup', kw: ['lấy hàng', 'xuất phát', 'điểm đi', 'pickup'], def: 5 },
-  { key: 'dropoff', kw: ['giao hàng', 'điểm đến', 'dropoff'], def: 6 },
-  { key: 'odo_start', kw: ['đồng hồ đầu', 'km đầu', 'odo start', 'start odo'], def: 7 },
-  { key: 'odo_end', kw: ['đồng hồ cuối', 'km cuối', 'odo end', 'end odo'], def: 8 },
-  { key: 'fuel_liters', kw: ['lít', 'liters', 'nhiên liệu'], def: 9 },
-  { key: 'fuel_price', kw: ['đơn giá', 'giá', 'price'], def: 10 },
-  { key: 'toll', kw: ['cầu đường', 'toll'], def: 11 },
-  { key: 'other_amount', kw: ['phát sinh', 'khác', 'other'], def: 12 },
-  { key: 'other_note', kw: ['ghi chú', 'note'], def: 13 },
-  { key: 'bol', kw: ['bol', 'vận đơn'], def: 14 },
-  { key: 'cdf', kw: ['cdf'], def: 15 },
-  { key: 'revenue', kw: ['doanh thu', 'revenue'], def: 16 },
+  { key: 'stopover', kw: ['điểm ghé', 'ghé', 'waypoint', 'stopover'], def: 6 },
+  { key: 'dropoff', kw: ['giao hàng', 'điểm đến', 'dropoff'], def: 7 },
+  { key: 'odo_start', kw: ['đồng hồ đầu', 'km đầu', 'odo start', 'start odo'], def: 8 },
+  { key: 'odo_end', kw: ['đồng hồ cuối', 'km cuối', 'odo end', 'end odo'], def: 9 },
+  { key: 'fuel_liters', kw: ['lít', 'liters', 'nhiên liệu'], def: 10 },
+  { key: 'fuel_price', kw: ['đơn giá', 'giá', 'price'], def: 11 },
+  { key: 'toll', kw: ['cầu đường', 'toll'], def: 12 },
+  { key: 'other_amount', kw: ['chi phí khác', 'phát sinh', 'other'], def: 13 },
+  { key: 'other_note', kw: ['ghi chú', 'note'], def: 14 },
+  { key: 'bol', kw: ['bol', 'vận đơn'], def: 15 },
+  { key: 'cdf', kw: ['cdf'], def: 16 },
+  { key: 'revenue', kw: ['doanh thu', 'revenue'], def: 17 },
 ] as const;
 type FieldKey = (typeof FIELDS)[number]['key'];
 type Mapping = Record<FieldKey, number>;
@@ -132,10 +144,11 @@ export function TruckImportPanel({ vehicles, drivers }: { vehicles: OptionItem[]
       const date = dateStr(cell('date'));
       const r: TruckImportRow & { _valid: boolean } = {
         date,
-        start_time: str(cell('start_time')),
-        end_time: str(cell('end_time')),
+        start_time: timeStr(cell('start_time')),
+        end_time: timeStr(cell('end_time')),
         customer: str(cell('customer')),
         pickup: str(cell('pickup')),
+        stopover: str(cell('stopover')),
         dropoff: str(cell('dropoff')),
         odo_start: int(cell('odo_start')),
         odo_end: int(cell('odo_end')),

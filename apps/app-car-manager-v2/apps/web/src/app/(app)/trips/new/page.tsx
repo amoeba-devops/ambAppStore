@@ -8,6 +8,7 @@ import { db } from '@car-v2/db/client';
 import { carUsers } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { driverIdentity } from '@/lib/format-person-option';
 import { listNonTruckDrivers } from '@/server/queries/drivers.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { NewTripForm } from './new-trip-form';
@@ -27,7 +28,9 @@ export default async function NewTripPage() {
    * entId ở đây để khớp pattern. */
   const [drivers, vehicles, users] = await Promise.all([
     listNonTruckDrivers(user.entId),
-    listVehicles(user.entId),
+    /* 'CAR' — trước đây picker xe không lọc nên gán được xe tải cho chuyến điều
+     * xe khách, dù picker tài xế đã chặn tài xế tải. */
+    listVehicles(user.entId, 'active', 'CAR'),
     db
       .select({
         id: carUsers.usrId,
@@ -51,7 +54,7 @@ export default async function NewTripPage() {
     }));
   const driverOptions = drivers.map((d) => ({
     id: d.drvId,
-    label: `${d.user.usrName} — ${d.drvLicenseClass}`,
+    label: `${driverIdentity(d)} — ${d.drvLicenseClass}`,
   }));
   const vehicleOptions = vehicles
     .filter((v) => v.cvhStatus !== 'RETIRED' && v.cvhStatus !== 'MAINTENANCE')

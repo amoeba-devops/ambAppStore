@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { DeptThemeEffect } from './dept-theme-effect';
-import { clearlyDept, type FleetDept } from './nav-items';
+import { clearlyDept, driverDept, type FleetDept } from './nav-items';
 
 /* Persisted active workspace. Client-readable (not HttpOnly) because the
  * sticky resolver runs in the browser; it carries no security decision — the
@@ -63,16 +63,20 @@ export function DeptProvider({ role, fleetAccess, initialDept, children }: DeptP
   const pathname = usePathname() ?? '/';
   const hasCar = fleetAccess.includes('CAR');
   const hasTruck = fleetAccess.includes('TRUCK');
+  /* Hoisted to a PRIMITIVE on purpose. The effect below needs this value, and
+   * depending on `fleetAccess` directly would re-run it on every render that
+   * hands down a fresh array from the RSC payload. */
+  const lockedDept = driverDept(fleetAccess);
 
   const [dept, setDept] = useState<FleetDept>(() => {
-    if (role === 'DRIVER') return hasTruck ? 'TRUCK' : 'CAR';
+    if (role === 'DRIVER') return lockedDept;
     const pd = clearlyDept(pathname);
     return pd && canEnter(pd, hasCar, hasTruck) ? pd : initialDept;
   });
 
   useEffect(() => {
     if (role === 'DRIVER') {
-      const locked: FleetDept = hasTruck ? 'TRUCK' : 'CAR';
+      const locked = lockedDept;
       /* Persist the locked dept so app/layout.tsx can pre-render the right
        * accent on the next load. Drivers live on dept-neutral / car-classified
        * URLs (/today, /trips) that carry no truck marker in the path, so
@@ -92,7 +96,7 @@ export function DeptProvider({ role, fleetAccess, initialDept, children }: DeptP
       });
     }
     /* Neutral path → keep the current sticky workspace (no change). */
-  }, [pathname, role, hasCar, hasTruck]);
+  }, [pathname, role, hasCar, hasTruck, lockedDept]);
 
   return (
     <ActiveDeptContext.Provider value={dept}>

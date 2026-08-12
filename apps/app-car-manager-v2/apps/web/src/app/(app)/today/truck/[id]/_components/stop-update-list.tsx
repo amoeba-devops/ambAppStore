@@ -16,20 +16,15 @@ const STOP_ICONS: Record<CarStopType, React.ElementType> = {
   RETURN: Navigation,
 };
 
-const STOP_TYPE_LABEL: Record<CarStopType, string> = {
-  ORIGIN: 'Xuất phát',
-  PICKUP: 'Lấy hàng',
-  DELIVERY: 'Giao hàng',
-  WAYPOINT: 'Điểm ghé',
-  RETURN: 'Về bãi',
-};
-
 interface StopRowProps {
   tripId: string;
   stop: CarTripStopover;
 }
 
 function StopRow({ tripId, stop }: StopRowProps) {
+  const t = useTranslations('today.truck.stops');
+  /* Stop-type names live with the stop builder — one wording for the whole app. */
+  const tType = useTranslations('screens.truckTrips.form.stops.type');
   const tErr = useTranslations();
   const [pending, startTransition] = useTransition();
   const [expanded, setExpanded] = useState(false);
@@ -52,7 +47,7 @@ function StopRow({ tripId, stop }: StopRowProps) {
         toast.error(formatActionError(res.error, tErr));
         return;
       }
-      toast.success('Đã cập nhật điểm dừng');
+      toast.success(t('savedToast'));
       setExpanded(false);
     });
   };
@@ -77,7 +72,7 @@ function StopRow({ tripId, stop }: StopRowProps) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-text-muted">{STOP_TYPE_LABEL[stop.tstType]}</span>
+            <span className="text-xs font-medium text-text-muted">{tType(stop.tstType)}</span>
             {hasData && <Check className="h-3 w-3 text-success" />}
           </div>
           <div className="text-sm text-text truncate">{stop.tstAddress}</div>
@@ -90,21 +85,21 @@ function StopRow({ tripId, stop }: StopRowProps) {
       {expanded && (
         <div className="px-4 pb-4 pt-2 bg-surface border-t border-border space-y-3">
           <div>
-            <label className="text-xs text-text-muted">Odometer tại điểm (km)</label>
+            <label className="text-xs text-text-muted">{t('kmLabel')}</label>
             <Input
               type="number"
               value={km}
               onChange={(e) => setKm(e.target.value)}
-              placeholder="Nhập số km"
+              placeholder={t('kmPlaceholder')}
               className="mt-1"
             />
           </div>
           <div>
-            <label className="text-xs text-text-muted">Ghi chú</label>
+            <label className="text-xs text-text-muted">{t('notesLabel')}</label>
             <Input
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Tình trạng, chờ đợi, ..."
+              placeholder={t('notesPlaceholder')}
               className="mt-1"
             />
           </div>
@@ -117,7 +112,7 @@ function StopRow({ tripId, stop }: StopRowProps) {
               disabled={pending}
               className="flex-1"
             >
-              Hủy
+              {t('cancel')}
             </Button>
             <Button
               type="button"
@@ -128,7 +123,7 @@ function StopRow({ tripId, stop }: StopRowProps) {
               className="flex-1"
             >
               {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-              Cập nhật
+              {t('save')}
             </Button>
           </div>
         </div>
@@ -138,19 +133,16 @@ function StopRow({ tripId, stop }: StopRowProps) {
 }
 
 export function StopUpdateList({ tripId, stopovers }: { tripId: string; stopovers: CarTripStopover[] }) {
+  const t = useTranslations('today.truck.stops');
   const sorted = [...stopovers].sort((a, b) => a.tstOrder - b.tstOrder);
 
   if (sorted.length === 0) {
-    return (
-      <p className="text-sm text-text-muted py-8 text-center">
-        Chuyến này chưa có điểm dừng chi tiết.
-      </p>
-    );
+    return <p className="text-sm text-text-muted py-8 text-center">{t('empty')}</p>;
   }
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-text-muted mb-3">Tap vào điểm dừng để cập nhật km và thời gian đến.</p>
+      <p className="text-xs text-text-muted mb-3">{t('hint')}</p>
       {sorted.map((s) => (
         <StopRow key={s.tstId} tripId={tripId} stop={s} />
       ))}

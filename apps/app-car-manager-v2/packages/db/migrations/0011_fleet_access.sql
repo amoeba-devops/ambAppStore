@@ -10,19 +10,24 @@
 -- Manual migration (same pattern as 0009/0010): NOT in the drizzle journal.
 -- Dev syncs schema via `db:push`; staging/prod apply this file via psql. The
 -- backfill (steps 5–6) is idempotent — safe to re-run per environment.
+-- Idempotency guards added 2026-07-17 (CREATE TYPE/CONSTRAINT wrapped, TABLE/
+-- INDEX/COLUMN IF NOT EXISTS) so it re-runs cleanly on partially-migrated DBs.
 
 -- 1. Fleet department discriminator on vehicles -----------------------------
-CREATE TYPE "car_vehicle_type" AS ENUM ('CAR', 'TRUCK');
+DO $$ BEGIN
+  CREATE TYPE "car_vehicle_type" AS ENUM ('CAR', 'TRUCK');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
 ALTER TABLE "car_vehicles"
-  ADD COLUMN "cvh_type" "car_vehicle_type" NOT NULL DEFAULT 'CAR';
+  ADD COLUMN IF NOT EXISTS "cvh_type" "car_vehicle_type" NOT NULL DEFAULT 'CAR';
 --> statement-breakpoint
-CREATE INDEX "idx_car_vehicles_ent_type"
+CREATE INDEX IF NOT EXISTS "idx_car_vehicles_ent_type"
   ON "car_vehicles" USING btree ("ent_id", "cvh_type");
 --> statement-breakpoint
 
 -- 2. car_user_fleet_access — per-user department membership ------------------
-CREATE TABLE "car_user_fleet_access" (
+CREATE TABLE IF NOT EXISTS "car_user_fleet_access" (
   "ufa_id"           char(36) PRIMARY KEY NOT NULL,
   "ent_id"           char(36) NOT NULL,
   "usr_id"           char(36) NOT NULL,
@@ -33,23 +38,29 @@ CREATE TABLE "car_user_fleet_access" (
   "ufa_deleted_at"   timestamptz
 );
 --> statement-breakpoint
-ALTER TABLE "car_user_fleet_access"
-  ADD CONSTRAINT "car_user_fleet_access_usr_id_car_users_usr_id_fk"
-  FOREIGN KEY ("usr_id") REFERENCES "public"."car_users"("usr_id")
-  ON DELETE no action ON UPDATE no action;
+DO $$ BEGIN
+  ALTER TABLE "car_user_fleet_access"
+    ADD CONSTRAINT "car_user_fleet_access_usr_id_car_users_usr_id_fk"
+    FOREIGN KEY ("usr_id") REFERENCES "public"."car_users"("usr_id")
+    ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
-CREATE UNIQUE INDEX "uniq_car_user_fleet_access_ent_usr_type"
+CREATE UNIQUE INDEX IF NOT EXISTS "uniq_car_user_fleet_access_ent_usr_type"
   ON "car_user_fleet_access" USING btree ("ent_id", "usr_id", "ufa_vehicle_type")
   WHERE "ufa_deleted_at" IS NULL;
 --> statement-breakpoint
-CREATE INDEX "idx_car_user_fleet_access_ent_usr"
+CREATE INDEX IF NOT EXISTS "idx_car_user_fleet_access_ent_usr"
   ON "car_user_fleet_access" USING btree ("ent_id", "usr_id");
 --> statement-breakpoint
 
 -- 3. car_fleet_access_requests — manager request/approve queue ---------------
-CREATE TYPE "car_fleet_access_request_status" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+DO $$ BEGIN
+  CREATE TYPE "car_fleet_access_request_status" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
-CREATE TABLE "car_fleet_access_requests" (
+CREATE TABLE IF NOT EXISTS "car_fleet_access_requests" (
   "far_id"            char(36) PRIMARY KEY NOT NULL,
   "ent_id"            char(36) NOT NULL,
   "usr_id"            char(36) NOT NULL,
@@ -62,15 +73,18 @@ CREATE TABLE "car_fleet_access_requests" (
   "far_decision_note" text
 );
 --> statement-breakpoint
-ALTER TABLE "car_fleet_access_requests"
-  ADD CONSTRAINT "car_fleet_access_requests_usr_id_car_users_usr_id_fk"
-  FOREIGN KEY ("usr_id") REFERENCES "public"."car_users"("usr_id")
-  ON DELETE no action ON UPDATE no action;
+DO $$ BEGIN
+  ALTER TABLE "car_fleet_access_requests"
+    ADD CONSTRAINT "car_fleet_access_requests_usr_id_car_users_usr_id_fk"
+    FOREIGN KEY ("usr_id") REFERENCES "public"."car_users"("usr_id")
+    ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
-CREATE INDEX "idx_car_fleet_access_requests_ent_status"
+CREATE INDEX IF NOT EXISTS "idx_car_fleet_access_requests_ent_status"
   ON "car_fleet_access_requests" USING btree ("ent_id", "far_status");
 --> statement-breakpoint
-CREATE INDEX "idx_car_fleet_access_requests_ent_usr"
+CREATE INDEX IF NOT EXISTS "idx_car_fleet_access_requests_ent_usr"
   ON "car_fleet_access_requests" USING btree ("ent_id", "usr_id");
 --> statement-breakpoint
 

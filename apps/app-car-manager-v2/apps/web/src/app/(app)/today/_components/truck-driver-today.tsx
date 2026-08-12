@@ -87,8 +87,16 @@ export async function TruckDriverToday({
 
         {/* Desktop fills the width: to-complete is the main column (2/3), with
          * vehicles + completed as a secondary right rail (1/3). On mobile the
-         * grid collapses to a single stacked column. */}
-        <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+         * grid collapses to a single stacked column.
+         *
+         * `grid-cols-1` is load-bearing, not decoration: without it the mobile
+         * track is implicit `auto`, whose floor is the items' min-content. The
+         * trip card's route line (two `truncate` spans — nowrap, so their
+         * min-content is the full address) pushed that floor to ~430px inside a
+         * 358px phone column, clipping the status badge off the right edge.
+         * Tailwind's `grid-cols-1` emits `minmax(0, 1fr)`, and the `0` floor is
+         * what lets the card shrink and the addresses ellipsize instead. */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
           {/* To-complete — the driver's primary work, emphasized. */}
           <section className="space-y-2.5 lg:col-span-2">
             <SectionHead icon={<ClipboardList className="h-4 w-4 text-warning" />} title={t('toComplete')} count={todo.length} tone="warning" />

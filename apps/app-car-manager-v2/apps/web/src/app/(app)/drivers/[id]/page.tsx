@@ -15,6 +15,7 @@ import {
 import type { CarDriverStatus } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { driverRosterRef } from '@/lib/driver-roster';
 import { getDriver } from '@/server/queries/drivers.queries';
 import { listTripsForDriver } from '@/server/queries/trips.queries';
 import { TripHistorySection } from '../../trips/_components/trip-history-section';
@@ -52,6 +53,10 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
     (t) => new Date(t.trpScheduledAt).getTime() > Date.now() - 30 * 24 * 60 * 60 * 1000,
   ).length;
   const expiryDays = daysUntil(driver.drvLicenseExpiry);
+  /* This screen is shared by both workspaces, so "back" has to follow the
+   * driver's own department — a truck driver is listed on /truck/drivers only. */
+  const roster = await driverRosterRef(user, driver.drvUserId);
+  const rosterLabel = roster.dept === 'TRUCK' ? tNav('truckDrivers') : tNav('drivers');
 
   return (
     <>
@@ -60,14 +65,14 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
         subtitle={`${tList('classLabel', { class: driver.drvLicenseClass })} · ${driver.drvLicenseNumber}`}
         breadcrumbs={[
           { label: tCo('tenant') },
-          { label: tNav('drivers'), href: '/drivers' },
+          { label: rosterLabel, href: roster.href },
           { label: driver.user.usrName ?? id },
         ]}
-        back="/drivers"
+        back={roster.href}
         actions={
           <>
             <Button variant="ghost" size="md" asChild>
-              <Link href="/drivers"><ChevronLeft />{tA('back')}</Link>
+              <Link href={roster.href}><ChevronLeft />{tA('back')}</Link>
             </Button>
             <Button variant="secondary" size="md" asChild>
               <Link href={`/drivers/${id}/edit`}><Edit3 />{tA('edit')}</Link>
@@ -116,6 +121,7 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
                           driverName={driver.user.usrName ?? driver.drvLicenseNumber}
                           variant="ghost"
                           size="sm"
+                          redirectTo={roster.href}
                         />
                       </div>
                     </div>

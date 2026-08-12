@@ -5,6 +5,7 @@ import { db } from '@car-v2/db/client';
 import { carUsers } from '@car-v2/db/schema';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { PageHeader } from '@/components/layout/page-header';
+import { getUserDepts } from '@/server/queries/users.queries';
 import { EditMemberForm } from './_components/edit-member-form';
 
 /**
@@ -37,6 +38,10 @@ export default async function EditUserPage({
   }
 
   const t = await getTranslations('screens.editUser');
+  /* Departments are the ONLY place the two apps diverge for a user (the app role
+   * itself is a single global value), so they belong on this form — until now the
+   * only way to set them was /settings/fleet-access, which is hidden from the menu. */
+  const depts = await getUserDepts(actor.entId, row.usrId);
 
   return (
     <>
@@ -55,6 +60,7 @@ export default async function EditUserPage({
           email={row.usrEmail}
           amaRoleSnapshot={row.usrAmaRoleSnapshot}
           localRole={row.usrLocalRole}
+          depts={depts}
           blocked={row.usrDeletedAt !== null}
           isSelf={row.usrId === actor.userId}
         />

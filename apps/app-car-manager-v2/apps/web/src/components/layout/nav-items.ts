@@ -12,6 +12,7 @@ import {
   Settings as SettingsIcon,
   Truck,
   UserCog,
+  Wrench,
   User as UserIcon,
   type LucideIcon,
 } from 'lucide-react';
@@ -29,6 +30,7 @@ export type NavKey =
   | 'costs'
   | 'vehicles'
   | 'drivers'
+  | 'maintenance'
   | 'users'
   | 'settings'
   | 'fleetAccess'
@@ -135,6 +137,14 @@ export const NAV_ITEMS: NavItem[] = [
   /* Operating-cost ledger (Module 2). STAFF only — drivers see their own
    * history at `/expenses` via `expensesNew` instead. */
   { key: 'costs',       href: '/costs',         Icon: Receipt,         group: 'workspace', roles: STAFF, fleet: 'CAR'  },
+  /* Cảnh báo bảo dưỡng (Module 2, REQ-20260519). CAR-scoped — the evaluator
+   * scans cars only and each alert deep-links to /vehicles/:id.
+   *
+   * Deliberately LAST among the car workspace items: this is the 6th, which
+   * tips BottomTabNav's CAR STAFF layout past its 4 flat slots into the "Thêm"
+   * overflow sheet. Ordering it here means the sheet swallows `costs` +
+   * `maintenance` (the two least-frequent) instead of displacing `drivers`. */
+  { key: 'maintenance', href: '/maintenance',   Icon: Wrench,          group: 'workspace', roles: STAFF, fleet: 'CAR'  },
   /* Admin-only tenant tools. */
   { key: 'users',       href: '/users',         Icon: UserCog,         group: 'admin',     roles: ADMIN  },
   /* Fleet department access — grant/revoke CAR/TRUCK + approve manager requests.
@@ -166,13 +176,37 @@ export function deptForPath(pathname: string): FleetDept {
   return pathname.startsWith('/truck') ? 'TRUCK' : 'CAR';
 }
 
+/**
+ * The single department a DRIVER operates in.
+ *
+ * A driver is meant to hold exactly one membership, and every write path already
+ * enforces that: `createDriverAction` revokes the other department,
+ * `grantFleetAccessAction` refuses a second one for a DRIVER, the /users edit
+ * form single-selects, and the fleet audit asserts it. So this function only
+ * decides what happens when the data says otherwise — and it exists so that
+ * decision is made in ONE place.
+ *
+ * CAR wins the tie, which is not arbitrary: middleware's manager bounce,
+ * RootRedirect and `landingPathFor` all resolve CAR-first. Anything else here
+ * produces a split-brain session — `/today` rendering the car view wrapped in
+ * orange truck chrome, with the car-only "Chi phí" tab filtered out from under
+ * the driver. "Tài xế xe con bị chuyển hướng đến ứng dụng xe tải" was exactly
+ * that disagreement, and it survived the first round of fixes because four
+ * separate resolvers each carried their own copy of the rule.
+ *
+ * No membership at all → CAR, the neutral default.
+ */
+export function driverDept(fleetAccess: readonly FleetDept[]): FleetDept {
+  return fleetAccess.includes('TRUCK') && !fleetAccess.includes('CAR') ? 'TRUCK' : 'CAR';
+}
+
 /* Car-workspace URL roots. These pages belong unambiguously to the CAR
  * department, so landing on one switches the active workspace to CAR. Every
  * other non-`/truck` path (drivers/users/settings/audit/fleet-access/profile)
  * is department-NEUTRAL: it must NOT change the active workspace, otherwise the
  * sidebar "jumps" back to car the moment a truck-workspace user opens a shared
  * admin page (BUG-20260622). */
-const CAR_PREFIXES = ['/dashboard', '/trips', '/vehicles', '/costs', '/expenses'] as const;
+const CAR_PREFIXES = ['/dashboard', '/trips', '/vehicles', '/costs', '/expenses', '/maintenance'] as const;
 
 /**
  * The department a path UNAMBIGUOUSLY belongs to, or `null` when the path is

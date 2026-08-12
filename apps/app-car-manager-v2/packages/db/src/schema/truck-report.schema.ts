@@ -1,5 +1,25 @@
-import { pgTable, char, varchar, timestamp, index, decimal } from 'drizzle-orm/pg-core';
+import { pgTable, char, varchar, timestamp, index, decimal, jsonb } from 'drizzle-orm/pg-core';
 import { vehicleTypeEnum } from './vehicles.schema';
+
+/**
+ * One vehicle's frozen monthly fuel reconciliation inside a report
+ * (`trr_vehicle_fuel`, REQ-20260726). All amounts are plain numbers (VND / L /
+ * km) — JSON, so no DECIMAL string parsing.
+ */
+export interface TruckReportVehicleFuel {
+  /** cvh_id */
+  vehicleId: string;
+  /** Σ (litres × unit price) of that vehicle's invoices for the month (VND). */
+  money: number;
+  /** Σ litres filled. */
+  liters: number;
+  /** Σ km of the vehicle's completed trips at generation time. */
+  km: number;
+  /** money ÷ km — what each trip km is charged. */
+  costPerKm: number;
+  /** Mean invoice unit price (đ/L) — shown as the trip's "Đơn giá". */
+  avgPrice: number;
+}
 
 /**
  * car_truck_reports — metadata for generated monthly truck reports
@@ -38,6 +58,13 @@ export const carTruckReports = pgTable(
     trrConsumption: decimal('trr_consumption', { precision: 10, scale: 6 }),
     trrTotalLiters: decimal('trr_total_liters', { precision: 12, scale: 2 }),
     trrTotalKm: decimal('trr_total_km', { precision: 12, scale: 2 }),
+    /* PER-VEHICLE fuel reconciliation frozen at generation time (0024,
+     * REQ-20260726) — supersedes the region-level columns above, which stay for
+     * reports generated before this change. Each entry is one vehicle in the
+     * report's scope: its own monthly fuel spend + km, and the resulting
+     * cost/km each trip is charged (`phí chuyến = km chuyến × costPerKm`).
+     * Empty array = scope had no per-vehicle invoices to reconcile. */
+    trrVehicleFuel: jsonb('trr_vehicle_fuel').$type<TruckReportVehicleFuel[]>(),
     trrCreatedBy: char('trr_created_by', { length: 36 }),
     trrCreatedAt: timestamp('trr_created_at', { withTimezone: true }).defaultNow().notNull(),
     trrDeletedAt: timestamp('trr_deleted_at', { withTimezone: true }),

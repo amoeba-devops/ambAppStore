@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { driverIdentity } from '@/lib/format-person-option';
 import { listFleetDrivers } from '@/server/queries/drivers.queries';
 import { TruckVehicleForm } from '../_components/truck-vehicle-form';
 
@@ -9,7 +10,7 @@ export default async function NewTruckPage() {
   const user = await getCurrentUser();
   const drivers = (await listFleetDrivers(user.entId, 'TRUCK')).map((d) => ({
     id: d.drvId,
-    name: d.user.usrName ?? d.user.usrEmail ?? d.drvId,
+    name: driverIdentity(d),
   }));
 
   return (

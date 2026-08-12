@@ -8,6 +8,8 @@ import { db } from '@car-v2/db/client';
 import { carTripStopovers, carUsers } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { hasFleet } from '@/lib/auth/fleet-access';
+import { driverIdentity } from '@/lib/format-person-option';
 import { listNonTruckDrivers } from '@/server/queries/drivers.queries';
 import { getTrip } from '@/server/queries/trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
@@ -26,6 +28,14 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
   const trip = await getTrip(user.entId, id);
   if (!trip) notFound();
 
+  /* Truck trip-logs edit through their own form — this one offers car dispatch
+   * fields only (passengers, CAR vehicles, non-truck drivers) and its back
+   * button returns to `/trips`, which never lists a LOG trip. Reachable by URL
+   * only, but the car form would silently rewrite a truck trip. */
+  if (trip.trpKind === 'LOG') {
+    redirect((await hasFleet(user, 'TRUCK')) ? `/truck/trips/${id}/edit` : `/trips/${id}`);
+  }
+
   /* Edit window: Staff (Admin/Manager) allowed unless COMPLETED. */
   if (trip.trpStatus === 'COMPLETED') {
     redirect(`/trips/${id}`);
@@ -42,7 +52,7 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
       .from(carUsers)
       .where(and(eq(carUsers.entId, user.entId), isNull(carUsers.usrDeletedAt))),
     listNonTruckDrivers(user.entId),
-    listVehicles(user.entId),
+    listVehicles(user.entId, 'active', 'CAR'),
     db.query.carTripStopovers.findMany({
       where: eq(carTripStopovers.tstTripId, id),
       orderBy: (t, { asc }) => asc(t.tstOrder),
@@ -60,7 +70,7 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
     }));
   const driverOptions = drivers.map((d) => ({
     id: d.drvId,
-    label: `${d.user.usrName} — ${d.drvLicenseClass}`,
+    label: `${driverIdentity(d)} — ${d.drvLicenseClass}`,
   }));
   const vehicleOptions = vehicles
     .filter((v) => v.cvhStatus !== 'RETIRED' && v.cvhStatus !== 'MAINTENANCE')

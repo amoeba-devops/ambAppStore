@@ -16,11 +16,17 @@ export interface MaintenanceAlertListItem {
   acknowledgedByName: string | null;
 }
 
+/* Maintenance Alert is a car-workspace module (PRD Module 2 — oil interval +
+ * đăng kiểm), and the evaluator only scans CAR vehicles. Joining on the type
+ * keeps any legacy alert raised against a truck out of the car screens, so the
+ * list can never disagree with what the cron now produces. */
+const CAR_ONLY = eq(carVehicles.cvhType, 'CAR');
+
 export async function listMaintenanceAlerts(
   entId: string,
   query: ListMaintenanceAlertsQuery,
 ): Promise<MaintenanceAlertListItem[]> {
-  const filters: SQL[] = [eq(carMaintenanceAlerts.entId, entId)];
+  const filters: SQL[] = [eq(carMaintenanceAlerts.entId, entId), CAR_ONLY];
 
   if (query.status === 'UNRESOLVED') {
     filters.push(isNull(carMaintenanceAlerts.malResolvedAt));
@@ -40,7 +46,9 @@ export async function listMaintenanceAlerts(
       acknowledgedByName: carUsers.usrName,
     })
     .from(carMaintenanceAlerts)
-    .leftJoin(carVehicles, eq(carMaintenanceAlerts.malVehicleId, carVehicles.cvhId))
+    /* inner: mal_vehicle_id is NOT NULL with an FK, so no row is lost — and the
+     * CAR_ONLY predicate needs the join to be non-nullable to mean anything. */
+    .innerJoin(carVehicles, eq(carMaintenanceAlerts.malVehicleId, carVehicles.cvhId))
     .leftJoin(carUsers, eq(carMaintenanceAlerts.malAcknowledgedBy, carUsers.usrId))
     .where(and(...filters))
     .orderBy(desc(carMaintenanceAlerts.malCreatedAt))
@@ -54,7 +62,15 @@ export async function listMaintenanceAlerts(
   }));
 }
 
-/** Critical-only unresolved alerts — used by the sticky OilOverdueBanner. */
+/** Critical alerts still nagging — feeds the sticky OilOverdueBanner.
+ *
+ * Excludes ACKNOWLEDGED as well as resolved. Nothing currently resolves an OIL
+ * alert automatically (the `resolveOpenOilAlerts` hook the service docstring
+ * refers to was never written), so filtering on `malResolvedAt` alone would pin
+ * a red bar to every page forever — "Đã xử lý" in the list would dim the row
+ * and change nothing. Acknowledging is the user saying they have seen it, which
+ * is exactly when the banner should stop. The row stays in the list under the
+ * "Chưa đóng" filter until it is genuinely resolved. */
 export async function getCriticalUnresolvedAlerts(
   entId: string,
 ): Promise<MaintenanceAlertListItem[]> {
@@ -66,12 +82,14 @@ export async function getCriticalUnresolvedAlerts(
       acknowledgedByName: carUsers.usrName,
     })
     .from(carMaintenanceAlerts)
-    .leftJoin(carVehicles, eq(carMaintenanceAlerts.malVehicleId, carVehicles.cvhId))
+    .innerJoin(carVehicles, eq(carMaintenanceAlerts.malVehicleId, carVehicles.cvhId))
     .leftJoin(carUsers, eq(carMaintenanceAlerts.malAcknowledgedBy, carUsers.usrId))
     .where(
       and(
         eq(carMaintenanceAlerts.entId, entId),
+        CAR_ONLY,
         isNull(carMaintenanceAlerts.malResolvedAt),
+        isNull(carMaintenanceAlerts.malAcknowledgedAt),
         eq(carMaintenanceAlerts.malSeverity, 'CRITICAL'),
       ),
     )

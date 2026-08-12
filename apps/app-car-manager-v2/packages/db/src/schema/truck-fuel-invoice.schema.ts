@@ -20,6 +20,11 @@ export const carTruckFuelInvoices = pgTable(
      * Region-scoped month close reconciles fuel from this region's invoices ÷
      * this region's trip km. NULL = unassigned / whole-fleet (legacy). */
     tfiRegion: varchar('tfi_region', { length: 40 }),
+    /* Vehicle the fuel was filled for (REQ-20260726). Drives the per-trip fuel
+     * allocation: a vehicle's monthly spend is spread over ITS trips by km.
+     * NULL = legacy region-level invoice (pre-2026-07-26), still reconciled the
+     * old way through the region snapshot. */
+    tfiVehicleId: char('tfi_vehicle_id', { length: 36 }),
     /* 'YYYY-MM' the invoice belongs to (derived from tfi_date on insert). */
     tfiMonth: varchar('tfi_month', { length: 7 }).notNull(),
     tfiDate: date('tfi_date').notNull(),
@@ -35,6 +40,12 @@ export const carTruckFuelInvoices = pgTable(
       t.entId,
       t.tfiVehicleType,
       t.tfiMonth,
+    ),
+    /* Per-vehicle monthly rollup (REQ-20260726 fuel allocation). */
+    idxEntMonthVehicle: index('idx_car_truck_fuel_invoices_ent_month_vehicle').on(
+      t.entId,
+      t.tfiMonth,
+      t.tfiVehicleId,
     ),
   }),
 );

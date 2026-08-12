@@ -1,7 +1,8 @@
 import 'server-only';
-import { and, desc, eq, gt, inArray, isNotNull, isNull } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, or } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTruckReports, carUsers, type TruckReportType } from '@car-v2/db/schema';
+import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { getTruckFixedCostsLastUpdated, getTruckTripsMaxUpdatedAt } from './truck-finance.queries';
 
 export interface TruckReportRow {
@@ -17,9 +18,11 @@ export interface TruckReportRow {
 }
 
 /**
- * Per month (YYYY-MM), the distinct operating regions that have ≥1 live report.
- * Drives the month picker's "Đã xuất X/3 khu vực" badge. Legacy whole-fleet rows
- * (trr_region NULL) are excluded — they can't be attributed to a region.
+ * Per month (YYYY-MM), the distinct operating regions covered by ≥1 live report.
+ * Drives the month picker's "Đã xuất X/3 khu vực" badge. A consolidated
+ * "Tất cả khu vực" report (trr_region NULL) covers EVERY region, so it counts
+ * toward all of them (BUG-260721: a month reported only via a consolidated
+ * report showed the wrong "X/3" — it undercounted the covered regions).
  */
 export async function getTruckExportedRegionsByMonth(
   entId: string,
@@ -31,13 +34,14 @@ export async function getTruckExportedRegionsByMonth(
       and(
         eq(carTruckReports.entId, entId),
         isNull(carTruckReports.trrDeletedAt),
-        isNotNull(carTruckReports.trrRegion),
       ),
     );
   const sets: Record<string, Set<string>> = {};
   for (const r of rows) {
-    if (!r.region) continue;
-    (sets[r.month] ??= new Set()).add(r.region);
+    const set = (sets[r.month] ??= new Set());
+    if (r.region) set.add(r.region);
+    /* Consolidated report → covers all operating regions. */
+    else for (const code of TRUCK_REGIONS) set.add(code);
   }
   const out: Record<string, string[]> = {};
   for (const [m, set] of Object.entries(sets)) out[m] = [...set];
@@ -71,7 +75,13 @@ export async function listTruckReports(
 }
 
 /** Latest report for a (month, region) — drives the finance/P&L status badge.
- * Returns the newest report's creation timestamp regardless of report type. */
+ * Returns the newest report's creation timestamp regardless of report type.
+ *
+ * A region is "reported" when EITHER a report scoped to that region OR a
+ * consolidated "Tất cả khu vực" report (trr_region NULL) exists for the month —
+ * the consolidated report covers every region, so without the NULL match the
+ * dashboard's per-region status showed "Chưa lập báo cáo" for regions only
+ * covered by an all-regions report (BUG-260721). */
 export async function getLatestTruckReportForMonth(
   entId: string,
   month: string,
@@ -82,7 +92,13 @@ export async function getLatestTruckReportForMonth(
     eq(carTruckReports.trrMonth, month),
     isNull(carTruckReports.trrDeletedAt),
   ];
-  if (region) conds.push(eq(carTruckReports.trrRegion, region));
+  if (region) {
+    const regionCond = or(
+      eq(carTruckReports.trrRegion, region),
+      isNull(carTruckReports.trrRegion),
+    );
+    if (regionCond) conds.push(regionCond);
+  }
   const [row] = await db
     .select({ createdAt: carTruckReports.trrCreatedAt, name: carTruckReports.trrName })
     .from(carTruckReports)
@@ -101,6 +117,11 @@ export interface TruckReportStatus {
    * (PLAN-20260707: no lock, so this is the only staleness signal). Always
    * false when reportedAt is null. */
   stale: boolean;
+  /** Per-record variant: false when the record this status is shown next to
+   * (a trip) was created/edited AFTER the report ran — it is simply not in that
+   * report, so calling it "Đã lập BC" is wrong (BUG-260730 case 1). True when
+   * no record timestamp was supplied. */
+  covered: boolean;
 }
 
 /**
@@ -113,9 +134,12 @@ export async function getTruckReportStatus(
   entId: string,
   month: string,
   region: string | null = null,
+  /** The record's own last change — pass a trip's updated_at on per-trip screens
+   * so the badge can say "not in that report" instead of "reported". */
+  changedAt?: Date | null,
 ): Promise<TruckReportStatus> {
   const latest = await getLatestTruckReportForMonth(entId, month, region);
-  if (!latest) return { reportedAt: null, stale: false };
+  if (!latest) return { reportedAt: null, stale: false, covered: false };
   const [tripsUpdatedAt, fixedUpdatedAt] = await Promise.all([
     getTruckTripsMaxUpdatedAt(entId, month, region),
     getTruckFixedCostsLastUpdated(entId, month),
@@ -123,31 +147,8 @@ export async function getTruckReportStatus(
   const stale =
     (tripsUpdatedAt != null && tripsUpdatedAt > latest.createdAt) ||
     (fixedUpdatedAt != null && fixedUpdatedAt > latest.createdAt);
-  return { reportedAt: latest.createdAt, stale };
-}
-
-/** Latest report dates for multiple months — drives the P&L banner. */
-export async function getLatestTruckReportDates(
-  entId: string,
-  months: string[],
-): Promise<Map<string, Date>> {
-  if (months.length === 0) return new Map();
-  const rows = await db
-    .select({ month: carTruckReports.trrMonth, createdAt: carTruckReports.trrCreatedAt })
-    .from(carTruckReports)
-    .where(
-      and(
-        eq(carTruckReports.entId, entId),
-        inArray(carTruckReports.trrMonth, months),
-        isNull(carTruckReports.trrDeletedAt),
-      ),
-    )
-    .orderBy(desc(carTruckReports.trrCreatedAt));
-  const out = new Map<string, Date>();
-  for (const r of rows) {
-    if (!out.has(r.month)) out.set(r.month, r.createdAt);
-  }
-  return out;
+  const covered = changedAt == null || latest.createdAt >= changedAt;
+  return { reportedAt: latest.createdAt, stale, covered };
 }
 
 /** One report (ent-scoped) for the download handler. */

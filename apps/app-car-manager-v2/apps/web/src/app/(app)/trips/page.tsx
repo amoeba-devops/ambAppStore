@@ -19,9 +19,11 @@ import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { ExportDropdown } from '@/components/export-dropdown';
 import type { CarTripStatus } from '@car-v2/db/schema';
 import { Fab } from '@/components/layout/fab';
+import { driverDept } from '@/components/layout/nav-items';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { resolveFleetAccess } from '@/lib/auth/fleet-access';
+import { driverIdentity } from '@/lib/format-person-option';
 import { getDriverByUserId, listNonTruckDrivers } from '@/server/queries/drivers.queries';
 import { getTrip, listTrips, listTripsForBoard, listTripsForDriver, type TripListItem, type TripDeletedFilter } from '@/server/queries/trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
@@ -90,8 +92,11 @@ export default async function TripsListPage({ searchParams }: PageProps) {
     const driverTrips = driver
       ? await listTripsForDriver(user.entId, driver.drvId, 100)
       : [];
-    /* Truck drivers get the to-complete/completed list (no dispatch statuses). */
-    const isTruckDriver = (await resolveFleetAccess(user)).includes('TRUCK');
+    /* Truck drivers get the to-complete/completed list (no dispatch statuses).
+     * `driverDept`, not a bare `.includes('TRUCK')` — this screen and /today are
+     * the same driver's two tabs, so resolving the tie differently here showed
+     * one of them the truck list and the other the dispatch list. */
+    const isTruckDriver = driverDept(await resolveFleetAccess(user)) === 'TRUCK';
     return (
       <>
         <PageHeader
@@ -145,6 +150,9 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         q: searchQ,
         dateRange,
         deletedFilter,
+        /* Kanban điều xe: cột = trạng thái của state machine DISPATCH. Chuyến
+         * LOG auto-CONFIRMED nên trước đây dồn hết vào 1 cột ở đây. */
+        kind: 'DISPATCH',
       }),
       peekPromise,
     ]);
@@ -163,6 +171,7 @@ export default async function TripsListPage({ searchParams }: PageProps) {
         dateRange,
         page,
         deletedFilter,
+        kind: 'DISPATCH',
       }),
       peekPromise,
     ]);
@@ -182,11 +191,11 @@ export default async function TripsListPage({ searchParams }: PageProps) {
     if (user.role === 'ADMIN' || user.role === 'MANAGER') {
       const [drivers, vehicles] = await Promise.all([
         listNonTruckDrivers(user.entId),
-        listVehicles(user.entId),
+        listVehicles(user.entId, 'active', 'CAR'),
       ]);
       peekDrivers = drivers.map((d) => ({
         id: d.drvId,
-        label: `${d.user.usrName} — ${d.drvLicenseNumber} (${d.drvLicenseClass})`,
+        label: `${driverIdentity(d)} — ${d.drvLicenseNumber} (${d.drvLicenseClass})`,
       }));
       peekVehicles = vehicles.map((v) => ({
         id: v.cvhId,

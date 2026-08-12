@@ -319,6 +319,9 @@ export async function fetchTripsForCalendarAction(
       userId: actor.userId,
       rangeStart: new Date(data.range_start),
       rangeEnd: new Date(data.range_end),
+      /* MUST match the initial server render in /dashboard — this is the
+       * re-fetch the calendar fires when the user moves anchor/view. */
+      kind: 'DISPATCH',
     });
   });
 }

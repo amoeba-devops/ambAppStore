@@ -5,11 +5,11 @@ import {
   carTripExtraCosts,
   carTruckFixedCosts,
   carDrivers,
-  carUserFleetAccess,
   carVehicles,
 } from '@car-v2/db/schema';
 import type { FleetActor } from '../types';
-import { parseAmount, truckTripFuelCost } from './truck-cost';
+import { parseAmount } from './truck-cost';
+import { loadTruckFixedMonthly } from './truck-fixed-monthly';
 import { loadTruckRegionSnapshots } from './truck-fuel-snapshot';
 
 /**
@@ -32,12 +32,21 @@ export interface TruckPnlRow {
   salary: number;
   depreciation: number;
   insurance: number;
-  /** Sum of truck drivers' fixed monthly salary (fleet-level; 0 when filtered
-   * to a single vehicle since driver salary isn't per-vehicle). */
+  /** @deprecated Always 0 since 2026-07-21. Driver salary now folds into
+   * `salary` (per-vehicle default-driver salary) in every view; kept only for
+   * the stored P&L row shape. */
   driverSalary: number;
   fixedCost: number;
   tripCount: number;
   netProfit: number;
+  /** Per-fuel-mode trip counts within this row (REQ-20260724) → drives the
+   * aggregate fuel badge (all-same mode → that badge; blend → "Hỗn hợp"):
+   *  - averaged: fuel = frozen month-end reconciliation (invoices)
+   *  - live: fuel = km × (chi phí nhiên liệu tháng của xe ÷ km tháng), tạm tính
+   *  - unset: vehicle has no quota/price → fuel counted as 0 */
+  fuelAveragedTripCount: number;
+  fuelLiveTripCount: number;
+  fuelUnsetTripCount: number;
 }
 
 export interface TruckPnlQuery {
@@ -47,6 +56,21 @@ export interface TruckPnlQuery {
   region?: string | null;
   /** Months to report, 'YYYY-MM'. */
   months: string[];
+  /**
+   * Allocate the month's fixed cost even when the queried scope logged NO
+   * completed trip that month.
+   *
+   * Default false (QA 2026-07-30: "tháng không có chuyến thì không phân bổ chi
+   * phí cố định"). Salary + depreciation come from a monthly source, so a scope
+   * with nothing driven used to report the whole month's fixed cost as a pure
+   * loss — a freshly reset month read as −14,5tr with zero activity, and every
+   * future month reads the same way because the vehicle-level fallback is not
+   * date-bounded.
+   *
+   * The per-vehicle report sheet passes true on purpose: its IDLE rows exist
+   * precisely to show what a truck cost while it sat still.
+   */
+  fixedCostWithoutTrips?: boolean;
 }
 
 function emptyRow(month: string): TruckPnlRow {
@@ -64,6 +88,9 @@ function emptyRow(month: string): TruckPnlRow {
     fixedCost: 0,
     tripCount: 0,
     netProfit: 0,
+    fuelAveragedTripCount: 0,
+    fuelLiveTripCount: 0,
+    fuelUnsetTripCount: 0,
   };
 }
 
@@ -148,44 +175,12 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
     extraByTrip.set(e.trpId, (extraByTrip.get(e.trpId) ?? 0) + parseAmount(e.amount));
   }
 
-  const fixed = await db
-    .select()
-    .from(carTruckFixedCosts)
-    .where(
-      and(
-        eq(carTruckFixedCosts.entId, actor.entId),
-        inArray(carTruckFixedCosts.tfcMonth, months),
-        vehicleFilter(carTruckFixedCosts.cvhId),
-      ),
-    );
-
   /* Region-scoped month-end fuel snapshot (REQ-20260630). The close is per
    * (ent, TRUCK, month, region); each trip's official fuel cost uses ITS
    * region's snapshot (region = its vehicle's cvh_region). A (month, region)
    * with a live close + non-null snapshot → km × consumption × avg price;
    * otherwise the trip's own liters × price (fallback below). */
   const snapshots = await loadTruckRegionSnapshots(actor.entId, months);
-
-  /* Driver fixed salary — fleet-level monthly recurring cost. Only attributed
-   * in the all-trucks view; a single-vehicle filter leaves it 0 because driver
-   * salary isn't tied to a specific vehicle. */
-  let driverSalaryTotal = 0;
-  if (!q.vehicleId && !q.region) {
-    const drvRows = await db
-      .select({ salary: carDrivers.drvFixedSalary })
-      .from(carDrivers)
-      .innerJoin(
-        carUserFleetAccess,
-        and(
-          eq(carUserFleetAccess.usrId, carDrivers.drvUserId),
-          eq(carUserFleetAccess.entId, actor.entId),
-          eq(carUserFleetAccess.ufaVehicleType, 'TRUCK'),
-          isNull(carUserFleetAccess.ufaDeletedAt),
-        ),
-      )
-      .where(and(eq(carDrivers.entId, actor.entId), isNull(carDrivers.drvDeletedAt)));
-    driverSalaryTotal = drvRows.reduce((s, r) => s + Math.round(parseAmount(r.salary)), 0);
-  }
 
   const rows = new Map<string, TruckPnlRow>();
   for (const m of months) rows.set(m, emptyRow(m));
@@ -195,79 +190,52 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
     const row = rows.get(mk);
     if (!row) continue;
     row.revenue += Math.round(parseAmount(t.revenue));
-    const snap = snapshots.forTrip(mk, t.vehicleId);
-    if (snap) {
-      const km =
-        t.startOdometer != null && t.endOdometer != null ? t.endOdometer - t.startOdometer : 0;
-      row.fuelCost += truckTripFuelCost({ km, consumption: snap.consumption, avgPrice: snap.avgPrice });
-    } else {
-      row.fuelCost += Math.round(parseAmount(t.fuelLiters) * parseAmount(t.fuelPrice));
-    }
+    const km =
+      t.startOdometer != null && t.endOdometer != null ? t.endOdometer - t.startOdometer : 0;
+    /* Fuel = frozen snapshot → vehicle rate → 0 (REQ-20260724), same precedence
+     * everywhere via the shared helper. */
+    const fuel = snapshots.fuelForTrip(mk, t.vehicleId, km);
+    row.fuelCost += fuel.cost;
+    if (fuel.mode === 'AVERAGED') row.fuelAveragedTripCount += 1;
+    else if (fuel.mode === 'LIVE') row.fuelLiveTripCount += 1;
+    else row.fuelUnsetTripCount += 1;
     row.tollFee += Math.round(parseAmount(t.tollFee));
     row.extraTotal += Math.round(extraByTrip.get(t.trpId) ?? 0);
     row.tripCount += 1;
   }
 
-  for (const f of fixed) {
-    const row = rows.get(f.tfcMonth);
-    if (!row) continue;
-    row.salary += Math.round(parseAmount(f.tfcSalary));
-    row.depreciation += Math.round(parseAmount(f.tfcDepreciation));
-    row.insurance += Math.round(parseAmount(f.tfcInsurance));
-  }
-
-  /* Vehicle-level fixed-cost defaults (QA 2026-07, "1 xe ↔ 1 tài xế"): for a
-   * per-vehicle or per-region view, any (vehicle, month) WITHOUT a manual
-   * car_truck_fixed_costs row falls back to the vehicle's own depreciation +
-   * its default driver's fixed salary. Scoped to these views only — the
-   * all-trucks aggregate keeps its fleet-level driverSalary (avoids double
-   * count, since driverSalary is 0 when a vehicle/region filter is set). */
-  const scopeIds = q.vehicleId ? [q.vehicleId] : regionVehicleIds;
-  if (scopeIds && scopeIds.length) {
-    const vdefs = await db
-      .select({ id: carVehicles.cvhId, dep: carVehicles.cvhDepreciation, drv: carVehicles.cvhDefaultDriverId })
-      .from(carVehicles)
-      .where(
-        and(
-          eq(carVehicles.entId, actor.entId),
-          inArray(carVehicles.cvhId, scopeIds),
-          isNull(carVehicles.cvhDeletedAt),
-        ),
-      );
-    const drvIds = [...new Set(vdefs.map((v) => v.drv).filter((x): x is string => !!x))];
-    const salByDrv = new Map<string, number>();
-    if (drvIds.length) {
-      const drows = await db
-        .select({ id: carDrivers.drvId, sal: carDrivers.drvFixedSalary })
-        .from(carDrivers)
-        .where(
-          and(
-            eq(carDrivers.entId, actor.entId),
-            inArray(carDrivers.drvId, drvIds),
-            isNull(carDrivers.drvDeletedAt),
-          ),
-        );
-      for (const d of drows) salByDrv.set(d.id, Math.round(parseAmount(d.sal)));
-    }
-    const tfcSeen = new Set(fixed.map((f) => `${f.cvhId}|${f.tfcMonth}`));
-    for (const v of vdefs) {
-      const dep = v.dep != null ? Math.round(parseAmount(v.dep)) : 0;
-      const sal = v.drv ? (salByDrv.get(v.drv) ?? 0) : 0;
-      if (dep === 0 && sal === 0) continue;
-      for (const m of months) {
-        if (tfcSeen.has(`${v.id}|${m}`)) continue; // a manual fixed-cost row wins
-        const row = rows.get(m);
-        if (!row) continue;
-        row.depreciation += dep;
-        row.salary += sal;
-      }
+  /* Monthly fixed cost per (month, truck) from the shared resolver: manual
+   * car_truck_fixed_costs row → effective-dated rate history (migration 0025) →
+   * 0. Historical months therefore keep the rate that was in force THEN, and a
+   * month before the truck existed carries nothing (QA 2026-07-30). */
+  const fixedMonthly = await loadTruckFixedMonthly(actor.entId, months, {
+    vehicleId: q.vehicleId ?? null,
+    vehicleIds: q.vehicleId ? null : regionVehicleIds,
+  });
+  for (const vid of fixedMonthly.vehicleIds) {
+    for (const m of months) {
+      const row = rows.get(m);
+      if (!row) continue;
+      const fc = fixedMonthly.forVehicleMonth(m, vid);
+      row.salary += fc.salary;
+      row.depreciation += fc.depreciation;
     }
   }
 
   for (const row of rows.values()) {
-    row.driverSalary = driverSalaryTotal;
     row.variableCost = row.fuelCost + row.tollFee + row.extraTotal;
-    row.fixedCost = row.salary + row.depreciation + row.insurance + row.driverSalary;
+    /* No trip → nothing to allocate the month's fixed cost onto (see
+     * `fixedCostWithoutTrips`). Zeroed here, after both the manual rows and the
+     * vehicle-level fallback have been summed, so neither source leaks through. */
+    if (row.tripCount === 0 && !q.fixedCostWithoutTrips) {
+      row.salary = 0;
+      row.driverSalary = 0;
+      row.depreciation = 0;
+      row.insurance = 0;
+    }
+    /* Insurance removed from the fixed-cost model (2026-07-21) — field kept on
+     * the row (=0) for the report export shape, but no longer summed or shown. */
+    row.fixedCost = row.salary + row.depreciation;
     row.netProfit = row.revenue - row.variableCost - row.fixedCost;
   }
 

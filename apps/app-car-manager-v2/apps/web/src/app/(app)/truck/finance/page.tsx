@@ -1,5 +1,5 @@
 import { getLocale, getTranslations } from 'next-intl/server';
-import { AlertTriangle, Coins, Download } from 'lucide-react';
+import { AlertTriangle, Coins, Download, Info } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -24,6 +24,7 @@ import { FinanceTabs } from './_components/finance-tabs';
 import { GenerateAllRegionsButton } from './_components/generate-all-regions-button';
 import { PageHeader } from '@/components/layout/page-header';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
+import { FuelReconciliationBadge } from '@/components/truck/fuel-reconciliation-badge';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import {
@@ -119,13 +120,26 @@ export default async function TruckFinancePage({
   const qs = q ? `&q=${encodeURIComponent(q)}` : '';
   const exportHref = `${BASE_PATH}/truck/finance/export?month=${month}${vehicleId ? `&vehicle=${vehicleId}` : ''}${qs}`;
 
-  const summaryCards: [string, number, ('profit' | 'plain')?][] = summary
+  /* The fuel total can mix ACTUAL spend (allocated from invoices) with an
+   * ESTIMATE (vehicle rate, no invoice yet). Never let the two hide inside one
+   * number — spell the split out under the KPI so nobody reads an estimate as
+   * money already spent. */
+  const fuelActual = rows.reduce((s, r) => s + (r.fuelMode === 'AVERAGED' ? r.fuelCost : 0), 0);
+  const fuelEstimated = rows.reduce((s, r) => s + (r.fuelMode === 'LIVE' ? r.fuelCost : 0), 0);
+  const fuelSplitNote =
+    fuelEstimated > 0 && fuelActual > 0
+      ? t('kpiFuelSplit', { actual: vnd(fuelActual), est: vnd(fuelEstimated) })
+      : undefined;
+
+  const summaryCards: [string, number, ('profit' | 'plain')?, string?][] = summary
     ? [
         [t('sumRevenue'), summary.revenue],
-        [t('sumFuel'), summary.fuelCost],
+        [t('sumFuel'), summary.fuelCost, undefined, fuelSplitNote],
         [t('sumToll'), summary.tollFee],
         [t('sumOther'), summary.extraTotal],
-        [t('sumDriverSalary'), summary.driverSalary],
+        /* Driver salary folds into fixedCost now (no separate fleet-roster
+         * line) — the fixed-cost total below covers salary + depreciation +
+         * insurance. */
         [t('sumFixed'), summary.fixedCost],
         [t('sumNet'), summary.netProfit, 'profit'],
       ]
@@ -183,8 +197,8 @@ export default async function TruckFinancePage({
 
         {/* Month summary cards */}
         {summary && (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-            {summaryCards.map(([label, value, kind]) => (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+            {summaryCards.map(([label, value, kind, note]) => (
               <Card key={label} variant="outline" className="p-3">
                 <div className="text-xs text-text-muted">{label}</div>
                 <div
@@ -195,6 +209,7 @@ export default async function TruckFinancePage({
                 >
                   {vnd(value)}
                 </div>
+                {note && <div className="mt-0.5 text-[11px] leading-tight text-text-faint">{note}</div>}
               </Card>
             ))}
           </div>
@@ -265,7 +280,18 @@ export default async function TruckFinancePage({
                   <TableHead className="text-right">{t('thOther')}</TableHead>
                   <TableHead className="text-right">{t('thUnitPrice')}</TableHead>
                   <TableHead className="text-right">{t('thLiters')}</TableHead>
-                  <TableHead className="text-right">{t('thFuel')}</TableHead>
+                  <TableHead className="text-right">
+                    <span className="inline-flex items-center justify-end gap-1" title={t('thFuelHint')}>
+                      {t('thFuel')}
+                      <Info className="h-3.5 w-3.5 text-text-faint" />
+                    </span>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <span className="inline-flex items-center justify-end gap-1" title={t('thFixedAllocHint')}>
+                      {t('thFixedAlloc')}
+                      <Info className="h-3.5 w-3.5 text-text-faint" />
+                    </span>
+                  </TableHead>
                   <TableHead className="text-right">{t('thRevenue')}</TableHead>
                   <TableHead className="text-right">{t('thProfit')}</TableHead>
                   <TableHead>{t('thStatus')}</TableHead>
@@ -285,24 +311,47 @@ export default async function TruckFinancePage({
                     <TableCell className="text-right tabular">{num(r.km)} km</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(r.toll)}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(r.extra)}</TableCell>
-                    <TableCell className={cn('text-right tabular', !r.finalized && 'text-text-faint italic')}>
+                    <TableCell className={cn('text-right tabular', r.fuelMode === 'UNSET' && 'text-text-faint italic')}>
                       {vnd(r.unitPrice)}
                     </TableCell>
-                    <TableCell className={cn('text-right tabular', !r.finalized && 'text-text-faint italic')}>
+                    <TableCell className={cn('text-right tabular', r.fuelMode === 'UNSET' && 'text-text-faint italic')}>
                       {num(r.liters, 1)}
                     </TableCell>
-                    <TableCell className={cn('text-right tabular', !r.finalized && 'text-text-faint italic')}>
-                      {vnd(r.fuelCost)}
+                    <TableCell className={cn('text-right tabular', r.fuelMode === 'UNSET' && 'text-text-faint italic')}>
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span>{vnd(r.fuelCost)}</span>
+                        {/* Per-trip arithmetic — makes plain that THIS trip's km
+                          * drives the figure (same shape in both fuel modes). */}
+                        {r.fuelMode !== 'UNSET' && r.km > 0 && (
+                          <span className="text-xs font-normal not-italic text-text-faint whitespace-nowrap">
+                            {num(r.km)} km × {vnd(r.fuelCostPerKm)}/km
+                          </span>
+                        )}
+                        <FuelReconciliationBadge mode={r.fuelMode} />
+                      </div>
+                    </TableCell>
+                    {/* Fixed cost allocated to this trip (Sheet3 "phân bổ theo
+                      * chuyến") — lương + khấu hao tháng ÷ số chuyến của xe. */}
+                    <TableCell className="text-right tabular text-text-muted">
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span>{vnd(r.salaryAllocated + r.depreciationAllocated)}</span>
+                        {r.salaryAllocated + r.depreciationAllocated > 0 && (
+                          <span className="text-xs text-text-faint whitespace-nowrap">
+                            {t('allocSalaryShort')} {vnd(r.salaryAllocated)} · {t('allocDeprShort')}{' '}
+                            {vnd(r.depreciationAllocated)}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right tabular">{vnd(r.revenue)}</TableCell>
                     <TableCell
                       className={cn(
                         'text-right tabular font-semibold',
-                        r.profit >= 0 ? 'text-success' : 'text-danger',
+                        r.profitAfterFixed >= 0 ? 'text-success' : 'text-danger',
                         !r.finalized && 'italic',
                       )}
                     >
-                      {vnd(r.profit)}
+                      {vnd(r.profitAfterFixed)}
                     </TableCell>
                     <TableCell>
                       <Badge tone={r.finalized ? 'success' : 'neutral'} size="sm">

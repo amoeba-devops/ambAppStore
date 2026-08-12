@@ -49,7 +49,8 @@
     "moreAria": "Mở menu khác",
     "truckTripsShort": "Chuyến",
     "truckFleetShort": "Đội xe",
-    "truckDriversShort": "Tài xế"
+    "truckDriversShort": "Tài xế",
+    "maintenance": "Cảnh báo bảo dưỡng"
   },
   "region": {
     "HCM": "HCM",
@@ -226,15 +227,16 @@
         "rangeError": "Từ tháng phải ≤ đến tháng"
       },
       "vsPrev": "so kỳ trước",
-      "kpiCostSub": "Lương · KH · xăng · bãi · cầu đường",
+      "vsPrevYoy": "so cùng kỳ năm trước",
+      "kpiCostSub": "Nhiên liệu · cầu đường · phát sinh · lương tài xế · khấu hao",
       "kpiTripsSub": "Tổng hợp từ nhật ký chuyến",
       "perTrip": "theo chuyến",
       "perMonth": "theo tháng",
       "disclaimer": "Lưu ý: Dữ liệu trên Bảng điều khiển được cập nhật theo thời gian thực và chỉ mang tính ước tính. Để đảm bảo độ chính xác, vui lòng tạo báo cáo theo từng tháng.",
       "thCost": "Chi phí",
       "tooltipRevenue": "Tổng doanh thu từ tất cả các chuyến đi trong kỳ.",
-      "tooltipCost": "Tổng chi phí = Lương tài xế + Khấu hao xe + Phí nhiên liệu + Phí cầu đường + Các chi phí phát sinh khác",
-      "tooltipProfit": "Lợi nhuận ròng = Tổng doanh thu − Lương tài xế − Khấu hao xe − Tổng chi phí cố định − Tổng xăng dầu − Tổng phí cầu đường − Tổng phí phát sinh",
+      "tooltipCost": "Tổng chi phí = Phí nhiên liệu + Phí cầu đường + Chi phí phát sinh + Lương tài xế + Khấu hao xe",
+      "tooltipProfit": "Lợi nhuận ròng = Tổng doanh thu − Tổng chi phí (nhiên liệu + cầu đường + phát sinh + lương tài xế + khấu hao)",
       "byVehicle": "Theo xe",
       "allVehicles": "Tất cả xe"
     },
@@ -269,6 +271,7 @@
       "thNotes": "Ghi chú"
     },
     "truckPnl": {
+      "fileName": "BaoCao_LoiNhuan_T{m}_{y}",
       "title": "Chi phí & Lợi nhuận",
       "subtitle": "Lợi nhuận ròng theo tháng (3 tháng gần nhất)",
       "allTrucks": "Tất cả xe",
@@ -279,7 +282,7 @@
       "toll": "Cầu đường",
       "other": "Phát sinh khác",
       "variable": "Tổng phí biến đổi",
-      "salary": "Lương (theo xe)",
+      "salary": "Lương tài xế",
       "depreciation": "Khấu hao",
       "insurance": "Bảo hiểm",
       "driverSalary": "Lương tài xế",
@@ -309,7 +312,7 @@
       "invoiceAdded": "Đã thêm hoá đơn",
       "deleteInvoice": "Xoá hoá đơn",
       "lockedHint": "Tháng đã chốt — không thể chỉnh sửa.",
-      "invoiceRegionHint": "Chọn một khu vực để xem và nhập hóa đơn xăng dầu — dữ liệu nguồn của giá bình quân & định mức tiêu hao khi lập báo cáo.",
+      "invoiceRegionHint": "Chọn một khu vực để xem và nhập hoá đơn xăng dầu — cộng vào chi phí nhiên liệu tháng của xe để phân bổ theo km.",
       "fixedCostsTitle": "Chi phí cố định tháng {month}",
       "noTrucks": "Chưa có xe tải",
       "tabOverview": "Tổng quan P&L",
@@ -323,11 +326,13 @@
       "monthEndTitle": "Tổng hợp cuối tháng",
       "totalKm": "Tổng km trong tháng",
       "totalFuel": "Tổng tiền xăng tháng",
-      "monthEndFormula": "Định mức = tổng lít ÷ tổng km. Tiền xăng mỗi chuyến = định mức × km chuyến × giá bình quân.",
+      "monthEndFormula": "Phí xăng mỗi chuyến = chi phí nhiên liệu tháng của xe × (km chuyến ÷ tổng km tháng của xe).",
       "adjustmentHistory": "Lịch sử điều chỉnh",
       "reopenedEntry": "Đã mở lại tháng",
       "reasonLabel": "Lý do",
-      "reopenAdminOnly": "Chỉ Quản trị viên mới được mở lại"
+      "reopenAdminOnly": "Chỉ Quản trị viên mới được mở lại",
+      "invoiceSelectVehicle": "— Chọn xe —",
+      "invoiceNoVehicle": "Chưa gán xe"
     },
     "truckComplete": {
       "completeCta": "Hoàn thành chuyến đi",
@@ -361,6 +366,9 @@
       "receiptsTitle": "Hóa đơn / chứng từ",
       "receiptsExtra": "Phí phát sinh",
       "total": "Tổng chi phí",
+      "salaryAllocated": "Lương phân bổ",
+      "depreciationAllocated": "Khấu hao phân bổ",
+      "allocNote": "chia cho {count} chuyến trong tháng",
       "revenue": "Doanh thu",
       "profit": "Lợi nhuận",
       "notCompletable": "Chuyến này chưa thể hoàn thành.",
@@ -370,6 +378,8 @@
       "deletedToast": "Đã xoá chuyến"
     },
     "truckImport": {
+      "fileName": "CR-Vietnam-Truck-v1_Mau-Nhap-Chuyen",
+      "sheetName": "Nhật ký chuyến",
       "title": "Import Excel",
       "subtitle": "Nhập nhật ký chuyến từ file Excel (1 file = 1 xe)",
       "emptyVehiclesTitle": "Chưa có thông tin phương tiện",
@@ -410,6 +420,7 @@
         "end_time": "Giờ kết thúc",
         "customer": "Khách hàng",
         "pickup": "Điểm lấy hàng",
+        "stopover": "Điểm ghé",
         "dropoff": "Điểm giao hàng",
         "odo_start": "Đồng hồ đầu",
         "odo_end": "Đồng hồ cuối",
@@ -441,6 +452,8 @@
       "savedToast": "Đã lưu chi phí {plate}"
     },
     "truckTrips": {
+      "fileName": "DanhSachChuyen",
+      "fileNameMonth": "DanhSachChuyen_T{m}_{y}",
       "title": "Danh sách chuyến đi",
       "subtitle": "{count} chuyến",
       "addTrip": "Tạo chuyến",
@@ -468,6 +481,8 @@
         "sectionTrip": "Thông tin chuyến",
         "sectionMetrics": "Số liệu & chi phí",
         "date": "Ngày",
+        "startTime": "Giờ bắt đầu",
+        "endTime": "Giờ kết thúc",
         "vehicle": "Xe",
         "selectVehicle": "Chọn xe tải",
         "driver": "Tài xế",
@@ -478,6 +493,7 @@
         "dropoff": "Điểm giao hàng",
         "bol": "Số vận đơn (BOL)",
         "cdf": "Số CDF",
+        "notes": "Ghi chú chuyến",
         "startOdo": "Km đồng hồ đầu",
         "endOdo": "Km đồng hồ cuối",
         "fuelLiters": "Nhiên liệu (lít)",
@@ -592,6 +608,7 @@
         "year": "Năm",
         "tonnage": "Tải trọng (tấn)",
         "fuelQuota": "Định mức (L/100km)",
+        "fuelPrice": "Giá xăng (đ/L)",
         "fuelType": "Nhiên liệu",
         "odometer": "Số km đồng hồ",
         "oilIntervalKm": "Định mức thay dầu (km)",
@@ -635,6 +652,7 @@
       "subtitle": "Thống kê chuyến đi và chi phí"
     },
     "truckFinance": {
+      "fileName": "BaoCao_ChiPhiChuyen_T{m}_{y}",
       "title": "Chi phí & Lợi nhuận",
       "subtitle": "{count} chuyến trong tháng",
       "export": "Xuất Excel",
@@ -642,6 +660,25 @@
       "emptyDesc": "Tháng này chưa có chuyến hoàn thành để tính chi phí & lợi nhuận.",
       "provisional": "Tạm tính",
       "reported": "Đã lập BC",
+      "fuelReconciledLabel": "Theo hoá đơn",
+      "fuelNotReconciledLabel": "Tự nhập",
+      "fuelReconciledTooltip": "Số THỰC CHI đã chốt — chi phí nhiên liệu của chính xe này trong tháng, chia cho từng chuyến theo số km.",
+      "fuelNotReconciledTooltip": "⚠ Phí xăng CHƯA tính theo km — đang là số tự nhập. Sửa: nhập hoá đơn xăng khu vực này → lập báo cáo lại.",
+      "fuelVehicleRateLabel": "Tạm tính",
+      "fuelVehicleRateTooltip": "Số tạm tính — chi phí nhiên liệu của xe đã ghi nhận tới lúc này trong tháng, chia theo km từng chuyến. Ghi thêm hoá đơn/nhiên liệu chuyến là số đổi theo; lập báo cáo để chốt.",
+      "fuelUnsetLabel": "Chưa tính được",
+      "fuelUnsetTooltip": "⚠ Xe chưa có chi phí nhiên liệu nào trong tháng nên phí = 0. Nhập nhiên liệu ở chuyến, hoặc thêm hoá đơn xăng cho xe trong tháng.",
+      "fuelPartialReconciledLabel": "Hỗn hợp",
+      "fuelPartialReconciledTooltip": "Trong nhóm này có cả chuyến đã chốt theo hoá đơn lẫn chuyến còn tạm tính. Xem từng chuyến để biết chính xác.",
+      "thFuelHint": "Phí nhiên liệu mỗi chuyến = km chuyến × (chi phí nhiên liệu của xe trong tháng ÷ tổng km tháng). \"Theo hoá đơn\" = đã chốt khi lập báo cáo, \"Tạm tính\" = còn thay đổi, \"Chưa tính được\" = tháng chưa có chi phí nhiên liệu nào.",
+      "fuelRecalcedToast": "Đã tính lại phí nhiên liệu theo số đã chốt của tháng.",
+      "fuelVehicleRateToast": "Phí nhiên liệu tạm tính theo chi phí nhiên liệu tháng của xe, chia theo km.",
+      "fuelUnsetToast": "Xe chưa có chi phí nhiên liệu trong tháng → phí nhiên liệu = 0. Nhập nhiên liệu cho chuyến hoặc thêm hoá đơn xăng.",
+      "fuelByTripKmHint": "Phí nhiên liệu chia theo số km — nhập Km đồng hồ cuối và nhiên liệu đã đổ.",
+      "thFixedAlloc": "CP CỐ ĐỊNH PHÂN BỔ",
+      "thFixedAllocHint": "Lương tài xế + khấu hao xe của tháng, chia đều cho số chuyến của xe trong tháng. Lợi nhuận từng chuyến đã trừ khoản này.",
+      "allocSalaryShort": "Lương",
+      "allocDeprShort": "KH",
       "allTrucks": "Tất cả phương tiện",
       "allRegions": "Tất cả khu vực",
       "sumRevenue": "Doanh thu tháng",
@@ -669,8 +706,8 @@
       "tabOverview": "Tổng quan P&L",
       "tabInvoices": "Hoá đơn & Chốt tháng",
       "thUpdated": "Cập nhật",
-      "provTitle": "Một số chuyến đang tạm tính theo giá xăng nhập tay",
-      "provDesc": "Các chuyến dưới đây chưa áp dụng bình quân xăng dầu cuối tháng vì khu vực của chúng chưa được lập báo cáo:",
+      "provTitle": "Một số chuyến còn tạm tính",
+      "provDesc": "Các chuyến dưới đây tính phí nhiên liệu theo số đã ghi nhận tới lúc này; số sẽ được chốt khi lập báo cáo cho khu vực của chúng:",
       "provKm": "Còn {count} chuyến chưa nhập số km đồng hồ (ODO đầu/cuối).",
       "provRegionCount": "{count} chuyến",
       "provRegionReady": "đã có hoá đơn xăng — hãy lập báo cáo để chốt",
@@ -682,12 +719,14 @@
       "genAllPartial": "Đã chốt {count} khu vực. Còn thiếu hoá đơn xăng: {regions}.",
       "genAllNone": "Chưa khu vực nào đủ dữ liệu để chốt bình quân (thiếu hoá đơn xăng).",
       "provCta": "Mở P&L & Hoá đơn xăng",
-      "viewReport": "Xem báo cáo"
+      "viewReport": "Xem báo cáo",
+      "kpiFuelSplit": "{actual} đã chốt · {est} tạm tính"
     },
     "truckReportStatus": {
       "reportAt": "Đã lập BC · {date}",
       "staleBadge": "Đã lập BC · {date} — dữ liệu đã thay đổi, cần lập lại",
-      "noReport": "Chưa lập báo cáo"
+      "noReport": "Chưa lập báo cáo",
+      "notCovered": "Chưa có trong BC"
     },
     "truckReports": {
       "title": "Danh sách báo cáo",
@@ -714,7 +753,7 @@
       "type_VEHICLE": "Phương tiện",
       "type_MONTHLY_SUMMARY": "Tổng kết chi phí tháng",
       "selectFormat": "Định dạng báo cáo",
-      "formatSummaryHint": "1 trang theo mẫu khách: KPI, doanh thu, chi phí, hiệu quả nhiên liệu, chi tiết từng xe.",
+      "formatSummaryHint": "3 sheet theo mẫu khách (VI / EN / KO), mỗi sheet 1 trang: KPI, doanh thu, chi phí, hiệu quả nhiên liệu, chi tiết từng xe.",
       "formatDetailHint": "3 trang: nhật ký chuyến, lợi nhuận theo xe, tổng hợp + định nghĩa thuật ngữ.",
       "fileName_MONTHLY_SUMMARY": "BaoCao_DoiXe_T{m}_{y}{region}_Report",
       "fileName_PNL": "BaoCao_ChiPhiLoiNhuan_T{m}_{y}{region}",
@@ -729,9 +768,10 @@
       "step1Hint": "Chọn kỳ báo cáo. Hệ thống lập báo cáo cho mọi chuyến đi phát sinh trong tháng.",
       "step2Title": "Bước 3 · Xác nhận & lập báo cáo",
       "regionStepTitle": "Bước 2 · Chọn khu vực",
-      "regionStepHint": "Chọn một hoặc nhiều khu vực — mỗi khu vực sẽ được lập một báo cáo riêng.",
+      "regionStepHint": "Chọn 'Tất cả khu vực' để gộp thành 1 báo cáo, hoặc chọn từng khu vực để lập báo cáo riêng.",
       "regionAll": "Tất cả khu vực",
-      "regionAllHint": "Chọn tất cả khu vực có dữ liệu",
+      "regionAllHint": "Gộp tất cả khu vực vào 1 báo cáo",
+      "nameScopeRegion": "Khu vực {name}",
       "noRegionsData": "Không có chuyến nào gắn khu vực trong tháng này.",
       "continueRegions": "Tiếp tục · {n} khu vực",
       "nRegions": "{n} khu vực",
@@ -766,10 +806,10 @@
       "statusOpen": "Tạm tính",
       "closedNote": "Tháng đã chốt — chỉ xem, không sửa được chi phí.",
       "editHint": "Có thể sửa trực tiếp Cầu đường và Doanh thu. Phí nhiên liệu & phát sinh tính tự động.",
-      "modeAllocated": "Phân bổ theo bình quân",
-      "modeManual": "Tạm tính thủ công",
-      "modeAllocatedHint": "Phí xăng tự tính = km chuyến × định mức tiêu hao × giá bình quân — cột Phí xăng không nhập tay.",
-      "modeManualHint": "Chưa đủ dữ liệu phân bổ (hóa đơn xăng / km) — phí xăng dùng số tự nhập của từng chuyến. Nhập hóa đơn xăng ở tab Tổng quan P&L.",
+      "modeAllocated": "Phân bổ theo chi phí nhiên liệu tháng",
+      "modeManual": "Chưa có chi phí nhiên liệu",
+      "modeAllocatedHint": "Phí xăng mỗi chuyến = tiền xăng tháng của xe × (km chuyến ÷ tổng km tháng của xe) — cột Phí xăng không nhập tay.",
+      "modeManualHint": "Xe trong khu vực này chưa có chi phí nhiên liệu nào trong tháng → phí xăng = 0. Nhập nhiên liệu ở chuyến, hoặc thêm hoá đơn xăng (có chọn xe) ở tab Tổng quan P&L.",
       "kmZeroWarn": "{n} chuyến chưa có km công tơ — phí xăng phân bổ của các chuyến này là 0 ₫. Nhập km trước khi lập báo cáo để số liệu chính xác.",
       "emptyMonth": "Tháng này chưa có chuyến hoàn thành nào.",
       "createdToast": "Đã lập báo cáo · {month}",
@@ -777,6 +817,12 @@
       "stepName1": "Chọn tháng",
       "stepName2": "Xác nhận & Lập báo cáo",
       "thFuelTrip": "Phí nhiên liệu (chuyến)"
+    },
+    "maintenance": {
+      "subtitle": "{count} cảnh báo · {unresolved} chưa đóng",
+      "status_UNRESOLVED": "Chưa đóng",
+      "status_RESOLVED": "Đã đóng",
+      "status_ALL": "Tất cả"
     }
   },
   "phase": {
@@ -1047,7 +1093,6 @@
   },
   "dashboard": {
     "title": "Bảng điều khiển",
-    "subtitle": "{count} chuyến trong tháng · vai trò {role}",
     "calendar": {
       "today": "Hôm nay",
       "month": "Tháng",
@@ -1068,7 +1113,8 @@
       "filterTo": "Đến ngày",
       "filterApply": "Áp dụng",
       "filterCancel": "Huỷ",
-      "clearFilter": "Xoá bộ lọc"
+      "clearFilter": "Xoá bộ lọc",
+      "tripCount": "{count} chuyến"
     },
     "colorMode": {
       "byVehicle": "Theo xe",
@@ -1133,7 +1179,8 @@
       "viewAll": "Xem tất cả",
       "empty": "Chưa có chuyến nào",
       "emptyAction": "Tạo chuyến đầu tiên"
-    }
+    },
+    "subtitleRole": "Vai trò {role}"
   },
   "vehicles": {
     "status": {
@@ -1377,7 +1424,11 @@
       "syncedAgo": "Đồng bộ AMA {time}",
       "notFound": "Không tìm thấy user nào khớp \"{query}\".",
       "emptyMembers": "Chưa có ai đăng nhập vào car-v2.",
-      "emptyHint": "Thành viên xuất hiện ở đây sau lần đăng nhập đầu tiên. Để mời thêm:"
+      "emptyHint": "Thành viên xuất hiện ở đây sau lần đăng nhập đầu tiên. Để mời thêm:",
+      "deptFilterAll": "Tất cả phòng ban",
+      "deptBoth": "Cả hai phòng ban",
+      "deptNone": "Chưa gán",
+      "deptFilterEmpty": "Không có ai khớp bộ lọc phòng ban này."
     },
     "peek": {
       "a11yTitle": "Chi tiết người dùng {name}",
@@ -1481,7 +1532,12 @@
       "save": "Lưu thay đổi",
       "cancel": "Hủy",
       "saving": "Đang lưu…",
-      "updatedToast": "Đã cập nhật {name}"
+      "updatedToast": "Đã cập nhật {name}",
+      "deptLabel": "Phòng ban",
+      "deptDescDriver": "Tài xế chỉ thuộc một phòng ban. Chọn phòng khác sẽ chuyển họ sang phòng đó.",
+      "deptDescStaff": "Quản lý có thể thuộc cả hai phòng ban.",
+      "deptAdminHint": "Quản trị viên luôn vào được cả hai phòng ban — không cần cấp.",
+      "deptNoneWarning": "Chưa gán phòng ban: người này không hiện trong danh sách của app nào."
     }
   },
   "costs": {
@@ -1572,42 +1628,45 @@
   },
   "exportContent": {
     "truckMonthlySummary": {
-      "sheetName": "Tổng kết chi phí",
-      "title": "TỔNG KẾT CHI PHÍ THÁNG  |  MONTHLY SUMMARY",
+      "sheetName": "tiếng việt",
+      "title": "BÁO CÁO XE TRUCK HÀNG THÁNG",
+      "companyName": "Cargo Rush International Co., Ltd",
+      "companyAddress": "77 Nguyễn Trọng Lội, Phường Tân Sơn Nhất, TP.HCM, Vietnam",
+      "companyContact": "Tel: 84 8 3948 0931~2     Fax: 84 8 3848 5337",
       "datePrepared": "Ngày lập: {date}",
-      "monthField": "Tháng / Month:",
+      "monthField": "Tháng:",
       "monthValue": "Tháng {m} / {y}",
       "preparedBy": "Người lập: {name}",
       "scopeRegion": "Khu vực {name}",
       "scopeAll": "Tất cả khu vực",
-      "kpiTrucks": "Tổng xe / Total trucks",
-      "kpiTrips": "Tổng chuyến / Total trips",
-      "kpiKm": "Tổng KM / Total KM",
-      "kpiProfit": "Lợi nhuận / Profit",
+      "kpiTrucks": "Tổng xe",
+      "kpiTrips": "Tổng chuyến",
+      "kpiKm": "Tổng KM",
+      "kpiProfit": "Lợi nhuận",
       "kpiTrucksValue": "{n} xe",
       "kpiTrucksSub": "{a} hoạt động · {m} bảo dưỡng",
       "kpiTripsSub": "TB {x} chuyến / xe",
       "kpiKmSub": "TB {x} km / xe",
       "kpiMarginSub": "Margin {x}%",
-      "secRevenue": "A.  DOANH THU  /  REVENUE",
-      "secExpenses": "B.  CHI PHÍ  /  EXPENSES",
-      "secResult": "C.  KẾT QUẢ  /  PROFIT & LOSS",
-      "secFuel": "D.  HIỆU QUẢ NHIÊN LIỆU  /  FUEL EFFICIENCY",
-      "secPerTruck": "E.  CHI TIẾT TỪNG XE  /  PER-TRUCK BREAKDOWN",
-      "lineRevenue": "Doanh thu vận chuyển / Freight revenue",
-      "lineFuel": "Chi phí nhiên liệu / Fuel cost",
-      "lineToll": "Phí cầu đường / Toll fee",
-      "lineExtra": "Chi phí phát sinh / Additional expenses",
-      "lineSalary": "Lương tài xế / Driver salary",
-      "lineDepreciation": "Khấu hao xe / Depreciation",
-      "lineOther": "Chi phí khác / Other",
-      "lineTotalExpenses": "Tổng chi phí / Total expenses",
-      "lineGrossProfit": "Lợi nhuận gộp / Gross profit",
-      "lineMargin": "Tỷ suất lợi nhuận / Profit margin",
-      "lineTotalFuel": "Tổng lít dầu / Total fuel (L)",
-      "lineKmPerL": "Định mức thực tế / Actual km/L",
-      "lineFuelPerKm": "Chi phí dầu/km / Fuel cost per km",
-      "thDriver": "Xe / Tài xế",
+      "secRevenue": "A.  DOANH THU",
+      "secExpenses": "B.  CHI PHÍ",
+      "secResult": "C.  LỢI NHUẬN",
+      "secFuel": "D.  HIỆU QUẢ NHIÊN LIỆU",
+      "secPerTruck": "E.  CHI TIẾT TỪNG XE",
+      "lineRevenue": "Doanh thu vận chuyển",
+      "lineFuel": "Chi phí nhiên liệu",
+      "lineToll": "Phí cầu đường",
+      "lineExtra": "Chi phí phát sinh",
+      "lineSalary": "Lương tài xế",
+      "lineDepreciation": "Khấu hao xe",
+      "lineOther": "Chi phí khác",
+      "lineTotalExpenses": "Tổng chi phí",
+      "lineGrossProfit": "Lợi nhuận gộp",
+      "lineMargin": "Tỷ suất lợi nhuận",
+      "lineTotalFuel": "Tổng lít dầu",
+      "lineKmPerL": "Định mức thực tế",
+      "lineFuelPerKm": "Chi phí dầu/km",
+      "thDriver": "Xe",
       "thPlate": "Biển số",
       "thTrips": "Chuyến",
       "thKm": "KM",
@@ -1625,7 +1684,7 @@
       "statusBreakeven": "Hòa vốn",
       "totalRow": "Tổng / Total",
       "totalTrucks": "{n} xe",
-      "footer": "Số liệu tính lúc {ts}. Phí nhiên liệu phân bổ theo định mức & giá xăng bình quân tháng."
+      "footer": "Số liệu tính lúc {ts}. Phí nhiên liệu phân bổ từ chi phí nhiên liệu tháng của từng xe theo số km."
     },
     "trips": {
       "sheetName": "Chuyến xe",
@@ -1726,6 +1785,68 @@
       "colIp": "IP",
       "colBefore": "Trước thay đổi",
       "colAfter": "Sau thay đổi"
+    },
+    "truckFinance": {
+      "sheetName": "Chi phí chuyến",
+      "colDate": "Ngày",
+      "colVehicle": "Phương tiện",
+      "colDriver": "Tài xế",
+      "colCustomer": "Khách hàng",
+      "colKm": "Km",
+      "colToll": "Phí cầu đường",
+      "colExtra": "Phát sinh",
+      "colUnitPrice": "Đơn giá",
+      "colLiters": "Lít",
+      "colFuelCost": "Phí nhiên liệu",
+      "colRevenue": "Doanh thu",
+      "colProfit": "Lợi nhuận",
+      "colStatus": "Trạng thái",
+      "statusDone": "Đã lập BC",
+      "statusOpen": "Tạm tính"
+    },
+    "truckPnl": {
+      "sheetName": "Lợi nhuận",
+      "title": "Chi phí & Lợi nhuận",
+      "monthLabel": "Tháng {m}/{y}",
+      "colItem": "Hạng mục",
+      "lineRevenue": "Doanh thu",
+      "lineFuel": "Phí nhiên liệu",
+      "lineToll": "Phí cầu đường",
+      "lineExtra": "Chi phí phát sinh",
+      "lineVariable": "Chi phí biến đổi",
+      "lineSalary": "Lương tài xế",
+      "lineDepreciation": "Khấu hao",
+      "lineFixed": "Chi phí cố định",
+      "lineTrips": "Số chuyến",
+      "lineNet": "Lợi nhuận ròng"
+    },
+    "truckTrips": {
+      "sheetName": "Danh sách chuyến",
+      "colRef": "Ref",
+      "colDate": "Ngày",
+      "colVehicle": "Phương tiện",
+      "colDriver": "Tài xế",
+      "colCustomer": "Khách hàng",
+      "colBill": "Số Bill",
+      "colCdf": "Mã CDF",
+      "colStart": "Giờ BĐ",
+      "colEnd": "Giờ KT",
+      "colFrom": "Nơi lấy hàng",
+      "colTo": "Nơi giao hàng",
+      "colOdoStart": "ODO đầu (km)",
+      "colOdoEnd": "ODO cuối (km)",
+      "colKm": "Tổng KM",
+      "colToll": "Cầu đường (đ)",
+      "colOtherFee": "Phí khác (đ)",
+      "colFeeName": "Tên phí khác",
+      "colFuelPrice": "Giá dầu BQ (đ/L)",
+      "colLiters": "Lượng dầu (L)",
+      "colFuelCost": "CP dầu (đ)",
+      "colRevenue": "Doanh thu (đ)",
+      "colTotalCost": "Tổng chi phí (đ)",
+      "colProfit": "Lợi nhuận (đ)",
+      "colStatus": "Trạng thái",
+      "colNotes": "Ghi chú"
     }
   },
   "settings": {
@@ -1931,7 +2052,10 @@
   "layout": {
     "sidebarAria": "Điều hướng chính",
     "mobileNavAria": "Điều hướng mobile",
-    "moreSheet": { "title": "Menu khác", "description": "Các mục điều hướng khác" },
+    "moreSheet": {
+      "title": "Menu khác",
+      "description": "Các mục điều hướng khác"
+    },
     "breadcrumbAria": "Đường dẫn điều hướng",
     "back": "Quay lại",
     "dept": {
@@ -1991,7 +2115,23 @@
       "todoSummary": "{n} chuyến cần hoàn thành",
       "statusPending": "Chờ hoàn thành",
       "statusRunning": "Đang chạy",
-      "completeCta": "Hoàn thành"
+      "completeCta": "Hoàn thành",
+      "editTrip": "Sửa chuyến",
+      "costsTitle": "Chi phí chuyến",
+      "fuelRecordedNote": "Đã ghi nhận {liters} L ({amount}) — phân bổ theo km khi chốt tháng",
+      "updateCosts": "Cập nhật chi phí",
+      "stopsTitle": "Cập nhật điểm dừng",
+      "stops": {
+        "hint": "Chạm vào điểm dừng để cập nhật km và thời gian đến.",
+        "empty": "Chuyến này chưa có điểm dừng chi tiết.",
+        "kmLabel": "Odometer tại điểm (km)",
+        "kmPlaceholder": "Nhập số km",
+        "notesLabel": "Ghi chú",
+        "notesPlaceholder": "Tình trạng, chờ đợi, ...",
+        "cancel": "Hủy",
+        "save": "Cập nhật",
+        "savedToast": "Đã cập nhật điểm dừng"
+      }
     },
     "switchDriver": "Đổi tài xế",
     "title": "Hôm nay",

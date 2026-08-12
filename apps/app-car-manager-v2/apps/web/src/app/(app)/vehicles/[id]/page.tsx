@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { Car, ChevronLeft, Edit3, FileText, Fuel, Gauge, MapPin, Wrench } from 'lucide-react';
 import {
   Badge,
@@ -41,6 +41,12 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
   const vehicle = await getVehicle(user.entId, id);
   if (!vehicle) notFound();
+  /* A truck reached by direct URL (bookmark, notification, old link) belongs to
+   * the truck workspace — this page renders the car layout and its edit form
+   * hides every truck-only field. Mirror of the guard on
+   * /truck/fleet/[id]/edit. Users without TRUCK access get bounced to
+   * /dashboard by the /truck layout. */
+  if (vehicle.cvhType === 'TRUCK') redirect(`/truck/fleet/${id}/edit`);
 
   /* Fuller history so the Kanban board's status columns are well-populated. */
   const trips = await listTripsForVehicle(user.entId, id, 50);

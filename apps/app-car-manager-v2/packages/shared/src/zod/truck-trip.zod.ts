@@ -66,6 +66,11 @@ export const createTruckTripSchema = z.object({
   notes: z.string().trim().max(2000).optional(),
   /* Completion metrics — present when logging a finished trip in one step. */
   mark_completed: z.boolean().optional(),
+  /* Actual run window ('YYYY-MM-DDTHH:mm'). The monthly report prints "Giờ bắt
+   * đầu / Giờ kết thúc" from these; without them a manager-logged trip showed
+   * "—" and an end time of whenever they hit Save. */
+  start_time: z.string().optional(),
+  end_time: z.string().optional(),
   start_odometer: z.number().int().nonnegative().optional(),
   end_odometer: z.number().int().nonnegative().optional(),
   fuel_liters: z.number().nonnegative().optional(),
@@ -103,6 +108,10 @@ export const completeTruckTripSchema = z.object({
   end_time: z.string().optional(),
   end_odometer: z.number().int().nonnegative().optional(),
   fuel_liters: z.number().nonnegative().optional(),
+  /* Unit price of the fuel filled on this trip. Litres × price is the trip's
+   * fuel SPEND, which joins the vehicle's monthly fuel total and is then
+   * allocated across the month's trips by km (QA 2026-07-30). */
+  fuel_price: z.number().nonnegative().optional(),
   toll_fee: z.number().nonnegative().optional(),
   extra_costs: z
     .array(z.object({ name: z.string().trim().min(1).max(255), amount: z.number().nonnegative() }))

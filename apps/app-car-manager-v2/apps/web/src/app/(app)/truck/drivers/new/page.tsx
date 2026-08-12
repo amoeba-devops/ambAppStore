@@ -29,7 +29,8 @@ export default async function NewTruckDriverPage() {
   const tCo = await getTranslations('company');
   const tScr = await getTranslations('screens.newDriver');
 
-  const candidates = await listDriverCandidates(user.entId);
+  /* 'TRUCK' — mirror of /drivers/new; excludes people committed to the car fleet. */
+  const candidates = await listDriverCandidates(user.entId, 'TRUCK');
 
   return (
     <>

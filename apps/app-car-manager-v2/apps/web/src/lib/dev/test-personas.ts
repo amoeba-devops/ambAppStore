@@ -23,7 +23,14 @@ export interface DevPersona {
   loginRole: DevLoginRole;
   /** Fixed sub override; omitted for the default OWNER identity. */
   sub?: string;
-  /** Fleet memberships to grant (managers 1–2, drivers exactly 1). */
+  /** Fleet memberships to seed (managers 1–2, drivers exactly 1).
+   *
+   * A SEED DEFAULT, not an assertion about the current user. `provisionDevPersona`
+   * applies a driver's `depts` only when that user has no live membership yet —
+   * once a real admin (or a data fix) has moved them, that wins. Without this,
+   * a driver whose department changed would end up holding BOTH: listed in both
+   * rosters, assignable in neither. Managers stay additive; two departments is
+   * legitimate for them. */
   depts: DevDept[];
   /** When set, also seed a car_drivers row so the driver flow works. */
   driver?: { drvId: string; license: string };

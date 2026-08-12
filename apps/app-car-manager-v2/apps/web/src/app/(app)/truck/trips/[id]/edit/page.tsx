@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { AlertTriangle } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { driverIdentity } from '@/lib/format-person-option';
 import { getTrip } from '@/server/queries/trips.queries';
 import { getTripExtraCosts, getTripCostAttachmentsView } from '@/server/queries/truck-trips.queries';
 import { getTripStopovers } from '@/server/queries/stopovers.queries';
@@ -11,6 +12,13 @@ import { getLatestTruckReportForMonth } from '@/server/queries/truck-report.quer
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { listFleetDrivers } from '@/server/queries/drivers.queries';
 import { TruckTripForm } from '../../_components/truck-trip-form';
+
+/** Date → 'HH:mm' for the form's <input type="time">; '' when unset. */
+function hhmm(d: Date | null): string {
+  if (!d) return '';
+  const x = new Date(d);
+  return `${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`;
+}
 
 export default async function EditTruckTripPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,7 +43,7 @@ export default async function EditTruckTripPage({ params }: { params: Promise<{ 
     defaultDriverId: v.cvhDefaultDriverId ?? undefined,
   }));
   const driverOptions = drivers.map((d) => {
-    const name = d.user.usrName ?? d.user.usrEmail ?? d.drvId;
+    const name = driverIdentity(d);
     return { id: d.drvId, label: d.drvPhone ? `${name} · ${d.drvPhone}` : name };
   });
 
@@ -48,6 +56,10 @@ export default async function EditTruckTripPage({ params }: { params: Promise<{ 
     dropoff: trip.trpDropoffAddress,
     bol: trip.trpBol ?? '',
     cdf: trip.trpCdf ?? '',
+    notes: trip.trpNotes ?? '',
+    /* 'HH:mm' in the viewer's zone — the form recombines them with the date. */
+    startTime: hhmm(trip.trpStartedAt),
+    endTime: hhmm(trip.trpEndedAt),
     revenue: trip.trpRevenue ?? '',
     fuelPrice: trip.trpFuelPrice ?? '',
     fuelLiters: trip.trpFuelLiters ?? '',

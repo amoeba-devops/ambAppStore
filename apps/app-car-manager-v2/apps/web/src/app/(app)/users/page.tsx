@@ -16,8 +16,9 @@ import {
   TableRow,
 } from '@car-v2/ui';
 import { db } from '@car-v2/db/client';
-import { carTenantSettings } from '@car-v2/db/schema';
+import { carTenantSettings, type CarVehicleType } from '@car-v2/db/schema';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
+import { ParamSelect } from '@/components/inputs/param-select';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listUsers, type UserListItem } from '@/server/queries/users.queries';
@@ -60,10 +61,17 @@ function localeToBcp47(locale: string): string {
 }
 
 interface PageProps {
-  searchParams: Promise<{ q?: string; page?: string; peek?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; peek?: string; dept?: string }>;
 }
 
 const USERS_PAGE_SIZE = 20;
+
+/** `?dept=` values. CAR/TRUCK mean "holds it" (so BOTH matches either of them);
+ *  `both` and `none` are the two states an admin actually hunts for. */
+const DEPT_FILTERS = ['CAR', 'TRUCK', 'both', 'none'] as const;
+type DeptFilter = (typeof DEPT_FILTERS)[number];
+const isDeptFilter = (v: string | undefined): v is DeptFilter =>
+  !!v && (DEPT_FILTERS as readonly string[]).includes(v);
 
 export default async function UsersPage({ searchParams }: PageProps) {
   const actor = await getCurrentUser();
@@ -72,6 +80,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const searchQ = sp.q?.trim() || undefined;
   const page = Math.max(1, Number(sp.page ?? 1));
+  const deptFilter = isDeptFilter(sp.dept) ? sp.dept : undefined;
 
   const t       = await getTranslations('screens.users');
   const tA      = await getTranslations('actions');
@@ -79,6 +88,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
   const tCo     = await getTranslations('company');
   const tList   = await getTranslations('users.list');
   const tRel    = await getTranslations('users.relativeTime');
+  const tDept   = await getTranslations('screens.fleetAccess');
   const locale  = await getLocale();
 
   /* Human-readable label for the verbatim AMA role (all 7 roles synced from
@@ -112,6 +122,20 @@ export default async function UsersPage({ searchParams }: PageProps) {
         (u.usrName ?? '').toLowerCase().includes(needle) ||
         (u.usrEmail ?? '').toLowerCase().includes(needle) ||
         (u.usrAmaRoleSnapshot ?? '').toLowerCase().includes(needle),
+    );
+  }
+
+  /* Department filter. ADMINs are deliberately NOT force-matched to "both":
+   * their implicit access comes from resolveFleetAccess, while this column shows
+   * the membership ROWS — the thing an admin can actually grant or revoke here.
+   * Conflating the two would make the filter lie about what is editable. */
+  if (deptFilter) {
+    users = users.filter((u) =>
+      deptFilter === 'both'
+        ? u.depts.length === 2
+        : deptFilter === 'none'
+          ? u.depts.length === 0
+          : u.depts.includes(deptFilter),
     );
   }
 
@@ -152,11 +176,24 @@ export default async function UsersPage({ searchParams }: PageProps) {
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <DebouncedSearchInput
-              placeholder={tList('searchPlaceholder')}
-              className="md:w-80"
-              clearLabel={tA('clear')}
-            />
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+              <DebouncedSearchInput
+                placeholder={tList('searchPlaceholder')}
+                className="md:w-80"
+                clearLabel={tA('clear')}
+              />
+              <ParamSelect
+                param="dept"
+                value={deptFilter}
+                allLabel={tList('deptFilterAll')}
+                options={[
+                  { value: 'CAR', label: tDept('dept.CAR') },
+                  { value: 'TRUCK', label: tDept('dept.TRUCK') },
+                  { value: 'both', label: tList('deptBoth') },
+                  { value: 'none', label: tList('deptNone') },
+                ]}
+              />
+            </div>
             <div className="flex items-center gap-3 text-xs md:text-sm text-text-muted flex-wrap">
               <span>{tList('statsAllowed', { allowed, blocked })}</span>
               {lastSyncedAt && (
@@ -177,7 +214,11 @@ export default async function UsersPage({ searchParams }: PageProps) {
               <p>
                 {searchQ
                   ? tList('notFound', { query: searchQ })
-                  : tList('emptyMembers')}
+                  : /* A dept filter that matches nobody is NOT an empty tenant —
+                     * saying "chưa có thành viên nào" there would be wrong. */
+                    deptFilter
+                    ? tList('deptFilterEmpty')
+                    : tList('emptyMembers')}
               </p>
               {!searchQ && actor.role === 'ADMIN' && AMA_MEMBERS_URL && (
                 <p className="text-xs">
@@ -200,7 +241,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
             <ul className="md:hidden space-y-2.5">
               {pagedUsers.map((u) => (
                 <li key={u.usrId} className={'rounded-md border border-border bg-surface ' + (u.blocked ? 'opacity-60' : '')}>
-                  <ClickableCard href={usersPeekHref(u.usrId, page, searchQ)} scroll={false} className="px-4 py-3.5">
+                  <ClickableCard href={usersPeekHref(u.usrId, page, searchQ, deptFilter)} scroll={false} className="px-4 py-3.5">
                   <div className="flex items-start gap-3">
                     <Avatar name={u.usrName ?? u.usrEmail ?? '?'} size="md" />
                     <div className="flex-1 min-w-0">
@@ -220,6 +261,14 @@ export default async function UsersPage({ searchParams }: PageProps) {
                             </Badge>
                           )}
                         </div>
+                      </div>
+                      <div className="mt-1.5">
+                        <DeptBadges
+                          depts={u.depts}
+                          isAdminRole={u.usrLocalRole === 'ADMIN'}
+                          t={tDept}
+                          noneLabel={tList('deptNone')}
+                        />
                       </div>
                       <div className="mt-2 flex items-center justify-between text-xs">
                         <span className="text-text-muted" title={u.usrAmaRoleSnapshot ?? undefined}>
@@ -253,6 +302,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
                   <TableRow>
                     <TableHead>{tList('thUser')}</TableHead>
                     <TableHead>{tList('thAppRole')}</TableHead>
+                    <TableHead>{tDept('thAccess')}</TableHead>
                     <TableHead>{tList('thAmaRole')}</TableHead>
                     <TableHead>{tList('thLastActive')}</TableHead>
                     <TableHead className="w-[220px] text-right" />
@@ -285,6 +335,14 @@ export default async function UsersPage({ searchParams }: PageProps) {
                             )}
                           </div>
                         </TableCell>
+                        <TableCell>
+                          <DeptBadges
+                            depts={u.depts}
+                            isAdminRole={u.usrLocalRole === 'ADMIN'}
+                            t={tDept}
+                            noneLabel={tList('deptNone')}
+                          />
+                        </TableCell>
                         <TableCell className="text-text-muted" title={u.usrAmaRoleSnapshot ?? undefined}>{amaRoleLabel(u.usrAmaRoleSnapshot)}</TableCell>
                         <TableCell className="text-text-muted">
                           {formatRelativeTime(u.usrLastLoginAt, tRel, locale)}
@@ -311,7 +369,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
                     return isAdmin ? (
                       <ClickableTableRow
                         key={u.usrId}
-                        href={usersPeekHref(u.usrId, page, searchQ)}
+                        href={usersPeekHref(u.usrId, page, searchQ, deptFilter)}
                         scroll={false}
                         className={u.blocked ? 'opacity-60' : ''}
                       >
@@ -378,9 +436,51 @@ function usersPageHref(page: number, q: string | undefined): string {
   return qs ? `/users?${qs}` : '/users';
 }
 
-function usersPeekHref(userId: string, page: number, q: string | undefined): string {
+/**
+ * The department cell. ADMIN reads "Toàn quyền" because resolveFleetAccess
+ * grants them both fleets implicitly — printing their membership rows instead
+ * would suggest an admin can be locked out of a workspace, which is not true.
+ * Everyone else shows their actual rows, and an empty set is stated outright:
+ * "chưa gán" is exactly the state that made new car drivers surface in the
+ * truck roster, so it must be visible rather than blank.
+ */
+function DeptBadges({
+  depts,
+  isAdminRole,
+  t,
+  noneLabel,
+}: {
+  depts: CarVehicleType[];
+  isAdminRole: boolean;
+  t: (key: string) => string;
+  noneLabel: string;
+}) {
+  if (isAdminRole) {
+    return <Badge tone="accent" size="sm">{t('fullAccess')}</Badge>;
+  }
+  if (depts.length === 0) {
+    return <span className="text-xs text-text-faint italic">{noneLabel}</span>;
+  }
+  return (
+    <div className="inline-flex flex-wrap items-center gap-1">
+      {depts.map((d) => (
+        <Badge key={d} tone={d === 'TRUCK' ? 'warning' : 'info'} size="sm">
+          {t(`dept.${d}`)}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
+function usersPeekHref(
+  userId: string,
+  page: number,
+  q: string | undefined,
+  dept: string | undefined,
+): string {
   const params = new URLSearchParams();
   if (q) params.set('q', q);
+  if (dept) params.set('dept', dept);
   if (page > 1) params.set('page', String(page));
   params.set('peek', userId);
   return `/users?${params.toString()}`;

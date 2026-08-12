@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronRight, Menu } from 'lucide-react';
+import { Car, ChevronRight, Menu, Truck } from 'lucide-react';
 import {
   cn,
   Sheet,
@@ -15,10 +15,26 @@ import {
 } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { useActiveDept } from './dept-context';
-import { activeKeyFor, navItemsForRole, type NavItem, type NavKey, type NavSection } from './nav-items';
+import {
+  activeKeyFor,
+  navItemsForRole,
+  type FleetDept,
+  type NavItem,
+  type NavKey,
+  type NavSection,
+} from './nav-items';
+
+/* Landing page per workspace — same targets the desktop DeptSwitch uses. */
+const CAR_HOME = '/dashboard';
+const TRUCK_HOME = '/truck/dashboard';
 
 interface BottomTabNavProps {
   role: LocalRole;
+  /** Departments this user may enter. Two of them means the workspace switch
+   * belongs in the overflow sheet: the desktop switch lives in SidebarNav, which
+   * sits inside `hidden md:contents`, so on a phone there was NO way at all to
+   * cross from Car to Truck — and Manager/Director are the PWA personas. */
+  fleetAccess: FleetDept[];
   /** Server-fed pending trips in the user's visibility scope. Drives the
    * red dot/numeric badge on the Trips tab. 0 hides the badge. */
   pendingTripCount: number;
@@ -61,7 +77,13 @@ interface BottomTabNavProps {
  * so the tab/button that lights up reflects the post-redirect URL, not `/`.
  *
  * Hidden on md+ where the sidebar takes over. */
-export function BottomTabNav({ role, pendingTripCount, todayExpenseCount, newReportCount }: BottomTabNavProps) {
+export function BottomTabNav({
+  role,
+  fleetAccess,
+  pendingTripCount,
+  todayExpenseCount,
+  newReportCount,
+}: BottomTabNavProps) {
   const pathname = usePathname() ?? '/';
   const tNav = useTranslations('nav');
   const tL   = useTranslations('layout');
@@ -91,11 +113,21 @@ export function BottomTabNav({ role, pendingTripCount, todayExpenseCount, newRep
    * drivers + Thêm(finance/reports), matching car's IA and avoiding the 5-flat
    * label squeeze. */
   const MAX_FLAT = dashboardItem ? 4 : 5;
+  /* Same honest condition as DeptSwitch: "may enter both workspaces". A
+   * single-department manager or a driver never matches, so their bar is
+   * untouched. */
+  const canSwitchDept = fleetAccess.includes('CAR') && fleetAccess.includes('TRUCK');
+  /* The sheet is also the only mobile home for the workspace switch, so a
+   * two-department user gets a "Thêm" tab even when nothing overflows — the tab
+   * then costs one flat slot, which is why the slicing keys off this and not off
+   * overflow alone. (In practice STAFF in either workspace already overflows: 5
+   * car candidates / 6 truck candidates against 4 slots.) */
   const hasOverflow = flatCandidates.length > MAX_FLAT;
-  const flatItems = hasOverflow
+  const showMore = hasOverflow || canSwitchDept;
+  const flatItems = showMore
     ? flatCandidates.slice(0, MAX_FLAT - 1)
     : flatCandidates.slice(0, MAX_FLAT);
-  const overflowItems = hasOverflow ? flatCandidates.slice(MAX_FLAT - 1) : [];
+  const overflowItems = showMore ? flatCandidates.slice(MAX_FLAT - 1) : [];
 
   /* Canonical active key (handles /truck/pnl → truckFinance, /truck/import →
    * truckTrips, etc). Used to light the "Thêm" tab + highlight the sheet row
@@ -106,7 +138,7 @@ export function BottomTabNav({ role, pendingTripCount, todayExpenseCount, newRep
 
   /* Number of flat cells in the non-elevated layout (primary tabs + the
    * optional "Thêm" tab). Mapped to a static Tailwind class so JIT keeps it. */
-  const flatCellCount = flatItems.length + (hasOverflow ? 1 : 0);
+  const flatCellCount = flatItems.length + (showMore ? 1 : 0);
   const FLAT_GRID: Record<number, string> = {
     1: 'grid-cols-1',
     2: 'grid-cols-2',
@@ -147,7 +179,7 @@ export function BottomTabNav({ role, pendingTripCount, todayExpenseCount, newRep
               {flatItems.slice(0, 2).map(renderFlatTab(pathname, tNav, tabCounts))}
               <li aria-hidden />
               {flatItems.slice(2).map(renderFlatTab(pathname, tNav, tabCounts))}
-              {hasOverflow && (
+              {showMore && (
                 <MoreTab
                   label={tNav('more')}
                   ariaLabel={tNav('moreAria')}
@@ -160,7 +192,7 @@ export function BottomTabNav({ role, pendingTripCount, todayExpenseCount, newRep
           ) : (
             <>
               {flatItems.map(renderFlatTab(pathname, tNav, tabCounts))}
-              {hasOverflow && (
+              {showMore && (
                 <MoreTab
                   label={tNav('more')}
                   ariaLabel={tNav('moreAria')}
@@ -174,13 +206,15 @@ export function BottomTabNav({ role, pendingTripCount, todayExpenseCount, newRep
         </ul>
       </nav>
 
-      {hasOverflow && (
+      {showMore && (
         <OverflowSheet
           open={moreOpen}
           onOpenChange={setMoreOpen}
           items={overflowItems}
           activeKey={activeKey}
           tabCounts={tabCounts}
+          canSwitchDept={canSwitchDept}
+          dept={dept}
         />
       )}
     </>
@@ -318,15 +352,22 @@ function OverflowSheet({
   items,
   activeKey,
   tabCounts,
+  canSwitchDept,
+  dept,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   items: NavItem[];
   activeKey: NavKey;
   tabCounts: Partial<Record<NavKey, number>>;
+  /** User holds both departments → offer the Car ⇄ Truck switch. */
+  canSwitchDept: boolean;
+  dept: FleetDept;
 }) {
   const tNav = useTranslations('nav');
   const tL = useTranslations('layout');
+  const tDept = useTranslations('layout.dept');
+  const tRoot = useTranslations();
   const tSections = useTranslations('navSections');
 
   /* Preserve nav order while grouping by section. */
@@ -352,6 +393,48 @@ function OverflowSheet({
           <SheetDescription className="sr-only">{tL('moreSheet.description')}</SheetDescription>
         </SheetHeader>
         <div className="px-2 pb-3">
+          {/* Workspace switch — first, because it re-scopes everything below it.
+            * Two links rather than a toggle so each is a real 48px thumb target
+            * and lands on the same home the desktop switch uses. */}
+          {canSwitchDept && (
+            <div className="mb-1">
+              <div className="px-2 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-text-faint">
+                {tRoot('workspace')}
+              </div>
+              <ul>
+                {([
+                  { key: 'CAR', href: CAR_HOME, Icon: Car, label: tDept('car') },
+                  { key: 'TRUCK', href: TRUCK_HOME, Icon: Truck, label: tDept('truck') },
+                ] as const).map((d) => {
+                  const isActive = dept === d.key;
+                  return (
+                    <li key={d.key}>
+                      <Link
+                        href={d.href}
+                        onClick={() => onOpenChange(false)}
+                        aria-current={isActive ? 'true' : undefined}
+                        className={cn(
+                          'flex items-center gap-3 h-12 rounded-lg px-3 text-[15px] font-medium',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                          'transition-colors duration-150 motion-reduce:transition-none',
+                          isActive
+                            ? 'bg-accent text-accent-fg'
+                            : 'text-text hover:bg-surface-2 active:bg-surface-2/80',
+                        )}
+                      >
+                        <d.Icon className="h-5 w-5 shrink-0" aria-hidden />
+                        <span className="flex-1 truncate">{d.label}</span>
+                        <ChevronRight
+                          className={cn('h-4 w-4 shrink-0', isActive ? 'text-accent-fg/70' : 'text-text-faint')}
+                          aria-hidden
+                        />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
           {groups.map((group, gi) => (
             <div key={group.section ?? `g${gi}`} className="mb-1">
               {group.section && (

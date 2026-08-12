@@ -1,7 +1,8 @@
-import { and, asc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTruckMonthClose, carTruckReports, carVehicles } from '@car-v2/db/schema';
-import { parseAmount } from './truck-cost';
+import { parseAmount, truckTripFuelCost } from './truck-cost';
+import { fuelPoolKey, loadVehicleFuelPool, type VehicleFuelPool } from './truck-fuel-pool';
 
 /**
  * Region-scoped month-end fuel snapshot (REQ-20260630, report-based since
@@ -9,10 +10,25 @@ import { parseAmount } from './truck-cost';
  * invoice price + consumption) and freezes it onto the report row; the LATEST
  * live report per (ent, month, region) is the official snapshot. Legacy
  * car_truck_month_close rows (the removed manual chốt sổ) remain as fallback so
- * historical closed months keep their numbers. A trip's official fuel cost
- * depends on ITS region (= its vehicle's cvh_region): when that (month, region)
- * has a snapshot it's km × consumption × avg price, otherwise the trip's own
- * litres × price.
+ * historical closed months keep their numbers.
+ *
+ * TWO distinct concepts (decoupled 2026-07-21, BUG-260721):
+ *  - `isReported(month, vehicle)` — a report EXISTS for the trip's (month,
+ *    region) (or a consolidated "all regions" report covers it). Drives the
+ *    "Đã lập BC" vs "Tạm tính" status. Generating a report finalizes the trip
+ *    even when there are no fuel invoices to reconcile against.
+ *  - `forTrip(month, vehicle)` — the frozen fuel snapshot for that (month,
+ *    region), or null. Drives the fuel COST: when present, km × consumption ×
+ *    avg price; when null (report exists but no invoices, or no report), the
+ *    LIVE per-vehicle pool takes over. So "finalized" no longer implies a
+ *    snapshot.
+ *
+ * Fuel is allocated from what the vehicle ACTUALLY spent (QA 2026-07-30):
+ * `km × (vehicle's monthly fuel spend ÷ its monthly km)`, live before a report
+ * and frozen after one. The vehicle's định mức (quota × price) is NOT part of
+ * any cost path — the old VEHICLE_RATE estimate it produced disagreed with the
+ * money the report would later freeze, which is what made the pre-report figure
+ * wrong.
  *
  * `loadTruckRegionSnapshots` batches the lookups every fuel-computing site
  * needs (P&L, trip list, finance list, exports) so the rule stays identical
@@ -23,16 +39,82 @@ export interface RegionSnapshot {
   consumption: number;
 }
 
+/**
+ * A vehicle's frozen monthly fuel reconciliation (REQ-20260726): its OWN fuel
+ * spend for the month, spread over its trips by km. `costPerKm = money ÷ km`,
+ * so `Σ over the vehicle's trips (km × costPerKm) = money` — the allocation
+ * reconciles exactly to what that vehicle actually spent on fuel.
+ */
+export interface VehicleFuelSnapshot {
+  costPerKm: number;
+  /** Mean invoice unit price (đ/L) — shown as the trip's "Đơn giá". */
+  avgPrice: number;
+  /** Litres ÷ km — shown as the trip's "Lít" (km × consumption). */
+  consumption: number;
+}
+
+/** How a trip's fuel cost was derived (drives the badge + toast copy):
+ *  - AVERAGED → frozen month-end reconciliation. Since REQ-20260726 this is
+ *    preferably the VEHICLE's own spend spread over its trips by km
+ *    (`km × costPerKm`); legacy reports fall back to the region pool
+ *    (`km × consumption × avgPrice`).
+ *  - LIVE     → the same per-vehicle allocation computed from what is recorded
+ *    RIGHT NOW (fuel invoices + fuel entered on the month's trips), i.e. a
+ *    provisional figure that still moves until the report freezes it.
+ *  - UNSET    → the vehicle has no fuel spend recorded for the month → cost 0. */
+export type TruckFuelMode = 'AVERAGED' | 'LIVE' | 'UNSET';
+
+export interface TruckTripFuel {
+  cost: number;
+  /** Unit price shown (đ/L): avg price (averaged) or vehicle price (rate); 0 when unset. */
+  unitPrice: number;
+  /** Litres shown: km × consumption; 0 when unset. */
+  liters: number;
+  /** Cost of ONE km for this trip (đ/km) = consumption × unitPrice. Lets the UI
+   * explain the figure per-trip as `{km} km × {costPerKm} ₫/km = {cost}` — the
+   * same shape in both modes, and it makes plain that km drives the cost
+   * (REQ-20260724 UX). 0 when unset. */
+  costPerKm: number;
+  mode: TruckFuelMode;
+}
+
 const snapKey = (month: string, region: string): string => `${month}|${region}`;
 
 export interface TruckRegionSnapshots {
-  /** Keyed `${month}|${region}` — only present when that region's month is
-   * closed AND has a computable snapshot. region '' = unassigned (never closed). */
+  /** Keyed `${month}|${region}` — only present when that region's month has a
+   * computable fuel snapshot (invoices → avg price + consumption). region '' =
+   * a consolidated "all regions" / legacy whole-fleet snapshot. */
   snap: Map<string, RegionSnapshot>;
+  /** Keyed `${month}|${vehicleId}` — the vehicle's OWN frozen reconciliation
+   * (REQ-20260726). Takes precedence over the region pool. */
+  vehicleSnap: Map<string, VehicleFuelSnapshot>;
   /** vehicleId → region code ('' when the vehicle has no region). */
   vehicleRegion: Map<string, string>;
-  /** Look up the snapshot for a trip given its month + vehicle id. */
+  /** Keyed `${month}|${vehicleId}` — the LIVE pool (what is recorded now).
+   * Used when nothing is frozen yet; also what the report will freeze. */
+  livePool: Map<string, VehicleFuelPool>;
+  /** Look up the frozen fuel snapshot for a trip (null → use vehicle rate). */
   forTrip(month: string, vehicleId: string | null): RegionSnapshot | null;
+  /** Keyed `${month}|${region}` — when that scope was last reported/closed.
+   * A trip changed after this is NOT covered by that report. */
+  reportedAt: Map<string, Date>;
+  /**
+   * The trip's per-trip fuel cost + display figures, applying the full
+   * precedence: frozen snapshot → live per-vehicle pool → unset(0).
+   * `km` = end − start odometer. This is the single source every fuel-showing
+   * screen calls so the rule stays identical everywhere.
+   *
+   * `changedAt` = the trip's own last change (updated_at, else created_at). A
+   * trip created or edited AFTER the scope's report cannot be taking its frozen
+   * numbers — it wasn't in it — so it falls through to the live pool and reads
+   * "Tạm tính" until the report is regenerated (BUG-260730 case 1). Omit only
+   * where no trip timestamp is at hand.
+   */
+  fuelForTrip(month: string, vehicleId: string | null, km: number, changedAt?: Date | null): TruckTripFuel;
+  /** True when a report/close covers the trip: one exists for its (month,
+   * region) — or a consolidated (region '') one — AND, when `changedAt` is
+   * given, was generated at/after the trip's last change. Drives "Đã lập BC". */
+  isReported(month: string, vehicleId: string | null, changedAt?: Date | null): boolean;
 }
 
 export async function loadTruckRegionSnapshots(
@@ -40,6 +122,14 @@ export async function loadTruckRegionSnapshots(
   months: string[],
 ): Promise<TruckRegionSnapshots> {
   const snap = new Map<string, RegionSnapshot>();
+  /* Per-vehicle frozen reconciliation (REQ-20260726) — wins over `snap`. */
+  const vehicleSnap = new Map<string, VehicleFuelSnapshot>();
+  /* Every (month, region) that has ≥1 live report or legacy close — regardless
+   * of whether a fuel snapshot could be computed. region '' = consolidated. */
+  const reported = new Set<string>();
+  /* Latest report/close moment per scope — the cut-off that decides whether a
+   * given trip is covered by it. */
+  const reportedAt = new Map<string, Date>();
   const vehicleRegion = new Map<string, string>();
 
   if (months.length > 0) {
@@ -51,6 +141,7 @@ export async function loadTruckRegionSnapshots(
           region: carTruckMonthClose.tmcRegion,
           avgPrice: carTruckMonthClose.tmcAvgPrice,
           consumption: carTruckMonthClose.tmcConsumption,
+          at: carTruckMonthClose.tmcClosedAt,
         })
         .from(carTruckMonthClose)
         .where(
@@ -61,12 +152,16 @@ export async function loadTruckRegionSnapshots(
             isNull(carTruckMonthClose.tmcDeletedAt),
           ),
         ),
+      /* ALL live reports (snapshot or not) — needed for `reported`; the `snap`
+       * map is filled only from the rows that actually froze a snapshot. */
       db
         .select({
           month: carTruckReports.trrMonth,
           region: carTruckReports.trrRegion,
           avgPrice: carTruckReports.trrAvgPrice,
           consumption: carTruckReports.trrConsumption,
+          vehicleFuel: carTruckReports.trrVehicleFuel,
+          at: carTruckReports.trrCreatedAt,
         })
         .from(carTruckReports)
         .where(
@@ -75,15 +170,20 @@ export async function loadTruckRegionSnapshots(
             eq(carTruckReports.trrVehicleType, 'TRUCK'),
             inArray(carTruckReports.trrMonth, uniqMonths),
             isNull(carTruckReports.trrDeletedAt),
-            isNotNull(carTruckReports.trrAvgPrice),
-            isNotNull(carTruckReports.trrConsumption),
           ),
         )
         .orderBy(asc(carTruckReports.trrCreatedAt)),
     ]);
     /* Legacy closes first, then report snapshots in creation order — each
      * overwrite leaves the NEWEST report as the official (month, region) value. */
+    const markReported = (key: string, at: Date | null) => {
+      reported.add(key);
+      if (!at) return;
+      const prev = reportedAt.get(key);
+      if (!prev || at > prev) reportedAt.set(key, at);
+    };
     for (const c of closeRows) {
+      markReported(snapKey(c.month, c.region ?? ''), c.at ?? null);
       if (c.avgPrice != null && c.consumption != null) {
         snap.set(snapKey(c.month, c.region ?? ''), {
           avgPrice: parseAmount(c.avgPrice),
@@ -91,29 +191,133 @@ export async function loadTruckRegionSnapshots(
         });
       }
     }
+    /* Only the NEWEST live report per (month, region) defines that scope's
+     * snapshot — and it defines the MODE too. Mixing tiers across generations
+     * would double-count: an older region-pool report would keep feeding
+     * vehicles that the newest (per-vehicle) report deliberately leaves to
+     * their own định mức. Reports arrive in ascending creation order, so the
+     * last write per scope wins. */
+    const latestByScope = new Map<string, (typeof reportRows)[number]>();
     for (const r of reportRows) {
-      snap.set(snapKey(r.month, r.region ?? ''), {
-        avgPrice: parseAmount(r.avgPrice),
-        consumption: parseAmount(r.consumption),
-      });
+      const key = snapKey(r.month, r.region ?? '');
+      markReported(key, r.at ?? null);
+      latestByScope.set(key, r);
+    }
+    for (const [key, r] of latestByScope) {
+      const vf = r.vehicleFuel ?? [];
+      if (vf.length > 0) {
+        /* Per-vehicle freeze supersedes any region pool for this scope. */
+        snap.delete(key);
+        for (const v of vf) {
+          if (!v?.vehicleId || !(v.costPerKm > 0)) continue;
+          vehicleSnap.set(snapKey(r.month, v.vehicleId), {
+            costPerKm: v.costPerKm,
+            avgPrice: v.avgPrice,
+            consumption: v.km > 0 ? v.liters / v.km : 0,
+          });
+        }
+      } else if (r.avgPrice != null && r.consumption != null) {
+        snap.set(key, {
+          avgPrice: parseAmount(r.avgPrice),
+          consumption: parseAmount(r.consumption),
+        });
+      }
     }
   }
 
-  const vrows = await db
-    .select({ id: carVehicles.cvhId, region: carVehicles.cvhRegion })
-    .from(carVehicles)
-    .where(and(eq(carVehicles.entId, entId), eq(carVehicles.cvhType, 'TRUCK')));
+  const [vrows, livePool] = await Promise.all([
+    db
+      .select({ id: carVehicles.cvhId, region: carVehicles.cvhRegion })
+      .from(carVehicles)
+      .where(and(eq(carVehicles.entId, entId), eq(carVehicles.cvhType, 'TRUCK'))),
+    /* The live allocation basis — same aggregation the report freezes, so
+     * "tạm tính" and "đã lập BC" can only differ by fuel recorded afterwards. */
+    loadVehicleFuelPool(entId, months),
+  ]);
   for (const v of vrows) vehicleRegion.set(v.id, v.region ?? '');
+
+  const forTrip = (month: string, vehicleId: string | null): RegionSnapshot | null => {
+    const region = vehicleId ? vehicleRegion.get(vehicleId) ?? '' : '';
+    /* Prefer the trip's own region snapshot; fall back to a whole-fleet /
+     * consolidated one (region '') so an "all regions" report reconciles
+     * every trip. */
+    return snap.get(snapKey(month, region)) ?? snap.get(snapKey(month, '')) ?? null;
+  };
+
+  /** When the trip's scope was last reported/closed (own region, else the
+   * consolidated one) — null when never. */
+  const frozenAt = (month: string, vehicleId: string | null): Date | null => {
+    const region = vehicleId ? vehicleRegion.get(vehicleId) ?? '' : '';
+    const a = reportedAt.get(snapKey(month, region));
+    const b = reportedAt.get(snapKey(month, ''));
+    if (a && b) return a > b ? a : b;
+    return a ?? b ?? null;
+  };
+
+  /** Is this trip inside the report that froze its scope? A trip created or
+   * edited after the report ran was never part of it. No timestamp given →
+   * assume covered (callers that can't supply one keep the old behaviour). */
+  const coveredByReport = (month: string, vehicleId: string | null, changedAt?: Date | null): boolean => {
+    if (!changedAt) return true;
+    const at = frozenAt(month, vehicleId);
+    return at != null && at >= changedAt;
+  };
 
   return {
     snap,
+    vehicleSnap,
     vehicleRegion,
-    forTrip(month, vehicleId) {
+    livePool,
+    reportedAt,
+    forTrip,
+    fuelForTrip(month, vehicleId, km, changedAt) {
+      const covered = coveredByReport(month, vehicleId, changedAt);
+      /* 1) The vehicle's OWN frozen spend, spread by km (REQ-20260726). */
+      const vs = covered && vehicleId ? vehicleSnap.get(snapKey(month, vehicleId)) : undefined;
+      if (vs) {
+        return {
+          cost: km > 0 ? Math.round(km * vs.costPerKm) : 0,
+          unitPrice: vs.avgPrice,
+          liters: km > 0 ? km * vs.consumption : 0,
+          costPerKm: Math.round(vs.costPerKm),
+          mode: 'AVERAGED',
+        };
+      }
+      /* 2) Legacy region-pool snapshot (reports made before 0024). */
+      const s = covered ? forTrip(month, vehicleId) : null;
+      if (s) {
+        return {
+          cost: truckTripFuelCost({ km, consumption: s.consumption, avgPrice: s.avgPrice }),
+          unitPrice: s.avgPrice,
+          liters: km > 0 ? km * s.consumption : 0,
+          costPerKm: Math.round(s.consumption * s.avgPrice),
+          mode: 'AVERAGED',
+        };
+      }
+      /* 3) Nothing frozen yet → allocate from the vehicle's fuel recorded so
+       * far this month. Provisional (more fuel may still be entered), but it is
+       * real money and the same formula the report will freeze. */
+      const pool = vehicleId ? livePool.get(fuelPoolKey(month, vehicleId)) : undefined;
+      if (pool && pool.costPerKm > 0) {
+        const consumption = pool.km > 0 ? pool.liters / pool.km : 0;
+        return {
+          cost: km > 0 ? Math.round(km * pool.costPerKm) : 0,
+          unitPrice: pool.avgPrice,
+          liters: km > 0 ? km * consumption : 0,
+          costPerKm: Math.round(pool.costPerKm),
+          mode: 'LIVE',
+        };
+      }
+      return { cost: 0, unitPrice: 0, liters: 0, costPerKm: 0, mode: 'UNSET' };
+    },
+    isReported(month, vehicleId, changedAt) {
       const region = vehicleId ? vehicleRegion.get(vehicleId) ?? '' : '';
-      /* Prefer the trip's own region close; fall back to a whole-fleet close
-       * (region '' — a legacy per-month close, or an "all regions" close) so
-       * existing closes keep finalizing every trip. */
-      return snap.get(snapKey(month, region)) ?? snap.get(snapKey(month, '')) ?? null;
+      const exists = reported.has(snapKey(month, region)) || reported.has(snapKey(month, ''));
+      if (!exists) return false;
+      /* A trip added/edited after the report is not in it — showing "Đã lập BC"
+       * on a brand-new trip because some earlier report covered its month was
+       * the whole complaint (BUG-260730 case 1). */
+      return coveredByReport(month, vehicleId, changedAt);
     },
   };
 }

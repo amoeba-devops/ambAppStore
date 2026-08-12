@@ -12,17 +12,20 @@ function bcp47(locale: string): string {
  * every screen that shows numbers derived from a truck report snapshot (Chi
  * phí & LN, P&L, Dashboard, chi tiết chuyến). Fed by `getTruckReportStatus`
  * (PLAN-20260707 follow-up) so the answer is identical everywhere: never
- * reported (neutral) · reported and fresh (success) · reported but data
- * changed since (warning — needs regenerating).
+ * reported (neutral) · not in the existing report (neutral) · reported and
+ * fresh (success) · reported but data changed since (warning — regenerate).
  */
 export async function ReportStatusBadge({
   reportedAt,
   stale,
+  covered = true,
   locale,
   size = 'sm',
 }: {
   reportedAt: Date | null;
   stale: boolean;
+  /** false = this record post-dates the report, so it isn't in it. */
+  covered?: boolean;
   locale: string;
   size?: 'sm' | 'md';
 }) {
@@ -31,6 +34,15 @@ export async function ReportStatusBadge({
     return (
       <Badge tone="neutral" size={size}>
         {t('noReport')}
+      </Badge>
+    );
+  }
+  /* A report exists for the month, but this record was logged afterwards —
+   * saying "Đã lập BC" here is what made a brand-new trip look finalised. */
+  if (!covered) {
+    return (
+      <Badge tone="neutral" size={size}>
+        {t('notCovered')}
       </Badge>
     );
   }
