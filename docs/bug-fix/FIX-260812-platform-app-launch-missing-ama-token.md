@@ -31,18 +31,51 @@ GET /app-car-manager-v2/login                              200   ← 로그인 �
 즉 실행 링크가 **v1 SPA 시대의 가정(같은 오리진 + localStorage)** 그대로 남아 있었고, v2 앱이 추가될 때 갱신되지 않았다.
 
 ## 3. 수정 내용 / Fix
-`src/lib/app-launch.ts` 신규 — 순수 함수 하나로 통일:
+
+### 3.0 1차 시도가 틀렸던 지점 — `401 Invalid token`
+처음에는 `localStorage.ama_token`(=`useAuthStore`의 토큰)을 그대로 붙였다. 그러자 리다이렉트는 사라졌지만 앱이 **`401 Invalid token`**(`middleware.ts:146`)을 반환했다. 원인: **AMA 토큰이 두 종류이고, 둘의 페이로드 형태가 다르다.**
+
+access log의 실제 토큰들을 디코딩해 확인한 결과:
+
+| | 플랫폼 세션 토큰 | 앱 스코프 토큰 |
+|---|---|---|
+| 어디서 오나 | admin 로그인 → `localStorage.ama_token` | AMA가 `/apps/:slug?ama_token=…`에 붙여 보냄 |
+| entity 클레임 | **`ent_id`** (snake_case) | **`entityId`** (camelCase) |
+| `appCode` | **없음** | `car-manager-v2` |
+| role | `role: 'SUPER_ADMIN'`, `roles: ['SUPER_ADMIN']`, `level: 'ADMIN_LEVEL'` | `role: 'MASTER'` |
+| 기타 | — | `appId`, `scope: 'custom_app:context'` |
+
+v2 앱의 `amaJwtClaimsSchema`(`packages/shared/src/auth/jwt-claims.ts`)는 `entityId`(uuid)와 자기 슬러그와 일치하는 `appCode`를 **요구**한다. 서명 검증은 통과하지만(공유 시크릿 동일) Zod parse에서 실패 → `verifyAmaJwt` throw → 401. 즉 **플랫폼 세션 토큰은 v2 앱에 넘길 수 없는 토큰**이다.
+
+한편 플랫폼은 URL로 들어온 앱 스코프 토큰을 **읽지도 저장하지도 않고 버리고 있었다**(`ama_token`을 참조하는 코드가 localStorage 경로에만 존재).
+
+### 3.1 최종 구현
+`src/lib/app-launch.ts` 신규 — 앱 스코프 토큰만 전달:
 ```ts
-export function buildAppLaunchUrl(slug: string, token: string | null): string {
+const initialSearch = typeof window === 'undefined' ? '' : window.location.search;
+
+export function buildAppLaunchUrl(slug: string): string {
   const path = `/${slug}`;
+  const token = appScopedTokenFor(slug);   // URL 토큰, 아래 3조건 모두 만족 시
   return token ? `${path}?ama_token=${encodeURIComponent(token)}` : path;
 }
 ```
-- 3개 링크 모두 이 헬퍼 사용. 토큰은 `useAuthStore`에서 가져옴(`AppDetailPage`는 기존 구조분해에 `token` 추가, `SubscriptionCard`는 셀렉터 추가).
-- v1 앱에 붙어도 무해 — 알 수 없는 쿼리 파라미터는 무시된다. 그래서 앱 종류를 분기하지 않고 일괄 적용해 로직을 단순하게 유지.
-- **`locale`은 전달하지 않음**: v2 앱은 `NEXT_LOCALE` 쿠키로 언어를 결정(`apps/web/src/i18n/request.ts`)하고 쿼리 파라미터를 읽지 않는다. 붙여도 죽은 코드가 된다.
+`appScopedTokenFor()`가 확인하는 3가지:
+1. `appCode` 클레임이 존재 — 없으면 플랫폼 세션 토큰이므로 사용 불가
+2. `exp`가 아직 유효
+3. `appCode`가 대상 슬러그와 일치 — AMA는 `app-` 접두사를 뺀 형태(`car-manager-v2`)로 발급하므로 두 형태 모두 매칭 (v2 스키마도 두 형태를 허용)
+
+**조건을 못 채우면 토큰을 아예 붙이지 않는다.** 잘못된 토큰으로 401(막다른 길)을 만드는 것보다, 앱의 `/login`에 착지해 사용자가 직접 로그인할 수 있게 하는 편이 낫다.
+
+`initialSearch`를 모듈 로드 시점에 캡처하는 이유: 라우터가 하이드레이션 중 쿼리 파라미터를 제거하므로(App.tsx의 `EntityContextInitializer`) 나중에 `window.location.search`를 읽으면 이미 비어 있다.
+
+- 3개 링크 모두 이 헬퍼 사용. v1 앱에 붙어도 무해 — 알 수 없는 쿼리 파라미터는 무시된다.
+- **`locale`은 전달하지 않음**: v2 앱은 `NEXT_LOCALE` 쿠키로 언어를 결정(`apps/web/src/i18n/request.ts`)하고 쿼리 파라미터를 읽지 않는다.
 
 토큰이 URL에 노출되는 것은 설계된 핸드오프다 — AMA도 같은 방식으로 플랫폼에 토큰을 넘기며, v2 미들웨어는 쿠키를 심은 직후 파라미터를 제거한 URL로 리다이렉트한다.
+
+### 3.2 남는 한계
+`SubscriptionCard`(내 구독 목록)에서 앱을 열 때는 URL에 앱 스코프 토큰이 없는 경우가 많다. AMA가 특정 앱을 대상으로 발급한 토큰만 유효하고 **플랫폼은 앱 토큰을 발급할 수 없으므로**, 그 경로에서는 자동 로그인이 성립하지 않고 앱의 `/login`으로 간다. 근본 해결은 AMA에 앱 토큰 발급 API(또는 앱별 재진입 링크)가 필요하다.
 
 ### 3.1 배포 중 발견한 선행 장애: `apps/platform/.env` 부재
 `docker-compose.platform.yml`은 `env_file: ./.env`를 선언하는데 **해당 파일이 디스크에 없었다.** 실행 중인 컨테이너(2026-07-12 생성)는 생성 시점 env를 그대로 들고 있어 동작했지만, `docker compose config`부터 실패하는 상태였다:
@@ -74,11 +107,24 @@ sudo docker compose --env-file .env -f docker-compose.platform.yml \
 빌드 전 `tei-hscode` 정지 → 완료 후 재시작 (호스트 RAM 절차, FIX-260812-staging-host-freeze-build-oom).
 
 ## 6. 검증 / Verification
-번들에 컴파일된 헬퍼가 실제로 포함됨:
+번들에 컴파일된 헬퍼(appCode 검사 포함)가 실제로 포함됨:
 ```
-$ docker exec web-platform grep -oE '.{0,40}ama_token=.{0,30}' /usr/share/nginx/html/assets/*.js
- Sd(e,t){const n=`/${e}`;return t?`${n}?ama_token=${encodeURIComponent(t)}`:n}
+$ docker exec web-platform grep -oE '.{0,60}appCode.{0,150}' /usr/share/nginx/html/assets/index-*.js
+ ama_token");if(!t)return null;const n=v2(t);
+ if(!(n!=null&&n.appCode)||n.exp&&n.exp*1e3<=Date.now())return null;
+ const r=e.replace(/^app-/,"");return n.appCode!==e&&n.appCode!==r?null:t
 ```
+
+**실제 AMA 토큰으로 앱 측 검증** (access log에서 유효한 앱 스코프 토큰을 추출해 미들웨어 단계만 호출 — 페이지를 렌더하지 않아 `ensureCarUser` upsert가 일어나지 않음):
+```
+appCode: car-manager-v2 | role: MASTER | 유효
+
+GET /app-car-manager-v2?ama_token=<real AMA token>
+→ HTTP/2 307
+  location: /app-car-manager-v2
+  set-cookie: amb_session=…; Max-Age=3251; Secure; HttpOnly; SameSite=none
+```
+401이 아니라 307 + 세션 쿠키 — 앱이 실제 AMA 토큰을 받아들인다.
 
 | 항목 | 결과 |
 |---|---|
