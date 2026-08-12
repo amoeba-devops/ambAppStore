@@ -6,6 +6,8 @@ dist/
 .env.local
 .env.staging
 .env.production
+# Timestamped .env snapshots taken before edits — contain live secrets.
+.env.bak*
 .DS_Store
 coverage/
 .nyc_output/
