@@ -7,6 +7,7 @@ import { useSubscriptionCheck, useEntitySubscriptions } from '@/hooks/useSubscri
 import { useAuthStore } from '@/stores/auth.store';
 import { useEntityContextStore } from '@/stores/entity-context.store';
 import { SubscriptionRequestModal } from '@/components/SubscriptionRequestModal';
+import { buildAppLaunchUrl } from '@/lib/app-launch';
 
 const APP_ICONS: Record<string, string> = {
   'app-car-manager': '🚗',
@@ -21,7 +22,7 @@ export function AppDetailPage() {
   const { slug = '' } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation('platform');
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, token } = useAuthStore();
   const entity = useEntityContextStore((s) => s.entity);
   const setEntity = useEntityContextStore((s) => s.setEntity);
   const entId = entity?.entId || null;
@@ -133,14 +134,14 @@ export function AppDetailPage() {
       <div className="sticky bottom-4">
         {currentStatus === 'ACTIVE' && isEntityUser ? (
           <a
-            href={`/${app.slug}`}
+            href={buildAppLaunchUrl(app.slug, token)}
             className="block w-full rounded-xl bg-green-600 py-3 text-center font-semibold text-white hover:bg-green-700"
           >
             {t('detail.useService')}
           </a>
         ) : currentStatus === 'ACTIVE' ? (
           <a
-            href={`/${app.slug}`}
+            href={buildAppLaunchUrl(app.slug, token)}
             className="block w-full rounded-xl bg-blue-600 py-3 text-center font-semibold text-white hover:bg-blue-700"
           >
             {t('detail.inUse')}
