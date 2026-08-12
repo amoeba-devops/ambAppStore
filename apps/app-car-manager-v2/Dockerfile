@@ -65,6 +65,14 @@ ENV NEXT_PUBLIC_BASE_PATH=${NEXT_PUBLIC_BASE_PATH}
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
+# Staging host is a 2 vCPU / 7.7GB box shared with 10 other containers (the
+# HS Code embedding service alone holds ~3.5GB). Without a heap ceiling, V8
+# grows until the host runs out of RAM — which froze the box twice on
+# 2026-08-12 instead of merely failing the build. Cap the old space so V8 GCs
+# under pressure. Raise only if the build starts dying with OOM *inside* Node
+# (heap out of memory), which is a recoverable failure, unlike a host freeze.
+ENV NODE_OPTIONS=--max-old-space-size=2048
+
 RUN npm run build --workspace @car-v2/web
 
 # Drop devDependencies before copying into runner
@@ -82,6 +90,14 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3001
 ENV HOSTNAME=0.0.0.0
+# BASE_PATH must ALSO be present at RUNTIME, not just at build time: `next start`
+# re-evaluates next.config.mjs (basePath = process.env.BASE_PATH || undefined) and
+# middleware's absoluteUrl() reads it for redirect targets. Without it the app
+# serves at root while nginx forwards /app-car-manager-v2/* → redirect to /login.
+# ENV does NOT cross multi-stage boundaries, so the builder-stage value is gone here.
+# Note this is only a fallback: compose `env_file: ./.env` overrides image ENV, so
+# .env must carry a non-empty BASE_PATH as well (FIX-260812).
+ENV BASE_PATH=/app-car-manager-v2
 
 # Non-root user
 RUN addgroup --system --gid 1001 nodejs \

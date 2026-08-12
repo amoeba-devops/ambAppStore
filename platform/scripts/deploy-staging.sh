@@ -12,6 +12,7 @@
 #   bash platform/scripts/deploy-staging.sh build stock        # build stock-management only
 #   bash platform/scripts/deploy-staging.sh build sales        # build sales-report only
 #   bash platform/scripts/deploy-staging.sh build car-manager-v2  # build v2 only (Next.js)
+#   bash platform/scripts/deploy-staging.sh build sales-report-v2  # build sales v2 only (Next.js)
 # ============================================================
 # NOTE: hscode-manager는 독립 리포(amoeba-devops/ambAppHscode)로 분리됨 —
 #       hscode 배포는 해당 리포의 scripts/deploy-staging.sh 사용.
@@ -74,7 +75,19 @@ APP_BFF_NAME[car-manager-v2]="next-car-manager-v2"
 APP_WEB_NAME[car-manager-v2]="next-car-manager-v2"
 APP_HEALTH_PATH[car-manager-v2]="/app-car-manager-v2/api/v1/health"
 
-ALL_APPS=(platform car-manager stock sales car-manager-v2)
+# sales-report-v2: Next.js 15 single-service (BFF+Web in one container).
+# BFF_NAME == WEB_NAME and BFF_PORT == WEB_PORT by design.
+# Host port 3106 → container 3001 (3105 is taken by car-manager-v2).
+# Health endpoint lives under basePath (/app-sales-report-v2/api/v1/health).
+APP_DIRS[sales-report-v2]="$PROJECT_ROOT/apps/app-sales-report-v2"
+APP_COMPOSE[sales-report-v2]="docker-compose.app-sales-report-v2.yml"
+APP_BFF_PORT[sales-report-v2]=3106
+APP_WEB_PORT[sales-report-v2]=3106
+APP_BFF_NAME[sales-report-v2]="next-sales-report-v2"
+APP_WEB_NAME[sales-report-v2]="next-sales-report-v2"
+APP_HEALTH_PATH[sales-report-v2]="/app-sales-report-v2/api/v1/health"
+
+ALL_APPS=(platform car-manager stock sales car-manager-v2 sales-report-v2)
 
 MODE="${1:-full}"
 TARGET_APP="${2:-all}"
@@ -111,7 +124,7 @@ done
 
 # Ensure platform (with MySQL) is deployed first when deploying all apps
 if [ "$TARGET_APP" = "all" ]; then
-  APPS=(platform car-manager stock sales car-manager-v2)
+  APPS=(platform car-manager stock sales car-manager-v2 sales-report-v2)
 fi
 
 build_app() {
@@ -222,7 +235,7 @@ case "$MODE" in
     ;;
 
   *)
-    echo "Usage: $0 {full|build|restart|verify} [platform|car-manager|stock|sales|car-manager-v2|all]"
+    echo "Usage: $0 {full|build|restart|verify} [platform|car-manager|stock|sales|car-manager-v2|sales-report-v2|all]"
     exit 1
     ;;
 esac
