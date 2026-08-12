@@ -25,8 +25,12 @@ services:
     build:
       context: .
       args:
-        # BASE_PATH is inlined into JS bundle at build time; rebuild on change
+        # All build-time-inlined vars. NEXT_PUBLIC_* reach the client bundle +
+        # next.config CSP only via these args (.env is runtime-only, and excluded
+        # from the build context). Rebuild the image whenever any of these change.
         BASE_PATH: /app-sales-report-v2
+        NEXT_PUBLIC_AMA_ORIGIN: ${NEXT_PUBLIC_AMA_ORIGIN}
+        NEXT_PUBLIC_PRIME_COST_VERSIONING: ${NEXT_PUBLIC_PRIME_COST_VERSIONING}
     container_name: next-sales-report-v2
     ports:
       - "3106:3001"

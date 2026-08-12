@@ -41,9 +41,16 @@ RUN npm ci --include=dev
 # Copy source after install (so deps cache survives src edits)
 COPY . .
 
-# Build-time env: basePath must be present when `next build` runs
+# Build-time env: basePath must be present when `next build` runs.
+# NEXT_PUBLIC_* are inlined into the JS bundle at build time (used in client code
+# + next.config.mjs CSP), so they MUST be ARGs here — .env is runtime-only and is
+# excluded from the build context (.dockerignore). Rebuild whenever they change.
 ARG BASE_PATH=/app-sales-report-v2
 ENV BASE_PATH=${BASE_PATH}
+ARG NEXT_PUBLIC_AMA_ORIGIN=https://ama.amoeba.site
+ENV NEXT_PUBLIC_AMA_ORIGIN=${NEXT_PUBLIC_AMA_ORIGIN}
+ARG NEXT_PUBLIC_PRIME_COST_VERSIONING=off
+ENV NEXT_PUBLIC_PRIME_COST_VERSIONING=${NEXT_PUBLIC_PRIME_COST_VERSIONING}
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
@@ -64,6 +71,12 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3001
 ENV HOSTNAME=0.0.0.0
+# BASE_PATH must ALSO be present at RUNTIME, not just at build time: `next start`
+# re-evaluates next.config.mjs (basePath = process.env.BASE_PATH || undefined) and
+# middleware's absoluteUrl() reads it for redirect targets. Without it the app
+# serves at root while nginx forwards /app-sales-report-v2/* → 404 loop.
+# ENV does NOT cross multi-stage boundaries, so the builder-stage value is gone here.
+ENV BASE_PATH=/app-sales-report-v2
 
 # Non-root user
 RUN addgroup --system --gid 1001 nodejs \
