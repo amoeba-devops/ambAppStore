@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ExternalLink, X, RotateCcw, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { SubscriptionItem } from '@/hooks/useSubscription';
+import { buildAppLaunchUrl } from '@/lib/app-launch';
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: 'bg-amber-100 text-amber-700',
@@ -96,7 +97,7 @@ export function SubscriptionCard({ subscription: sub, onCancel, isCancelling }: 
       <div className="flex gap-2 pt-1">
         {canGoToApp && (
           <a
-            href={`/${sub.appSlug}`}
+            href={buildAppLaunchUrl(sub.appSlug)}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
             <ExternalLink className="h-4 w-4" />
