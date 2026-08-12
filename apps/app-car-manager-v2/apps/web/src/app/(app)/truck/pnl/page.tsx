@@ -16,6 +16,7 @@ import {
   listFuelInvoices,
 } from '@/server/queries/truck-finance.queries';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
+import { FuelReconciliationBadge, aggregateFuelMode } from '@/components/truck/fuel-reconciliation-badge';
 import { FinanceTabs } from '../finance/_components/finance-tabs';
 import { FuelInvoicePanel } from './_components/fuel-invoice-panel';
 
@@ -53,8 +54,6 @@ const METRICS: MetricDef[] = [
   { key: 'variableCost', labelKey: 'variable', kind: 'subtotal' },
   { key: 'salary', labelKey: 'salary' },
   { key: 'depreciation', labelKey: 'depreciation' },
-  { key: 'insurance', labelKey: 'insurance' },
-  { key: 'driverSalary', labelKey: 'driverSalary' },
   { key: 'fixedCost', labelKey: 'fixed', kind: 'subtotal' },
   { key: 'tripCount', labelKey: 'trips', kind: 'count' },
   { key: 'netProfit', labelKey: 'netProfit', kind: 'profit' },
@@ -163,7 +162,19 @@ export default async function TruckPnlPage({
               total={vnd(selected.variableCost)}
               hint={t('variableHint')}
               rows={[
-                [t('fuel'), vnd(selected.fuelCost)],
+                [
+                  t('fuel'),
+                  <>
+                    {vnd(selected.fuelCost)}
+                    <FuelReconciliationBadge
+                      mode={aggregateFuelMode({
+                        averaged: selected.fuelAveragedTripCount,
+                        live: selected.fuelLiveTripCount,
+                        unset: selected.fuelUnsetTripCount,
+                      })}
+                    />
+                  </>,
+                ],
                 [t('toll'), vnd(selected.tollFee)],
                 [t('other'), vnd(selected.extraTotal)],
               ]}
@@ -174,9 +185,10 @@ export default async function TruckPnlPage({
               total={vnd(selected.fixedCost)}
               hint={t('fixedHint')}
               rows={[
+                /* Fixed cost = driver salary + depreciation (insurance dropped
+                 * from the model 2026-07-21); rows sum to the total. */
                 [t('salary'), vnd(selected.salary)],
                 [t('depreciation'), vnd(selected.depreciation)],
-                [t('insurance'), vnd(selected.insurance)],
               ]}
             />
           </div>
@@ -227,7 +239,20 @@ export default async function TruckPnlPage({
                             def.kind === 'profit' && (n >= 0 ? 'text-success' : 'text-danger'),
                           )}
                         >
-                          {fmt(def, n)}
+                          {def.key === 'fuelCost' ? (
+                            <div className="flex flex-col items-end gap-1">
+                              <span>{fmt(def, n)}</span>
+                              <FuelReconciliationBadge
+                                mode={aggregateFuelMode({
+                                  averaged: row.fuelAveragedTripCount,
+                                  live: row.fuelLiveTripCount,
+                                  unset: row.fuelUnsetTripCount,
+                                })}
+                              />
+                            </div>
+                          ) : (
+                            fmt(def, n)
+                          )}
                         </td>
                       );
                     })}
@@ -260,7 +285,16 @@ export default async function TruckPnlPage({
                 ))}
               </div>
             )}
-            <FuelInvoicePanel month={month} region={region} invoices={invoices} locked={regionLocked} />
+            <FuelInvoicePanel
+              month={month}
+              region={region}
+              invoices={invoices}
+              /* Only this region's trucks — an invoice belongs to one of them. */
+              vehicles={trucks
+                .filter((v) => v.cvhRegion === region)
+                .map((v) => ({ id: v.cvhId, plate: v.cvhPlateNumber }))}
+              locked={regionLocked}
+            />
             <p className="text-xs text-text-faint">{t('monthEndFormula')}</p>
           </div>
         ) : (
@@ -298,7 +332,7 @@ function CostCard({
   title: string;
   total: string;
   hint: string;
-  rows: [string, string][];
+  rows: [string, React.ReactNode][];
 }) {
   return (
     <Card variant="outline" className="p-4 space-y-2">
@@ -311,7 +345,7 @@ function CostCard({
         {rows.map(([label, value]) => (
           <li key={label} className="flex justify-between text-sm">
             <span className="text-text-muted">{label}</span>
-            <span className="tabular text-text">{value}</span>
+            <span className="tabular text-text inline-flex items-center gap-1.5">{value}</span>
           </li>
         ))}
       </ul>

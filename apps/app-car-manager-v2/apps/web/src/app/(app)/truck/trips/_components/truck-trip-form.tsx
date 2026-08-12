@@ -19,11 +19,16 @@ import {
   toast,
 } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
-import { createTruckTripAction, updateTruckTripAction } from '@/server/actions/trips/truck-trip.actions';
+import {
+  createTruckTripAction,
+  updateTruckTripAction,
+  driverUpdateTruckTripAction,
+} from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
 import { FormField } from '@/components/forms/form-section';
 import { MoneyInput } from '@/components/inputs/money-input';
 import { CostReceiptInput, type ExistingCostAttachment } from '@/components/truck/cost-receipt-input';
+import { fuelToastDescription } from '@/components/truck/fuel-toast';
 import { uploadTruckCostFile } from '@/lib/truck-cost-upload';
 import { StopBuilder, makeDefaultStops, type StopField } from './stop-builder';
 import type { CarStopType, CarTripStopover } from '@car-v2/db/schema';
@@ -47,6 +52,9 @@ export interface OptionItem {
 
 export type TruckTripFormInitial = Partial<{
   scheduledAt: string;
+  startTime: string;
+  endTime: string;
+  notes: string;
   vehicleId: string;
   driverId: string;
   customer: string;
@@ -68,11 +76,17 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 
 const EMPTY_FIELDS = {
   scheduledAt: todayIso(),
+  /* 'HH:mm' — combined with scheduledAt on submit. The monthly report has a
+   * "Giờ bắt đầu / Giờ kết thúc" column, so a manager logging a finished trip
+   * must be able to say when it actually ran. */
+  startTime: '',
+  endTime: '',
   vehicleId: '',
   driverId: '',
   customer: '',
   bol: '',
   cdf: '',
+  notes: '',
   revenue: '',
   fuelPrice: '',
   fuelLiters: '',
@@ -114,6 +128,7 @@ export function TruckTripForm({
   initial?: TruckTripFormInitial;
 }) {
   const t = useTranslations('screens.truckTrips.form');
+  const tFuel = useTranslations('screens.truckFinance');
   const tErr = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -129,6 +144,9 @@ export function TruckTripForm({
   });
 
   const isDriver = role === 'DRIVER';
+  /* Where Cancel / a successful save lands. A driver editing came from their own
+   * trip page and belongs back on it — /truck/* redirects them to /today. */
+  const driverHome = tripId ? `/today/truck/${tripId}` : '/today';
 
   /* Extra incidental costs — free-text name + amount rows. */
   const [extras, setExtras] = useState<ExtraRow[]>(
@@ -178,7 +196,7 @@ export function TruckTripForm({
   /* Optional fields stay collapsed by default to keep the form light — they
    * auto-expand on edit when the trip already carries that data. */
   const [showDocs, setShowDocs] = useState(
-    () => !!(initial?.customer || initial?.bol || initial?.cdf),
+    () => !!(initial?.customer || initial?.bol || initial?.cdf || initial?.notes),
   );
 
   const set =
@@ -189,7 +207,13 @@ export function TruckTripForm({
   /* Setter for MoneyInput (receives the raw digit string, not an event). */
   const setNum = (k: keyof typeof EMPTY_FIELDS) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
-  /* Live profit preview. */
+  const selectedVehicle = vehicles.find((v) => v.id === f.vehicleId);
+
+  /* Live profit preview. Fuel here = what THIS trip recorded (litres × đơn
+   * giá) — the money actually spent. The per-trip cost that lands in P&L is
+   * that spend POOLED per vehicle-month and re-spread by km (a fill-up serves
+   * several trips), which needs the whole month and so is computed server-side;
+   * the month total is identical either way, so the preview stays honest. */
   const preview = useMemo(() => {
     const fuelCost = Math.round((numF(f.fuelLiters) ?? 0) * (numF(f.fuelPrice) ?? 0));
     const toll = Math.round(numF(f.toll) ?? 0);
@@ -213,9 +237,9 @@ export function TruckTripForm({
   const dirty = f.vehicleId !== '' && (isDriver || f.driverId !== '') && stopsValid;
 
   /* Derived summary data. */
-  const vehicleLabel = vehicles.find((v) => v.id === f.vehicleId)?.label ?? null;
+  const vehicleLabel = selectedVehicle?.label ?? null;
   const driverLabel = drivers.find((d) => d.id === f.driverId)?.label ?? null;
-  const selectedVehicleDefaultDriverId = vehicles.find((v) => v.id === f.vehicleId)?.defaultDriverId;
+  const selectedVehicleDefaultDriverId = selectedVehicle?.defaultDriverId;
   const isDriverAutoFilled = !!selectedVehicleDefaultDriverId && selectedVehicleDefaultDriverId === f.driverId;
   const kmNums = stops.map((s) => (s.km.trim() ? Number(s.km) : null));
   const firstKm = kmNums.find((v) => v != null);
@@ -261,6 +285,9 @@ export function TruckTripForm({
         dropoff_address: dropoffAddress,
         bol: f.bol.trim() || undefined,
         cdf: f.cdf.trim() || undefined,
+        notes: f.notes.trim() || undefined,
+        start_time: f.startTime ? `${f.scheduledAt}T${f.startTime}` : undefined,
+        end_time: f.endTime ? `${f.scheduledAt}T${f.endTime}` : undefined,
         fuel_price: numF(f.fuelPrice),
         revenue: isDriver ? undefined : numF(f.revenue),
         mark_completed: isDriver ? false : markCompleted,
@@ -274,16 +301,25 @@ export function TruckTripForm({
         cost_attachments,
         stopovers: stopoversPayload,
       };
-      const res = tripId
-        ? await updateTruckTripAction({ ...payload, trip_id: tripId })
-        : await createTruckTripAction(payload);
+      const res = !tripId
+        ? await createTruckTripAction(payload)
+        : isDriver
+          ? /* Ownership-checked driver self-edit; the manager action is staff-only. */
+            await driverUpdateTruckTripAction({ ...payload, trip_id: tripId })
+          : await updateTruckTripAction({ ...payload, trip_id: tripId });
       if (!res.success) {
         toast.error(formatActionError(res.error, tErr));
         return;
       }
-      toast.success(tripId ? t('updatedToast') : t('createdToast'));
+      /* Tell the user how the per-trip fuel was treated on save (REQ-20260724):
+       * averaged (invoices) / vehicle rate (km × định mức × giá xe) / unset
+       * (xe chưa đặt định mức → 0). Server returns null for a non-completed
+       * trip → no fuel note. */
+      toast.success(tripId ? t('updatedToast') : t('createdToast'), {
+        description: fuelToastDescription(res.data.fuelMode, tFuel),
+      });
       router.push(
-        isDriver ? '/today' : (tripId ? `/truck/trips/${tripId}` : '/truck/trips'),
+        isDriver ? driverHome : (tripId ? `/truck/trips/${tripId}` : '/truck/trips'),
       );
       router.refresh();
     });
@@ -307,6 +343,26 @@ export function TruckTripForm({
         </div>
       ))}
     </div>
+  );
+
+  /* Fuel entry (restored 2026-07-30): what this trip actually filled — the money
+   * side of the monthly allocation. Deliberately NO explanatory sentence here
+   * (QA asked twice to drop the prose): only the two inputs and, once they add
+   * up, the figure itself. */
+  const fuelInputs = (
+    <>
+      <FormField label={t('fuelLiters')} inline>
+        <Input type="number" step="0.01" min="0" value={f.fuelLiters} onChange={set('fuelLiters')} />
+      </FormField>
+      <FormField label={t('fuelPrice')} inline>
+        <MoneyInput value={f.fuelPrice} onChange={setNum('fuelPrice')} />
+      </FormField>
+      {preview.fuelCost > 0 && (
+        <p className="text-sm text-text sm:col-span-2">
+          {t('previewFuelCost')}: <span className="font-semibold">{vnd(preview.fuelCost)}</span>
+        </p>
+      )}
+    </>
   );
 
   return (
@@ -378,12 +434,27 @@ export function TruckTripForm({
                   </Select>
                 </FormField>
               )}
+              {/* Actual run window — only meaningful when logging a finished
+                * trip; a driver-completed trip gets these from the completion
+                * sheet instead. Report column "Giờ bắt đầu / Giờ kết thúc". */}
+              {!isDriver && markCompleted && (
+                <>
+                  <FormField label={t('startTime')} inline>
+                    <Input type="time" value={f.startTime} onChange={set('startTime')} />
+                  </FormField>
+                  <FormField label={t('endTime')} inline>
+                    <Input type="time" value={f.endTime} onChange={set('endTime')} />
+                  </FormField>
+                </>
+              )}
             </div>
           </SectionCard>
 
-          {/* Route — km inputs only when logging a completed trip. */}
+          {/* Route — km inputs only when logging a completed trip. A driver
+            * creating a trip doesn't know the readings yet (they record them
+            * per stop from the road); editing afterwards, they do. */}
           <SectionCard icon={<Route className="h-4 w-4" />} title={t('sectionRoute')}>
-            <StopBuilder stops={stops} onChange={setStops} showKm={!isDriver && markCompleted} />
+            <StopBuilder stops={stops} onChange={setStops} showKm={isDriver ? !!tripId : markCompleted} />
           </SectionCard>
 
           {/* Customer & documents — optional, collapsed by default. */}
@@ -396,8 +467,13 @@ export function TruckTripForm({
                 <FormField label={t('bol')} inline>
                   <Input value={f.bol} onChange={set('bol')} />
                 </FormField>
-                <FormField label={t('cdf')} inline className="sm:col-span-2">
+                <FormField label={t('cdf')} inline>
                   <Input value={f.cdf} onChange={set('cdf')} />
+                </FormField>
+                {/* Trip note — the trip-log export has a "Ghi chú" column that
+                  * nothing could fill before (2026-07-30). */}
+                <FormField label={t('notes')} inline className="sm:col-span-2">
+                  <Input value={f.notes} onChange={set('notes')} />
                 </FormField>
               </div>
             </SectionCard>
@@ -409,12 +485,7 @@ export function TruckTripForm({
           {isDriver ? (
             <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionCost')}>
               <div className={GRID}>
-                <FormField label={t('fuelLiters')} inline>
-                  <Input type="number" step="0.01" value={f.fuelLiters} onChange={set('fuelLiters')} />
-                </FormField>
-                <FormField label={t('fuelPrice')} inline>
-                  <MoneyInput value={f.fuelPrice} onChange={setNum('fuelPrice')} />
-                </FormField>
+                {fuelInputs}
                 <FormField label={t('toll')} inline className="sm:col-span-2">
                   <MoneyInput value={f.toll} onChange={setNum('toll')} />
                 </FormField>
@@ -425,12 +496,7 @@ export function TruckTripForm({
           ) : markCompleted ? (
             <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionCostRevenue')}>
               <div className={GRID}>
-                <FormField label={t('fuelLiters')} inline>
-                  <Input type="number" step="0.01" value={f.fuelLiters} onChange={set('fuelLiters')} />
-                </FormField>
-                <FormField label={t('fuelPrice')} inline>
-                  <MoneyInput value={f.fuelPrice} onChange={setNum('fuelPrice')} />
-                </FormField>
+                {fuelInputs}
                 <FormField label={t('toll')} inline>
                   <MoneyInput value={f.toll} onChange={setNum('toll')} />
                 </FormField>
@@ -444,9 +510,6 @@ export function TruckTripForm({
           ) : (
             <SectionCard icon={<Wallet className="h-4 w-4" />} title={t('sectionPlan')} hint={t('sectionPlanHint')}>
               <div className={GRID}>
-                <FormField label={t('fuelPrice')} inline>
-                  <MoneyInput value={f.fuelPrice} onChange={setNum('fuelPrice')} />
-                </FormField>
                 <FormField label={t('revenue')} inline>
                   <MoneyInput value={f.revenue} onChange={setNum('revenue')} />
                 </FormField>
@@ -478,7 +541,7 @@ export function TruckTripForm({
           type="button"
           variant="ghost"
           size="lg"
-          onClick={() => router.push(isDriver ? '/today' : '/truck/trips')}
+          onClick={() => router.push(isDriver ? driverHome : '/truck/trips')}
           disabled={pending}
           className="w-full sm:w-auto"
         >

@@ -9,11 +9,11 @@ import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ReportStepper } from './report-stepper';
 
 /**
- * Lập báo cáo · Bước 2 — multi-select the operating regions the report covers.
- * Each region shows its completed-trip count for the month; a region with 0 trips
- * is disabled. "Tất cả khu vực" is a select-all toggle over the regions that have
- * data. Continue fans out to Bước 3 with `?regions=A,B` — one review section (and
- * one generated report) per selected region.
+ * Lập báo cáo · Bước 2 — choose the report scope. Two mutually-exclusive modes:
+ *   - "Tất cả khu vực" (all regions) → ONE consolidated report over every region
+ *     → Continue with `?regions=ALL`.
+ *   - one or more individual regions → one report PER region → `?regions=A,B`.
+ * Each region shows its completed-trip count; a region with 0 trips is disabled.
  */
 export function ReportRegionStep({
   month,
@@ -28,6 +28,9 @@ export function ReportRegionStep({
   const tRegion = useTranslations('region');
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
+  /* Consolidated scope: "Tất cả khu vực" = ONE report over all regions
+   * (region=null server-side), mutually exclusive with per-region multi-select. */
+  const [allMode, setAllMode] = useState(false);
 
   const regions = TRUCK_REGIONS.map((r) => ({
     value: r as string,
@@ -36,19 +39,26 @@ export function ReportRegionStep({
   }));
   const dataRegions = regions.filter((r) => r.count > 0).map((r) => r.value);
   const noData = dataRegions.length === 0;
-  const allSelected = !noData && dataRegions.every((r) => selected.includes(r));
 
-  const toggle = (value: string) =>
+  /* Picking a region turns OFF consolidated mode and vice-versa. */
+  const toggle = (value: string) => {
+    setAllMode(false);
     setSelected((s) => (s.includes(value) ? s.filter((v) => v !== value) : [...s, value]));
-  const toggleAll = () => setSelected(allSelected ? [] : dataRegions);
+  };
+  const pickAll = () => {
+    setSelected([]);
+    setAllMode((v) => !v);
+  };
 
   /* Canonical order so the review sections match the picker order. */
   const chosen = dataRegions.filter((r) => selected.includes(r));
-  const canContinue = chosen.length > 0;
-  const go = (list: string[]) =>
-    router.push(`/truck/reports/new?month=${month}&regions=${list.join(',')}`);
+  const canContinue = allMode || chosen.length > 0;
+  /* `ALL` = one consolidated report; a comma list = one report per region. */
+  const go = (query: string) =>
+    router.push(`/truck/reports/new?month=${month}&regions=${query}`);
   const cont = () => {
-    if (canContinue) go(chosen);
+    if (allMode) go('ALL');
+    else if (chosen.length > 0) go(chosen.join(','));
   };
 
   return (
@@ -61,15 +71,16 @@ export function ReportRegionStep({
           <div className="text-xs text-text-muted">{t('regionStepHint')}</div>
         </div>
 
-        {/* Select-all master toggle — lights up when every region-with-data is on. */}
+        {/* Consolidated "all regions" toggle — one combined report; mutually
+            exclusive with the per-region picks below. */}
         <button
           type="button"
-          onClick={toggleAll}
+          onClick={pickAll}
           disabled={noData}
-          aria-pressed={allSelected}
+          aria-pressed={allMode}
           className={cn(
             'flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors',
-            allSelected ? 'border-accent bg-accent-soft ring-1 ring-accent' : 'border-border hover:border-accent',
+            allMode ? 'border-accent bg-accent-soft ring-1 ring-accent' : 'border-border hover:border-accent',
             noData && 'cursor-not-allowed opacity-60',
           )}
         >
@@ -80,7 +91,7 @@ export function ReportRegionStep({
             <div className="text-sm font-semibold text-text">{t('regionAll')}</div>
             <div className="text-xs text-text-muted">{t('regionAllHint')}</div>
           </div>
-          <CheckBox on={allSelected} disabled={noData} />
+          <CheckBox on={allMode} disabled={noData} />
         </button>
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -94,7 +105,7 @@ export function ReportRegionStep({
                 disabled={!hasData}
                 onClick={() => toggle(o.value)}
                 onDoubleClick={() => {
-                  if (hasData) go([o.value]);
+                  if (hasData) go(o.value);
                 }}
                 aria-pressed={isSel}
                 className={cn(

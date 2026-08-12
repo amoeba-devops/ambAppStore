@@ -13,7 +13,9 @@ import {
   updateTruckTrip,
   deleteTruckTrip,
   syncTripCostAttachments,
+  loadTruckRegionSnapshots,
   type TripCostAttachmentInput,
+  type TruckFuelMode,
 } from '@car-v2/core/truck';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import {
@@ -85,6 +87,25 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 /**
+ * After a trip mutation, HOW is the trip's fuel cost derived —
+ * so the client toast can tell the user what happened:
+ *  - AVERAGED frozen month-end allocation of the vehicle's fuel spend
+ *  - LIVE     same allocation from the month's fuel recorded so far (tạm tính)
+ *  - UNSET    xe chưa có chi phí nhiên liệu trong tháng → phí 0
+ * Returns null for a non-COMPLETED trip (open trips aren't costed yet) so the
+ * client shows no fuel note. km doesn't affect the mode, so we pass 0.
+ */
+async function tripFuelMode(
+  entId: string,
+  trip: { trpStatus: string; trpScheduledAt: Date; trpVehicleId: string | null },
+): Promise<TruckFuelMode | null> {
+  if (trip.trpStatus !== 'COMPLETED') return null;
+  const month = trip.trpScheduledAt.toISOString().slice(0, 7);
+  const snaps = await loadTruckRegionSnapshots(entId, [month]);
+  return snaps.fuelForTrip(month, trip.trpVehicleId, 0).mode;
+}
+
+/**
  * Reconcile a trip's receipt attachments to the DTO's desired set.
  *
  * `undefined` means "don't touch" (caller didn't manage attachments) — we skip
@@ -117,7 +138,9 @@ async function maybeSyncAttachments(
  * A manager may log a finished trip in one step (mark_completed=true with
  * metrics). Drivers create an open trip (CONFIRMED) and complete it separately.
  */
-export async function createTruckTripAction(input: unknown): Promise<ActionResult<{ id: string }>> {
+export async function createTruckTripAction(
+  input: unknown,
+): Promise<ActionResult<{ id: string; fuelMode: TruckFuelMode | null }>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
     requireRole(actor.role, ['ADMIN', 'MANAGER', 'DRIVER']);
@@ -178,8 +201,13 @@ export async function createTruckTripAction(input: unknown): Promise<ActionResul
     if (actor.role !== 'DRIVER' && dto.mark_completed && trip.trpDriverId && trip.trpVehicleId) {
       const extraCosts = dto.extra_costs ?? [];
       const res = await completeTruckTrip(actor, trip.trpId, {
+        /* Times the manager typed — otherwise completeTruckTrip stamps "now" as
+         * the end and leaves the start empty, which the report prints as "—". */
+        startedAt: dto.start_time ? new Date(dto.start_time) : null,
+        finishedAt: dto.end_time ? new Date(dto.end_time) : null,
         endOdometer: dto.end_odometer ?? null,
         fuelLiters: dto.fuel_liters ?? null,
+        fuelPrice: dto.fuel_price ?? null,
         tollFee: dto.toll_fee ?? null,
         extraCosts,
       });
@@ -207,7 +235,12 @@ export async function createTruckTripAction(input: unknown): Promise<ActionResul
 
     revalidatePath('/truck/trips');
     revalidatePath('/today');
-    return { id: trip.trpId };
+    /* mark_completed may have written revenue/cost figures directly (see
+     * completeTruckTrip call above) — keep finance/P&L/dashboard in sync. */
+    revalidatePath('/truck/finance');
+    revalidatePath('/truck/pnl');
+    revalidatePath('/truck/dashboard');
+    return { id: trip.trpId, fuelMode: await tripFuelMode(actor.entId, trip) };
   });
 }
 
@@ -250,7 +283,9 @@ export async function assignTruckTripAction(input: unknown): Promise<ActionResul
  * Complete / edit metrics of a truck trip. STAFF for now (manager corrections);
  * driver self-completion is wired in P-E with ownership enforcement.
  */
-export async function completeTruckTripAction(input: unknown): Promise<ActionResult<{ id: string }>> {
+export async function completeTruckTripAction(
+  input: unknown,
+): Promise<ActionResult<{ id: string; fuelMode: TruckFuelMode | null }>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
@@ -267,6 +302,7 @@ export async function completeTruckTripAction(input: unknown): Promise<ActionRes
       finishedAt: dto.end_time ? new Date(dto.end_time) : null,
       endOdometer: dto.end_odometer ?? null,
       fuelLiters: dto.fuel_liters ?? null,
+      fuelPrice: dto.fuel_price ?? null,
       tollFee: dto.toll_fee ?? null,
       extraCosts: dto.extra_costs ?? [],
     });
@@ -288,7 +324,10 @@ export async function completeTruckTripAction(input: unknown): Promise<ActionRes
 
     revalidatePath('/truck/trips');
     revalidatePath(`/truck/trips/${res.trip.trpId}`);
-    return { id: res.trip.trpId };
+    revalidatePath('/truck/finance');
+    revalidatePath('/truck/pnl');
+    revalidatePath('/truck/dashboard');
+    return { id: res.trip.trpId, fuelMode: await tripFuelMode(actor.entId, res.trip) };
   });
 }
 
@@ -296,7 +335,9 @@ export async function completeTruckTripAction(input: unknown): Promise<ActionRes
  * Driver self-completion of their assigned truck trip (P-E). Ownership: the
  * trip's driver must be the caller's driver record. Reuses core completeTruckTrip.
  */
-export async function driverCompleteTruckTripAction(input: unknown): Promise<ActionResult<{ id: string }>> {
+export async function driverCompleteTruckTripAction(
+  input: unknown,
+): Promise<ActionResult<{ id: string; fuelMode: TruckFuelMode | null }>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
     requireRole(actor.role, ['DRIVER']);
@@ -318,6 +359,7 @@ export async function driverCompleteTruckTripAction(input: unknown): Promise<Act
       finishedAt: dto.end_time ? new Date(dto.end_time) : null,
       endOdometer: dto.end_odometer ?? null,
       fuelLiters: dto.fuel_liters ?? null,
+      fuelPrice: dto.fuel_price ?? null,
       tollFee: dto.toll_fee ?? null,
       extraCosts: dto.extra_costs ?? [],
     });
@@ -340,12 +382,20 @@ export async function driverCompleteTruckTripAction(input: unknown): Promise<Act
     revalidatePath('/today');
     revalidatePath('/trips');
     revalidatePath(`/trips/${res.trip.trpId}`);
-    return { id: res.trip.trpId };
+    /* Where the driver actually submits from (their trip cards link here, not
+     * to `/trips/[id]`) — without it the page keeps rendering the trip as open. */
+    revalidatePath(`/today/truck/${res.trip.trpId}`);
+    revalidatePath('/truck/finance');
+    revalidatePath('/truck/pnl');
+    revalidatePath('/truck/dashboard');
+    return { id: res.trip.trpId, fuelMode: await tripFuelMode(actor.entId, res.trip) };
   });
 }
 
 /** Edit a truck trip-log (manager correction). */
-export async function updateTruckTripAction(input: unknown): Promise<ActionResult<{ id: string }>> {
+export async function updateTruckTripAction(
+  input: unknown,
+): Promise<ActionResult<{ id: string; fuelMode: TruckFuelMode | null }>> {
   return runAction(async () => {
     const actor = await getCurrentUser();
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
@@ -383,6 +433,9 @@ export async function updateTruckTripAction(input: unknown): Promise<ActionResul
       endOdometer: dto.end_odometer ?? null,
       fuelLiters: dto.fuel_liters ?? null,
       tollFee: dto.toll_fee ?? null,
+      notes: dto.notes,
+      startedAt: dto.start_time ? new Date(dto.start_time) : undefined,
+      finishedAt: dto.end_time ? new Date(dto.end_time) : undefined,
       extraCosts,
       stopovers,
     });
@@ -402,7 +455,114 @@ export async function updateTruckTripAction(input: unknown): Promise<ActionResul
 
     revalidatePath('/truck/trips');
     revalidatePath(`/truck/trips/${res.trip.trpId}`);
-    return { id: res.trip.trpId };
+    revalidatePath('/truck/finance');
+    revalidatePath('/truck/pnl');
+    revalidatePath('/truck/dashboard');
+    return { id: res.trip.trpId, fuelMode: await tripFuelMode(actor.entId, res.trip) };
+  });
+}
+
+/**
+ * Driver self-edit of a truck trip-log they own (REQ-20260803).
+ *
+ * A driver creates their own trip at /today/truck/new and fills the costs from
+ * the road, so they must be able to correct that record afterwards — the
+ * manager edit action refuses them (ADMIN/MANAGER only). Same core mutation,
+ * three guards on top:
+ *
+ *  - ownership: the trip must be a LOG trip whose driver IS the caller;
+ *  - the driver field is forced to self, so an edit can never re-assign;
+ *  - revenue is not theirs to touch — the stored value is echoed back, because
+ *    `updateTruckTrip` writes the column unconditionally and a driver payload
+ *    (revenue stripped client-side) would otherwise wipe what a manager typed.
+ *
+ * Odometers fall back to what is stored for the same reason: the driver form
+ * only shows km inputs when editing, so an omitted value means "unchanged",
+ * not "clear the reading the completion sheet recorded".
+ *
+ * The month lock (region-scoped, REQ-20260630) applies exactly as it does for a
+ * manager: a closed month refuses the edit; a merely *reported* month is a soft
+ * warning shown by the page, not a block.
+ */
+export async function driverUpdateTruckTripAction(
+  input: unknown,
+): Promise<ActionResult<{ id: string; fuelMode: TruckFuelMode | null }>> {
+  return runAction(async () => {
+    const actor = await getCurrentUser();
+    requireRole(actor.role, ['DRIVER']);
+    await requireFleet(actor, 'TRUCK');
+    const dto = updateTruckTripSchema.parse(input);
+
+    const driver = await getDriverByUserId(actor.entId, actor.userId);
+    if (!driver) throw new CarError('CAR-E0403', 403, 'Not a driver');
+    const trip = await db.query.carTrips.findFirst({
+      where: and(
+        eq(carTrips.trpId, dto.trip_id),
+        eq(carTrips.entId, actor.entId),
+        isNull(carTrips.trpDeletedAt),
+      ),
+    });
+    if (!trip || trip.trpKind !== 'LOG' || trip.trpDriverId !== driver.drvId) {
+      throw new CarError('CAR-E0403', 403, 'Not your trip');
+    }
+
+    /* Both the trip's current month and the target month must be open. */
+    await assertTruckMonthOpen(actor.entId, trip.trpScheduledAt, await regionOfVehicle(actor.entId, trip.trpVehicleId));
+    await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at), await regionOfVehicle(actor.entId, dto.vehicle_id));
+
+    const stopovers: StopoverInput[] | undefined = dto.stopovers?.map((s) => ({
+      type: s.type,
+      address: s.address,
+      km: s.km ?? null,
+      arrivedAt: s.arrived_at ? new Date(s.arrived_at) : null,
+      notes: s.notes ?? null,
+    }));
+
+    const res = await updateTruckTrip(actor, dto.trip_id, {
+      scheduledAt: new Date(dto.scheduled_at),
+      vehicleId: dto.vehicle_id ?? null,
+      /* Locked to self — a driver edit is never a re-assignment. */
+      driverId: driver.drvId,
+      customer: dto.customer ?? null,
+      pickupAddress: dto.pickup_address,
+      dropoffAddress: dto.dropoff_address,
+      bol: dto.bol ?? null,
+      cdf: dto.cdf ?? null,
+      fuelPrice: dto.fuel_price ?? null,
+      /* Manager's figure, echoed back untouched. */
+      revenue: trip.trpRevenue != null ? Number(trip.trpRevenue) : null,
+      startOdometer: dto.start_odometer ?? trip.trpStartOdometer,
+      endOdometer: dto.end_odometer ?? trip.trpEndOdometer,
+      fuelLiters: dto.fuel_liters ?? null,
+      tollFee: dto.toll_fee ?? null,
+      notes: dto.notes,
+      startedAt: dto.start_time ? new Date(dto.start_time) : undefined,
+      finishedAt: dto.end_time ? new Date(dto.end_time) : undefined,
+      extraCosts: dto.extra_costs ?? [],
+      stopovers,
+    });
+
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
+
+    await logAudit({
+      entId: actor.entId,
+      userId: actor.userId,
+      action: 'TRUCK_TRIP.DRIVER_UPDATE',
+      entity: 'Trip',
+      entityId: res.trip.trpId,
+      entityRef: res.trip.trpRef,
+      after: { totalCost: res.breakdown.totalCost },
+    });
+
+    revalidatePath('/today');
+    revalidatePath(`/today/truck/${res.trip.trpId}`);
+    revalidatePath('/trips');
+    revalidatePath(`/trips/${res.trip.trpId}`);
+    revalidatePath('/truck/trips');
+    revalidatePath('/truck/finance');
+    revalidatePath('/truck/pnl');
+    revalidatePath('/truck/dashboard');
+    return { id: res.trip.trpId, fuelMode: await tripFuelMode(actor.entId, res.trip) };
   });
 }
 
@@ -524,6 +684,9 @@ export async function deleteTruckTripAction(input: unknown): Promise<ActionResul
       entityId: dto.trip_id,
     });
     revalidatePath('/truck/trips');
+    revalidatePath('/truck/finance');
+    revalidatePath('/truck/pnl');
+    revalidatePath('/truck/dashboard');
     return { id: dto.trip_id };
   });
 }

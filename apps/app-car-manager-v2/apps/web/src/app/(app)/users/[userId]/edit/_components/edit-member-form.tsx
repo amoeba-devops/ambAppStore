@@ -20,9 +20,13 @@ import {
   SelectValue,
   toast,
 } from '@car-v2/ui';
-import type { CarUserLocalRole } from '@car-v2/db/schema';
+import type { CarUserLocalRole, CarVehicleType } from '@car-v2/db/schema';
 import { AMA_ROLES } from '@car-v2/shared/auth';
 import { updateMemberAction } from '@/server/actions/users/update-member.action';
+import {
+  grantFleetAccessAction,
+  revokeFleetAccessAction,
+} from '@/server/actions/fleet-access/fleet-access.actions';
 import { formatActionError } from '@/lib/format-action-error';
 
 interface EditMemberFormProps {
@@ -31,11 +35,17 @@ interface EditMemberFormProps {
   email: string | null;
   amaRoleSnapshot: string | null;
   localRole: CarUserLocalRole;
+  /** Live CAR/TRUCK memberships. Empty = not assigned to either app. */
+  depts: CarVehicleType[];
   blocked: boolean;
   isSelf: boolean;
 }
 
 const LOCAL_ROLES: CarUserLocalRole[] = ['ADMIN', 'MANAGER', 'DRIVER'];
+const DEPTS: CarVehicleType[] = ['CAR', 'TRUCK'];
+
+const sameSet = (a: CarVehicleType[], b: CarVehicleType[]): boolean =>
+  a.length === b.length && a.every((x) => b.includes(x));
 
 const AMA_MEMBERS_URL =
   process.env.NEXT_PUBLIC_AMA_ORIGIN
@@ -48,12 +58,14 @@ export function EditMemberForm({
   email,
   amaRoleSnapshot,
   localRole: initialLocalRole,
+  depts: initialDepts,
   blocked: initialBlocked,
   isSelf,
 }: EditMemberFormProps) {
   const router = useRouter();
   const t = useTranslations('users.edit');
   const tList = useTranslations('users.list');
+  const tDept = useTranslations('screens.fleetAccess');
   const tErr = useTranslations();
 
   /* Verbatim AMA role → localized label, with raw-code fallback. */
@@ -61,23 +73,84 @@ export function EditMemberForm({
     (AMA_ROLES as readonly string[]).includes(role) ? tList(`amaRoleOption.${role}`) : role;
   const [pending, startTransition] = useTransition();
   const [localRole, setLocalRole] = useState<CarUserLocalRole>(initialLocalRole);
+  const [depts, setDepts] = useState<CarVehicleType[]>(initialDepts);
   const [blocked, setBlocked] = useState(initialBlocked);
 
-  const dirty = localRole !== initialLocalRole || blocked !== initialBlocked;
+  /* ADMIN reaches both fleets implicitly (resolveFleetAccess), so membership
+   * rows carry no meaning for them — the controls go read-only rather than
+   * letting an admin "revoke" access that would come straight back. */
+  const deptsLocked = localRole === 'ADMIN';
+  const singleDept = localRole === 'DRIVER';
+
+  const dirty =
+    localRole !== initialLocalRole ||
+    blocked !== initialBlocked ||
+    !sameSet(depts, initialDepts);
+
+  const toggleDept = (d: CarVehicleType) => {
+    if (deptsLocked) return;
+    setDepts((prev) =>
+      prev.includes(d)
+        ? prev.filter((x) => x !== d)
+        : /* A DRIVER belongs to exactly one department (grantFleetAccessAction
+           * rejects a second), so picking one REPLACES rather than adds. */
+          singleDept
+          ? [d]
+          : DEPTS.filter((x) => x === d || prev.includes(x)),
+    );
+  };
+
+  const changeRole = (next: CarUserLocalRole) => {
+    setLocalRole(next);
+    /* Demoting to DRIVER with both departments selected would be rejected on
+     * save — trim to the first so what is on screen is what can be applied. */
+    if (next === 'DRIVER' && depts.length > 1) setDepts([depts[0]!]);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!dirty) return;
     startTransition(async () => {
-      const res = await updateMemberAction({
-        userId,
-        localRole: localRole !== initialLocalRole ? localRole : undefined,
-        blocked: blocked !== initialBlocked ? blocked : undefined,
-      });
-      if (!res.success) {
-        toast.error(formatActionError(res.error, tErr));
-        return;
+      /* Order matters, and it is not arbitrary:
+       *   1. REVOKES first — frees the single-department slot, so a driver moving
+       *      CAR→TRUCK doesn't hit "a driver can belong to only one department".
+       *   2. Role + block next — a grant on a blocked (soft-deleted) user is
+       *      rejected, so unblocking has to land before the grants.
+       *   3. GRANTS last — validated against the FINAL role. */
+      const toRevoke = deptsLocked ? [] : initialDepts.filter((d) => !depts.includes(d));
+      const toGrant = deptsLocked ? [] : depts.filter((d) => !initialDepts.includes(d));
+
+      for (const d of toRevoke) {
+        const res = await revokeFleetAccessAction({ userId, vehicleType: d });
+        if (!res.success) {
+          toast.error(formatActionError(res.error, tErr));
+          router.refresh(); // partial application — show what actually stuck
+          return;
+        }
       }
+
+      if (localRole !== initialLocalRole || blocked !== initialBlocked) {
+        const res = await updateMemberAction({
+          userId,
+          localRole: localRole !== initialLocalRole ? localRole : undefined,
+          blocked: blocked !== initialBlocked ? blocked : undefined,
+        });
+        if (!res.success) {
+          toast.error(formatActionError(res.error, tErr));
+          router.refresh();
+          return;
+        }
+      }
+
+      for (const d of toGrant) {
+        const res = await grantFleetAccessAction({ userId, vehicleType: d });
+        if (!res.success) {
+          toast.error(formatActionError(res.error, tErr));
+          router.refresh();
+          return;
+        }
+      }
+
       toast.success(t('updatedToast', { name: name ?? email ?? userId }));
       router.push('/users');
       router.refresh();
@@ -129,7 +202,7 @@ export function EditMemberForm({
             <Label htmlFor="localRole">
               {t('localRole')} <span className="text-danger">*</span>
             </Label>
-            <Select value={localRole} onValueChange={(v) => setLocalRole(v as CarUserLocalRole)}>
+            <Select value={localRole} onValueChange={(v) => changeRole(v as CarUserLocalRole)}>
               <SelectTrigger id="localRole">
                 <SelectValue />
               </SelectTrigger>
@@ -142,6 +215,45 @@ export function EditMemberForm({
               </SelectContent>
             </Select>
             <p className="mt-1 text-xs text-text-muted">{t('localRoleDesc')}</p>
+          </div>
+
+          {/* Local-only field — which app(s) this user belongs to.
+            *
+            * The app role above is ONE global value shared by both workspaces;
+            * the department is the only thing that actually separates car from
+            * truck. It used to be editable only at /settings/fleet-access, which
+            * is hidden from the menu — so in practice nobody could set it. */}
+          <div>
+            <Label>{t('deptLabel')}</Label>
+            <div className="mt-1.5 flex flex-wrap gap-2">
+              {DEPTS.map((d) => {
+                const on = depts.includes(d);
+                return (
+                  <Button
+                    key={d}
+                    type="button"
+                    size="md"
+                    variant={on ? 'accent' : 'ghost'}
+                    className={on ? '' : 'border border-border'}
+                    disabled={deptsLocked || pending}
+                    aria-pressed={on}
+                    onClick={() => toggleDept(d)}
+                  >
+                    {tDept(`dept.${d}`)}
+                  </Button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-xs text-text-muted leading-relaxed">
+              {deptsLocked
+                ? t('deptAdminHint')
+                : singleDept
+                  ? t('deptDescDriver')
+                  : t('deptDescStaff')}
+            </p>
+            {!deptsLocked && depts.length === 0 && (
+              <p className="mt-1 text-xs text-warning-strong">{t('deptNoneWarning')}</p>
+            )}
           </div>
 
           {/* Local-only field — block from car-v2 (soft-delete) */}

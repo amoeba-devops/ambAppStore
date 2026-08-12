@@ -30,6 +30,7 @@ import { RefDetailPanel } from '@/components/dialogs/ref-detail-panel';
 import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
 import { useFormDraft } from '@/hooks/use-form-draft';
 import { formatActionError } from '@/lib/format-action-error';
+import type { DriverCandidate } from '@/server/queries/drivers.queries';
 import {
   createDriverAction,
   updateDriverAction,
@@ -65,7 +66,7 @@ const STATUSES: CarDriverStatus[] = ['AVAILABLE', 'ON_TRIP', 'OFF_DUTY', 'UNAVAI
 
 interface DriverFormProps {
   driver?: CarDriver & { user?: { usrName?: string | null; usrEmail?: string | null } };
-  userCandidates?: { usrId: string; usrName: string | null; usrEmail: string | null }[];
+  userCandidates?: DriverCandidate[];
   /** When creating from a department surface (e.g. truck): the new driver is
    * also granted that fleet membership, and navigation returns to its roster. */
   dept?: CarVehicleType;
@@ -77,6 +78,9 @@ export function DriverForm({ driver, userCandidates = [], dept }: DriverFormProp
   const tStatus = useTranslations('drivers.status');
   const tTripStatus = useTranslations('trips.status');
   const tA      = useTranslations('actions');
+  /* Role labels for the candidate picker — reuses the existing map rather than
+   * adding a fourth copy of ADMIN/MANAGER/DRIVER. */
+  const tRole   = useTranslations('settings.me.roles');
   const tErr    = useTranslations();
   const locale  = useLocale();
   const router = useRouter();
@@ -201,9 +205,13 @@ export function DriverForm({ driver, userCandidates = [], dept }: DriverFormProp
       if (result.success) {
         clearDraft();
         toast.success(isEdit ? t('tUpdated') : t('tAdded'));
-        /* Truck create returns to its roster; car create opens the detail. */
+        /* Truck create returns to its roster; car create opens the detail.
+         * Tests `dept === 'TRUCK'`, not `!dept` — /drivers/new now passes
+         * dept="CAR" (so the CAR membership gets granted), and the old check
+         * would have read that as "truck" and redirected car creates to
+         * /truck/drivers. */
         router.push(
-          isEdit || !dept ? `/drivers/${result.data.drvId}` : '/truck/drivers',
+          isEdit || dept !== 'TRUCK' ? `/drivers/${result.data.drvId}` : '/truck/drivers',
         );
         router.refresh();
       } else {
@@ -298,6 +306,27 @@ export function DriverForm({ driver, userCandidates = [], dept }: DriverFormProp
                     userCandidates.map((u) => (
                       <SelectItem key={u.usrId} value={u.usrId}>
                         {u.usrName ?? u.usrEmail ?? u.usrId}
+                        {/* Email next to the name — display names are NOT unique
+                          * (staging currently has two users called "김익용",
+                          * fremdung@gmail.com vs fremd@naver.com), and the email
+                          * is the only thing a human can tell them apart by.
+                          * Skipped when the email is already serving as the
+                          * primary label above. Radix also folds these children
+                          * into its typeahead, so typing an email jumps to the
+                          * right person, and into SelectValue, so the trigger
+                          * keeps showing WHICH one was picked. */}
+                        {u.usrName && u.usrEmail && (
+                          <span className="ml-2 text-xs text-text-faint">{u.usrEmail}</span>
+                        )}
+                        {/* Flag the non-drivers. Making a MANAGER into a driver
+                          * is allowed, but it should be a visible choice — three
+                          * managers already hold driver rows and carry trucks'
+                          * salary lines because this picker never said so. */}
+                        {u.usrLocalRole !== 'DRIVER' && (
+                          <span className="ml-2 text-xs text-text-faint">
+                            · {tRole(u.usrLocalRole)}
+                          </span>
+                        )}
                       </SelectItem>
                     ))
                   )}

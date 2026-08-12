@@ -20,6 +20,8 @@ interface DriverDeleteButtonProps {
   variant?: 'danger' | 'ghost';
   /** Button size */
   size?: 'sm' | 'md' | 'lg';
+  /** Roster to return to after deleting — truck drivers live on /truck/drivers. */
+  redirectTo?: string;
 }
 
 export function DriverDeleteButton({
@@ -27,6 +29,7 @@ export function DriverDeleteButton({
   driverName,
   variant = 'danger',
   size = 'md',
+  redirectTo = '/drivers',
 }: DriverDeleteButtonProps) {
   const t = useTranslations('drivers.form');
   const tTripStatus = useTranslations('trips.status');
@@ -40,7 +43,7 @@ export function DriverDeleteButton({
     const result = await deleteDriverAction(driverId);
     if (result.success) {
       toast.success(t('tRemoved'));
-      router.push('/drivers');
+      router.push(redirectTo);
       router.refresh();
     } else {
       toast.error(t('errRemove'), { description: formatActionError(result.error, tErr) });

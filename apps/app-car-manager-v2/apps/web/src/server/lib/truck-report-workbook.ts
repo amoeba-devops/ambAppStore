@@ -332,7 +332,7 @@ export async function buildTruckReportWorkbook(
     ['Lợi nhuận (chuyến)', 'Doanh thu − Phí nhiên liệu − Phí cầu đường − Chi phí phát sinh (trước chi phí cố định tháng).'],
     ['Khấu hao xe', 'Chi phí khấu hao cố định theo tháng của xe.'],
     ['Lương tài xế', 'Lương cố định theo tháng.'],
-    ['Chi phí cố định', 'Bảo hiểm & chi phí cố định khác theo tháng (KHÔNG gồm khấu hao & lương — tách riêng để không trùng).'],
+    ['Chi phí cố định', 'Chi phí cố định khác theo tháng, nếu có (KHÔNG gồm khấu hao & lương — tách riêng để không trùng).'],
     ['Lợi nhuận ròng (tháng)', 'Doanh thu − Phí nhiên liệu − Phí cầu đường − Tổng phí phát sinh − Lương tài xế − Khấu hao − Chi phí cố định.'],
     ['Trạng thái', '“Đã lập BC” = số liệu chính thức theo lần lập báo cáo gần nhất; “Tạm tính” = chưa đủ dữ liệu phân bổ (hóa đơn xăng / km).'],
     ['Số vận đơn (BOL) / Số CDF', 'BOL = Bill of Lading (vận đơn); CDF = tờ khai hải quan — nhập khi tạo chuyến.'],

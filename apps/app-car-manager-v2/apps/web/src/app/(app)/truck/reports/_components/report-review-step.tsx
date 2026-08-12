@@ -211,10 +211,11 @@ export function ReportReviewStep({ reviews }: { reviews: TruckReportReview[] }) 
 
       {reviews.map((review) => {
         const editable = !review.closed;
-        /* Reconciliation computable → fuel is auto-allocated (km × consumption
-         * × avg price); the fuel column is read-only so a hand edit can't be
-         * silently overwritten by the recompute at generation. */
-        const fuelEditable = editable && !review.allocatable;
+        /* Fuel is ALWAYS system-computed now (REQ-20260724/26): either the
+         * vehicle's own monthly spend spread by km, or its định mức × km. The
+         * per-trip litres/price inputs are gone, so a hand edit here would just
+         * be overwritten at generation — keep the column read-only. */
+        const fuelEditable = false;
         return (
           <section key={review.region ?? '∅'} className="space-y-3">
             {/* Region section header — only shown when more than one region is
@@ -277,9 +278,11 @@ export function ReportReviewStep({ reviews }: { reviews: TruckReportReview[] }) 
                         <div className="grid grid-cols-2 gap-3 border-b border-border bg-surface-2/40 p-4 sm:grid-cols-3">
                           <Stat label={t('cardTrips')} value={String(v.tripCount)} />
                           <Stat label={t('cardFuel')} value={vnd(sum.fuel)} />
-                          <Stat label={t('cardRefuels')} value={String(review.refuelCount)} />
-                          <Stat label={t('cardAvgPrice')} value={`${review.avgPrice.toLocaleString(loc)} ₫/L`} />
-                          <Stat label={t('cardConsumption')} value={`${review.consumption.toFixed(3)} L/km`} />
+                          {/* Per-vehicle reconciliation — exactly what the report
+                            * will freeze for THIS truck (REQ-20260726). */}
+                          <Stat label={t('cardRefuels')} value={String(v.refuelCount)} />
+                          <Stat label={t('cardAvgPrice')} value={`${v.fuelAvgPrice.toLocaleString(loc)} ₫/L`} />
+                          <Stat label={t('cardConsumption')} value={`${v.fuelConsumption.toFixed(3)} L/km`} />
                           <Stat label={t('cardFixed')} value={vnd(v.fixedCost)} />
                         </div>
                         <div className="overflow-x-auto">

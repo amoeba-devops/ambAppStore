@@ -68,6 +68,9 @@ export interface CompleteTruckTripInput {
   finishedAt?: Date | null;
   endOdometer?: number | null;
   fuelLiters?: number | null;
+  /** Unit price of the fuel filled on this trip (đ/L). With `fuelLiters` this
+   * is the trip's fuel SPEND, which feeds the vehicle's monthly fuel pool. */
+  fuelPrice?: number | null;
   tollFee?: number | null;
   /** Structured "other costs": replaces any existing rows for the trip. */
   extraCosts: { name: string; amount: number }[];
@@ -229,6 +232,7 @@ export async function completeTruckTrip(
       trpEndedAt: input.finishedAt ?? new Date(),
       trpEndOdometer: input.endOdometer ?? trip.trpEndOdometer,
       trpFuelLiters: input.fuelLiters != null ? String(input.fuelLiters) : trip.trpFuelLiters,
+      trpFuelPrice: input.fuelPrice != null ? String(input.fuelPrice) : trip.trpFuelPrice,
       trpTollFee: input.tollFee != null ? String(input.tollFee) : trip.trpTollFee,
       trpUpdatedAt: new Date(),
     })
@@ -290,6 +294,12 @@ export interface UpdateTruckTripInput {
   endOdometer?: number | null;
   fuelLiters?: number | null;
   tollFee?: number | null;
+  /* Free-text trip note (printed in the trip-log export) and the actual run
+   * window. All three are "only when provided": leaving them out keeps what is
+   * stored, so editing a trip never silently wipes times a driver recorded. */
+  notes?: string | null;
+  startedAt?: Date | null;
+  finishedAt?: Date | null;
   extraCosts: { name: string; amount: number }[];
   /** When provided, replaces the full stopover list for this trip. */
   stopovers?: StopoverInput[];
@@ -323,6 +333,10 @@ export async function updateTruckTrip(
       trpEndOdometer: input.endOdometer ?? null,
       trpFuelLiters: input.fuelLiters != null ? String(input.fuelLiters) : null,
       trpTollFee: input.tollFee != null ? String(input.tollFee) : null,
+      /* undefined → Drizzle leaves the column alone (see the note on the type). */
+      trpNotes: input.notes !== undefined ? input.notes : undefined,
+      trpStartedAt: input.startedAt !== undefined ? input.startedAt : undefined,
+      trpEndedAt: input.finishedAt !== undefined ? input.finishedAt : undefined,
       trpUpdatedAt: new Date(),
     })
     .where(and(eq(carTrips.trpId, tripId), eq(carTrips.entId, actor.entId)))

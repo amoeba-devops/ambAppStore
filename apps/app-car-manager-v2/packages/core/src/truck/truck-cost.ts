@@ -65,3 +65,10 @@ export function truckTripFuelCost(input: {
   if (km <= 0) return 0;
   return Math.round(km * (input.consumption ?? 0) * (input.avgPrice ?? 0));
 }
+
+/* The vehicle's định mức (cvh_fuel_quota × cvh_fuel_price) used to produce a
+ * DEFAULT per-trip fuel cost (REQ-20260724). Removed 2026-07-30: an estimate
+ * from the quota disagreed with the money the month-end report allocates, so
+ * every pre-report figure was wrong. Per-trip fuel now comes from the vehicle's
+ * real monthly spend ÷ its monthly km — see `truck-fuel-pool.ts`. The quota and
+ * price columns stay on the vehicle as reference data. */

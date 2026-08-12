@@ -18,6 +18,7 @@ import {
   EmptyState,
 } from '@car-v2/ui';
 import type { CarTripStatus } from '@car-v2/db/schema';
+import { driverDept } from '@/components/layout/nav-items';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { resolveFleetAccess } from '@/lib/auth/fleet-access';
@@ -66,6 +67,11 @@ export default async function TodayPage() {
       role: user.role,
       userId: user.userId,
       status: 'all',
+      /* Nhánh staff của /today là bản tóm tắt điều xe hôm nay (hero + giờ khởi
+       * hành), không phải nhật trình xe tải. Nhánh DRIVER bên dưới vẫn dùng
+       * listTripsForDriver KHÔNG lọc — tài xế xe tải cần thấy chuyến LOG của
+       * mình, TruckDriverToday tự lọc kind trong bộ nhớ. */
+      kind: 'DISPATCH',
     });
     myTrips = items;
   }
@@ -75,8 +81,14 @@ export default async function TodayPage() {
    * same component admins use — keeping the visual identity consistent across
    * roles per user feedback. */
   if (user.role === 'DRIVER') {
-    /* Truck drivers get a completion-oriented Today (no dispatch hero). */
-    const isTruckDriver = (await resolveFleetAccess(user)).includes('TRUCK');
+    /* Truck drivers get a completion-oriented Today (no dispatch hero).
+     *
+     * `driverDept` owns the CAR-wins-the-tie rule for every surface (page body,
+     * shell chrome, first-paint theme) — see its doc comment. Inlining it here
+     * is how this screen and the chrome around it came to disagree in the first
+     * place. */
+    const fleets = await resolveFleetAccess(user);
+    const isTruckDriver = driverDept(fleets) === 'TRUCK';
     /* Truck subtitle counts trips still needing a log (not "today" — a truck
      * log can be back-dated), which is the number the driver actually acts on. */
     const truckTodoCount = myTrips.filter(

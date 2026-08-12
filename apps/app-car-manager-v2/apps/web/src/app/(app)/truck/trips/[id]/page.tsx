@@ -5,6 +5,7 @@ import { getTrip } from '@/server/queries/trips.queries';
 import { getTripExtraCosts, getTruckTripBreakdown, getTripCostAttachmentsView } from '@/server/queries/truck-trips.queries';
 import { getTruckReportStatus } from '@/server/queries/truck-report.queries';
 import { getTripStopovers } from '@/server/queries/stopovers.queries';
+import { completeInitialOf } from '@/lib/truck-complete-initial';
 import { TruckTripDetail } from '@/app/(app)/trips/[id]/_components/truck-trip-detail';
 import { TruckTripManageActions } from '../_components/truck-trip-manage-actions';
 
@@ -23,10 +24,21 @@ export default async function TruckTripDetailPage({ params }: { params: Promise<
     getTripStopovers(user.entId, trip.trpId),
     getTripCostAttachmentsView(user.entId, trip.trpId),
   ]);
-  const { breakdown, month, region } = await getTruckTripBreakdown(user.entId, trip, extras.map((e) => e.amount));
+  const {
+    breakdown,
+    fuelMode,
+    km: fuelKm,
+    fuelCostPerKm,
+    salaryAllocated,
+    depreciationAllocated,
+    profitAfterFixed,
+    fixedTripCount,
+    month,
+    region,
+  } = await getTruckTripBreakdown(user.entId, trip, extras.map((e) => e.amount));
   const completed = trip.trpStatus === 'COMPLETED';
   const canComplete = !completed && (trip.trpStatus === 'CONFIRMED' || trip.trpStatus === 'IN_PROGRESS');
-  const reportStatus = completed ? await getTruckReportStatus(user.entId, month, region || null) : null;
+  const reportStatus = completed ? await getTruckReportStatus(user.entId, month, region || null, trip.trpUpdatedAt ?? trip.trpCreatedAt) : null;
 
   return (
     <TruckTripDetail
@@ -44,8 +56,16 @@ export default async function TruckTripDetailPage({ params }: { params: Promise<
       extras={extras}
       costAttachments={costAttachments}
       breakdown={breakdown}
+      fuelMode={completed ? fuelMode : undefined}
+      fuelKm={fuelKm}
+      fuelCostPerKm={fuelCostPerKm}
+      salaryAllocated={completed ? salaryAllocated : undefined}
+      depreciationAllocated={completed ? depreciationAllocated : undefined}
+      profitAfterFixed={completed ? profitAfterFixed : undefined}
+      fixedTripCount={fixedTripCount}
       completed={completed}
       canComplete={canComplete}
+      completeInitial={completeInitialOf(trip)}
       stopovers={stopovers}
       mode="staff"
       backHref="/truck/trips"

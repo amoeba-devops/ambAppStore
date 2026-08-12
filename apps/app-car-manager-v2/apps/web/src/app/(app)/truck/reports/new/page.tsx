@@ -23,6 +23,8 @@ import { ReportReviewStep } from '../_components/report-review-step';
  * Lập báo cáo — 3-step flow:
  *   - no `?month`                    → Bước 1: month grid (ReportMonthStep).
  *   - `?month=…` (no regions)        → Bước 2: region multi-picker (ReportRegionStep).
+ *   - `?month=…&regions=ALL`         → Bước 3: ONE consolidated review over every
+ *                                       region → a single combined report.
  *   - `?month=…&regions=A,B`         → Bước 3: one review section per selected
  *                                       region + confirm (ReportReviewStep). On
  *                                       confirm it fans out one report per region.
@@ -40,12 +42,11 @@ export default async function NewTruckReportPage({
    * links. Filter to valid codes and re-order to the canonical TRUCK_REGIONS
    * order so sections render consistently regardless of click order. */
   const regionCodes: readonly string[] = TRUCK_REGIONS;
-  const picked = new Set(
-    (sp.regions ?? sp.region ?? '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter((s) => regionCodes.includes(s)),
-  );
+  const tokens = (sp.regions ?? sp.region ?? '').split(',').map((s) => s.trim());
+  /* `ALL` sentinel = ONE consolidated report over every region (region=null),
+   * distinct from listing each region code (one report per region). */
+  const allScope = tokens.includes('ALL');
+  const picked = new Set(tokens.filter((s) => regionCodes.includes(s)));
   const regions = regionCodes.filter((r) => picked.has(r));
 
   const t = await getTranslations('screens.truckReports');
@@ -53,9 +54,13 @@ export default async function NewTruckReportPage({
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
 
-  /* Bước 3 — one review section per selected region + confirm. */
-  if (month && regions.length > 0) {
-    const reviews = await Promise.all(regions.map((r) => getTruckReportReview(user, month, r)));
+  /* Bước 3 — review + confirm. `ALL` → one consolidated review over every region
+   * (region=null → one combined report); else one section (and one report) per
+   * selected region. */
+  if (month && (allScope || regions.length > 0)) {
+    const reviews = allScope
+      ? [await getTruckReportReview(user, month, null)]
+      : await Promise.all(regions.map((r) => getTruckReportReview(user, month, r)));
     const backToRegion = `/truck/reports/new?month=${month}`;
     return (
       <>

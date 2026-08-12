@@ -56,19 +56,69 @@ export async function provisionDevPersona(sub: string, entId: string): Promise<v
         )
         .limit(1);
       if (drv.length === 0) {
-        await db.insert(carDrivers).values({
-          drvId: p.driver.drvId,
-          entId: DEV_ENT_ID,
-          drvUserId: sub,
-          drvLicenseNumber: p.driver.license,
-          drvLicenseClass: 'B2',
-          drvLicenseExpiry: '2030-12-31',
-          drvStatus: 'AVAILABLE',
-        });
+        /* REVIVE, never re-insert. `p.driver.drvId` is a FIXED uuid, so once an
+         * admin has soft-deleted this persona's driver row, a plain insert
+         * collides on the primary key. The throw was swallowed by the catch at
+         * the bottom of this function — taking the fleet-access grant below with
+         * it — so the persona was left with NO driver row AND NO department, and
+         * logging in again could never repair it. Observed on staging
+         * 2026-07-28: "Tài xế Xe con" deleted at 06:38 stayed department-less.
+         *
+         * Reviving also keeps whatever trips/expenses referenced the row, the
+         * same reason createDriverAction revives rather than mints a new id. */
+        await db
+          .insert(carDrivers)
+          .values({
+            drvId: p.driver.drvId,
+            entId: DEV_ENT_ID,
+            drvUserId: sub,
+            drvLicenseNumber: p.driver.license,
+            drvLicenseClass: 'B2',
+            drvLicenseExpiry: '2030-12-31',
+            drvStatus: 'AVAILABLE',
+          })
+          .onConflictDoUpdate({
+            target: carDrivers.drvId,
+            set: {
+              drvDeletedAt: null,
+              drvUserId: sub,
+              drvLicenseNumber: p.driver.license,
+              drvStatus: 'AVAILABLE',
+              drvUpdatedAt: new Date(),
+            },
+          });
       }
     }
 
-    /* car_user_fleet_access — one live row per (user, dept). */
+    /* car_user_fleet_access — one live row per (user, dept).
+     *
+     * A DRIVER belongs to exactly ONE department (same invariant enforced by
+     * grantFleetAccessAction and createDriverAction). This helper only ever
+     * INSERTS, so when a driver's real membership has since moved to the other
+     * department, granting `p.depts` on top would leave them holding BOTH —
+     * visible in both rosters, assignable in neither. That is a bootstrap
+     * helper silently re-creating a bug the app now prevents.
+     *
+     * So for a driver persona, `depts` is a seed default, not an assertion:
+     * grant it only when the user has NO live membership at all. Whatever a
+     * real admin (or a data fix) set afterwards wins. Managers/admins keep the
+     * additive behaviour — holding two departments is legitimate for them, and
+     * "QL 2 phòng" needs both rows to exist. */
+    if (localRoleFor(p) === 'DRIVER') {
+      const any = await db
+        .select({ id: carUserFleetAccess.ufaId })
+        .from(carUserFleetAccess)
+        .where(
+          and(
+            eq(carUserFleetAccess.entId, DEV_ENT_ID),
+            eq(carUserFleetAccess.usrId, sub),
+            isNull(carUserFleetAccess.ufaDeletedAt),
+          ),
+        )
+        .limit(1);
+      if (any.length > 0) return;
+    }
+
     for (const dept of p.depts) {
       const mem = await db
         .select({ id: carUserFleetAccess.ufaId })

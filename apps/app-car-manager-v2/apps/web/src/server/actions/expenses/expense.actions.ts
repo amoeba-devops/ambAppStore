@@ -20,6 +20,7 @@ import {
   checkExpenseDeleteWarnings,
   type ExpenseDeleteWarning,
 } from '@/server/services/expense-delete-check.service';
+import { resolveOpenOilAlerts } from '@/server/services/maintenance-alert.service';
 import { runAction } from '../_helpers';
 
 /* Expense submission server action.
@@ -242,6 +243,16 @@ export async function submitExpenseAction(
         attachmentCount: parsed.attachments.length,
       },
     });
+
+    /* R-8: an OIL expense IS the oil change, so close the vehicle's open OIL
+     * alerts and restart its oil clock. Runs after the insert so a failure
+     * here can't unwind a recorded expense (the helper swallows its own
+     * errors). Only OIL — the other 7 types say nothing about maintenance. */
+    if (parsed.type === 'OIL') {
+      await resolveOpenOilAlerts(actor.entId, vehicleId, new Date(parsed.occurred_at));
+      revalidatePath('/maintenance');
+      revalidatePath('/vehicles');
+    }
 
     revalidatePath('/expenses');
     revalidatePath('/costs');

@@ -33,6 +33,10 @@ interface ToolbarProps {
   /** Clear any custom range filter — caller resets to the default month view
    * anchored on today. */
   onClearFilter: () => void;
+  /** How many trips the visible range holds. Sits next to the navigator
+   * because that is the control the user just moved — the page header's own
+   * count is deliberately period-free (it cannot follow client state). */
+  tripCount: number;
 }
 
 const VIEWS: CalendarViewType[] = ['month', 'week', 'day', 'gantt'];
@@ -72,6 +76,7 @@ export function CalendarToolbar({
   onQuickFilter,
   onCustomRange,
   onClearFilter,
+  tripCount,
 }: ToolbarProps) {
   const t = useTranslations('dashboard.calendar');
   const tColor = useTranslations('dashboard.colorMode');
@@ -150,6 +155,12 @@ export function CalendarToolbar({
         </button>
         <div className="min-w-0 flex-1 truncate text-sm font-semibold capitalize text-text">
           {title}
+          {/* Count for the range on screen. Whole right rail follows the same
+           * number, so this is also the user's confirmation that navigating
+           * actually re-scoped the page. */}
+          <span className="ml-2 font-normal normal-case text-xs tabular text-text-muted">
+            {t('tripCount', { count: tripCount })}
+          </span>
         </div>
 
         {/* Desktop: color mode segmented (vehicle vs status). Hidden on

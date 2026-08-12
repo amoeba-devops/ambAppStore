@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { driverIdentity } from '@/lib/format-person-option';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { listFleetDrivers } from '@/server/queries/drivers.queries';
 import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
@@ -24,7 +25,7 @@ export default async function NewTruckTripPage() {
     defaultDriverId: v.cvhDefaultDriverId ?? undefined,
   }));
   const driverOptions = drivers.map((d) => {
-    const name = d.user.usrName ?? d.user.usrEmail ?? d.drvId;
+    const name = driverIdentity(d);
     return { id: d.drvId, label: d.drvPhone ? `${name} · ${d.drvPhone}` : name };
   });
 

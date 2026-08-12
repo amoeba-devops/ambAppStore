@@ -30,11 +30,25 @@ export function DeptSwitch({ role, fleetAccess, collapsed }: Props) {
   const hasCar = fleetAccess.includes('CAR');
   const hasTruck = fleetAccess.includes('TRUCK');
 
-  /* Both departments → segmented toggle between the two workspaces. ADMIN only:
-   * only the org admin switches across the Car/Truck workspaces. Managers (incl.
-   * dept-scoped "quản trị xe con/xe tải") don't get the switch — they fall
-   * through to the read-only workspace badge below. */
-  if (hasCar && hasTruck && role === 'ADMIN') {
+  /* Both departments → segmented toggle between the two workspaces.
+   *
+   * Deliberately NOT gated on ADMIN any more (reverting that half of add5d79,
+   * 2026-07-01). Gating on role left a two-department MANAGER — "QL 2 phòng" —
+   * holding TRUCK access with no way to reach it: middleware happily serves them
+   * /truck/dashboard (verified 200), the sidebar just never offered a link, so
+   * the only route in was typing the URL. Three things contradicted the gate:
+   *   - requestFleetAccessAction + decideFleetAccessAction implement a whole
+   *     self-service flow for a car manager to REQUEST truck access and an admin
+   *     to approve it. Approving it granted access the manager could not use.
+   *   - test-personas' `mgr-both` advertises "có switch Car/Truck".
+   *   - nav items are filtered by the ACTIVE dept, so their truck menu never
+   *     appeared either — the second membership was inert.
+   *
+   * `hasCar && hasTruck` is the honest condition: it is exactly "this user may
+   * enter both workspaces". Single-department managers and drivers never match
+   * it, so they still fall through to the read-only badge — which is what
+   * add5d79 was actually fixing. */
+  if (hasCar && hasTruck) {
     return (
       <div className={cn('flex gap-1 rounded-md bg-surface-2 p-1', collapsed && 'flex-col')}>
         <DeptLink href={CAR_HOME} active={current === 'CAR'} Icon={Car} label={t('car')} collapsed={collapsed} />

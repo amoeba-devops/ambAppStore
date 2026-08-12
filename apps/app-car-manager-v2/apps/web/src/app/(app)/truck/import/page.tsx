@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Truck } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { driverIdentity } from '@/lib/format-person-option';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { listFleetDrivers } from '@/server/queries/drivers.queries';
 import { TruckImportPanel } from './_components/truck-import-panel';
@@ -18,7 +19,7 @@ export default async function TruckImportPage() {
     listFleetDrivers(user.entId, 'TRUCK'),
   ]);
   const vehicleOptions = vehicles.map((v) => ({ id: v.cvhId, label: `${v.cvhPlateNumber} · ${v.cvhModel}` }));
-  const driverOptions = drivers.map((d) => ({ id: d.drvId, label: d.user.usrName ?? d.user.usrEmail ?? d.drvId }));
+  const driverOptions = drivers.map((d) => ({ id: d.drvId, label: driverIdentity(d) }));
 
   return (
     <>

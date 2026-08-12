@@ -32,7 +32,10 @@ import { notifyUser } from './notification.service';
  *   audit trace, but UI shows as "acknowledged" / de-emphasized).
  *
  * Resolve: happens automatically when an OIL expense is filed (see
- *   expense.service.ts → resolveOpenOilAlerts) or manually via resetOilChange.
+ *   expense.actions.ts → submitExpenseAction, which calls resolveOpenOilAlerts
+ *   below) or manually via resetOilChange. NOTE: this docstring previously
+ *   pointed at a non-existent `expense.service.ts`, and the hook itself was
+ *   never written — alerts could not close at all until 2026-07-28.
  */
 
 const MS_PER_DAY = 86_400_000;
@@ -57,12 +60,19 @@ export interface EvaluatorResult {
 
 export async function evaluateAllTenants(): Promise<EvaluatorResult> {
   /* Fetch all live vehicles globally; group by ent_id in memory. Cheap for
-   * the expected scale (≤ a few hundred vehicles across all tenants). */
+   * the expected scale (≤ a few hundred vehicles across all tenants).
+   *
+   * CAR only. Maintenance Alert is a car-workspace module (PRD Module 2 — oil
+   * interval + đăng kiểm), and its notification deep-links to /vehicles/{id},
+   * which now redirects trucks away. Trucks carry their own cost model under
+   * /truck and are not serviced from this screen, so scanning them produced
+   * alerts nobody owned. `vehiclesScanned` therefore counts cars only. */
   const vehicles = await db
     .select()
     .from(carVehicles)
     .where(
       and(
+        eq(carVehicles.cvhType, 'CAR'),
         isNull(carVehicles.cvhDeletedAt),
         sql`${carVehicles.cvhStatus} <> 'RETIRED'`,
       ),
@@ -205,6 +215,23 @@ async function insertAlert(
   return row;
 }
 
+/**
+ * Staff who should hear about a CAR vehicle's maintenance alert.
+ *
+ * CAR access is part of the condition, not just the role. These alerts only ever
+ * concern CAR vehicles (`evaluateAllTenants` filters on cvh_type) and the
+ * notification deep-links to `/vehicles/{id}`, which middleware bounces a
+ * TRUCK-only manager away from — so without the department check we were filling
+ * their inbox with dead ends. Staging had already sent 4 such notifications to
+ * Lê Hoàng (MANAGER, TRUCK only), all 4 still unread.
+ *
+ * This is the same leak the sticky banner had; fixing the banner alone left the
+ * inbox / email / push channel untouched.
+ *
+ * ADMIN needs no membership row — resolveFleetAccess grants them both fleets
+ * implicitly, so requiring a CAR row would silence the very people who own the
+ * fleet.
+ */
 async function loadAlertRecipients(entId: string): Promise<string[]> {
   const rows = await db
     .select({ usrId: carUsers.usrId })
@@ -214,6 +241,13 @@ async function loadAlertRecipients(entId: string): Promise<string[]> {
         eq(carUsers.entId, entId),
         isNull(carUsers.usrDeletedAt),
         sql`${carUsers.usrLocalRole} IN ('ADMIN', 'MANAGER')`,
+        sql`(${carUsers.usrLocalRole} = 'ADMIN' OR EXISTS (
+          SELECT 1 FROM car_user_fleet_access f
+          WHERE f.usr_id = ${carUsers.usrId}
+            AND f.ent_id = ${entId}
+            AND f.ufa_vehicle_type = 'CAR'
+            AND f.ufa_deleted_at IS NULL
+        ))`,
       ),
     );
   return rows.map((r) => r.usrId);
@@ -270,6 +304,56 @@ function bodyForAlert(alert: CarMaintenanceAlert, vehicle: CarVehicle): string {
     return `Due ${alert.malDueAt.toISOString().slice(0, 10)}`;
   }
   return '';
+}
+
+/* ─── Auto-resolve on OIL expense ─────────────────────────────────────── */
+
+/**
+ * Filing an OIL expense means the oil was actually changed, so the vehicle's
+ * open OIL_* alerts close and its oil clock restarts.
+ *
+ * Resolving alone would be pointless: R-8 derives the alert from
+ * `cvh_odometer_km - cvh_last_oil_change_km`, so leaving the baseline behind
+ * would have the next evaluator run re-raise the very same alert within 24h.
+ * We therefore also advance the baseline — the expense form has no odometer
+ * field, so the vehicle's CURRENT odometer is the best available reading (the
+ * same quantity `resetOilChange` takes explicitly), and `occurredAt` is the
+ * date the driver says the change happened.
+ *
+ * Best-effort: a failure here must never unwind a submitted expense — the
+ * user-visible "đã ghi nhận" has to mean what it says. Mirrors how logAudit
+ * swallows its own errors in the same action.
+ */
+export async function resolveOpenOilAlerts(
+  entId: string,
+  vehicleId: string,
+  occurredAt: Date,
+): Promise<void> {
+  try {
+    await db
+      .update(carMaintenanceAlerts)
+      .set({ malResolvedAt: new Date() })
+      .where(
+        and(
+          eq(carMaintenanceAlerts.entId, entId),
+          eq(carMaintenanceAlerts.malVehicleId, vehicleId),
+          isNull(carMaintenanceAlerts.malResolvedAt),
+          sql`${carMaintenanceAlerts.malType} IN ('OIL_OVERDUE','OIL_DUE_SOON')`,
+        ),
+      );
+
+    await db
+      .update(carVehicles)
+      .set({
+        cvhLastOilChangeKm: sql`${carVehicles.cvhOdometerKm}`,
+        cvhLastOilChangeAt: occurredAt,
+        cvhUpdatedAt: new Date(),
+      })
+      .where(and(eq(carVehicles.cvhId, vehicleId), eq(carVehicles.entId, entId)));
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('[resolveOpenOilAlerts] failed (expense still recorded):', (e as Error).message);
+  }
 }
 
 /* ─── Acknowledge ─────────────────────────────────────────────────────── */

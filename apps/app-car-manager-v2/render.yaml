@@ -164,32 +164,39 @@ services:
       - key: NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY
         sync: false
 
-# ────────────────────────────────────────────────────────────────────────────
-# Optional cron service — Module 2 maintenance-alert evaluator.
-# Decision D9 of REQ-20260519: code the endpoint + manual trigger first; defer
-# Render cron registration to a follow-up PR after staging verification.
-#
-# To activate (after verifying with the manual trigger script):
-#   1. Uncomment the block below
-#   2. Set CRON_SECRET to the SAME value as the web service
-#   3. Set TARGET_URL to the production-ready public URL
-#   4. Run `render deploy` or push to main with auto-deploy enabled
-# ────────────────────────────────────────────────────────────────────────────
-#
-#   - type: cron
-#     name: car-manager-maintenance-alert
-#     runtime: docker
-#     dockerCommand: |
-#       curl -fsS -X POST \
-#         -H "Authorization: Bearer $CRON_SECRET" \
-#         -H "X-Render-Cron: true" \
-#         "$TARGET_URL/api/v1/cron/maintenance-alert" \
-#         || (echo "maintenance-alert cron failed" && exit 1)
-#     # Daily at 06:00 ICT = 23:00 UTC previous day
-#     schedule: "0 23 * * *"
-#     plan: starter
-#     envVars:
-#       - key: CRON_SECRET
-#         sync: false
-#       - key: TARGET_URL
-#         value: https://car-manager-staging.onrender.com
+  # ──────────────────────────────────────────────────────────────────────────
+  # Module 2 maintenance-alert evaluator (REQ-20260519 D9).
+  #
+  # Deferred since May with the endpoint already written; activated 2026-07-28
+  # now that (a) /maintenance renders the alerts and (b) submitting an OIL
+  # expense resolves them and restarts the vehicle's oil clock. Without (b) a
+  # daily run would just re-raise the same alert for every overdue vehicle
+  # forever — so do NOT re-enable this ahead of resolveOpenOilAlerts.
+  #
+  # STAGING ONLY for now, per the repo rule that nothing reaches production
+  # before staging is green. To add production later, copy this block, rename
+  # it, and point TARGET_URL at the prod URL — one cron service per target.
+  #
+  # `runtime: node` mirrors the two web services above (a proven config in this
+  # blueprint) and runs the existing trigger script, which exits non-zero on a
+  # non-2xx so Render marks the run failed. The version previously sketched
+  # here could not have worked: it used `runtime: docker` with no rootDir (no
+  # Dockerfile at the repo root) and shelled out to curl, which the app image
+  # does not carry — node:20-alpine + `apk add wget`, no curl.
+  # ──────────────────────────────────────────────────────────────────────────
+  - type: cron
+    name: car-manager-maintenance-alert
+    runtime: node
+    rootDir: apps/app-car-manager-v2
+    plan: starter
+    # Daily at 06:00 ICT = 23:00 UTC the previous day.
+    schedule: "0 23 * * *"
+    # Nothing to compile — the job is one HTTP call via node's global fetch.
+    buildCommand: "echo 'no build: cron only issues one HTTP request'"
+    startCommand: node scripts/trigger-maintenance-cron.mjs
+    envVars:
+      # MUST match CRON_SECRET on car-manager-staging or the endpoint 401s.
+      - key: CRON_SECRET
+        sync: false
+      - key: TARGET_URL
+        value: https://car-manager-staging.onrender.com

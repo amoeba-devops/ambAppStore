@@ -11,7 +11,6 @@ import {
 } from '@car-v2/db/schema';
 import {
   parseAmount,
-  truckTripFuelCost,
   computeTruckPnl,
   loadTruckRegionSnapshots,
 } from '@car-v2/core/truck';
@@ -229,13 +228,14 @@ export async function getTruckReportExport(
     const extra = Math.round(ex.amount);
     const toll = Math.round(parseAmount(t.toll));
     const revenue = Math.round(parseAmount(t.revenue));
-    const snap = snapshots.forTrip(month, t.vehicleId);
-    const finalized = snap != null;
-    const avgPrice = finalized ? snap.avgPrice : parseAmount(t.fuelPrice);
-    const liters = finalized ? km * snap.consumption : parseAmount(t.fuelLiters);
-    const fuelCost = finalized
-      ? truckTripFuelCost({ km, consumption: snap.consumption, avgPrice: snap.avgPrice })
-      : Math.round(parseAmount(t.fuelLiters) * parseAmount(t.fuelPrice));
+    /* No trip timestamp passed on purpose: this workbook IS the report, whose
+     * row was inserted moments ago, so every trip in scope is covered by it. */
+    const finalized = snapshots.isReported(month, t.vehicleId);
+    /* Fuel = frozen snapshot → live pool → 0, shared helper. */
+    const fuel = snapshots.fuelForTrip(month, t.vehicleId, km);
+    const avgPrice = fuel.unitPrice;
+    const liters = fuel.liters;
+    const fuelCost = fuel.cost;
     const route = routeByTrip.get(t.trpId) ?? {};
     return {
       date: t.scheduledAt,
@@ -317,8 +317,7 @@ export async function getTruckReportExport(
   for (const t of rows) {
     if (!t.vehicleId) continue;
     const km = t.so != null && t.eo != null ? t.eo - t.so : 0;
-    const snap = snapshots.forTrip(month, t.vehicleId);
-    const liters = snap ? km * snap.consumption : parseAmount(t.fuelLiters);
+    const liters = snapshots.fuelForTrip(month, t.vehicleId, km).liters;
     const g = aggByVeh.get(t.vehicleId) ?? { km: 0, liters: 0 };
     g.km += km;
     g.liters += liters;
@@ -330,11 +329,19 @@ export async function getTruckReportExport(
 
   /* Per-vehicle P&L via the core service (one call per vehicle so each row
    * carries its own fixed costs — incl. depreciation + default-driver salary
-   * for an idle truck). */
+   * for an idle truck; that needs `fixedCostWithoutTrips`, which the screens
+   * deliberately leave off). Only when the month HAS trips: in an empty month
+   * every row would otherwise carry fixed cost while the scope total shows 0,
+   * and the sheet would not reconcile. */
+  const includeIdleFixedCost = rows.length > 0;
   const vehicles: ReportVehiclePnlRow[] = [];
   await Promise.all(
     rowVehicleIds.map(async (vid) => {
-      const [p] = await computeTruckPnl(actor, { vehicleId: vid, months: [month] });
+      const [p] = await computeTruckPnl(actor, {
+        vehicleId: vid,
+        months: [month],
+        fixedCostWithoutTrips: includeIdleFixedCost,
+      });
       if (!p) return;
       const info = vinfo.get(vid);
       const agg = aggByVeh.get(vid) ?? { km: 0, liters: 0 };

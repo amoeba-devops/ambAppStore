@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import {
   AlertTriangle,
   Car,
@@ -19,6 +19,9 @@ import type { CarTripStatus } from '@car-v2/db/schema';
 import { MapPreview } from '@/components/inputs/map-preview';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { hasFleet } from '@/lib/auth/fleet-access';
+import { driverIdentity } from '@/lib/format-person-option';
+import { completeInitialOf } from '@/lib/truck-complete-initial';
 import { listAuditForEntity } from '@/server/queries/audit.queries';
 import { listNonTruckDrivers, getDriverByUserId } from '@/server/queries/drivers.queries';
 import { getTrip } from '@/server/queries/trips.queries';
@@ -64,22 +67,43 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
    * completion section). Returns early so the car dispatch layout below is
    * never touched for trucks. */
   if (trip.trpKind === 'LOG') {
+    const isStaffUser = user.role === 'ADMIN' || user.role === 'MANAGER';
+    /* Staff belong on the canonical truck route: this shared page has no truck
+     * breadcrumb, no manage actions, and its back button falls through to
+     * `/trips` — a DISPATCH-only list that never contains a LOG trip (the same
+     * dead end the driver detail had, BUG-20260729). Truck-log links reach here
+     * from dept-neutral places (notification `/trips/{id}`, the recent-trips
+     * table on a driver/vehicle detail), so redirect rather than patch the
+     * label. Mirrors `/vehicles/[id]` → `/truck/fleet/[id]/edit` for trucks.
+     * Drivers stay: their own roster IS `/trips`. */
+    if (isStaffUser && (await hasFleet(user, 'TRUCK'))) redirect(`/truck/trips/${trip.trpId}`);
+
     let isAssignedDriver = false;
     if (user.role === 'DRIVER' && trip.trpDriverId) {
       const actorDriver = await getDriverByUserId(user.entId, user.userId);
       isAssignedDriver = actorDriver?.drvId === trip.trpDriverId;
     }
-    const isStaffUser = user.role === 'ADMIN' || user.role === 'MANAGER';
     const extras = await getTripExtraCosts(user.entId, trip.trpId);
     const costAttachments = await getTripCostAttachmentsView(user.entId, trip.trpId);
-    const { breakdown, month, region } = await getTruckTripBreakdown(user.entId, trip, extras.map((e) => e.amount));
+    const {
+      breakdown,
+      fuelMode,
+      km: fuelKm,
+      fuelCostPerKm,
+      salaryAllocated,
+      depreciationAllocated,
+      profitAfterFixed,
+      fixedTripCount,
+      month,
+      region,
+    } = await getTruckTripBreakdown(user.entId, trip, extras.map((e) => e.amount));
     const completed = trip.trpStatus === 'COMPLETED';
     const canComplete =
       !completed &&
       (isStaffUser || isAssignedDriver) &&
       (trip.trpStatus === 'CONFIRMED' || trip.trpStatus === 'IN_PROGRESS');
     /* Only completed trips show the cost card — skip the query otherwise. */
-    const reportStatus = completed ? await getTruckReportStatus(user.entId, month, region || null) : null;
+    const reportStatus = completed ? await getTruckReportStatus(user.entId, month, region || null, trip.trpUpdatedAt ?? trip.trpCreatedAt) : null;
 
     return (
       <TruckTripDetail
@@ -97,8 +121,20 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
         extras={extras}
         costAttachments={costAttachments}
         breakdown={breakdown}
+        fuelMode={completed ? fuelMode : undefined}
+        fuelKm={fuelKm}
+        fuelCostPerKm={fuelCostPerKm}
+        salaryAllocated={completed ? salaryAllocated : undefined}
+        depreciationAllocated={completed ? depreciationAllocated : undefined}
+        profitAfterFixed={completed ? profitAfterFixed : undefined}
+        fixedTripCount={fixedTripCount}
         completed={completed}
         canComplete={canComplete}
+        completeInitial={completeInitialOf(trip)}
+        /* Their own truck log only. `/truck/trips/[id]/edit` is unreachable for
+         * a DRIVER (the truck layout bounces them to /today), so point at the
+         * driver-side edit route — the same one their own trip page uses. */
+        editHref={isAssignedDriver ? `/today/truck/${trip.trpId}/edit` : undefined}
         mode={user.role === 'DRIVER' ? 'driver' : 'staff'}
         hideFinancials={user.role === 'DRIVER'}
         reportStatus={reportStatus}
@@ -109,7 +145,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
   const isStaff = user.role === 'ADMIN' || user.role === 'MANAGER';
   const [drivers, vehicles, auditRows] = await Promise.all([
     isStaff ? listNonTruckDrivers(user.entId) : Promise.resolve([]),
-    isStaff ? listVehicles(user.entId) : Promise.resolve([]),
+    isStaff ? listVehicles(user.entId, 'active', 'CAR') : Promise.resolve([]),
     listAuditForEntity(user.entId, 'Trip', id),
   ]);
 
@@ -123,7 +159,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
 
   const driverOptions = drivers.map((d) => ({
     id: d.drvId,
-    label: `${d.user.usrName} — ${d.drvLicenseNumber} (${d.drvLicenseClass})`,
+    label: `${driverIdentity(d)} — ${d.drvLicenseNumber} (${d.drvLicenseClass})`,
   }));
   const vehicleOptions = vehicles
     .filter((v) => v.cvhStatus !== 'RETIRED' && v.cvhStatus !== 'MAINTENANCE')

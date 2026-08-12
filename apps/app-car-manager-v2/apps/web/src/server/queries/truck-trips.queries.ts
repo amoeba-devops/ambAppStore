@@ -10,12 +10,12 @@ import {
   type CarTripStatus,
 } from '@car-v2/db/schema';
 import {
-  computeTruckCost,
   parseAmount,
-  truckTripFuelCost,
   loadTruckRegionSnapshots,
+  loadTruckFixedAllocation,
   getTripCostAttachments,
   type TruckCostBreakdown,
+  type TruckFuelMode,
 } from '@car-v2/core/truck';
 import { getSignedGetUrl } from '@/lib/s3-client';
 
@@ -39,11 +39,30 @@ export async function getTruckTripBreakdown(
     trpFuelPrice: string | null;
     trpTollFee: string | null;
     trpRevenue: string | null;
+    /* Last change — decides whether an existing report covers this trip. */
+    trpUpdatedAt?: Date | null;
+    trpCreatedAt?: Date | null;
   },
   extraAmounts: number[],
 ): Promise<{
   breakdown: TruckCostBreakdown;
   finalized: boolean;
+  /** How `breakdown.fuelCost` was derived: AVERAGED (frozen month-end
+   * allocation) | LIVE (same allocation, computed from the month's fuel so far)
+   * | UNSET (no fuel recorded for that vehicle-month → 0). Independent of
+   * `finalized`. */
+  fuelMode: TruckFuelMode;
+  /** This trip's km (end − start odometer) + cost of one km (đ/km) — the detail
+   * page shows `{km} km × {fuelCostPerKm} ₫/km` under the fuel row. */
+  km: number;
+  fuelCostPerKm: number;
+  /** This trip's slice of the month's fixed cost (Sheet3 "phân bổ theo chuyến")
+   * + the profit after it. `breakdown.profit` stays variable-only. */
+  salaryAllocated: number;
+  depreciationAllocated: number;
+  profitAfterFixed: number;
+  /** Trips the month's fixed cost was split across (for the "÷ N chuyến" note). */
+  fixedTripCount: number;
   /** The trip's month + resolved operating region ('' = vehicle has no
    * region) — feeds `getTruckReportStatus` so the detail page can show WHEN
    * the report covering this trip was last generated. */
@@ -51,35 +70,36 @@ export async function getTruckTripBreakdown(
   region: string;
 }> {
   const month = monthKey(trip.trpScheduledAt);
-  const snapshots = await loadTruckRegionSnapshots(entId, [month]);
+  const [snapshots, fixedAlloc] = await Promise.all([
+    loadTruckRegionSnapshots(entId, [month]),
+    loadTruckFixedAllocation(entId, [month]),
+  ]);
   const region = trip.trpVehicleId ? snapshots.vehicleRegion.get(trip.trpVehicleId) ?? '' : '';
-  const snap = snapshots.forTrip(month, trip.trpVehicleId);
-  if (!snap) {
-    return {
-      breakdown: computeTruckCost({
-        fuelLiters: parseAmount(trip.trpFuelLiters),
-        fuelPrice: parseAmount(trip.trpFuelPrice),
-        tollFee: parseAmount(trip.trpTollFee),
-        extraCosts: extraAmounts,
-        revenue: parseAmount(trip.trpRevenue),
-      }),
-      finalized: false,
-      month,
-      region,
-    };
-  }
+  /* "Đã lập BC" = a report for this (month, region) exists AND was generated
+   * after this trip's last change; a trip added later isn't in it. */
+  const changedAt = trip.trpUpdatedAt ?? trip.trpCreatedAt ?? null;
+  const finalized = snapshots.isReported(month, trip.trpVehicleId, changedAt);
   const km =
     trip.trpStartOdometer != null && trip.trpEndOdometer != null
       ? trip.trpEndOdometer - trip.trpStartOdometer
       : 0;
-  const fuelCost = truckTripFuelCost({ km, consumption: snap.consumption, avgPrice: snap.avgPrice });
+  /* Fuel = frozen snapshot (only if it covers this trip) → live pool → 0. */
+  const fuel = snapshots.fuelForTrip(month, trip.trpVehicleId, km, changedAt);
+  const fixedShare = fixedAlloc.forTrip(month, trip.trpVehicleId);
   const tollFee = Math.round(parseAmount(trip.trpTollFee));
   const extraTotal = Math.round(extraAmounts.reduce((s, n) => s + (n || 0), 0));
   const revenue = Math.round(parseAmount(trip.trpRevenue));
-  const totalCost = fuelCost + tollFee + extraTotal;
+  const totalCost = fuel.cost + tollFee + extraTotal;
   return {
-    breakdown: { fuelCost, tollFee, extraTotal, totalCost, revenue, profit: revenue - totalCost },
-    finalized: true,
+    breakdown: { fuelCost: fuel.cost, tollFee, extraTotal, totalCost, revenue, profit: revenue - totalCost },
+    finalized,
+    fuelMode: fuel.mode,
+    km,
+    fuelCostPerKm: fuel.costPerKm,
+    salaryAllocated: fixedShare.salary,
+    depreciationAllocated: fixedShare.depreciation,
+    profitAfterFixed: revenue - totalCost - fixedShare.total,
+    fixedTripCount: fixedShare.tripCount,
     month,
     region,
   };
@@ -251,30 +271,25 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
         ? t.trpEndOdometer - t.trpStartOdometer
         : null;
     const extraCosts = extraByTrip.get(t.trpId) ?? [];
-    const snap = snapshots.forTrip(monthKey(t.trpScheduledAt), t.trpVehicleId);
-
-    let breakdown: TruckCostBreakdown;
-    if (snap) {
-      const fuelCost = truckTripFuelCost({ km: km ?? 0, consumption: snap.consumption, avgPrice: snap.avgPrice });
-      const tollFee = Math.round(parseAmount(t.trpTollFee));
-      const extraTotal = Math.round(extraCosts.reduce((s, n) => s + (n || 0), 0));
-      const revenue = Math.round(parseAmount(t.trpRevenue));
-      const totalCost = fuelCost + tollFee + extraTotal;
-      breakdown = { fuelCost, tollFee, extraTotal, totalCost, revenue, profit: revenue - totalCost };
-    } else {
-      breakdown = computeTruckCost({
-        fuelLiters: parseAmount(t.trpFuelLiters),
-        fuelPrice: parseAmount(t.trpFuelPrice),
-        tollFee: parseAmount(t.trpTollFee),
-        extraCosts,
-        revenue: parseAmount(t.trpRevenue),
-      });
-    }
-
-    /* Fuel unit price + litres shown in the export mirror the fuel-cost rule:
-     * the frozen month-end snapshot when finalized, else the trip's own entry. */
-    const fuelUnitPrice = snap ? snap.avgPrice : parseAmount(t.trpFuelPrice);
-    const fuelLiters = snap ? (km ?? 0) * snap.consumption : parseAmount(t.trpFuelLiters);
+    const mk = monthKey(t.trpScheduledAt);
+    /* Fuel = frozen snapshot (only when it covers this trip) → live pool → 0.
+     * Unit price + litres shown mirror the same source. */
+    const tChangedAt = t.trpUpdatedAt ?? t.trpCreatedAt ?? null;
+    const fuel = snapshots.fuelForTrip(mk, t.trpVehicleId, km ?? 0, tChangedAt);
+    const tollFee = Math.round(parseAmount(t.trpTollFee));
+    const extraTotal = Math.round(extraCosts.reduce((s, n) => s + (n || 0), 0));
+    const revenue = Math.round(parseAmount(t.trpRevenue));
+    const totalCost = fuel.cost + tollFee + extraTotal;
+    const breakdown: TruckCostBreakdown = {
+      fuelCost: fuel.cost,
+      tollFee,
+      extraTotal,
+      totalCost,
+      revenue,
+      profit: revenue - totalCost,
+    };
+    const fuelUnitPrice = fuel.unitPrice;
+    const fuelLiters = fuel.liters;
 
     return {
       trpId: t.trpId,
@@ -300,7 +315,9 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
       extraNote: (extraNoteByTrip.get(t.trpId) ?? []).join(', ') || null,
       fuelUnitPrice,
       fuelLiters,
-      finalized: !!snap,
+      /* "Đã lập BC" only when the report actually covers this trip (generated
+       * after its last change) — see BUG-260730 case 1. */
+      finalized: snapshots.isReported(mk, t.trpVehicleId, tChangedAt),
     };
   });
 }

@@ -77,6 +77,7 @@ export async function upsertTruckFixedCostAction(input: unknown): Promise<Action
 
     revalidatePath('/truck/settings');
     revalidatePath('/truck/pnl');
+    revalidatePath('/truck/dashboard');
     return { ok: true as const };
   });
 }

@@ -65,7 +65,12 @@ export default async function TruckDriversPage({
     : undefined;
   const drivers = allDrivers.filter((d) => {
     if (q) {
-      const hay = `${d.user.usrName ?? ''} ${d.drvPhone ?? ''}`.toLowerCase();
+      /* Email + license included so the box can find what the rows actually
+       * print. Both cards and table show the email under the name and the
+       * license in its own column, but searching either returned nothing —
+       * and email is precisely how you disambiguate two same-named drivers.
+       * Same field set the car roster searches server-side in `listDrivers`. */
+      const hay = `${d.user.usrName ?? ''} ${d.user.usrEmail ?? ''} ${d.drvLicenseNumber ?? ''} ${d.drvPhone ?? ''}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
     if (fStatus && d.drvStatus !== fStatus) return false;

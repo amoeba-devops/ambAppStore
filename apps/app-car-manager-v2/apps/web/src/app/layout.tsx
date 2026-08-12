@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { cookies, headers } from 'next/headers';
 import { mapAmaRoleToLocal, type AmaJwtClaims } from '@car-v2/shared/auth';
-import { clearlyDept } from '@/components/layout/nav-items';
+import { clearlyDept, driverDept } from '@/components/layout/nav-items';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { resolveFleetAccess } from '@/lib/auth/fleet-access';
 import { SWRegister } from '@/components/pwa/sw-register';
@@ -102,13 +102,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     /* resolveFleetAccess is React-cache()d and AppShell resolves it again this
      * same request, so this is deduped to one query — no extra DB round-trip.
      * Falls back to the cookie guess if the lookup throws (unauth/edge). */
-    let isTruck = cookieIsTruck;
+    dept = cookieIsTruck ? 'TRUCK' : 'CAR';
     try {
-      isTruck = (await resolveFleetAccess(await getCurrentUser())).includes('TRUCK');
+      /* `driverDept` — not a bare `.includes('TRUCK')`. A driver carrying BOTH
+       * memberships resolved to TRUCK here while AppShell/`/today` resolved CAR,
+       * so the car driver's page rendered inside orange truck chrome and this
+       * layout was the one painting it. */
+      dept = driverDept(await resolveFleetAccess(await getCurrentUser()));
     } catch {
       /* keep the cookie-based guess */
     }
-    dept = isTruck ? 'TRUCK' : 'CAR';
   } else {
     dept = clearlyDept(pathname) ?? (cookieIsTruck ? 'TRUCK' : 'CAR');
   }
