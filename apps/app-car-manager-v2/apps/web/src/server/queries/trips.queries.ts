@@ -60,8 +60,9 @@ export async function listTrips({
   deletedFilter = 'active',
   kind,
 }: ListInput): Promise<{ items: TripListItem[]; total: number; page: number; pageSize: number }> {
-  /* Per PRD R-3 (REQ §3.7): Admin sees all, Manager sees own (creator OR passenger),
-   * Driver sees only trips assigned to them. */
+  /* Admin AND Manager see the whole fleet's trips (Manager is staff, same
+   * scope as Admin — only the /users, /audit, /settings admin-management
+   * screens stay Admin-only). Driver sees only trips assigned to them. */
   const filters: SQL[] = [eq(carTrips.entId, entId)];
 
   if (kind) filters.push(eq(carTrips.trpKind, kind));
@@ -75,10 +76,7 @@ export async function listTrips({
   }
   /* 'all' includes both — no filter on trpDeletedAt */
 
-  if (role === 'MANAGER') {
-    const visibility = or(eq(carTrips.trpCreatorId, userId), eq(carTrips.trpPassengerId, userId));
-    if (visibility) filters.push(visibility);
-  } else if (role === 'DRIVER') {
+  if (role === 'DRIVER') {
     const driver = await getDriverByUserId(entId, userId);
     if (!driver) return { items: [], total: 0, page, pageSize: PAGE_SIZE };
     filters.push(eq(carTrips.trpDriverId, driver.drvId));
@@ -159,9 +157,9 @@ export async function listTrips({
  * Lightweight count of trips currently in a "pending" state for this user's
  * visibility scope. Used by the sidebar to show a badge on the Trips nav item.
  *
- * PRD R-3 visibility rules apply (Admin all, Manager own, Driver assigned).
- * Pending = PENDING_ASSIGNMENT ∪ PENDING_DRIVER_CONFIRMATION (same set as the
- * `pending` filter chip on the list page so the number matches).
+ * Admin and Manager share the same fleet-wide scope; Driver is restricted to
+ * trips assigned to them. Pending = PENDING_ASSIGNMENT ∪ PENDING_DRIVER_CONFIRMATION
+ * (same set as the `pending` filter chip on the list page so the number matches).
  */
 export async function countPendingTrips(args: {
   entId: string;
@@ -178,10 +176,7 @@ export async function countPendingTrips(args: {
 
   if (kind) filters.push(eq(carTrips.trpKind, kind));
 
-  if (role === 'MANAGER') {
-    const visibility = or(eq(carTrips.trpCreatorId, userId), eq(carTrips.trpPassengerId, userId));
-    if (visibility) filters.push(visibility);
-  } else if (role === 'DRIVER') {
+  if (role === 'DRIVER') {
     const driver = await getDriverByUserId(entId, userId);
     if (!driver) return 0;
     filters.push(eq(carTrips.trpDriverId, driver.drvId));
@@ -200,8 +195,10 @@ export async function countPendingTrips(args: {
  * - No pagination — calendar UI needs the whole range at once.
  * - Hard cap at 500 rows; over that we throw `CAR-E0413` so the UI can prompt
  *   the user to narrow the range (CLAUDE.md §4.4 error code convention).
- * - Visibility filter clones `listTrips` (Admin all, Manager own+passenger,
- *   Driver assigned-to) so REQ §3.1 holds.
+ * - Visibility: Admin AND Manager see the full fleet schedule (the dashboard
+ *   calendar is a shared dispatch board — Manager needs whole-fleet context to
+ *   plan around other trips). Driver never reaches this query anyway: the page
+ *   redirects them to `/today` first.
  */
 export async function listTripsForCalendar(args: {
   entId: string;
@@ -221,10 +218,7 @@ export async function listTripsForCalendar(args: {
 
   if (kind) filters.push(eq(carTrips.trpKind, kind));
 
-  if (role === 'MANAGER') {
-    const visibility = or(eq(carTrips.trpCreatorId, userId), eq(carTrips.trpPassengerId, userId));
-    if (visibility) filters.push(visibility);
-  } else if (role === 'DRIVER') {
+  if (role === 'DRIVER') {
     const driver = await getDriverByUserId(entId, userId);
     if (!driver) return [];
     filters.push(eq(carTrips.trpDriverId, driver.drvId));
@@ -270,8 +264,8 @@ const BOARD_CAP = 300;
  * Unlike `listTrips`, the board needs the WHOLE filtered set (no 20-row
  * pagination) because every status column must be populated at once. We
  * deliberately drop the status-bucket filter — columns ARE the statuses — but
- * keep role visibility + free-text search + date range so the board mirrors
- * what the list view would show under the same q/date.
+ * keep Driver's own-scope restriction + free-text search + date range so the
+ * board mirrors what the list view would show under the same q/date.
  *
  * Hard cap at {@link BOARD_CAP}: a 3-vehicle fleet (PRD) never approaches it,
  * but we return `capped` so the UI can surface a "narrow the range" hint
@@ -300,10 +294,7 @@ export async function listTripsForBoard(args: {
   }
   /* 'all' includes both — no filter on trpDeletedAt */
 
-  if (role === 'MANAGER') {
-    const visibility = or(eq(carTrips.trpCreatorId, userId), eq(carTrips.trpPassengerId, userId));
-    if (visibility) filters.push(visibility);
-  } else if (role === 'DRIVER') {
+  if (role === 'DRIVER') {
     const driver = await getDriverByUserId(entId, userId);
     if (!driver) return { items: [], capped: false };
     filters.push(eq(carTrips.trpDriverId, driver.drvId));
