@@ -7,11 +7,12 @@ import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { db } from '@car-v2/db/client';
 import { carTruckReports, carUsers, TRUCK_REPORT_TYPES, type TruckReportType } from '@car-v2/db/schema';
-import type { ActionResult } from '@car-v2/shared/errors';
+import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import { computeTruckPnl } from '@car-v2/core/truck';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
+import { allowedRegions, requireRegion } from '@/lib/auth/region-access';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import {
   getTruckFuelStats,
@@ -322,10 +323,18 @@ export async function generateTruckReportAction(input: unknown): Promise<ActionR
         region: z.enum(TRUCK_REGIONS).nullable().optional(),
       })
       .parse(input);
+    /* Region ACL (REQ-20260813): a narrowed user may only report on their own
+     * regions, and never the consolidated all-regions scope (region null). */
+    const region = parsed.region ?? null;
+    if (region) await requireRegion(actor, region);
+    else if ((await allowedRegions(actor)).length < TRUCK_REGIONS.length) {
+      throw new CarError('CAR-E0403', 403, 'Forbidden: consolidated report spans all regions');
+    }
+
     const { id } = await generateOneTruckReport(actor, {
       month: parsed.month,
       type: parsed.type,
-      region: parsed.region ?? null,
+      region,
     });
     /* Numbers just became official everywhere the snapshot is read. */
     revalidateTruckReportPaths();
@@ -364,7 +373,15 @@ export async function generateAllRegionsTruckReportsAction(
     const { month } = parsed;
 
     const { byRegion } = await getTruckRegionTripCounts(actor.entId, month);
-    const scope = parsed.regions?.length ? parsed.regions : Object.keys(byRegion);
+    /* Region ACL (REQ-20260813): an explicit scope is validated per region; the
+     * implicit "every region with data" scope narrows to what the user may see. */
+    if (parsed.regions?.length) {
+      for (const r of parsed.regions) await requireRegion(actor, r);
+    }
+    const permitted: readonly string[] = await allowedRegions(actor);
+    const scope = (parsed.regions?.length ? parsed.regions : Object.keys(byRegion)).filter((r) =>
+      permitted.includes(r),
+    );
     const finalized: string[] = [];
     const pending: string[] = [];
     for (const region of scope) {

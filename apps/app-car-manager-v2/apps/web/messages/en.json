@@ -50,7 +50,8 @@
     "truckTripsShort": "Trips",
     "truckFleetShort": "Fleet",
     "truckDriversShort": "Drivers",
-    "maintenance": "Maintenance alerts"
+    "maintenance": "Maintenance alerts",
+    "regionAccess": "Region access"
   },
   "region": {
     "HCM": "HCM",
@@ -823,6 +824,22 @@
       "status_UNRESOLVED": "Open",
       "status_RESOLVED": "Resolved",
       "status_ALL": "All"
+    },
+    "regionAccess": {
+      "title": "Region access",
+      "subtitle": "Limit truck-fleet members to the regions they cover",
+      "membersTitle": "Truck-fleet members",
+      "membersHint": "No region selected = sees ALL regions (default). Pick regions to limit a user to those only. Admins always manage every region.",
+      "membersEmpty": "No members have truck-fleet access yet.",
+      "thMember": "Member",
+      "thRole": "Role",
+      "thRegions": "Regions",
+      "fullAccess": "All regions",
+      "allRegionsDefault": "All regions (default)",
+      "save": "Save",
+      "savedToast": "Limited {name} to {count} region(s)",
+      "clearedToast": "Reopened every region for {name}",
+      "deniedNotice": "You do not have access to {region} — showing the regions you cover instead."
     }
   },
   "phase": {

@@ -19,7 +19,9 @@ import { ListRowActions } from '@/components/list-row-actions';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { MonthPicker } from '@/components/inputs/month-picker';
 import { PageHeader } from '@/components/layout/page-header';
+import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { resolveRegionFilter } from '@/lib/auth/region-access';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { driverIdentity } from '@/lib/format-person-option';
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
@@ -38,7 +40,7 @@ function bcp47(locale: string): string {
 export default async function TruckTripsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; month?: string; region?: string; vehicle?: string; driver?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; month?: string; region?: string; region_denied?: string; vehicle?: string; driver?: string; status?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
@@ -46,7 +48,10 @@ export default async function TruckTripsPage({
   const month = /^\d{4}-\d{2}$/.test(sp.month ?? '') ? sp.month : undefined;
   const status = sp.status === 'complete' || sp.status === 'ongoing' ? sp.status : undefined;
   const regionCodes: readonly string[] = TRUCK_REGIONS;
-  const region = sp.region && regionCodes.includes(sp.region) ? sp.region : undefined;
+  /* Region ACL (REQ-20260813) — validated ?region= + the set this user may see. */
+  const { region, regions: permittedRegions } = await resolveRegionFilter(user, sp.region, sp);
+  const restricted = permittedRegions.length < TRUCK_REGIONS.length;
+  const permittedCodes: readonly string[] = permittedRegions;
 
   const t = await getTranslations('screens.truckTrips');
   const tA = await getTranslations('actions');
@@ -56,13 +61,25 @@ export default async function TruckTripsPage({
   const locale = await getLocale();
   const regionLabel = (r: string | null) => (r && regionCodes.includes(r) ? tRegion(r) : (r ?? '—'));
 
-  const [trucks, fleetDrivers] = await Promise.all([
+  const [allTrucks, fleetDrivers] = await Promise.all([
     listVehicles(user.entId, 'active', 'TRUCK'),
     listFleetDrivers(user.entId, 'TRUCK'),
   ]);
+  /* Narrowed users only pick from their regions' trucks. */
+  const trucks = restricted
+    ? allTrucks.filter((v) => v.cvhRegion !== null && permittedCodes.includes(v.cvhRegion))
+    : allTrucks;
   const vehicle = sp.vehicle && trucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
   const driver = sp.driver && fleetDrivers.some((d) => d.drvId === sp.driver) ? sp.driver : undefined;
-  const trips = await listTruckTrips(user.entId, { q, month, region, vehicleId: vehicle, driverId: driver, status });
+  const trips = await listTruckTrips(user.entId, {
+    q,
+    month,
+    region,
+    regions: restricted ? permittedRegions : undefined,
+    vehicleId: vehicle,
+    driverId: driver,
+    status,
+  });
   const loc = bcp47(locale);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
   const date = (d: Date) => new Date(d).toLocaleDateString(loc);
@@ -115,10 +132,11 @@ export default async function TruckTripsPage({
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
+        <RegionDeniedNotice code={sp.region_denied} />
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
           <DebouncedSearchInput placeholder={t('searchPlaceholder')} className="sm:w-72" clearLabel={tA('clear')} />
           <MonthPicker value={month ?? ''} />
-          <TripFilters plates={plateOptions} drivers={driverOptions} region={region} vehicle={vehicle} driver={driver} status={status} />
+          <TripFilters plates={plateOptions} drivers={driverOptions} region={region} regionOptions={permittedRegions} vehicle={vehicle} driver={driver} status={status} />
         </div>
         {trips.length === 0 ? (
           <Card>

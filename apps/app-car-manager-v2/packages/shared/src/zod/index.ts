@@ -4,6 +4,7 @@ export * from './trip.zod.js';
 export * from './maintenance-alert.zod.js';
 export * from './tenant-settings.zod.js';
 export * from './fleet-access.zod.js';
+export * from './region-access.zod.js';
 export * from './truck-trip.zod.js';
 export * from './truck-fixed-cost.zod.js';
 export * from './truck-import.zod.js';

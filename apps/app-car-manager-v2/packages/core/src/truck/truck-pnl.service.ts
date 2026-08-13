@@ -54,6 +54,12 @@ export interface TruckPnlQuery {
   /** Restrict to vehicles in this operating region (cvh_region code). Like the
    * vehicle filter, this excludes fleet-level driver salary (not region-tied). */
   region?: string | null;
+  /**
+   * Restrict to vehicles in ANY of these regions — the region-ACL scope for a
+   * user narrowed to a subset (REQ-20260813). Ignored when `region` is set,
+   * which is already the narrower filter.
+   */
+  regions?: readonly string[] | null;
   /** Months to report, 'YYYY-MM'. */
   months: string[];
   /**
@@ -113,9 +119,17 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
   const rangeEnd = monthEndExclusive(lastMonth);
 
   /* Region filter (REQ-20260630): resolve the trucks in the region, then scope
-   * trips + fixed costs to them. No trucks in the region → all-zero rows. */
+   * trips + fixed costs to them. No trucks in the region → all-zero rows.
+   * `regions` (REQ-20260813) is the same mechanism over a set of regions. */
   let regionVehicleIds: string[] | null = null;
-  if (q.region) {
+  /* An empty `regions` means "no region permitted" — never widen it to no filter. */
+  if (!q.region && q.regions && q.regions.length === 0) return months.map((m) => emptyRow(m));
+  const regionScope = q.region
+    ? eq(carVehicles.cvhRegion, q.region)
+    : q.regions
+      ? inArray(carVehicles.cvhRegion, [...q.regions])
+      : null;
+  if (regionScope) {
     const vrows = await db
       .select({ id: carVehicles.cvhId })
       .from(carVehicles)
@@ -123,7 +137,7 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
         and(
           eq(carVehicles.entId, actor.entId),
           eq(carVehicles.cvhType, 'TRUCK'),
-          eq(carVehicles.cvhRegion, q.region),
+          regionScope,
           isNull(carVehicles.cvhDeletedAt),
         ),
       );
