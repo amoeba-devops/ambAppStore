@@ -17,6 +17,7 @@ import { AdminLoginPage } from '@/pages/admin/AdminLoginPage';
 import { AppsLoginPage } from '@/pages/AppsLoginPage';
 import { MySubscriptionsPage } from '@/pages/MySubscriptionsPage';
 import { useEntityContextStore } from '@/stores/entity-context.store';
+import { getInitialAmaClaims } from '@/lib/ama-token';
 import { DebugContextPanel } from '@/components/common/DebugContextPanel';
 import { useEffect, useRef } from 'react';
 
@@ -25,8 +26,16 @@ const _initialReferrer = document.referrer;
 const _initialQueryParams = window.location.search;
 
 /**
- * AMA iframe 호출 시 쿼리 파라미터(ent_id, ent_code, ent_name, email)를
- * Zustand 스토어에 저장하고 URL에서 제거.
+ * AMA 진입 시 Entity 컨텍스트를 Zustand 스토어에 저장.
+ *
+ * 두 가지 진입 형태를 모두 처리한다:
+ *   1. iframe 쿼리 파라미터(ent_id, ent_code, ent_name, email) — URL에서 제거
+ *   2. `?ama_token=` 앱 스코프 JWT — AMA가 `/apps/:slug`를 열 때 쓰는 현재 방식
+ *
+ * (2)가 없으면 entity 컨텍스트가 null로 남고, AppDetailPage의
+ * `useEntitySubscriptions`가 비활성화되어 구독 조회 자체를 하지 않는다. 그러면
+ * 이미 승인(ACTIVE)된 사용자에게도 "사용하기" 대신 "신청하기" 버튼이 보여
+ * 앱에 들어갈 방법이 없다 (FIX-260813).
  */
 function EntityContextInitializer() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -46,6 +55,23 @@ function EntityContextInitializer() {
       searchParams.delete('ent_name');
       searchParams.delete('email');
       setSearchParams(searchParams, { replace: true });
+      return;
+    }
+
+    /* 앱 스코프 토큰 폴백. 토큰에는 entityId만 있고 entCode/entName은 없다 —
+     * 구독 조회에는 entId 하나면 충분하고, 신규 신청 모달은 두 필드를 사용자가
+     * 직접 입력받는다(폴백 이전에도 비어 있던 값이라 회귀 없음).
+     *
+     * `ama_token`은 URL에 남겨 둔다: 새로고침해도 컨텍스트가 유지되고,
+     * buildAppLaunchUrl()이 실행 링크에 그대로 실어 보낼 수 있어야 한다. */
+    const claims = getInitialAmaClaims();
+    if (claims?.entityId) {
+      setEntity({
+        entId: claims.entityId,
+        entCode: '',
+        entName: '',
+        email: claims.email ?? '',
+      });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

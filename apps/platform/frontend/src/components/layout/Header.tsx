@@ -29,14 +29,16 @@ export function Header() {
           AMA App Store
         </Link>
         <div className="flex items-center gap-3">
-          {/* Entity context badge (from AMA query params) */}
-          {entityCtx && (
+          {/* Entity context badge (from AMA query params).
+              `ama_token` 폴백으로 컨텍스트가 잡힌 경우 entName/entCode가 비어
+              있으므로(토큰에 없는 클레임) 빈 뱃지를 그리지 않는다. */}
+          {entityCtx && (entityCtx.entName || entityCtx.entCode) && (
             <button
               onClick={() => setShowEntityModal(true)}
               className="flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-700 hover:bg-blue-100 transition-colors"
             >
               <Building2 className="h-3.5 w-3.5 text-blue-500" />
-              <span className="font-medium">{entityCtx.entName}</span>
+              <span className="font-medium">{entityCtx.entName || entityCtx.entCode}</span>
             </button>
           )}
 

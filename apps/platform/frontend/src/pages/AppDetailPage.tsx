@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useEntityContextStore } from '@/stores/entity-context.store';
 import { SubscriptionRequestModal } from '@/components/SubscriptionRequestModal';
 import { buildAppLaunchUrl } from '@/lib/app-launch';
+import { getInitialAmaClaims } from '@/lib/ama-token';
 
 const APP_ICONS: Record<string, string> = {
   'app-car-manager': '🚗',
@@ -60,7 +61,9 @@ export function AppDetailPage() {
     ? subStatus?.status
     : entityApps?.find((a) => a.appSlug === slug)?.subscription?.status ?? null;
   const isEntityUser = !isAuthenticated && !!effectiveEntId;
-  const isMaster = iframeRole === 'MASTER';
+  /* `role`은 예전 iframe 파라미터에만 있었다. 지금 AMA는 같은 정보를 앱 스코프
+   * 토큰의 클레임으로 넘기므로 폴백으로 읽는다 (FIX-260813). */
+  const isMaster = (iframeRole ?? getInitialAmaClaims()?.role) === 'MASTER';
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
