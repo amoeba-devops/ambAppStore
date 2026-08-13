@@ -92,12 +92,30 @@ API của guard mới ([`lib/auth/region-access.ts`](../../apps/web/src/lib/auth
 
 Điểm đáng lưu ý về **phương pháp đo** (đã ghi rõ ở TR §2): status code trong Next App Router không phản ánh ACL (redirect ở tầng RSC → 200; CarError → error boundary 200), và **React dev flight stream serialize giá trị trả về của server function** khiến HTML thô ở dev vẫn chứa dữ liệu chưa lọc. Lần chạy đầu vì vậy báo 14 FAIL giả. Sau khi strip `<script>` và assert theo nội dung, kết quả sạch; route handler (`export`) cho status thật 403/200 là bằng chứng độc lập rằng guard chạy đúng.
 
-## 5. Việc còn lại trước khi lên production
+## 5. Trạng thái deploy staging (2026-08-13)
 
-1. **Áp `0026_truck_region_access.sql` vào staging** (`ep-noisy-heart`) **TRƯỚC** khi deploy code — nếu thiếu sẽ 500 khi đọc bảng mới. Local/dev (`ep-steep-tooth`) đã áp. **Không** đụng `ep-gentle-rain`.
-2. **Xác nhận bản build production** không phát flight payload chứa dữ liệu chưa lọc (dự kiến không, vì đó là dev instrumentation).
-3. Kiểm tra thêm trên **mobile viewport** (test local scope vào bảng desktop, chưa kiểm danh sách card mobile).
-4. Deploy theo đúng flow repo: staging trước → test → mới lên production.
+| Bước | Trạng thái |
+|---|---|
+| Commit | `28b4693` trên nhánh `staging` |
+| Migration `0026` áp vào staging | ✅ `ep-noisy-heart` — bảng + 3 index tạo mới, 0 row (mặc định mọi user vẫn thấy tất cả khu vực) |
+| Deploy Render (`car-manager-staging`) | ✅ live ~14:42 ICT, `/settings/region-access` trả 200 |
+| Verify chức năng trên staging | ✅ **17/17 check PASS** (chi tiết dưới) |
+
+**Xác định DB staging (quan trọng — `.env` gây nhầm):** biến `DATABASE_URL_STAGING` trong `.env` trỏ tới `ep-gentle-rain`, **KHÔNG phải** DB của app staging. DB thật là `DATABASE_URL_STG_TRUCK` = **`ep-noisy-heart`**, xác nhận bằng cách so khớp 4/4 biển số xe tải + đúng khu vực với dữ liệu app staging đang render. Đã **không** đụng `ep-gentle-rain`.
+
+**Verify trên staging** (persona test `Demo MANAGER`, không dùng account người thật; mọi grant tạo ra đã xoá sạch — còn 0 row):
+- 0 grant → thấy đủ 4 xe tải; gán HCM → chỉ còn xe HCM, dropdown mất Đồng Nai/Baiksan; mở rộng HCM+BAIKSAN → thấy 3 xe, Đồng Nai vẫn ẩn.
+- URL `?region=DONG_NAI` → redirect kèm `region_denied`, **không** ra trang lỗi chung, không lộ dữ liệu.
+- Export route: 403 cho khu vực ngoài quyền, 200 cho khu vực của mình.
+- ADMIN: thấy đủ 4 xe, filter được mọi khu vực.
+- **Bản build production KHÔNG phát flight payload chứa dữ liệu chưa lọc** — biển số ngoài khu vực không xuất hiện ở bất kỳ đâu trong HTML thô (khác với dev). Đây là mục còn treo ở TR §8.2 → nay đã đóng.
+
+## 6. Việc còn lại trước khi lên production
+
+1. Kiểm tra thêm trên **mobile viewport** (test scope vào bảng desktop, chưa kiểm danh sách card mobile).
+2. Áp `0026_truck_region_access.sql` vào **DB production** TRƯỚC khi deploy prod — nếu thiếu sẽ 500 khi đọc bảng mới.
+3. Deploy theo đúng flow repo: staging (đã xong) → test → PR `main → production`.
+4. Ghi chú: commit message của `28b4693` bị dính ký tự `@` (lỗi cú pháp shell khi commit). Không sửa được vì nhánh `staging` chặn force-push; nội dung code không ảnh hưởng.
 
 ## 6. Ghi chú side-impact
 
