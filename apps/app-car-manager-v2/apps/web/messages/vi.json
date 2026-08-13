@@ -50,7 +50,8 @@
     "truckTripsShort": "Chuyến",
     "truckFleetShort": "Đội xe",
     "truckDriversShort": "Tài xế",
-    "maintenance": "Cảnh báo bảo dưỡng"
+    "maintenance": "Cảnh báo bảo dưỡng",
+    "regionAccess": "Phân quyền khu vực"
   },
   "region": {
     "HCM": "HCM",
@@ -823,6 +824,22 @@
       "status_UNRESOLVED": "Chưa đóng",
       "status_RESOLVED": "Đã đóng",
       "status_ALL": "Tất cả"
+    },
+    "regionAccess": {
+      "title": "Phân quyền khu vực",
+      "subtitle": "Giới hạn nhân sự đội xe tải theo khu vực phụ trách",
+      "membersTitle": "Nhân sự đội xe tải",
+      "membersHint": "Chưa chọn khu vực nào = xem được TẤT CẢ khu vực (mặc định). Chọn khu vực để giới hạn user chỉ trong các khu vực đó. Admin luôn quản lý toàn bộ khu vực.",
+      "membersEmpty": "Chưa có nhân sự nào được cấp quyền đội xe tải.",
+      "thMember": "Nhân sự",
+      "thRole": "Vai trò",
+      "thRegions": "Khu vực",
+      "fullAccess": "Toàn bộ khu vực",
+      "allRegionsDefault": "Tất cả khu vực (mặc định)",
+      "save": "Lưu",
+      "savedToast": "Đã giới hạn {name} trong {count} khu vực",
+      "clearedToast": "Đã mở lại toàn bộ khu vực cho {name}",
+      "deniedNotice": "Bạn không có quyền xem khu vực {region} — đã hiển thị lại các khu vực bạn phụ trách."
     }
   },
   "phase": {

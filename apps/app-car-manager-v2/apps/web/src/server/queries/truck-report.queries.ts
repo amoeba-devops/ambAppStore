@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, desc, eq, gt, isNull, or } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNull, or } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTruckReports, carUsers, type TruckReportType } from '@car-v2/db/schema';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
@@ -52,6 +52,10 @@ export async function getTruckExportedRegionsByMonth(
 export async function listTruckReports(
   entId: string,
   seenAt: Date | null,
+  /** Region-ACL scope (REQ-20260813). Omit for unrestricted viewers; when given,
+   * consolidated all-regions reports (trr_region NULL) are excluded too, since
+   * they cover regions outside the scope. */
+  regions?: readonly string[],
 ): Promise<TruckReportRow[]> {
   const rows = await db
     .select({
@@ -65,7 +69,13 @@ export async function listTruckReports(
     })
     .from(carTruckReports)
     .leftJoin(carUsers, eq(carTruckReports.trrCreatedBy, carUsers.usrId))
-    .where(and(eq(carTruckReports.entId, entId), isNull(carTruckReports.trrDeletedAt)))
+    .where(
+      and(
+        eq(carTruckReports.entId, entId),
+        isNull(carTruckReports.trrDeletedAt),
+        regions ? inArray(carTruckReports.trrRegion, [...regions]) : undefined,
+      ),
+    )
     .orderBy(desc(carTruckReports.trrCreatedAt));
   return rows.map((r) => ({
     ...r,

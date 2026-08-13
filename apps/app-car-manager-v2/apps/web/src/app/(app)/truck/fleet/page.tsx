@@ -15,12 +15,14 @@ import {
 } from '@car-v2/ui';
 import type { CarVehicleStatus } from '@car-v2/db/schema';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
+import { resolveRegionFilter } from '@/lib/auth/region-access';
 import { ClickableTableRow } from '@/components/clickable-table-row';
 import { DateTimeCell } from '@/components/datetime-cell';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { ParamSelect } from '@/components/inputs/param-select';
 import { ListRowActions } from '@/components/list-row-actions';
 import { PageHeader } from '@/components/layout/page-header';
+import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { getDriverNamesByIds } from '@/server/queries/drivers.queries';
@@ -44,7 +46,7 @@ const VEHICLE_STATUSES: CarVehicleStatus[] = ['AVAILABLE', 'IN_USE', 'MAINTENANC
 export default async function TruckFleetPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; region?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; region?: string; region_denied?: string; status?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
@@ -57,19 +59,30 @@ export default async function TruckFleetPage({
   const locale = await getLocale();
   const loc = bcp47(locale);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
-  const REGIONS: readonly string[] = TRUCK_REGIONS;
-  const regionLabel = (r: string | null) => (r && REGIONS.includes(r) ? tRegion(r) : (r ?? '—'));
+  const ALL_REGIONS: readonly string[] = TRUCK_REGIONS;
+  const regionLabel = (r: string | null) => (r && ALL_REGIONS.includes(r) ? tRegion(r) : (r ?? '—'));
+
+  /* Region ACL (REQ-20260813): `region` is the validated ?region= filter,
+   * `regions` the set this user may see at all. */
+  const { region: fRegion, regions: permittedRegions } = await resolveRegionFilter(user, sp.region, sp);
+  const REGIONS: readonly string[] = permittedRegions;
+  const restricted = permittedRegions.length < TRUCK_REGIONS.length;
 
   const allTrucks = await listVehicles(user.entId, 'active', 'TRUCK');
 
   const q = sp.q?.trim().toLowerCase() || undefined;
-  const fRegion = sp.region && REGIONS.includes(sp.region) ? sp.region : undefined;
   const fStatus = VEHICLE_STATUSES.includes(sp.status as CarVehicleStatus)
     ? (sp.status as CarVehicleStatus)
     : undefined;
   const trucks = allTrucks.filter((v) => {
     if (q && !v.cvhPlateNumber.toLowerCase().includes(q)) return false;
-    if (fRegion && v.cvhRegion !== fRegion) return false;
+    if (fRegion) {
+      if (v.cvhRegion !== fRegion) return false;
+    } else if (restricted && !(v.cvhRegion && REGIONS.includes(v.cvhRegion))) {
+      /* No single region picked: a narrowed user still only sees their regions
+       * (trucks with no region stay admin-only). */
+      return false;
+    }
     if (fStatus && v.cvhStatus !== fStatus) return false;
     return true;
   });
@@ -100,6 +113,7 @@ export default async function TruckFleetPage({
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
+        <RegionDeniedNotice code={sp.region_denied} />
         {/* Search + filter bar (QA P2) — URL-driven, same pattern as trip log. */}
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
           <DebouncedSearchInput placeholder={t('searchPlaceholder')} className="sm:w-72" clearLabel={tA('clear')} />

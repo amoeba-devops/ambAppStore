@@ -10,6 +10,7 @@ import {
   updateVehicleSchema,
 } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
+import { requireRegion } from '@/lib/auth/region-access';
 import { logAudit } from '@/server/services/audit-log.service';
 import { recordTruckCostRate } from '@/server/services/truck-cost-rate.service';
 import {
@@ -23,6 +24,8 @@ export async function createVehicleAction(input: unknown): Promise<ActionResult<
     const actor = await getCurrentUser();
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
     const data = createVehicleSchema.parse(input);
+    /* Region ACL (REQ-20260813) — can't place a truck in a region you can't see. */
+    if (data.region) await requireRegion(actor, data.region);
 
     const [created] = await db
       .insert(carVehicles)
@@ -96,6 +99,10 @@ export async function updateVehicleAction(id: string, input: unknown): Promise<A
       where: and(eq(carVehicles.cvhId, id), eq(carVehicles.entId, actor.entId)),
     });
     if (!existing) throw new CarError('CAR-E0404', 404, 'Vehicle not found');
+    /* Region ACL (REQ-20260813) — must be able to see both the region the truck
+     * is leaving and the one it's moving into. */
+    if (existing.cvhRegion) await requireRegion(actor, existing.cvhRegion);
+    if (data.region) await requireRegion(actor, data.region);
 
     const patch: Partial<typeof carVehicles.$inferInsert> = { cvhUpdatedAt: new Date() };
     if (data.plate_number !== undefined) patch.cvhPlateNumber = data.plate_number;

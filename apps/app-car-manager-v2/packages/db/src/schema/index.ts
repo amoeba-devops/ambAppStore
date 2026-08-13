@@ -1,6 +1,7 @@
 export * from './users.schema.js';
 export * from './vehicles.schema.js';
 export * from './user-fleet-access.schema.js';
+export * from './user-region-access.schema.js';
 export * from './fleet-access-request.schema.js';
 export * from './trip-extra-cost.schema.js';
 export * from './trip-cost-attachment.schema.js';

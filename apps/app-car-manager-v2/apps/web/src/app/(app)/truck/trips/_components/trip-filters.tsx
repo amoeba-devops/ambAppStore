@@ -11,6 +11,7 @@ export function TripFilters({
   plates,
   drivers,
   region,
+  regionOptions = TRUCK_REGIONS,
   vehicle,
   driver,
   status,
@@ -18,6 +19,8 @@ export function TripFilters({
   plates: { id: string; label: string }[];
   drivers: { id: string; label: string }[];
   region?: string;
+  /** Regions the viewer may filter by (region ACL, REQ-20260813). */
+  regionOptions?: readonly string[];
   vehicle?: string;
   driver?: string;
   status?: string;
@@ -46,7 +49,7 @@ export function TripFilters({
         onChange={(e) => setParam('region', e.target.value === 'all' ? '' : e.target.value)}
       >
         <option value="all">{t('allRegions')}</option>
-        {TRUCK_REGIONS.map((r) => (
+        {regionOptions.map((r) => (
           <option key={r} value={r}>
             {tRegion(r)}
           </option>

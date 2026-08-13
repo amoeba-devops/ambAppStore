@@ -5,9 +5,11 @@ import { Button, Card, cn } from '@car-v2/ui';
 import { computeTruckPnl, type TruckPnlRow } from '@car-v2/core/truck';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { PageHeader } from '@/components/layout/page-header';
+import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { MonthPicker } from '@/components/inputs/month-picker';
 import { ParamSelect } from '@/components/inputs/param-select';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { resolveRegionFilter } from '@/lib/auth/region-access';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { getTruckReportStatus } from '@/server/queries/truck-report.queries';
 import {
@@ -62,13 +64,15 @@ const METRICS: MetricDef[] = [
 export default async function TruckPnlPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vehicle?: string; month?: string; region?: string }>;
+  searchParams: Promise<{ vehicle?: string; month?: string; region?: string; region_denied?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
   const month = /^\d{4}-\d{2}$/.test(sp.month ?? '') ? (sp.month as string) : currentMonth();
-  const regionCodes: readonly string[] = TRUCK_REGIONS;
-  const region = sp.region && regionCodes.includes(sp.region) ? sp.region : undefined;
+  /* Region ACL (REQ-20260813) — validated ?region= + the set this user may see. */
+  const { region, regions: permittedRegions } = await resolveRegionFilter(user, sp.region, sp);
+  const restricted = permittedRegions.length < TRUCK_REGIONS.length;
+  const permittedCodes: readonly string[] = permittedRegions;
 
   const t = await getTranslations('screens.truckPnl');
   const tNav = await getTranslations('nav');
@@ -77,12 +81,20 @@ export default async function TruckPnlPage({
   const locale = await getLocale();
   const loc = bcp47(locale);
 
-  const trucks = await listVehicles(user.entId, 'active', 'TRUCK');
+  const allTrucks = await listVehicles(user.entId, 'active', 'TRUCK');
+  const trucks = restricted
+    ? allTrucks.filter((v) => v.cvhRegion !== null && permittedCodes.includes(v.cvhRegion))
+    : allTrucks;
   const vehicleId = sp.vehicle && trucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
 
   const months = threeMonthsEnding(month);
   const [rows, monthStatuses, invoices, fuelStats, regionLocked] = await Promise.all([
-    computeTruckPnl(user, { vehicleId, region, months }),
+    computeTruckPnl(user, {
+      vehicleId,
+      region,
+      regions: restricted ? permittedRegions : undefined,
+      months,
+    }),
     /* Per-month, REGION-SCOPED report status (when was it generated, is it
      * stale) — one source shared with Finance/Dashboard/chi tiết chuyến. */
     Promise.all(months.map((m) => getTruckReportStatus(user.entId, m, region ?? null))),
@@ -131,6 +143,7 @@ export default async function TruckPnlPage({
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-5">
+        <RegionDeniedNotice code={sp.region_denied} />
         {/* Month + tab bar */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
@@ -139,7 +152,7 @@ export default async function TruckPnlPage({
               param="region"
               value={region}
               allLabel={t('allRegions')}
-              options={regionCodes.map((r) => ({ value: r, label: tRegion(r) }))}
+              options={permittedRegions.map((r) => ({ value: r, label: tRegion(r) }))}
             />
           </div>
           <FinanceTabs active="overview" month={month} vehicleId={vehicleId} />

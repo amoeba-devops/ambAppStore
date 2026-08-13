@@ -2,6 +2,8 @@ import * as XLSX from 'xlsx';
 import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { hasFleet } from '@/lib/auth/fleet-access';
+import { allowedRegions, hasRegion } from '@/lib/auth/region-access';
+import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
 import { attachment, exportFileName, exportSheetName } from '@/server/lib/export-file-name';
 import { resolveUiLocale } from '@/i18n/ui-locale';
@@ -28,11 +30,19 @@ export async function GET(req: Request) {
   const driver = url.searchParams.get('driver') ?? undefined;
   const statusRaw = url.searchParams.get('status');
   const status = statusRaw === 'complete' || statusRaw === 'ongoing' ? statusRaw : undefined;
+
+  /* Region ACL (REQ-20260813) — the export must not become a way around the
+   * list's region scope. */
+  if (region && !(await hasRegion(user, region))) {
+    return new Response('Forbidden', { status: 403 });
+  }
+  const permitted = await allowedRegions(user);
   const trips = await listTruckTrips(user.entId, {
     q,
     month,
     vehicleId: vehicle,
     region,
+    regions: permitted.length < TRUCK_REGIONS.length ? permitted : undefined,
     driverId: driver,
     status,
   });

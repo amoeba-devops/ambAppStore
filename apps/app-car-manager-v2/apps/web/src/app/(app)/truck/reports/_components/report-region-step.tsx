@@ -18,10 +18,16 @@ import { ReportStepper } from './report-stepper';
 export function ReportRegionStep({
   month,
   regionCounts,
+  regionOptions = TRUCK_REGIONS,
+  allowAllScope = true,
 }: {
   month: string;
   /** total = all completed trips; byRegion per region code. */
   regionCounts: { total: number; byRegion: Record<string, number> };
+  /** Regions the viewer may report on (region ACL, REQ-20260813). */
+  regionOptions?: readonly string[];
+  /** False for a narrowed user — the consolidated report spans every region. */
+  allowAllScope?: boolean;
 }) {
   const t = useTranslations('screens.truckReports');
   const tA = useTranslations('actions');
@@ -32,8 +38,8 @@ export function ReportRegionStep({
    * (region=null server-side), mutually exclusive with per-region multi-select. */
   const [allMode, setAllMode] = useState(false);
 
-  const regions = TRUCK_REGIONS.map((r) => ({
-    value: r as string,
+  const regions = regionOptions.map((r) => ({
+    value: r,
     label: tRegion(r),
     count: regionCounts.byRegion[r] ?? 0,
   }));
@@ -72,27 +78,30 @@ export function ReportRegionStep({
         </div>
 
         {/* Consolidated "all regions" toggle — one combined report; mutually
-            exclusive with the per-region picks below. */}
-        <button
-          type="button"
-          onClick={pickAll}
-          disabled={noData}
-          aria-pressed={allMode}
-          className={cn(
-            'flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors',
-            allMode ? 'border-accent bg-accent-soft ring-1 ring-accent' : 'border-border hover:border-accent',
-            noData && 'cursor-not-allowed opacity-60',
-          )}
-        >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
-            <Layers className="h-4 w-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold text-text">{t('regionAll')}</div>
-            <div className="text-xs text-text-muted">{t('regionAllHint')}</div>
-          </div>
-          <CheckBox on={allMode} disabled={noData} />
-        </button>
+            exclusive with the per-region picks below. Hidden for a user narrowed
+            to a subset of regions, since it would span regions they can't see. */}
+        {allowAllScope && (
+          <button
+            type="button"
+            onClick={pickAll}
+            disabled={noData}
+            aria-pressed={allMode}
+            className={cn(
+              'flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors',
+              allMode ? 'border-accent bg-accent-soft ring-1 ring-accent' : 'border-border hover:border-accent',
+              noData && 'cursor-not-allowed opacity-60',
+            )}
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
+              <Layers className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold text-text">{t('regionAll')}</div>
+              <div className="text-xs text-text-muted">{t('regionAllHint')}</div>
+            </div>
+            <CheckBox on={allMode} disabled={noData} />
+          </button>
+        )}
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {regions.map((o) => {

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { hasFleet } from '@/lib/auth/fleet-access';
+import { allowedRegions } from '@/lib/auth/region-access';
+import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { getTruckReport } from '@/server/queries/truck-report.queries';
 import { getSignedGetUrl } from '@/lib/s3-client';
 import { resolveUiLocale } from '@/i18n/ui-locale';
@@ -59,6 +61,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const report = await getTruckReport(user.entId, id);
   if (!report) return new Response('Not found', { status: 404 });
+
+  /* Region ACL (REQ-20260813): a narrowed user can only download their regions'
+   * reports. A consolidated report (region null) covers every region, so it
+   * stays out of reach unless the user is unrestricted. */
+  const permitted = await allowedRegions(user);
+  const restricted = permitted.length < TRUCK_REGIONS.length;
+  if (restricted) {
+    const scope: readonly string[] = permitted;
+    if (report.trrRegion === null || !scope.includes(report.trrRegion)) {
+      return new Response('Forbidden', { status: 403 });
+    }
+  }
 
   const url = await getSignedGetUrl(report.trrS3Key, 300, await reportDownloadName(report));
   if (!url) return new Response('Storage unavailable', { status: 503 });
