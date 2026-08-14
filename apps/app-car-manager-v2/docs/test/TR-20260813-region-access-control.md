@@ -132,11 +132,26 @@ Browser pane của IDE không hydrate được (đã biết), nên dùng **Playw
 
 **Ảnh hưởng tới cách đo**: pages không còn trả nội dung `CAR-E0403`; với fetch thường, redirect của Server Component **không phải 3xx** mà nằm trong flight payload (`region_denied` xuất hiện trong payload thô, status vẫn 200). Bộ test server-side đã cập nhật assert theo đó và xanh lại toàn bộ.
 
+## 7b. Kiểm tra mobile viewport (Pixel 7 — 412×915, 3/3 PASS)
+
+Chạy Playwright với device emulation `Pixel 7` (Android UA, touch), vì các màn TRUCK render **danh sách card riêng cho mobile** tách khỏi bảng desktop — các test trước chỉ assert trên bảng desktop nên chưa phủ nhánh này.
+
+| # | Kiểm tra | Kết quả |
+|---|---|---|
+| M1 | MANAGER bị thu hẹp (HCM) trên `/truck/fleet`, `/truck/trips`, `/truck/dashboard` — đọc **text thực sự nhìn thấy** (bỏ qua phần tử `display:none`) | PASS — card mobile chỉ hiện xe HCM; **không** rò biển số Đồng Nai/Baiksan ở bất kỳ màn nào |
+| M2 | Filter khu vực trên mobile | PASS — Fleet/Trips: `<select>` chỉ có "Tất cả khu vực" + "HCM"; Dashboard: hàng link "Theo khu vực: Tất cả · HCM". Không màn nào lộ khu vực ngoài quyền |
+| M3 | Banner từ chối khu vực trên phone | PASS — redirect `?region_denied=DONG_NAI`, banner hiển thị, rộng ≤ viewport (không tràn ngang) |
+| M4 | ADMIN gán khu vực bằng điện thoại | PASS — tick "Đồng Nai" → `aria-pressed=true` → "Lưu" → toast "Đã giới hạn Demo MANAGER trong 2 khu vực" |
+
+**Ghi nhận UX (không phải lỗi của REQ này):** bảng quản lý `/settings/region-access` rộng 582px trong khung 378px trên phone → phải **cuộn ngang trong bảng** mới tới được nút khu vực (nút bắt đầu ở x≈449 > viewport 412), và nút cao 32px (khuyến nghị WCAG 2.5.5 là 44px). Đã đo đối chứng với trang `/settings/fleet-access` có sẵn (REQ-20260617): **số liệu gần như y hệt** (bảng 596px, nút x≈430, cao 32px) → đây là **quy ước bảng admin chung của app**, không phải hồi quy do REQ này. Trang không tràn ngang ở cấp document (`scrollWidth` = 412 = viewport), chỉ cuộn trong khung bảng.
+
+**Hai bẫy đo lường gặp phải** (ghi lại để lần sau khỏi mất thời gian): (1) dev mode stream nội dung nên lần paint đầu là skeleton — phải chờ mốc phần tử cụ thể, **không** dùng ngưỡng số ký tự (màn fleet mobile chỉ ~211 ký tự hiển thị là bình thường); (2) `<option>` trong `<select>` bị Playwright coi là hidden nên không dùng làm anchor được — phải anchor vào chính thẻ `<select>`, riêng Dashboard lại là link nên cần anchor khác.
+
 ## 8. Hạn chế còn lại
 
 1. **Chưa test trên staging**: migration `0026` mới áp vào **local/dev** (`ep-steep-tooth`). Staging (`ep-noisy-heart`) **chưa áp** — phải áp trước khi deploy, nếu không sẽ 500 khi đọc bảng mới.
 2. **Chưa build production**: kết luận "flight payload chỉ là dev instrumentation" dựa trên đặc điểm payload (tên hàm + timing + `env:"Server"`), chưa kiểm chứng bằng bản build prod.
-3. **Chưa test trên mobile viewport**: các assert xe đều scope vào bảng desktop; danh sách card mobile chưa được kiểm riêng.
+3. ~~Chưa test trên mobile viewport~~ → **đã kiểm, xem §7b** (3/3 PASS trên Pixel 7).
 
 ## 9. Kết luận
 
