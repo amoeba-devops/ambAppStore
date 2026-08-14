@@ -9,6 +9,10 @@ import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { setRegionAccessAction } from '@/server/actions/region-access/region-access.actions';
 import { formatActionError } from '@/lib/format-action-error';
 
+/** >=44px on mobile (WCAG 2.5.5), back to the compact size from `md:` up —
+ * the convention the truck screens already use for their pills. */
+const TAP_TARGET = 'min-h-[44px] md:min-h-0';
+
 interface Props {
   userId: string;
   memberName: string;
@@ -59,7 +63,9 @@ export function RegionMemberControls({ userId, memberName, regions, implicit, re
   };
 
   return (
-    <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
+    /* Left-aligned and full-width on phones (the mobile card gives the controls
+     * their own row); right-aligned inline inside the desktop table cell. */
+    <div className="flex flex-wrap items-center justify-start gap-2 md:inline-flex md:justify-end md:gap-1.5">
       {draft.length === 0 && (
         <Badge tone="neutral" size="sm">
           {t('allRegionsDefault')}
@@ -77,6 +83,9 @@ export function RegionMemberControls({ userId, memberName, regions, implicit, re
             aria-pressed={on}
             onClick={() => toggle(region)}
             iconLeft={on ? <Check className="h-3.5 w-3.5" /> : undefined}
+            /* >=44px touch target on mobile, compact on desktop (same
+             * convention as the truck screens' region pills). */
+            className={TAP_TARGET}
           >
             {regionLabels[region] ?? region}
           </Button>
@@ -90,6 +99,7 @@ export function RegionMemberControls({ userId, memberName, regions, implicit, re
           disabled={pending}
           onClick={save}
           iconLeft={pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : undefined}
+          className={TAP_TARGET}
         >
           {t('save')}
         </Button>

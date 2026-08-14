@@ -108,7 +108,37 @@ export default async function FleetAccessPage() {
         <section className="space-y-2">
           <h2 className="text-sm font-semibold text-text">{t('membersTitle')}</h2>
           <p className="text-xs text-text-muted">{t('membersHint')}</p>
-          <Card variant="outline" className="overflow-x-auto">
+          {/* Mobile card list — the access toggles sit in the table's third
+            * column, past a phone's viewport, so below md each member becomes a
+            * card with the controls on their own full-width row. */}
+          <ul className="md:hidden space-y-2.5">
+            {members.map((m) => (
+              <li key={m.usrId}>
+                <Card variant="outline" className="p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Avatar name={m.name ?? m.email ?? '?'} size="md" />
+                    <div className="min-w-0 flex-1">
+                      <span className="font-medium text-text truncate block">
+                        {m.name ?? m.email ?? m.usrId}
+                      </span>
+                      <div className="text-xs text-text-faint truncate">{m.email ?? '—'}</div>
+                    </div>
+                    <Badge tone="neutral" size="sm">
+                      {m.localRole}
+                    </Badge>
+                  </div>
+                  <FleetMemberControls
+                    userId={m.usrId}
+                    memberName={m.name ?? m.email ?? m.usrId}
+                    depts={m.depts}
+                    implicit={m.implicit}
+                  />
+                </Card>
+              </li>
+            ))}
+          </ul>
+
+          <Card variant="outline" className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
