@@ -78,7 +78,9 @@ export function FleetMemberControls({ userId, memberName, depts, implicit }: Pro
 
   return (
     <>
-      <div className="inline-flex gap-1.5">
+      {/* Left-aligned and wrapping on phones (the mobile card gives these their
+        * own row); inline inside the desktop table cell. */}
+      <div className="flex flex-wrap gap-2 md:inline-flex md:gap-1.5">
         {DEPTS.map((dept) => {
           const has = depts.includes(dept);
           return (
@@ -88,6 +90,8 @@ export function FleetMemberControls({ userId, memberName, depts, implicit }: Pro
               size="sm"
               variant={has ? 'accent' : 'ghost'}
               disabled={pending}
+              /* >=44px touch target on mobile, compact from md: up. */
+              className="min-h-[44px] md:min-h-0"
               onClick={() => (has ? setConfirmDept(dept) : doGrant(dept))}
               iconLeft={
                 pending ? (
