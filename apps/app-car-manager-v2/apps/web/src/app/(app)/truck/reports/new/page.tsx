@@ -5,6 +5,8 @@ import { Button } from '@car-v2/ui';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { allowedRegions, requireRegion } from '@/lib/auth/region-access';
+import { CarError } from '@car-v2/shared/errors';
 import {
   getTruckExportedRegionsByMonth,
   getTruckReportsSeenAt,
@@ -48,6 +50,16 @@ export default async function NewTruckReportPage({
   const allScope = tokens.includes('ALL');
   const picked = new Set(tokens.filter((s) => regionCodes.includes(s)));
   const regions = regionCodes.filter((r) => picked.has(r));
+
+  /* Region ACL (REQ-20260813): a narrowed user may only report on their own
+   * regions, and can't produce the consolidated all-regions report (it spans
+   * every region by definition). */
+  const permittedRegions = await allowedRegions(user);
+  const restricted = permittedRegions.length < TRUCK_REGIONS.length;
+  if (allScope && restricted) {
+    throw new CarError('CAR-E0403', 403, 'Forbidden: consolidated report spans all regions');
+  }
+  for (const r of regions) await requireRegion(user, r);
 
   const t = await getTranslations('screens.truckReports');
   const tA = await getTranslations('actions');
@@ -117,7 +129,12 @@ export default async function NewTruckReportPage({
           }
         />
         <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6">
-          <ReportRegionStep month={month} regionCounts={regionCounts} />
+          <ReportRegionStep
+            month={month}
+            regionCounts={regionCounts}
+            regionOptions={permittedRegions}
+            allowAllScope={!restricted}
+          />
         </div>
       </>
     );
@@ -126,7 +143,7 @@ export default async function NewTruckReportPage({
   /* Bước 1 — pick the month. */
   const seenAt = await getTruckReportsSeenAt(user.entId, user.userId);
   const [reports, monthCounts, exportedRegions] = await Promise.all([
-    listTruckReports(user.entId, seenAt),
+    listTruckReports(user.entId, seenAt, restricted ? permittedRegions : undefined),
     getTruckMonthTripCounts(user.entId),
     getTruckExportedRegionsByMonth(user.entId),
   ]);
@@ -156,7 +173,7 @@ export default async function NewTruckReportPage({
         <ReportMonthStep
           exportedMonths={exportedMonths}
           exportedRegions={exportedRegions}
-          regionTotal={TRUCK_REGIONS.length}
+          regionTotal={permittedRegions.length}
           monthCounts={monthCounts}
         />
       </div>

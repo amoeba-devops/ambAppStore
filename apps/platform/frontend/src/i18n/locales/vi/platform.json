@@ -36,7 +36,11 @@
     "subscriptionRequired": "Cần đăng ký để sử dụng ứng dụng này.",
     "masterOnly": "Chỉ quản trị viên MASTER của Entity mới có thể đăng ký ứng dụng.",
     "pendingReview": "Yêu cầu đăng ký đang được xem xét. Vui lòng chờ phê duyệt.",
-    "suspended": "Đăng ký đã bị tạm ngưng. Vui lòng liên hệ quản trị viên."
+    "suspended": "Đăng ký đã bị tạm ngưng. Vui lòng liên hệ quản trị viên.",
+    "contextUnknown": "Không xác minh được phiên làm việc",
+    "contextUnknownDesc": "Chưa kiểm tra được trạng thái đăng ký. Vui lòng mở lại ứng dụng từ AMA.",
+    "reopenFromAma": "Vui lòng mở lại từ AMA",
+    "enteringApp": "Đang mở ứng dụng…"
   },
   "subscription": {
     "title": "Đăng ký sử dụng ứng dụng",

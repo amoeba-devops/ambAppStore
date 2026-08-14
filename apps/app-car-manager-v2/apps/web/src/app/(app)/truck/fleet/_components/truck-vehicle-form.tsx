@@ -56,6 +56,7 @@ export function TruckVehicleForm({
   vehicleId,
   initial,
   drivers = [],
+  regionOptions = TRUCK_REGIONS,
 }: {
   /** When set, the form edits this vehicle (calls updateVehicleAction). */
   vehicleId?: string;
@@ -64,6 +65,8 @@ export function TruckVehicleForm({
    * vehicle's saved default driver who no longer has active TRUCK access —
    * shown disabled instead of leaving the Select blank. */
   drivers?: { id: string; name: string; stale?: boolean }[];
+  /** Regions the editor may assign (region ACL, REQ-20260813). */
+  regionOptions?: readonly string[];
 } = {}) {
   const t = useTranslations('screens.truckFleet.form');
   const tFuel = useTranslations('vehicles.fuel');
@@ -189,7 +192,7 @@ export function TruckVehicleForm({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NO_REGION}>{t('regionNone')}</SelectItem>
-                  {TRUCK_REGIONS.map((r) => (
+                  {regionOptions.map((r) => (
                     <SelectItem key={r} value={r}>
                       {tRegion(r)}
                     </SelectItem>

@@ -36,7 +36,11 @@
     "subscriptionRequired": "A subscription is required to use this app.",
     "masterOnly": "Only MASTER administrators of the Entity can apply for app subscriptions.",
     "pendingReview": "Your subscription request is under review. Please wait for admin approval.",
-    "suspended": "Your subscription has been suspended. Please contact your administrator."
+    "suspended": "Your subscription has been suspended. Please contact your administrator.",
+    "contextUnknown": "Unable to verify your session",
+    "contextUnknownDesc": "We couldn't check your subscription. Please reopen the app from AMA.",
+    "reopenFromAma": "Please reopen from AMA",
+    "enteringApp": "Opening app…"
   },
   "subscription": {
     "title": "App Subscription Request",

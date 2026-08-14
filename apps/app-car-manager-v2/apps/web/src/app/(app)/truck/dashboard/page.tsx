@@ -18,8 +18,10 @@ import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
 import { ParamSelect } from '@/components/inputs/param-select';
 import { PageHeader } from '@/components/layout/page-header';
+import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { resolveRegionFilter } from '@/lib/auth/region-access';
 import { getTruckReportStatus, type TruckReportStatus } from '@/server/queries/truck-report.queries';
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
@@ -119,12 +121,16 @@ function pctDelta(curr: number, prev: number): number | null {
 export default async function TruckDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; from?: string; to?: string; region?: string; vehicle?: string }>;
+  searchParams: Promise<{ period?: string; from?: string; to?: string; region?: string; region_denied?: string; vehicle?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
-  const region =
-    sp.region && (TRUCK_REGIONS as readonly string[]).includes(sp.region) ? sp.region : undefined;
+  /* Region ACL (REQ-20260813): validated ?region= + the set this user may see.
+   * `permittedRegions` scopes both the unfiltered KPI query and the per-region
+   * breakdown, so a narrowed user never sees another region's numbers. */
+  const { region, regions: permittedRegions } = await resolveRegionFilter(user, sp.region, sp);
+  const restricted = permittedRegions.length < TRUCK_REGIONS.length;
+  const scopeRegions = restricted ? permittedRegions : undefined;
   /* Custom month/year range (?from=&to= in YYYY-MM) takes precedence over a
    * preset; falls back to `thisMonth` when neither is a valid range. */
   const customFrom = sp.from && YM.test(sp.from) ? sp.from : undefined;
@@ -161,7 +167,13 @@ export default async function TruckDashboardPage({
     ? `${monthYear(customFrom!)} – ${monthYear(customTo!)}`
     : tPeriod(preset!);
 
-  const trucks = await listVehicles(user.entId, 'active', 'TRUCK');
+  const allTrucks = await listVehicles(user.entId, 'active', 'TRUCK');
+  /* Narrowed users must not see other regions' trucks in the fleet-status card
+   * or the vehicle picker either (REQ-20260813). */
+  const permittedCodes: readonly string[] = permittedRegions;
+  const trucks = restricted
+    ? allTrucks.filter((v) => v.cvhRegion !== null && permittedCodes.includes(v.cvhRegion))
+    : allTrucks;
   /* Vehicle is a step-2 filter under region (Sheet-2 D1): the dropdown lists
    * only the chosen region's trucks, and the filter is honoured only when a
    * region is active and the vehicle belongs to it. */
@@ -179,16 +191,16 @@ export default async function TruckDashboardPage({
     : prevMonths(kpiMonths);
 
   const [kpiRows, prevRows, trendRows, allTrips, regionRowsRaw] = await Promise.all([
-    computeTruckPnl(user, { months: kpiMonths, region, vehicleId }),
-    computeTruckPnl(user, { months: prevPeriodMonths, region, vehicleId }),
-    computeTruckPnl(user, { months: trendMonths, region, vehicleId }),
-    listTruckTrips(user.entId, { region, vehicleId }),
-    /* Per-region breakdown over the selected period (always all regions, even
-     * when filtered — so the breakdown stays a comparison). Report status is
-     * only meaningful for a single-month period (a range can't map to one
-     * generation event), so it's only fetched then. */
+    computeTruckPnl(user, { months: kpiMonths, region, regions: scopeRegions, vehicleId }),
+    computeTruckPnl(user, { months: prevPeriodMonths, region, regions: scopeRegions, vehicleId }),
+    computeTruckPnl(user, { months: trendMonths, region, regions: scopeRegions, vehicleId }),
+    listTruckTrips(user.entId, { region, regions: scopeRegions, vehicleId }),
+    /* Per-region breakdown over the selected period (all regions the user may
+     * see, even when one is picked — so the breakdown stays a comparison).
+     * Report status is only meaningful for a single-month period (a range can't
+     * map to one generation event), so it's only fetched then. */
     Promise.all(
-      TRUCK_REGIONS.map(async (r) => {
+      permittedRegions.map(async (r) => {
         const [rows, status] = await Promise.all([
           computeTruckPnl(user, { months: kpiMonths, region: r }),
           kpiMonths.length === 1 ? getTruckReportStatus(user.entId, kpiMonths[0]!, r) : Promise.resolve(null),
@@ -336,6 +348,7 @@ export default async function TruckDashboardPage({
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-5">
+        <RegionDeniedNotice code={sp.region_denied} />
         {/* Period selector — own row on mobile (hidden in header there). */}
         <div className="sm:hidden">
           <PeriodPicker label={periodLabel} currentPreset={preset} from={customFrom} to={customTo} />
@@ -347,7 +360,7 @@ export default async function TruckDashboardPage({
           <Link href={regionHref()} className={pillCls(!region)}>
             {t('regionAll')}
           </Link>
-          {TRUCK_REGIONS.map((r) => (
+          {permittedRegions.map((r) => (
             <Link key={r} href={regionHref(r)} className={pillCls(region === r)}>
               {tRegion(r)}
             </Link>

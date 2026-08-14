@@ -15,6 +15,8 @@ import {
 } from '@car-v2/ui';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { allowedRegions } from '@/lib/auth/region-access';
+import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { getTruckReportsSeenAt, listTruckReports, type TruckReportRow } from '@/server/queries/truck-report.queries';
 import { MonthPicker } from '@/components/inputs/month-picker';
 import { MarkReportsSeen } from './_components/mark-reports-seen';
@@ -46,7 +48,13 @@ export default async function TruckReportsPage({
   const loc = bcp47(locale);
 
   const seenAt = await getTruckReportsSeenAt(user.entId, user.userId);
-  const reports = await listTruckReports(user.entId, seenAt);
+  /* Region ACL (REQ-20260813) — a narrowed user only sees their regions' reports. */
+  const permittedRegions = await allowedRegions(user);
+  const reports = await listTruckReports(
+    user.entId,
+    seenAt,
+    permittedRegions.length < TRUCK_REGIONS.length ? permittedRegions : undefined,
+  );
 
   const monthLabel = (m: string) =>
     new Date(`${m}-01T00:00:00Z`).toLocaleDateString(loc, { month: 'long', year: 'numeric' });

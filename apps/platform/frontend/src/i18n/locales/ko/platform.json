@@ -36,7 +36,11 @@
     "subscriptionRequired": "이 앱을 사용하려면 구독 신청이 필요합니다.",
     "masterOnly": "앱 사용 신청은 Entity의 MASTER 권한을 가진 관리자만 가능합니다.",
     "pendingReview": "구독 신청이 검토 중입니다. 관리자 승인을 기다려 주세요.",
-    "suspended": "구독이 일시 정지되었습니다. 관리자에게 문의하세요."
+    "suspended": "구독이 일시 정지되었습니다. 관리자에게 문의하세요.",
+    "contextUnknown": "세션 정보를 확인할 수 없습니다",
+    "contextUnknownDesc": "구독 여부를 확인하지 못했습니다. AMA에서 앱을 다시 열어주세요.",
+    "reopenFromAma": "AMA에서 다시 열어주세요",
+    "enteringApp": "앱으로 이동 중…"
   },
   "subscription": {
     "title": "앱 사용 신청",

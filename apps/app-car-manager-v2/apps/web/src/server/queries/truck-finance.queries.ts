@@ -320,8 +320,17 @@ export interface TruckFinanceTripRow {
  */
 export async function listTruckFinanceTrips(
   entId: string,
-  opts: { month: string; vehicleId?: string | null; q?: string; region?: string | null },
+  opts: {
+    month: string;
+    vehicleId?: string | null;
+    q?: string;
+    region?: string | null;
+    /** Region-ACL scope for a narrowed user (REQ-20260813). Ignored when
+     * `region` is set. An empty array means no region is permitted. */
+    regions?: readonly string[];
+  },
 ): Promise<TruckFinanceTripRow[]> {
+  if (!opts.region && opts.regions && opts.regions.length === 0) return [];
   const term = opts.q?.trim();
   const start = new Date(`${opts.month}-01T00:00:00.000Z`);
   const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
@@ -362,7 +371,11 @@ export async function listTruckFinanceTrips(
           lt(carTrips.trpScheduledAt, end),
           opts.vehicleId ? eq(carTrips.trpVehicleId, opts.vehicleId) : undefined,
           /* Region scope = the trip's vehicle operating region (cvh_region). */
-          opts.region ? eq(carVehicles.cvhRegion, opts.region) : undefined,
+          opts.region
+            ? eq(carVehicles.cvhRegion, opts.region)
+            : opts.regions
+              ? inArray(carVehicles.cvhRegion, [...opts.regions])
+              : undefined,
           term
             ? or(
                 ilike(carTrips.trpCustomer, `%${term}%`),

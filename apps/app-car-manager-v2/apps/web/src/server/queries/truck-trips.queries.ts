@@ -155,6 +155,11 @@ export interface ListTruckTripsOpts {
   driverId?: string;
   /** Restrict to vehicles in one operating region (cvh_region code, QA P2). */
   region?: string;
+  /**
+   * Restrict to vehicles in ANY of these regions — the region-ACL scope for a
+   * user narrowed to a subset (REQ-20260813). Ignored when `region` is set.
+   */
+  regions?: readonly string[];
   /** 'complete' = COMPLETED only · 'ongoing' = not completed · else all. */
   status?: 'all' | 'complete' | 'ongoing';
 }
@@ -187,18 +192,22 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
   if (opts.status === 'complete') filters.push(eq(carTrips.trpStatus, 'COMPLETED'));
   else if (opts.status === 'ongoing') filters.push(ne(carTrips.trpStatus, 'COMPLETED'));
   /* Region scope (QA P2) — a trip's region is its vehicle's cvh_region, so
-   * resolve the region's vehicle ids first. No vehicles in region → no rows. */
-  if (opts.region) {
+   * resolve the region's vehicle ids first. No vehicles in region → no rows.
+   * `regions` (REQ-20260813) is the same mechanism over a set of regions; an
+   * empty set means "no region permitted", never "no filter". */
+  const regionScope = opts.region
+    ? eq(carVehicles.cvhRegion, opts.region)
+    : opts.regions
+      ? opts.regions.length === 0
+        ? null
+        : inArray(carVehicles.cvhRegion, [...opts.regions])
+      : undefined;
+  if (regionScope === null) return [];
+  if (regionScope) {
     const vrows = await db
       .select({ id: carVehicles.cvhId })
       .from(carVehicles)
-      .where(
-        and(
-          eq(carVehicles.entId, entId),
-          eq(carVehicles.cvhRegion, opts.region),
-          isNull(carVehicles.cvhDeletedAt),
-        ),
-      );
+      .where(and(eq(carVehicles.entId, entId), regionScope, isNull(carVehicles.cvhDeletedAt)));
     if (vrows.length === 0) return [];
     filters.push(inArray(carTrips.trpVehicleId, vrows.map((v) => v.id)));
   }

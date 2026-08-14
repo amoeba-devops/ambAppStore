@@ -10,6 +10,7 @@ import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
+import { requireRegion } from '@/lib/auth/region-access';
 import { isTruckMonthClosed } from '@/server/queries/truck-finance.queries';
 import { runAction } from '../_helpers';
 
@@ -39,6 +40,8 @@ export async function addFuelInvoiceAction(input: unknown): Promise<ActionResult
         price: z.number().nonnegative(),
       })
       .parse(input);
+    /* Region ACL (REQ-20260813) — can't book fuel into another region's ledger. */
+    await requireRegion(actor, dto.region);
     const month = dto.date.slice(0, 7);
     if (await isTruckMonthClosed(actor.entId, month, dto.region)) {
       throw new CarError('CAR-E1002', 409, 'Financial month is closed for this region');
@@ -82,6 +85,9 @@ export async function deleteFuelInvoiceAction(input: unknown): Promise<ActionRes
       )
       .limit(1);
     if (!inv) throw new CarError('CAR-E0404', 404, 'Invoice not found');
+    /* Region ACL (REQ-20260813) — a narrowed user can't delete another region's
+     * invoice. Legacy region-less invoices stay admin-only territory. */
+    if (inv.region) await requireRegion(actor, inv.region);
     const closed =
       (await isTruckMonthClosed(actor.entId, inv.month)) ||
       (inv.region != null && (await isTruckMonthClosed(actor.entId, inv.month, inv.region)));
