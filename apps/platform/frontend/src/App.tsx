@@ -72,7 +72,14 @@ function EntityContextInitializer() {
         entName: '',
         email: claims.email ?? '',
       });
+      return;
     }
+
+    /* 여기까지 왔다면 이번 진입에는 entity 정보가 없다. 스토어가
+     * sessionStorage에서 복원해 둔 값이 있으면 그대로 쓴다 — 새로고침이나
+     * 카탈로그 내부 이동으로 URL에서 토큰이 사라진 경우가 이 경로다.
+     * 복원값도 없으면 컨텍스트는 null로 남고, AppDetailPage가 이를
+     * "미신청"이 아닌 UNKNOWN으로 구분해 표시한다. */
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return null;
