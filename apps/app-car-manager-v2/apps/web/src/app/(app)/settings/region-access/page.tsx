@@ -53,7 +53,39 @@ export default async function RegionAccessPage() {
               {t('membersEmpty')}
             </Card>
           ) : (
-            <Card variant="outline" className="overflow-x-auto">
+            <>
+            {/* Mobile card list — the table's third column pushes the region
+             * toggles past a phone's viewport, so below md each member becomes
+             * a card with the controls on their own full-width row. */}
+            <ul className="md:hidden space-y-2.5">
+              {members.map((m) => (
+                <li key={m.usrId}>
+                  <Card variant="outline" className="p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Avatar name={m.name ?? m.email ?? '?'} size="md" />
+                      <div className="min-w-0 flex-1">
+                        <span className="font-medium text-text truncate block">
+                          {m.name ?? m.email ?? m.usrId}
+                        </span>
+                        <div className="text-xs text-text-faint truncate">{m.email ?? '—'}</div>
+                      </div>
+                      <Badge tone="neutral" size="sm">
+                        {m.localRole}
+                      </Badge>
+                    </div>
+                    <RegionMemberControls
+                      userId={m.usrId}
+                      memberName={m.name ?? m.email ?? m.usrId}
+                      regions={m.regions}
+                      implicit={m.implicit}
+                      regionLabels={regionLabels}
+                    />
+                  </Card>
+                </li>
+              ))}
+            </ul>
+
+            <Card variant="outline" className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -95,6 +127,7 @@ export default async function RegionAccessPage() {
                 </TableBody>
               </Table>
             </Card>
+            </>
           )}
         </section>
       </div>
