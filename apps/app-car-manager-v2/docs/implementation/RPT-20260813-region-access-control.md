@@ -112,10 +112,11 @@ API của guard mới ([`lib/auth/region-access.ts`](../../apps/web/src/lib/auth
 
 ## 6. Việc còn lại trước khi lên production
 
-1. Kiểm tra thêm trên **mobile viewport** (test scope vào bảng desktop, chưa kiểm danh sách card mobile).
+1. ✅ **Mobile viewport đã kiểm** (Pixel 7, 3/3 PASS — xem [TR §7b](../test/TR-20260813-region-access-control.md)): card list + filter khu vực trên mobile đều tôn trọng ACL, banner từ chối hiển thị đúng, ADMIN gán được khu vực bằng điện thoại.
 2. Áp `0026_truck_region_access.sql` vào **DB production** TRƯỚC khi deploy prod — nếu thiếu sẽ 500 khi đọc bảng mới.
 3. Deploy theo đúng flow repo: staging (đã xong) → test → PR `main → production`.
-4. Ghi chú: commit message của `28b4693` bị dính ký tự `@` (lỗi cú pháp shell khi commit). Không sửa được vì nhánh `staging` chặn force-push; nội dung code không ảnh hưởng.
+4. Ghi chú: commit message của `28b4693` trên nhánh `staging` bị dính ký tự `@` (lỗi cú pháp shell). Không sửa được vì nhánh chặn force-push; **branch PR `feature/car-v2-region-access-control` đã có message đúng**, nội dung code y hệt.
+5. Cân nhắc (ngoài phạm vi REQ này): bảng admin trên phone phải cuộn ngang mới tới nút thao tác, nút cao 32px < 44px khuyến nghị. Áp dụng cho **cả** `/settings/fleet-access` sẵn có lẫn `/settings/region-access` mới → nếu sửa thì nên sửa chung quy ước bảng admin.
 
 ## 6. Ghi chú side-impact
 
