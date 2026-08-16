@@ -721,7 +721,11 @@
       "genAllNone": "No region has enough data to finalize the average (missing fuel invoices).",
       "provCta": "Open P&L & Fuel invoices",
       "viewReport": "View report",
-      "kpiFuelSplit": "{actual} finalised · {est} provisional"
+      "kpiFuelSplit": "{actual} finalised · {est} provisional",
+      "vehicleFilterTitle": "Select trucks",
+      "vehicleFilterN": "{n} trucks",
+      "vehicleFilterApply": "Apply",
+      "vehicleFilterClear": "Clear all"
     },
     "truckReportStatus": {
       "reportAt": "Report · {date}",
@@ -1819,7 +1823,9 @@
       "colProfit": "Profit",
       "colStatus": "Status",
       "statusDone": "Closed",
-      "statusOpen": "Provisional"
+      "statusOpen": "Provisional",
+      "scopeAll": "Scope: All trucks ({total})",
+      "scopeVehicles": "Scope: {n}/{total} trucks — {plates}"
     },
     "truckPnl": {
       "sheetName": "P&L",
@@ -1835,7 +1841,10 @@
       "lineDepreciation": "Depreciation",
       "lineFixed": "Fixed cost",
       "lineTrips": "Trips",
-      "lineNet": "Net profit"
+      "lineNet": "Net profit",
+      "scopeAll": "Scope: All trucks ({total})",
+      "scopeVehicles": "Scope: {n}/{total} trucks — {plates}",
+      "colTotal": "TOTAL"
     },
     "truckTrips": {
       "sheetName": "Trip list",

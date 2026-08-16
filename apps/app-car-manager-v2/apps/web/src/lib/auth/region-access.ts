@@ -10,6 +10,7 @@ import { TRUCK_REGIONS, type TruckRegion } from '@car-v2/shared/zod';
 import type { LocalRole } from '@car-v2/shared/auth';
 import type { AuthContext } from './get-current-user';
 import { requireFleet } from './fleet-access';
+import { listVehicles, type VehicleListItem } from '@/server/queries/vehicles.queries';
 
 /**
  * `'ALL'` means unrestricted — either ADMIN, or a user with no grant rows.
@@ -109,6 +110,56 @@ export async function resolveRegionFilter(
     redirect(await deniedRegionHref(region, searchParams));
   }
   return { region, regions: permitted };
+}
+
+/**
+ * Resolve a `?vehicles=` (CSV) search param into the set of TRUCKs the actor may
+ * actually report on (REQ-20260814). This is the region ACL pushed down to the
+ * vehicle level: the candidate set is every live TRUCK in the actor's permitted
+ * regions, and any id outside it is dropped SILENTLY — same forgiving behaviour
+ * the single-value `?vehicle=` filter already had on the pages.
+ *
+ * `vehicleIds === undefined` means "no extra filter" — i.e. every truck in
+ * `trucks`. Callers pass it straight to the queries, which then fall back to
+ * their region scope. Selecting every truck normalizes to that same state so a
+ * fully-ticked picker and an untouched one produce the same URL and the same SQL.
+ *
+ * Used by BOTH the pages and the export route handlers. The handlers bypass the
+ * `/truck` layout guard, so this is the only thing standing between a crafted
+ * `?vehicles=` and another region's data — never skip it there.
+ */
+export async function resolveVehicleScope(
+  actor: AuthContext,
+  raw: string | undefined,
+): Promise<{
+  /** Trucks the actor may see — render the picker from this. */
+  trucks: VehicleListItem[];
+  /** Selected subset, or undefined for "all of `trucks`". */
+  vehicleIds: string[] | undefined;
+  isAll: boolean;
+}> {
+  const permitted = await allowedRegions(actor);
+  const all = await listVehicles(actor.entId, 'active', 'TRUCK');
+  /* A truck with no region is invisible to a narrowed user: there is no region
+   * to grant, so it can only belong to the unrestricted view. */
+  const trucks =
+    permitted.length < TRUCK_REGIONS.length
+      ? all.filter((v) => v.cvhRegion !== null && (permitted as readonly string[]).includes(v.cvhRegion))
+      : all;
+
+  const wanted = new Set(
+    (raw ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
+  /* Iterate `trucks` (not `wanted`) so the result is de-duplicated and ordered
+   * by plate, matching the picker. */
+  const selected = trucks.filter((v) => wanted.has(v.cvhId)).map((v) => v.cvhId);
+
+  /* Nothing valid asked for, or everything asked for → "all" (drops the param). */
+  const isAll = selected.length === 0 || selected.length === trucks.length;
+  return { trucks, vehicleIds: isAll ? undefined : selected, isAll };
 }
 
 /** Same page, `region` swapped for `region_denied` so the UI can say why. */

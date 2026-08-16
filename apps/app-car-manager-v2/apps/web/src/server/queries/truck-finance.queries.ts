@@ -323,6 +323,10 @@ export async function listTruckFinanceTrips(
   opts: {
     month: string;
     vehicleId?: string | null;
+    /** Multi-select vehicle scope (REQ-20260814). Takes precedence over
+     * `vehicleId`; already narrowed to the actor's regions by
+     * `resolveVehicleScope`. Undefined/empty = no vehicle filter. */
+    vehicleIds?: readonly string[] | null;
     q?: string;
     region?: string | null;
     /** Region-ACL scope for a narrowed user (REQ-20260813). Ignored when
@@ -369,7 +373,12 @@ export async function listTruckFinanceTrips(
           isNull(carTrips.trpDeletedAt),
           gte(carTrips.trpScheduledAt, start),
           lt(carTrips.trpScheduledAt, end),
-          opts.vehicleId ? eq(carTrips.trpVehicleId, opts.vehicleId) : undefined,
+          /* Multi-select wins over the legacy single-vehicle filter. */
+          opts.vehicleIds?.length
+            ? inArray(carTrips.trpVehicleId, [...opts.vehicleIds])
+            : opts.vehicleId
+              ? eq(carTrips.trpVehicleId, opts.vehicleId)
+              : undefined,
           /* Region scope = the trip's vehicle operating region (cvh_region). */
           opts.region
             ? eq(carVehicles.cvhRegion, opts.region)

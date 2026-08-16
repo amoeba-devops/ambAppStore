@@ -721,7 +721,11 @@
       "genAllNone": "Chưa khu vực nào đủ dữ liệu để chốt bình quân (thiếu hoá đơn xăng).",
       "provCta": "Mở P&L & Hoá đơn xăng",
       "viewReport": "Xem báo cáo",
-      "kpiFuelSplit": "{actual} đã chốt · {est} tạm tính"
+      "kpiFuelSplit": "{actual} đã chốt · {est} tạm tính",
+      "vehicleFilterTitle": "Chọn xe",
+      "vehicleFilterN": "{n} xe",
+      "vehicleFilterApply": "Áp dụng",
+      "vehicleFilterClear": "Bỏ chọn tất cả"
     },
     "truckReportStatus": {
       "reportAt": "Đã lập BC · {date}",
@@ -1819,7 +1823,9 @@
       "colProfit": "Lợi nhuận",
       "colStatus": "Trạng thái",
       "statusDone": "Đã lập BC",
-      "statusOpen": "Tạm tính"
+      "statusOpen": "Tạm tính",
+      "scopeAll": "Phạm vi: Tất cả xe ({total})",
+      "scopeVehicles": "Phạm vi: {n}/{total} xe — {plates}"
     },
     "truckPnl": {
       "sheetName": "Lợi nhuận",
@@ -1835,7 +1841,10 @@
       "lineDepreciation": "Khấu hao",
       "lineFixed": "Chi phí cố định",
       "lineTrips": "Số chuyến",
-      "lineNet": "Lợi nhuận ròng"
+      "lineNet": "Lợi nhuận ròng",
+      "scopeAll": "Phạm vi: Tất cả xe ({total})",
+      "scopeVehicles": "Phạm vi: {n}/{total} xe — {plates}",
+      "colTotal": "TỔNG"
     },
     "truckTrips": {
       "sheetName": "Danh sách chuyến",

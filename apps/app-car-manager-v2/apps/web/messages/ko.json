@@ -721,7 +721,11 @@
       "genAllNone": "평균을 확정할 데이터가 있는 지역이 없습니다(주유 전표 없음).",
       "provCta": "월 손익 & 주유 전표 열기",
       "viewReport": "보고서 보기",
-      "kpiFuelSplit": "{actual} 확정 · {est} 임시"
+      "kpiFuelSplit": "{actual} 확정 · {est} 임시",
+      "vehicleFilterTitle": "차량 선택",
+      "vehicleFilterN": "차량 {n}대",
+      "vehicleFilterApply": "적용",
+      "vehicleFilterClear": "전체 해제"
     },
     "truckReportStatus": {
       "reportAt": "보고서 · {date}",
@@ -1819,7 +1823,9 @@
       "colProfit": "손익",
       "colStatus": "상태",
       "statusDone": "마감",
-      "statusOpen": "잠정"
+      "statusOpen": "잠정",
+      "scopeAll": "범위: 전체 차량 ({total}대)",
+      "scopeVehicles": "범위: {n}/{total}대 — {plates}"
     },
     "truckPnl": {
       "sheetName": "손익",
@@ -1835,7 +1841,10 @@
       "lineDepreciation": "감가상각",
       "lineFixed": "고정비",
       "lineTrips": "운행 횟수",
-      "lineNet": "순이익"
+      "lineNet": "순이익",
+      "scopeAll": "범위: 전체 차량 ({total}대)",
+      "scopeVehicles": "범위: {n}/{total}대 — {plates}",
+      "colTotal": "합계"
     },
     "truckTrips": {
       "sheetName": "운행 목록",
