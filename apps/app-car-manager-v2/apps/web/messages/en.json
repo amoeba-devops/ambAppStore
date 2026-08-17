@@ -788,7 +788,6 @@
       "vehicleAll": "All vehicles ({n})",
       "vehicleUnselectedHint": "A vehicle you don't select keeps whatever the last report already froze for it (if any), or stays Provisional (if none exists yet) — it never loses its numbers.",
       "vehicleContinueNext": "Continue · {n} regions left",
-      "vehicleMonthlySummaryOverride": "The Monthly Summary format always covers the whole region — the vehicle selection from the previous step is ignored for this report.",
       "nTrips": "{n} trips",
       "noTrips": "No trips",
       "noDataMonth": "This month has no completed trips — a report can't be created. Pick another month.",

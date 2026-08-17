@@ -91,8 +91,8 @@ async function buildReportWorkbook(
   region: string | null,
   generatedAt: Date,
   /** Vehicle-subset scope (REQ-20260817). Already validated against the
-   * region/ACL by the caller (`resolveReportVehicleScope`). Ignored for
-   * MONTHLY_SUMMARY — see `getTruckReportExport`'s own guard for why. */
+   * region/ACL by the caller (`resolveReportVehicleScope`). Applies to every
+   * report type, including MONTHLY_SUMMARY (user decision 2026-08-17). */
   vehicleIds: string[] | undefined,
 ): Promise<Buffer> {
   if (type === 'MONTHLY_SUMMARY') {
@@ -234,11 +234,10 @@ async function generateOneTruckReport(
   },
 ): Promise<{ id: string; hasSnapshot: boolean }> {
   const { month, type, region } = opts;
-  /* MONTHLY_SUMMARY (form R1, client-approved) always covers the WHOLE region
-   * — its KPI block (truckCount, avgKmPerActive…) only reconciles at that
-   * granularity (REQ-20260817 GĐ-A). Enforced here too, not just in the UI, so
-   * this can never be bypassed by calling the action directly. */
-  const vehicleIds = type === 'MONTHLY_SUMMARY' ? undefined : opts.vehicleIds;
+  /* Vehicle-subset scope (REQ-20260817) applies to every report type,
+   * including MONTHLY_SUMMARY — user decision 2026-08-17 superseded the
+   * original GĐ-A whole-region-only default for that format. */
+  const vehicleIds = opts.vehicleIds;
 
   /* Month-end reconciliation, recomputed NOW (F1–F4). Only frozen when
    * computable (F5) — otherwise NULL → screens keep provisional numbers. */
