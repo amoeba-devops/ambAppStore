@@ -162,6 +162,57 @@ export async function resolveVehicleScope(
   return { trucks, vehicleIds: isAll ? undefined : selected, isAll };
 }
 
+/**
+ * Resolve the vehicle scope for GENERATING an official report on ONE region
+ * (REQ-20260817, Phase A0) — distinct from `resolveVehicleScope` above, which
+ * serves the ad-hoc export screens and lets a selection span several regions.
+ * A chốt-sổ report always freezes numbers for exactly one region at a time, so
+ * this locks the candidate set to that region and re-derives it FRESH from the
+ * DB (live `cvh_deleted_at` / `cvh_region`) every call — the wizard's step 2.5
+ * only renders a snapshot; the action that actually generates the report calls
+ * this AGAIN so a vehicle removed/moved/deleted between opening the wizard and
+ * confirming can never sneak into the frozen numbers.
+ *
+ * Unlike `resolveVehicleScope`'s "garbage in → falls back to all", an empty
+ * result here after a non-empty request is a HARD error (CAR-E0001): silently
+ * reinterpreting "every id you asked for is invalid" as "generate for the
+ * whole region anyway" would freeze numbers for vehicles the caller never
+ * intended to include in this chốt-sổ run.
+ */
+export async function resolveReportVehicleScope(
+  actor: AuthContext,
+  region: string,
+  rawIds: readonly string[] | undefined,
+): Promise<{
+  /** Every live TRUCK in this region — render the step-2.5 picker from this. */
+  vehicles: VehicleListItem[];
+  /** Selected subset, or undefined for "all of `vehicles`". */
+  vehicleIds: string[] | undefined;
+}> {
+  await requireRegion(actor, region);
+  const all = await listVehicles(actor.entId, 'active', 'TRUCK');
+  const vehicles = all.filter((v) => v.cvhRegion === region);
+
+  if (!rawIds || rawIds.length === 0) return { vehicles, vehicleIds: undefined };
+
+  const wanted = new Set(rawIds);
+  /* Iterate `vehicles` (not `rawIds`) so the result is de-duplicated, ordered
+   * by plate, and can never contain an id outside this region/ACL/live set —
+   * a vehicle from another region, another tenant, or since soft-deleted is
+   * dropped SILENTLY here (matches the picker's own candidate list), but see
+   * below: if that leaves NOTHING, the caller must not proceed anyway. */
+  const selected = vehicles.filter((v) => wanted.has(v.cvhId)).map((v) => v.cvhId);
+  if (selected.length === 0) {
+    throw new CarError(
+      'CAR-E0001',
+      400,
+      'None of the requested vehicles are valid for this region — refusing to silently report the whole region instead',
+    );
+  }
+  const isAll = selected.length === vehicles.length;
+  return { vehicles, vehicleIds: isAll ? undefined : selected };
+}
+
 /** Same page, `region` swapped for `region_denied` so the UI can say why. */
 async function deniedRegionHref(
   denied: string,

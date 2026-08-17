@@ -87,7 +87,7 @@ Phân tích xác định yêu cầu nhắm vào **màn Chi phí & Lợi nhuận*
 - [x] Seed dữ liệu theo TC §Setup — đã chạy trên Neon DEV
 - [x] Chạy trọn **nhóm E** (10/10 PASS) và **nhóm R** (8/10 PASS)
 - [ ] **R04 + R07 phải chạy trên staging** sau khi deploy — bắt buộc trước khi cân nhắc lên production
-- [ ] Ghi release note cho 2 thay đổi hành vi có chủ đích (§7)
+- [x] Ghi release note cho 2 thay đổi hành vi có chủ đích (§7) — [RELEASE-NOTE-20260814](RELEASE-NOTE-20260814-truck-report-multi-vehicle.md)
 - [x] Xoá dữ liệu seed khỏi Neon DEV — đã xoá 26 row, DB về đúng trạng thái trước seed ([TR §8](../test/TR-20260814-truck-report-multi-vehicle.md))
 
 ## 7. Ghi chú vận hành (release note)

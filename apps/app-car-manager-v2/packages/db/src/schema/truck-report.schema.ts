@@ -65,6 +65,13 @@ export const carTruckReports = pgTable(
      * cost/km each trip is charged (`phí chuyến = km chuyến × costPerKm`).
      * Empty array = scope had no per-vehicle invoices to reconcile. */
     trrVehicleFuel: jsonb('trr_vehicle_fuel').$type<TruckReportVehicleFuel[]>(),
+    /* Vehicle scope this report covers (REQ-20260817, 0027). NULL = every truck
+     * in trr_region (AS-IS meaning, every row before this change). Non-null =
+     * this report only freezes/represents these vehicle ids — the fold in
+     * loadTruckRegionSnapshots reads this to decide which vehicles a report is
+     * allowed to overwrite, so a partial report can never wipe out the frozen
+     * numbers of a vehicle it doesn't cover. */
+    trrVehicleIds: jsonb('trr_vehicle_ids').$type<string[]>(),
     trrCreatedBy: char('trr_created_by', { length: 36 }),
     trrCreatedAt: timestamp('trr_created_at', { withTimezone: true }).defaultNow().notNull(),
     trrDeletedAt: timestamp('trr_deleted_at', { withTimezone: true }),
