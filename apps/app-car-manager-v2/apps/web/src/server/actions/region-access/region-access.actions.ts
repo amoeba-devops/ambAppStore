@@ -12,7 +12,7 @@ import { logAudit } from '@/server/services/audit-log.service';
 import { notifyUser } from '@/server/services/notification.service';
 import { runAction } from '../_helpers';
 
-const REGION_ADMIN_PATHS = ['/settings/region-access', '/users'];
+const REGION_ADMIN_PATHS = ['/users'];
 function revalidateRegionAdmin(): void {
   for (const p of REGION_ADMIN_PATHS) revalidatePath(p);
 }
@@ -117,7 +117,7 @@ export async function setRegionAccessAction(input: unknown): Promise<ActionResul
         desired.length === 0
           ? 'You can now access every region'
           : `Your region access is now limited to ${desired.join(', ')}`,
-      template: { ref: desired.join(',') || 'ALL', tripPath: '/settings/region-access' },
+      template: { ref: desired.join(',') || 'ALL', tripPath: '/settings/me' },
     });
 
     revalidateRegionAdmin();
@@ -168,7 +168,7 @@ export async function revokeAllRegionAccessAction(
       event: 'REGION.ACCESS_CLEARED',
       title: 'Region access updated',
       body: 'You can now access every region',
-      template: { ref: 'ALL', tripPath: '/settings/region-access' },
+      template: { ref: 'ALL', tripPath: '/settings/me' },
     });
 
     revalidateRegionAdmin();

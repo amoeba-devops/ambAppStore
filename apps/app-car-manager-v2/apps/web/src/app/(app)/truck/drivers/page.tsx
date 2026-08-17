@@ -13,14 +13,18 @@ import {
   TableRow,
 } from '@car-v2/ui';
 import type { CarDriverStatus } from '@car-v2/db/schema';
+import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
 import { DateTimeCell } from '@/components/datetime-cell';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { ParamSelect } from '@/components/inputs/param-select';
 import { ListRowActions } from '@/components/list-row-actions';
 import { PageHeader } from '@/components/layout/page-header';
+import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { resolveRegionFilter } from '@/lib/auth/region-access';
 import { listFleetDrivers } from '@/server/queries/drivers.queries';
+import { getRegionAccessForUsers } from '@/server/queries/region-access.queries';
 
 /**
  * Truck-department driver roster (REQ-20260622 audit G5; design table layout
@@ -45,7 +49,7 @@ const DRIVER_STATUSES: CarDriverStatus[] = ['AVAILABLE', 'ON_TRIP', 'OFF_DUTY', 
 export default async function TruckDriversPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; region?: string; region_denied?: string }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
@@ -53,11 +57,20 @@ export default async function TruckDriversPage({
   const tA = await getTranslations('actions');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
+  const tRegion = await getTranslations('region');
   const locale = await getLocale();
   const loc = bcp47(locale);
   const date = (d: string | Date) => new Date(d).toLocaleDateString(loc);
 
+  /* Region ACL (REQ-20260813): `fRegion` is the validated ?region= filter,
+   * `permittedRegions` the set this actor may see at all — same pattern as
+   * the truck fleet/trips pages. A driver's region is their OWN region-access
+   * grants (car_user_region_access), not a column on car_drivers. */
+  const { region: fRegion, regions: permittedRegions } = await resolveRegionFilter(user, sp.region, sp);
+  const restricted = permittedRegions.length < TRUCK_REGIONS.length;
+
   const allDrivers = await listFleetDrivers(user.entId, 'TRUCK');
+  const driverRegionsByUser = await getRegionAccessForUsers(user.entId, allDrivers.map((d) => d.drvUserId));
 
   const q = sp.q?.trim().toLowerCase() || undefined;
   const fStatus = DRIVER_STATUSES.includes(sp.status as CarDriverStatus)
@@ -74,6 +87,16 @@ export default async function TruckDriversPage({
       if (!hay.includes(q)) return false;
     }
     if (fStatus && d.drvStatus !== fStatus) return false;
+    /* Unrestricted (no explicit grants) = the driver operates in every region,
+     * so they always match — same rule the users roster and the edit/peek UI
+     * already use. */
+    const driverRegions = driverRegionsByUser.get(d.drvUserId) ?? [];
+    const unrestrictedDriver = driverRegions.length === 0;
+    if (fRegion) {
+      if (!unrestrictedDriver && !driverRegions.includes(fRegion)) return false;
+    } else if (restricted && !unrestrictedDriver && !driverRegions.some((r) => permittedRegions.includes(r))) {
+      return false;
+    }
     return true;
   });
   /* The /truck layout already blocks DRIVER role — anyone here is ADMIN/MANAGER. */
@@ -95,10 +118,17 @@ export default async function TruckDriversPage({
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
+        <RegionDeniedNotice code={sp.region_denied} />
         {/* Search + filter bar (QA P2): tên/SĐT search, Khu vực / Phương tiện /
          * Trạng thái dropdowns — URL-driven so results are shareable. */}
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
           <DebouncedSearchInput placeholder={t('searchPlaceholder')} className="sm:w-72" clearLabel={tA('clear')} />
+          <ParamSelect
+            param="region"
+            value={fRegion}
+            allLabel={t('allRegions')}
+            options={permittedRegions.map((r) => ({ value: r, label: tRegion(r) }))}
+          />
           <ParamSelect
             param="status"
             value={fStatus}

@@ -50,8 +50,7 @@
     "truckTripsShort": "Chuyến",
     "truckFleetShort": "Đội xe",
     "truckDriversShort": "Tài xế",
-    "maintenance": "Cảnh báo bảo dưỡng",
-    "regionAccess": "Phân quyền khu vực"
+    "maintenance": "Cảnh báo bảo dưỡng"
   },
   "region": {
     "HCM": "HCM",
@@ -838,19 +837,6 @@
       "status_ALL": "Tất cả"
     },
     "regionAccess": {
-      "title": "Phân quyền khu vực",
-      "subtitle": "Giới hạn nhân sự đội xe tải theo khu vực phụ trách",
-      "membersTitle": "Nhân sự đội xe tải",
-      "membersHint": "Chưa chọn khu vực nào = xem được TẤT CẢ khu vực (mặc định). Chọn khu vực để giới hạn user chỉ trong các khu vực đó. Admin luôn quản lý toàn bộ khu vực.",
-      "membersEmpty": "Chưa có nhân sự nào được cấp quyền đội xe tải.",
-      "thMember": "Nhân sự",
-      "thRole": "Vai trò",
-      "thRegions": "Khu vực",
-      "fullAccess": "Toàn bộ khu vực",
-      "allRegionsDefault": "Tất cả khu vực (mặc định)",
-      "save": "Lưu",
-      "savedToast": "Đã giới hạn {name} trong {count} khu vực",
-      "clearedToast": "Đã mở lại toàn bộ khu vực cho {name}",
       "deniedNotice": "Bạn không có quyền xem khu vực {region} — đã hiển thị lại các khu vực bạn phụ trách."
     }
   },
@@ -1408,6 +1394,8 @@
       "noTrips": "Chưa có chuyến nào.",
       "notesTitle": "Ghi chú",
       "noNotes": "Không có ghi chú",
+      "regionTitle": "Khu vực hoạt động",
+      "regionAllLabel": "Tất cả khu vực",
       "emergencyTitle": "Liên hệ khẩn cấp",
       "thRef": "Mã",
       "thWhen": "Thời gian",
@@ -1457,13 +1445,21 @@
       "deptFilterAll": "Tất cả phòng ban",
       "deptBoth": "Cả hai phòng ban",
       "deptNone": "Chưa gán",
-      "deptFilterEmpty": "Không có ai khớp bộ lọc phòng ban này."
+      "deptFilterEmpty": "Không có ai khớp bộ lọc phòng ban này.",
+      "regionAllDefault": "Tất cả khu vực",
+      "regionSave": "Lưu",
+      "regionSavedToast": "Đã giới hạn {name} trong {count} khu vực",
+      "regionClearedToast": "Đã mở lại toàn bộ khu vực cho {name}",
+      "thRegion": "Khu vực",
+      "allRegions": "Tất cả khu vực"
     },
     "peek": {
       "a11yTitle": "Chi tiết người dùng {name}",
       "a11yDescription": "Bảng chi tiết người dùng trượt từ phải.",
       "close": "Đóng",
-      "signinLabel": "Quyền đăng nhập car-v2"
+      "signinLabel": "Quyền đăng nhập car-v2",
+      "regionLabel": "Khu vực hoạt động",
+      "regionAllLabel": "Tất cả khu vực"
     },
     "refresh": {
       "label": "Đồng bộ từ AMA",
@@ -1566,7 +1562,10 @@
       "deptDescDriver": "Tài xế chỉ thuộc một phòng ban. Chọn phòng khác sẽ chuyển họ sang phòng đó.",
       "deptDescStaff": "Quản lý có thể thuộc cả hai phòng ban.",
       "deptAdminHint": "Quản trị viên luôn vào được cả hai phòng ban — không cần cấp.",
-      "deptNoneWarning": "Chưa gán phòng ban: người này không hiện trong danh sách của app nào."
+      "deptNoneWarning": "Chưa gán phòng ban: người này không hiện trong danh sách của app nào.",
+      "regionLabel": "Khu vực hoạt động",
+      "regionDesc": "Chưa chọn khu vực nào = xem được TẤT CẢ khu vực (mặc định). Chọn khu vực để giới hạn chỉ trong các khu vực đó.",
+      "regionAllDefault": "Tất cả khu vực (mặc định)"
     }
   },
   "costs": {

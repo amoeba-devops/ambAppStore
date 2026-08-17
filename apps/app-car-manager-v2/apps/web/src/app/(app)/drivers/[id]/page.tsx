@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Calendar, ChevronLeft, Edit3, Mail, Phone } from 'lucide-react';
+import { Calendar, ChevronLeft, Edit3, Mail, MapPin, Phone } from 'lucide-react';
 import {
   Avatar,
   Badge,
@@ -16,7 +16,8 @@ import type { CarDriverStatus } from '@car-v2/db/schema';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { driverRosterRef } from '@/lib/driver-roster';
-import { getDriver } from '@/server/queries/drivers.queries';
+import { getDriver, isTruckDriver } from '@/server/queries/drivers.queries';
+import { getUserRegionAccess } from '@/server/queries/region-access.queries';
 import { listTripsForDriver } from '@/server/queries/trips.queries';
 import { TripHistorySection } from '../../trips/_components/trip-history-section';
 import { DriverDeleteButton } from './_components/driver-delete-button';
@@ -41,10 +42,16 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
   const tStatus  = await getTranslations('drivers.status');
   const tDetail  = await getTranslations('drivers.detail');
   const tList    = await getTranslations('drivers.list');
+  const tRegion  = await getTranslations('region');
   const user = await getCurrentUser();
 
   const driver = await getDriver(user.entId, id);
   if (!driver) notFound();
+  /* Region scope (REQ-20260813) only exists inside the truck fleet — read-only
+   * here, same gate `isTruckDriver` already uses for the truck-only salary
+   * field on the edit form. No edit control on this page. */
+  const isTruck = await isTruckDriver(user.entId, driver.drvUserId);
+  const regions = isTruck ? await getUserRegionAccess(user.entId, driver.drvUserId) : [];
   /* Pull a fuller history (not just 10) so the Kanban board has enough cards
    * across its status columns to be meaningful. The table view paginates
    * visually via scroll. */
@@ -168,6 +175,30 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
 
           {/* Side */}
           <div className="space-y-5">
+            {isTruck && (
+              <Card>
+                <CardHeader>
+                  <CardHeaderText>
+                    <CardTitle className="inline-flex items-center gap-1.5">
+                      <MapPin className="h-4 w-4" />
+                      {tDetail('regionTitle')}
+                    </CardTitle>
+                  </CardHeaderText>
+                </CardHeader>
+                <CardContent>
+                  {regions.length === 0 ? (
+                    <Badge tone="accent" size="sm">{tDetail('regionAllLabel')}</Badge>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {regions.map((r) => (
+                        <Badge key={r} tone="neutral" size="sm">{tRegion(r)}</Badge>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <CardHeaderText>
