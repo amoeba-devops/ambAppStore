@@ -54,7 +54,20 @@ export function ReportVehicleStep({
     setSelected((s) => (s.includes(id) ? s.filter((v) => v !== id) : [...s, id]));
   const allSelected = selected.length === 0 || selected.length === vehicles.length;
 
-  const backHref = `/truck/reports/new?month=${month}&regions=${regionsCsv}${vfDone ? `&vf=${encodeURIComponent(vfDone)}` : ''}`;
+  /* Back must land on the PREVIOUS step, not this same one. `vfDone` holds one
+   * `region:ids` entry per region already completed, in order — the current
+   * region has NO entry yet (that's what makes the page resolve here as
+   * `pendingVehicleRegion`). Keeping `vfDone` as-is and just re-visiting this
+   * URL therefore reopens the SAME region's picker, which looked like the
+   * button did nothing. Popping the LAST completed entry instead makes the
+   * page resolve back to the PREVIOUS region's vehicle step; with nothing left
+   * to pop (this is the first region), drop `regions` entirely so the page
+   * falls through to Bước 2 (chọn khu vực). */
+  const doneEntries = vfDone ? vfDone.split(';').filter(Boolean) : [];
+  const backHref =
+    doneEntries.length > 0
+      ? `/truck/reports/new?month=${month}&regions=${regionsCsv}&vf=${encodeURIComponent(doneEntries.slice(0, -1).join(';'))}`
+      : `/truck/reports/new?month=${month}`;
 
   const cont = () => {
     const entry = allSelected ? `${region}:ALL` : `${region}:${selected.join(',')}`;
