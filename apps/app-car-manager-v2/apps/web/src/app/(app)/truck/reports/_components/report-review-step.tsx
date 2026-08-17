@@ -26,7 +26,16 @@ type Edit = { toll: number; extra: number; fuel: number; revenue: number };
  * any edits (patchTruckTripCostsAction) then generates one Chi-phí-&-lợi-nhuận
  * report per region (one row + one Excel each).
  */
-export function ReportReviewStep({ reviews }: { reviews: TruckReportReview[] }) {
+export function ReportReviewStep({
+  reviews,
+  vehicleIdsByRegion,
+}: {
+  reviews: TruckReportReview[];
+  /** Per-region vehicle subset chosen at Bước 3 (REQ-20260817), keyed by
+   * region code; undefined for a region = no narrowing (every truck). Never
+   * applied when the final format is MONTHLY_SUMMARY — see `generate()`. */
+  vehicleIdsByRegion?: Record<string, string[] | undefined>;
+}) {
   const t = useTranslations('screens.truckReports');
   const tA = useTranslations('actions');
   const tErr = useTranslations();
@@ -112,11 +121,15 @@ export function ReportReviewStep({ reviews }: { reviews: TruckReportReview[] }) 
           }
         }
       }
-      /* 2. Generate one report per selected region in the chosen format. */
+      /* 2. Generate one report per selected region in the chosen format.
+       * Vehicle subset (REQ-20260817) never applies to MONTHLY_SUMMARY — that
+       * template's KPI block only reconciles over the whole region (GĐ-A). */
       const regions = reviews.filter((r) => r.vehicles.length > 0).map((r) => r.region);
       let lastReportId: string | undefined;
       for (const region of regions) {
-        const res = await generateTruckReportAction({ month, region, type: fmt });
+        const vehicle_ids =
+          fmt !== 'MONTHLY_SUMMARY' && region ? vehicleIdsByRegion?.[region] : undefined;
+        const res = await generateTruckReportAction({ month, region, type: fmt, vehicle_ids });
         if (!res.success) {
           toast.error(formatActionError(res.error, tErr));
           return;
@@ -153,7 +166,7 @@ export function ReportReviewStep({ reviews }: { reviews: TruckReportReview[] }) 
 
   return (
     <div className="space-y-5">
-      <ReportStepper step={3} />
+      <ReportStepper step={4} />
 
       <div>
         <div className="text-sm font-semibold text-text">{t('step2Title')}</div>
@@ -208,6 +221,16 @@ export function ReportReviewStep({ reviews }: { reviews: TruckReportReview[] }) 
           })}
         </div>
       </fieldset>
+
+      {/* MONTHLY_SUMMARY always covers the whole region (REQ-20260817 GĐ-A) —
+          warn when a vehicle subset was chosen at Bước 3 so switching format
+          here doesn't silently widen the scope without the user noticing. */}
+      {fmt === 'MONTHLY_SUMMARY' &&
+        reviews.some((rv) => rv.region && vehicleIdsByRegion?.[rv.region]) && (
+          <div className="rounded-md border border-warning/40 bg-warning/5 px-3 py-2 text-xs text-text">
+            {t('vehicleMonthlySummaryOverride')}
+          </div>
+        )}
 
       {reviews.map((review) => {
         const editable = !review.closed;

@@ -721,7 +721,11 @@
       "genAllNone": "No region has enough data to finalize the average (missing fuel invoices).",
       "provCta": "Open P&L & Fuel invoices",
       "viewReport": "View report",
-      "kpiFuelSplit": "{actual} finalised · {est} provisional"
+      "kpiFuelSplit": "{actual} finalised · {est} provisional",
+      "vehicleFilterTitle": "Select trucks",
+      "vehicleFilterN": "{n} trucks",
+      "vehicleFilterApply": "Apply",
+      "vehicleFilterClear": "Clear all"
     },
     "truckReportStatus": {
       "reportAt": "Report · {date}",
@@ -767,17 +771,25 @@
       "allMonths": "All months",
       "step1Title": "Step 1 · Pick month",
       "step1Hint": "Pick the report period. The report will cover revenue, costs, and profit for trucks with trips in the selected month.",
-      "step2Title": "Step 3 · Review & create",
+      "step2Title": "Step 4 · Review & create",
       "regionStepTitle": "Step 2 · Select region",
       "regionStepHint": "Pick 'All regions' for one combined report, or select regions individually for a report each.",
       "regionAll": "All regions",
       "regionAllHint": "Combine all regions into one report",
       "nameScopeRegion": "{name} region",
+      "nameScopeVehicles": "{n}/{m} vehicles",
       "noRegionsData": "No trips are tagged to a region this month.",
       "continueRegions": "Continue · {n} regions",
       "nRegions": "{n} regions",
       "regionScopeHint": "This region only",
       "stepNameRegion": "Select region",
+      "stepNameVehicle": "Select vehicles",
+      "vehicleStepTitle": "Step 3 · Select vehicles ({region})",
+      "vehicleStepHint": "By default the report covers every truck in this region. Deselect some to report on only a subset.",
+      "vehicleAll": "All vehicles ({n})",
+      "vehicleUnselectedHint": "A vehicle you don't select keeps whatever the last report already froze for it (if any), or stays Provisional (if none exists yet) — it never loses its numbers.",
+      "vehicleContinueNext": "Continue · {n} regions left",
+      "vehicleMonthlySummaryOverride": "The Monthly Summary format always covers the whole region — the vehicle selection from the previous step is ignored for this report.",
       "nTrips": "{n} trips",
       "noTrips": "No trips",
       "noDataMonth": "This month has no completed trips — a report can't be created. Pick another month.",
@@ -1819,7 +1831,9 @@
       "colProfit": "Profit",
       "colStatus": "Status",
       "statusDone": "Closed",
-      "statusOpen": "Provisional"
+      "statusOpen": "Provisional",
+      "scopeAll": "Scope: All trucks ({total})",
+      "scopeVehicles": "Scope: {n}/{total} trucks — {plates}"
     },
     "truckPnl": {
       "sheetName": "P&L",
@@ -1835,7 +1849,10 @@
       "lineDepreciation": "Depreciation",
       "lineFixed": "Fixed cost",
       "lineTrips": "Trips",
-      "lineNet": "Net profit"
+      "lineNet": "Net profit",
+      "scopeAll": "Scope: All trucks ({total})",
+      "scopeVehicles": "Scope: {n}/{total} trucks — {plates}",
+      "colTotal": "TOTAL"
     },
     "truckTrips": {
       "sheetName": "Trip list",

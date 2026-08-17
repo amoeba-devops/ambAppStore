@@ -176,6 +176,13 @@
 			"when": 1783000000014,
 			"tag": "0025_truck_cost_rate_history",
 			"breakpoints": true
+		},
+		{
+			"idx": 25,
+			"version": "7",
+			"when": 1783000000015,
+			"tag": "0027_truck_report_vehicle_ids",
+			"breakpoints": true
 		}
 	]
 }

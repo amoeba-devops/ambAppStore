@@ -124,12 +124,20 @@ export async function loadTruckRegionSnapshots(
   const snap = new Map<string, RegionSnapshot>();
   /* Per-vehicle frozen reconciliation (REQ-20260726) — wins over `snap`. */
   const vehicleSnap = new Map<string, VehicleFuelSnapshot>();
-  /* Every (month, region) that has ≥1 live report or legacy close — regardless
-   * of whether a fuel snapshot could be computed. region '' = consolidated. */
+  /* Every (month, region) that has ≥1 WHOLE-REGION live report or legacy close
+   * — regardless of whether a fuel snapshot could be computed. region ''
+   * = consolidated. A report scoped to a vehicle SUBSET (REQ-20260817,
+   * trr_vehicle_ids) never marks this — it must not flag vehicles it doesn't
+   * cover as "reported" (that's what `vehicleReportedAt` below is for). */
   const reported = new Set<string>();
-  /* Latest report/close moment per scope — the cut-off that decides whether a
-   * given trip is covered by it. */
+  /* Latest WHOLE-REGION report/close moment per scope — the cut-off that
+   * decides whether a given trip is covered by it. */
   const reportedAt = new Map<string, Date>();
+  /* Keyed `${month}|${vehicleId}` — latest moment a vehicle-SUBSET report
+   * covered this specific vehicle (REQ-20260817). A whole-region report's
+   * coverage is already captured by `reported`/`reportedAt` above; this only
+   * needs to track the narrower case. */
+  const vehicleReportedAt = new Map<string, Date>();
   const vehicleRegion = new Map<string, string>();
 
   if (months.length > 0) {
@@ -161,6 +169,10 @@ export async function loadTruckRegionSnapshots(
           avgPrice: carTruckReports.trrAvgPrice,
           consumption: carTruckReports.trrConsumption,
           vehicleFuel: carTruckReports.trrVehicleFuel,
+          /* Vehicle scope this report covers (REQ-20260817). NULL/empty = the
+           * WHOLE region (or every region, when `region` is also null) — same
+           * meaning as every report generated before this column existed. */
+          vehicleIds: carTruckReports.trrVehicleIds,
           at: carTruckReports.trrCreatedAt,
         })
         .from(carTruckReports)
@@ -191,35 +203,67 @@ export async function loadTruckRegionSnapshots(
         });
       }
     }
-    /* Only the NEWEST live report per (month, region) defines that scope's
-     * snapshot — and it defines the MODE too. Mixing tiers across generations
-     * would double-count: an older region-pool report would keep feeding
-     * vehicles that the newest (per-vehicle) report deliberately leaves to
-     * their own định mức. Reports arrive in ascending creation order, so the
-     * last write per scope wins. */
-    const latestByScope = new Map<string, (typeof reportRows)[number]>();
+    /* Fold every live report IN CREATION ORDER (REQ-20260817, BL-1) — not just
+     * the newest per (month, region). A WHOLE-REGION report (`vehicleIds`
+     * null/empty — every report before this feature, and any new one that
+     * doesn't narrow by vehicle) still behaves exactly as before: the newest
+     * one wins outright for the whole scope, superseding the region pool and
+     * any earlier per-vehicle entries.
+     *
+     * A vehicle-SUBSET report only gets to overwrite the vehicles it actually
+     * names. This is the fix for the regression REQ-20260814 §6.1 flagged:
+     * generating a report for 2/8 trucks must not erase the other 6 trucks'
+     * already-frozen numbers or their "Đã lập BC" status — under the OLD
+     * "latest report per scope wins wholesale" rule it would. Iterating in
+     * ascending `at` order and only ever OVERWRITING (never clearing) the
+     * vehicles a report actually covers means a later, narrower report can
+     * update its own vehicles while every other vehicle keeps whatever the
+     * last report that DID cover it left behind. */
     for (const r of reportRows) {
       const key = snapKey(r.month, r.region ?? '');
-      markReported(key, r.at ?? null);
-      latestByScope.set(key, r);
-    }
-    for (const [key, r] of latestByScope) {
       const vf = r.vehicleFuel ?? [];
-      if (vf.length > 0) {
-        /* Per-vehicle freeze supersedes any region pool for this scope. */
-        snap.delete(key);
-        for (const v of vf) {
-          if (!v?.vehicleId || !(v.costPerKm > 0)) continue;
-          vehicleSnap.set(snapKey(r.month, v.vehicleId), {
-            costPerKm: v.costPerKm,
-            avgPrice: v.avgPrice,
-            consumption: v.km > 0 ? v.liters / v.km : 0,
+      const scope = r.vehicleIds && r.vehicleIds.length > 0 ? new Set(r.vehicleIds) : null;
+
+      if (!scope) {
+        /* Whole-region (or consolidated, region '') report — unchanged from
+         * AS-IS: marks the scope reported, and a per-vehicle freeze supersedes
+         * the region pool entirely for this scope. */
+        markReported(key, r.at ?? null);
+        if (vf.length > 0) {
+          snap.delete(key);
+          for (const v of vf) {
+            if (!v?.vehicleId || !(v.costPerKm > 0)) continue;
+            vehicleSnap.set(snapKey(r.month, v.vehicleId), {
+              costPerKm: v.costPerKm,
+              avgPrice: v.avgPrice,
+              consumption: v.km > 0 ? v.liters / v.km : 0,
+            });
+          }
+        } else if (r.avgPrice != null && r.consumption != null) {
+          snap.set(key, {
+            avgPrice: parseAmount(r.avgPrice),
+            consumption: parseAmount(r.consumption),
           });
         }
-      } else if (r.avgPrice != null && r.consumption != null) {
-        snap.set(key, {
-          avgPrice: parseAmount(r.avgPrice),
-          consumption: parseAmount(r.consumption),
+        continue;
+      }
+
+      /* Vehicle-subset report — touches ONLY its own vehicles. Never deletes
+       * the region pool (`snap`), never marks the whole scope `reported`: the
+       * vehicles it doesn't name must keep reading whatever an earlier (or
+       * later) whole-region report — or nothing — left them at. */
+      const at = r.at ?? null;
+      for (const vehicleId of scope) {
+        if (!at) continue;
+        const prev = vehicleReportedAt.get(snapKey(r.month, vehicleId));
+        if (!prev || at > prev) vehicleReportedAt.set(snapKey(r.month, vehicleId), at);
+      }
+      for (const v of vf) {
+        if (!v?.vehicleId || !scope.has(v.vehicleId) || !(v.costPerKm > 0)) continue;
+        vehicleSnap.set(snapKey(r.month, v.vehicleId), {
+          costPerKm: v.costPerKm,
+          avgPrice: v.avgPrice,
+          consumption: v.km > 0 ? v.liters / v.km : 0,
         });
       }
     }
@@ -244,14 +288,19 @@ export async function loadTruckRegionSnapshots(
     return snap.get(snapKey(month, region)) ?? snap.get(snapKey(month, '')) ?? null;
   };
 
-  /** When the trip's scope was last reported/closed (own region, else the
-   * consolidated one) — null when never. */
+  /** When the trip's scope was last reported/closed — own region, the
+   * consolidated one, or (REQ-20260817) a vehicle-subset report that named
+   * this vehicle specifically — whichever is latest. Null when none apply. */
   const frozenAt = (month: string, vehicleId: string | null): Date | null => {
     const region = vehicleId ? vehicleRegion.get(vehicleId) ?? '' : '';
-    const a = reportedAt.get(snapKey(month, region));
-    const b = reportedAt.get(snapKey(month, ''));
-    if (a && b) return a > b ? a : b;
-    return a ?? b ?? null;
+    const candidates = [
+      reportedAt.get(snapKey(month, region)),
+      reportedAt.get(snapKey(month, '')),
+      vehicleId ? vehicleReportedAt.get(snapKey(month, vehicleId)) : undefined,
+    ];
+    let latest: Date | null = null;
+    for (const d of candidates) if (d && (!latest || d > latest)) latest = d;
+    return latest;
   };
 
   /** Is this trip inside the report that froze its scope? A trip created or
@@ -312,7 +361,14 @@ export async function loadTruckRegionSnapshots(
     },
     isReported(month, vehicleId, changedAt) {
       const region = vehicleId ? vehicleRegion.get(vehicleId) ?? '' : '';
-      const exists = reported.has(snapKey(month, region)) || reported.has(snapKey(month, ''));
+      /* Covered by a WHOLE-REGION report (or consolidated), OR — REQ-20260817
+       * — by a vehicle-subset report that specifically named this vehicle.
+       * Either is enough for "some report exists"; `coveredByReport` below
+       * still checks the actual timestamp against `changedAt`. */
+      const exists =
+        reported.has(snapKey(month, region)) ||
+        reported.has(snapKey(month, '')) ||
+        (vehicleId ? vehicleReportedAt.has(snapKey(month, vehicleId)) : false);
       if (!exists) return false;
       /* A trip added/edited after the report is not in it — showing "Đã lập BC"
        * on a brand-new trip because some earlier report covered its month was

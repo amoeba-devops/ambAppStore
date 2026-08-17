@@ -206,10 +206,17 @@ export async function getTruckFuelStatsByVehicle(
   entId: string,
   month: string,
   region?: string,
+  /** Freeze only these vehicles (REQ-20260817 vehicle-subset reports) — the
+   * caller (`generateOneTruckReport`) has already validated this set against
+   * the region/ACL via `resolveReportVehicleScope`. Omitted = every vehicle in
+   * `region` (AS-IS). */
+  vehicleIds?: readonly string[],
 ): Promise<TruckReportVehicleFuel[]> {
   const pool = await loadVehicleFuelPool(entId, [month], region);
+  const wanted = vehicleIds && vehicleIds.length > 0 ? new Set(vehicleIds) : null;
   const out: TruckReportVehicleFuel[] = [];
   for (const p of pool.values()) {
+    if (wanted && !wanted.has(p.vehicleId)) continue;
     if (p.money <= 0 || p.km <= 0) continue; // nothing to allocate
     out.push({
       vehicleId: p.vehicleId,
@@ -323,6 +330,10 @@ export async function listTruckFinanceTrips(
   opts: {
     month: string;
     vehicleId?: string | null;
+    /** Multi-select vehicle scope (REQ-20260814). Takes precedence over
+     * `vehicleId`; already narrowed to the actor's regions by
+     * `resolveVehicleScope`. Undefined/empty = no vehicle filter. */
+    vehicleIds?: readonly string[] | null;
     q?: string;
     region?: string | null;
     /** Region-ACL scope for a narrowed user (REQ-20260813). Ignored when
@@ -369,7 +380,12 @@ export async function listTruckFinanceTrips(
           isNull(carTrips.trpDeletedAt),
           gte(carTrips.trpScheduledAt, start),
           lt(carTrips.trpScheduledAt, end),
-          opts.vehicleId ? eq(carTrips.trpVehicleId, opts.vehicleId) : undefined,
+          /* Multi-select wins over the legacy single-vehicle filter. */
+          opts.vehicleIds?.length
+            ? inArray(carTrips.trpVehicleId, [...opts.vehicleIds])
+            : opts.vehicleId
+              ? eq(carTrips.trpVehicleId, opts.vehicleId)
+              : undefined,
           /* Region scope = the trip's vehicle operating region (cvh_region). */
           opts.region
             ? eq(carVehicles.cvhRegion, opts.region)
@@ -579,12 +595,18 @@ export async function getTruckReportReview(
   month: string,
   /** Operating region scope; `null` = all regions (whole-fleet reconciliation). */
   region: string | null = null,
+  /** Vehicle-subset scope (REQ-20260817, wizard step 2.5) — already validated
+   * against the region/ACL by the caller. Undefined = every truck in `region`
+   * that has trips this month (AS-IS). Ignored when `region` is null (the
+   * consolidated all-regions review never narrows by vehicle). */
+  vehicleIds?: readonly string[],
 ): Promise<TruckReportReview> {
+  const scope = region ? vehicleIds : undefined;
   const [trips, stats, closeInfo, vehicleFuel, invoices] = await Promise.all([
-    listTruckFinanceTrips(actor.entId, { month, region }),
+    listTruckFinanceTrips(actor.entId, { month, region, vehicleIds: scope }),
     getTruckFuelStats(actor.entId, month, region ?? undefined),
     getTruckMonthCloseInfo(actor.entId, month, region),
-    getTruckFuelStatsByVehicle(actor.entId, month, region ?? undefined),
+    getTruckFuelStatsByVehicle(actor.entId, month, region ?? undefined, scope),
     listFuelInvoices(actor.entId, month, region ?? undefined),
   ]);
   /* "Số lần đổ xăng" per vehicle (the card in the review wizard). */

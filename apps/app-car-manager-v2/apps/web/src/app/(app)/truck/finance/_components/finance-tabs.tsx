@@ -11,18 +11,19 @@ import { cn } from '@car-v2/ui';
 export async function FinanceTabs({
   active,
   month,
-  vehicleId,
+  vehicleIds,
 }: {
   active: 'trips' | 'overview';
   month?: string;
-  vehicleId?: string;
+  /** Selected trucks carried across tabs (REQ-20260814); undefined = all. */
+  vehicleIds?: string[];
 }) {
   const t = await getTranslations('screens.truckFinance');
 
   const withParams = (base: string) => {
     const p = new URLSearchParams();
     if (month) p.set('month', month);
-    if (vehicleId) p.set('vehicle', vehicleId);
+    if (vehicleIds?.length) p.set('vehicles', vehicleIds.join(','));
     const s = p.toString();
     return s ? `${base}${base.includes('?') ? '&' : '?'}${s}` : base;
   };

@@ -20,6 +20,7 @@ import { DateTimeCell } from '@/components/datetime-cell';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { MonthPicker } from '@/components/inputs/month-picker';
 import { ParamSelect } from '@/components/inputs/param-select';
+import { ParamMultiSelect } from '@/components/inputs/param-multi-select';
 import { FinanceTabs } from './_components/finance-tabs';
 import { GenerateAllRegionsButton } from './_components/generate-all-regions-button';
 import { PageHeader } from '@/components/layout/page-header';
@@ -27,8 +28,7 @@ import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
 import { FuelReconciliationBadge } from '@/components/truck/fuel-reconciliation-badge';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { resolveRegionFilter } from '@/lib/auth/region-access';
-import { listVehicles } from '@/server/queries/vehicles.queries';
+import { resolveRegionFilter, resolveVehicleScope } from '@/lib/auth/region-access';
 import {
   getTruckFixedCostsLastUpdated,
   getTruckInvoiceRegions,
@@ -51,7 +51,15 @@ function currentMonth(): string {
 export default async function TruckFinancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; vehicle?: string; q?: string; region?: string; region_denied?: string }>;
+  searchParams: Promise<{
+    month?: string;
+    /** CSV multi-select (REQ-20260814); `vehicle` kept for older links. */
+    vehicles?: string;
+    vehicle?: string;
+    q?: string;
+    region?: string;
+    region_denied?: string;
+  }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
@@ -71,15 +79,13 @@ export default async function TruckFinancePage({
   const locale = await getLocale();
   const loc = bcp47(locale);
 
-  const allTrucks = await listVehicles(user.entId, 'active', 'TRUCK');
-  const trucks = restricted
-    ? allTrucks.filter((v) => v.cvhRegion !== null && permittedCodes.includes(v.cvhRegion))
-    : allTrucks;
-  const vehicleId = sp.vehicle && trucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
+  /* Vehicle multi-select (REQ-20260814) — `trucks` is already region-scoped and
+   * ids outside it are dropped; `vehicleIds` is undefined for "all trucks". */
+  const { trucks, vehicleIds } = await resolveVehicleScope(user, sp.vehicles ?? sp.vehicle);
 
   const [rows, pnl, latestReport, fixedUpdatedAt, allInvoiceRegions] = await Promise.all([
-    listTruckFinanceTrips(user.entId, { month, vehicleId, q, region, regions: scopeRegions }),
-    computeTruckPnl(user, { vehicleId, region, regions: scopeRegions, months: [month] }),
+    listTruckFinanceTrips(user.entId, { month, vehicleIds, q, region, regions: scopeRegions }),
+    computeTruckPnl(user, { vehicleIds, region, regions: scopeRegions, months: [month] }),
     getLatestTruckReportForMonth(user.entId, month, region),
     getTruckFixedCostsLastUpdated(user.entId, month),
     getTruckInvoiceRegions(user.entId, month),
@@ -130,7 +136,12 @@ export default async function TruckFinancePage({
   const date = (d: Date) => new Date(d).toLocaleDateString(loc);
 
   const qs = q ? `&q=${encodeURIComponent(q)}` : '';
-  const exportHref = `${BASE_PATH}/truck/finance/export?month=${month}${vehicleId ? `&vehicle=${vehicleId}` : ''}${qs}`;
+  /* `region` now travels to the export too — the route enforces the ACL either
+   * way, but without it the file ignored the filter the screen is showing. */
+  const exportHref =
+    `${BASE_PATH}/truck/finance/export?month=${month}` +
+    `${vehicleIds ? `&vehicles=${vehicleIds.join(',')}` : ''}` +
+    `${region ? `&region=${region}` : ''}${qs}`;
 
   /* The fuel total can mix ACTUAL spend (allocated from invoices) with an
    * ESTIMATE (vehicle rate, no invoice yet). Never let the two hide inside one
@@ -177,7 +188,7 @@ export default async function TruckFinancePage({
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
         <RegionDeniedNotice code={sp.region_denied} />
-        <FinanceTabs active="trips" month={month} vehicleId={vehicleId} />
+        <FinanceTabs active="trips" month={month} vehicleIds={vehicleIds} />
         {/* Controls: search + month + region + vehicle (dropdown, left-aligned — Sheet-2 P5) */}
         <div className="flex flex-wrap items-center gap-3">
           <DebouncedSearchInput placeholder={t('searchPlaceholder')} className="sm:w-64" clearLabel={tA('clear')} />
@@ -188,11 +199,21 @@ export default async function TruckFinancePage({
             allLabel={t('allRegions')}
             options={permittedRegions.map((r) => ({ value: r, label: tRegion(r) }))}
           />
-          <ParamSelect
-            param="vehicle"
-            value={vehicleId}
+          <ParamMultiSelect
+            param="vehicles"
+            values={vehicleIds ?? []}
             allLabel={t('allTrucks')}
-            options={trucks.map((v) => ({ value: v.cvhId, label: v.cvhPlateNumber }))}
+            buttonLabel={
+              vehicleIds ? t('vehicleFilterN', { n: vehicleIds.length }) : t('allTrucks')
+            }
+            title={t('vehicleFilterTitle')}
+            applyLabel={t('vehicleFilterApply')}
+            clearLabel={t('vehicleFilterClear')}
+            options={trucks.map((v) => ({
+              value: v.cvhId,
+              label: v.cvhPlateNumber,
+              hint: v.cvhRegion ? tRegion(v.cvhRegion as 'HCM') : undefined,
+            }))}
           />
           <ReportStatusBadge reportedAt={latestReport?.createdAt ?? null} stale={stale} locale={locale} />
           {/* Once a report exists for this month, give a 1-click path to it —
