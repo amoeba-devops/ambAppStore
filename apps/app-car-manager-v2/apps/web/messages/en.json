@@ -50,8 +50,7 @@
     "truckTripsShort": "Trips",
     "truckFleetShort": "Fleet",
     "truckDriversShort": "Drivers",
-    "maintenance": "Maintenance alerts",
-    "regionAccess": "Region access"
+    "maintenance": "Maintenance alerts"
   },
   "region": {
     "HCM": "HCM",
@@ -838,19 +837,6 @@
       "status_ALL": "All"
     },
     "regionAccess": {
-      "title": "Region access",
-      "subtitle": "Limit truck-fleet members to the regions they cover",
-      "membersTitle": "Truck-fleet members",
-      "membersHint": "No region selected = sees ALL regions (default). Pick regions to limit a user to those only. Admins always manage every region.",
-      "membersEmpty": "No members have truck-fleet access yet.",
-      "thMember": "Member",
-      "thRole": "Role",
-      "thRegions": "Regions",
-      "fullAccess": "All regions",
-      "allRegionsDefault": "All regions (default)",
-      "save": "Save",
-      "savedToast": "Limited {name} to {count} region(s)",
-      "clearedToast": "Reopened every region for {name}",
       "deniedNotice": "You do not have access to {region} — showing the regions you cover instead."
     }
   },
@@ -1408,6 +1394,8 @@
       "noTrips": "No trips assigned yet.",
       "notesTitle": "Notes",
       "noNotes": "No notes",
+      "regionTitle": "Operating regions",
+      "regionAllLabel": "All regions",
       "emergencyTitle": "Emergency contact",
       "thRef": "Ref",
       "thWhen": "When",
@@ -1457,13 +1445,21 @@
       "deptFilterAll": "All departments",
       "deptBoth": "Both departments",
       "deptNone": "Unassigned",
-      "deptFilterEmpty": "Nobody matches this department filter."
+      "deptFilterEmpty": "Nobody matches this department filter.",
+      "regionAllDefault": "All regions",
+      "regionSave": "Save",
+      "regionSavedToast": "Limited {name} to {count} region(s)",
+      "regionClearedToast": "Reopened every region for {name}",
+      "thRegion": "Region",
+      "allRegions": "All regions"
     },
     "peek": {
       "a11yTitle": "User details — {name}",
       "a11yDescription": "User detail panel sliding in from the right.",
       "close": "Close",
-      "signinLabel": "car-v2 sign-in access"
+      "signinLabel": "car-v2 sign-in access",
+      "regionLabel": "Operating regions",
+      "regionAllLabel": "All regions"
     },
     "refresh": {
       "label": "Sync from AMA",
@@ -1566,7 +1562,10 @@
       "deptDescDriver": "A driver belongs to one department. Picking the other moves them there.",
       "deptDescStaff": "A manager can belong to both departments.",
       "deptAdminHint": "Admins always reach both departments — nothing to grant.",
-      "deptNoneWarning": "No department: this person appears in neither app's lists."
+      "deptNoneWarning": "No department: this person appears in neither app's lists.",
+      "regionLabel": "Operating regions",
+      "regionDesc": "No region selected = sees ALL regions (default). Pick regions to limit access to those only.",
+      "regionAllDefault": "All regions (default)"
     }
   },
   "costs": {
