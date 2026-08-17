@@ -142,13 +142,12 @@ export async function getTruckReportExport(
 ): Promise<TruckReportExport> {
   const start = new Date(`${month}-01T00:00:00.000Z`);
   const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
-  /* Vehicle-subset scope (REQ-20260817) — deliberately ignored when
-   * `includeIdle` (the MONTHLY_SUMMARY template): that form's KPI block
-   * (truckCount, avgKmPerActive…) is only meaningful over the WHOLE region, so
-   * narrowing it by vehicle would silently break a client-approved form. See
-   * REQ-20260817 GĐ-A. */
-  const vehicleScope =
-    !opts.includeIdle && opts.vehicleIds && opts.vehicleIds.length > 0 ? opts.vehicleIds : undefined;
+  /* Vehicle-subset scope (REQ-20260817). Applies to every report format,
+   * including MONTHLY_SUMMARY: `scopeVehicles` below narrows to exactly this
+   * set, so the KPI block (truckCount, avgKmPerActive…) is recomputed over the
+   * SELECTED subset rather than the whole region — user decision 2026-08-17,
+   * superseding REQ-20260817 GĐ-A's original whole-region-only default. */
+  const vehicleScope = opts.vehicleIds && opts.vehicleIds.length > 0 ? opts.vehicleIds : undefined;
 
   const [snapshots, fuel, closedLegacy, rows] = await Promise.all([
     loadTruckRegionSnapshots(actor.entId, [month]),

@@ -788,7 +788,6 @@
       "vehicleAll": "Tất cả xe ({n})",
       "vehicleUnselectedHint": "Xe không chọn sẽ giữ nguyên số liệu của lần lập báo cáo gần nhất (nếu có), hoặc vẫn ở trạng thái Tạm tính (nếu chưa từng lập báo cáo) — không bị mất số.",
       "vehicleContinueNext": "Tiếp tục · còn {n} khu vực",
-      "vehicleMonthlySummaryOverride": "Định dạng Tổng kết chi phí tháng luôn phủ toàn bộ khu vực — lựa chọn xe ở bước trước sẽ bị bỏ qua cho báo cáo này.",
       "nTrips": "{n} chuyến",
       "noTrips": "Chưa có chuyến",
       "noDataMonth": "Tháng này chưa có chuyến hoàn thành nào — không thể lập báo cáo. Hãy chọn tháng khác.",
