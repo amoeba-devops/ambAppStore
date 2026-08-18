@@ -22,7 +22,6 @@ import { MonthPicker } from '@/components/inputs/month-picker';
 import { ParamSelect } from '@/components/inputs/param-select';
 import { ParamMultiSelect } from '@/components/inputs/param-multi-select';
 import { FinanceTabs } from './_components/finance-tabs';
-import { GenerateAllRegionsButton } from './_components/generate-all-regions-button';
 import { PageHeader } from '@/components/layout/page-header';
 import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
@@ -89,22 +88,10 @@ export default async function TruckFinancePage({
   ]);
   const summary = pnl[0] ?? null;
 
-  /* Regions that still have provisional trips — the scope the targeted
-   * "Lập báo cáo khu vực còn tạm tính" action reports on. The explanatory
-   * banner that used to list them was removed (user request 2026-08-18); the
-   * per-trip "Tạm tính" badge in the table already carries that information,
-   * so only the action itself is kept, on the page header. */
-  const provByRegion = new Set<string>();
-  for (const r of rows) {
-    if (!r.finalized && r.region) provByRegion.add(r.region);
-  }
-  const provisionalRegionCodes = [...provByRegion];
-  /* Two report-generation scopes offered in the header: targeted (only the
-   * still-provisional regions — leaves already-reported regions untouched)
-   * and full refresh (every region with trip data, including ones already
-   * reported, recomputed from the current live data). Trips on a vehicle with
-   * no region can't be targeted by either — there's no region to scope to. */
-  const canReport = user.role === 'ADMIN' || user.role === 'MANAGER';
+  /* The "Một số chuyến còn tạm tính" banner and its two batch report-generation
+   * buttons were removed from this screen (user request 2026-08-18). Which trips
+   * are still provisional is already visible per-row via the "Tạm tính" badge,
+   * and reports are created from the wizard at /truck/reports/new. */
   /* Q1 decision (PLAN-20260707): no month lock — instead flag when trips or
    * fixed costs changed AFTER the latest report, so the operator regenerates. */
   const stale =
@@ -156,26 +143,14 @@ export default async function TruckFinancePage({
         subtitle={t('subtitle', { count: rows.length })}
         breadcrumbs={[{ label: tCo('tenant') }, { label: tNav('truckFinance') }]}
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            {canReport && provisionalRegionCodes.length > 0 && (
-              <GenerateAllRegionsButton
-                month={month}
-                regions={provisionalRegionCodes}
-                label={t('genProvisionalBtn')}
-              />
-            )}
-            {canReport && rows.length > 0 && (
-              <GenerateAllRegionsButton month={month} label={t('genAllBtn')} variant="secondary" />
-            )}
-            {rows.length > 0 && (
-              <Button variant="ghost" size="md" asChild>
-                <a href={exportHref}>
-                  <Download />
-                  {t('export')}
-                </a>
-              </Button>
-            )}
-          </div>
+          rows.length > 0 ? (
+            <Button variant="ghost" size="md" asChild>
+              <a href={exportHref}>
+                <Download />
+                {t('export')}
+              </a>
+            </Button>
+          ) : undefined
         }
       />
 

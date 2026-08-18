@@ -15,7 +15,6 @@ import { allowedRegions, requireRegion, resolveReportVehicleScope } from '@/lib/
 import {
   getTruckFuelStats,
   getTruckFuelStatsByVehicle,
-  getTruckRegionTripCounts,
 } from '@/server/queries/truck-finance.queries';
 import { getTruckReportExport } from '@/server/queries/truck-report-export.queries';
 import { buildTruckReportWorkbook } from '@/server/lib/truck-report-workbook';
@@ -344,65 +343,12 @@ export async function generateTruckReportAction(input: unknown): Promise<ActionR
   });
 }
 
-/**
- * Batch report generation from the finance screen (feedback #1), supporting
- * TWO scopes the operator can pick between:
- *   - `regions` omitted/empty → EVERY operating region with completed trips
- *     this month, INCLUDING ones already reported (a full refresh with the
- *     current live data — "Làm mới tất cả khu vực").
- *   - `regions` given → only those regions (the finance banner passes the
- *     still-provisional ones — "Lập báo cáo khu vực còn tạm tính").
- * Either way each region freezes its OWN month-end average (per-region
- * accuracy — regions are never blended together). A region that still lacks
- * fuel invoices can't be reconciled (F5), so it's returned in `pending` — we
- * skip generation there rather than emit a report with no snapshot.
- * `finalized`/`pending` are region codes the caller maps to names.
- */
-export async function generateAllRegionsTruckReportsAction(
-  input: unknown,
-): Promise<ActionResult<{ finalized: string[]; pending: string[] }>> {
-  return runAction(async () => {
-    const actor = await getCurrentUser();
-    requireRole(actor.role, ['ADMIN', 'MANAGER']);
-    await requireFleet(actor, 'TRUCK');
-    const parsed = z
-      .object({
-        month: z.string().regex(MONTH),
-        /* Explicit scope; omitted/empty = every region with trip data. */
-        regions: z.array(z.enum(TRUCK_REGIONS)).optional(),
-      })
-      .parse(input);
-    const { month } = parsed;
-
-    const { byRegion } = await getTruckRegionTripCounts(actor.entId, month);
-    /* Region ACL (REQ-20260813): an explicit scope is validated per region; the
-     * implicit "every region with data" scope narrows to what the user may see. */
-    if (parsed.regions?.length) {
-      for (const r of parsed.regions) await requireRegion(actor, r);
-    }
-    const permitted: readonly string[] = await allowedRegions(actor);
-    const scope = (parsed.regions?.length ? parsed.regions : Object.keys(byRegion)).filter((r) =>
-      permitted.includes(r),
-    );
-    const finalized: string[] = [];
-    const pending: string[] = [];
-    for (const region of scope) {
-      /* No completed trips for this region this month → nothing to report. */
-      if (!byRegion[region]) {
-        pending.push(region);
-        continue;
-      }
-      /* "Lập báo cáo = chốt luôn" (2026-07-21): report EVERY region with trips,
-       * even without fuel invoices. generateOneTruckReport freezes the month-end
-       * average only when computable (F5) — otherwise the report still exists
-       * and finalizes the region's trips at their entered fuel cost. */
-      await generateOneTruckReport(actor, { month, type: 'PNL', region });
-      finalized.push(region);
-    }
-    if (finalized.length > 0) revalidateTruckReportPaths();
-    return { finalized, pending };
-  });
-}
+/* `generateAllRegionsTruckReportsAction` (batch per-region PNL generation) was
+ * removed 2026-08-18 together with the two buttons on the finance screen that
+ * were its only callers. Reports are now created exclusively through the wizard
+ * at /truck/reports/new, which calls `generateTruckReportAction` above. That
+ * action still accepts `type: 'PNL'`, so the PNL workbook remains producible —
+ * there is just no longer a UI that generates one in batch. */
 
 /** Mark the truck-report list as seen for the current user → clears the nav
  * "Mới" badge on the next render. Intentionally does NOT revalidate the current
