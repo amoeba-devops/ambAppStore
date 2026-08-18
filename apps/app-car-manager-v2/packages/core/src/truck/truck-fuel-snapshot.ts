@@ -324,10 +324,19 @@ export async function loadTruckRegionSnapshots(
       /* 1) The vehicle's OWN frozen spend, spread by km (REQ-20260726). */
       const vs = covered && vehicleId ? vehicleSnap.get(snapKey(month, vehicleId)) : undefined;
       if (vs) {
+        const cost = km > 0 ? Math.round(km * vs.costPerKm) : 0;
+        const liters = km > 0 ? km * vs.consumption : 0;
         return {
-          cost: km > 0 ? Math.round(km * vs.costPerKm) : 0,
-          unitPrice: vs.avgPrice,
-          liters: km > 0 ? km * vs.consumption : 0,
+          cost,
+          /* Effective rate for THIS trip (cost ÷ liters) — not the vehicle's
+           * raw invoice-average price — so liters × unitPrice always
+           * reconciles to cost even when the vehicle had >1 invoice at
+           * different volumes/prices that month (a row-level display bug
+           * found 2026-08-18: the two used to disagree whenever fill-ups
+           * varied in size). Falls back to the raw average when there's
+           * nothing to divide by. */
+          unitPrice: liters > 0 ? Math.round(cost / liters) : vs.avgPrice,
+          liters,
           costPerKm: Math.round(vs.costPerKm),
           mode: 'AVERAGED',
         };
@@ -349,10 +358,13 @@ export async function loadTruckRegionSnapshots(
       const pool = vehicleId ? livePool.get(fuelPoolKey(month, vehicleId)) : undefined;
       if (pool && pool.costPerKm > 0) {
         const consumption = pool.km > 0 ? pool.liters / pool.km : 0;
+        const cost = km > 0 ? Math.round(km * pool.costPerKm) : 0;
+        const liters = km > 0 ? km * consumption : 0;
         return {
-          cost: km > 0 ? Math.round(km * pool.costPerKm) : 0,
-          unitPrice: pool.avgPrice,
-          liters: km > 0 ? km * consumption : 0,
+          cost,
+          /* Same row-level fix as the AVERAGED branch above. */
+          unitPrice: liters > 0 ? Math.round(cost / liters) : pool.avgPrice,
+          liters,
           costPerKm: Math.round(pool.costPerKm),
           mode: 'LIVE',
         };
