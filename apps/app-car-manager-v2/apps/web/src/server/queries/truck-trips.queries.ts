@@ -23,9 +23,9 @@ const monthKey = (d: Date): string => d.toISOString().slice(0, 7);
 
 /**
  * Snapshot-aware cost breakdown for ONE trip — the exact rule `listTruckTrips`
- * applies per row (official km × consumption × avg price once the trip's
- * (month, region) has a fuel snapshot; otherwise the trip's own litres ×
- * price). The trip-detail pages go through this so detail always matches the
+ * applies per row (km × the vehicle's own frozen money÷km once a report covers
+ * it; otherwise the same allocation computed live from what's recorded so far).
+ * The trip-detail pages go through this so detail always matches the
  * list / finance / P&L / report numbers (PLAN-20260707 S1.5).
  */
 export async function getTruckTripBreakdown(
@@ -268,9 +268,10 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
     for (const d of drows) if (d.name) driverByDrv.set(d.id, d.name);
   }
 
-  /* Region-scoped month-end fuel snapshot (REQ-20260630). A trip's official
-   * fuel uses ITS region's closed snapshot (km × consumption × avg price) so
-   * per-trip profit matches the finance/P&L screens; otherwise liters × price. */
+  /* Per-vehicle fuel reconciliation (BUG-260730). A trip's official fuel is
+   * its OWN vehicle's frozen money÷km once a report covers it, so per-trip
+   * profit matches the finance/P&L screens; otherwise the same allocation
+   * computed live from the month's fuel recorded so far. */
   const monthsInResult = [...new Set(trips.map((t) => monthKey(t.trpScheduledAt)))];
   const snapshots = await loadTruckRegionSnapshots(entId, monthsInResult);
 

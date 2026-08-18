@@ -28,9 +28,11 @@ export interface TruckReportVehicleFuel {
  * by whom. Listing groups by month and flags rows newer than the viewer's
  * `car_users.usr_truck_reports_seen_at` as "Mới" (new).
  *
- * `trr_type`: PNL (chi phí & lợi nhuận) | TRIP_LOG (nhật ký chuyến) |
- * VEHICLE (phương tiện) | MONTHLY_SUMMARY (tổng kết chi phí tháng — 1 sheet
- * theo template khách, REQ-20260713). `trr_format`: EXCEL (PDF reserved).
+ * `trr_type`: PNL (chi phí & lợi nhuận) | MONTHLY_SUMMARY (tổng kết chi phí
+ * tháng — 1 sheet theo template khách, REQ-20260713). TRIP_LOG (nhật ký
+ * chuyến) và VEHICLE (phương tiện) là 2 loại cũ, không còn tạo mới từ
+ * 2026-08-18 nhưng có thể vẫn còn hàng lịch sử trong DB. `trr_format`: EXCEL
+ * (PDF reserved).
  */
 export const carTruckReports = pgTable(
   'car_truck_reports',
@@ -89,8 +91,12 @@ export const carTruckReports = pgTable(
 export type CarTruckReport = typeof carTruckReports.$inferSelect;
 export type CarTruckReportInsert = typeof carTruckReports.$inferInsert;
 
-/** Allowed report types (mirrors trr_type). MONTHLY_SUMMARY = the client
- * "Tổng kết chi phí tháng" single-sheet template (REQ-20260713); 'MONTHLY_SUMMARY'
- * is 15 chars → fits trr_type varchar(16) with no DDL change. */
-export const TRUCK_REPORT_TYPES = ['PNL', 'TRIP_LOG', 'VEHICLE', 'MONTHLY_SUMMARY'] as const;
+/** Allowed report types for NEW reports (mirrors trr_type). MONTHLY_SUMMARY =
+ * the client "Tổng kết chi phí tháng" single-sheet template (REQ-20260713);
+ * 'MONTHLY_SUMMARY' is 15 chars → fits trr_type varchar(16) with no DDL
+ * change. TRIP_LOG/VEHICLE removed 2026-08-18 (no generator called them) —
+ * trr_type is a plain varchar so any pre-existing historical row of those
+ * types is unaffected, only requesting a NEW one of those types is now
+ * rejected by zod validation. */
+export const TRUCK_REPORT_TYPES = ['PNL', 'MONTHLY_SUMMARY'] as const;
 export type TruckReportType = (typeof TRUCK_REPORT_TYPES)[number];

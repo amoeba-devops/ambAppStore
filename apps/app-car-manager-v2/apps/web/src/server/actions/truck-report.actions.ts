@@ -8,17 +8,14 @@ import { getTranslations } from 'next-intl/server';
 import { db } from '@car-v2/db/client';
 import { carTruckReports, carUsers, TRUCK_REPORT_TYPES, type TruckReportType } from '@car-v2/db/schema';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
-import { computeTruckPnl } from '@car-v2/core/truck';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
 import { allowedRegions, requireRegion, resolveReportVehicleScope } from '@/lib/auth/region-access';
-import { listVehicles } from '@/server/queries/vehicles.queries';
 import {
   getTruckFuelStats,
   getTruckFuelStatsByVehicle,
   getTruckRegionTripCounts,
-  listTruckFinanceTrips,
 } from '@/server/queries/truck-finance.queries';
 import { getTruckReportExport } from '@/server/queries/truck-report-export.queries';
 import { buildTruckReportWorkbook } from '@/server/lib/truck-report-workbook';
@@ -28,7 +25,6 @@ import {
   type SummaryTranslator,
 } from '@/server/lib/truck-monthly-summary-workbook';
 import { bcp47, monthName, resolveUiLocale } from '@/i18n/ui-locale';
-import { buildExcel, type ExcelColumn } from '@/server/lib/excel';
 import { putObject } from '@/lib/s3-client';
 import { logAudit } from '@/server/services/audit-log.service';
 import { runAction } from './_helpers';
@@ -44,9 +40,12 @@ function monthLabel(month: string): string {
  * and a `Korean` sheet, exactly like the client template "Báo Cáo form (R1)"
  * (i18n, exportContent.truckMonthlySummary — vi reproduces it verbatim). No
  * longer tied to the generator's UI locale: every download carries all three.
- * The legacy PNL/TRIP_LOG/VEHICLE files stay Vietnamese inside (operational
- * documents for the VN company) — but their NAME follows the exporter, see
- * reportName() below. */
+ * The legacy PNL file stays Vietnamese inside (operational document for the
+ * VN company) — but its NAME follows the exporter, see reportName() below.
+ * TRIP_LOG/VEHICLE were separate report types with no generator left calling
+ * them (removed 2026-08-18); `type_TRIP_LOG`/`type_VEHICLE` etc. i18n keys and
+ * this function's generic `type: string` stay, so any pre-existing historical
+ * row of those types still lists/downloads with a proper name. */
 
 /** Stored list name (`trr_name`), written in the language the user was in when
  * they pressed "Lập báo cáo" — same source as the download filename. Scoped to
@@ -137,77 +136,11 @@ async function buildReportWorkbook(
     });
   }
 
-  if (type === 'TRIP_LOG') {
-    const trips = await listTruckFinanceTrips(actor.entId, { month, region, vehicleIds });
-    const cols: ExcelColumn[] = [
-      { header: 'Ngày', key: 'date', width: 12 },
-      { header: 'Phương tiện', key: 'plate', width: 14 },
-      { header: 'Tài xế', key: 'driver', width: 18 },
-      { header: 'Khách hàng', key: 'customer', width: 18 },
-      { header: 'Km', key: 'km', width: 8 },
-      { header: 'Cầu đường', key: 'toll', width: 12 },
-      { header: 'Phát sinh', key: 'extra', width: 12 },
-      { header: 'Đơn giá', key: 'unitPrice', width: 12 },
-      { header: 'Lít', key: 'liters', width: 8 },
-      { header: 'Phí nhiên liệu', key: 'fuel', width: 14 },
-      { header: 'Doanh thu', key: 'revenue', width: 14 },
-      { header: 'Lợi nhuận', key: 'profit', width: 14 },
-      { header: 'Trạng thái', key: 'status', width: 12 },
-    ];
-    const rows = trips.map((t) => ({
-      date: new Date(t.scheduledAt).toISOString().slice(0, 10),
-      plate: t.plate ?? '',
-      driver: t.driver ?? '',
-      customer: t.customer ?? '',
-      km: t.km,
-      toll: t.toll,
-      extra: t.extra,
-      unitPrice: t.unitPrice,
-      liters: Math.round(t.liters * 10) / 10,
-      fuel: t.fuelCost,
-      revenue: t.revenue,
-      profit: t.profit,
-      status: t.finalized ? 'Đã lập BC' : 'Tạm tính',
-    }));
-    return buildExcel('Nhật ký chuyến', cols, rows);
-  }
-
-  // VEHICLE — per-truck month aggregates (scoped to the region + vehicle subset).
-  const allTrucks = await listVehicles(actor.entId, 'active', 'TRUCK');
-  const regionTrucks = region ? allTrucks.filter((v) => v.cvhRegion === region) : allTrucks;
-  const vehicleIdSet = vehicleIds && vehicleIds.length > 0 ? new Set(vehicleIds) : null;
-  const trucks = vehicleIdSet ? regionTrucks.filter((v) => vehicleIdSet.has(v.cvhId)) : regionTrucks;
-  const cols: ExcelColumn[] = [
-    { header: 'Biển số', key: 'plate', width: 14 },
-    { header: 'Mô tả', key: 'model', width: 22 },
-    { header: 'Số chuyến', key: 'trips', width: 10 },
-    { header: 'Doanh thu', key: 'revenue', width: 14 },
-    { header: 'Phí nhiên liệu', key: 'fuel', width: 14 },
-    { header: 'Cầu đường', key: 'toll', width: 12 },
-    { header: 'Phát sinh', key: 'extra', width: 12 },
-    { header: 'Chi phí cố định', key: 'fixed', width: 14 },
-    { header: 'Lợi nhuận ròng', key: 'net', width: 14 },
-  ];
-  const rows: Record<string, unknown>[] = [];
-  for (const v of trucks) {
-    const [pnl] = await computeTruckPnl(actor, { vehicleId: v.cvhId, months: [month] });
-    rows.push({
-      plate: v.cvhPlateNumber,
-      model: v.cvhModel ?? '',
-      trips: pnl?.tripCount ?? 0,
-      revenue: pnl?.revenue ?? 0,
-      fuel: pnl?.fuelCost ?? 0,
-      toll: pnl?.tollFee ?? 0,
-      extra: pnl?.extraTotal ?? 0,
-      fixed: pnl?.fixedCost ?? 0,
-      net: pnl?.netProfit ?? 0,
-    });
-  }
-  return buildExcel('Phương tiện', cols, rows);
+  throw new CarError('CAR-E0001', 400, `Unsupported truck report type: ${type}`);
 }
 
 /**
- * Generate ONE monthly report (PNL | TRIP_LOG | VEHICLE) → Excel → S3 → row, and
+ * Generate ONE monthly report (PNL | MONTHLY_SUMMARY) → Excel → S3 → row, and
  * freeze the month-end fuel reconciliation onto it. Shared by the single-scope
  * action (review wizard) and the "all regions" one-click on the finance screen.
  *
