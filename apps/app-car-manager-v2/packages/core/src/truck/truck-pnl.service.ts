@@ -233,8 +233,8 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
     row.revenue += Math.round(parseAmount(t.revenue));
     const km =
       t.startOdometer != null && t.endOdometer != null ? t.endOdometer - t.startOdometer : 0;
-    /* Fuel = frozen snapshot → vehicle rate → 0 (REQ-20260724), same precedence
-     * everywhere via the shared helper. */
+    /* Fuel = frozen per-vehicle snapshot → live monthly pool → 0 (BUG-260730,
+     * money ÷ km either way), same precedence everywhere via the shared helper. */
     const fuel = snapshots.fuelForTrip(mk, t.vehicleId, km);
     row.fuelCost += fuel.cost;
     if (fuel.mode === 'AVERAGED') row.fuelAveragedTripCount += 1;

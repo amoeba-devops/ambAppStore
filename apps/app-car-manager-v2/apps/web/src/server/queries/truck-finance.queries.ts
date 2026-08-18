@@ -553,19 +553,14 @@ export interface TruckReportReview {
   region: string | null;
   /** Closed → trips are locked, the review table is read-only. */
   closed: boolean;
-  /** The reconciliation is computable (F5: invoices + km + price > 0) → the
-   * table previews ALLOCATED fuel (km × consumption × avg price — exactly what
-   * "Lập báo cáo" will freeze) and the fuel column is read-only. Otherwise the
-   * trips keep their own manually-entered numbers, editable. */
+  /** At least one vehicle in scope has fuel spend AND km this month → the
+   * table previews each vehicle's ALLOCATED fuel (km × its own money÷km —
+   * exactly what "Lập báo cáo" will freeze) and the fuel column is read-only.
+   * Otherwise the trips keep their own manually-entered numbers, editable. */
   allocatable: boolean;
   /** COMPLETED trips currently missing odometer km — their allocated fuel is 0
    * (surfaced as a warning so the operator fixes the km before generating). */
   kmZeroCount: number;
-  /** Fleet-level month fuel reconciliation (same number for every vehicle —
-   * our fuel model is fleet-monthly, not per-vehicle). */
-  avgPrice: number;
-  consumption: number;
-  refuelCount: number;
   vehicles: ReportReviewVehicle[];
   totals: {
     tripCount: number;
@@ -581,14 +576,14 @@ export interface TruckReportReview {
 /**
  * Per-vehicle review for the "Lập báo cáo" Bước 2 screen: every truck that had a
  * COMPLETED log trip in `month`, with its trips + summary (trip count, fuel,
- * fixed cost) and the fleet-level fuel reconciliation. Mirrors the design's
- * confirm screen so a manager can sanity-check (and edit) costs before the
- * report is generated. Read-only when the month is closed.
+ * fixed cost). Mirrors the design's confirm screen so a manager can
+ * sanity-check (and edit) costs before the report is generated. Read-only
+ * when the month is closed.
  *
  * When the reconciliation is computable (`allocatable`), each trip's fuel is
- * the ALLOCATED preview — km × consumption × avg price, the exact numbers
- * "Lập báo cáo" will freeze — so what the manager confirms is what the file
- * gets (PLAN-20260707).
+ * the ALLOCATED preview — km × that vehicle's own (money ÷ km), the exact
+ * numbers "Lập báo cáo" will freeze — so what the manager confirms is what
+ * the file gets (PLAN-20260707).
  */
 export async function getTruckReportReview(
   actor: AuthContext,
@@ -602,9 +597,8 @@ export async function getTruckReportReview(
   vehicleIds?: readonly string[],
 ): Promise<TruckReportReview> {
   const scope = region ? vehicleIds : undefined;
-  const [trips, stats, closeInfo, vehicleFuel, invoices] = await Promise.all([
+  const [trips, closeInfo, vehicleFuel, invoices] = await Promise.all([
     listTruckFinanceTrips(actor.entId, { month, region, vehicleIds: scope }),
-    getTruckFuelStats(actor.entId, month, region ?? undefined),
     getTruckMonthCloseInfo(actor.entId, month, region),
     getTruckFuelStatsByVehicle(actor.entId, month, region ?? undefined, scope),
     listFuelInvoices(actor.entId, month, region ?? undefined),
@@ -714,9 +708,6 @@ export async function getTruckReportReview(
     closed: closeInfo.closed,
     allocatable,
     kmZeroCount,
-    avgPrice: stats.avgPrice,
-    consumption: stats.consumption,
-    refuelCount: stats.invoiceCount,
     vehicles,
     totals,
   };
