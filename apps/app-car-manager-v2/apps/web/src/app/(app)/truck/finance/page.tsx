@@ -1,5 +1,5 @@
 import { getLocale, getTranslations } from 'next-intl/server';
-import { AlertTriangle, Coins, Download, Info } from 'lucide-react';
+import { Coins, Download, Info } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -22,7 +22,6 @@ import { MonthPicker } from '@/components/inputs/month-picker';
 import { ParamSelect } from '@/components/inputs/param-select';
 import { ParamMultiSelect } from '@/components/inputs/param-multi-select';
 import { FinanceTabs } from './_components/finance-tabs';
-import { GenerateAllRegionsButton } from './_components/generate-all-regions-button';
 import { PageHeader } from '@/components/layout/page-header';
 import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
@@ -31,7 +30,6 @@ import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { resolveRegionFilter, resolveVehicleScope } from '@/lib/auth/region-access';
 import {
   getTruckFixedCostsLastUpdated,
-  getTruckInvoiceRegions,
   listTruckFinanceTrips,
 } from '@/server/queries/truck-finance.queries';
 import { getLatestTruckReportForMonth } from '@/server/queries/truck-report.queries';
@@ -68,7 +66,6 @@ export default async function TruckFinancePage({
   /* Region ACL (REQ-20260813) — validated ?region= + the set this user may see. */
   const { region, regions: permittedRegions } = await resolveRegionFilter(user, sp.region, sp);
   const restricted = permittedRegions.length < TRUCK_REGIONS.length;
-  const permittedCodes: readonly string[] = permittedRegions;
   const scopeRegions = restricted ? permittedRegions : undefined;
 
   const t = await getTranslations('screens.truckFinance');
@@ -83,47 +80,18 @@ export default async function TruckFinancePage({
    * ids outside it are dropped; `vehicleIds` is undefined for "all trucks". */
   const { trucks, vehicleIds } = await resolveVehicleScope(user, sp.vehicles ?? sp.vehicle);
 
-  const [rows, pnl, latestReport, fixedUpdatedAt, allInvoiceRegions] = await Promise.all([
+  const [rows, pnl, latestReport, fixedUpdatedAt] = await Promise.all([
     listTruckFinanceTrips(user.entId, { month, vehicleIds, q, region, regions: scopeRegions }),
     computeTruckPnl(user, { vehicleIds, region, regions: scopeRegions, months: [month] }),
     getLatestTruckReportForMonth(user.entId, month, region),
     getTruckFixedCostsLastUpdated(user.entId, month),
-    getTruckInvoiceRegions(user.entId, month),
   ]);
-  /* Don't reveal which other regions have invoices to a narrowed user. */
-  const invoiceRegions = restricted
-    ? new Set([...allInvoiceRegions].filter((r) => permittedCodes.includes(r)))
-    : allInvoiceRegions;
   const summary = pnl[0] ?? null;
 
-  /* Transparency (feedback #1): a per-trip fuel/profit only switches to the
-   * month-end "bình quân" once ITS region has a report freezing a valid
-   * snapshot. Group the still-provisional trips by region so we can name
-   * exactly which regions haven't been reported — and tell apart a region that
-   * just needs the report generated (it HAS fuel invoices → computable) from
-   * one that can't be reconciled yet (no invoices). This replaces the earlier
-   * fleet-level notice that misleadingly said "đã đủ dữ liệu — hãy Lập báo cáo"
-   * even after a report had been generated for another region. */
-  const provByRegion = new Map<string, number>();
-  for (const r of rows) {
-    if (r.finalized) continue;
-    provByRegion.set(r.region ?? '', (provByRegion.get(r.region ?? '') ?? 0) + 1);
-  }
-  const provRegions = [...provByRegion.entries()].map(([code, count]) => ({
-    code: code || null,
-    count,
-    hasInvoice: code !== '' && invoiceRegions.has(code),
-  }));
-  const kmZeroCount = rows.filter((r) => !r.finalized && r.km <= 0).length;
-  const showProvNotice = provRegions.length > 0;
-  const canReport = user.role === 'ADMIN' || user.role === 'MANAGER';
-  /* Two report-generation scopes offered on the banner: targeted (only the
-   * still-provisional regions — leaves already-reported regions untouched)
-   * and full refresh (every region with trip data, including ones already
-   * reported, recomputed from the current live data). Vehicles with no
-   * region (code === null) can't be targeted by either — there's no region
-   * to scope a report to. */
-  const provisionalRegionCodes = provRegions.map((r) => r.code).filter((c): c is string => c != null);
+  /* The "Một số chuyến còn tạm tính" banner and its two batch report-generation
+   * buttons were removed from this screen (user request 2026-08-18). Which trips
+   * are still provisional is already visible per-row via the "Tạm tính" badge,
+   * and reports are created from the wizard at /truck/reports/new. */
   /* Q1 decision (PLAN-20260707): no month lock — instead flag when trips or
    * fixed costs changed AFTER the latest report, so the operator regenerates. */
   const stale =
@@ -247,53 +215,6 @@ export default async function TruckFinancePage({
               </Card>
             ))}
           </div>
-        )}
-
-        {showProvNotice && (
-          <Card variant="outline" className="border-warning/40 bg-warning/5 p-3">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-              <div className="flex-1 space-y-1.5 text-sm">
-                <p className="font-semibold text-text">{t('provTitle')}</p>
-                <p className="text-text-muted">{t('provDesc')}</p>
-                <ul className="list-disc space-y-0.5 pl-5 text-text-muted">
-                  {provRegions.map((r) => (
-                    <li key={r.code ?? '∅'}>
-                      <span className="font-medium text-text">
-                        {r.code ? tRegion(r.code) : t('provRegionUnassigned')}
-                      </span>{' '}
-                      — {t('provRegionCount', { count: r.count })}
-                      {r.code != null && (
-                        <span className={r.hasInvoice ? 'text-text-muted' : 'text-warning'}>
-                          {' · '}
-                          {r.hasInvoice ? t('provRegionReady') : t('provRegionNoInvoice')}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                  {kmZeroCount > 0 && <li>{t('provKm', { count: kmZeroCount })}</li>}
-                </ul>
-                <div className="flex flex-wrap items-center gap-3 pt-0.5">
-                  {canReport && provisionalRegionCodes.length > 0 && (
-                    <GenerateAllRegionsButton
-                      month={month}
-                      regions={provisionalRegionCodes}
-                      label={t('genProvisionalBtn')}
-                    />
-                  )}
-                  {canReport && (
-                    <GenerateAllRegionsButton month={month} label={t('genAllBtn')} variant="secondary" />
-                  )}
-                  <a
-                    href={`${BASE_PATH}/truck/pnl?month=${month}${region ? `&region=${region}` : ''}`}
-                    className="inline-flex items-center gap-1 font-medium text-accent hover:underline"
-                  >
-                    {t('provCta')} →
-                  </a>
-                </div>
-              </div>
-            </div>
-          </Card>
         )}
 
         {rows.length === 0 ? (

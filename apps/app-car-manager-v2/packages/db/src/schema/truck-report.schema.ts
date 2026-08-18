@@ -28,11 +28,11 @@ export interface TruckReportVehicleFuel {
  * by whom. Listing groups by month and flags rows newer than the viewer's
  * `car_users.usr_truck_reports_seen_at` as "Mới" (new).
  *
- * `trr_type`: PNL (chi phí & lợi nhuận) | MONTHLY_SUMMARY (tổng kết chi phí
- * tháng — 1 sheet theo template khách, REQ-20260713). TRIP_LOG (nhật ký
- * chuyến) và VEHICLE (phương tiện) là 2 loại cũ, không còn tạo mới từ
- * 2026-08-18 nhưng có thể vẫn còn hàng lịch sử trong DB. `trr_format`: EXCEL
- * (PDF reserved).
+ * `trr_type`: MONTHLY_SUMMARY (tổng kết chi phí tháng — theo template khách,
+ * REQ-20260713) là loại DUY NHẤT còn tạo mới. PNL (chi phí & lợi nhuận),
+ * TRIP_LOG (nhật ký chuyến) và VEHICLE (phương tiện) đã ngừng từ 2026-08-18;
+ * hàng lịch sử mang các giá trị đó vẫn còn trong DB và vẫn xem/tải được.
+ * `trr_format`: EXCEL (PDF reserved).
  */
 export const carTruckReports = pgTable(
   'car_truck_reports',
@@ -91,12 +91,19 @@ export const carTruckReports = pgTable(
 export type CarTruckReport = typeof carTruckReports.$inferSelect;
 export type CarTruckReportInsert = typeof carTruckReports.$inferInsert;
 
-/** Allowed report types for NEW reports (mirrors trr_type). MONTHLY_SUMMARY =
- * the client "Tổng kết chi phí tháng" single-sheet template (REQ-20260713);
- * 'MONTHLY_SUMMARY' is 15 chars → fits trr_type varchar(16) with no DDL
- * change. TRIP_LOG/VEHICLE removed 2026-08-18 (no generator called them) —
- * trr_type is a plain varchar so any pre-existing historical row of those
- * types is unaffected, only requesting a NEW one of those types is now
- * rejected by zod validation. */
-export const TRUCK_REPORT_TYPES = ['PNL', 'MONTHLY_SUMMARY'] as const;
+/** Allowed report types for NEW reports (mirrors trr_type). Only
+ * MONTHLY_SUMMARY remains — the client "Tổng kết chi phí tháng" template
+ * (REQ-20260713); 15 chars, fits trr_type varchar(16) with no DDL change.
+ *
+ * PNL / TRIP_LOG / VEHICLE were retired 2026-08-18: the UI that generated
+ * them was removed, so their builders became unreachable and were deleted.
+ * `trr_type` is a plain varchar, so historical rows carrying those values are
+ * untouched — the list renders their stored `trr_name` and downloading only
+ * redirects to the file already in S3, neither of which re-derives the type.
+ * Only creating a NEW report of a retired type is now rejected (zod). The
+ * `type_*` / `fileName_*` i18n keys for them are deliberately kept so those
+ * old rows still label and download correctly. */
+export const TRUCK_REPORT_TYPES = ['MONTHLY_SUMMARY'] as const;
+/** Type of a report row. Widened to `string` at the read boundary
+ * (`TruckReportRow`) because stored rows may carry a retired type. */
 export type TruckReportType = (typeof TRUCK_REPORT_TYPES)[number];
