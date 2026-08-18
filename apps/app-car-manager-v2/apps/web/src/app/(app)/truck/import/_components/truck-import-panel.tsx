@@ -54,7 +54,13 @@ const timeStr = (v: unknown): string | undefined => {
 };
 
 /* System fields ← Excel columns. `kw` = header keywords for auto-mapping;
- * `def` = fallback column index (CR-Vietnam-Truck-v1 template order). */
+ * `def` = fallback column index (CR-Vietnam-Truck-v1 template order, 19 cols).
+ * Keyword lists keep BOTH the current template's headers and the pre-2026-08
+ * ones ("Km đầu", "Ghi chú chi phí khác"…) matching, so old client files
+ * auto-map unchanged. Order traps checked by hand: "chi phí phát sinh" (col
+ * 13) is scanned before "tên chi phí phát sinh" (col 14), and `other_note`
+ * matches col 14 via 'tên chi phí' before the trip-note col 18 could match
+ * its 'ghi chú' fallback. */
 const FIELDS = [
   { key: 'date', required: true, kw: ['ngày', 'date'], def: 0 },
   { key: 'start_time', kw: ['bắt đầu', 'giờ đi', 'start'], def: 2 },
@@ -69,10 +75,14 @@ const FIELDS = [
   { key: 'fuel_price', kw: ['đơn giá', 'giá', 'price'], def: 11 },
   { key: 'toll', kw: ['cầu đường', 'toll'], def: 12 },
   { key: 'other_amount', kw: ['chi phí khác', 'phát sinh', 'other'], def: 13 },
-  { key: 'other_note', kw: ['ghi chú', 'note'], def: 14 },
+  { key: 'other_note', kw: ['tên chi phí', 'tên phí', 'ghi chú chi phí', 'fee name'], def: 14 },
   { key: 'bol', kw: ['bol', 'vận đơn'], def: 15 },
   { key: 'cdf', kw: ['cdf'], def: 16 },
   { key: 'revenue', kw: ['doanh thu', 'revenue'], def: 17 },
+  /* kw deliberately NOT plain 'ghi chú': the old template's col 14 is "Ghi
+   * chú chi phí khác" and would be stolen as the trip note. Old files simply
+   * have no trip-note column (def 18 is past their 18 headers → unused). */
+  { key: 'notes', kw: ['ghi chú chuyến', 'trip note'], def: 18 },
 ] as const;
 type FieldKey = (typeof FIELDS)[number]['key'];
 type Mapping = Record<FieldKey, number>;
@@ -160,6 +170,7 @@ export function TruckImportPanel({ vehicles, drivers }: { vehicles: OptionItem[]
         bol: str(cell('bol')),
         cdf: str(cell('cdf')),
         revenue: num(cell('revenue')),
+        notes: str(cell('notes')),
         _valid: date !== '',
       };
       return r;

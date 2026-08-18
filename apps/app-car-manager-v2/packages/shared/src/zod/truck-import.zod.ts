@@ -2,8 +2,14 @@ import { z } from 'zod';
 
 /**
  * Truck Excel import (REQ-20260617, format CR-Vietnam-Truck-v1).
- * Template column order (18). The Vehicle column is informational — the actual
+ * Template column order (19). The Vehicle column is informational — the actual
  * truck + driver are chosen in the import UI (one file = one truck per the SRS).
+ *
+ * Headers use the SAME wording as the trip form / trip list (I/O parity
+ * 2026-08-18) — a field carries one name across form, list, template, import
+ * mapping and export. Renames are safe for existing client files: the import
+ * panel maps columns by header KEYWORDS (with these indexes only as fallback),
+ * and the old headers' keywords are still matched.
  */
 export const TRUCK_IMPORT_HEADERS = [
   'Ngày',
@@ -14,16 +20,17 @@ export const TRUCK_IMPORT_HEADERS = [
   'Điểm lấy hàng',
   'Điểm ghé',
   'Điểm giao hàng',
-  'Km đầu',
-  'Km cuối',
-  'Lượng nhiên liệu (L)',
+  'Km đồng hồ đầu',
+  'Km đồng hồ cuối',
+  'Nhiên liệu (lít)',
   'Đơn giá (đ/L)',
   'Phí cầu đường',
-  'Chi phí khác',
-  'Ghi chú chi phí khác',
+  'Chi phí phát sinh',
+  'Tên chi phí phát sinh',
   'Số BOL',
   'Số CDF',
   'Doanh thu',
+  'Ghi chú chuyến',
 ] as const;
 
 /** One normalized import row (client maps the sheet → these fields). */
@@ -41,10 +48,16 @@ export const truckImportRowSchema = z.object({
   fuel_price: z.number().nonnegative().optional(),
   toll: z.number().nonnegative().optional(),
   other_amount: z.number().nonnegative().optional(),
+  /* Name of the extra-cost line ("Tên chi phí phát sinh") — becomes tec_name,
+   * same as the form's "Tên khoản phí" input. Old files' "Ghi chú chi phí
+   * khác" header still maps here. */
   other_note: z.string().optional(),
   bol: z.string().optional(),
   cdf: z.string().optional(),
   revenue: z.number().nonnegative().optional(),
+  /* Trip note ("Ghi chú chuyến", trp_notes) — the form + export carry it, so
+   * the import must too or an exported file can't be re-imported losslessly. */
+  notes: z.string().optional(),
 });
 export type TruckImportRow = z.infer<typeof truckImportRowSchema>;
 

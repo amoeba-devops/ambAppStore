@@ -109,6 +109,9 @@ export async function importTruckTripsAction(
               fuelPrice: row.fuel_price ?? null,
               revenue: row.revenue ?? null,
               startOdometer: row.odo_start ?? null,
+              /* "Ghi chú chuyến" (trp_notes) — template col 19; previously the
+               * import had no way to carry the trip note the form + export have. */
+              notes: row.notes?.trim() || null,
               stopovers,
             });
             break;
@@ -119,9 +122,12 @@ export async function importTruckTripsAction(
         }
         if (!trip) throw new CarError('CAR-E0500', 500, 'Import: trip create failed');
 
+        /* The sheet's "Tên chi phí phát sinh" is the fee NAME (tec_name — same
+         * field as the form's "Tên khoản phí"). Unnamed rows get the same label
+         * the UI uses for the column, not an English 'Other'. */
         const extraCosts =
           row.other_amount && row.other_amount > 0
-            ? [{ name: row.other_note?.trim() || 'Other', amount: row.other_amount }]
+            ? [{ name: row.other_note?.trim() || 'Chi phí phát sinh', amount: row.other_amount }]
             : [];
         await completeTruckTrip(actor, trip.trpId, {
           /* Keep the sheet's Giờ bắt đầu / Giờ kết thúc as the trip's actual

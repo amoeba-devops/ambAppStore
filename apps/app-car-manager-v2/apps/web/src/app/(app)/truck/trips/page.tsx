@@ -79,6 +79,10 @@ export default async function TruckTripsPage({
     vehicleId: vehicle,
     driverId: driver,
     status,
+    /* This menu tracks REALITY (user rule 2026-08-18): fuel shows exactly the
+     * litres × unit price entered on each trip, never the month-end allocation
+     * — that lives on Chi phí & Lợi nhuận. */
+    fuelSource: 'recorded',
   });
   const loc = bcp47(locale);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';

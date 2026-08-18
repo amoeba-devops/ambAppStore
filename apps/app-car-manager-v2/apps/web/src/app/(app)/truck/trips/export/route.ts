@@ -45,38 +45,49 @@ export async function GET(req: Request) {
     regions: permitted.length < TRUCK_REGIONS.length ? permitted : undefined,
     driverId: driver,
     status,
+    /* Same rule as the on-screen list this export mirrors: fuel = the trip's
+     * own recorded litres × unit price (tracking reality), never the month-end
+     * allocation — that belongs to the finance screens' own export. */
+    fuelSource: 'recorded',
   });
 
-  /* Detailed column template requested by the client (feedback #4) — mirrors
-   * the monthly report's trip-log sheet. Times as HH:MM; money/km stay numeric
-   * so Excel treats them as numbers. Headers + status come from
-   * exportContent.truckTrips in the exporter's UI language — one language per
-   * file, like the R1 monthly template (no more "Ngày / Date" pairs). */
+  /* One column per trip field the UI shows (I/O parity 2026-08-18): the list
+   * table's columns (incl. Khu vực) + the trip form's fields (times, route
+   * with waypoint, ODO, fuel, costs, revenue, documents, notes) — headers use
+   * the SAME wording as those screens, nothing renamed or invented. Times as
+   * HH:MM; money/km stay numeric so Excel treats them as numbers. Headers +
+   * status come from exportContent.truckTrips in the exporter's UI language —
+   * one language per file, like the R1 monthly template. Status mirrors the
+   * list's two states (Đã/Chưa hoàn thành), not the car module's 7. */
   const hhmm = (d: Date | null) => (d ? new Date(d).toISOString().slice(11, 16) : '');
   const locale = await resolveUiLocale();
   const tCol = await getTranslations({ locale, namespace: 'exportContent.truckTrips' });
-  const tStatus = await getTranslations({ locale, namespace: 'exportContent.status' });
+  const tRegion = await getTranslations({ locale, namespace: 'region' });
+  const regionLabel = (r: string | null) =>
+    r && (TRUCK_REGIONS as readonly string[]).includes(r) ? tRegion(r as (typeof TRUCK_REGIONS)[number]) : (r ?? '');
   const header = [
     tCol('colRef'),
     tCol('colDate'),
     tCol('colVehicle'),
+    tCol('colRegion'),
     tCol('colDriver'),
     tCol('colCustomer'),
-    tCol('colBill'),
+    tCol('colBol'),
     tCol('colCdf'),
     tCol('colStart'),
     tCol('colEnd'),
-    tCol('colFrom'),
-    tCol('colTo'),
+    tCol('colPickup'),
+    tCol('colWaypoint'),
+    tCol('colDropoff'),
     tCol('colOdoStart'),
     tCol('colOdoEnd'),
     tCol('colKm'),
-    tCol('colToll'),
-    tCol('colOtherFee'),
-    tCol('colFeeName'),
+    tCol('colFuelLiters'),
     tCol('colFuelPrice'),
-    tCol('colLiters'),
     tCol('colFuelCost'),
+    tCol('colToll'),
+    tCol('colExtra'),
+    tCol('colExtraName'),
     tCol('colRevenue'),
     tCol('colTotalCost'),
     tCol('colProfit'),
@@ -87,6 +98,7 @@ export async function GET(req: Request) {
     t.ref,
     new Date(t.scheduledAt).toISOString().slice(0, 10),
     t.plate ?? '',
+    regionLabel(t.region),
     t.driver ?? '',
     t.customer ?? '',
     t.bol ?? '',
@@ -94,20 +106,21 @@ export async function GET(req: Request) {
     hhmm(t.startTime),
     hhmm(t.endTime),
     t.pickup ?? '',
+    t.waypoint ?? '',
     t.dropoff ?? '',
     t.startOdometer ?? '',
     t.endOdometer ?? '',
     t.km ?? '',
+    t.fuelLiters,
+    t.fuelUnitPrice,
+    t.breakdown.fuelCost,
     t.breakdown.tollFee,
     t.breakdown.extraTotal,
     t.extraNote ?? '',
-    Math.round(t.fuelUnitPrice),
-    Math.round(t.fuelLiters * 10) / 10,
-    t.breakdown.fuelCost,
     t.breakdown.revenue,
     t.breakdown.totalCost,
     t.breakdown.profit,
-    tStatus(t.status),
+    t.status === 'COMPLETED' ? tCol('statusDone') : tCol('statusOpen'),
     t.notes ?? '',
   ]);
 
