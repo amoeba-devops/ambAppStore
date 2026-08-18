@@ -1,14 +1,18 @@
 import 'server-only';
 import { and, desc, eq, gt, inArray, isNull, or } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
-import { carTruckReports, carUsers, type TruckReportType } from '@car-v2/db/schema';
+import { carTruckReports, carUsers } from '@car-v2/db/schema';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { getTruckFixedCostsLastUpdated, getTruckTripsMaxUpdatedAt } from './truck-finance.queries';
 
 export interface TruckReportRow {
   id: string;
   month: string;
-  type: TruckReportType;
+  /** Stored `trr_type`. Deliberately `string`, not `TruckReportType`: rows
+   * generated before 2026-08-18 can carry a retired type (PNL / TRIP_LOG /
+   * VEHICLE) that is no longer in the union. Nothing branches on it — the list
+   * renders `name` — so widening keeps the type honest about real data. */
+  type: string;
   format: string;
   name: string;
   createdAt: Date;
@@ -79,7 +83,7 @@ export async function listTruckReports(
     .orderBy(desc(carTruckReports.trrCreatedAt));
   return rows.map((r) => ({
     ...r,
-    type: r.type as TruckReportType,
+    type: r.type,
     isNew: seenAt == null ? true : r.createdAt > seenAt,
   }));
 }
