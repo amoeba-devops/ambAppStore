@@ -2136,7 +2136,6 @@
       "completeCta": "Complete",
       "editTrip": "Edit trip",
       "costsTitle": "Trip costs",
-      "fuelRecordedNote": "Recorded {liters} L ({amount}) — allocated per km at month close",
       "updateCosts": "Update costs",
       "stopsTitle": "Update stops",
       "stops": {

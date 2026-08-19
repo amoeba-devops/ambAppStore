@@ -2136,7 +2136,6 @@
       "completeCta": "Hoàn thành",
       "editTrip": "Sửa chuyến",
       "costsTitle": "Chi phí chuyến",
-      "fuelRecordedNote": "Đã ghi nhận {liters} L ({amount}) — phân bổ theo km khi chốt tháng",
       "updateCosts": "Cập nhật chi phí",
       "stopsTitle": "Cập nhật điểm dừng",
       "stops": {

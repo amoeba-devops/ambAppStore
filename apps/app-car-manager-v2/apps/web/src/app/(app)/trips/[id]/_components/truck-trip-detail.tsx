@@ -7,7 +7,6 @@ import type { CarTripStopover, CarStopType } from '@car-v2/db/schema';
 import { MapPreview } from '@/components/inputs/map-preview';
 import { PageHeader } from '@/components/layout/page-header';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
-import { FuelReconciliationBadge, type FuelBadgeMode } from '@/components/truck/fuel-reconciliation-badge';
 import type { TruckReportStatus } from '@/server/queries/truck-report.queries';
 import {
   TruckCompleteSection,
@@ -44,13 +43,11 @@ export interface TruckTripDetailProps {
     signedUrl: string | null;
   }[];
   breakdown: TruckCostBreakdown;
-  /** How `breakdown.fuelCost` was derived: AVERAGED | LIVE | UNSET —
-   * undefined when the trip isn't completed yet (no fuel cost to qualify). */
-  fuelMode?: FuelBadgeMode;
-  /** This trip's km + cost per km — rendered under the fuel row as
-   * `{km} km × {đ}/km` so the figure explains itself (REQ-20260724 UX). */
-  fuelKm?: number;
-  fuelCostPerKm?: number;
+  /** Recorded litres + unit price behind `breakdown.fuelCost` (user rule
+   * 2026-08-18: trip detail shows what was ENTERED, not the allocation) —
+   * rendered under the fuel row as `{liters} L × {price}/L`. */
+  fuelLiters?: number;
+  fuelUnitPrice?: number;
   /** This trip's slice of the month's fixed cost + the profit after it
    * (Sheet3 "phân bổ theo chuyến" / "Lợi nhuận theo chuyến"). */
   salaryAllocated?: number;
@@ -135,10 +132,9 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
       <CostRow
         label={t('fuel')}
         value={vnd(props.breakdown.fuelCost)}
-        badge={props.fuelMode !== undefined ? <FuelReconciliationBadge mode={props.fuelMode} /> : undefined}
         note={
-          props.fuelMode && props.fuelMode !== 'UNSET' && (props.fuelKm ?? 0) > 0
-            ? `${(props.fuelKm as number).toLocaleString(loc)} km × ${vnd(props.fuelCostPerKm ?? 0)}/km`
+          (props.fuelLiters ?? 0) > 0 && (props.fuelUnitPrice ?? 0) > 0
+            ? `${(props.fuelLiters as number).toLocaleString(loc)} L × ${vnd(props.fuelUnitPrice as number)}/L`
             : undefined
         }
       />
@@ -388,14 +384,12 @@ function CostRow({
   value,
   strong,
   tone,
-  badge,
   note,
 }: {
   label: string;
   value: string;
   strong?: boolean;
   tone?: 'success' | 'danger';
-  badge?: React.ReactNode;
   /** Small muted line under the value — used to spell out the fuel arithmetic. */
   note?: string;
 }) {
@@ -403,16 +397,13 @@ function CostRow({
     <div className={'flex items-start justify-between text-sm ' + (strong ? 'pt-2 border-t border-border font-semibold' : '')}>
       <span className="text-text-muted">{label}</span>
       <span className="inline-flex flex-col items-end gap-0.5">
-        <span className="inline-flex items-center gap-1.5">
-          <span
-            className={
-              'tabular ' +
-              (tone === 'success' ? 'text-success font-semibold' : tone === 'danger' ? 'text-danger font-semibold' : 'text-text')
-            }
-          >
-            {value}
-          </span>
-          {badge}
+        <span
+          className={
+            'tabular ' +
+            (tone === 'success' ? 'text-success font-semibold' : tone === 'danger' ? 'text-danger font-semibold' : 'text-text')
+          }
+        >
+          {value}
         </span>
         {note && <span className="text-xs font-normal text-text-faint">{note}</span>}
       </span>

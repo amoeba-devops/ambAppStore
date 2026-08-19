@@ -55,7 +55,7 @@ export default async function DriverTruckTripPage({
     getLatestTruckReportForMonth(user.entId, tripMonth),
     getTripCostAttachmentsView(user.entId, trip.trpId),
   ]);
-  const { breakdown } = await getTruckTripBreakdown(
+  const { breakdown, fuelLiters, fuelUnitPrice } = await getTruckTripBreakdown(
     user.entId,
     trip,
     extras.map((e) => e.amount),
@@ -77,15 +77,12 @@ export default async function DriverTruckTripPage({
     !completed && (trip.trpStatus === 'CONFIRMED' || trip.trpStatus === 'IN_PROGRESS');
   const editHref = `/today/truck/${trip.trpId}/edit`;
 
-  /* What this trip actually filled. The costed figure above is the vehicle's
-   * monthly fuel spend re-spread by km, so an open trip (no end odometer yet)
-   * costs 0 — which reads as "my litres vanished" to the driver who just typed
-   * them. Show the spend as a note whenever the two disagree. */
-  const fuelLiters = Number(trip.trpFuelLiters ?? 0);
-  const recordedFuelSpend = Math.round(fuelLiters * Number(trip.trpFuelPrice ?? 0));
+  /* The fuel figure IS the driver's own entry now (litres × unit price — user
+   * rule 2026-08-18: trip screens track reality, allocation lives on the
+   * finance screens), so just spell the arithmetic out under it. */
   const fuelNote =
-    breakdown.fuelCost === 0 && recordedFuelSpend > 0
-      ? t('fuelRecordedNote', { liters: fuelLiters.toLocaleString(loc), amount: vnd(recordedFuelSpend) })
+    fuelLiters > 0 && fuelUnitPrice > 0
+      ? `${fuelLiters.toLocaleString(loc)} L × ${vnd(fuelUnitPrice)}/L`
       : undefined;
 
   const editButton = (

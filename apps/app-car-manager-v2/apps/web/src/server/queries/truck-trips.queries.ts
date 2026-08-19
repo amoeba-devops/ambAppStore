@@ -16,18 +16,17 @@ import {
   loadTruckFixedAllocation,
   getTripCostAttachments,
   type TruckCostBreakdown,
-  type TruckFuelMode,
 } from '@car-v2/core/truck';
 import { getSignedGetUrl } from '@/lib/s3-client';
 
 const monthKey = (d: Date): string => d.toISOString().slice(0, 7);
 
 /**
- * Snapshot-aware cost breakdown for ONE trip — the exact rule `listTruckTrips`
- * applies per row (km × the vehicle's own frozen money÷km once a report covers
- * it; otherwise the same allocation computed live from what's recorded so far).
- * The trip-detail pages go through this so detail always matches the
- * list / finance / P&L / report numbers (PLAN-20260707 S1.5).
+ * Cost breakdown for ONE trip's detail pages — the exact rule the trip-log
+ * list applies per row (user rule 2026-08-18: the trips menu tracks REALITY):
+ * fuel = the trip's OWN entered litres × unit price, never the month-end
+ * allocation. The allocated/official figures live on the finance & P&L
+ * screens and in the generated reports.
  */
 export async function getTruckTripBreakdown(
   entId: string,
@@ -47,16 +46,10 @@ export async function getTruckTripBreakdown(
   extraAmounts: number[],
 ): Promise<{
   breakdown: TruckCostBreakdown;
-  finalized: boolean;
-  /** How `breakdown.fuelCost` was derived: AVERAGED (frozen month-end
-   * allocation) | LIVE (same allocation, computed from the month's fuel so far)
-   * | UNSET (no fuel recorded for that vehicle-month → 0). Independent of
-   * `finalized`. */
-  fuelMode: TruckFuelMode;
-  /** This trip's km (end − start odometer) + cost of one km (đ/km) — the detail
-   * page shows `{km} km × {fuelCostPerKm} ₫/km` under the fuel row. */
-  km: number;
-  fuelCostPerKm: number;
+  /** Recorded litres + unit price behind `breakdown.fuelCost` — the detail
+   * page spells the figure out as `{liters} L × {price}/L`. 0 when unset. */
+  fuelLiters: number;
+  fuelUnitPrice: number;
   /** This trip's slice of the month's fixed cost (Sheet3 "phân bổ theo chuyến")
    * + the profit after it. `breakdown.profit` stays variable-only. */
   salaryAllocated: number;
@@ -71,32 +64,29 @@ export async function getTruckTripBreakdown(
   region: string;
 }> {
   const month = monthKey(trip.trpScheduledAt);
-  const [snapshots, fixedAlloc] = await Promise.all([
-    loadTruckRegionSnapshots(entId, [month]),
+  const [vehicle, fixedAlloc] = await Promise.all([
+    trip.trpVehicleId
+      ? db.query.carVehicles.findFirst({
+          where: and(eq(carVehicles.cvhId, trip.trpVehicleId), eq(carVehicles.entId, entId)),
+          columns: { cvhRegion: true },
+        })
+      : Promise.resolve(undefined),
     loadTruckFixedAllocation(entId, [month]),
   ]);
-  const region = trip.trpVehicleId ? snapshots.vehicleRegion.get(trip.trpVehicleId) ?? '' : '';
-  /* "Đã lập BC" = a report for this (month, region) exists AND was generated
-   * after this trip's last change; a trip added later isn't in it. */
-  const changedAt = trip.trpUpdatedAt ?? trip.trpCreatedAt ?? null;
-  const finalized = snapshots.isReported(month, trip.trpVehicleId, changedAt);
-  const km =
-    trip.trpStartOdometer != null && trip.trpEndOdometer != null
-      ? trip.trpEndOdometer - trip.trpStartOdometer
-      : 0;
-  /* Fuel = frozen snapshot (only if it covers this trip) → live pool → 0. */
-  const fuel = snapshots.fuelForTrip(month, trip.trpVehicleId, km, changedAt);
+  const region = vehicle?.cvhRegion ?? '';
+  /* Recorded fuel: exactly what was typed on the trip. */
+  const fuelLiters = parseAmount(trip.trpFuelLiters);
+  const fuelUnitPrice = Math.round(parseAmount(trip.trpFuelPrice));
+  const fuelCost = Math.round(fuelLiters * parseAmount(trip.trpFuelPrice));
   const fixedShare = fixedAlloc.forTrip(month, trip.trpVehicleId);
   const tollFee = Math.round(parseAmount(trip.trpTollFee));
   const extraTotal = Math.round(extraAmounts.reduce((s, n) => s + (n || 0), 0));
   const revenue = Math.round(parseAmount(trip.trpRevenue));
-  const totalCost = fuel.cost + tollFee + extraTotal;
+  const totalCost = fuelCost + tollFee + extraTotal;
   return {
-    breakdown: { fuelCost: fuel.cost, tollFee, extraTotal, totalCost, revenue, profit: revenue - totalCost },
-    finalized,
-    fuelMode: fuel.mode,
-    km,
-    fuelCostPerKm: fuel.costPerKm,
+    breakdown: { fuelCost, tollFee, extraTotal, totalCost, revenue, profit: revenue - totalCost },
+    fuelLiters,
+    fuelUnitPrice,
     salaryAllocated: fixedShare.salary,
     depreciationAllocated: fixedShare.depreciation,
     profitAfterFixed: revenue - totalCost - fixedShare.total,

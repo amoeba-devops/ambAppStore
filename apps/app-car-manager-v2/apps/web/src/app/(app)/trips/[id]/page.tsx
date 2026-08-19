@@ -87,9 +87,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
     const costAttachments = await getTripCostAttachmentsView(user.entId, trip.trpId);
     const {
       breakdown,
-      fuelMode,
-      km: fuelKm,
-      fuelCostPerKm,
+      fuelLiters,
+      fuelUnitPrice,
       salaryAllocated,
       depreciationAllocated,
       profitAfterFixed,
@@ -121,9 +120,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
         extras={extras}
         costAttachments={costAttachments}
         breakdown={breakdown}
-        fuelMode={completed ? fuelMode : undefined}
-        fuelKm={fuelKm}
-        fuelCostPerKm={fuelCostPerKm}
+        fuelLiters={fuelLiters}
+        fuelUnitPrice={fuelUnitPrice}
         salaryAllocated={completed ? salaryAllocated : undefined}
         depreciationAllocated={completed ? depreciationAllocated : undefined}
         profitAfterFixed={completed ? profitAfterFixed : undefined}
