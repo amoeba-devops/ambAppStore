@@ -1,4 +1,4 @@
-# RPT-20260822 — Tách "Tiền dầu thực tế" vs "Phí nhiên liệu (phân bổ)"
+# RPT-20260822 — Tách "Phí nhiên liệu thực tế" vs "Phí nhiên liệu (phân bổ)"
 
 > REQ: [REQ-20260822](../analysis/REQ-20260822-truck-fuel-actual-vs-allocated.md)
 
@@ -22,7 +22,7 @@ Pool = 550.000 ₫ ÷ 50 km = 11.000 đ/km.
 
 | Màn | Header | A | B | C | Σ |
 |---|---|---|---|---|---|
-| Danh sách chuyến đi | `TIỀN DẦU THỰC TẾ` | 300.000 | 0 | 250.000 | **550.000** = tiền thật ✔ |
+| Danh sách chuyến đi | `PHÍ NHIÊN LIỆU THỰC TẾ` | 300.000 | 0 | 250.000 | **550.000** = tiền thật ✔ |
 | Chi phí & Lợi nhuận | `PHÍ NHIÊN LIỆU (PHÂN BỔ)` | 110.000 | 220.000 | 220.000 | **550.000** ✔ |
 
 Chi tiết chuyến A: `Nhiên liệu thực tế 300.000 ₫` (ghi chú "Số lít × đơn giá chuyến này nhập") ·
@@ -33,7 +33,7 @@ khớp màn tài chính) · `Lợi nhuận 9.890.000 ₫`.
 
 ## 3. Lưu ý vận hành
 
-- Hai con số **được phép khác nhau** — đó là mục đích. Đối chiếu đúng: tổng cột "Tiền dầu thực tế" của xe trong tháng
+- Hai con số **được phép khác nhau** — đó là mục đích. Đối chiếu đúng: tổng cột "Phí nhiên liệu thực tế" của xe trong tháng
   = tổng cột "Phí nhiên liệu (phân bổ)" của xe trong tháng.
 - Chuyến không bơm dầu hiện `0 ₫` ở Danh sách chuyến đi nhưng vẫn có phí phân bổ > 0 ở Chi phí & Lợi nhuận (nó tiêu
   dầu do chuyến khác trả) — đúng nghiệp vụ, và giờ nhãn đã nói rõ nên không còn gây nhầm.

@@ -376,9 +376,9 @@
       "delete": "Delete",
       "deleteConfirm": "Delete this trip?",
       "deletedToast": "Trip deleted",
-      "fuelActual": "Fuel paid",
+      "fuelActual": "Actual fuel",
       "fuelActualNote": "Litres × unit price this trip entered",
-      "fuelAllocated": "Fuel allocated"
+      "fuelAllocated": "Allocated fuel"
     },
     "truckImport": {
       "fileName": "CR-Vietnam-Truck-v1_Import-Template",
@@ -578,7 +578,7 @@
       "thActions": "Actions",
       "deleteConfirm": "Delete this trip? Associated cost data will be removed.",
       "allDrivers": "All drivers",
-      "thFuelActual": "Fuel paid",
+      "thFuelActual": "Actual fuel cost",
       "thFuelActualHint": "This trip's own fuel spend = litres × unit price as entered. Unaffected by the month or by report generation. The km-based allocation is on the Costs & Profit screen."
     },
     "truckFleet": {
@@ -672,7 +672,7 @@
       "fuelUnsetTooltip": "⚠ No fuel cost recorded for this vehicle this month, so the cost is 0. Enter fuel on a trip, or add a fuel invoice for the vehicle.",
       "fuelPartialReconciledLabel": "Mixed",
       "fuelPartialReconciledTooltip": "This group mixes finalised trips with provisional ones. Open each trip for the exact basis.",
-      "thFuelHint": "ALLOCATED fuel per trip = trip km × (the vehicle's monthly fuel spend ÷ its monthly km) — different from \"Fuel paid\" on the Trip log (that trip's own litres × price). \"From invoices\" = frozen when the report was generated, \"Provisional\" = still moving, \"Not computable\" = no fuel recorded for the month.",
+      "thFuelHint": "ALLOCATED fuel per trip = trip km × (the vehicle's monthly fuel spend ÷ its monthly km) — different from \"Actual fuel cost\" on the Trip log (that trip's own litres × price). \"From invoices\" = frozen when the report was generated, \"Provisional\" = still moving, \"Not computable\" = no fuel recorded for the month.",
       "fuelRecalcedToast": "Fuel cost recomputed from the month's finalised figures.",
       "fuelVehicleRateToast": "Fuel cost is provisional — from the vehicle's monthly fuel total, split by km.",
       "fuelUnsetToast": "No fuel cost recorded for this vehicle this month → fuel = 0. Enter fuel on the trip or add a fuel invoice.",
