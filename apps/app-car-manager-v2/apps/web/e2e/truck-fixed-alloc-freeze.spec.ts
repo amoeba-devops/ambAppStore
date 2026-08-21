@@ -3,13 +3,18 @@ import { devLogin, clearSession } from './helpers/auth';
 import {
   DEV_ENT,
   MONTH,
+  MONTH2,
   VEH_DONGNAI,
+  VEH_HCM,
   seedTruckAllocationFixture,
   seedDongNaiFixedCost,
   addThirdDongNaiTrip,
   softDeleteThirdDongNaiTrip,
   latestReportFixedAlloc,
   nullifyReportFixedAlloc,
+  seedZeroFuelMonth,
+  addFuelTripMonth2,
+  latestReportVehicleFuel,
   teardownTruckAllocationFixture,
 } from './helpers/truck-seed';
 
@@ -52,6 +57,31 @@ function rowOf(page: Page, ref: string) {
   return page.locator('tr').filter({ hasText: ref });
 }
 
+/**
+ * Click "Lập báo cáo" on the review step and wait until `ok()` sees the
+ * generated row in the DB. A click fired right after domcontentloaded races
+ * React hydration in dev mode — the handler isn't attached yet, so NOTHING
+ * happens (run 2026-08-21: zero POSTs despite successful clicks). Wait for
+ * networkidle (page chunk fetched) and re-click until the DB confirms, which
+ * also absorbs a one-off failed generation. A successful run navigates away
+ * (router.push → /truck/reports), so later iterations skip the vanished button
+ * and just keep polling.
+ */
+async function clickGenerateUntil(page: Page, ok: () => Promise<boolean>): Promise<void> {
+  const btn = page.getByRole('button', { name: 'Lập báo cáo' });
+  await expect(btn).toBeEnabled({ timeout: 30_000 });
+  await page.waitForLoadState('networkidle').catch(() => {});
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (await btn.isVisible().catch(() => false)) await btn.click().catch(() => {});
+    const t0 = Date.now();
+    while (Date.now() - t0 < 30_000) {
+      if (await ok()) return;
+      await page.waitForTimeout(1_000);
+    }
+  }
+  throw new Error('generation never landed in the DB');
+}
+
 test.describe('Truck fixed-alloc freeze (REQ-20260821)', () => {
   test.beforeAll(async () => {
     await seedTruckAllocationFixture();
@@ -80,15 +110,13 @@ test.describe('Truck fixed-alloc freeze (REQ-20260821)', () => {
     await gotoStable(page, `/truck/finance?month=${MONTH}&region=DONG_NAI`);
     await expect(rowOf(page, 'E2E-DN-1').getByText('4.500.000').first()).toBeVisible({ timeout: 30_000 });
 
-    /* Lập báo cáo → freeze. First generation compiles the action + workbook
-     * builder on-demand in dev mode — poll generously (config docs the flake). */
+    /* Lập báo cáo → freeze. */
     await gotoStable(page, `/truck/reports/new?month=${MONTH}&regions=DONG_NAI&vf=DONG_NAI:ALL`);
-    await page.getByRole('button', { name: 'Lập báo cáo' }).click();
-    await expect
-      .poll(async () => (await latestReportFixedAlloc('DONG_NAI'))?.find((a) => a.vehicleId === VEH_DONGNAI)?.tripCount, {
-        timeout: 90_000,
-      })
-      .toBe(2);
+    await clickGenerateUntil(
+      page,
+      async () =>
+        (await latestReportFixedAlloc('DONG_NAI'))?.find((a) => a.vehicleId === VEH_DONGNAI)?.tripCount === 2,
+    );
     const frozen = (await latestReportFixedAlloc('DONG_NAI'))!.find((a) => a.vehicleId === VEH_DONGNAI)!;
     expect(frozen.salary).toBe(9_000_000);
     expect(frozen.depreciation).toBe(600_000);
@@ -106,12 +134,11 @@ test.describe('Truck fixed-alloc freeze (REQ-20260821)', () => {
 
   test('TC-04 — regenerating the report is THE recalculation moment (÷3)', async ({ page }) => {
     await gotoStable(page, `/truck/reports/new?month=${MONTH}&regions=DONG_NAI&vf=DONG_NAI:ALL`);
-    await page.getByRole('button', { name: 'Lập báo cáo' }).click();
-    await expect
-      .poll(async () => (await latestReportFixedAlloc('DONG_NAI'))?.find((a) => a.vehicleId === VEH_DONGNAI)?.tripCount, {
-        timeout: 90_000,
-      })
-      .toBe(3);
+    await clickGenerateUntil(
+      page,
+      async () =>
+        (await latestReportFixedAlloc('DONG_NAI'))?.find((a) => a.vehicleId === VEH_DONGNAI)?.tripCount === 3,
+    );
 
     await gotoStable(page, `/truck/finance?month=${MONTH}&region=DONG_NAI`);
     await expect(rowOf(page, 'E2E-DN-1').getByText('3.000.000').first()).toBeVisible({ timeout: 30_000 });
@@ -136,5 +163,43 @@ test.describe('Truck fixed-alloc freeze (REQ-20260821)', () => {
     /* Live again: 2 completed trips remain → ÷2 = 4.500.000 (pre-0029 numbers). */
     await expect(rowOf(page, 'E2E-DN-1').getByText('4.500.000').first()).toBeVisible({ timeout: 30_000 });
     await expect(rowOf(page, 'E2E-DN-1').getByText('3.000.000')).toHaveCount(0);
+  });
+
+  /* ── Fuel-zero freeze (REQ-20260821 follow-up): the last recalculated column.
+   * MONTH2, VEH_HCM: one trip with NO fuel → report freezes an explicit ZERO →
+   * fuel recorded afterwards must not retro-cost the reported trip. Live pool
+   * after the late fuel = 600.000 ÷ 150 km = 4.000 đ/km, so a leak would show
+   * "× 4.000 đ/km" on the covered trip. ── */
+
+  test('TC-13 — report freezes fuel ZERO; fuel recorded later does not retro-cost the covered trip', async ({ page }) => {
+    await seedZeroFuelMonth();
+
+    await gotoStable(page, `/truck/reports/new?month=${MONTH2}&regions=HCM&vf=HCM:ALL`);
+    await clickGenerateUntil(
+      page,
+      async () => (await latestReportVehicleFuel(MONTH2, 'HCM'))?.find((v) => v.vehicleId === VEH_HCM)?.money === 0,
+    );
+
+    /* Fuel arrives AFTER the report. */
+    await addFuelTripMonth2();
+    await gotoStable(page, `/truck/finance?month=${MONTH2}&region=HCM`);
+    /* Uncovered trip reads the live pool: 50 km × 4.000 đ/km = 200.000. */
+    await expect(rowOf(page, 'E2E-HCM-4').getByText('200.000').first()).toBeVisible({ timeout: 30_000 });
+    /* Covered trip stays at the frozen ZERO — no live rate on its row. */
+    await expect(rowOf(page, 'E2E-HCM-3').getByText('4.000 đ/km')).toHaveCount(0);
+    await expect(rowOf(page, 'E2E-HCM-3').getByText('400.000')).toHaveCount(0);
+  });
+
+  test('TC-14 — regenerating re-costs the zero-frozen trip from the new pool', async ({ page }) => {
+    await gotoStable(page, `/truck/reports/new?month=${MONTH2}&regions=HCM&vf=HCM:ALL`);
+    await clickGenerateUntil(
+      page,
+      async () =>
+        (await latestReportVehicleFuel(MONTH2, 'HCM'))?.find((v) => v.vehicleId === VEH_HCM)?.money === 600_000,
+    );
+
+    await gotoStable(page, `/truck/finance?month=${MONTH2}&region=HCM`);
+    /* Now frozen from the new pool: 100 km × 4.000 đ/km = 400.000. */
+    await expect(rowOf(page, 'E2E-HCM-3').getByText('400.000').first()).toBeVisible({ timeout: 30_000 });
   });
 });

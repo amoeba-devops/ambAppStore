@@ -21,3 +21,17 @@
 | TC-12 | Build sạch | `tsc --noEmit`, `next lint` | 5/5 package pass |
 
 Ghi chú kiểm thử: chạy e2e trên dev server :3001 + Neon dev branch (pattern `truck-trip-receipt-upload.spec.ts`), dọn fixture sau test. TC-02/04/05 là 3 case định nghĩa thành công của REQ.
+
+
+---
+
+## Addendum 2026-08-21 — TC bổ sung cho freeze nhiên liệu 0 (khe hở cuối)
+
+Fixture: tháng 2026-12 (`MONTH2`), xe 29C-99999 (HCM), 1 chuyến E2E-HCM-3 **không có nhiên liệu**
+(100 km, DT 5tr); chi phí cố định (xe, tháng) nhập tay = 0 để trung hoà rate dev. Sau khi lập BC,
+thêm E2E-HCM-4 có dầu 20L × 30.000 = 600.000đ (50 km) → pool live = 4.000 đ/km.
+
+| # | Case | Kỳ vọng |
+|---|------|---------|
+| TC-13 | Lập BC khi xe chưa có dầu → freeze số 0; nhập dầu sau đó | Dòng BC có entry `money 0` cho xe; E2E-HCM-4 (ngoài BC) ăn live 50km × 4.000 = 200.000đ; **E2E-HCM-3 (đã BC) giữ phí 0** — không xuất hiện "4.000 đ/km"/"400.000" trên dòng đó |
+| TC-14 | Lập lại BC | E2E-HCM-3 được tính lại từ pool mới: 100km × 4.000 = 400.000đ, entry money 600.000 đóng băng |
