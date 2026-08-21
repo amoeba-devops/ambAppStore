@@ -51,6 +51,11 @@ export interface TruckTripDetailProps {
    * `{km} km × {đ}/km` so the figure explains itself (REQ-20260724 UX). */
   fuelKm?: number;
   fuelCostPerKm?: number;
+  /** "Nhiên liệu thực tế" — the trip's OWN spend (litres × price it recorded).
+   * Shown as its own row above the allocated one (REQ-20260822) so the two
+   * concepts are never mistaken for each other: this is the money this trip
+   * paid, the allocated row is its share of the vehicle's monthly fuel. */
+  fuelActualCost?: number;
   /** This trip's slice of the month's fixed cost + the profit after it
    * (Sheet3 "phân bổ theo chuyến" / "Lợi nhuận theo chuyến"). */
   salaryAllocated?: number;
@@ -132,8 +137,15 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
           <ReportStatusBadge reportedAt={props.reportStatus.reportedAt} stale={props.reportStatus.stale} covered={props.reportStatus.covered} locale={locale} />
         )}
       </div>
+      {/* Two distinct fuel concepts, spelled out (REQ-20260822): what this trip
+        * paid, then its share of the vehicle's monthly fuel. Only the allocated
+        * one feeds Tổng chi phí / Lợi nhuận below, so those keep matching the
+        * finance screen and the report. */}
+      {(props.fuelActualCost ?? 0) > 0 && (
+        <CostRow label={t('fuelActual')} value={vnd(props.fuelActualCost as number)} note={t('fuelActualNote')} />
+      )}
       <CostRow
-        label={t('fuel')}
+        label={t('fuelAllocated')}
         value={vnd(props.breakdown.fuelCost)}
         badge={props.fuelMode !== undefined ? <FuelReconciliationBadge mode={props.fuelMode} /> : undefined}
         note={

@@ -56,6 +56,10 @@ export async function getTruckTripBreakdown(
    * page shows `{km} km × {fuelCostPerKm} ₫/km` under the fuel row. */
   km: number;
   fuelCostPerKm: number;
+  /** "Nhiên liệu thực tế" (REQ-20260822) — this trip's OWN fuel spend
+   * (`trp_fuel_liters × trp_fuel_price`), shown next to the allocated figure so
+   * the detail page states both concepts instead of only the pooled one. */
+  fuelActualCost: number;
   /** This trip's slice of the month's fixed cost (Sheet3 "phân bổ theo chuyến")
    * + the profit after it. `breakdown.profit` stays variable-only. */
   salaryAllocated: number;
@@ -100,6 +104,7 @@ export async function getTruckTripBreakdown(
     fuelMode: fuel.mode,
     km,
     fuelCostPerKm: fuel.costPerKm,
+    fuelActualCost: Math.round(parseAmount(trip.trpFuelLiters) * parseAmount(trip.trpFuelPrice)),
     salaryAllocated: fixedShare.salary,
     depreciationAllocated: fixedShare.depreciation,
     profitAfterFixed: revenue - totalCost - fixedShare.total,
@@ -142,6 +147,16 @@ export interface TruckTripRow {
   fuelUnitPrice: number;
   /** Litres for the export: km × consumption when finalized, else own litres. */
   fuelLiters: number;
+  /* ── "Nhiên liệu THỰC TẾ" (REQ-20260822) — what THIS trip actually filled and
+   * paid: `trp_fuel_liters × trp_fuel_price`, straight from the trip's own
+   * record. Deliberately separate from `breakdown.fuelCost`, which is the same
+   * money POOLED per vehicle-month and re-spread by km. Operations screens (trip
+   * list + its export) show these so a row always matches what the driver
+   * entered; the finance/P&L side keeps the allocated figure. ── */
+  fuelActualLiters: number;
+  fuelActualPrice: number;
+  /** liters × price, rounded to đồng. 0 when the trip recorded no fuel. */
+  fuelActualCost: number;
   /** true once the trip's month is closed → fuel/profit are the official
    * month-end figures; false → provisional (liters × price). Lets list views
    * flag "Tạm tính" and keeps profit consistent with the finance/P&L screens. */
@@ -304,6 +319,11 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
     };
     const fuelUnitPrice = fuel.unitPrice;
     const fuelLiters = fuel.liters;
+    /* The trip's own fuel spend — never pooled, never affected by other trips
+     * or by "Lập báo cáo" (REQ-20260822). */
+    const fuelActualLiters = parseAmount(t.trpFuelLiters);
+    const fuelActualPrice = parseAmount(t.trpFuelPrice);
+    const fuelActualCost = Math.round(fuelActualLiters * fuelActualPrice);
 
     return {
       trpId: t.trpId,
@@ -329,6 +349,9 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
       extraNote: (extraNoteByTrip.get(t.trpId) ?? []).join(', ') || null,
       fuelUnitPrice,
       fuelLiters,
+      fuelActualLiters,
+      fuelActualPrice,
+      fuelActualCost,
       /* "Đã lập BC" only when the report actually covers this trip (generated
        * after its last change) — see BUG-260730 case 1. */
       finalized: snapshots.isReported(mk, t.trpVehicleId, tChangedAt),

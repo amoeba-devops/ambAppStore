@@ -187,7 +187,10 @@ export default async function TruckTripsPage({
                       <span className="tabular">· {trip.km != null ? `${trip.km.toLocaleString(loc)} km` : '—'}</span>
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-x-3 text-xs text-text-faint tabular">
-                      <span>{t('thFuel')}: {vnd(trip.breakdown.fuelCost)}</span>
+                      {/* Operations view shows the trip's OWN fuel spend
+                        * (REQ-20260822) — the pooled/allocated figure lives on
+                        * Chi phí & Lợi nhuận, which says so in its header. */}
+                      <span>{t('thFuelActual')}: {vnd(trip.fuelActualCost)}</span>
                       <span>{t('thToll')}: {vnd(trip.breakdown.tollFee)}</span>
                       <span>{t('thOther')}: {vnd(trip.breakdown.extraTotal)}</span>
                     </div>
@@ -208,7 +211,9 @@ export default async function TruckTripsPage({
                   <TableHead>{t('thDriver')}</TableHead>
                   <TableHead>{t('thCustomer')}</TableHead>
                   <TableHead className="text-right">{t('thKm')}</TableHead>
-                  <TableHead className="text-right">{t('thFuel')}</TableHead>
+                  <TableHead className="text-right">
+                    <span title={t('thFuelActualHint')}>{t('thFuelActual')}</span>
+                  </TableHead>
                   <TableHead className="text-right">{t('thToll')}</TableHead>
                   <TableHead className="text-right">{t('thOther')}</TableHead>
                   <TableHead>{t('thStatus')}</TableHead>
@@ -232,7 +237,7 @@ export default async function TruckTripsPage({
                       {trip.bol && <div className="text-xs text-text-faint font-mono">{trip.bol}</div>}
                     </TableCell>
                     <TableCell className="text-right tabular">{trip.km != null ? `${trip.km.toLocaleString(loc)} km` : '—'}</TableCell>
-                    <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.fuelCost)}</TableCell>
+                    <TableCell className="text-right tabular text-text-muted">{vnd(trip.fuelActualCost)}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.tollFee)}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.extraTotal)}</TableCell>
                     <TableCell>
