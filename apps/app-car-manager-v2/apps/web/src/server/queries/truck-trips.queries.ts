@@ -85,7 +85,11 @@ export async function getTruckTripBreakdown(
       : 0;
   /* Fuel = frozen snapshot (only if it covers this trip) → live pool → 0. */
   const fuel = snapshots.fuelForTrip(month, trip.trpVehicleId, km, changedAt);
-  const fixedShare = fixedAlloc.forTrip(month, trip.trpVehicleId);
+  /* Fixed allocation frozen by the covering report (REQ-20260821); live only
+   * when no report covers this trip — same coverage rule as fuel. */
+  const fixedShare =
+    snapshots.fixedShareForTrip(month, trip.trpVehicleId, changedAt) ??
+    fixedAlloc.forTrip(month, trip.trpVehicleId);
   const tollFee = Math.round(parseAmount(trip.trpTollFee));
   const extraTotal = Math.round(extraAmounts.reduce((s, n) => s + (n || 0), 0));
   const revenue = Math.round(parseAmount(trip.trpRevenue));

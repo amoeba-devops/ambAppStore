@@ -429,7 +429,12 @@ export async function listTruckFinanceTrips(
     const finalized = snapshots.isReported(opts.month, t.vehicleId, changedAt);
     const fuel = snapshots.fuelForTrip(opts.month, t.vehicleId, km, changedAt);
     const fuelCost = fuel.cost;
-    const fixedShare = fixedAlloc.forTrip(opts.month, t.vehicleId);
+    /* Fixed allocation is FROZEN by the covering report (REQ-20260821) — trip
+     * CRUD between two reports must not move a reported trip's share. Live
+     * computation only for trips no report has frozen yet. */
+    const fixedShare =
+      snapshots.fixedShareForTrip(opts.month, t.vehicleId, changedAt) ??
+      fixedAlloc.forTrip(opts.month, t.vehicleId);
     return {
       trpId: t.trpId,
       ref: t.ref,
