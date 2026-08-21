@@ -375,7 +375,10 @@
       "edit": "Sửa",
       "delete": "Xoá",
       "deleteConfirm": "Xoá chuyến này?",
-      "deletedToast": "Đã xoá chuyến"
+      "deletedToast": "Đã xoá chuyến",
+      "fuelActual": "Nhiên liệu thực tế",
+      "fuelActualNote": "Số lít × đơn giá chuyến này nhập",
+      "fuelAllocated": "Nhiên liệu phân bổ"
     },
     "truckImport": {
       "fileName": "CR-Vietnam-Truck-v1_Mau-Nhap-Chuyen",
@@ -574,7 +577,9 @@
       "thStt": "STT",
       "thActions": "Hành động",
       "deleteConfirm": "Xoá chuyến này? Dữ liệu chi phí liên quan sẽ bị xoá.",
-      "allDrivers": "Tất cả tài xế"
+      "allDrivers": "Tất cả tài xế",
+      "thFuelActual": "Tiền dầu thực tế",
+      "thFuelActualHint": "Tiền dầu chuyến này thực bơm = số lít × đơn giá đã nhập. Không thay đổi theo tháng hay theo báo cáo. Phí nhiên liệu phân bổ theo km xem ở màn Chi phí & Lợi nhuận."
     },
     "truckFleet": {
       "title": "Phương tiện",
@@ -667,7 +672,7 @@
       "fuelUnsetTooltip": "⚠ Xe chưa có chi phí nhiên liệu nào trong tháng nên phí = 0. Nhập nhiên liệu ở chuyến, hoặc thêm hoá đơn xăng cho xe trong tháng.",
       "fuelPartialReconciledLabel": "Hỗn hợp",
       "fuelPartialReconciledTooltip": "Trong nhóm này có cả chuyến đã chốt theo hoá đơn lẫn chuyến còn tạm tính. Xem từng chuyến để biết chính xác.",
-      "thFuelHint": "Phí nhiên liệu mỗi chuyến = km chuyến × (chi phí nhiên liệu của xe trong tháng ÷ tổng km tháng). \"Theo hoá đơn\" = đã chốt khi lập báo cáo, \"Tạm tính\" = còn thay đổi, \"Chưa tính được\" = tháng chưa có chi phí nhiên liệu nào.",
+      "thFuelHint": "Phí nhiên liệu PHÂN BỔ mỗi chuyến = km chuyến × (chi phí nhiên liệu của xe trong tháng ÷ tổng km tháng) — khác \"Tiền dầu thực tế\" ở Danh sách chuyến đi (số lít × đơn giá của chính chuyến). \"Theo hoá đơn\" = đã chốt khi lập báo cáo, \"Tạm tính\" = còn thay đổi, \"Chưa tính được\" = tháng chưa có chi phí nhiên liệu nào.",
       "fuelRecalcedToast": "Đã tính lại phí nhiên liệu theo số đã chốt của tháng.",
       "fuelVehicleRateToast": "Phí nhiên liệu tạm tính theo chi phí nhiên liệu tháng của xe, chia theo km.",
       "fuelUnsetToast": "Xe chưa có chi phí nhiên liệu trong tháng → phí nhiên liệu = 0. Nhập nhiên liệu cho chuyến hoặc thêm hoá đơn xăng.",
@@ -694,7 +699,7 @@
       "thOther": "Phát sinh",
       "thUnitPrice": "Đơn giá",
       "thLiters": "Lít",
-      "thFuel": "Phí nhiên liệu",
+      "thFuel": "Phí nhiên liệu (phân bổ)",
       "thRevenue": "Doanh thu",
       "thProfit": "Lợi nhuận",
       "thStatus": "Trạng thái",

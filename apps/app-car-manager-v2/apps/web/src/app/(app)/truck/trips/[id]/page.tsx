@@ -29,6 +29,7 @@ export default async function TruckTripDetailPage({ params }: { params: Promise<
     fuelMode,
     km: fuelKm,
     fuelCostPerKm,
+    fuelActualCost,
     salaryAllocated,
     depreciationAllocated,
     profitAfterFixed,
@@ -59,6 +60,7 @@ export default async function TruckTripDetailPage({ params }: { params: Promise<
       fuelMode={completed ? fuelMode : undefined}
       fuelKm={fuelKm}
       fuelCostPerKm={fuelCostPerKm}
+      fuelActualCost={fuelActualCost}
       salaryAllocated={completed ? salaryAllocated : undefined}
       depreciationAllocated={completed ? depreciationAllocated : undefined}
       profitAfterFixed={completed ? profitAfterFixed : undefined}

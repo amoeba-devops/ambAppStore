@@ -101,12 +101,17 @@ export async function GET(req: Request) {
     t.breakdown.tollFee,
     t.breakdown.extraTotal,
     t.extraNote ?? '',
-    Math.round(t.fuelUnitPrice),
-    Math.round(t.fuelLiters * 10) / 10,
-    t.breakdown.fuelCost,
+    /* This export mirrors the trip-log screen, so fuel is the trip's OWN
+     * recorded spend (REQ-20260822) — litres × price as entered, not the
+     * per-vehicle-month allocation. The allocated view is Chi phí & Lợi nhuận
+     * and its own export. Revenue/toll/extra are unaffected (raw per trip);
+     * totalCost/profit follow the actual fuel so the row adds up on its own. */
+    Math.round(t.fuelActualPrice),
+    Math.round(t.fuelActualLiters * 10) / 10,
+    t.fuelActualCost,
     t.breakdown.revenue,
-    t.breakdown.totalCost,
-    t.breakdown.profit,
+    t.fuelActualCost + t.breakdown.tollFee + t.breakdown.extraTotal,
+    t.breakdown.revenue - (t.fuelActualCost + t.breakdown.tollFee + t.breakdown.extraTotal),
     tStatus(t.status),
     t.notes ?? '',
   ]);
