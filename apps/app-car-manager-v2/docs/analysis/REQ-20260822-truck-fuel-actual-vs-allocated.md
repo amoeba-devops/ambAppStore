@@ -1,4 +1,4 @@
-# REQ-20260822 — Tách khái niệm "Tiền dầu thực tế" (vận hành) vs "Phí nhiên liệu phân bổ" (tài chính)
+# REQ-20260822 — Tách khái niệm "Phí nhiên liệu thực tế" (vận hành) vs "Phí nhiên liệu phân bổ" (tài chính)
 
 > **Yêu cầu gốc (2026-08-22)**: *"cột Phí nhiên liệu ở list đúng bằng phí nhiên liệu thực tế ban đầu như ở page chuyến đi,
 > còn Chi phí & Lợi nhuận thì có tính toán phân phối — để tách biệt wording và khái niệm."*
@@ -22,8 +22,8 @@ người dùng đối chiếu và kết luận hệ thống tính sai.
 
 | Khu vực | Màn | Số hiển thị | Nhãn (vi) |
 |---|---|---|---|
-| **VẬN HÀNH** | Danh sách chuyến đi (+ export của nó) | `trp_fuel_liters × trp_fuel_price` — bất biến, không phụ thuộc tháng/báo cáo | **"Tiền dầu thực tế"** |
-| **TÀI CHÍNH** | Chi phí & Lợi nhuận (+ báo cáo, P&L, dashboard) | `km × (tiền dầu tháng của xe ÷ km tháng)` — giữ nguyên AS-IS | **"Phí nhiên liệu (phân bổ)"** |
+| **VẬN HÀNH** | Danh sách chuyến đi (+ export của nó) | `trp_fuel_liters × trp_fuel_price` — bất biến, không phụ thuộc tháng/báo cáo | **"Phí nhiên liệu thực tế"** |
+| **TÀI CHÍNH** | Chi phí & Lợi nhuận (+ báo cáo, P&L, dashboard) | `km × (chi phí nhiên liệu tháng của xe ÷ km tháng)` — giữ nguyên AS-IS | **"Phí nhiên liệu (phân bổ)"** |
 | Cả hai | Chi tiết chuyến | **hiện cả 2 dòng**: "Nhiên liệu thực tế" và "Nhiên liệu phân bổ" | — |
 
 Nguyên tắc: **Tổng chi phí / Lợi nhuận / báo cáo vẫn dựa trên số PHÂN BỔ** — không đổi công thức tài chính nào, nên

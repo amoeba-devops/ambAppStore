@@ -376,7 +376,7 @@
       "delete": "삭제",
       "deleteConfirm": "이 운행을 삭제할까요?",
       "deletedToast": "운행 삭제됨",
-      "fuelActual": "실제 주유비",
+      "fuelActual": "실제 연료비",
       "fuelActualNote": "이 운행에 입력한 리터 × 단가",
       "fuelAllocated": "배분 연료비"
     },
@@ -578,7 +578,7 @@
       "thActions": "관리",
       "deleteConfirm": "이 운행을 삭제할까요? 관련 비용 데이터도 삭제됩니다.",
       "allDrivers": "모든 기사",
-      "thFuelActual": "실제 주유비",
+      "thFuelActual": "실제 연료비",
       "thFuelActualHint": "이 운행에서 실제 주유한 금액 = 입력한 리터 × 단가. 월 집계나 보고서 생성에 영향받지 않습니다. km 기준 배분액은 비용 및 수익 화면에서 확인하세요."
     },
     "truckFleet": {
@@ -672,7 +672,7 @@
       "fuelUnsetTooltip": "⚠ 이 차량의 당월 유류비 기록이 없어 비용 = 0. 운행에 주유 내역을 입력하거나 차량의 주유 영수증을 등록하세요.",
       "fuelPartialReconciledLabel": "혼합",
       "fuelPartialReconciledTooltip": "이 그룹에는 확정된 운행과 임시 계산 운행이 섞여 있습니다. 정확한 기준은 운행별로 확인하세요.",
-      "thFuelHint": "운행별 배분 연료비 = 운행 km × (해당 차량의 월 연료비 ÷ 월 총 km) — 운행 목록의 \"실제 주유비\"(해당 운행의 리터 × 단가)와는 다릅니다. \"계산서 기준\" = 보고서 생성 시 확정, \"임시 계산\" = 변동 가능, \"산정 불가\" = 해당 월에 연료비 없음.",
+      "thFuelHint": "운행별 배분 연료비 = 운행 km × (해당 차량의 월 연료비 ÷ 월 총 km) — 운행 목록의 \"실제 연료비\"(해당 운행의 리터 × 단가)와는 다릅니다. \"계산서 기준\" = 보고서 생성 시 확정, \"임시 계산\" = 변동 가능, \"산정 불가\" = 해당 월에 연료비 없음.",
       "fuelRecalcedToast": "당월 확정 금액으로 유류비를 다시 계산했습니다.",
       "fuelVehicleRateToast": "유류비는 차량의 당월 유류비를 km로 배분한 임시 금액입니다.",
       "fuelUnsetToast": "이 차량의 당월 유류비 기록이 없어 유류비 = 0. 운행에 주유 내역을 입력하거나 영수증을 등록하세요.",
@@ -1810,7 +1810,7 @@
       "colExtra": "추가 비용",
       "colUnitPrice": "단가",
       "colLiters": "리터",
-      "colFuelCost": "유류비",
+      "colFuelCost": "유류비 (배분)",
       "colRevenue": "매출",
       "colProfit": "손익",
       "colStatus": "상태",
@@ -1857,12 +1857,12 @@
       "colToll": "통행료 (VND)",
       "colOtherFee": "기타 비용 (VND)",
       "colFeeName": "기타 비용 명목",
-      "colFuelPrice": "평균 유가 (VND/L)",
-      "colLiters": "주유량 (L)",
-      "colFuelCost": "유류비 (VND)",
+      "colFuelPrice": "실제 유가 (VND/L)",
+      "colLiters": "실제 주유량 (L)",
+      "colFuelCost": "실제 유류비 (VND)",
       "colRevenue": "매출 (VND)",
-      "colTotalCost": "총 비용 (VND)",
-      "colProfit": "손익 (VND)",
+      "colTotalCost": "총 비용 (실제, VND)",
+      "colProfit": "손익 (실제, VND)",
       "colStatus": "상태",
       "colNotes": "메모"
     }

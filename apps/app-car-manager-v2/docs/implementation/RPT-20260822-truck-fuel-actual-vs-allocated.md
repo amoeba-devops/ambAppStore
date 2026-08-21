@@ -1,4 +1,4 @@
-# RPT-20260822 — Tách "Tiền dầu thực tế" vs "Phí nhiên liệu (phân bổ)"
+# RPT-20260822 — Tách "Phí nhiên liệu thực tế" vs "Phí nhiên liệu (phân bổ)"
 
 > REQ: [REQ-20260822](../analysis/REQ-20260822-truck-fuel-actual-vs-allocated.md)
 
@@ -22,7 +22,7 @@ Pool = 550.000 ₫ ÷ 50 km = 11.000 đ/km.
 
 | Màn | Header | A | B | C | Σ |
 |---|---|---|---|---|---|
-| Danh sách chuyến đi | `TIỀN DẦU THỰC TẾ` | 300.000 | 0 | 250.000 | **550.000** = tiền thật ✔ |
+| Danh sách chuyến đi | `PHÍ NHIÊN LIỆU THỰC TẾ` | 300.000 | 0 | 250.000 | **550.000** = tiền thật ✔ |
 | Chi phí & Lợi nhuận | `PHÍ NHIÊN LIỆU (PHÂN BỔ)` | 110.000 | 220.000 | 220.000 | **550.000** ✔ |
 
 Chi tiết chuyến A: `Nhiên liệu thực tế 300.000 ₫` (ghi chú "Số lít × đơn giá chuyến này nhập") ·
@@ -33,9 +33,32 @@ khớp màn tài chính) · `Lợi nhuận 9.890.000 ₫`.
 
 ## 3. Lưu ý vận hành
 
-- Hai con số **được phép khác nhau** — đó là mục đích. Đối chiếu đúng: tổng cột "Tiền dầu thực tế" của xe trong tháng
+- Hai con số **được phép khác nhau** — đó là mục đích. Đối chiếu đúng: tổng cột "Phí nhiên liệu thực tế" của xe trong tháng
   = tổng cột "Phí nhiên liệu (phân bổ)" của xe trong tháng.
 - Chuyến không bơm dầu hiện `0 ₫` ở Danh sách chuyến đi nhưng vẫn có phí phân bổ > 0 ở Chi phí & Lợi nhuận (nó tiêu
   dầu do chuyến khác trả) — đúng nghiệp vụ, và giờ nhãn đã nói rõ nên không còn gây nhầm.
 - File export của Danh sách chuyến đi giờ mang số thực tế (kể cả Tổng chi phí/Lợi nhuận trong file đó); ai cần số phân
   bổ thì dùng "Xuất Excel" ở màn Chi phí & Lợi nhuận hoặc báo cáo tháng.
+
+## 4. Rà soát export + i18n (bổ sung 2026-08-22)
+
+Đổi dữ liệu export sang số thực tế mà giữ header cũ đã tạo ra 2 nhãn **sai nghĩa** — phát hiện khi rà lại:
+`exportContent.truckTrips.colFuelPrice` ghi "Giá dầu **BQ** (đ/L)" (vi) và "**평균** 유가" (ko) — "bình quân", trong khi
+dữ liệu là đơn giá của chính chuyến. Đã sửa toàn bộ header của 2 file export để nói rõ khái niệm:
+
+| Namespace | Cột | vi | en | ko |
+|---|---|---|---|---|
+| `exportContent.truckTrips` (thực tế) | colFuelPrice | Đơn giá thực tế (đ/L) | Actual unit price (VND/L) | 실제 유가 (VND/L) |
+| | colLiters | Lượng dầu thực tế (L) | Actual litres (L) | 실제 주유량 (L) |
+| | colFuelCost | Phí nhiên liệu thực tế (đ) | Actual fuel cost (VND) | 실제 유류비 (VND) |
+| | colTotalCost / colProfit | … theo thực tế (đ) | …, actual (VND) | … (실제, VND) |
+| `exportContent.truckFinance` (phân bổ) | colFuelCost | Phí nhiên liệu (phân bổ) | Fuel cost (allocated) | 유류비 (배분) |
+
+`exportContent.truckMonthlySummary` (template khách R1) **không đổi** — số ở đó là phân bổ, đúng như đã chốt.
+`exportContent.truckPnl` không đổi (cấp tháng: hai khái niệm bằng nhau).
+
+**Verify bằng file thật (local, cùng fixture):**
+- `DanhSachChuyen_T10_2026.xlsx` → `Phí nhiên liệu thực tế (đ)` = 300.000 / 0 / 250.000, `Lượng dầu thực tế (L)` = 10 / 0 / 5
+- `BaoCao_ChiPhiChuyen_T10_2026.xlsx` → `Phí nhiên liệu (phân bổ)` = 110.000 / 220.000 / 220.000
+
+**Parity i18n:** vi/en/ko đều **2168 key**, không thiếu/thừa key nào (so khớp toàn cây).
