@@ -3,6 +3,7 @@ import { db } from '@car-v2/db/client';
 import { carTruckMonthClose, carTruckReports, carVehicles } from '@car-v2/db/schema';
 import { parseAmount, truckTripFuelCost } from './truck-cost';
 import { fuelPoolKey, loadVehicleFuelPool, type VehicleFuelPool } from './truck-fuel-pool';
+import type { TruckTripFixedShare } from './truck-fixed-allocation';
 
 /**
  * Region-scoped month-end fuel snapshot (REQ-20260630, report-based since
@@ -115,6 +116,19 @@ export interface TruckRegionSnapshots {
    * region) — or a consolidated (region '') one — AND, when `changedAt` is
    * given, was generated at/after the trip's last change. Drives "Đã lập BC". */
   isReported(month: string, vehicleId: string | null, changedAt?: Date | null): boolean;
+  /**
+   * The trip's FROZEN slice of its (vehicle, month) fixed cost, from the latest
+   * report that covers it (`trr_fixed_alloc`, REQ-20260821) — or null when none
+   * does: trip created/edited after that report, month never reported, report
+   * predates the column (NULL), or the frozen tripCount is 0. Null → the caller
+   * falls back to the LIVE allocation, which was the only behaviour before
+   * 0029; a non-null share is immutable until the next "Lập báo cáo".
+   */
+  fixedShareForTrip(
+    month: string,
+    vehicleId: string | null,
+    changedAt?: Date | null,
+  ): TruckTripFixedShare | null;
 }
 
 export async function loadTruckRegionSnapshots(
@@ -138,6 +152,13 @@ export async function loadTruckRegionSnapshots(
    * coverage is already captured by `reported`/`reportedAt` above; this only
    * needs to track the narrower case. */
   const vehicleReportedAt = new Map<string, Date>();
+  /* Keyed `${month}|${vehicleId}` — the vehicle's frozen fixed-cost allocation
+   * basis from the latest report that stored one (`trr_fixed_alloc`, 0029),
+   * with WHEN it froze — the per-trip coverage cut-off. */
+  const fixedAllocFrozen = new Map<
+    string,
+    { salary: number; depreciation: number; tripCount: number; at: Date | null }
+  >();
   const vehicleRegion = new Map<string, string>();
 
   if (months.length > 0) {
@@ -173,6 +194,7 @@ export async function loadTruckRegionSnapshots(
            * WHOLE region (or every region, when `region` is also null) — same
            * meaning as every report generated before this column existed. */
           vehicleIds: carTruckReports.trrVehicleIds,
+          fixedAlloc: carTruckReports.trrFixedAlloc,
           at: carTruckReports.trrCreatedAt,
         })
         .from(carTruckReports)
@@ -223,6 +245,22 @@ export async function loadTruckRegionSnapshots(
       const key = snapKey(r.month, r.region ?? '');
       const vf = r.vehicleFuel ?? [];
       const scope = r.vehicleIds && r.vehicleIds.length > 0 ? new Set(r.vehicleIds) : null;
+
+      /* Frozen fixed-alloc basis (0029, REQ-20260821): overwrite-only in
+       * creation order, and a subset report may only touch the vehicles it
+       * names — the same rules as the per-vehicle fuel freeze below. Reports
+       * from before the column (NULL) contribute nothing, so their trips keep
+       * resolving live exactly as they did pre-0029. */
+      for (const a of r.fixedAlloc ?? []) {
+        if (!a?.vehicleId) continue;
+        if (scope && !scope.has(a.vehicleId)) continue;
+        fixedAllocFrozen.set(snapKey(r.month, a.vehicleId), {
+          salary: a.salary,
+          depreciation: a.depreciation,
+          tripCount: a.tripCount,
+          at: r.at ?? null,
+        });
+      }
 
       if (!scope) {
         /* Whole-region (or consolidated, region '') report — unchanged from
@@ -386,6 +424,22 @@ export async function loadTruckRegionSnapshots(
        * on a brand-new trip because some earlier report covered its month was
        * the whole complaint (BUG-260730 case 1). */
       return coveredByReport(month, vehicleId, changedAt);
+    },
+    fixedShareForTrip(month, vehicleId, changedAt) {
+      if (!vehicleId) return null;
+      const entry = fixedAllocFrozen.get(snapKey(month, vehicleId));
+      /* tripCount 0 can't cover any trip: a completed trip that existed at
+       * generation would have been counted, so a covered trip with a frozen 0
+       * denominator is contradictory — treat as not frozen. */
+      if (!entry || entry.tripCount <= 0) return null;
+      /* Same coverage rule as fuel: a trip changed after the freeze isn't in
+       * it. No timestamp given → assume covered (mirrors coveredByReport). */
+      if (changedAt && (entry.at == null || entry.at < changedAt)) return null;
+      /* Same rounding as the live path (loadTruckFixedAllocation), so frozen
+       * vs live can only differ by data recorded after the report. */
+      const salary = Math.round(entry.salary / entry.tripCount);
+      const depreciation = Math.round(entry.depreciation / entry.tripCount);
+      return { salary, depreciation, total: salary + depreciation, tripCount: entry.tripCount };
     },
   };
 }

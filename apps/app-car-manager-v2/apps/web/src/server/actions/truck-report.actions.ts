@@ -12,6 +12,7 @@ import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
 import { allowedRegions, requireRegion, resolveReportVehicleScope } from '@/lib/auth/region-access';
+import { computeTruckFixedAllocRows } from '@car-v2/core/truck';
 import {
   getTruckFuelStats,
   getTruckFuelStatsByVehicle,
@@ -153,12 +154,17 @@ async function generateOneTruckReport(
 
   /* Month-end reconciliation, recomputed NOW (F1–F4). Only frozen when
    * computable (F5) — otherwise NULL → screens keep provisional numbers. */
-  const [stats, vehicleFuel] = await Promise.all([
+  const [stats, vehicleFuel, fixedAllocRows] = await Promise.all([
     getTruckFuelStats(actor.entId, month, region ?? undefined),
     /* Per-vehicle freeze (REQ-20260726): each vehicle's own fuel spend ÷ its own
      * km. Preferred over the region pool below; the region columns stay filled
      * so older screens/reports keep working. */
     getTruckFuelStatsByVehicle(actor.entId, month, region ?? undefined, vehicleIds),
+    /* Fixed-cost allocation basis, frozen alongside fuel (REQ-20260821):
+     * generating a report is THE moment per-trip lương/khấu hao shares are
+     * (re)computed — trip CRUD afterwards must not move the shares this report
+     * showed, so screens read them back from this row until the next one. */
+    computeTruckFixedAllocRows(actor.entId, month, { region, vehicleIds }),
   ]);
   /* The region pool is LEGACY. Once any invoice in the scope names its vehicle,
    * writing a region snapshot too would let vehicles WITHOUT an invoice draw
@@ -209,6 +215,7 @@ async function generateOneTruckReport(
     trrTotalKm: hasSnapshot ? String(stats.totalKm) : null,
     trrVehicleFuel: vehicleFuel.length > 0 ? vehicleFuel : null,
     trrVehicleIds: vehicleIds && vehicleIds.length > 0 ? vehicleIds : null,
+    trrFixedAlloc: fixedAllocRows.length > 0 ? fixedAllocRows : null,
   });
 
   try {

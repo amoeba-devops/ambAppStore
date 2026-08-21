@@ -22,6 +22,25 @@ export interface TruckReportVehicleFuel {
 }
 
 /**
+ * One vehicle's frozen monthly fixed-cost allocation basis inside a report
+ * (`trr_fixed_alloc`, REQ-20260821). A trip's share is `salary ÷ tripCount`
+ * (rounded, same as the live path) — stored as basis + denominator rather than
+ * the rounded share so the reader can also surface `tripCount` ("÷ N chuyến").
+ */
+export interface TruckReportFixedAlloc {
+  /** cvh_id */
+  vehicleId: string;
+  /** The vehicle's monthly salary (its default driver's) at generation time (VND). */
+  salary: number;
+  /** The vehicle's monthly depreciation at generation time (VND). */
+  depreciation: number;
+  /** COMPLETED log trips of the vehicle in the month at generation time — the
+   * allocation denominator. 0 = the report covered the vehicle but there was
+   * nothing to allocate onto (its fixed cost sat in the month total only). */
+  tripCount: number;
+}
+
+/**
  * car_truck_reports — metadata for generated monthly truck reports
  * (REQ-20260629, R8). The rendered file (Excel) lives in S3 under
  * `trr_s3_key`; this row records what was generated, for which month/type,
@@ -74,6 +93,13 @@ export const carTruckReports = pgTable(
      * allowed to overwrite, so a partial report can never wipe out the frozen
      * numbers of a vehicle it doesn't cover. */
     trrVehicleIds: jsonb('trr_vehicle_ids').$type<string[]>(),
+    /* PER-VEHICLE fixed-cost allocation basis frozen at generation time (0029,
+     * REQ-20260821): trip CRUD between two reports must not shift the shares a
+     * report already showed, so readers take the share from the latest report
+     * covering the trip and only compute live when none does. NULL = report
+     * generated before this column existed → readers keep the live computation
+     * (exactly the pre-0029 behaviour) for whatever that report covers. */
+    trrFixedAlloc: jsonb('trr_fixed_alloc').$type<TruckReportFixedAlloc[]>(),
     trrCreatedBy: char('trr_created_by', { length: 36 }),
     trrCreatedAt: timestamp('trr_created_at', { withTimezone: true }).defaultNow().notNull(),
     trrDeletedAt: timestamp('trr_deleted_at', { withTimezone: true }),
