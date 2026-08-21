@@ -182,6 +182,21 @@ async function generateOneTruckReport(
     stats.invoiceLiters > 0 &&
     stats.avgPrice > 0;
 
+  /* Freeze explicit ZEROS too (REQ-20260821 follow-up): a scope vehicle with no
+   * allocatable fuel at generation used to leave NO frozen entry, so its
+   * already-reported trips kept reading the LIVE pool — fuel recorded later
+   * retro-costed them (the last "recalculated after lập BC" column). Recording
+   * `costPerKm: 0` pins those trips at 0 until the next report. Skipped when
+   * this report carries the legacy region snapshot instead (hasSnapshot):
+   * there the region columns are the freeze and a zero row would shadow it. */
+  if (!hasSnapshot) {
+    const have = new Set(vehicleFuel.map((v) => v.vehicleId));
+    for (const a of fixedAllocRows) {
+      if (have.has(a.vehicleId)) continue;
+      vehicleFuel.push({ vehicleId: a.vehicleId, money: 0, liters: 0, km: 0, costPerKm: 0, avgPrice: 0 });
+    }
+  }
+
   const id = randomUUID();
   /* Pin the exact generation moment: stamped into the workbook itself AND
    * set explicitly (instead of relying on defaultNow()) as trr_created_at,

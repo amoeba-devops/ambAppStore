@@ -116,3 +116,20 @@ Phát sinh chuyến bổ sung sau BC:
 
 ---
 **Trạng thái**: chờ duyệt (approval gate). Sau khi duyệt phương án: PLN → TC → implement theo workflow.
+
+
+---
+
+## 7. Addendum 2026-08-21 (chiều) — Bịt nốt khe hở "phí nhiên liệu 0 bị tính lại" (user chốt: "làm đi")
+
+Rà soát sau khi ship phần phân bổ: mọi cột dòng chuyến đã bất biến sau BC, **trừ một tình huống** —
+xe **chưa có đồng nhiên liệu nào (hoặc chưa có km)** tại thời điểm lập BC thì không có gì được freeze
+(`getTruckFuelStatsByVehicle` bỏ qua `money ≤ 0 || km ≤ 0`), và nhánh live-pool trong `fuelForTrip`
+không kiểm coverage (chủ đích BUG-260721, hợp lý ở thời mọi thứ còn live). Hệ quả: nhập dầu **sau**
+khi lập BC làm phí nhiên liệu (và lợi nhuận) của chính các chuyến "Đã lập BC" nhảy từ 0 lên số phân bổ.
+
+**Quyết định — freeze cả số 0:** lập BC ghi entry `trr_vehicle_fuel` với `costPerKm: 0` cho mọi xe
+trong scope chưa có gì để phân bổ (bỏ qua khi BC mang region-snapshot legacy — `hasSnapshot` — vì
+entry 0 sẽ che snapshot vùng). Chuyến covered gặp entry 0 → phí nhiên liệu 0 (mode UNSET) bất biến
+tới BC kế tiếp; chuyến ngoài coverage vẫn live như cũ; BC cũ không có entry → hành vi cũ (grandfather).
+Không migration mới — dùng chung cột `trr_vehicle_fuel` sẵn có.

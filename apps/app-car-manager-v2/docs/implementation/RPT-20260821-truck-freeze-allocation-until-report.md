@@ -43,3 +43,24 @@
 
 - Spec e2e cũ `truck-report-allocation.spec.ts` hỏng **từ trước** (thiếu bước `vf=` của REQ-20260817 + assertion review stale từ REQ-20260726) — đã tách task riêng, không thuộc diff này.
 - KPI card tháng (Doanh thu/Lợi nhuận ròng) vẫn cập nhật live theo dữ liệu thô mới — nằm ngoài phạm vi "số chia", đã thống nhất trong REQ.
+
+
+---
+
+## Addendum 2026-08-21 (chiều) — Follow-up: freeze nhiên liệu 0 (khe "tính lại" cuối cùng)
+
+Sau khi ship phần phân bổ, rà soát toàn bộ cột dòng chuyến phát hiện khe cuối: xe chưa có nhiên liệu
+tại lúc lập BC → không có gì được freeze → chuyến "Đã lập BC" vẫn đọc pool LIVE, nhập dầu muộn làm
+phí nhiên liệu + lợi nhuận của chuyến đã BC đổi. User chốt bịt luôn ("làm đi").
+
+**Thay đổi (không migration mới — dùng chung cột `trr_vehicle_fuel`):**
+
+| File | Nội dung |
+|---|---|
+| `apps/web/src/server/actions/truck-report.actions.ts` | Sau `hasSnapshot`: đổ entry `costPerKm 0` cho mọi xe scope chưa có trong `vehicleFuel` (bỏ qua khi BC mang region-snapshot legacy) |
+| `packages/core/src/truck/truck-fuel-snapshot.ts` | Fold chấp nhận entry 0 (bỏ guard `costPerKm > 0` ở cả 2 nhánh whole/subset); `fuelForTrip` nhánh 1: entry 0 + covered → trả `{0, mode UNSET}` thay vì rơi xuống live pool |
+| `apps/web/e2e/helpers/truck-seed.ts` | Fixture MONTH2 (2026-12): trip không dầu + trip dầu muộn + fixed-cost 0 trung hoà + helper `latestReportVehicleFuel`; `insertTrip` set `trp_updated_at` (giống app thật) + nhận `month` |
+| `apps/web/e2e/truck-fixed-alloc-freeze.spec.ts` | TC-13/TC-14 + helper `clickGenerateUntil` (fix hydration race — xem TR addendum) |
+
+**Verify:** e2e 6/6 pass (1.4 phút) · typecheck 5/5 · lint pass. Hành vi mới: nhập dầu sau BC không còn
+retro-cost chuyến đã BC (TC-13); lập lại BC là thời điểm tính lại duy nhất (TC-14); BC cũ grandfather.

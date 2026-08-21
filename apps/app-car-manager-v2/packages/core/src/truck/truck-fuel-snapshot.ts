@@ -270,7 +270,12 @@ export async function loadTruckRegionSnapshots(
         if (vf.length > 0) {
           snap.delete(key);
           for (const v of vf) {
-            if (!v?.vehicleId || !(v.costPerKm > 0)) continue;
+            if (!v?.vehicleId) continue;
+            /* costPerKm 0 = frozen ZERO (REQ-20260821 follow-up): the report
+             * recorded "no allocatable fuel yet" for this vehicle — its covered
+             * trips stay at 0 instead of picking up fuel recorded afterwards
+             * through the live pool. Reports from before this change never
+             * stored zero rows, so accepting them here is backward-safe. */
             vehicleSnap.set(snapKey(r.month, v.vehicleId), {
               costPerKm: v.costPerKm,
               avgPrice: v.avgPrice,
@@ -297,7 +302,9 @@ export async function loadTruckRegionSnapshots(
         if (!prev || at > prev) vehicleReportedAt.set(snapKey(r.month, vehicleId), at);
       }
       for (const v of vf) {
-        if (!v?.vehicleId || !scope.has(v.vehicleId) || !(v.costPerKm > 0)) continue;
+        if (!v?.vehicleId || !scope.has(v.vehicleId)) continue;
+        /* Zero rows accepted — same frozen-ZERO semantics as the whole-region
+         * branch above, restricted to the subset's own vehicles. */
         vehicleSnap.set(snapKey(r.month, v.vehicleId), {
           costPerKm: v.costPerKm,
           avgPrice: v.avgPrice,
@@ -361,6 +368,14 @@ export async function loadTruckRegionSnapshots(
       const covered = coveredByReport(month, vehicleId, changedAt);
       /* 1) The vehicle's OWN frozen spend, spread by km (REQ-20260726). */
       const vs = covered && vehicleId ? vehicleSnap.get(snapKey(month, vehicleId)) : undefined;
+      if (vs && !(vs.costPerKm > 0)) {
+        /* Frozen ZERO (REQ-20260821 follow-up): the covering report recorded
+         * "no allocatable fuel" for this vehicle, so this trip's fuel is 0
+         * until the next report — fuel recorded later must NOT retro-cost a
+         * trip a report already showed. UNSET keeps the existing "xe chưa có
+         * chi phí nhiên liệu trong tháng → phí 0" badge copy truthful. */
+        return { cost: 0, unitPrice: 0, liters: 0, costPerKm: 0, mode: 'UNSET' };
+      }
       if (vs) {
         const cost = km > 0 ? Math.round(km * vs.costPerKm) : 0;
         const liters = km > 0 ? km * vs.consumption : 0;

@@ -17,6 +17,8 @@ import { neon } from '@neondatabase/serverless';
 export const DEV_ENT = '00000000-0000-4000-8000-000000000010';
 export const CREATOR = '00000000-0000-4000-8000-000000000001'; // Demo OWNER
 export const MONTH = '2026-11';
+/** Second isolated month — fuel-zero freeze fixture (REQ-20260821 follow-up). */
+export const MONTH2 = '2026-12';
 
 export const VEH_DONGNAI = '29ad0000-0000-4000-8000-000000000201'; // 60C-311.07
 export const VEH_HCM = '511a3e37-e747-4fe5-917a-b010e2ecf211'; // 29C-99999
@@ -27,12 +29,15 @@ const T_DN_2 = 'a11d0000-0000-4000-8000-0000000000d2';
 const T_DN_3 = 'a11d0000-0000-4000-8000-0000000000d3'; // added mid-test (alloc freeze)
 const T_HCM_1 = 'a11f0000-0000-4000-8000-0000000000f1';
 const T_HCM_2 = 'a11f0000-0000-4000-8000-0000000000f2';
+const T_HCM_3 = 'a11f0000-0000-4000-8000-0000000000f3'; // MONTH2, no fuel
+const T_HCM_4 = 'a11f0000-0000-4000-8000-0000000000f4'; // MONTH2, fuel added later
 const INV_1 = 'a11e0000-0000-4000-8000-0000000000e1';
 const INV_2 = 'a11e0000-0000-4000-8000-0000000000e2';
 const INV_3 = 'a11e0000-0000-4000-8000-0000000000e3'; // added mid-test (regenerate)
 const TFC_DN = 'a11c0000-0000-4000-8000-0000000000c1'; // manual fixed cost (alloc freeze)
+const TFC_HCM2 = 'a11c0000-0000-4000-8000-0000000000c2'; // MONTH2 zero fixed cost (fuel-zero freeze)
 
-const ALL_TRIP_IDS = [T_DN_1, T_DN_2, T_DN_3, T_HCM_1, T_HCM_2];
+const ALL_TRIP_IDS = [T_DN_1, T_DN_2, T_DN_3, T_HCM_1, T_HCM_2, T_HCM_3, T_HCM_4];
 const ALL_INV_IDS = [INV_1, INV_2, INV_3];
 
 function sql() {
@@ -41,9 +46,9 @@ function sql() {
   return neon(url);
 }
 
-/** ISO timestamp on the 15th of MONTH so it sits squarely inside the month. */
-function at(day: number, hour = 8): string {
-  return `${MONTH}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:00:00.000Z`;
+/** ISO timestamp on day `day` of `month` so it sits squarely inside the month. */
+function at(day: number, hour = 8, month: string = MONTH): string {
+  return `${month}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:00:00.000Z`;
 }
 
 async function insertTrip(
@@ -57,9 +62,12 @@ async function insertTrip(
     endKm: number;
     revenue: number;
     toll: number;
+    /** 0 = no fuel recorded on the trip. */
     liters: number;
     price: number;
     customer: string;
+    /** Defaults to the primary fixture month. */
+    month?: string;
   },
 ): Promise<void> {
   await q`
@@ -70,7 +78,7 @@ async function insertTrip(
       trp_fuel_liters, trp_fuel_price, trp_toll_fee, trp_revenue, trp_updated_at
     ) VALUES (
       ${o.id}, ${DEV_ENT}, ${o.ref}, ${CREATOR}, ${o.vehicleId}, 'COMPLETED', 'LOG',
-      'Bãi DEV', ${o.customer}, ${at(o.day)}, ${at(o.day, 8)}, ${at(o.day, 12)},
+      'Bãi DEV', ${o.customer}, ${at(o.day, 8, o.month ?? MONTH)}, ${at(o.day, 8, o.month ?? MONTH)}, ${at(o.day, 12, o.month ?? MONTH)},
       ${o.startKm}, ${o.endKm}, ${o.customer},
       ${String(o.liters)}, ${String(o.price)}, ${String(o.toll)}, ${String(o.revenue)},
       /* App-created COMPLETED trips always carry an updated_at (the completion
@@ -173,6 +181,51 @@ export async function nullifyReportFixedAlloc(region: string): Promise<void> {
   `;
 }
 
+/* ── Fuel-zero freeze fixture, MONTH2 (REQ-20260821 follow-up) ──────────── */
+
+/** One HCM trip in MONTH2 with NO fuel recorded → the vehicle's pool is empty
+ * at generation, so the report must freeze an explicit ZERO for it. */
+export async function seedZeroFuelMonth(): Promise<void> {
+  const q = sql();
+  await q`DELETE FROM car_trips WHERE ent_id = ${DEV_ENT} AND trp_id = ANY(${[T_HCM_3, T_HCM_4]})`;
+  await q`DELETE FROM car_truck_reports WHERE ent_id = ${DEV_ENT} AND trr_month = ${MONTH2}`;
+  await insertTrip(q, { id: T_HCM_3, ref: 'E2E-HCM-3', vehicleId: VEH_HCM, month: MONTH2, day: 5, startKm: 5000, endKm: 5100, revenue: 5_000_000, toll: 0, liters: 0, price: 0, customer: 'KH SG tháng 12' });
+  /* Explicit ZERO manual fixed cost for (VEH_HCM, MONTH2) — tier-1 wins, so
+   * whatever salary/depreciation rates the dev branch happens to carry can't
+   * leak unpredictable digits into the row assertions of this fixture. */
+  await q`
+    INSERT INTO car_truck_fixed_costs (tfc_id, ent_id, cvh_id, tfc_month, tfc_salary, tfc_depreciation)
+    VALUES (${TFC_HCM2}, ${DEV_ENT}, ${VEH_HCM}, ${MONTH2}, '0', '0')
+    ON CONFLICT (ent_id, cvh_id, tfc_month) DO UPDATE SET tfc_salary = '0', tfc_depreciation = '0'
+  `;
+}
+
+/** Fuel arrives AFTER the MONTH2 report: a trip with 20 L × 30.000 = 600.000 ₫.
+ * Live pool becomes 600.000 ÷ 150 km = 4.000 đ/km — the frozen-zero trip must
+ * NOT pick it up. */
+export async function addFuelTripMonth2(): Promise<void> {
+  const q = sql();
+  await q`DELETE FROM car_trips WHERE ent_id = ${DEV_ENT} AND trp_id = ${T_HCM_4}`;
+  await insertTrip(q, { id: T_HCM_4, ref: 'E2E-HCM-4', vehicleId: VEH_HCM, month: MONTH2, day: 20, startKm: 5100, endKm: 5150, revenue: 3_000_000, toll: 0, liters: 20, price: 30_000, customer: 'KH SG tháng 12B' });
+}
+
+/** Frozen per-vehicle fuel rows of the latest live report for (month, region). */
+export async function latestReportVehicleFuel(
+  month: string,
+  region: string,
+): Promise<{ vehicleId: string; money: number; costPerKm: number }[] | null> {
+  const q = sql();
+  const rows = await q`
+    SELECT trr_vehicle_fuel AS vf
+    FROM car_truck_reports
+    WHERE ent_id = ${DEV_ENT} AND trr_month = ${month} AND trr_region = ${region}
+      AND trr_deleted_at IS NULL
+    ORDER BY trr_created_at DESC
+    LIMIT 1
+  `;
+  return (rows[0]?.vf as { vehicleId: string; money: number; costPerKm: number }[] | null) ?? null;
+}
+
 /** Latest live report snapshot for a (month, region) — verifies persistence. */
 export async function latestReportSnapshot(
   region: string,
@@ -216,6 +269,7 @@ export async function teardownTruckAllocationFixture(): Promise<void> {
   await q`DELETE FROM car_trip_extra_costs WHERE ent_id = ${DEV_ENT} AND trp_id = ANY(${ALL_TRIP_IDS})`;
   await q`DELETE FROM car_trips WHERE ent_id = ${DEV_ENT} AND trp_id = ANY(${ALL_TRIP_IDS})`;
   await q`DELETE FROM car_truck_fuel_invoices WHERE ent_id = ${DEV_ENT} AND tfi_id = ANY(${ALL_INV_IDS})`;
-  await q`DELETE FROM car_truck_fixed_costs WHERE tfc_id = ${TFC_DN}`;
+  await q`DELETE FROM car_truck_fixed_costs WHERE tfc_id = ANY(${[TFC_DN, TFC_HCM2]})`;
   await q`DELETE FROM car_truck_reports WHERE ent_id = ${DEV_ENT} AND trr_month = ${MONTH}`;
+  await q`DELETE FROM car_truck_reports WHERE ent_id = ${DEV_ENT} AND trr_month = ${MONTH2}`;
 }

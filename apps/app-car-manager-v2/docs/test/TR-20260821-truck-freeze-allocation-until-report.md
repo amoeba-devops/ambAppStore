@@ -35,3 +35,18 @@
 | dev (ep-steep-tooth) | ✅ Đã áp 2026-08-21 |
 | staging (ep-noisy-heart) | ✅ Đã áp 2026-08-21 (additive, build cũ không bị ảnh hưởng — Drizzle select cột hữu danh) |
 | production | ⬜ Chưa — áp khi release theo flow chuẩn |
+
+
+---
+
+## Addendum 2026-08-21 (chiều) — Kết quả test follow-up freeze nhiên liệu 0
+
+**Kết quả cuối: 6/6 pass, 1.4 phút** (TC-01/02/03 · TC-04 · TC-05 · TC-08 · TC-13 · TC-14), typecheck 5/5, lint pass.
+
+Run đầu fail 4/6 (13.6 phút do retry + poll 90s) — **lỗi ở spec, không phải code**: click "Lập báo cáo"
+bắn ngay sau `domcontentloaded`, khi Next dev còn đang tải chunk `page.js` → React chưa hydrate, click
+không có handler → **không POST nào được gửi** (bằng chứng: trace TC-04-retry có 32 request, 0 POST;
+server log không có POST cho tháng 2026-12). TC-01 thoát vì đi qua màn finance với assertion 30s trước
+khi click. Fix: helper `clickGenerateUntil` — chờ `networkidle`, click, xác nhận row qua DB trong 30s,
+chưa thấy thì click lại (tối đa 4 vòng); cũng hấp thụ luôn generation fail lẻ. Bài học cho mọi spec sau:
+**không click server-action button ngay sau goto domcontentloaded trong dev mode**.
