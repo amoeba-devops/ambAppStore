@@ -54,6 +54,8 @@ export default async function TruckTripsPage({
   const permittedCodes: readonly string[] = permittedRegions;
 
   const t = await getTranslations('screens.truckTrips');
+  /* Nhãn cột lấy từ glossary dùng chung để khớp template/import/export. */
+  const tCol = await getTranslations('columns.truck');
   const tA = await getTranslations('actions');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
@@ -190,9 +192,9 @@ export default async function TruckTripsPage({
                       {/* Operations view shows the trip's OWN fuel spend
                         * (REQ-20260822) — the pooled/allocated figure lives on
                         * Chi phí & Lợi nhuận, which says so in its header. */}
-                      <span>{t('thFuelActual')}: {vnd(trip.fuelActualCost)}</span>
-                      <span>{t('thToll')}: {vnd(trip.breakdown.tollFee)}</span>
-                      <span>{t('thOther')}: {vnd(trip.breakdown.extraTotal)}</span>
+                      <span>{tCol('fuelActualCost')}: {vnd(trip.fuelActualCost)}</span>
+                      <span>{tCol('toll')}: {vnd(trip.breakdown.tollFee)}</span>
+                      <span>{tCol('otherAmount')}: {vnd(trip.breakdown.extraTotal)}</span>
                     </div>
                   </Link>
                 </li>
@@ -205,18 +207,18 @@ export default async function TruckTripsPage({
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[52px]">{t('thStt')}</TableHead>
-                  <TableHead>{t('thDate')}</TableHead>
-                  <TableHead>{t('thVehicle')}</TableHead>
-                  <TableHead>{t('thRegion')}</TableHead>
-                  <TableHead>{t('thDriver')}</TableHead>
+                  <TableHead>{tCol('date')}</TableHead>
+                  <TableHead>{tCol('vehicle')}</TableHead>
+                  <TableHead>{tCol('region')}</TableHead>
+                  <TableHead>{tCol('driver')}</TableHead>
                   <TableHead>{t('thCustomer')}</TableHead>
-                  <TableHead className="text-right">{t('thKm')}</TableHead>
+                  <TableHead className="text-right">{tCol('kmTotal')}</TableHead>
                   <TableHead className="text-right">
-                    <span title={t('thFuelActualHint')}>{t('thFuelActual')}</span>
+                    <span title={t('thFuelActualHint')}>{tCol('fuelActualCost')}</span>
                   </TableHead>
-                  <TableHead className="text-right">{t('thToll')}</TableHead>
-                  <TableHead className="text-right">{t('thOther')}</TableHead>
-                  <TableHead>{t('thStatus')}</TableHead>
+                  <TableHead className="text-right">{tCol('toll')}</TableHead>
+                  <TableHead className="text-right">{tCol('otherAmount')}</TableHead>
+                  <TableHead>{tCol('status')}</TableHead>
                   <TableHead className="whitespace-nowrap">{t('thUpdated')}</TableHead>
                   <TableHead className="w-[88px]">{t('thActions')}</TableHead>
                 </TableRow>

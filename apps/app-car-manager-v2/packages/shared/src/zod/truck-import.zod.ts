@@ -1,9 +1,59 @@
 import { z } from 'zod';
 
 /**
- * Truck Excel import (REQ-20260617, format CR-Vietnam-Truck-v1).
- * Template column order (18). The Vehicle column is informational — the actual
- * truck + driver are chosen in the import UI (one file = one truck per the SRS).
+ * Column order of the import template (18). The labels themselves now come from
+ * i18n (`columns.truck`, REQ-20260824) so the template, the import mapper, the
+ * trip list and the export all print the SAME word for the same thing; this
+ * array only fixes the ORDER, which old files rely on.
+ */
+export const TRUCK_TEMPLATE_ORDER = [
+  'date', 'vehicleHint', 'startTime', 'endTime', 'customer', 'pickup', 'stopover', 'dropoff',
+  'odoStart', 'odoEnd', 'fuelLiters', 'fuelPrice', 'toll', 'otherAmount', 'otherNote',
+  'bol', 'cdf', 'revenue',
+] as const;
+export type TruckTemplateColumn = (typeof TRUCK_TEMPLATE_ORDER)[number];
+
+/**
+ * Header aliases used to auto-map an uploaded sheet onto the import fields.
+ *
+ * Must cover EVERY wording a real file can carry, not just today's template:
+ * the canonical labels in all three languages, plus the legacy wording shipped
+ * before REQ-20260824 (old templates and old exports are still out there).
+ * Matching is substring, case-insensitive, on the lower-cased header.
+ *
+ * `not` is a veto list — a header containing one of those never matches that
+ * field. It exists because "Phí nhiên liệu" (money) used to be picked up as
+ * "Lượng nhiên liệu" (litres), so an export re-imported charged the fuel COST
+ * as a litre count.
+ */
+export const TRUCK_IMPORT_ALIASES: Record<string, { any: string[]; not?: string[] }> = {
+  date: { any: ['ngày', 'date', '날짜'] },
+  start_time: { any: ['giờ bắt đầu', 'giờ bđ', 'giờ đi', 'start time', 'start', '시작 시간', '출발 시각'], not: ['odo', '주행'] },
+  end_time: { any: ['giờ kết thúc', 'giờ kt', 'giờ về', 'end time', 'end', '종료 시간', '종료 시각'], not: ['odo', '주행'] },
+  customer: { any: ['khách', 'customer', '고객'] },
+  pickup: { any: ['điểm lấy', 'nơi lấy', 'lấy hàng', 'xuất phát', 'điểm đi', 'pickup', 'from', '상차'] },
+  stopover: { any: ['điểm ghé', 'ghé', 'waypoint', 'stopover', '경유'] },
+  dropoff: { any: ['điểm giao', 'nơi giao', 'giao hàng', 'điểm đến', 'drop-off', 'dropoff', '하차'] },
+  odo_start: { any: ['km đầu', 'đồng hồ đầu', 'odo đầu', 'start odo', 'odo start', '시작 주행', '시작 odo'] },
+  odo_end: { any: ['km cuối', 'đồng hồ cuối', 'odo cuối', 'end odo', 'odo end', '종료 주행', '종료 odo'] },
+  /* Litres — never the money column. */
+  fuel_liters: {
+    any: ['lượng nhiên liệu', 'lượng dầu', 'nhiên liệu (l)', 'số lít', 'lít', 'litre', 'liter', 'fuel (l)', '주유량', '연료(l)'],
+    not: ['phí', 'chi phí', 'cost', '비용', '연료비', '유류비'],
+  },
+  fuel_price: { any: ['đơn giá', 'giá dầu', 'unit price', 'fuel unit', '단가', '유가'] },
+  toll: { any: ['cầu đường', 'toll', '통행료'] },
+  other_amount: { any: ['chi phí phát sinh', 'chi phí khác', 'phát sinh khác', 'phí khác', 'other cost', 'other fee', '기타 비용'], not: ['ghi chú', 'note', 'tên', 'name', '명목', '메모'] },
+  other_note: { any: ['ghi chú phát sinh', 'ghi chú chi phí', 'tên phí', 'tên khoản phí', 'other note', 'fee name', '기타 메모', '기타 비용 명목'] },
+  bol: { any: ['bol', 'vận đơn', 'bill'] },
+  cdf: { any: ['cdf'] },
+  revenue: { any: ['doanh thu', 'revenue', 'selling', '매출'], not: ['tháng', 'month'] },
+};
+
+/**
+ * @deprecated Kept so an existing caller still compiles; the template route now
+ * builds its header row from i18n. Vietnamese labels as shipped before
+ * REQ-20260824 — also serves as documentation of the legacy file layout.
  */
 export const TRUCK_IMPORT_HEADERS = [
   'Ngày',
@@ -128,6 +178,30 @@ export function parseImportNumber(value: unknown): number | undefined {
   const n = Number(normalized);
   if (!Number.isFinite(n)) return undefined;
   return negative ? -n : n;
+}
+
+/**
+ * "Giờ bắt đầu / Giờ kết thúc" of a trip is a WALL CLOCK the user typed
+ * ("08:15"), not an instant — so it must be stored and read back through the
+ * same frame or it drifts (REQ-20260824 round-trip test: typed 08:15, exported
+ * 01:15 on a GMT+7 machine).
+ *
+ * Everything that READS these back — the trip-log export, the monthly report,
+ * the edit forms — uses UTC components, so this writes UTC too. On Render
+ * (server TZ = UTC) that is byte-for-byte what the old `new Date(str)` produced,
+ * so stored data and prod behaviour are unchanged; it only stops the value from
+ * depending on which timezone the server happens to run in.
+ *
+ * Accepts "YYYY-MM-DD", optionally followed by "T"/" " and "HH:mm[:ss]".
+ */
+export function parseWallClockUtc(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{1,2}):(\d{2})(?::(\d{2}))?)?/.exec(String(value).trim());
+  if (!m) return null;
+  const d = new Date(
+    Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4] ?? 0), Number(m[5] ?? 0), Number(m[6] ?? 0)),
+  );
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 /** One normalized import row (client maps the sheet → these fields). */
