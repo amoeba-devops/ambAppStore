@@ -1812,12 +1812,15 @@
       "colLiters": "Litres",
       "colFuelCost": "Fuel cost (allocated)",
       "colRevenue": "Revenue",
-      "colProfit": "Profit",
+      "colProfit": "Profit (after fixed cost)",
       "colStatus": "Status",
       "statusDone": "Closed",
       "statusOpen": "Provisional",
       "scopeAll": "Scope: All trucks ({total})",
-      "scopeVehicles": "Scope: {n}/{total} trucks — {plates}"
+      "scopeVehicles": "Scope: {n}/{total} trucks — {plates}",
+      "colProfitBeforeFixed": "Profit before fixed cost",
+      "colSalaryAllocated": "Salary allocated",
+      "colDepreciationAllocated": "Depreciation allocated"
     },
     "truckPnl": {
       "sheetName": "P&L",

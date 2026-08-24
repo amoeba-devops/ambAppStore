@@ -1812,12 +1812,15 @@
       "colLiters": "리터",
       "colFuelCost": "유류비 (배분)",
       "colRevenue": "매출",
-      "colProfit": "손익",
+      "colProfit": "손익 (고정비 차감 후)",
       "colStatus": "상태",
       "statusDone": "마감",
       "statusOpen": "잠정",
       "scopeAll": "범위: 전체 차량 ({total}대)",
-      "scopeVehicles": "범위: {n}/{total}대 — {plates}"
+      "scopeVehicles": "범위: {n}/{total}대 — {plates}",
+      "colProfitBeforeFixed": "고정비 차감 전 손익",
+      "colSalaryAllocated": "배분 인건비",
+      "colDepreciationAllocated": "배분 감가상각비"
     },
     "truckPnl": {
       "sheetName": "손익",

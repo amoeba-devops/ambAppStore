@@ -1812,12 +1812,15 @@
       "colLiters": "Lít",
       "colFuelCost": "Phí nhiên liệu (phân bổ)",
       "colRevenue": "Doanh thu",
-      "colProfit": "Lợi nhuận",
+      "colProfit": "Lợi nhuận (sau CP cố định)",
       "colStatus": "Trạng thái",
       "statusDone": "Đã lập BC",
       "statusOpen": "Tạm tính",
       "scopeAll": "Phạm vi: Tất cả xe ({total})",
-      "scopeVehicles": "Phạm vi: {n}/{total} xe — {plates}"
+      "scopeVehicles": "Phạm vi: {n}/{total} xe — {plates}",
+      "colProfitBeforeFixed": "Lợi nhuận trước CP cố định",
+      "colSalaryAllocated": "Lương phân bổ",
+      "colDepreciationAllocated": "Khấu hao phân bổ"
     },
     "truckPnl": {
       "sheetName": "Lợi nhuận",

@@ -306,8 +306,10 @@ export interface TruckFinanceTripRow {
   salaryAllocated: number;
   depreciationAllocated: number;
   /** revenue − fuel − toll − extra − (salary + depreciation allocated) — the
-   * customer's "Lợi nhuận theo chuyến". `profit` above stays the VARIABLE-only
-   * figure the Excel exports and report review are built on. */
+   * customer's "Lợi nhuận theo chuyến", and what the finance screen shows.
+   * `profit` above stays the VARIABLE-only figure the report review is built
+   * on; the finance export carries BOTH (REQ-20260822) so the file and the
+   * screen can no longer disagree once a vehicle has fixed costs. */
   profitAfterFixed: number;
   /** How unitPrice/liters/fuelCost above were derived:
    *  - AVERAGED frozen month-end allocation (vehicle's fuel spend ÷ its km)
