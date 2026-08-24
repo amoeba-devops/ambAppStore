@@ -16,7 +16,7 @@ import {
   cn,
   toast,
 } from '@car-v2/ui';
-import type { TruckImportRow } from '@car-v2/shared/zod';
+import { parseImportDate, parseImportNumber, type TruckImportRow } from '@car-v2/shared/zod';
 import { importTruckTripsAction } from '@/server/actions/imports/import.actions';
 import { formatActionError } from '@/lib/format-action-error';
 import type { OptionItem } from '@/app/(app)/truck/trips/_components/truck-trip-form';
@@ -28,19 +28,17 @@ const str = (v: unknown): string | undefined => {
   const s = String(v).trim();
   return s === '' ? undefined : s;
 };
-const num = (v: unknown): number | undefined => {
-  if (v == null || v === '') return undefined;
-  const n = Number(String(v).replace(/[,\s]/g, ''));
-  return Number.isFinite(n) ? n : undefined;
-};
+/* Handles vi thousand/decimal marks ("2.500.000", "10,5") — see
+ * parseImportNumber; shared so the preview and the saved value agree. */
+const num = (v: unknown): number | undefined => parseImportNumber(v);
 const int = (v: unknown): number | undefined => {
   const n = num(v);
   return n == null ? undefined : Math.trunc(n);
 };
-const dateStr = (v: unknown): string => {
-  if (v instanceof Date) return v.toISOString().slice(0, 10);
-  return String(v ?? '').trim();
-};
+/* Any date shape Excel produces → 'YYYY-MM-DD'; '' when unreadable, which
+ * marks the row invalid below so it can't be sent (BUG-260824). The parsing
+ * itself is shared with the server action — see parseImportDate. */
+const dateStr = (v: unknown): string => parseImportDate(v) ?? '';
 /* Time-of-day cell → "HH:MM". xlsx `cellDates` turns a typed time into a
  * UTC-based 1899 Date, so read UTC components to recover what the user typed;
  * a plain text cell ("8:00") passes through unchanged. */
