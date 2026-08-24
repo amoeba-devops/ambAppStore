@@ -1,4 +1,4 @@
-# BUG-260824 — Import Excel: ngày dạng text gây CAR-E0500, ngày kiểu Date bị lùi 1 ngày
+# BUG-260824 — Import Excel: ô ngày và ô số dạng text bị đọc sai
 
 ## 1. Triệu chứng
 
@@ -74,3 +74,49 @@ Quy ước: text đọc **ngày trước tháng** (`dd/MM/yyyy`) — đúng loca
 - Mọi giá trị từ file người dùng phải được **chuẩn hoá và validate trước khi vào vòng ghi DB**; helper
   dùng chung client+server để hai phía không lệch nhau.
 - Với import nhiều dòng: validate **cả file trước**, đừng để lỗi dòng thứ N làm dở dang N-1 dòng đã ghi.
+
+---
+
+## 6. Lỗi thứ ba — ô SỐ dạng text bị đọc sai (phát hiện khi test kỹ 2026-08-24)
+
+Sau khi vá phần ngày, chạy bộ test 11 case cho import thì lộ tiếp một lỗi **im lặng** cùng loại,
+ở hàm `num()` của panel:
+
+```ts
+const n = Number(String(v).replace(/[,\s]/g, ''));   // chỉ bỏ dấu phẩy + khoảng trắng
+```
+
+Người Việt viết `2.500.000` (chấm = nghìn) và `10,5` (phẩy = thập phân) — ngược hoàn toàn quy ước
+en-US mà `Number()` giả định. Với ô **text** (cột định dạng Text hoặc dán từ nơi khác):
+
+| Ô trong file | Trước | Đúng phải là |
+|---|---|---|
+| Đơn giá `25.000` | **25** (sai 1000 lần) | 25 000 |
+| Lượng dầu `10,5` | **105** (sai 10 lần) | 10,5 |
+| Doanh thu `2.500.000` | **null** (mất trắng) | 2 500 000 |
+| Cầu đường `120 000` | 120 000 ✔ | 120 000 |
+
+Không có cảnh báo nào — chuyến vẫn được tạo, chỉ là sai số tiền.
+
+**Sửa:** thêm `parseImportNumber()` vào `packages/shared` (cạnh `parseImportDate`) và dùng cho `num()`:
+có cả `.` và `,` → dấu đứng sau là thập phân; một dấu, nhiều hơn hai nhóm → nghìn; một dấu, đúng 3
+chữ số phía sau → nghìn (quy ước vi); còn lại → thập phân. Bỏ khoảng trắng (kể cả NBSP), ký hiệu `₫`
+và dấu âm/ngoặc. Ô numeric thật đi thẳng, không đổi.
+
+## 7. Bộ test import (11 case, chạy qua UI thật trên local)
+
+| # | Case | Kết quả |
+|---|---|---|
+| 1 | Happy path đủ 18 cột, 3 dòng — kiểm từng field trong DB | PASS |
+| 1b | "Chi phí khác" → line item `car_trip_extra_costs` | PASS |
+| 1c | "Điểm ghé" → 3 stopover PICKUP → WAYPOINT → DELIVERY | PASS |
+| 2 | Đảo thứ tự cột, tiêu đề khác → tự map theo từ khoá | PASS |
+| 3 | Số text kiểu VN `2.500.000` / `10,5` / `25.000` / `120 000` | PASS (sau khi vá) |
+| 3b | Biến thể `1,234.5` · `30 000 ₫` · `12,000,000` | PASS |
+| 4 | Trộn dòng lỗi + dòng tốt → chỉ nhập dòng tốt | PASS |
+| 5 | Chỉ có cột Ngày, mọi cột khác trống | PASS |
+| 6 | File nhiều sheet → chỉ nhập sheet đang chọn | PASS |
+| 7 | Tháng đã khoá sổ → chặn bằng CAR-E1002, không ghi gì | PASS |
+| 8 | Ghi `car_imports` (COMPLETED + số dòng) và audit `TRUCK_IMPORT.RUN` | PASS |
+
+Cộng 5 case định dạng ngày ở §4. `turbo run typecheck` 5/5 · `turbo run lint` pass.

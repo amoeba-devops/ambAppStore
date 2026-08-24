@@ -79,6 +79,57 @@ export function parseImportDate(value: unknown): string | null {
   return null;
 }
 
+/**
+ * A number cell → JS number, or undefined when there's nothing usable
+ * (BUG-260824). A numeric cell arrives as a number and passes straight through;
+ * the work here is TEXT cells, which is what a Text-formatted column or a
+ * pasted value produces.
+ *
+ * Vietnamese Excel writes `2.500.000` and `10,5` — dot groups thousands, comma
+ * is the decimal mark — the exact opposite of the en-US convention JS `Number`
+ * assumes. Reading them naively turned `25.000` đ/L into `25`, `10,5` L into
+ * `105`, and `2.500.000` into NaN → the field was silently dropped.
+ *
+ * Rules, applied to whichever separators are present:
+ *  - both `.` and `,` → the LAST one is the decimal mark (`1.234,5` = `1,234.5`);
+ *  - one separator, more than two groups → thousands (`2.500.000`);
+ *  - one separator, exactly 3 digits after it → thousands (`25.000` = 25000).
+ *    This is the vi convention; `25.000` as "twenty-five point zero" does not
+ *    occur in these columns (money in đồng, litres to 1–2 decimals);
+ *  - otherwise → decimal mark (`10,5` = 10.5, `25.75` = 25.75).
+ */
+export function parseImportNumber(value: unknown): number | undefined {
+  if (value == null || value === '') return undefined;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
+
+  let s = String(value).trim();
+  if (s === '') return undefined;
+  const negative = /^[-(]/.test(s);
+  /* Strip sign, spaces (incl. NBSP from Excel) and a đồng symbol. */
+  s = s.replace(/^[-+(]|\)$/g, '').replace(/[\s ₫]/g, '');
+  if (!/^\d[\d.,]*$/.test(s)) return undefined;
+
+  const lastDot = s.lastIndexOf('.');
+  const lastComma = s.lastIndexOf(',');
+  let normalized: string;
+  if (lastDot >= 0 && lastComma >= 0) {
+    const dec = lastDot > lastComma ? '.' : ',';
+    const thousands = dec === '.' ? /,/g : /\./g;
+    normalized = s.replace(thousands, '').replace(dec, '.');
+  } else if (lastDot >= 0 || lastComma >= 0) {
+    const sep = lastDot >= 0 ? '.' : ',';
+    const parts = s.split(sep);
+    const tail = parts[parts.length - 1] ?? '';
+    const isThousands = parts.length > 2 || tail.length === 3;
+    normalized = isThousands ? parts.join('') : `${parts.slice(0, -1).join('')}.${tail}`;
+  } else {
+    normalized = s;
+  }
+  const n = Number(normalized);
+  if (!Number.isFinite(n)) return undefined;
+  return negative ? -n : n;
+}
+
 /** One normalized import row (client maps the sheet → these fields). */
 export const truckImportRowSchema = z.object({
   date: z.string().min(1),
