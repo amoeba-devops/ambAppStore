@@ -4,6 +4,7 @@ import { db } from '@car-v2/db/client';
 import {
   carTrips,
   carTripExtraCosts,
+  carTripStopovers,
   carDrivers,
   carUsers,
   carVehicles,
@@ -138,6 +139,9 @@ export interface TruckTripRow {
   startOdometer: number | null;
   endOdometer: number | null;
   pickup: string | null;
+  /** "Điểm ghé" — WAYPOINT stops joined by " · " (REQ-20260824: the export used
+   * to drop them even though the import template has the column). */
+  stopover: string | null;
   dropoff: string | null;
   cdf: string | null;
   notes: string | null;
@@ -244,6 +248,26 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
         .from(carTripExtraCosts)
         .where(and(eq(carTripExtraCosts.entId, entId), inArray(carTripExtraCosts.trpId, ids)))
     : [];
+  const waypoints = ids.length
+    ? await db
+        .select({ trpId: carTripStopovers.tstTripId, address: carTripStopovers.tstAddress })
+        .from(carTripStopovers)
+        .where(
+          and(
+            eq(carTripStopovers.entId, entId),
+            inArray(carTripStopovers.tstTripId, ids),
+            eq(carTripStopovers.tstType, 'WAYPOINT'),
+          ),
+        )
+        .orderBy(carTripStopovers.tstOrder)
+    : [];
+  const stopoverByTrip = new Map<string, string[]>();
+  for (const w of waypoints) {
+    if (!w.address?.trim()) continue;
+    const arr = stopoverByTrip.get(w.trpId) ?? [];
+    arr.push(w.address.trim());
+    stopoverByTrip.set(w.trpId, arr);
+  }
   const extraByTrip = new Map<string, number[]>();
   const extraNoteByTrip = new Map<string, string[]>();
   for (const e of extras) {
@@ -343,6 +367,7 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
       startOdometer: t.trpStartOdometer,
       endOdometer: t.trpEndOdometer,
       pickup: t.trpPickupAddress,
+      stopover: (stopoverByTrip.get(t.trpId) ?? []).join(' · ') || null,
       dropoff: t.trpDropoffAddress,
       cdf: t.trpCdf,
       notes: t.trpNotes,

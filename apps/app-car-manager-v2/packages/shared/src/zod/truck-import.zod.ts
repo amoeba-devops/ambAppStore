@@ -1,9 +1,59 @@
 import { z } from 'zod';
 
 /**
- * Truck Excel import (REQ-20260617, format CR-Vietnam-Truck-v1).
- * Template column order (18). The Vehicle column is informational — the actual
- * truck + driver are chosen in the import UI (one file = one truck per the SRS).
+ * Column order of the import template (18). The labels themselves now come from
+ * i18n (`columns.truck`, REQ-20260824) so the template, the import mapper, the
+ * trip list and the export all print the SAME word for the same thing; this
+ * array only fixes the ORDER, which old files rely on.
+ */
+export const TRUCK_TEMPLATE_ORDER = [
+  'date', 'vehicleHint', 'startTime', 'endTime', 'customer', 'pickup', 'stopover', 'dropoff',
+  'odoStart', 'odoEnd', 'fuelLiters', 'fuelPrice', 'toll', 'otherAmount', 'otherNote',
+  'bol', 'cdf', 'revenue',
+] as const;
+export type TruckTemplateColumn = (typeof TRUCK_TEMPLATE_ORDER)[number];
+
+/**
+ * Header aliases used to auto-map an uploaded sheet onto the import fields.
+ *
+ * Must cover EVERY wording a real file can carry, not just today's template:
+ * the canonical labels in all three languages, plus the legacy wording shipped
+ * before REQ-20260824 (old templates and old exports are still out there).
+ * Matching is substring, case-insensitive, on the lower-cased header.
+ *
+ * `not` is a veto list — a header containing one of those never matches that
+ * field. It exists because "Phí nhiên liệu" (money) used to be picked up as
+ * "Lượng nhiên liệu" (litres), so an export re-imported charged the fuel COST
+ * as a litre count.
+ */
+export const TRUCK_IMPORT_ALIASES: Record<string, { any: string[]; not?: string[] }> = {
+  date: { any: ['ngày', 'date', '날짜'] },
+  start_time: { any: ['giờ bắt đầu', 'giờ bđ', 'giờ đi', 'start time', 'start', '시작 시간', '출발 시각'], not: ['odo', '주행'] },
+  end_time: { any: ['giờ kết thúc', 'giờ kt', 'giờ về', 'end time', 'end', '종료 시간', '종료 시각'], not: ['odo', '주행'] },
+  customer: { any: ['khách', 'customer', '고객'] },
+  pickup: { any: ['điểm lấy', 'nơi lấy', 'lấy hàng', 'xuất phát', 'điểm đi', 'pickup', 'from', '상차'] },
+  stopover: { any: ['điểm ghé', 'ghé', 'waypoint', 'stopover', '경유'] },
+  dropoff: { any: ['điểm giao', 'nơi giao', 'giao hàng', 'điểm đến', 'drop-off', 'dropoff', '하차'] },
+  odo_start: { any: ['km đầu', 'đồng hồ đầu', 'odo đầu', 'start odo', 'odo start', '시작 주행', '시작 odo'] },
+  odo_end: { any: ['km cuối', 'đồng hồ cuối', 'odo cuối', 'end odo', 'odo end', '종료 주행', '종료 odo'] },
+  /* Litres — never the money column. */
+  fuel_liters: {
+    any: ['lượng nhiên liệu', 'lượng dầu', 'nhiên liệu (l)', 'số lít', 'lít', 'litre', 'liter', 'fuel (l)', '주유량', '연료(l)'],
+    not: ['phí', 'chi phí', 'cost', '비용', '연료비', '유류비'],
+  },
+  fuel_price: { any: ['đơn giá', 'giá dầu', 'unit price', 'fuel unit', '단가', '유가'] },
+  toll: { any: ['cầu đường', 'toll', '통행료'] },
+  other_amount: { any: ['chi phí phát sinh', 'chi phí khác', 'phát sinh khác', 'phí khác', 'other cost', 'other fee', '기타 비용'], not: ['ghi chú', 'note', 'tên', 'name', '명목', '메모'] },
+  other_note: { any: ['ghi chú phát sinh', 'ghi chú chi phí', 'tên phí', 'tên khoản phí', 'other note', 'fee name', '기타 메모', '기타 비용 명목'] },
+  bol: { any: ['bol', 'vận đơn', 'bill'] },
+  cdf: { any: ['cdf'] },
+  revenue: { any: ['doanh thu', 'revenue', 'selling', '매출'], not: ['tháng', 'month'] },
+};
+
+/**
+ * @deprecated Kept so an existing caller still compiles; the template route now
+ * builds its header row from i18n. Vietnamese labels as shipped before
+ * REQ-20260824 — also serves as documentation of the legacy file layout.
  */
 export const TRUCK_IMPORT_HEADERS = [
   'Ngày',

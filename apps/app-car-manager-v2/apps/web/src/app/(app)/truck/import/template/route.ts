@@ -1,5 +1,7 @@
 import * as XLSX from 'xlsx';
-import { TRUCK_IMPORT_HEADERS } from '@car-v2/shared/zod';
+import { getTranslations } from 'next-intl/server';
+import { TRUCK_TEMPLATE_ORDER } from '@car-v2/shared/zod';
+import { resolveUiLocale } from '@/i18n/ui-locale';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { hasFleet } from '@/lib/auth/fleet-access';
 import { attachment, exportFileName, exportSheetName } from '@/server/lib/export-file-name';
@@ -24,7 +26,24 @@ export async function GET() {
     return new Response('Forbidden', { status: 403 });
   }
 
-  const ws = XLSX.utils.aoa_to_sheet([[...TRUCK_IMPORT_HEADERS]]);
+  /* Header row in the downloader's language, from the one shared column
+   * glossary (REQ-20260824) — the same words the trip list, the mapper and the
+   * export use. Order is fixed by TRUCK_TEMPLATE_ORDER so a file made from an
+   * older template still lines up. Units live next to the label where they
+   * matter, e.g. "Lượng nhiên liệu (L)". */
+  const tCol = await getTranslations({ locale: await resolveUiLocale(), namespace: 'columns.truck' });
+  const unit: Partial<Record<(typeof TRUCK_TEMPLATE_ORDER)[number], string>> = {
+    odoStart: tCol('unitKm'),
+    odoEnd: tCol('unitKm'),
+    fuelLiters: tCol('unitLitre'),
+    fuelPrice: tCol('unitPricePerL'),
+  };
+  const headers = TRUCK_TEMPLATE_ORDER.map((k) => {
+    const label = tCol(k as Parameters<typeof tCol>[0]);
+    const u = unit[k];
+    return u ? `${label} (${u})` : label;
+  });
+  const ws = XLSX.utils.aoa_to_sheet([headers]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, await exportSheetName('screens.truckImport', 'TripLog'));
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
