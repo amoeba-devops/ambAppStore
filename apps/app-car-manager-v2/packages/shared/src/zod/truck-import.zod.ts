@@ -180,6 +180,30 @@ export function parseImportNumber(value: unknown): number | undefined {
   return negative ? -n : n;
 }
 
+/**
+ * "Giờ bắt đầu / Giờ kết thúc" of a trip is a WALL CLOCK the user typed
+ * ("08:15"), not an instant — so it must be stored and read back through the
+ * same frame or it drifts (REQ-20260824 round-trip test: typed 08:15, exported
+ * 01:15 on a GMT+7 machine).
+ *
+ * Everything that READS these back — the trip-log export, the monthly report,
+ * the edit forms — uses UTC components, so this writes UTC too. On Render
+ * (server TZ = UTC) that is byte-for-byte what the old `new Date(str)` produced,
+ * so stored data and prod behaviour are unchanged; it only stops the value from
+ * depending on which timezone the server happens to run in.
+ *
+ * Accepts "YYYY-MM-DD", optionally followed by "T"/" " and "HH:mm[:ss]".
+ */
+export function parseWallClockUtc(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{1,2}):(\d{2})(?::(\d{2}))?)?/.exec(String(value).trim());
+  if (!m) return null;
+  const d = new Date(
+    Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4] ?? 0), Number(m[5] ?? 0), Number(m[6] ?? 0)),
+  );
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 /** One normalized import row (client maps the sheet → these fields). */
 export const truckImportRowSchema = z.object({
   date: z.string().min(1),

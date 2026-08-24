@@ -45,3 +45,30 @@ Một lỗi tự gây trong lúc làm, đã bắt và sửa trước khi commit:
   thứ tự cột **không đổi** (trừ file xuất chèn thêm "Điểm ghé" ở vị trí thứ 11).
 - File làm từ **template cũ vẫn nhập được** — bảng alias giữ nguyên wording cũ.
 - Từ nay thêm/đổi tên cột chỉ sửa **một chỗ**: `columns.truck` trong 3 file i18n.
+
+---
+
+## 4. Bổ sung — đối chiếu DỮ LIỆU (không chỉ tiêu đề)
+
+Test tiếp theo: tải template → điền giá trị đã biết → nhập → **xuất ra so từng ô** → **nhập lại chính
+file xuất**. Lần chạy đầu lộ 1 lỗi cuối: **giờ bắt đầu/kết thúc lệch 7 tiếng** (điền `08:15`, file xuất
+in `01:15`).
+
+**Nguyên nhân:** giờ chuyến là *wall clock* người dùng gõ, nhưng hai đầu dùng hai khung giờ khác nhau —
+ghi bằng `new Date("2027-12-08T08:15")` (diễn giải theo **múi giờ máy chủ**) còn đọc bằng
+`toISOString()` (**luôn UTC**). Render chạy UTC nên hai bên trùng và lỗi không lộ trên staging/prod;
+bất kỳ máy chủ nào khác múi giờ (máy dev ở GMT+7) là lệch đúng bằng offset.
+
+**Sửa:** thêm `parseWallClockUtc()` (shared) và dùng ở **mọi** đường ghi giờ chuyến — 6 chỗ trong
+`truck-trip.actions.ts` (form tạo/sửa/hoàn thành, cả bản tài xế) và `combineDateTime` của import; hai
+form sửa đọc lại bằng `getUTC*` thay vì giờ máy. Trên Render kết quả **y hệt trước** (server vốn UTC),
+nên dữ liệu cũ và hành vi prod không đổi — chỉ bỏ được sự phụ thuộc vào múi giờ máy chủ.
+
+**Kết quả sau khi sửa:**
+
+| Vòng | Kết quả |
+|---|---|
+| Điền → nhập → DB → xuất | **17/17 trường khớp** cả 3 chặng (trước: 15/17) |
+| Cột dẫn xuất | Tổng km 150 · Phí nhiên liệu thực tế 1.126.250 = 42,5 × 26.500 ✓ |
+| Nhập lại chính file xuất (vòng 2) | **13/13 trường giữ nguyên** — round-trip không mất mát |
+| Bộ parity 4 bề mặt (chạy lại) | **10/10 PASS** |

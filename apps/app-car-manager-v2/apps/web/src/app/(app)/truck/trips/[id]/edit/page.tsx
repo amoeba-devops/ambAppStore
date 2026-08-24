@@ -14,10 +14,13 @@ import { listFleetDrivers } from '@/server/queries/drivers.queries';
 import { TruckTripForm } from '../../_components/truck-trip-form';
 
 /** Date → 'HH:mm' for the form's <input type="time">; '' when unset. */
+/* Trip start/end are a WALL CLOCK stored in UTC (parseWallClockUtc) — read
+ * them back in UTC too, or the form would show a different time than the one
+ * the user typed on any server/browser that isn't UTC (REQ-20260824). */
 function hhmm(d: Date | null): string {
   if (!d) return '';
   const x = new Date(d);
-  return `${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`;
+  return `${String(x.getUTCHours()).padStart(2, '0')}:${String(x.getUTCMinutes()).padStart(2, '0')}`;
 }
 
 export default async function EditTruckTripPage({ params }: { params: Promise<{ id: string }> }) {
