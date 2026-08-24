@@ -96,3 +96,11 @@ log server 0 lỗi. (Script tĩnh có dương tính giả khi một file dùng n
 
 **Bài học:** xoá khoá i18n thì phải quét **toàn repo theo namespace**, không chỉ màn hình đang sửa;
 và phải render thử ở **mọi ngôn ngữ** vì lỗi này không lộ ở typecheck/lint.
+
+---
+
+## 6. Bổ sung — số cột trên thẻ tải template (17 → 18)
+
+Phát hiện khi verify trên staging: thẻ "File mẫu" vẫn ghi *"Tải file mẫu chuẩn **17 cột**"* trong khi
+`TRUCK_TEMPLATE_ORDER` đã là **18 cột** (REQ này thêm "Điểm ghé"). Sửa `screens.truckImport.templateDesc`
+ở cả 3 ngôn ngữ — vi "18 cột", en "18-column", ko "18열". Chỉ đổi chữ, không đụng logic hay số cột thật.
