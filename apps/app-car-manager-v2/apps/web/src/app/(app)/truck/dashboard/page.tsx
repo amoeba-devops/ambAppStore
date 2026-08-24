@@ -146,6 +146,8 @@ export default async function TruckDashboardPage({
   const tPeriod = await getTranslations('screens.truckDashboard.period');
   const tPnl = await getTranslations('screens.truckPnl');
   const tTrips = await getTranslations('screens.truckTrips');
+  /* Cot bang dung glossary chung columns.truck (REQ-20260824). */
+  const tCol = await getTranslations('columns.truck');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
   const tStatus = await getTranslations('vehicles.status');
@@ -582,11 +584,11 @@ export default async function TruckDashboardPage({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{tTrips('thDate')}</TableHead>
+                      <TableHead>{tCol('date')}</TableHead>
                       <TableHead>{tTrips('thCustomer')}</TableHead>
                       <TableHead className="text-right">{t('thCost')}</TableHead>
-                      <TableHead className="text-right">{tTrips('thRevenue')}</TableHead>
-                      <TableHead className="text-right">{tTrips('thProfit')}</TableHead>
+                      <TableHead className="text-right">{tCol('revenue')}</TableHead>
+                      <TableHead className="text-right">{tCol('profit')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

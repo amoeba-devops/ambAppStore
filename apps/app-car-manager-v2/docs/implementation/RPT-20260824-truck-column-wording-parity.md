@@ -72,3 +72,27 @@ nên dữ liệu cũ và hành vi prod không đổi — chỉ bỏ được s�
 | Cột dẫn xuất | Tổng km 150 · Phí nhiên liệu thực tế 1.126.250 = 42,5 × 26.500 ✓ |
 | Nhập lại chính file xuất (vòng 2) | **13/13 trường giữ nguyên** — round-trip không mất mát |
 | Bộ parity 4 bề mặt (chạy lại) | **10/10 PASS** |
+
+---
+
+## 5. Sự cố sau deploy staging — `MISSING_MESSAGE: screens.truckTrips.thDate (en)`
+
+Sau khi deploy, log Render báo 3 lỗi `MISSING_MESSAGE` (`thDate`, `thRevenue`, `thProfit`, bản `en`)
+khi mở **Bảng điều khiển xe tải**.
+
+**Nguyên nhân:** ở §1 tôi xoá 12 khoá `screens.truckTrips.th*` sau khi grep kết luận "0 nơi dùng" —
+nhưng lệnh grep đó chỉ soi `truck/trips/page.tsx` và một lượt tìm rộng đã bị `head`/bộ lọc cắt mất kết
+quả. Thực tế **`truck/dashboard/page.tsx` cũng lấy namespace `screens.truckTrips`** cho bảng "chuyến
+gần đây". Trang chỉ hỏng khi render nên `tsc` và `lint` không bắt được.
+
+**Sửa:** dashboard chuyển sang chính glossary chung (`tCol('date' | 'revenue' | 'profit')`) — đúng
+tinh thần của REQ này, thay vì khôi phục khoá cũ.
+
+**Chốt chặn để không lặp lại:** viết script quét i18n (`i18n-missing-keys.mjs`) đọc mọi
+`get/useTranslations('NS')` → `t('key')` rồi đối chiếu 3 file messages, **cộng** một lượt crawl 16
+trang × 3 ngôn ngữ bắt `MISSING_MESSAGE` lúc render thật. Kết quả sau khi sửa: **vi/en/ko đều sạch**,
+log server 0 lỗi. (Script tĩnh có dương tính giả khi một file dùng nhiều biến `t` khác namespace —
+15 trường hợp báo thiếu đều đã kiểm tay và đúng là dương tính giả, tồn tại từ trước, không do REQ này.)
+
+**Bài học:** xoá khoá i18n thì phải quét **toàn repo theo namespace**, không chỉ màn hình đang sửa;
+và phải render thử ở **mọi ngôn ngữ** vì lỗi này không lộ ở typecheck/lint.
