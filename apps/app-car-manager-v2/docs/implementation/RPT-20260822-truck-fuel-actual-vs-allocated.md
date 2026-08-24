@@ -62,3 +62,41 @@ dữ liệu là đơn giá của chính chuyến. Đã sửa toàn bộ header c
 - `BaoCao_ChiPhiChuyen_T10_2026.xlsx` → `Phí nhiên liệu (phân bổ)` = 110.000 / 220.000 / 220.000
 
 **Parity i18n:** vi/en/ko đều **2168 key**, không thiếu/thừa key nào (so khớp toàn cây).
+
+## 5. Export Chi phí & Lợi nhuận: bổ sung cột CP cố định phân bổ (2026-08-22)
+
+Rà 3 luồng Excel (tải template · import · xuất) phát hiện file xuất từ màn **Chi phí & Lợi nhuận thiếu cột so với
+màn hình**: từ REQ-20260725 màn đã có cột "CP cố định phân bổ" (lương + khấu hao), nhưng file chỉ có 13 cột và cột
+"Lợi nhuận" trong file là `profit` (**trước** chi phí cố định) trong khi màn hiển thị `profitAfterFixed` (**sau**).
+Hệ quả: file lệch màn hình với mọi xe có cấu hình lương/khấu hao — tức gần như mọi trường hợp thật. (Comment cũ
+"profit stays the VARIABLE-only figure the Excel exports are built on" là chủ đích thời PLAN-20260707, đã lỗi thời.)
+
+**Sửa** — `apps/web/src/app/(app)/truck/finance/export/route.ts`: 13 → **16 cột**, thêm `Lương phân bổ`,
+`Khấu hao phân bổ`, và tách hai chỉ tiêu lợi nhuận:
+
+| Cột | Nguồn | Ý nghĩa |
+|---|---|---|
+| `Lợi nhuận trước CP cố định` | `r.profit` | giữ nguyên con số file cũ (tương thích ngược) |
+| `Lương phân bổ` / `Khấu hao phân bổ` | `r.salaryAllocated` / `r.depreciationAllocated` | đúng cột trên màn |
+| `Lợi nhuận (sau CP cố định)` | `r.profitAfterFixed` | **khớp cột Lợi nhuận trên màn hình** |
+
+i18n 3 ngôn ngữ: vi như trên · en `Profit before fixed cost` / `Salary allocated` / `Depreciation allocated` /
+`Profit (after fixed cost)` · ko `고정비 차감 전 손익` / `배분 인건비` / `배분 감가상각비` / `손익 (고정비 차감 후)`.
+
+**Verify (local, fixture có chi phí cố định — kịch bản làm lộ lỗi):** 2027-02, xe 60C-311.07, lương 6.000.000 +
+KH 400.000 (÷2 chuyến = 3.000.000 / 200.000), pool dầu 300.000 ÷ 30 km = 10.000 đ/km.
+
+| | Màn hình | File |
+|---|---|---|
+| FIX-A | phân bổ 3.200.000 · LN **6.700.000** | Lương 3.000.000 · KH 200.000 · LN sau CPCĐ **6.700.000** ✔ |
+| FIX-B | phân bổ 3.200.000 · LN **6.600.000** | Lương 3.000.000 · KH 200.000 · LN sau CPCĐ **6.600.000** ✔ |
+
+## 6. Kết quả rà 3 luồng Excel (2026-08-22)
+
+- **Tải template**: 18 cột đúng `TRUCK_IMPORT_HEADERS`; tên file + tab theo ngôn ngữ người tải, header BÊN TRONG
+  giữ tiếng Việt theo thiết kế (parser tự map bằng từ khoá vi/en, không phụ thuộc chữ trên header) — giữ nguyên.
+- **Import**: điền vào chính file template rồi upload → 2 chuyến vào DB đúng mọi field (km, dầu, cầu đường, chi phí
+  khác thành line item, BOL/CDF, giờ chạy). Caveat vận hành: xe lấy từ dropdown và áp cho MỌI dòng, cột
+  "Xe (biển số)" trong file chỉ để đối chiếu.
+- **Xuất Excel**: cả hai file dịch đủ vi/en/ko (tên file, tab, toàn bộ header) và mang đúng khái niệm của mình —
+  trip-log = thực tế (25 cột), finance = phân bổ (16 cột sau thay đổi này).

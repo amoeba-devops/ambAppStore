@@ -69,10 +69,17 @@ export async function GET(req: Request) {
     locale: await resolveUiLocale(),
     namespace: 'exportContent.truckFinance',
   });
+  /* Columns mirror the screen (REQ-20260725 added the allocated fixed cost
+   * there): lương + khấu hao phân bổ, then BOTH profit figures — variable-only
+   * (what this file used to call "Lợi nhuận") and after fixed cost, which is
+   * the number the screen shows. Exporting only the variable one made the file
+   * disagree with the screen for every vehicle that has salary/depreciation
+   * configured. */
   const header = [
     t('colDate'), t('colVehicle'), t('colDriver'), t('colCustomer'), t('colKm'),
     t('colToll'), t('colExtra'), t('colUnitPrice'), t('colLiters'), t('colFuelCost'),
-    t('colRevenue'), t('colProfit'), t('colStatus'),
+    t('colRevenue'), t('colProfitBeforeFixed'), t('colSalaryAllocated'),
+    t('colDepreciationAllocated'), t('colProfit'), t('colStatus'),
   ];
   const body = rows.map((r) => [
     new Date(r.scheduledAt).toISOString().slice(0, 10),
@@ -87,6 +94,9 @@ export async function GET(req: Request) {
     r.fuelCost,
     r.revenue,
     r.profit,
+    r.salaryAllocated,
+    r.depreciationAllocated,
+    r.profitAfterFixed,
     r.finalized ? t('statusDone') : t('statusOpen'),
   ]);
 
