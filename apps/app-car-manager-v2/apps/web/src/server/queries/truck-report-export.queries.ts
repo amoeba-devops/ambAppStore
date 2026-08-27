@@ -138,10 +138,16 @@ export async function getTruckReportExport(
    * costs — and compute `totals` as Σ of the per-vehicle rows so the template's
    * TỔNG row reconciles exactly with the A/B/C blocks. Off (default) keeps the
    * legacy PNL behaviour: rows for trip-vehicles only, totals via a region call. */
-  opts: { includeIdle?: boolean } = {},
+  opts: { includeIdle?: boolean; vehicleIds?: readonly string[] } = {},
 ): Promise<TruckReportExport> {
   const start = new Date(`${month}-01T00:00:00.000Z`);
   const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
+  /* Vehicle-subset scope (REQ-20260817). Applies to every report format,
+   * including MONTHLY_SUMMARY: `scopeVehicles` below narrows to exactly this
+   * set, so the KPI block (truckCount, avgKmPerActive…) is recomputed over the
+   * SELECTED subset rather than the whole region — user decision 2026-08-17,
+   * superseding REQ-20260817 GĐ-A's original whole-region-only default. */
+  const vehicleScope = opts.vehicleIds && opts.vehicleIds.length > 0 ? opts.vehicleIds : undefined;
 
   const [snapshots, fuel, closedLegacy, rows] = await Promise.all([
     loadTruckRegionSnapshots(actor.entId, [month]),
@@ -181,6 +187,7 @@ export async function getTruckReportExport(
           gte(carTrips.trpScheduledAt, start),
           lt(carTrips.trpScheduledAt, end),
           region ? eq(carVehicles.cvhRegion, region) : undefined,
+          vehicleScope ? inArray(carTrips.trpVehicleId, [...vehicleScope]) : undefined,
         ),
       )
       .orderBy(asc(carTrips.trpScheduledAt)),
@@ -286,6 +293,7 @@ export async function getTruckReportExport(
         eq(carVehicles.cvhType, 'TRUCK'),
         isNull(carVehicles.cvhDeletedAt),
         region ? eq(carVehicles.cvhRegion, region) : undefined,
+        vehicleScope ? inArray(carVehicles.cvhId, [...vehicleScope]) : undefined,
       ),
     )
     .orderBy(asc(carVehicles.cvhPlateNumber));
@@ -398,7 +406,7 @@ export async function getTruckReportExport(
       { salary: 0, revenue: 0, fixedOther: 0, depreciation: 0, toll: 0, fuel: 0, extra: 0, net: 0 },
     );
   } else {
-    const [tot] = await computeTruckPnl(actor, { region, months: [month] });
+    const [tot] = await computeTruckPnl(actor, { region, vehicleIds: vehicleScope, months: [month] });
     totals = {
       salary: tot?.salary ?? 0,
       revenue: tot?.revenue ?? 0,

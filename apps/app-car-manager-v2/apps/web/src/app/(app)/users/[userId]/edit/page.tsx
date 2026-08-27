@@ -6,6 +6,7 @@ import { carUsers } from '@car-v2/db/schema';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { PageHeader } from '@/components/layout/page-header';
 import { getUserDepts } from '@/server/queries/users.queries';
+import { getUserRegionAccess } from '@/server/queries/region-access.queries';
 import { EditMemberForm } from './_components/edit-member-form';
 
 /**
@@ -42,6 +43,12 @@ export default async function EditUserPage({
    * itself is a single global value), so they belong on this form — until now the
    * only way to set them was /settings/fleet-access, which is hidden from the menu. */
   const depts = await getUserDepts(actor.entId, row.usrId);
+  /* Region scoping only exists inside the truck fleet and never applies to an
+   * ADMIN (always sees every region) — skip the query otherwise. */
+  const regions =
+    depts.includes('TRUCK') && row.usrLocalRole !== 'ADMIN'
+      ? await getUserRegionAccess(actor.entId, row.usrId)
+      : [];
 
   return (
     <>
@@ -61,6 +68,7 @@ export default async function EditUserPage({
           amaRoleSnapshot={row.usrAmaRoleSnapshot}
           localRole={row.usrLocalRole}
           depts={depts}
+          initialRegions={regions}
           blocked={row.usrDeletedAt !== null}
           isSelf={row.usrId === actor.userId}
         />

@@ -51,6 +51,16 @@ export interface TruckPnlRow {
 
 export interface TruckPnlQuery {
   vehicleId?: string | null;
+  /**
+   * Restrict to this set of trucks — the multi-select vehicle filter
+   * (REQ-20260814). Unlike `vehicleId`, this INTERSECTS `region`/`regions`
+   * rather than replacing them, so an id outside the actor's region scope can
+   * never widen the result. Undefined/empty = no vehicle filter.
+   *
+   * Like the other vehicle-level filters, this excludes fleet-level driver
+   * salary (not tied to any one truck).
+   */
+  vehicleIds?: readonly string[] | null;
   /** Restrict to vehicles in this operating region (cvh_region code). Like the
    * vehicle filter, this excludes fleet-level driver salary (not region-tied). */
   region?: string | null;
@@ -144,8 +154,25 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
     regionVehicleIds = vrows.map((r) => r.id);
     if (regionVehicleIds.length === 0) return months.map((m) => emptyRow(m));
   }
+  /* Multi-select vehicle scope (REQ-20260814) INTERSECTS the region scope — it
+   * never widens it. `vehicleId` keeps its historical "replaces" semantics
+   * because every caller already validates it against a region-scoped list;
+   * the new array path must not inherit that, since it also serves the export
+   * route handlers, which bypass the /truck layout guard. */
+  const scopedVehicleIds: string[] | null = q.vehicleIds?.length
+    ? regionVehicleIds
+      ? q.vehicleIds.filter((v) => regionVehicleIds!.includes(v))
+      : [...q.vehicleIds]
+    : regionVehicleIds;
+  /* Asked for specific trucks, none of them in scope → nothing to report. */
+  if (q.vehicleIds?.length && scopedVehicleIds!.length === 0) return months.map((m) => emptyRow(m));
+
   const vehicleFilter = (col: typeof carTrips.trpVehicleId | typeof carTruckFixedCosts.cvhId) =>
-    q.vehicleId ? eq(col, q.vehicleId) : regionVehicleIds ? inArray(col, regionVehicleIds) : undefined;
+    q.vehicleId
+      ? eq(col, q.vehicleId)
+      : scopedVehicleIds
+        ? inArray(col, scopedVehicleIds)
+        : undefined;
 
   const trips = await db
     .select({
@@ -206,8 +233,8 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
     row.revenue += Math.round(parseAmount(t.revenue));
     const km =
       t.startOdometer != null && t.endOdometer != null ? t.endOdometer - t.startOdometer : 0;
-    /* Fuel = frozen snapshot → vehicle rate → 0 (REQ-20260724), same precedence
-     * everywhere via the shared helper. */
+    /* Fuel = frozen per-vehicle snapshot → live monthly pool → 0 (BUG-260730,
+     * money ÷ km either way), same precedence everywhere via the shared helper. */
     const fuel = snapshots.fuelForTrip(mk, t.vehicleId, km);
     row.fuelCost += fuel.cost;
     if (fuel.mode === 'AVERAGED') row.fuelAveragedTripCount += 1;
@@ -224,7 +251,7 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
    * month before the truck existed carries nothing (QA 2026-07-30). */
   const fixedMonthly = await loadTruckFixedMonthly(actor.entId, months, {
     vehicleId: q.vehicleId ?? null,
-    vehicleIds: q.vehicleId ? null : regionVehicleIds,
+    vehicleIds: q.vehicleId ? null : scopedVehicleIds,
   });
   for (const vid of fixedMonthly.vehicleIds) {
     for (const m of months) {

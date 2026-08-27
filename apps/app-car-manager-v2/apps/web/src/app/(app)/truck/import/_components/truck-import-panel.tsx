@@ -16,7 +16,13 @@ import {
   cn,
   toast,
 } from '@car-v2/ui';
-import type { TruckImportRow } from '@car-v2/shared/zod';
+import {
+  TRUCK_IMPORT_ALIASES,
+  TRUCK_TEMPLATE_ORDER,
+  parseImportDate,
+  parseImportNumber,
+  type TruckImportRow,
+} from '@car-v2/shared/zod';
 import { importTruckTripsAction } from '@/server/actions/imports/import.actions';
 import { formatActionError } from '@/lib/format-action-error';
 import type { OptionItem } from '@/app/(app)/truck/trips/_components/truck-trip-form';
@@ -28,19 +34,17 @@ const str = (v: unknown): string | undefined => {
   const s = String(v).trim();
   return s === '' ? undefined : s;
 };
-const num = (v: unknown): number | undefined => {
-  if (v == null || v === '') return undefined;
-  const n = Number(String(v).replace(/[,\s]/g, ''));
-  return Number.isFinite(n) ? n : undefined;
-};
+/* Handles vi thousand/decimal marks ("2.500.000", "10,5") — see
+ * parseImportNumber; shared so the preview and the saved value agree. */
+const num = (v: unknown): number | undefined => parseImportNumber(v);
 const int = (v: unknown): number | undefined => {
   const n = num(v);
   return n == null ? undefined : Math.trunc(n);
 };
-const dateStr = (v: unknown): string => {
-  if (v instanceof Date) return v.toISOString().slice(0, 10);
-  return String(v ?? '').trim();
-};
+/* Any date shape Excel produces → 'YYYY-MM-DD'; '' when unreadable, which
+ * marks the row invalid below so it can't be sent (BUG-260824). The parsing
+ * itself is shared with the server action — see parseImportDate. */
+const dateStr = (v: unknown): string => parseImportDate(v) ?? '';
 /* Time-of-day cell → "HH:MM". xlsx `cellDates` turns a typed time into a
  * UTC-based 1899 Date, so read UTC components to recover what the user typed;
  * a plain text cell ("8:00") passes through unchanged. */
@@ -55,24 +59,27 @@ const timeStr = (v: unknown): string | undefined => {
 
 /* System fields ← Excel columns. `kw` = header keywords for auto-mapping;
  * `def` = fallback column index (CR-Vietnam-Truck-v1 template order). */
+/* Trường hệ thống ← cột Excel. Nhãn hiển thị lấy từ glossary chung
+ * (`columns.truck`, REQ-20260824); từ khoá nhận diện nằm ở TRUCK_IMPORT_ALIASES
+ * (shared) để cả 3 ngôn ngữ + file cũ đều map được. `col` = khoá i18n. */
 const FIELDS = [
-  { key: 'date', required: true, kw: ['ngày', 'date'], def: 0 },
-  { key: 'start_time', kw: ['bắt đầu', 'giờ đi', 'start'], def: 2 },
-  { key: 'end_time', kw: ['kết thúc', 'giờ về', 'end'], def: 3 },
-  { key: 'customer', kw: ['khách', 'customer'], def: 4 },
-  { key: 'pickup', kw: ['lấy hàng', 'xuất phát', 'điểm đi', 'pickup'], def: 5 },
-  { key: 'stopover', kw: ['điểm ghé', 'ghé', 'waypoint', 'stopover'], def: 6 },
-  { key: 'dropoff', kw: ['giao hàng', 'điểm đến', 'dropoff'], def: 7 },
-  { key: 'odo_start', kw: ['đồng hồ đầu', 'km đầu', 'odo start', 'start odo'], def: 8 },
-  { key: 'odo_end', kw: ['đồng hồ cuối', 'km cuối', 'odo end', 'end odo'], def: 9 },
-  { key: 'fuel_liters', kw: ['lít', 'liters', 'nhiên liệu'], def: 10 },
-  { key: 'fuel_price', kw: ['đơn giá', 'giá', 'price'], def: 11 },
-  { key: 'toll', kw: ['cầu đường', 'toll'], def: 12 },
-  { key: 'other_amount', kw: ['chi phí khác', 'phát sinh', 'other'], def: 13 },
-  { key: 'other_note', kw: ['ghi chú', 'note'], def: 14 },
-  { key: 'bol', kw: ['bol', 'vận đơn'], def: 15 },
-  { key: 'cdf', kw: ['cdf'], def: 16 },
-  { key: 'revenue', kw: ['doanh thu', 'revenue'], def: 17 },
+  { key: 'date', required: true, col: 'date' },
+  { key: 'start_time', col: 'startTime' },
+  { key: 'end_time', col: 'endTime' },
+  { key: 'customer', col: 'customer' },
+  { key: 'pickup', col: 'pickup' },
+  { key: 'stopover', col: 'stopover' },
+  { key: 'dropoff', col: 'dropoff' },
+  { key: 'odo_start', col: 'odoStart' },
+  { key: 'odo_end', col: 'odoEnd' },
+  { key: 'fuel_liters', col: 'fuelLiters' },
+  { key: 'fuel_price', col: 'fuelPrice' },
+  { key: 'toll', col: 'toll' },
+  { key: 'other_amount', col: 'otherAmount' },
+  { key: 'other_note', col: 'otherNote' },
+  { key: 'bol', col: 'bol' },
+  { key: 'cdf', col: 'cdf' },
+  { key: 'revenue', col: 'revenue' },
 ] as const;
 type FieldKey = (typeof FIELDS)[number]['key'];
 type Mapping = Record<FieldKey, number>;
@@ -84,6 +91,7 @@ interface Sheet {
 
 export function TruckImportPanel({ vehicles, drivers }: { vehicles: OptionItem[]; drivers: OptionItem[] }) {
   const t = useTranslations('screens.truckImport');
+  const tCol = useTranslations('columns.truck');
   const tErr = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -113,11 +121,29 @@ export function TruckImportPanel({ vehicles, drivers }: { vehicles: OptionItem[]
       /* Auto-map from the first sheet's header row (keyword match → template
        * fallback). All sheets in one file share the same layout. */
       const headers = ((parsed[0]?.rows[0] ?? []) as unknown[]).map((h) => String(h ?? '').toLowerCase());
-      const guess = {} as Mapping;
+      const byHeader = {} as Mapping;
+      let matched = 0;
       for (const f of FIELDS) {
-        let idx = headers.findIndex((h) => f.kw.some((k) => h.includes(k)));
-        if (idx < 0) idx = f.def < headers.length ? f.def : -1;
-        guess[f.key] = idx;
+        const alias = TRUCK_IMPORT_ALIASES[f.key];
+        const idx = alias
+          ? headers.findIndex(
+              (h) => alias.any.some((k) => h.includes(k)) && !(alias.not ?? []).some((n) => h.includes(n)),
+            )
+          : -1;
+        byHeader[f.key] = idx;
+        if (idx >= 0) matched += 1;
+      }
+      /* Chỉ đoán theo VỊ TRÍ khi hàng tiêu đề không nhận ra được gì (file không
+       * có header, hoặc đặt tên hoàn toàn tự do) — khi đó thứ tự template là
+       * phỏng đoán duy nhất còn lại. Nếu đã nhận ra ít nhất một cột thì các cột
+       * còn lại để TRỐNG cho người dùng tự chọn: thà bắt chọn tay còn hơn gán
+       * nhầm âm thầm, như khi nhập lại chính file xuất (REQ-20260824). */
+      const guess = { ...byHeader };
+      if (matched === 0) {
+        TRUCK_TEMPLATE_ORDER.forEach((colKey, i) => {
+          const f = FIELDS.find((x) => x.col === colKey);
+          if (f && i < headers.length) guess[f.key] = i;
+        });
       }
       setSheets(parsed);
       setActive(0);
@@ -312,7 +338,7 @@ export function TruckImportPanel({ vehicles, drivers }: { vehicles: OptionItem[]
               {FIELDS.map((f) => (
                 <div key={f.key} className="flex items-center gap-2">
                   <span className="w-28 shrink-0 text-xs text-text-muted">
-                    {t(`f.${f.key}`)}
+                    {tCol(f.col)}
                     {f.key === 'date' && <span className="text-danger"> *</span>}
                   </span>
                   <Select

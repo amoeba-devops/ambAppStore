@@ -4,15 +4,18 @@ import { useTranslations } from 'next-intl';
 import { Check } from 'lucide-react';
 import { cn } from '@car-v2/ui';
 
-/** Horizontal 3-step indicator for the "Lập báo cáo" flow: ① Chọn tháng —— ②
- * Chọn khu vực —— ③ Xác nhận & Lập báo cáo. Done steps go green (✓), the current
- * step is the filled dark circle, upcoming steps are muted. */
-export function ReportStepper({ step }: { step: 1 | 2 | 3 }) {
+/** Horizontal 4-step indicator for the "Lập báo cáo" flow: ① Chọn tháng —— ②
+ * Chọn khu vực —— ③ Chọn xe (REQ-20260817) —— ④ Xác nhận & Lập báo cáo. Done
+ * steps go green (✓), the current step is the filled dark circle, upcoming
+ * steps are muted. Step 3 only ever renders for a non-consolidated scope (the
+ * "Tất cả khu vực" flow skips straight from 2 to 4). */
+export function ReportStepper({ step }: { step: 1 | 2 | 3 | 4 }) {
   const t = useTranslations('screens.truckReports');
   const items = [
     { n: 1 as const, label: t('stepName1') },
     { n: 2 as const, label: t('stepNameRegion') },
-    { n: 3 as const, label: t('stepName2') },
+    { n: 3 as const, label: t('stepNameVehicle') },
+    { n: 4 as const, label: t('stepName2') },
   ];
   return (
     <div className="flex items-center gap-3 overflow-x-auto">

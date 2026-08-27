@@ -7,7 +7,6 @@ import {
   FileText,
   IdCard,
   LayoutDashboard,
-  MapPin,
   Receipt,
   ScrollText,
   Settings as SettingsIcon,
@@ -35,7 +34,6 @@ export type NavKey =
   | 'users'
   | 'settings'
   | 'fleetAccess'
-  | 'regionAccess'
   | 'truckDashboard'
   | 'truckTrips'
   | 'truckFleet'
@@ -153,9 +151,9 @@ export const NAV_ITEMS: NavItem[] = [
    * TẠM ẨN khỏi menu (QA feedback 2026-07): trang + route vẫn hoạt động, truy cập
    * trực tiếp qua /settings/fleet-access. Bỏ comment để hiện lại. */
   // { key: 'fleetAccess', href: '/settings/fleet-access', Icon: KeyRound, group: 'admin',     roles: ADMIN  },
-  /* Operating-region access (REQ-20260813) — narrow a truck member to a subset
-   * of regions. TRUCK-only: regions don't exist in the car fleet. */
-  { key: 'regionAccess', href: '/settings/region-access', Icon: MapPin, group: 'admin', roles: ADMIN, fleet: 'TRUCK' },
+  /* Operating-region access (REQ-20260813) now lives inline on /users (edit
+   * form + peek drawer) and read-only on the driver detail page — no separate
+   * menu entry. */
   { key: 'audit',       href: '/audit',         Icon: ScrollText,      group: 'admin',     roles: ADMIN  },
   /* Cài đặt luôn nằm cuối danh sách (QA feedback 2026-07). */
   { key: 'settings',    href: '/settings',      Icon: SettingsIcon,    group: 'admin',     roles: ADMIN  },

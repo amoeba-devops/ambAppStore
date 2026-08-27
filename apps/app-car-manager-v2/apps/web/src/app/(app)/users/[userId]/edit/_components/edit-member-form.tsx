@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { ExternalLink, Loader2, Lock, Save, Unlock } from 'lucide-react';
+import { Check, ExternalLink, Loader2, Lock, Save, Unlock } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -22,11 +22,13 @@ import {
 } from '@car-v2/ui';
 import type { CarUserLocalRole, CarVehicleType } from '@car-v2/db/schema';
 import { AMA_ROLES } from '@car-v2/shared/auth';
+import { TRUCK_REGIONS, type TruckRegion } from '@car-v2/shared/zod';
 import { updateMemberAction } from '@/server/actions/users/update-member.action';
 import {
   grantFleetAccessAction,
   revokeFleetAccessAction,
 } from '@/server/actions/fleet-access/fleet-access.actions';
+import { setRegionAccessAction } from '@/server/actions/region-access/region-access.actions';
 import { formatActionError } from '@/lib/format-action-error';
 
 interface EditMemberFormProps {
@@ -37,6 +39,10 @@ interface EditMemberFormProps {
   localRole: CarUserLocalRole;
   /** Live CAR/TRUCK memberships. Empty = not assigned to either app. */
   depts: CarVehicleType[];
+  /** Granted regions (REQ-20260813). Empty = unrestricted. Only meaningful
+   *  while `depts` includes TRUCK and role isn't ADMIN — the section that
+   *  edits this hides itself otherwise. */
+  initialRegions: TruckRegion[];
   blocked: boolean;
   isSelf: boolean;
 }
@@ -59,6 +65,7 @@ export function EditMemberForm({
   amaRoleSnapshot,
   localRole: initialLocalRole,
   depts: initialDepts,
+  initialRegions,
   blocked: initialBlocked,
   isSelf,
 }: EditMemberFormProps) {
@@ -66,6 +73,7 @@ export function EditMemberForm({
   const t = useTranslations('users.edit');
   const tList = useTranslations('users.list');
   const tDept = useTranslations('screens.fleetAccess');
+  const tRegion = useTranslations('region');
   const tErr = useTranslations();
 
   /* Verbatim AMA role → localized label, with raw-code fallback. */
@@ -74,6 +82,7 @@ export function EditMemberForm({
   const [pending, startTransition] = useTransition();
   const [localRole, setLocalRole] = useState<CarUserLocalRole>(initialLocalRole);
   const [depts, setDepts] = useState<CarVehicleType[]>(initialDepts);
+  const [regions, setRegions] = useState<TruckRegion[]>(initialRegions);
   const [blocked, setBlocked] = useState(initialBlocked);
 
   /* ADMIN reaches both fleets implicitly (resolveFleetAccess), so membership
@@ -81,11 +90,21 @@ export function EditMemberForm({
    * letting an admin "revoke" access that would come straight back. */
   const deptsLocked = localRole === 'ADMIN';
   const singleDept = localRole === 'DRIVER';
+  /* Region scoping only exists inside the truck fleet, and never for ADMIN
+   * (always sees every region) — same gate `getUserRegionAccess` callers use. */
+  const showRegions = localRole !== 'ADMIN' && depts.includes('TRUCK');
+
+  const sameRegionSet = (a: TruckRegion[], b: TruckRegion[]): boolean =>
+    a.length === b.length && a.every((x) => b.includes(x));
 
   const dirty =
     localRole !== initialLocalRole ||
     blocked !== initialBlocked ||
-    !sameSet(depts, initialDepts);
+    !sameSet(depts, initialDepts) ||
+    (showRegions && !sameRegionSet(regions, initialRegions));
+
+  const toggleRegion = (r: TruckRegion) =>
+    setRegions((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
 
   const toggleDept = (d: CarVehicleType) => {
     if (deptsLocked) return;
@@ -144,6 +163,18 @@ export function EditMemberForm({
 
       for (const d of toGrant) {
         const res = await grantFleetAccessAction({ userId, vehicleType: d });
+        if (!res.success) {
+          toast.error(formatActionError(res.error, tErr));
+          router.refresh();
+          return;
+        }
+      }
+
+      /* Region grants last — depends on the FINAL role/dept, same reasoning as
+       * the fleet-access grants above. */
+      const finalShowRegions = localRole !== 'ADMIN' && depts.includes('TRUCK');
+      if (finalShowRegions && !sameRegionSet(regions, initialRegions)) {
+        const res = await setRegionAccessAction({ userId, regions });
         if (!res.success) {
           toast.error(formatActionError(res.error, tErr));
           router.refresh();
@@ -255,6 +286,39 @@ export function EditMemberForm({
               <p className="mt-1 text-xs text-warning-strong">{t('deptNoneWarning')}</p>
             )}
           </div>
+
+          {/* Local-only field — operating-region scope (REQ-20260813). Only
+            * meaningful for a live TRUCK member who isn't ADMIN; hides itself
+            * the moment either condition stops holding. */}
+          {showRegions && (
+            <div>
+              <Label>{t('regionLabel')}</Label>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                {regions.length === 0 && (
+                  <Badge tone="neutral" size="sm">{t('regionAllDefault')}</Badge>
+                )}
+                {TRUCK_REGIONS.map((r) => {
+                  const on = regions.includes(r);
+                  return (
+                    <Button
+                      key={r}
+                      type="button"
+                      size="md"
+                      variant={on ? 'accent' : 'ghost'}
+                      className={on ? '' : 'border border-border'}
+                      disabled={pending}
+                      aria-pressed={on}
+                      iconLeft={on ? <Check className="h-3.5 w-3.5" /> : undefined}
+                      onClick={() => toggleRegion(r)}
+                    >
+                      {tRegion(r)}
+                    </Button>
+                  );
+                })}
+              </div>
+              <p className="mt-1.5 text-xs text-text-muted leading-relaxed">{t('regionDesc')}</p>
+            </div>
+          )}
 
           {/* Local-only field — block from car-v2 (soft-delete) */}
           <div className="rounded-md border border-border p-3 space-y-2">

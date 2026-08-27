@@ -19,6 +19,7 @@ import {
 } from '@car-v2/core/truck';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import {
+  parseWallClockUtc,
   createTruckTripSchema,
   assignTruckTripSchema,
   completeTruckTripSchema,
@@ -203,8 +204,8 @@ export async function createTruckTripAction(
       const res = await completeTruckTrip(actor, trip.trpId, {
         /* Times the manager typed — otherwise completeTruckTrip stamps "now" as
          * the end and leaves the start empty, which the report prints as "—". */
-        startedAt: dto.start_time ? new Date(dto.start_time) : null,
-        finishedAt: dto.end_time ? new Date(dto.end_time) : null,
+        startedAt: parseWallClockUtc(dto.start_time) ?? null,
+        finishedAt: parseWallClockUtc(dto.end_time) ?? null,
         endOdometer: dto.end_odometer ?? null,
         fuelLiters: dto.fuel_liters ?? null,
         fuelPrice: dto.fuel_price ?? null,
@@ -298,8 +299,8 @@ export async function completeTruckTripAction(
     if (finTrip) await assertTruckMonthOpen(actor.entId, finTrip.trpScheduledAt, await regionOfVehicle(actor.entId, finTrip.trpVehicleId));
 
     const res = await completeTruckTrip(actor, dto.trip_id, {
-      startedAt: dto.start_time ? new Date(dto.start_time) : null,
-      finishedAt: dto.end_time ? new Date(dto.end_time) : null,
+      startedAt: parseWallClockUtc(dto.start_time) ?? null,
+      finishedAt: parseWallClockUtc(dto.end_time) ?? null,
       endOdometer: dto.end_odometer ?? null,
       fuelLiters: dto.fuel_liters ?? null,
       fuelPrice: dto.fuel_price ?? null,
@@ -355,8 +356,8 @@ export async function driverCompleteTruckTripAction(
     await assertTruckMonthOpen(actor.entId, trip.trpScheduledAt, await regionOfVehicle(actor.entId, trip.trpVehicleId));
 
     const res = await completeTruckTrip(actor, dto.trip_id, {
-      startedAt: dto.start_time ? new Date(dto.start_time) : null,
-      finishedAt: dto.end_time ? new Date(dto.end_time) : null,
+      startedAt: parseWallClockUtc(dto.start_time) ?? null,
+      finishedAt: parseWallClockUtc(dto.end_time) ?? null,
       endOdometer: dto.end_odometer ?? null,
       fuelLiters: dto.fuel_liters ?? null,
       fuelPrice: dto.fuel_price ?? null,
@@ -434,8 +435,8 @@ export async function updateTruckTripAction(
       fuelLiters: dto.fuel_liters ?? null,
       tollFee: dto.toll_fee ?? null,
       notes: dto.notes,
-      startedAt: dto.start_time ? new Date(dto.start_time) : undefined,
-      finishedAt: dto.end_time ? new Date(dto.end_time) : undefined,
+      startedAt: parseWallClockUtc(dto.start_time) ?? undefined,
+      finishedAt: parseWallClockUtc(dto.end_time) ?? undefined,
       extraCosts,
       stopovers,
     });
@@ -536,8 +537,8 @@ export async function driverUpdateTruckTripAction(
       fuelLiters: dto.fuel_liters ?? null,
       tollFee: dto.toll_fee ?? null,
       notes: dto.notes,
-      startedAt: dto.start_time ? new Date(dto.start_time) : undefined,
-      finishedAt: dto.end_time ? new Date(dto.end_time) : undefined,
+      startedAt: parseWallClockUtc(dto.start_time) ?? undefined,
+      finishedAt: parseWallClockUtc(dto.end_time) ?? undefined,
       extraCosts: dto.extra_costs ?? [],
       stopovers,
     });

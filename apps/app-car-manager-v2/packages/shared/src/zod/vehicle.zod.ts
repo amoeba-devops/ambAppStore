@@ -29,12 +29,8 @@ export const createVehicleSchema = z.object({
   /* Fleet department (REQ-20260617). Defaults to CAR server-side when omitted,
    * so the existing car create form needs no change. */
   vehicle_type: z.enum(['CAR', 'TRUCK']).optional(),
-  /* Truck-only attributes (tonnage in tons, fuel quota in L/100km). */
+  /* Truck-only attributes (tonnage in tons). */
   tonnage: z.number().nonnegative().max(100).optional(),
-  fuel_quota: z.number().nonnegative().max(200).optional(),
-  /* Per-vehicle fuel unit price (VND/L), REQ-20260724. With fuel_quota this
-   * drives the DEFAULT per-trip fuel cost (km × quota/100 × price). */
-  fuel_price: z.number().nonnegative().max(1_000_000_000).optional(),
   /* Operating region (TRUCK). Code from TRUCK_REGIONS; empty string clears it. */
   region: z.enum(TRUCK_REGIONS).optional().or(z.literal('')),
   /* Default driver (TRUCK, QA 2026-07). drv_id; empty string clears it. Feeds the

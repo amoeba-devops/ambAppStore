@@ -3,9 +3,10 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Clock, Lock, PencilLine, Shield } from 'lucide-react';
+import { Clock, Lock, MapPin, PencilLine, Shield } from 'lucide-react';
 import { Avatar, Badge, Button, cn } from '@car-v2/ui';
 import { AMA_ROLES, type LocalRole } from '@car-v2/shared/auth';
+import type { TruckRegion } from '@car-v2/shared/zod';
 import { Sheet, SheetCloseButton } from '@/components/layout/sheet';
 import { DriverSigninToggle } from './driver-signin-toggle';
 
@@ -28,6 +29,10 @@ interface UserPeekDrawerProps {
   lastActiveLabel: string;
   isAdmin: boolean;
   isSelf: boolean;
+  /** Granted regions (REQ-20260813). `null` = not applicable (not a live,
+   *  non-ADMIN TRUCK member) — the page only fetches this when it is. Empty
+   *  array = unrestricted (sees every region). */
+  regions: TruckRegion[] | null;
 }
 
 /**
@@ -38,9 +43,10 @@ interface UserPeekDrawerProps {
  * Mobile-first: full-width on phones (Sheet default), footer actions are
  * full-width with large tap targets.
  */
-export function UserPeekDrawer({ user, lastActiveLabel, isAdmin, isSelf }: UserPeekDrawerProps) {
+export function UserPeekDrawer({ user, lastActiveLabel, isAdmin, isSelf, regions }: UserPeekDrawerProps) {
   const t = useTranslations('users.peek');
   const tList = useTranslations('users.list');
+  const tRegion = useTranslations('region');
   const tA = useTranslations('actions');
 
   /* Verbatim AMA role → localized label, with raw-code fallback. */
@@ -103,6 +109,13 @@ export function UserPeekDrawer({ user, lastActiveLabel, isAdmin, isSelf }: UserP
         <Field icon={<Shield />} label={tList('thAppRole')} value={user.usrLocalRole} />
         <Field icon={<Shield />} label={tList('thAmaRole')} value={amaRoleLabel(user.usrAmaRoleSnapshot)} />
         <Field icon={<Clock />} label={tList('thLastActive')} value={lastActiveLabel} />
+        {regions && (
+          <Field
+            icon={<MapPin />}
+            label={t('regionLabel')}
+            value={regions.length === 0 ? t('regionAllLabel') : regions.map((r) => tRegion(r)).join(', ')}
+          />
+        )}
       </div>
 
       {/* Footer — mobile-first full-width actions */}

@@ -7,7 +7,7 @@ import { db } from '@car-v2/db/client';
 import { carImports, carVehicles } from '@car-v2/db/schema';
 import { createTruckTrip, completeTruckTrip } from '@car-v2/core/truck';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
-import { importTruckTripsSchema } from '@car-v2/shared/zod';
+import { importTruckTripsSchema, parseImportDate, parseWallClockUtc } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
 import { assertTruckMonthOpen } from '@/server/queries/truck-finance.queries';
@@ -20,7 +20,7 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 /* Combine the row's date with a "Giờ bắt đầu/kết thúc" time-of-day ("8:00",
- * "08:30", "8:00:00") into a local Date — same frame as the manual complete
+ * "08:30", "8:00:00") into a UTC Date — same frame as the manual complete
  * flow — so the sheet's start/end time is kept instead of dropped. Returns null
  * when either part is missing/unparseable (trip then keeps no start / end=now). */
 function combineDateTime(dateStr: string, time: string | undefined): Date | null {
@@ -28,8 +28,8 @@ function combineDateTime(dateStr: string, time: string | undefined): Date | null
   const d = /^(\d{4}-\d{2}-\d{2})/.exec(dateStr.trim());
   const t = /^(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(time.trim());
   if (!d?.[1] || !t?.[1] || !t?.[2]) return null;
-  const dt = new Date(`${d[1]}T${t[1].padStart(2, '0')}:${t[2]}:${t[3] ?? '00'}`);
-  return Number.isNaN(dt.getTime()) ? null : dt;
+  /* Wall clock -> UTC, the same frame every reader uses (parseWallClockUtc). */
+  return parseWallClockUtc(`${d[1]}T${t[1].padStart(2, '0')}:${t[2]}:${t[3] ?? '00'}`);
 }
 
 /**
@@ -64,12 +64,27 @@ export async function importTruckTripsAction(
       columns: { cvhRegion: true },
     });
     if (!vehicle) throw new CarError('CAR-E0404', 404, 'Vehicle not found');
+    /* Normalise every date up front (BUG-260824). The UI already sends
+     * `YYYY-MM-DD`, but a row that slips through unparseable used to reach
+     * `new Date(...)` and blow up as CAR-E0500 ("Invalid time value") halfway
+     * into the loop — after some trips had been created. Reject the whole file
+     * with a message naming the row instead; nothing is written. */
+    const dates: string[] = dto.rows.map((row, i) => {
+      const parsed = parseImportDate(row.date);
+      if (!parsed) {
+        throw new CarError(
+          'CAR-E0001',
+          400,
+          `Row ${i + 2}: unreadable date "${String(row.date)}" — use dd/MM/yyyy or YYYY-MM-DD`,
+        );
+      }
+      return parsed;
+    });
+
     const months = new Map<string, Date>(); // YYYY-MM → a date within it
-    for (const row of dto.rows) {
-      const d = new Date(row.date);
-      if (Number.isNaN(d.getTime())) continue; // unparseable rows fail later, as before
-      const key = d.toISOString().slice(0, 7);
-      if (!months.has(key)) months.set(key, d);
+    for (const iso of dates) {
+      const key = iso.slice(0, 7);
+      if (!months.has(key)) months.set(key, new Date(`${iso}T00:00:00.000Z`));
     }
     for (const d of months.values()) {
       await assertTruckMonthOpen(actor.entId, d, vehicle.cvhRegion);
@@ -80,7 +95,9 @@ export async function importTruckTripsAction(
 
     let created = 0;
     try {
-      for (const row of dto.rows) {
+      for (const [i, row] of dto.rows.entries()) {
+        /* Normalised above — never the raw cell text. */
+        const isoDate = dates[i]!;
         /* "Điểm ghé" (waypoint) → give the trip a proper PICKUP → WAYPOINT →
          * DELIVERY route (matching the manual trip form) so the stop isn't
          * dropped. Only when present; rows without it keep the flat
@@ -98,7 +115,7 @@ export async function importTruckTripsAction(
           try {
             trip = await createTruckTrip(actor, {
               ref,
-              scheduledAt: new Date(row.date),
+              scheduledAt: new Date(`${isoDate}T00:00:00.000Z`),
               vehicleId: dto.vehicle_id,
               driverId: dto.driver_id,
               customer: row.customer ?? null,
@@ -127,8 +144,8 @@ export async function importTruckTripsAction(
           /* Keep the sheet's Giờ bắt đầu / Giờ kết thúc as the trip's actual
            * start/end (trpStartedAt/trpEndedAt), matching the manual complete
            * flow — previously dropped (end defaulted to import time). */
-          startedAt: combineDateTime(row.date, row.start_time),
-          finishedAt: combineDateTime(row.date, row.end_time),
+          startedAt: combineDateTime(isoDate, row.start_time),
+          finishedAt: combineDateTime(isoDate, row.end_time),
           endOdometer: row.odo_end ?? null,
           fuelLiters: row.fuel_liters ?? null,
           tollFee: row.toll ?? null,
