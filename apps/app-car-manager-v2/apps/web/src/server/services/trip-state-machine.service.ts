@@ -2,6 +2,7 @@ import 'server-only';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { CarError } from '@car-v2/shared/errors';
 import { db } from '@car-v2/db/client';
+import { assertDriverAvailableForAssignment } from '@car-v2/core';
 import {
   carDrivers,
   carTrips,
@@ -110,15 +111,10 @@ export async function transitionTrip(
       if (payload?.kind !== 'assign' && payload?.kind !== 'reassign') {
         throw new CarError('CAR-E1001', 400, 'assign/reassign requires driverId + vehicleId');
       }
-      // Verify the driver/vehicle exist and belong to this tenant + are not retired.
-      const [driver, vehicle] = await Promise.all([
-        db.query.carDrivers.findFirst({
-          where: and(
-            eq(carDrivers.drvId, payload.driverId),
-            eq(carDrivers.entId, actor.entId),
-            isNull(carDrivers.drvDeletedAt),
-          ),
-        }),
+      // Driver must be AVAILABLE and not already driving another trip right
+      // now; vehicle must exist for this tenant + not retired.
+      const [, vehicle] = await Promise.all([
+        assertDriverAvailableForAssignment(actor.entId, payload.driverId, tripId),
         db.query.carVehicles.findFirst({
           where: and(
             eq(carVehicles.cvhId, payload.vehicleId),
@@ -127,7 +123,6 @@ export async function transitionTrip(
           ),
         }),
       ]);
-      if (!driver) throw new CarError('CAR-E1003', 400, 'Driver not available');
       if (!vehicle) throw new CarError('CAR-E1002', 400, 'Vehicle not available');
       if (vehicle.cvhStatus === 'RETIRED') {
         throw new CarError('CAR-E1002', 400, 'Vehicle is retired');

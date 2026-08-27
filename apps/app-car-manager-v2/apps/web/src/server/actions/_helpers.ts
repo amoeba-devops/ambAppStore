@@ -28,8 +28,12 @@ export async function runAction<T>(fn: () => Promise<T>): Promise<ActionResult<T
           error: { code: err.code, message: 'Internal server error' },
         };
       }
-      /* 4xx client error — message is safe + informative. */
-      return { success: false, error: { code: err.code, message: err.message } };
+      /* 4xx client error — message is safe + informative. `details` carries
+       * structured context (e.g. conflicting trip ref) for localized display. */
+      return {
+        success: false,
+        error: { code: err.code, message: err.message, details: err.details },
+      };
     }
 
     if (err instanceof Error) {

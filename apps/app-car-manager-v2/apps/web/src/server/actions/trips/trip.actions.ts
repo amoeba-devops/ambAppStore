@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@car-v2/db/client';
+import { assertDriverAvailableForAssignment } from '@car-v2/core';
 import {
   carDrivers,
   carTrips,
@@ -48,6 +49,11 @@ export async function createTripAction(input: unknown): Promise<ActionResult<Car
     }
     if (!data.driver_id && data.vehicle_id) {
       throw new CarError('CAR-E0001', 400, 'Provide both driver and vehicle, or neither');
+    }
+    if (data.driver_id) {
+      // Pre-assigning a driver at creation is the same "assign" action as the
+      // dedicated dialog — same availability guard applies.
+      await assertDriverAvailableForAssignment(actor.entId, data.driver_id);
     }
 
     const tripId = randomUUID();

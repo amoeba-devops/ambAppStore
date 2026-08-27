@@ -5,13 +5,13 @@ import {
   carTrips,
   carTripExtraCosts,
   carTripStopovers,
-  carDrivers,
   carVehicles,
   type CarTrip,
   type CarStopType,
 } from '@car-v2/db/schema';
 import { CarError } from '@car-v2/shared/errors';
 import type { FleetActor } from '../types';
+import { assertDriverAvailableForAssignment } from '../driver-availability';
 import { computeTruckCost, parseAmount, type TruckCostBreakdown } from './truck-cost';
 
 /**
@@ -135,15 +135,16 @@ async function assertTruckVehicle(actor: FleetActor, vehicleId: string): Promise
   if (vehicle.cvhType !== 'TRUCK') throw new CarError('CAR-E1002', 400, 'Vehicle is not a truck');
 }
 
-async function assertDriver(actor: FleetActor, driverId: string): Promise<void> {
-  const driver = await db.query.carDrivers.findFirst({
-    where: and(
-      eq(carDrivers.drvId, driverId),
-      eq(carDrivers.entId, actor.entId),
-      isNull(carDrivers.drvDeletedAt),
-    ),
-  });
-  if (!driver) throw new CarError('CAR-E1003', 400, 'Driver not available');
+/**
+ * `excludeTripId` — pass the trip being assigned/updated so a driver already
+ * `IN_PROGRESS` on THAT SAME trip doesn't block re-saving it.
+ */
+async function assertDriver(
+  actor: FleetActor,
+  driverId: string,
+  excludeTripId?: string,
+): Promise<void> {
+  await assertDriverAvailableForAssignment(actor.entId, driverId, excludeTripId);
 }
 
 export async function createTruckTrip(
@@ -197,7 +198,7 @@ export async function assignTruckTrip(
     throw new CarError('CAR-E1001', 409, `Cannot assign a truck trip in '${trip.trpStatus}'`);
   }
   await assertTruckVehicle(actor, payload.vehicleId);
-  await assertDriver(actor, payload.driverId);
+  await assertDriver(actor, payload.driverId, tripId);
 
   const [updated] = await db
     .update(carTrips)
@@ -314,7 +315,12 @@ export async function updateTruckTrip(
 ): Promise<{ trip: CarTrip; breakdown: TruckCostBreakdown }> {
   const trip = await loadLogTrip(actor, tripId);
   if (input.vehicleId) await assertTruckVehicle(actor, input.vehicleId);
-  if (input.driverId) await assertDriver(actor, input.driverId);
+  /* Only re-check availability when the driver is actually changing — an
+   * unrelated edit (toll fee, notes, ...) on a trip that already has this
+   * driver must not fail just because their status drifted after assignment. */
+  if (input.driverId && input.driverId !== trip.trpDriverId) {
+    await assertDriver(actor, input.driverId, tripId);
+  }
 
   const [updated] = await db
     .update(carTrips)

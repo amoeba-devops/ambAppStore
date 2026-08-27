@@ -15,6 +15,7 @@
 export interface ActionErrorLike {
   code: string;
   message: string;
+  details?: unknown;
 }
 
 interface ZodIssue {
@@ -50,7 +51,7 @@ function formatZodIssues(message: string): string | null {
 
 export function formatActionError(
   error: ActionErrorLike,
-  t: (key: string) => string,
+  t: (key: string, values?: Record<string, string>) => string,
 ): string {
   if (error.code.startsWith('CAR-E05')) {
     return `${error.code} — ${t('errors.internal')}`;
@@ -58,6 +59,22 @@ export function formatActionError(
   if (error.code === 'CAR-E0001') {
     const friendly = formatZodIssues(error.message);
     if (friendly) return friendly;
+  }
+  /* Driver-availability guard (assign flows) — localized because these are
+   * expected, user-actionable outcomes, not developer errors. */
+  if (error.code === 'CAR-E1009') {
+    const d = error.details as { conflictTripRef?: string } | undefined;
+    if (d?.conflictTripRef) {
+      return `${error.code} — ${t('errors.driverBusyOnTrip', { ref: d.conflictTripRef })}`;
+    }
+  }
+  if (error.code === 'CAR-E1011') {
+    const d = error.details as { driverStatus?: string } | undefined;
+    if (d?.driverStatus) {
+      return `${error.code} — ${t('errors.driverNotAvailable', {
+        status: t(`drivers.status.${d.driverStatus}`),
+      })}`;
+    }
   }
   return `${error.code} — ${error.message}`;
 }
