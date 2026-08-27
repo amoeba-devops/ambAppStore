@@ -2056,7 +2056,9 @@
     "tryAgain": "Thử lại",
     "notFoundLabel": "404",
     "notFoundTitle": "Không tìm thấy trang",
-    "notFoundDesc": "Chúng tôi không tìm thấy trang này. Có thể đã bị di chuyển, đổi tên, hoặc chưa từng tồn tại."
+    "notFoundDesc": "Chúng tôi không tìm thấy trang này. Có thể đã bị di chuyển, đổi tên, hoặc chưa từng tồn tại.",
+    "driverBusyOnTrip": "Tài xế đang trong chuyến {ref} chưa kết thúc — hãy kết thúc hoặc đổi tài xế cho chuyến đó trước",
+    "driverNotAvailable": "Tài xế hiện không thể được phân công (trạng thái: {status})"
   },
   "layout": {
     "sidebarAria": "Điều hướng chính",

@@ -2056,7 +2056,9 @@
     "tryAgain": "Try again",
     "notFoundLabel": "404",
     "notFoundTitle": "Page not found",
-    "notFoundDesc": "We couldn't locate that page. It may have been moved, renamed, or it never existed."
+    "notFoundDesc": "We couldn't locate that page. It may have been moved, renamed, or it never existed.",
+    "driverBusyOnTrip": "This driver is currently on trip {ref} which has not finished — end or reassign that trip first",
+    "driverNotAvailable": "This driver cannot be assigned right now (status: {status})"
   },
   "layout": {
     "sidebarAria": "Primary",
