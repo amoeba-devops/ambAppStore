@@ -41,8 +41,6 @@ export async function createVehicleAction(input: unknown): Promise<ActionResult<
         cvhFuelType: data.fuel_type ?? 'PETROL',
         cvhType: data.vehicle_type ?? 'CAR',
         cvhTonnage: data.tonnage != null ? String(data.tonnage) : null,
-        cvhFuelQuota: data.fuel_quota != null ? String(data.fuel_quota) : null,
-        cvhFuelPrice: data.fuel_price != null ? String(data.fuel_price) : null,
         cvhRegion: data.region || null,
         cvhDefaultDriverId: data.default_driver_id || null,
         cvhDepreciation: data.depreciation != null ? String(data.depreciation) : null,
@@ -121,8 +119,6 @@ export async function updateVehicleAction(id: string, input: unknown): Promise<A
     if (data.notes     !== undefined) patch.cvhNotes = data.notes;
     if (data.vehicle_type !== undefined) patch.cvhType = data.vehicle_type;
     if (data.tonnage    !== undefined) patch.cvhTonnage = data.tonnage != null ? String(data.tonnage) : null;
-    if (data.fuel_quota !== undefined) patch.cvhFuelQuota = data.fuel_quota != null ? String(data.fuel_quota) : null;
-    if (data.fuel_price !== undefined) patch.cvhFuelPrice = data.fuel_price != null ? String(data.fuel_price) : null;
     if (data.region     !== undefined) patch.cvhRegion = data.region || null;
     if (data.default_driver_id !== undefined) patch.cvhDefaultDriverId = data.default_driver_id || null;
     if (data.depreciation      !== undefined)

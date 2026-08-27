@@ -8,52 +8,52 @@ import { getTranslations } from 'next-intl/server';
 import { db } from '@car-v2/db/client';
 import { carTruckReports, carUsers, TRUCK_REPORT_TYPES, type TruckReportType } from '@car-v2/db/schema';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
-import { computeTruckPnl } from '@car-v2/core/truck';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
-import { allowedRegions, requireRegion } from '@/lib/auth/region-access';
-import { listVehicles } from '@/server/queries/vehicles.queries';
+import { allowedRegions, requireRegion, resolveReportVehicleScope } from '@/lib/auth/region-access';
+import { computeTruckFixedAllocRows } from '@car-v2/core/truck';
 import {
   getTruckFuelStats,
   getTruckFuelStatsByVehicle,
-  getTruckRegionTripCounts,
-  listTruckFinanceTrips,
 } from '@/server/queries/truck-finance.queries';
 import { getTruckReportExport } from '@/server/queries/truck-report-export.queries';
-import { buildTruckReportWorkbook } from '@/server/lib/truck-report-workbook';
 import {
   buildTruckMonthlySummaryWorkbook,
   type SummarySheetSpec,
   type SummaryTranslator,
 } from '@/server/lib/truck-monthly-summary-workbook';
 import { bcp47, monthName, resolveUiLocale } from '@/i18n/ui-locale';
-import { buildExcel, type ExcelColumn } from '@/server/lib/excel';
 import { putObject } from '@/lib/s3-client';
 import { logAudit } from '@/server/services/audit-log.service';
 import { runAction } from './_helpers';
 
 const MONTH = /^\d{4}-\d{2}$/;
 
-function monthLabel(month: string): string {
-  const [y, m] = month.split('-');
-  return `Tháng ${Number(m)}/${y}`;
-}
-
 /* MONTHLY_SUMMARY is trilingual — one file with a `tiếng việt`, an `English`
  * and a `Korean` sheet, exactly like the client template "Báo Cáo form (R1)"
  * (i18n, exportContent.truckMonthlySummary — vi reproduces it verbatim). No
  * longer tied to the generator's UI locale: every download carries all three.
- * The legacy PNL/TRIP_LOG/VEHICLE files stay Vietnamese inside (operational
- * documents for the VN company) — but their NAME follows the exporter, see
- * reportName() below. */
+ * The legacy PNL file stays Vietnamese inside (operational document for the
+ * VN company) — but its NAME follows the exporter, see reportName() below.
+ * TRIP_LOG/VEHICLE were separate report types with no generator left calling
+ * them (removed 2026-08-18); `type_TRIP_LOG`/`type_VEHICLE` etc. i18n keys and
+ * this function's generic `type: string` stay, so any pre-existing historical
+ * row of those types still lists/downloads with a proper name. */
 
 /** Stored list name (`trr_name`), written in the language the user was in when
  * they pressed "Lập báo cáo" — same source as the download filename. Scoped to
  * the chosen operating region ("· Khu vực HCM" / "· Tất cả khu vực") so the list
  * makes the scope obvious; the list still groups by month. Rows generated before
  * 2026-07-31 keep their Vietnamese name (stored value, not re-rendered). */
-async function reportName(locale: string, type: string, region: string | null): Promise<string> {
+async function reportName(
+  locale: string,
+  type: string,
+  region: string | null,
+  /** Vehicle-subset scope (REQ-20260817) — appends "· n/m xe" when the report
+   * covers fewer than every truck in the region. Undefined = whole region. */
+  vehicleScope?: { selected: number; total: number },
+): Promise<string> {
   const t = await getTranslations({ locale, namespace: 'screens.truckReports' });
   const tRegion = await getTranslations({ locale, namespace: 'region' });
   /* Dynamic i18n keys — cast as elsewhere in this file. */
@@ -61,13 +61,10 @@ async function reportName(locale: string, type: string, region: string | null): 
   const scope = region
     ? t('nameScopeRegion', { name: tRegion(region as Parameters<typeof tRegion>[0]) })
     : t('regionAll');
-  return `${typeName} · ${scope}`;
-}
-
-/* Workbook-internal scope label for the Vietnamese-only legacy reports. */
-const REGION_LABEL: Record<string, string> = { HCM: 'HCM', DONG_NAI: 'Đồng Nai', BAIKSAN: 'Baiksan' };
-function regionSuffix(region: string | null): string {
-  return region ? `Khu vực ${REGION_LABEL[region] ?? region}` : 'Tất cả khu vực';
+  const vehiclesSuffix = vehicleScope
+    ? ` · ${t('nameScopeVehicles', { n: vehicleScope.selected, m: vehicleScope.total })}`
+    : '';
+  return `${typeName} · ${scope}${vehiclesSuffix}`;
 }
 
 /* Sheet order inside the MONTHLY_SUMMARY file — R1's order, which is also
@@ -80,6 +77,10 @@ async function buildReportWorkbook(
   type: string,
   region: string | null,
   generatedAt: Date,
+  /** Vehicle-subset scope (REQ-20260817). Already validated against the
+   * region/ACL by the caller (`resolveReportVehicleScope`). Applies to every
+   * report type, including MONTHLY_SUMMARY (user decision 2026-08-17). */
+  vehicleIds: string[] | undefined,
 ): Promise<Buffer> {
   if (type === 'MONTHLY_SUMMARY') {
     /* Client "Báo cáo xe truck hàng tháng" template (REQ-20260713, R1 revision):
@@ -87,7 +88,7 @@ async function buildReportWorkbook(
      * maintenance/idle trucks appear and the TỔNG row reconciles with the A/B/C
      * blocks. Same core numbers as everything else, on every sheet. */
     const [y = '', mm = ''] = month.split('-');
-    const data = await getTruckReportExport(actor, month, region, { includeIdle: true });
+    const data = await getTruckReportExport(actor, month, region, { includeIdle: true, vehicleIds });
     const sheets: SummarySheetSpec[] = [];
     for (const locale of SUMMARY_LOCALES) {
       const t = (await getTranslations({
@@ -110,88 +111,16 @@ async function buildReportWorkbook(
     return buildTruckMonthlySummaryWorkbook(data, { generatedAt, sheets });
   }
 
-  if (type === 'PNL') {
-    /* Comprehensive report (client NEW RULE template): a 3-sheet styled workbook
-     * — trip log + per-vehicle P&L + fleet total + glossary. Numbers come from
-     * the same core logic (computeTruckPnl + region fuel snapshots) as the
-     * finance screen, so the report always matches what the app shows. */
-    const data = await getTruckReportExport(actor, month, region);
-    return buildTruckReportWorkbook(data, {
-      monthLabel: monthLabel(month),
-      regionLabel: regionSuffix(region),
-      generatedAt,
-    });
-  }
-
-  if (type === 'TRIP_LOG') {
-    const trips = await listTruckFinanceTrips(actor.entId, { month, region });
-    const cols: ExcelColumn[] = [
-      { header: 'Ngày', key: 'date', width: 12 },
-      { header: 'Phương tiện', key: 'plate', width: 14 },
-      { header: 'Tài xế', key: 'driver', width: 18 },
-      { header: 'Khách hàng', key: 'customer', width: 18 },
-      { header: 'Km', key: 'km', width: 8 },
-      { header: 'Cầu đường', key: 'toll', width: 12 },
-      { header: 'Phát sinh', key: 'extra', width: 12 },
-      { header: 'Đơn giá', key: 'unitPrice', width: 12 },
-      { header: 'Lít', key: 'liters', width: 8 },
-      { header: 'Phí nhiên liệu', key: 'fuel', width: 14 },
-      { header: 'Doanh thu', key: 'revenue', width: 14 },
-      { header: 'Lợi nhuận', key: 'profit', width: 14 },
-      { header: 'Trạng thái', key: 'status', width: 12 },
-    ];
-    const rows = trips.map((t) => ({
-      date: new Date(t.scheduledAt).toISOString().slice(0, 10),
-      plate: t.plate ?? '',
-      driver: t.driver ?? '',
-      customer: t.customer ?? '',
-      km: t.km,
-      toll: t.toll,
-      extra: t.extra,
-      unitPrice: t.unitPrice,
-      liters: Math.round(t.liters * 10) / 10,
-      fuel: t.fuelCost,
-      revenue: t.revenue,
-      profit: t.profit,
-      status: t.finalized ? 'Đã lập BC' : 'Tạm tính',
-    }));
-    return buildExcel('Nhật ký chuyến', cols, rows);
-  }
-
-  // VEHICLE — per-truck month aggregates (scoped to the region when set).
-  const allTrucks = await listVehicles(actor.entId, 'active', 'TRUCK');
-  const trucks = region ? allTrucks.filter((v) => v.cvhRegion === region) : allTrucks;
-  const cols: ExcelColumn[] = [
-    { header: 'Biển số', key: 'plate', width: 14 },
-    { header: 'Mô tả', key: 'model', width: 22 },
-    { header: 'Số chuyến', key: 'trips', width: 10 },
-    { header: 'Doanh thu', key: 'revenue', width: 14 },
-    { header: 'Phí nhiên liệu', key: 'fuel', width: 14 },
-    { header: 'Cầu đường', key: 'toll', width: 12 },
-    { header: 'Phát sinh', key: 'extra', width: 12 },
-    { header: 'Chi phí cố định', key: 'fixed', width: 14 },
-    { header: 'Lợi nhuận ròng', key: 'net', width: 14 },
-  ];
-  const rows: Record<string, unknown>[] = [];
-  for (const v of trucks) {
-    const [pnl] = await computeTruckPnl(actor, { vehicleId: v.cvhId, months: [month] });
-    rows.push({
-      plate: v.cvhPlateNumber,
-      model: v.cvhModel ?? '',
-      trips: pnl?.tripCount ?? 0,
-      revenue: pnl?.revenue ?? 0,
-      fuel: pnl?.fuelCost ?? 0,
-      toll: pnl?.tollFee ?? 0,
-      extra: pnl?.extraTotal ?? 0,
-      fixed: pnl?.fixedCost ?? 0,
-      net: pnl?.netProfit ?? 0,
-    });
-  }
-  return buildExcel('Phương tiện', cols, rows);
+  /* PNL (3-sheet "Chi phí & lợi nhuận" workbook) was retired 2026-08-18 along
+   * with its builder — the batch buttons that generated it were removed and
+   * MONTHLY_SUMMARY is the only format the wizard offers. Rows of the retired
+   * types already in the DB are untouched: the list shows their stored
+   * `trr_name` and downloads just redirect to the file already in S3. */
+  throw new CarError('CAR-E0001', 400, `Unsupported truck report type: ${type}`);
 }
 
 /**
- * Generate ONE monthly report (PNL | TRIP_LOG | VEHICLE) → Excel → S3 → row, and
+ * Generate ONE monthly report (PNL | MONTHLY_SUMMARY) → Excel → S3 → row, and
  * freeze the month-end fuel reconciliation onto it. Shared by the single-scope
  * action (review wizard) and the "all regions" one-click on the finance screen.
  *
@@ -205,29 +134,68 @@ async function buildReportWorkbook(
  */
 async function generateOneTruckReport(
   actor: Awaited<ReturnType<typeof getCurrentUser>>,
-  opts: { month: string; type: TruckReportType; region: string | null },
+  opts: {
+    month: string;
+    type: TruckReportType;
+    region: string | null;
+    /** Vehicle-subset scope (REQ-20260817) — already validated against the
+     * region/ACL by the caller via `resolveReportVehicleScope`. */
+    vehicleIds?: string[];
+    /** Total live trucks in `region` — only used to render the "n/m xe" name
+     * suffix when `vehicleIds` narrows the scope. */
+    vehicleTotal?: number;
+  },
 ): Promise<{ id: string; hasSnapshot: boolean }> {
   const { month, type, region } = opts;
+  /* Vehicle-subset scope (REQ-20260817) applies to every report type,
+   * including MONTHLY_SUMMARY — user decision 2026-08-17 superseded the
+   * original GĐ-A whole-region-only default for that format. */
+  const vehicleIds = opts.vehicleIds;
 
   /* Month-end reconciliation, recomputed NOW (F1–F4). Only frozen when
    * computable (F5) — otherwise NULL → screens keep provisional numbers. */
-  const [stats, vehicleFuel] = await Promise.all([
+  const [stats, vehicleFuel, fixedAllocRows] = await Promise.all([
     getTruckFuelStats(actor.entId, month, region ?? undefined),
     /* Per-vehicle freeze (REQ-20260726): each vehicle's own fuel spend ÷ its own
      * km. Preferred over the region pool below; the region columns stay filled
      * so older screens/reports keep working. */
-    getTruckFuelStatsByVehicle(actor.entId, month, region ?? undefined),
+    getTruckFuelStatsByVehicle(actor.entId, month, region ?? undefined, vehicleIds),
+    /* Fixed-cost allocation basis, frozen alongside fuel (REQ-20260821):
+     * generating a report is THE moment per-trip lương/khấu hao shares are
+     * (re)computed — trip CRUD afterwards must not move the shares this report
+     * showed, so screens read them back from this row until the next one. */
+    computeTruckFixedAllocRows(actor.entId, month, { region, vehicleIds }),
   ]);
   /* The region pool is LEGACY. Once any invoice in the scope names its vehicle,
    * writing a region snapshot too would let vehicles WITHOUT an invoice draw
    * from fuel that already belongs to another truck — double-counting the
    * month's spend. So per-vehicle wins outright; trucks with no invoice fall
-   * back to their own định mức instead. */
+   * back to their own định mức instead. A vehicle-SUBSET report (REQ-20260817)
+   * never claims the region pool at all — that concept only applies to a
+   * WHOLE-region report, and the fold in loadTruckRegionSnapshots ignores
+   * these columns on a subset row regardless, so this just keeps the stored
+   * row honest about what it actually represents. */
   const hasSnapshot =
+    !vehicleIds &&
     vehicleFuel.length === 0 &&
     stats.totalKm > 0 &&
     stats.invoiceLiters > 0 &&
     stats.avgPrice > 0;
+
+  /* Freeze explicit ZEROS too (REQ-20260821 follow-up): a scope vehicle with no
+   * allocatable fuel at generation used to leave NO frozen entry, so its
+   * already-reported trips kept reading the LIVE pool — fuel recorded later
+   * retro-costed them (the last "recalculated after lập BC" column). Recording
+   * `costPerKm: 0` pins those trips at 0 until the next report. Skipped when
+   * this report carries the legacy region snapshot instead (hasSnapshot):
+   * there the region columns are the freeze and a zero row would shadow it. */
+  if (!hasSnapshot) {
+    const have = new Set(vehicleFuel.map((v) => v.vehicleId));
+    for (const a of fixedAllocRows) {
+      if (have.has(a.vehicleId)) continue;
+      vehicleFuel.push({ vehicleId: a.vehicleId, money: 0, liters: 0, km: 0, costPerKm: 0, avgPrice: 0 });
+    }
+  }
 
   const id = randomUUID();
   /* Pin the exact generation moment: stamped into the workbook itself AND
@@ -236,7 +204,14 @@ async function generateOneTruckReport(
    * (which reads trr_created_at) always agree to the second. */
   const generatedAt = new Date();
   const key = `truck-reports/${actor.entId}/${month}/${type}-${region ?? 'all'}-${id}.xlsx`;
-  const name = await reportName(await resolveUiLocale(), type, region);
+  const name = await reportName(
+    await resolveUiLocale(),
+    type,
+    region,
+    vehicleIds && vehicleIds.length > 0
+      ? { selected: vehicleIds.length, total: opts.vehicleTotal ?? vehicleIds.length }
+      : undefined,
+  );
   await db.insert(carTruckReports).values({
     trrId: id,
     entId: actor.entId,
@@ -254,10 +229,12 @@ async function generateOneTruckReport(
     trrTotalLiters: hasSnapshot ? String(stats.invoiceLiters) : null,
     trrTotalKm: hasSnapshot ? String(stats.totalKm) : null,
     trrVehicleFuel: vehicleFuel.length > 0 ? vehicleFuel : null,
+    trrVehicleIds: vehicleIds && vehicleIds.length > 0 ? vehicleIds : null,
+    trrFixedAlloc: fixedAllocRows.length > 0 ? fixedAllocRows : null,
   });
 
   try {
-    const buffer = await buildReportWorkbook(actor, month, type, region, generatedAt);
+    const buffer = await buildReportWorkbook(actor, month, type, region, generatedAt, vehicleIds);
     await putObject(
       key,
       new Uint8Array(buffer),
@@ -321,6 +298,9 @@ export async function generateTruckReportAction(input: unknown): Promise<ActionR
         type: z.enum(TRUCK_REPORT_TYPES),
         /* Operating region scope; null/absent = all regions. */
         region: z.enum(TRUCK_REGIONS).nullable().optional(),
+        /* Vehicle-subset scope (REQ-20260817) — only meaningful with a single
+         * concrete `region`; see the check below. */
+        vehicle_ids: z.array(z.string().uuid()).optional(),
       })
       .parse(input);
     /* Region ACL (REQ-20260813): a narrowed user may only report on their own
@@ -330,11 +310,34 @@ export async function generateTruckReportAction(input: unknown): Promise<ActionR
     else if ((await allowedRegions(actor)).length < TRUCK_REGIONS.length) {
       throw new CarError('CAR-E0403', 403, 'Forbidden: consolidated report spans all regions');
     }
+    if (parsed.vehicle_ids?.length && !region) {
+      throw new CarError(
+        'CAR-E0001',
+        400,
+        'A vehicle subset requires a single region — the consolidated all-regions report always covers every truck',
+      );
+    }
+
+    /* Phase A0 (REQ-20260817): re-derive the vehicle scope from the DB RIGHT
+     * NOW, from `region` + the actor's own ACL — never trust a vehicle list
+     * the client rendered when the wizard was first opened. A vehicle deleted,
+     * moved to another region, or outside the actor's ACL since then is
+     * dropped; if the whole request becomes empty this throws rather than
+     * silently falling back to "every truck" (see resolveReportVehicleScope). */
+    let vehicleIds: string[] | undefined;
+    let vehicleTotal: number | undefined;
+    if (region && parsed.vehicle_ids?.length) {
+      const scope = await resolveReportVehicleScope(actor, region, parsed.vehicle_ids);
+      vehicleIds = scope.vehicleIds;
+      vehicleTotal = scope.vehicles.length;
+    }
 
     const { id } = await generateOneTruckReport(actor, {
       month: parsed.month,
       type: parsed.type,
       region,
+      vehicleIds,
+      vehicleTotal,
     });
     /* Numbers just became official everywhere the snapshot is read. */
     revalidateTruckReportPaths();
@@ -342,65 +345,12 @@ export async function generateTruckReportAction(input: unknown): Promise<ActionR
   });
 }
 
-/**
- * Batch report generation from the finance screen (feedback #1), supporting
- * TWO scopes the operator can pick between:
- *   - `regions` omitted/empty → EVERY operating region with completed trips
- *     this month, INCLUDING ones already reported (a full refresh with the
- *     current live data — "Làm mới tất cả khu vực").
- *   - `regions` given → only those regions (the finance banner passes the
- *     still-provisional ones — "Lập báo cáo khu vực còn tạm tính").
- * Either way each region freezes its OWN month-end average (per-region
- * accuracy — regions are never blended together). A region that still lacks
- * fuel invoices can't be reconciled (F5), so it's returned in `pending` — we
- * skip generation there rather than emit a report with no snapshot.
- * `finalized`/`pending` are region codes the caller maps to names.
- */
-export async function generateAllRegionsTruckReportsAction(
-  input: unknown,
-): Promise<ActionResult<{ finalized: string[]; pending: string[] }>> {
-  return runAction(async () => {
-    const actor = await getCurrentUser();
-    requireRole(actor.role, ['ADMIN', 'MANAGER']);
-    await requireFleet(actor, 'TRUCK');
-    const parsed = z
-      .object({
-        month: z.string().regex(MONTH),
-        /* Explicit scope; omitted/empty = every region with trip data. */
-        regions: z.array(z.enum(TRUCK_REGIONS)).optional(),
-      })
-      .parse(input);
-    const { month } = parsed;
-
-    const { byRegion } = await getTruckRegionTripCounts(actor.entId, month);
-    /* Region ACL (REQ-20260813): an explicit scope is validated per region; the
-     * implicit "every region with data" scope narrows to what the user may see. */
-    if (parsed.regions?.length) {
-      for (const r of parsed.regions) await requireRegion(actor, r);
-    }
-    const permitted: readonly string[] = await allowedRegions(actor);
-    const scope = (parsed.regions?.length ? parsed.regions : Object.keys(byRegion)).filter((r) =>
-      permitted.includes(r),
-    );
-    const finalized: string[] = [];
-    const pending: string[] = [];
-    for (const region of scope) {
-      /* No completed trips for this region this month → nothing to report. */
-      if (!byRegion[region]) {
-        pending.push(region);
-        continue;
-      }
-      /* "Lập báo cáo = chốt luôn" (2026-07-21): report EVERY region with trips,
-       * even without fuel invoices. generateOneTruckReport freezes the month-end
-       * average only when computable (F5) — otherwise the report still exists
-       * and finalizes the region's trips at their entered fuel cost. */
-      await generateOneTruckReport(actor, { month, type: 'PNL', region });
-      finalized.push(region);
-    }
-    if (finalized.length > 0) revalidateTruckReportPaths();
-    return { finalized, pending };
-  });
-}
+/* `generateAllRegionsTruckReportsAction` (batch per-region PNL generation) was
+ * removed 2026-08-18 together with the two buttons on the finance screen that
+ * were its only callers. Reports are now created exclusively through the wizard
+ * at /truck/reports/new, which calls `generateTruckReportAction` above. That
+ * action still accepts `type: 'PNL'`, so the PNL workbook remains producible —
+ * there is just no longer a UI that generates one in batch. */
 
 /** Mark the truck-report list as seen for the current user → clears the nav
  * "Mới" badge on the next render. Intentionally does NOT revalidate the current

@@ -165,13 +165,16 @@ export interface PdfReportOptions {
   subtitle?: string;
   generatedAt?: string;
   sections: PdfSection[];
+  /** Wide tables (one column per truck — REQ-20260814) need the long edge.
+   * Defaults to portrait, which every existing caller relies on. */
+  orientation?: 'portrait' | 'landscape';
 }
 
 /**
  * Build a multi-section report PDF.
  */
 export function buildReportPdf(options: PdfReportOptions): Promise<Buffer> {
-  const { title, subtitle, generatedAt, sections } = options;
+  const { title, subtitle, generatedAt, sections, orientation = 'portrait' } = options;
 
   const content: Content[] = [];
 
@@ -204,7 +207,7 @@ export function buildReportPdf(options: PdfReportOptions): Promise<Buffer> {
       fontSize: 10,
     },
     pageSize: 'A4',
-    pageOrientation: 'portrait',
+    pageOrientation: orientation,
     pageMargins: [40, 40, 40, 60],
     footer: (currentPage, pageCount) => ({
       columns: [

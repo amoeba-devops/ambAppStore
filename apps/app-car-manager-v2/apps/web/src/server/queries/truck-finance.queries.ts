@@ -206,10 +206,17 @@ export async function getTruckFuelStatsByVehicle(
   entId: string,
   month: string,
   region?: string,
+  /** Freeze only these vehicles (REQ-20260817 vehicle-subset reports) — the
+   * caller (`generateOneTruckReport`) has already validated this set against
+   * the region/ACL via `resolveReportVehicleScope`. Omitted = every vehicle in
+   * `region` (AS-IS). */
+  vehicleIds?: readonly string[],
 ): Promise<TruckReportVehicleFuel[]> {
   const pool = await loadVehicleFuelPool(entId, [month], region);
+  const wanted = vehicleIds && vehicleIds.length > 0 ? new Set(vehicleIds) : null;
   const out: TruckReportVehicleFuel[] = [];
   for (const p of pool.values()) {
+    if (wanted && !wanted.has(p.vehicleId)) continue;
     if (p.money <= 0 || p.km <= 0) continue; // nothing to allocate
     out.push({
       vehicleId: p.vehicleId,
@@ -299,8 +306,10 @@ export interface TruckFinanceTripRow {
   salaryAllocated: number;
   depreciationAllocated: number;
   /** revenue − fuel − toll − extra − (salary + depreciation allocated) — the
-   * customer's "Lợi nhuận theo chuyến". `profit` above stays the VARIABLE-only
-   * figure the Excel exports and report review are built on. */
+   * customer's "Lợi nhuận theo chuyến", and what the finance screen shows.
+   * `profit` above stays the VARIABLE-only figure the report review is built
+   * on; the finance export carries BOTH (REQ-20260822) so the file and the
+   * screen can no longer disagree once a vehicle has fixed costs. */
   profitAfterFixed: number;
   /** How unitPrice/liters/fuelCost above were derived:
    *  - AVERAGED frozen month-end allocation (vehicle's fuel spend ÷ its km)
@@ -323,6 +332,10 @@ export async function listTruckFinanceTrips(
   opts: {
     month: string;
     vehicleId?: string | null;
+    /** Multi-select vehicle scope (REQ-20260814). Takes precedence over
+     * `vehicleId`; already narrowed to the actor's regions by
+     * `resolveVehicleScope`. Undefined/empty = no vehicle filter. */
+    vehicleIds?: readonly string[] | null;
     q?: string;
     region?: string | null;
     /** Region-ACL scope for a narrowed user (REQ-20260813). Ignored when
@@ -369,7 +382,12 @@ export async function listTruckFinanceTrips(
           isNull(carTrips.trpDeletedAt),
           gte(carTrips.trpScheduledAt, start),
           lt(carTrips.trpScheduledAt, end),
-          opts.vehicleId ? eq(carTrips.trpVehicleId, opts.vehicleId) : undefined,
+          /* Multi-select wins over the legacy single-vehicle filter. */
+          opts.vehicleIds?.length
+            ? inArray(carTrips.trpVehicleId, [...opts.vehicleIds])
+            : opts.vehicleId
+              ? eq(carTrips.trpVehicleId, opts.vehicleId)
+              : undefined,
           /* Region scope = the trip's vehicle operating region (cvh_region). */
           opts.region
             ? eq(carVehicles.cvhRegion, opts.region)
@@ -413,7 +431,12 @@ export async function listTruckFinanceTrips(
     const finalized = snapshots.isReported(opts.month, t.vehicleId, changedAt);
     const fuel = snapshots.fuelForTrip(opts.month, t.vehicleId, km, changedAt);
     const fuelCost = fuel.cost;
-    const fixedShare = fixedAlloc.forTrip(opts.month, t.vehicleId);
+    /* Fixed allocation is FROZEN by the covering report (REQ-20260821) — trip
+     * CRUD between two reports must not move a reported trip's share. Live
+     * computation only for trips no report has frozen yet. */
+    const fixedShare =
+      snapshots.fixedShareForTrip(opts.month, t.vehicleId, changedAt) ??
+      fixedAlloc.forTrip(opts.month, t.vehicleId);
     return {
       trpId: t.trpId,
       ref: t.ref,
@@ -537,19 +560,14 @@ export interface TruckReportReview {
   region: string | null;
   /** Closed → trips are locked, the review table is read-only. */
   closed: boolean;
-  /** The reconciliation is computable (F5: invoices + km + price > 0) → the
-   * table previews ALLOCATED fuel (km × consumption × avg price — exactly what
-   * "Lập báo cáo" will freeze) and the fuel column is read-only. Otherwise the
-   * trips keep their own manually-entered numbers, editable. */
+  /** At least one vehicle in scope has fuel spend AND km this month → the
+   * table previews each vehicle's ALLOCATED fuel (km × its own money÷km —
+   * exactly what "Lập báo cáo" will freeze) and the fuel column is read-only.
+   * Otherwise the trips keep their own manually-entered numbers, editable. */
   allocatable: boolean;
   /** COMPLETED trips currently missing odometer km — their allocated fuel is 0
    * (surfaced as a warning so the operator fixes the km before generating). */
   kmZeroCount: number;
-  /** Fleet-level month fuel reconciliation (same number for every vehicle —
-   * our fuel model is fleet-monthly, not per-vehicle). */
-  avgPrice: number;
-  consumption: number;
-  refuelCount: number;
   vehicles: ReportReviewVehicle[];
   totals: {
     tripCount: number;
@@ -565,26 +583,31 @@ export interface TruckReportReview {
 /**
  * Per-vehicle review for the "Lập báo cáo" Bước 2 screen: every truck that had a
  * COMPLETED log trip in `month`, with its trips + summary (trip count, fuel,
- * fixed cost) and the fleet-level fuel reconciliation. Mirrors the design's
- * confirm screen so a manager can sanity-check (and edit) costs before the
- * report is generated. Read-only when the month is closed.
+ * fixed cost). Mirrors the design's confirm screen so a manager can
+ * sanity-check (and edit) costs before the report is generated. Read-only
+ * when the month is closed.
  *
  * When the reconciliation is computable (`allocatable`), each trip's fuel is
- * the ALLOCATED preview — km × consumption × avg price, the exact numbers
- * "Lập báo cáo" will freeze — so what the manager confirms is what the file
- * gets (PLAN-20260707).
+ * the ALLOCATED preview — km × that vehicle's own (money ÷ km), the exact
+ * numbers "Lập báo cáo" will freeze — so what the manager confirms is what
+ * the file gets (PLAN-20260707).
  */
 export async function getTruckReportReview(
   actor: AuthContext,
   month: string,
   /** Operating region scope; `null` = all regions (whole-fleet reconciliation). */
   region: string | null = null,
+  /** Vehicle-subset scope (REQ-20260817, wizard step 2.5) — already validated
+   * against the region/ACL by the caller. Undefined = every truck in `region`
+   * that has trips this month (AS-IS). Ignored when `region` is null (the
+   * consolidated all-regions review never narrows by vehicle). */
+  vehicleIds?: readonly string[],
 ): Promise<TruckReportReview> {
-  const [trips, stats, closeInfo, vehicleFuel, invoices] = await Promise.all([
-    listTruckFinanceTrips(actor.entId, { month, region }),
-    getTruckFuelStats(actor.entId, month, region ?? undefined),
+  const scope = region ? vehicleIds : undefined;
+  const [trips, closeInfo, vehicleFuel, invoices] = await Promise.all([
+    listTruckFinanceTrips(actor.entId, { month, region, vehicleIds: scope }),
     getTruckMonthCloseInfo(actor.entId, month, region),
-    getTruckFuelStatsByVehicle(actor.entId, month, region ?? undefined),
+    getTruckFuelStatsByVehicle(actor.entId, month, region ?? undefined, scope),
     listFuelInvoices(actor.entId, month, region ?? undefined),
   ]);
   /* "Số lần đổ xăng" per vehicle (the card in the review wizard). */
@@ -692,9 +715,6 @@ export async function getTruckReportReview(
     closed: closeInfo.closed,
     allocatable,
     kmZeroCount,
-    avgPrice: stats.avgPrice,
-    consumption: stats.consumption,
-    refuelCount: stats.invoiceCount,
     vehicles,
     totals,
   };

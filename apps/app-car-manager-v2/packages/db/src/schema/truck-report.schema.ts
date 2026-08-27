@@ -22,15 +22,36 @@ export interface TruckReportVehicleFuel {
 }
 
 /**
+ * One vehicle's frozen monthly fixed-cost allocation basis inside a report
+ * (`trr_fixed_alloc`, REQ-20260821). A trip's share is `salary ÷ tripCount`
+ * (rounded, same as the live path) — stored as basis + denominator rather than
+ * the rounded share so the reader can also surface `tripCount` ("÷ N chuyến").
+ */
+export interface TruckReportFixedAlloc {
+  /** cvh_id */
+  vehicleId: string;
+  /** The vehicle's monthly salary (its default driver's) at generation time (VND). */
+  salary: number;
+  /** The vehicle's monthly depreciation at generation time (VND). */
+  depreciation: number;
+  /** COMPLETED log trips of the vehicle in the month at generation time — the
+   * allocation denominator. 0 = the report covered the vehicle but there was
+   * nothing to allocate onto (its fixed cost sat in the month total only). */
+  tripCount: number;
+}
+
+/**
  * car_truck_reports — metadata for generated monthly truck reports
  * (REQ-20260629, R8). The rendered file (Excel) lives in S3 under
  * `trr_s3_key`; this row records what was generated, for which month/type,
  * by whom. Listing groups by month and flags rows newer than the viewer's
  * `car_users.usr_truck_reports_seen_at` as "Mới" (new).
  *
- * `trr_type`: PNL (chi phí & lợi nhuận) | TRIP_LOG (nhật ký chuyến) |
- * VEHICLE (phương tiện) | MONTHLY_SUMMARY (tổng kết chi phí tháng — 1 sheet
- * theo template khách, REQ-20260713). `trr_format`: EXCEL (PDF reserved).
+ * `trr_type`: MONTHLY_SUMMARY (tổng kết chi phí tháng — theo template khách,
+ * REQ-20260713) là loại DUY NHẤT còn tạo mới. PNL (chi phí & lợi nhuận),
+ * TRIP_LOG (nhật ký chuyến) và VEHICLE (phương tiện) đã ngừng từ 2026-08-18;
+ * hàng lịch sử mang các giá trị đó vẫn còn trong DB và vẫn xem/tải được.
+ * `trr_format`: EXCEL (PDF reserved).
  */
 export const carTruckReports = pgTable(
   'car_truck_reports',
@@ -65,6 +86,20 @@ export const carTruckReports = pgTable(
      * cost/km each trip is charged (`phí chuyến = km chuyến × costPerKm`).
      * Empty array = scope had no per-vehicle invoices to reconcile. */
     trrVehicleFuel: jsonb('trr_vehicle_fuel').$type<TruckReportVehicleFuel[]>(),
+    /* Vehicle scope this report covers (REQ-20260817, 0027). NULL = every truck
+     * in trr_region (AS-IS meaning, every row before this change). Non-null =
+     * this report only freezes/represents these vehicle ids — the fold in
+     * loadTruckRegionSnapshots reads this to decide which vehicles a report is
+     * allowed to overwrite, so a partial report can never wipe out the frozen
+     * numbers of a vehicle it doesn't cover. */
+    trrVehicleIds: jsonb('trr_vehicle_ids').$type<string[]>(),
+    /* PER-VEHICLE fixed-cost allocation basis frozen at generation time (0029,
+     * REQ-20260821): trip CRUD between two reports must not shift the shares a
+     * report already showed, so readers take the share from the latest report
+     * covering the trip and only compute live when none does. NULL = report
+     * generated before this column existed → readers keep the live computation
+     * (exactly the pre-0029 behaviour) for whatever that report covers. */
+    trrFixedAlloc: jsonb('trr_fixed_alloc').$type<TruckReportFixedAlloc[]>(),
     trrCreatedBy: char('trr_created_by', { length: 36 }),
     trrCreatedAt: timestamp('trr_created_at', { withTimezone: true }).defaultNow().notNull(),
     trrDeletedAt: timestamp('trr_deleted_at', { withTimezone: true }),
@@ -82,8 +117,19 @@ export const carTruckReports = pgTable(
 export type CarTruckReport = typeof carTruckReports.$inferSelect;
 export type CarTruckReportInsert = typeof carTruckReports.$inferInsert;
 
-/** Allowed report types (mirrors trr_type). MONTHLY_SUMMARY = the client
- * "Tổng kết chi phí tháng" single-sheet template (REQ-20260713); 'MONTHLY_SUMMARY'
- * is 15 chars → fits trr_type varchar(16) with no DDL change. */
-export const TRUCK_REPORT_TYPES = ['PNL', 'TRIP_LOG', 'VEHICLE', 'MONTHLY_SUMMARY'] as const;
+/** Allowed report types for NEW reports (mirrors trr_type). Only
+ * MONTHLY_SUMMARY remains — the client "Tổng kết chi phí tháng" template
+ * (REQ-20260713); 15 chars, fits trr_type varchar(16) with no DDL change.
+ *
+ * PNL / TRIP_LOG / VEHICLE were retired 2026-08-18: the UI that generated
+ * them was removed, so their builders became unreachable and were deleted.
+ * `trr_type` is a plain varchar, so historical rows carrying those values are
+ * untouched — the list renders their stored `trr_name` and downloading only
+ * redirects to the file already in S3, neither of which re-derives the type.
+ * Only creating a NEW report of a retired type is now rejected (zod). The
+ * `type_*` / `fileName_*` i18n keys for them are deliberately kept so those
+ * old rows still label and download correctly. */
+export const TRUCK_REPORT_TYPES = ['MONTHLY_SUMMARY'] as const;
+/** Type of a report row. Widened to `string` at the read boundary
+ * (`TruckReportRow`) because stored rows may carry a retired type. */
 export type TruckReportType = (typeof TRUCK_REPORT_TYPES)[number];

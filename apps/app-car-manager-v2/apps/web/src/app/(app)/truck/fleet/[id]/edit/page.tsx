@@ -42,8 +42,6 @@ export default async function EditTruckVehiclePage({ params }: { params: Promise
     make: v.cvhMake ?? '',
     year: v.cvhYear != null ? String(v.cvhYear) : '',
     tonnage: v.cvhTonnage ?? '',
-    fuelQuota: v.cvhFuelQuota ?? '',
-    fuelPrice: v.cvhFuelPrice ?? '',
     fuelType: v.cvhFuelType,
     region: v.cvhRegion ?? '',
     defaultDriverId: v.cvhDefaultDriverId ?? '',

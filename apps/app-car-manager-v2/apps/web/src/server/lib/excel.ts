@@ -23,17 +23,22 @@ export interface ExcelSheetData {
 /**
  * Build a single-sheet Excel workbook from header + rows.
  * Returns a Buffer suitable for streaming to NextResponse.
+ *
+ * `scopeLine` (REQ-20260814) prepends a caption + blank row above the header —
+ * used when the export covers a subset of the fleet, which nothing else on the
+ * sheet would reveal. Omit it and the layout is unchanged.
  */
 export function buildExcel(
   sheetName: string,
   columns: ExcelColumn[],
   rows: Record<string, unknown>[],
+  opts: { scopeLine?: string } = {},
 ): Buffer {
   const wb = XLSX.utils.book_new();
 
   // Build AOA (array of arrays) with header row first
   const header = columns.map((c) => c.header);
-  const data: unknown[][] = [header];
+  const data: unknown[][] = opts.scopeLine ? [[opts.scopeLine], [], header] : [header];
 
   for (const row of rows) {
     const rowArr = columns.map((c) => {

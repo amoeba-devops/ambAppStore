@@ -1,5 +1,4 @@
 import { getLocale, getTranslations } from 'next-intl/server';
-import Link from 'next/link';
 import { AlertTriangle, Download, FileText } from 'lucide-react';
 import { Button, Card, cn } from '@car-v2/ui';
 import { computeTruckPnl, type TruckPnlRow } from '@car-v2/core/truck';
@@ -8,9 +7,9 @@ import { PageHeader } from '@/components/layout/page-header';
 import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { MonthPicker } from '@/components/inputs/month-picker';
 import { ParamSelect } from '@/components/inputs/param-select';
+import { ParamMultiSelect } from '@/components/inputs/param-multi-select';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { resolveRegionFilter } from '@/lib/auth/region-access';
-import { listVehicles } from '@/server/queries/vehicles.queries';
+import { resolveRegionFilter, resolveVehicleScope } from '@/lib/auth/region-access';
 import { getTruckReportStatus } from '@/server/queries/truck-report.queries';
 import {
   getTruckFuelStats,
@@ -64,7 +63,14 @@ const METRICS: MetricDef[] = [
 export default async function TruckPnlPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vehicle?: string; month?: string; region?: string; region_denied?: string }>;
+  searchParams: Promise<{
+    /** CSV multi-select (REQ-20260814); `vehicle` kept for older links. */
+    vehicles?: string;
+    vehicle?: string;
+    month?: string;
+    region?: string;
+    region_denied?: string;
+  }>;
 }) {
   const user = await getCurrentUser();
   const sp = await searchParams;
@@ -72,25 +78,23 @@ export default async function TruckPnlPage({
   /* Region ACL (REQ-20260813) — validated ?region= + the set this user may see. */
   const { region, regions: permittedRegions } = await resolveRegionFilter(user, sp.region, sp);
   const restricted = permittedRegions.length < TRUCK_REGIONS.length;
-  const permittedCodes: readonly string[] = permittedRegions;
 
   const t = await getTranslations('screens.truckPnl');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
   const tRegion = await getTranslations('region');
+  /* Vehicle picker labels are shared with the Chuyến đi tab (one filter, two tabs). */
+  const tFinance = await getTranslations('screens.truckFinance');
   const locale = await getLocale();
   const loc = bcp47(locale);
 
-  const allTrucks = await listVehicles(user.entId, 'active', 'TRUCK');
-  const trucks = restricted
-    ? allTrucks.filter((v) => v.cvhRegion !== null && permittedCodes.includes(v.cvhRegion))
-    : allTrucks;
-  const vehicleId = sp.vehicle && trucks.some((v) => v.cvhId === sp.vehicle) ? sp.vehicle : undefined;
+  /* Vehicle multi-select (REQ-20260814) — region-scoped list + validated ids. */
+  const { trucks, vehicleIds } = await resolveVehicleScope(user, sp.vehicles ?? sp.vehicle);
 
   const months = threeMonthsEnding(month);
   const [rows, monthStatuses, invoices, fuelStats, regionLocked] = await Promise.all([
     computeTruckPnl(user, {
-      vehicleId,
+      vehicleIds,
       region,
       regions: restricted ? permittedRegions : undefined,
       months,
@@ -115,8 +119,9 @@ export default async function TruckPnlPage({
   const fmt = (def: MetricDef, n: number) => (def.kind === 'count' ? n.toLocaleString(loc) : vnd(n));
 
   const rq = region ? `&region=${region}` : '';
-  const vehicleHref = (v?: string) =>
-    `/truck/pnl?month=${month}${v ? `&vehicle=${v}` : ''}${rq}`;
+  /* Export links carry the vehicle scope too — until REQ-20260814 they dropped
+   * it, so the file never matched the filter on screen. */
+  const vq = vehicleIds ? `&vehicles=${vehicleIds.join(',')}` : '';
 
   return (
     <>
@@ -127,13 +132,13 @@ export default async function TruckPnlPage({
         actions={
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="md" asChild>
-              <a href={`${BASE_PATH}/truck/pnl/export?month=${month}&format=xlsx${rq}`}>
+              <a href={`${BASE_PATH}/truck/pnl/export?month=${month}&format=xlsx${rq}${vq}`}>
                 <Download />
                 Excel
               </a>
             </Button>
             <Button variant="ghost" size="md" asChild>
-              <a href={`${BASE_PATH}/truck/pnl/export?month=${month}&format=pdf${rq}`}>
+              <a href={`${BASE_PATH}/truck/pnl/export?month=${month}&format=pdf${rq}${vq}`}>
                 <FileText />
                 PDF
               </a>
@@ -155,7 +160,7 @@ export default async function TruckPnlPage({
               options={permittedRegions.map((r) => ({ value: r, label: tRegion(r) }))}
             />
           </div>
-          <FinanceTabs active="overview" month={month} vehicleId={vehicleId} />
+          <FinanceTabs active="overview" month={month} vehicleIds={vehicleIds} />
         </div>
 
         {/* Report status banner */}
@@ -210,10 +215,22 @@ export default async function TruckPnlPage({
         {/* P&L table */}
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
-            <Chip href={vehicleHref()} active={!vehicleId} label={t('allTrucks')} />
-            {trucks.map((v) => (
-              <Chip key={v.cvhId} href={vehicleHref(v.cvhId)} active={vehicleId === v.cvhId} label={v.cvhPlateNumber} />
-            ))}
+            <ParamMultiSelect
+              param="vehicles"
+              values={vehicleIds ?? []}
+              allLabel={t('allTrucks')}
+              buttonLabel={
+                vehicleIds ? tFinance('vehicleFilterN', { n: vehicleIds.length }) : t('allTrucks')
+              }
+              title={tFinance('vehicleFilterTitle')}
+              applyLabel={tFinance('vehicleFilterApply')}
+              clearLabel={tFinance('vehicleFilterClear')}
+              options={trucks.map((v) => ({
+                value: v.cvhId,
+                label: v.cvhPlateNumber,
+                hint: v.cvhRegion ? tRegion(v.cvhRegion as 'HCM') : undefined,
+              }))}
+            />
           </div>
 
           <Card variant="outline" className="overflow-x-auto">
@@ -315,22 +332,6 @@ export default async function TruckPnlPage({
         )}
       </div>
     </>
-  );
-}
-
-function Chip({ href, active, label }: { href: string; active: boolean; label: string }) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'inline-flex items-center min-h-[44px] md:min-h-0 rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors',
-        active
-          ? 'bg-accent text-accent-fg border-accent'
-          : 'bg-surface text-text-muted border-border hover:border-accent hover:text-accent',
-      )}
-    >
-      {label}
-    </Link>
   );
 }
 

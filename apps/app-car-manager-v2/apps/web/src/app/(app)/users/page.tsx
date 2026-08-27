@@ -20,11 +20,16 @@ import { carTenantSettings, type CarVehicleType } from '@car-v2/db/schema';
 import { DebouncedSearchInput } from '@/components/inputs/debounced-search';
 import { ParamSelect } from '@/components/inputs/param-select';
 import { PageHeader } from '@/components/layout/page-header';
+import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { resolveRegionFilter } from '@/lib/auth/region-access';
 import { listUsers, type UserListItem } from '@/server/queries/users.queries';
+import { getRegionAccessForUsers, getUserRegionAccess } from '@/server/queries/region-access.queries';
 import { AMA_ROLES, type LocalRole } from '@car-v2/shared/auth';
+import { TRUCK_REGIONS, type TruckRegion } from '@car-v2/shared/zod';
 import { ClickableCard, ClickableTableRow, StopRowClick } from '@/components/clickable-table-row';
 import { DriverSigninToggle } from './_components/driver-signin-toggle';
+import { RegionAccessInline } from './_components/region-access-inline';
 import { SyncFromAmaButton } from './_components/sync-from-ama-button';
 import { UserPeekDrawer } from './_components/user-peek-drawer';
 
@@ -61,7 +66,14 @@ function localeToBcp47(locale: string): string {
 }
 
 interface PageProps {
-  searchParams: Promise<{ q?: string; page?: string; peek?: string; dept?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    page?: string;
+    peek?: string;
+    dept?: string;
+    region?: string;
+    region_denied?: string;
+  }>;
 }
 
 const USERS_PAGE_SIZE = 20;
@@ -89,7 +101,14 @@ export default async function UsersPage({ searchParams }: PageProps) {
   const tList   = await getTranslations('users.list');
   const tRel    = await getTranslations('users.relativeTime');
   const tDept   = await getTranslations('screens.fleetAccess');
+  const tRegion = await getTranslations('region');
   const locale  = await getLocale();
+
+  /* Region ACL (REQ-20260813): `fRegion` is the validated ?region= filter,
+   * `permittedRegions` the set this actor may see at all — same pattern as
+   * the truck fleet/trips pages. */
+  const { region: fRegion, regions: permittedRegions } = await resolveRegionFilter(actor, sp.region, sp);
+  const restrictedViewer = permittedRegions.length < TRUCK_REGIONS.length;
 
   /* Human-readable label for the verbatim AMA role (all 7 roles synced from
    * ambManagement). Falls back to the raw code for any role not yet localized. */
@@ -109,6 +128,12 @@ export default async function UsersPage({ searchParams }: PageProps) {
   /* Peek target resolved from the full (pre-filter) list so the drawer opens
    * even when the row is hidden by the current search/page. */
   const peekUser = sp.peek ? users.find((u) => u.usrId === sp.peek) ?? null : null;
+  /* Region scoping (REQ-20260813) only exists inside the truck fleet and never
+   * applies to ADMIN — null tells the drawer to omit the field entirely. */
+  const peekUserRegions =
+    peekUser && peekUser.usrLocalRole !== 'ADMIN' && peekUser.depts.includes('TRUCK')
+      ? await getUserRegionAccess(actor.entId, peekUser.usrId)
+      : null;
   const tenantSettings = await db.query.carTenantSettings.findFirst({
     where: eq(carTenantSettings.entId, actor.entId),
     columns: { tnsUsersSyncedAt: true },
@@ -137,6 +162,36 @@ export default async function UsersPage({ searchParams }: PageProps) {
           ? u.depts.length === 0
           : u.depts.includes(deptFilter),
     );
+  }
+
+  /* Region scoping (REQ-20260813) only exists inside the truck fleet and never
+   * applies to ADMIN. Batched over every TRUCK member left after the filters
+   * above (not just the current page) so both the region filter itself and
+   * the quick-edit toggles below read from one query. */
+  const truckMemberIds = users
+    .filter((u) => u.usrLocalRole !== 'ADMIN' && u.depts.includes('TRUCK'))
+    .map((u) => u.usrId);
+  const regionsByUser: Map<string, TruckRegion[]> = await getRegionAccessForUsers(actor.entId, truckMemberIds);
+
+  if (fRegion) {
+    /* Explicit pick: show only members who actually operate there. Non-TRUCK
+     * rows and ADMIN have no region concept, so they drop out of this view —
+     * same "show the grantable rows, not implicit whole access" rule the dept
+     * filter already applies to ADMIN. */
+    users = users.filter((u) => {
+      if (u.usrLocalRole === 'ADMIN' || !u.depts.includes('TRUCK')) return false;
+      const regions = regionsByUser.get(u.usrId) ?? [];
+      return regions.length === 0 || regions.includes(fRegion);
+    });
+  } else if (restrictedViewer) {
+    /* No explicit pick, but the viewer's OWN scope is narrowed: passively hide
+     * TRUCK members outside their regions. Never touches CAR/admin/unassigned
+     * rows — this is ACL scoping, not a filter the viewer chose. */
+    users = users.filter((u) => {
+      if (u.usrLocalRole === 'ADMIN' || !u.depts.includes('TRUCK')) return true;
+      const regions = regionsByUser.get(u.usrId) ?? [];
+      return regions.length === 0 || regions.some((r) => permittedRegions.includes(r));
+    });
   }
 
   const blocked = users.filter((u) => u.blocked).length;
@@ -174,9 +229,10 @@ export default async function UsersPage({ searchParams }: PageProps) {
       />
 
       <div className="flex-1 overflow-auto px-4 md:px-7 py-4 md:py-6 space-y-4">
+        <RegionDeniedNotice code={sp.region_denied} />
         <div className="flex flex-col gap-3">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:items-center">
               <DebouncedSearchInput
                 placeholder={tList('searchPlaceholder')}
                 className="md:w-80"
@@ -192,6 +248,12 @@ export default async function UsersPage({ searchParams }: PageProps) {
                   { value: 'both', label: tList('deptBoth') },
                   { value: 'none', label: tList('deptNone') },
                 ]}
+              />
+              <ParamSelect
+                param="region"
+                value={fRegion}
+                allLabel={tList('allRegions')}
+                options={permittedRegions.map((r) => ({ value: r, label: tRegion(r) }))}
               />
             </div>
             <div className="flex items-center gap-3 text-xs md:text-sm text-text-muted flex-wrap">
@@ -241,7 +303,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
             <ul className="md:hidden space-y-2.5">
               {pagedUsers.map((u) => (
                 <li key={u.usrId} className={'rounded-md border border-border bg-surface ' + (u.blocked ? 'opacity-60' : '')}>
-                  <ClickableCard href={usersPeekHref(u.usrId, page, searchQ, deptFilter)} scroll={false} className="px-4 py-3.5">
+                  <ClickableCard href={usersPeekHref(u.usrId, page, searchQ, deptFilter, fRegion)} scroll={false} className="px-4 py-3.5">
                   <div className="flex items-start gap-3">
                     <Avatar name={u.usrName ?? u.usrEmail ?? '?'} size="md" />
                     <div className="flex-1 min-w-0">
@@ -270,6 +332,18 @@ export default async function UsersPage({ searchParams }: PageProps) {
                           noneLabel={tList('deptNone')}
                         />
                       </div>
+                      {u.usrLocalRole !== 'ADMIN' && u.depts.includes('TRUCK') && (
+                        <div className="mt-1.5">
+                          <StopRowClick>
+                            <RegionAccessInline
+                              userId={u.usrId}
+                              memberName={u.usrName ?? u.usrEmail ?? u.usrId}
+                              regions={regionsByUser.get(u.usrId) ?? []}
+                              readOnly={actor.role !== 'ADMIN'}
+                            />
+                          </StopRowClick>
+                        </div>
+                      )}
                       <div className="mt-2 flex items-center justify-between text-xs">
                         <span className="text-text-muted" title={u.usrAmaRoleSnapshot ?? undefined}>
                           {tList('amaPrefix')}{' '}
@@ -303,6 +377,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
                     <TableHead>{tList('thUser')}</TableHead>
                     <TableHead>{tList('thAppRole')}</TableHead>
                     <TableHead>{tDept('thAccess')}</TableHead>
+                    <TableHead className="w-[210px]">{tList('thRegion')}</TableHead>
                     <TableHead>{tList('thAmaRole')}</TableHead>
                     <TableHead>{tList('thLastActive')}</TableHead>
                     <TableHead className="w-[220px] text-right" />
@@ -343,6 +418,26 @@ export default async function UsersPage({ searchParams }: PageProps) {
                             noneLabel={tList('deptNone')}
                           />
                         </TableCell>
+                        <TableCell>
+                          {u.usrLocalRole !== 'ADMIN' && u.depts.includes('TRUCK') ? (
+                            /* Own column, capped so 2-3 short pills wrap on their
+                             * own lines instead of stretching the column (and,
+                             * since the Card wrapper clips rather than scrolls,
+                             * overflowing off the edge of the table). */
+                            <div className="max-w-[200px]">
+                              <StopRowClick>
+                                <RegionAccessInline
+                                  userId={u.usrId}
+                                  memberName={u.usrName ?? u.usrEmail ?? u.usrId}
+                                  regions={regionsByUser.get(u.usrId) ?? []}
+                                  readOnly={!isAdmin}
+                                />
+                              </StopRowClick>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-text-faint">—</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-text-muted" title={u.usrAmaRoleSnapshot ?? undefined}>{amaRoleLabel(u.usrAmaRoleSnapshot)}</TableCell>
                         <TableCell className="text-text-muted">
                           {formatRelativeTime(u.usrLastLoginAt, tRel, locale)}
@@ -369,7 +464,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
                     return isAdmin ? (
                       <ClickableTableRow
                         key={u.usrId}
-                        href={usersPeekHref(u.usrId, page, searchQ, deptFilter)}
+                        href={usersPeekHref(u.usrId, page, searchQ, deptFilter, fRegion)}
                         scroll={false}
                         className={u.blocked ? 'opacity-60' : ''}
                       >
@@ -396,7 +491,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
                 <div className="inline-flex items-center gap-1 self-end md:self-auto">
                   {page > 1 ? (
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={usersPageHref(page - 1, searchQ)}>{tList('previous')}</Link>
+                      <Link href={usersPageHref(page - 1, searchQ, deptFilter, fRegion)}>{tList('previous')}</Link>
                     </Button>
                   ) : (
                     <Button variant="ghost" size="sm" disabled>{tList('previous')}</Button>
@@ -404,7 +499,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
                   <span className="px-3 text-sm tabular">{page} / {totalPages}</span>
                   {page < totalPages ? (
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={usersPageHref(page + 1, searchQ)}>{tList('next')}</Link>
+                      <Link href={usersPageHref(page + 1, searchQ, deptFilter, fRegion)}>{tList('next')}</Link>
                     </Button>
                   ) : (
                     <Button variant="ghost" size="sm" disabled>{tList('next')}</Button>
@@ -422,15 +517,23 @@ export default async function UsersPage({ searchParams }: PageProps) {
           lastActiveLabel={formatRelativeTime(peekUser.usrLastLoginAt, tRel, locale)}
           isAdmin={actor.role === 'ADMIN'}
           isSelf={peekUser.usrId === actor.userId}
+          regions={peekUserRegions}
         />
       )}
     </>
   );
 }
 
-function usersPageHref(page: number, q: string | undefined): string {
+function usersPageHref(
+  page: number,
+  q: string | undefined,
+  dept: string | undefined,
+  region: string | undefined,
+): string {
   const params = new URLSearchParams();
   if (q) params.set('q', q);
+  if (dept) params.set('dept', dept);
+  if (region) params.set('region', region);
   if (page > 1) params.set('page', String(page));
   const qs = params.toString();
   return qs ? `/users?${qs}` : '/users';
@@ -477,10 +580,12 @@ function usersPeekHref(
   page: number,
   q: string | undefined,
   dept: string | undefined,
+  region: string | undefined,
 ): string {
   const params = new URLSearchParams();
   if (q) params.set('q', q);
   if (dept) params.set('dept', dept);
+  if (region) params.set('region', region);
   if (page > 1) params.set('page', String(page));
   params.set('peek', userId);
   return `/users?${params.toString()}`;

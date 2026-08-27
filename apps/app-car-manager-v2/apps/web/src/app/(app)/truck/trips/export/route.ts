@@ -54,34 +54,44 @@ export async function GET(req: Request) {
    * file, like the R1 monthly template (no more "Ngày / Date" pairs). */
   const hhmm = (d: Date | null) => (d ? new Date(d).toISOString().slice(11, 16) : '');
   const locale = await resolveUiLocale();
-  const tCol = await getTranslations({ locale, namespace: 'exportContent.truckTrips' });
+  const tCol = await getTranslations({ locale, namespace: 'columns.truck' });
+  const tExp = await getTranslations({ locale, namespace: 'exportContent.truckTrips' });
   const tStatus = await getTranslations({ locale, namespace: 'exportContent.status' });
+  /* Nhãn cột lấy từ glossary dùng chung `columns.truck` (REQ-20260824) nên
+   * template / màn Import / danh sách chuyến / file này gọi CÙNG một tên cho
+   * cùng một thứ; đơn vị gắn kèm ở file vì người đọc file cần nó. Các cột chỉ
+   * có ở file (tính toán) vẫn giữ định danh "thực tế" của REQ-20260822. */
+  const money = tCol('unitMoney');
+  const withUnit = (label: string, unit: string) => `${label} (${unit})`;
   const header = [
-    tCol('colRef'),
-    tCol('colDate'),
-    tCol('colVehicle'),
-    tCol('colDriver'),
-    tCol('colCustomer'),
-    tCol('colBill'),
-    tCol('colCdf'),
-    tCol('colStart'),
-    tCol('colEnd'),
-    tCol('colFrom'),
-    tCol('colTo'),
-    tCol('colOdoStart'),
-    tCol('colOdoEnd'),
-    tCol('colKm'),
-    tCol('colToll'),
-    tCol('colOtherFee'),
-    tCol('colFeeName'),
-    tCol('colFuelPrice'),
-    tCol('colLiters'),
-    tCol('colFuelCost'),
-    tCol('colRevenue'),
-    tCol('colTotalCost'),
-    tCol('colProfit'),
-    tCol('colStatus'),
-    tCol('colNotes'),
+    tCol('ref'),
+    tCol('date'),
+    tCol('vehicle'),
+    tCol('driver'),
+    tCol('customer'),
+    tCol('bol'),
+    tCol('cdf'),
+    tCol('startTime'),
+    tCol('endTime'),
+    tCol('pickup'),
+    tCol('stopover'),
+    tCol('dropoff'),
+    withUnit(tCol('odoStart'), tCol('unitKm')),
+    withUnit(tCol('odoEnd'), tCol('unitKm')),
+    tCol('kmTotal'),
+    withUnit(tCol('toll'), money),
+    withUnit(tCol('otherAmount'), money),
+    tCol('otherNote'),
+    withUnit(tCol('fuelPrice'), tCol('unitPricePerL')),
+    withUnit(tCol('fuelLiters'), tCol('unitLitre')),
+    withUnit(tCol('fuelActualCost'), money),
+    withUnit(tCol('revenue'), money),
+    /* Hai nhãn này đã tự mang đơn vị trong i18n ("… (đ)") — không bọc withUnit
+     * nữa, kẻo thành "(đ) (đ)". */
+    tExp('colTotalCost'),
+    tExp('colProfit'),
+    tCol('status'),
+    tCol('notes'),
   ];
   const rows = trips.map((t) => [
     t.ref,
@@ -94,6 +104,7 @@ export async function GET(req: Request) {
     hhmm(t.startTime),
     hhmm(t.endTime),
     t.pickup ?? '',
+    t.stopover ?? '',
     t.dropoff ?? '',
     t.startOdometer ?? '',
     t.endOdometer ?? '',
@@ -101,12 +112,17 @@ export async function GET(req: Request) {
     t.breakdown.tollFee,
     t.breakdown.extraTotal,
     t.extraNote ?? '',
-    Math.round(t.fuelUnitPrice),
-    Math.round(t.fuelLiters * 10) / 10,
-    t.breakdown.fuelCost,
+    /* This export mirrors the trip-log screen, so fuel is the trip's OWN
+     * recorded spend (REQ-20260822) — litres × price as entered, not the
+     * per-vehicle-month allocation. The allocated view is Chi phí & Lợi nhuận
+     * and its own export. Revenue/toll/extra are unaffected (raw per trip);
+     * totalCost/profit follow the actual fuel so the row adds up on its own. */
+    Math.round(t.fuelActualPrice),
+    Math.round(t.fuelActualLiters * 10) / 10,
+    t.fuelActualCost,
     t.breakdown.revenue,
-    t.breakdown.totalCost,
-    t.breakdown.profit,
+    t.fuelActualCost + t.breakdown.tollFee + t.breakdown.extraTotal,
+    t.breakdown.revenue - (t.fuelActualCost + t.breakdown.tollFee + t.breakdown.extraTotal),
     tStatus(t.status),
     t.notes ?? '',
   ]);
