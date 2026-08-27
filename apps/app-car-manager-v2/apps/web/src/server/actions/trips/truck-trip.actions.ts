@@ -36,6 +36,7 @@ import { nextTripRef } from '@/server/services/trip-ref.service';
 import { logAudit } from '@/server/services/audit-log.service';
 import { notifyUser } from '@/server/services/notification.service';
 import { runAction } from '../_helpers';
+import { auditGuardOverride, ensureAssignmentConfirmed } from '../_guard-helpers';
 
 /** Notify the assigned driver about a truck trip they must complete. */
 async function notifyTruckDriverAssigned(entId: string, trip: CarTrip): Promise<void> {
@@ -160,6 +161,15 @@ export async function createTruckTripAction(
       enforcedDriverId = driverRecord.drvId;
     }
 
+    /* Assignment-guard: an open LOG trip means the driver is on the road —
+     * ADMIN/MANAGER may confirm on the UI; a DRIVER must complete their open
+     * trip first (hard refuse inside the helper). */
+    const overriddenWarnings = await ensureAssignmentConfirmed(
+      actor,
+      { driverId: enforcedDriverId, vehicleId: dto.vehicle_id },
+      dto.confirmed_warning_codes,
+    );
+
     /* Build stopover list from DTO (REQ-20260623). */
     const stopovers: StopoverInput[] | undefined = dto.stopovers?.map((s) => ({
       type: s.type,
@@ -228,6 +238,7 @@ export async function createTruckTripAction(
       entityRef: trip.trpRef,
       after: { customer: trip.trpCustomer, status: trip.trpStatus, createdByRole: actor.role },
     });
+    await auditGuardOverride(actor, trip, overriddenWarnings);
 
     /* Notify driver if assigned by manager (driver creating own trip: skip self-notify). */
     if (trip.trpStatus === 'CONFIRMED' && trip.trpDriverId && actor.role !== 'DRIVER') {
@@ -257,6 +268,14 @@ export async function assignTruckTripAction(input: unknown): Promise<ActionResul
     });
     if (asgTrip) await assertTruckMonthOpen(actor.entId, asgTrip.trpScheduledAt, await regionOfVehicle(actor.entId, dto.vehicle_id));
 
+    /* Assignment-guard: confirm-or-refuse before mutating (excludeTripId =
+     * this trip so re-assigning its own driver doesn't self-conflict). */
+    const overriddenWarnings = await ensureAssignmentConfirmed(
+      actor,
+      { driverId: dto.driver_id, vehicleId: dto.vehicle_id, excludeTripId: dto.trip_id },
+      dto.confirmed_warning_codes,
+    );
+
     const trip = await assignTruckTrip(actor, dto.trip_id, {
       driverId: dto.driver_id,
       vehicleId: dto.vehicle_id,
@@ -271,6 +290,7 @@ export async function assignTruckTripAction(input: unknown): Promise<ActionResul
       entityRef: trip.trpRef,
       after: { driverId: dto.driver_id, vehicleId: dto.vehicle_id },
     });
+    await auditGuardOverride(actor, trip, overriddenWarnings);
 
     await notifyTruckDriverAssigned(actor.entId, trip);
 
@@ -406,10 +426,25 @@ export async function updateTruckTripAction(
      * editing a trip out of (or into) a closed period. */
     const curTrip = await db.query.carTrips.findFirst({
       where: and(eq(carTrips.trpId, dto.trip_id), eq(carTrips.entId, actor.entId)),
-      columns: { trpScheduledAt: true, trpVehicleId: true },
+      columns: { trpScheduledAt: true, trpVehicleId: true, trpDriverId: true },
     });
     if (curTrip) await assertTruckMonthOpen(actor.entId, curTrip.trpScheduledAt, await regionOfVehicle(actor.entId, curTrip.trpVehicleId));
     await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at), await regionOfVehicle(actor.entId, dto.vehicle_id));
+
+    /* Assignment-guard: only when the driver/vehicle actually changes — an
+     * unrelated edit (toll fee, notes, ...) must not trip over drift that
+     * happened after the original assignment. */
+    const driverChanged = !!dto.driver_id && dto.driver_id !== curTrip?.trpDriverId;
+    const vehicleChanged = !!dto.vehicle_id && dto.vehicle_id !== curTrip?.trpVehicleId;
+    const overriddenWarnings = await ensureAssignmentConfirmed(
+      actor,
+      {
+        driverId: driverChanged ? dto.driver_id : null,
+        vehicleId: vehicleChanged ? dto.vehicle_id : null,
+        excludeTripId: dto.trip_id,
+      },
+      dto.confirmed_warning_codes,
+    );
 
     const extraCosts = dto.extra_costs ?? [];
     const stopovers: StopoverInput[] | undefined = dto.stopovers?.map((s) => ({
@@ -453,6 +488,7 @@ export async function updateTruckTripAction(
       entityRef: res.trip.trpRef,
       after: { profit: res.breakdown.profit },
     });
+    await auditGuardOverride(actor, res.trip, overriddenWarnings);
 
     revalidatePath('/truck/trips');
     revalidatePath(`/truck/trips/${res.trip.trpId}`);

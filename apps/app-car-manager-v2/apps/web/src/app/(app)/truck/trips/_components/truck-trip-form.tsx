@@ -25,6 +25,7 @@ import {
   driverUpdateTruckTripAction,
 } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
+import { GuardConfirmDialog, useGuardConfirm } from '@/components/dialogs/guard-confirm-dialog';
 import { FormField } from '@/components/forms/form-section';
 import { MoneyInput } from '@/components/inputs/money-input';
 import { CostReceiptInput, type ExistingCostAttachment } from '@/components/truck/cost-receipt-input';
@@ -132,6 +133,7 @@ export function TruckTripForm({
   const tErr = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const guard = useGuardConfirm();
   const [f, setF] = useState({ ...EMPTY_FIELDS, ...initial });
   const [markCompleted, setMarkCompleted] = useState(initial?.markCompleted ?? true);
 
@@ -246,8 +248,10 @@ export function TruckTripForm({
   const lastKm = [...kmNums].reverse().find((v) => v != null);
   const totalKm = firstKm != null && lastKm != null && lastKm > firstKm ? lastKm - firstKm : null;
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  /* `e` is null when the guard-confirm dialog retries the submit with
+   * confirmed codes (assignment-guard pattern) — values are unchanged. */
+  const submit = (e: React.FormEvent | null, confirmedCodes?: string[]) => {
+    e?.preventDefault();
     if (!dirty) {
       const missing: string[] = [];
       if (f.vehicleId === '') missing.push(t('vehicle'));
@@ -300,6 +304,7 @@ export function TruckTripForm({
           .map((e) => ({ name: e.name.trim(), amount: Number(e.amount) })),
         cost_attachments,
         stopovers: stopoversPayload,
+        confirmed_warning_codes: confirmedCodes,
       };
       const res = !tripId
         ? await createTruckTripAction(payload)
@@ -308,7 +313,9 @@ export function TruckTripForm({
             await driverUpdateTruckTripAction({ ...payload, trip_id: tripId })
           : await updateTruckTripAction({ ...payload, trip_id: tripId });
       if (!res.success) {
-        toast.error(formatActionError(res.error, tErr));
+        if (!guard.intercept(res.error, (codes) => submit(null, codes))) {
+          toast.error(formatActionError(res.error, tErr));
+        }
         return;
       }
       /* Tell the user how the per-trip fuel was treated on save (REQ-20260724):
@@ -552,6 +559,7 @@ export function TruckTripForm({
           {t('save')}
         </Button>
       </div>
+      <GuardConfirmDialog state={guard.dialog} pending={pending} />
     </form>
   );
 }

@@ -12,6 +12,9 @@
  * (e.g. "Trip already confirmed"), while 5xx leaks DB constraint names,
  * SQL hints, or stack-derived strings the user can't act on.
  */
+import { isConfirmRequiredDetails } from '@car-v2/shared/errors';
+import { formatAssignmentWarning } from './assignment-warnings';
+
 export interface ActionErrorLike {
   code: string;
   message: string;
@@ -60,21 +63,11 @@ export function formatActionError(
     const friendly = formatZodIssues(error.message);
     if (friendly) return friendly;
   }
-  /* Driver-availability guard (assign flows) — localized because these are
-   * expected, user-actionable outcomes, not developer errors. */
-  if (error.code === 'CAR-E1009') {
-    const d = error.details as { conflictTripRef?: string } | undefined;
-    if (d?.conflictTripRef) {
-      return `${error.code} — ${t('errors.driverBusyOnTrip', { ref: d.conflictTripRef })}`;
-    }
-  }
-  if (error.code === 'CAR-E1011') {
-    const d = error.details as { driverStatus?: string } | undefined;
-    if (d?.driverStatus) {
-      return `${error.code} — ${t('errors.driverNotAvailable', {
-        status: t(`drivers.status.${d.driverStatus}`),
-      })}`;
-    }
+  /* Assignment-guard hard refusal (DRIVER role can't override) — localize the
+   * structured warnings instead of showing the raw English message. */
+  if (error.code === 'CAR-E1009' && isConfirmRequiredDetails(error.details)) {
+    const lines = error.details.warnings.map((w) => formatAssignmentWarning(w, t));
+    return `${error.code} — ${lines.join('\n')}`;
   }
   return `${error.code} — ${error.message}`;
 }

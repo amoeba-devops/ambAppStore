@@ -22,6 +22,7 @@ import { FormField, FormSection } from '@/components/forms/form-section';
 import { AddressAutocomplete } from '@/components/inputs/address-autocomplete';
 import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
 import { MapPreview } from '@/components/inputs/map-preview';
+import { GuardConfirmDialog, useGuardConfirm } from '@/components/dialogs/guard-confirm-dialog';
 import { useFormDraft } from '@/hooks/use-form-draft';
 import { toMinutes, type DurationUnit } from '@/lib/duration';
 import { formatActionError } from '@/lib/format-action-error';
@@ -75,6 +76,7 @@ export function NewTripForm({
   const tErr = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const guard = useGuardConfirm();
 
   const [passengerId, setPassengerId] = useState(currentUserId);
   const [pickup, setPickup] = useState('');
@@ -159,7 +161,7 @@ export function NewTripForm({
     markDirty();
   };
 
-  const onSubmit = () => {
+  const onSubmit = (confirmedCodes?: string[]) => {
     /* Guard against double-submit: Enter key + click race, useTransition
      * pending flag re-renders may still leave a 1-frame window. Bailing
      * here is cheaper than the createTripAction work that follows. */
@@ -196,6 +198,7 @@ export function NewTripForm({
         driver_id: driverId || undefined,
         vehicle_id: vehicleId || undefined,
         stopovers: stopovers.filter((s) => s.trim()).map((s) => s.trim()),
+        confirmed_warning_codes: confirmedCodes,
       });
       if (result.success) {
         clearDraft();
@@ -209,7 +212,7 @@ export function NewTripForm({
          * can confirm it appears in the queue. The detail page is one click
          * away from there, and the highlight ring fades after ~3s. */
         router.push(`/trips?status=all&highlight=${result.data.trpId}`);
-      } else {
+      } else if (!guard.intercept(result.error, (codes) => onSubmit(codes))) {
         toast.error(t('errCreate'), { description: formatActionError(result.error, tErr) });
       }
     });
@@ -505,6 +508,7 @@ export function NewTripForm({
           />
         </aside>
       </div>
+      <GuardConfirmDialog state={guard.dialog} pending={pending} />
     </form>
   );
 }

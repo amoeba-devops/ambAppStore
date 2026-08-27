@@ -2056,9 +2056,7 @@
     "tryAgain": "Thử lại",
     "notFoundLabel": "404",
     "notFoundTitle": "Không tìm thấy trang",
-    "notFoundDesc": "Chúng tôi không tìm thấy trang này. Có thể đã bị di chuyển, đổi tên, hoặc chưa từng tồn tại.",
-    "driverBusyOnTrip": "Tài xế đang trong chuyến {ref} chưa kết thúc — hãy kết thúc hoặc đổi tài xế cho chuyến đó trước",
-    "driverNotAvailable": "Tài xế hiện không thể được phân công (trạng thái: {status})"
+    "notFoundDesc": "Chúng tôi không tìm thấy trang này. Có thể đã bị di chuyển, đổi tên, hoặc chưa từng tồn tại."
   },
   "layout": {
     "sidebarAria": "Điều hướng chính",
@@ -2557,5 +2555,14 @@
       "unitKm": "km",
       "unitPricePerL": "đ/L"
     }
+  },
+  "guard": {
+    "dialogTitle": "Cảnh báo phân công",
+    "dialogDesc": "Kiểm tra các cảnh báo bên dưới. Bạn vẫn có thể tiếp tục — việc xác nhận sẽ được ghi vào nhật ký hành động.",
+    "confirm": "Vẫn tiếp tục",
+    "DRIVER_ON_ACTIVE_TRIP": "Tài xế đang trong chuyến {refs} chưa kết thúc",
+    "DRIVER_STATUS_NOT_AVAILABLE": "Tài xế đang ở trạng thái \"{status}\"",
+    "VEHICLE_IN_USE": "Xe {plate} đang được sử dụng",
+    "VEHICLE_MAINTENANCE": "Xe {plate} đang bảo dưỡng"
   }
 }

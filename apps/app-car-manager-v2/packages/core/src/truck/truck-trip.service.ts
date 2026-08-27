@@ -11,7 +11,7 @@ import {
 } from '@car-v2/db/schema';
 import { CarError } from '@car-v2/shared/errors';
 import type { FleetActor } from '../types';
-import { assertDriverAvailableForAssignment } from '../driver-availability';
+import { requireDriver } from '../driver-availability';
 import { computeTruckCost, parseAmount, type TruckCostBreakdown } from './truck-cost';
 
 /**
@@ -136,15 +136,13 @@ async function assertTruckVehicle(actor: FleetActor, vehicleId: string): Promise
 }
 
 /**
- * `excludeTripId` — pass the trip being assigned/updated so a driver already
- * `IN_PROGRESS` on THAT SAME trip doesn't block re-saving it.
+ * Hard check only: the driver must exist for this tenant. Availability
+ * WARNINGS (active trip / status) are the action layer's concern — it runs
+ * `evaluateAssignmentWarnings` and the confirm-or-refuse flow BEFORE calling
+ * into this service (assignment-guard pattern).
  */
-async function assertDriver(
-  actor: FleetActor,
-  driverId: string,
-  excludeTripId?: string,
-): Promise<void> {
-  await assertDriverAvailableForAssignment(actor.entId, driverId, excludeTripId);
+async function assertDriver(actor: FleetActor, driverId: string): Promise<void> {
+  await requireDriver(actor.entId, driverId);
 }
 
 export async function createTruckTrip(
@@ -198,7 +196,7 @@ export async function assignTruckTrip(
     throw new CarError('CAR-E1001', 409, `Cannot assign a truck trip in '${trip.trpStatus}'`);
   }
   await assertTruckVehicle(actor, payload.vehicleId);
-  await assertDriver(actor, payload.driverId, tripId);
+  await assertDriver(actor, payload.driverId);
 
   const [updated] = await db
     .update(carTrips)
@@ -315,12 +313,7 @@ export async function updateTruckTrip(
 ): Promise<{ trip: CarTrip; breakdown: TruckCostBreakdown }> {
   const trip = await loadLogTrip(actor, tripId);
   if (input.vehicleId) await assertTruckVehicle(actor, input.vehicleId);
-  /* Only re-check availability when the driver is actually changing — an
-   * unrelated edit (toll fee, notes, ...) on a trip that already has this
-   * driver must not fail just because their status drifted after assignment. */
-  if (input.driverId && input.driverId !== trip.trpDriverId) {
-    await assertDriver(actor, input.driverId, tripId);
-  }
+  if (input.driverId) await assertDriver(actor, input.driverId);
 
   const [updated] = await db
     .update(carTrips)

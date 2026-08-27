@@ -2056,9 +2056,7 @@
     "tryAgain": "Try again",
     "notFoundLabel": "404",
     "notFoundTitle": "Page not found",
-    "notFoundDesc": "We couldn't locate that page. It may have been moved, renamed, or it never existed.",
-    "driverBusyOnTrip": "This driver is currently on trip {ref} which has not finished — end or reassign that trip first",
-    "driverNotAvailable": "This driver cannot be assigned right now (status: {status})"
+    "notFoundDesc": "We couldn't locate that page. It may have been moved, renamed, or it never existed."
   },
   "layout": {
     "sidebarAria": "Primary",
@@ -2557,5 +2555,14 @@
       "unitKm": "km",
       "unitPricePerL": "VND/L"
     }
+  },
+  "guard": {
+    "dialogTitle": "Assignment warning",
+    "dialogDesc": "Review the warnings below. You can still proceed — the override is recorded in the audit log.",
+    "confirm": "Proceed anyway",
+    "DRIVER_ON_ACTIVE_TRIP": "This driver is on unfinished trip(s) {refs}",
+    "DRIVER_STATUS_NOT_AVAILABLE": "This driver is currently \"{status}\"",
+    "VEHICLE_IN_USE": "Vehicle {plate} is currently in use",
+    "VEHICLE_MAINTENANCE": "Vehicle {plate} is under maintenance"
   }
 }
