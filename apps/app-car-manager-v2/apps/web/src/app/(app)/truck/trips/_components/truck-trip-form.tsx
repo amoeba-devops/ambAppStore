@@ -29,7 +29,6 @@ import { GuardConfirmDialog, useGuardConfirm } from '@/components/dialogs/guard-
 import { FormField } from '@/components/forms/form-section';
 import { MoneyInput } from '@/components/inputs/money-input';
 import { CostReceiptInput, type ExistingCostAttachment } from '@/components/truck/cost-receipt-input';
-import { fuelToastDescription } from '@/components/truck/fuel-toast';
 import { uploadTruckCostFile } from '@/lib/truck-cost-upload';
 import { StopBuilder, makeDefaultStops, type StopField } from './stop-builder';
 import type { CarStopType, CarTripStopover } from '@car-v2/db/schema';
@@ -129,7 +128,6 @@ export function TruckTripForm({
   initial?: TruckTripFormInitial;
 }) {
   const t = useTranslations('screens.truckTrips.form');
-  const tFuel = useTranslations('screens.truckFinance');
   const tErr = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -318,13 +316,12 @@ export function TruckTripForm({
         }
         return;
       }
-      /* Tell the user how the per-trip fuel was treated on save (REQ-20260724):
-       * averaged (invoices) / vehicle rate (km × định mức × giá xe) / unset
-       * (xe chưa đặt định mức → 0). Server returns null for a non-completed
-       * trip → no fuel note. */
-      toast.success(tripId ? t('updatedToast') : t('createdToast'), {
-        description: fuelToastDescription(res.data.fuelMode, tFuel),
-      });
+      /* Plain save confirmation — the fuel-derivation note (REQ-20260724) was
+       * dropped from THIS toast per user feedback 2026-08-28: saving a trip
+       * should read as a simple success, not a costing explanation. The note
+       * still shows on trip COMPLETION (truck-complete-section), where the
+       * fuel figures are actually entered. */
+      toast.success(tripId ? t('updatedToast') : t('createdToast'));
       router.push(
         isDriver ? driverHome : (tripId ? `/truck/trips/${tripId}` : '/truck/trips'),
       );
