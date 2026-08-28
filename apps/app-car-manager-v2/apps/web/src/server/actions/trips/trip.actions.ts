@@ -3,7 +3,6 @@ import { randomUUID } from 'node:crypto';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@car-v2/db/client';
-import { assertDriverAvailableForAssignment } from '@car-v2/core';
 import {
   carDrivers,
   carTrips,
@@ -30,6 +29,7 @@ import { notifyUser } from '@/server/services/notification.service';
 import { nextTripRef } from '@/server/services/trip-ref.service';
 import { transitionTrip, type TransitionPayload } from '@/server/services/trip-state-machine.service';
 import { runAction } from '../_helpers';
+import { auditGuardOverride, ensureAssignmentConfirmed } from '../_guard-helpers';
 
 /* ─── Create ───────────────────────────────────────────────────────────── */
 
@@ -50,11 +50,14 @@ export async function createTripAction(input: unknown): Promise<ActionResult<Car
     if (!data.driver_id && data.vehicle_id) {
       throw new CarError('CAR-E0001', 400, 'Provide both driver and vehicle, or neither');
     }
-    if (data.driver_id) {
-      // Pre-assigning a driver at creation is the same "assign" action as the
-      // dedicated dialog — same availability guard applies.
-      await assertDriverAvailableForAssignment(actor.entId, data.driver_id);
-    }
+    /* Pre-assigning a driver at creation is the same "assign" action as the
+     * dedicated dialog — same assignment-guard pattern applies (warn → user
+     * confirms on the UI → resubmit with confirmed_warning_codes). */
+    const overriddenWarnings = await ensureAssignmentConfirmed(
+      actor,
+      { driverId: data.driver_id, vehicleId: data.vehicle_id },
+      data.confirmed_warning_codes,
+    );
 
     const tripId = randomUUID();
     const stopovers = data.stopovers ?? [];
@@ -137,6 +140,7 @@ export async function createTripAction(input: unknown): Promise<ActionResult<Car
         dropoff: created.trpDropoffAddress,
       },
     });
+    await auditGuardOverride(actor, created, overriddenWarnings);
 
     /* PRD R-10 + §13.1: */
     const tripRoute = `${created.trpPickupAddress} → ${created.trpDropoffAddress}`;
@@ -341,6 +345,15 @@ export async function assignTripAction(id: string, input: unknown): Promise<Acti
     const data = assignTripSchema.parse(input);
     const trip = await loadTrip(id, actor);
 
+    /* Assignment-guard: warn about driver/vehicle conflicts and require UI
+     * confirmation before proceeding (excludeTripId = this trip so re-assign
+     * doesn't collide with itself). */
+    const overriddenWarnings = await ensureAssignmentConfirmed(
+      actor,
+      { driverId: data.driver_id, vehicleId: data.vehicle_id, excludeTripId: id },
+      data.confirmed_warning_codes,
+    );
+
     const transition = trip.trpStatus === 'REJECTED_BY_DRIVER' ? 'reassign' : 'assign';
     const updated = await transitionTrip(id, transition, actor, {
       kind: transition,
@@ -348,6 +361,7 @@ export async function assignTripAction(id: string, input: unknown): Promise<Acti
       vehicleId: data.vehicle_id,
     } as TransitionPayload);
 
+    await auditGuardOverride(actor, updated, overriddenWarnings);
     revalidatePathsForTrip(id);
     return updated;
   });

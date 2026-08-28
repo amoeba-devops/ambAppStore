@@ -22,6 +22,7 @@ import {
   toast,
 } from '@car-v2/ui';
 import { AddressAutocomplete } from '@/components/inputs/address-autocomplete';
+import { GuardConfirmDialog, useGuardConfirm } from '@/components/dialogs/guard-confirm-dialog';
 import { MapPreview } from '@/components/inputs/map-preview';
 import { formatActionError } from '@/lib/format-action-error';
 import { createTripAction, updateTripAction } from '@/server/actions/trips/trip.actions';
@@ -73,6 +74,7 @@ export function TripFormDialog({
   const t = useTranslations('dashboard.form');
   const tErr = useTranslations();
   const [pending, startTransition] = useTransition();
+  const guard = useGuardConfirm();
 
   const [passengerId, setPassengerId] = useState(currentUserId);
   const [pickup, setPickup] = useState('');
@@ -134,7 +136,7 @@ export function TripFormDialog({
     [dirty, onOpenChange, t],
   );
 
-  const onSubmit = () => {
+  const onSubmit = (confirmedCodes?: string[]) => {
     if (pending) return;
     if (!pickup.trim() || !dropoff.trim() || !scheduledAt) {
       toast.error(t('errMissing'), { description: t('errMissingDesc') });
@@ -169,12 +171,15 @@ export function TripFormDialog({
       };
 
       if (mode === 'create') {
-        const res = await createTripAction(basePayload);
+        const res = await createTripAction({
+          ...basePayload,
+          confirmed_warning_codes: confirmedCodes,
+        });
         if (res.success) {
           toast.success(t('successCreate', { ref: res.data.trpRef }));
           onOpenChange(false);
           onSuccess(res.data.trpId);
-        } else {
+        } else if (!guard.intercept(res.error, (codes) => onSubmit(codes))) {
           toast.error(t('errCreate'), { description: formatActionError(res.error, tErr) });
         }
       } else {
@@ -419,11 +424,12 @@ export function TripFormDialog({
           <Button type="button" variant="ghost" size="md" onClick={() => attemptClose(false)} disabled={pending} className="md:w-auto">
             {t('cancel')}
           </Button>
-          <Button type="button" variant="accent" size="md" onClick={onSubmit} disabled={pending} className="md:w-auto">
+          <Button type="button" variant="accent" size="md" onClick={() => onSubmit()} disabled={pending} className="md:w-auto">
             {pending ? '…' : submitLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
+      <GuardConfirmDialog state={guard.dialog} pending={pending} />
     </Dialog>
   );
 }

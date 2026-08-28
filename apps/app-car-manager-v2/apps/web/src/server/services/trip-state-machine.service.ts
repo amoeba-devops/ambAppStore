@@ -2,7 +2,7 @@ import 'server-only';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { CarError } from '@car-v2/shared/errors';
 import { db } from '@car-v2/db/client';
-import { assertDriverAvailableForAssignment } from '@car-v2/core';
+import { requireDriver } from '@car-v2/core';
 import {
   carDrivers,
   carTrips,
@@ -111,10 +111,11 @@ export async function transitionTrip(
       if (payload?.kind !== 'assign' && payload?.kind !== 'reassign') {
         throw new CarError('CAR-E1001', 400, 'assign/reassign requires driverId + vehicleId');
       }
-      // Driver must be AVAILABLE and not already driving another trip right
-      // now; vehicle must exist for this tenant + not retired.
+      // Hard integrity: driver/vehicle exist for this tenant, vehicle not
+      // retired. Availability WARNINGS (active trip / status) are handled by
+      // the action layer's assignment-guard confirm flow before we get here.
       const [, vehicle] = await Promise.all([
-        assertDriverAvailableForAssignment(actor.entId, payload.driverId, tripId),
+        requireDriver(actor.entId, payload.driverId),
         db.query.carVehicles.findFirst({
           where: and(
             eq(carVehicles.cvhId, payload.vehicleId),

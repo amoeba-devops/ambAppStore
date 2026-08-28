@@ -27,6 +27,7 @@ import {
 import type { CarTrip } from '@car-v2/db/schema';
 import type { LocalRole } from '@car-v2/shared/auth';
 import { AddressAutocomplete } from '@/components/inputs/address-autocomplete';
+import { GuardConfirmDialog, useGuardConfirm } from '@/components/dialogs/guard-confirm-dialog';
 import { DraftRestoreBanner } from '@/components/forms/draft-restore-banner';
 import { FormField, FormSection } from '@/components/forms/form-section';
 import { MapPreview } from '@/components/inputs/map-preview';
@@ -95,6 +96,7 @@ export function EditTripForm({
   const tErr = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const guard = useGuardConfirm();
 
   /* Manager cannot change passenger after creation (PRD FR-1.3). */
   const passengerLocked = role === 'MANAGER';
@@ -181,7 +183,7 @@ export function EditTripForm({
     dismissDraft();
   };
 
-  const onSubmit = () => {
+  const onSubmit = (confirmedCodes?: string[]) => {
     /* Guard against double-submit (Enter + click race). */
     if (pending) return;
     if (!pickup.trim() || !dropoff.trim() || !scheduledAt) {
@@ -228,11 +230,16 @@ export function EditTripForm({
         const assignRes = await assignTripAction(trip.trpId, {
           driver_id: driverId,
           vehicle_id: vehicleId,
+          confirmed_warning_codes: confirmedCodes,
         });
         if (!assignRes.success) {
-          toast.error(t('errAssign'), { description: formatActionError(assignRes.error, tErr) });
-          /* update đã thành công — vẫn refresh để user thấy state mới. */
-          router.refresh();
+          /* Assignment-guard confirm: retry re-runs the WHOLE submit — the
+           * duplicate updateTripAction is harmless (same values). */
+          if (!guard.intercept(assignRes.error, (codes) => onSubmit(codes))) {
+            toast.error(t('errAssign'), { description: formatActionError(assignRes.error, tErr) });
+            /* update đã thành công — vẫn refresh để user thấy state mới. */
+            router.refresh();
+          }
           return;
         }
       }
@@ -622,6 +629,7 @@ export function EditTripForm({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <GuardConfirmDialog state={guard.dialog} pending={pending} />
     </form>
   );
 }

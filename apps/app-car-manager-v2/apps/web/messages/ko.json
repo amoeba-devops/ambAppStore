@@ -2056,9 +2056,7 @@
     "tryAgain": "다시 시도",
     "notFoundLabel": "404",
     "notFoundTitle": "페이지를 찾을 수 없습니다",
-    "notFoundDesc": "해당 페이지를 찾을 수 없습니다. 이동되었거나, 이름이 변경되었거나, 존재하지 않을 수 있습니다.",
-    "driverBusyOnTrip": "이 기사는 아직 종료되지 않은 운행 {ref} 에 배정되어 있습니다 — 해당 운행을 먼저 종료하거나 기사를 변경하세요",
-    "driverNotAvailable": "이 기사는 현재 배정할 수 없습니다 (상태: {status})"
+    "notFoundDesc": "해당 페이지를 찾을 수 없습니다. 이동되었거나, 이름이 변경되었거나, 존재하지 않을 수 있습니다."
   },
   "layout": {
     "sidebarAria": "기본",
@@ -2557,5 +2555,14 @@
       "unitKm": "km",
       "unitPricePerL": "VND/L"
     }
+  },
+  "guard": {
+    "dialogTitle": "배정 경고",
+    "dialogDesc": "아래 경고를 확인하세요. 계속 진행할 수 있으며, 확인 내역은 감사 로그에 기록됩니다.",
+    "confirm": "계속 진행",
+    "DRIVER_ON_ACTIVE_TRIP": "이 기사는 아직 종료되지 않은 운행 {refs} 에 배정되어 있습니다",
+    "DRIVER_STATUS_NOT_AVAILABLE": "이 기사의 현재 상태는 \"{status}\" 입니다",
+    "VEHICLE_IN_USE": "차량 {plate} 은(는) 현재 사용 중입니다",
+    "VEHICLE_MAINTENANCE": "차량 {plate} 은(는) 정비 중입니다"
   }
 }
