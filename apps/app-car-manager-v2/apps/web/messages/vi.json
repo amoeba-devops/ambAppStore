@@ -21,6 +21,7 @@
     "truckFleet": "Phương tiện",
     "truckPnl": "P&L tháng & Hóa đơn xăng",
     "truckDrivers": "Tài xế",
+    "truckMaintenance": "Bảo trì",
     "truckImport": "Import Excel",
     "truckSettings": "Cấu hình xe tải",
     "drivers": "Tài xế",
@@ -228,17 +229,18 @@
       },
       "vsPrev": "so kỳ trước",
       "vsPrevYoy": "so cùng kỳ năm trước",
-      "kpiCostSub": "Nhiên liệu · cầu đường · phát sinh · lương tài xế · khấu hao",
+      "kpiCostSub": "Nhiên liệu · cầu đường · phát sinh · lương tài xế · khấu hao · bảo trì",
       "kpiTripsSub": "Tổng hợp từ nhật ký chuyến",
       "perTrip": "theo chuyến",
       "perMonth": "theo tháng",
       "disclaimer": "Lưu ý: Dữ liệu trên Bảng điều khiển được cập nhật theo thời gian thực và chỉ mang tính ước tính. Để đảm bảo độ chính xác, vui lòng tạo báo cáo theo từng tháng.",
       "thCost": "Chi phí",
       "tooltipRevenue": "Tổng doanh thu từ tất cả các chuyến đi trong kỳ.",
-      "tooltipCost": "Tổng chi phí = Phí nhiên liệu + Phí cầu đường + Chi phí phát sinh + Lương tài xế + Khấu hao xe",
-      "tooltipProfit": "Lợi nhuận ròng = Tổng doanh thu − Tổng chi phí (nhiên liệu + cầu đường + phát sinh + lương tài xế + khấu hao)",
+      "tooltipCost": "Tổng chi phí = Phí nhiên liệu + Phí cầu đường + Chi phí phát sinh + Lương tài xế + Khấu hao xe + Chi phí bảo trì",
+      "tooltipProfit": "Lợi nhuận ròng = Tổng doanh thu − Tổng chi phí (nhiên liệu + cầu đường + phát sinh + lương tài xế + khấu hao + bảo trì)",
       "byVehicle": "Theo xe",
-      "allVehicles": "Tất cả xe"
+      "allVehicles": "Tất cả xe",
+      "fixedMaintNote": "Bảo trì tính theo tháng, không phân bổ theo chuyến"
     },
     "truckDrivers": {
       "title": "Tài xế",
@@ -332,7 +334,8 @@
       "reasonLabel": "Lý do",
       "reopenAdminOnly": "Chỉ Quản trị viên mới được mở lại",
       "invoiceSelectVehicle": "— Chọn xe —",
-      "invoiceNoVehicle": "Chưa gán xe"
+      "invoiceNoVehicle": "Chưa gán xe",
+      "maintenance": "Bảo trì"
     },
     "truckComplete": {
       "completeCta": "Hoàn thành chuyến đi",
@@ -554,7 +557,9 @@
           "remove": "Xóa điểm này"
         },
         "provisionalTag": "Tạm tính",
-        "validationMissing": "Vui lòng điền đầy đủ: {fields}"
+        "validationMissing": "Vui lòng điền đầy đủ: {fields}",
+        "vehicleMaintenanceSuffix": "(bảo trì {start}–{end})",
+        "vehicleMaintenanceBlocked": "Xe {plate} đang bảo trì {start}–{end} — chọn ngày khác hoặc xe khác."
       },
       "provisional": "Tạm tính",
       "thUpdated": "Cập nhật",
@@ -576,6 +581,17 @@
       "allRegions": "Tất cả khu vực",
       "allDrivers": "Tất cả tài xế",
       "allStatus": "Tất cả trạng thái",
+      "status": {
+        "AVAILABLE": "Sẵn sàng",
+        "MAINTENANCE": "Bảo trì",
+        "RETIRED": "Ngừng sử dụng"
+      },
+      "statusDesc": {
+        "AVAILABLE": "Phương tiện sẵn sàng để tạo chuyến",
+        "MAINTENANCE": "Phương tiện nằm trong danh sách bảo trì · Không thể tạo chuyến mới",
+        "RETIRED": "Phương tiện đã ngừng sử dụng · Không thể tạo chuyến mới"
+      },
+      "maintUntil": "đến {date}",
       "thStt": "STT",
       "thActions": "Hành động",
       "addTruck": "Thêm phương tiện",
@@ -620,7 +636,11 @@
         "deletedToast": "Đã xoá xe tải",
         "code": "Mã xe",
         "notes": "Ghi chú",
-        "notesPlaceholder": "Ghi chú thêm…"
+        "notesPlaceholder": "Ghi chú thêm…",
+        "status": "Trạng thái",
+        "statusHint": "Chỉ chuyển giữa Sẵn sàng và Ngừng sử dụng. Trạng thái Bảo trì được gán tự động theo lịch ở menu Bảo trì.",
+        "statusMaintenanceNote": "Xe đang bảo trì đến {date} — trạng thái Bảo trì được gán tự động.",
+        "statusMaintenanceLink": "Xem lịch bảo trì"
       },
       "thCode": "Mã xe",
       "thPlate": "Biển số",
@@ -632,6 +652,57 @@
       "thStatus": "Trạng thái",
       "thUpdated": "Cập nhật",
       "thNotes": "Ghi chú"
+    },
+    "truckMaintenance": {
+      "title": "Bảo trì",
+      "subtitle": "{count} lần bảo trì",
+      "subtitleMonth": "{count} lần bảo trì · Tổng chi phí bảo trì tháng {month}: {total}",
+      "add": "Thêm bảo trì",
+      "newTitle": "Thêm bảo trì",
+      "newSubtitle": "Ghi nhận thời gian và chi phí bảo trì của xe tải",
+      "editTitle": "Sửa bảo trì",
+      "newCrumb": "Thêm mới",
+      "editCrumb": "Sửa",
+      "allRegions": "Tất cả khu vực",
+      "allVehicles": "Tất cả xe",
+      "thStt": "STT",
+      "thDate": "Ngày",
+      "thVehicle": "Phương tiện",
+      "thPeriod": "Thời gian bảo trì",
+      "thCost": "Chi phí",
+      "thUpdatedBy": "Cập nhật bởi",
+      "thUpdated": "Cập nhật",
+      "thActions": "Hành động",
+      "days": "{n} ngày",
+      "status": {
+        "UPCOMING": "Sắp tới",
+        "ACTIVE": "Đang bảo trì",
+        "DONE": "Đã xong"
+      },
+      "emptyTitle": "Chưa có bản ghi bảo trì",
+      "emptyDesc": "Thêm bản ghi để ghi chi phí bảo trì vào tháng và chặn tạo chuyến cho xe trong thời gian bảo trì.",
+      "form": {
+        "title": "Thông tin bảo trì",
+        "vehicle": "Phương tiện",
+        "selectVehicle": "Chọn xe…",
+        "startDate": "Bắt đầu",
+        "endDate": "Kết thúc",
+        "cost": "Chi phí (₫)",
+        "endBeforeStart": "Ngày kết thúc phải từ ngày bắt đầu trở đi.",
+        "monthHint": "Chi phí hạch toán vào tháng {month} (theo ngày bắt đầu), cộng vào Tổng phí cố định — không phân bổ theo chuyến.",
+        "blockHint": "Từ {start} đến {end} không thể tạo, gán hoặc sửa chuyến cho xe này.",
+        "tripsBlocked": "Xe {plate} đã có {count} chuyến trong khoảng này ({refs}). Không thể ghi bảo trì trùng ngày có chuyến — đổi khoảng ngày hoặc chọn xe khác.",
+        "vehicleBusySuffix": "(có {n} chuyến trong khoảng)",
+        "overlapMaintenanceWarning": "Xe đã có bản ghi bảo trì trùng khoảng: {ranges}. Vẫn lưu được nếu là hạng mục khác.",
+        "lockedHint": "Tháng đã chốt sổ — không thể chỉnh sửa.",
+        "save": "Lưu",
+        "cancel": "Huỷ",
+        "delete": "Xoá",
+        "deleteConfirm": "Xoá bản ghi bảo trì này?",
+        "createdToast": "Đã thêm bảo trì cho {plate}",
+        "updatedToast": "Đã cập nhật bảo trì {plate}",
+        "deletedToast": "Đã xoá bản ghi bảo trì"
+      }
     },
     "audit": {
       "title": "Nhật ký hành động",
@@ -666,7 +737,7 @@
       "fuelUnsetToast": "Xe chưa có chi phí nhiên liệu trong tháng → phí nhiên liệu = 0. Nhập nhiên liệu cho chuyến hoặc thêm hoá đơn xăng.",
       "fuelByTripKmHint": "Phí nhiên liệu chia theo số km — nhập Km đồng hồ cuối và nhiên liệu đã đổ.",
       "thFixedAlloc": "CP CỐ ĐỊNH PHÂN BỔ",
-      "thFixedAllocHint": "Lương tài xế + khấu hao xe của tháng, chia đều cho số chuyến của xe trong tháng. Lợi nhuận từng chuyến đã trừ khoản này.",
+      "thFixedAllocHint": "Lương tài xế + khấu hao xe của tháng, chia đều cho số chuyến của xe trong tháng. Lợi nhuận từng chuyến đã trừ khoản này. Chi phí bảo trì không phân bổ theo chuyến — chỉ tính vào tổng tháng.",
       "allocSalaryShort": "Lương",
       "allocDeprShort": "KH",
       "allTrucks": "Tất cả phương tiện",
@@ -701,7 +772,8 @@
       "vehicleFilterTitle": "Chọn xe",
       "vehicleFilterN": "{n} xe",
       "vehicleFilterApply": "Áp dụng",
-      "vehicleFilterClear": "Bỏ chọn tất cả"
+      "vehicleFilterClear": "Bỏ chọn tất cả",
+      "sumFixedMaintNote": "gồm bảo trì {x} — không phân bổ theo chuyến"
     },
     "truckReportStatus": {
       "reportAt": "Đã lập BC · {date}",
@@ -777,6 +849,9 @@
       "cardConsumption": "Lượng tiêu hao/km",
       "cardRefuels": "Số lần đổ xăng",
       "cardFixed": "Tổng chi phí cố định",
+      "cardFixedSalary": "Lương",
+      "cardFixedDepreciation": "Khấu hao",
+      "cardFixedMaintenance": "Bảo trì",
       "netLabel": "Lợi nhuận ròng",
       "thStt": "STT",
       "thDate": "Ngày",
@@ -1685,7 +1760,8 @@
       "statusBreakeven": "Hòa vốn",
       "totalRow": "Tổng / Total",
       "totalTrucks": "{n} xe",
-      "footer": "Số liệu tính lúc {ts}. Phí nhiên liệu phân bổ từ chi phí nhiên liệu tháng của từng xe theo số km."
+      "footer": "Số liệu tính lúc {ts}. Phí nhiên liệu phân bổ từ chi phí nhiên liệu tháng của từng xe theo số km.",
+      "lineMaintenance": "Chi phí bảo trì"
     },
     "trips": {
       "sheetName": "Chuyến xe",
@@ -1827,7 +1903,8 @@
       "lineNet": "Lợi nhuận ròng",
       "scopeAll": "Phạm vi: Tất cả xe ({total})",
       "scopeVehicles": "Phạm vi: {n}/{total} xe — {plates}",
-      "colTotal": "TỔNG"
+      "colTotal": "TỔNG",
+      "lineMaintenance": "Chi phí bảo trì"
     },
     "truckTrips": {
       "sheetName": "Danh sách chuyến",
@@ -2563,6 +2640,9 @@
     "DRIVER_ON_ACTIVE_TRIP": "Tài xế đang trong chuyến {refs} chưa kết thúc",
     "DRIVER_STATUS_NOT_AVAILABLE": "Tài xế đang ở trạng thái \"{status}\"",
     "VEHICLE_IN_USE": "Xe {plate} đang được sử dụng",
-    "VEHICLE_MAINTENANCE": "Xe {plate} đang bảo dưỡng"
+    "VEHICLE_MAINTENANCE": "Xe {plate} đang bảo dưỡng",
+    "VEHICLE_UNDER_MAINTENANCE": "Xe {plate} đang bảo trì từ {start} đến {end}. Không thể tạo hoặc sửa chuyến trong thời gian này.",
+    "VEHICLE_UNDER_MAINTENANCE_ROW": "Dòng {row}: xe {plate} đang bảo trì từ {start} đến {end}.",
+    "MAINTENANCE_HAS_TRIPS": "Xe {plate} đã có {count} chuyến trong khoảng này ({refs}). Không thể ghi bảo trì trùng ngày có chuyến."
   }
 }

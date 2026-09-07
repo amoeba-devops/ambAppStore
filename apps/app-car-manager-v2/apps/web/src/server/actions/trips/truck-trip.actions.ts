@@ -14,6 +14,7 @@ import {
   deleteTruckTrip,
   syncTripCostAttachments,
   loadTruckRegionSnapshots,
+  assertVehicleNotUnderMaintenance,
   type TripCostAttachmentInput,
   type TruckFuelMode,
 } from '@car-v2/core/truck';
@@ -149,6 +150,10 @@ export async function createTruckTripAction(
     await requireFleet(actor, 'TRUCK');
     const dto = createTruckTripSchema.parse(input);
     await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at), await regionOfVehicle(actor.entId, dto.vehicle_id));
+    /* Maintenance window (REQ-20260904, BR-7/BR-9): a hard stop for every role,
+     * evaluated BEFORE the confirmable assignment warnings so a booked truck
+     * never reaches the "Vẫn tiếp tục" dialog. */
+    await assertVehicleNotUnderMaintenance(actor.entId, dto.vehicle_id, new Date(dto.scheduled_at));
 
     /* DRIVER self-assign enforcement: driver_id must be the caller's own record. */
     let enforcedDriverId = dto.driver_id ?? null;
@@ -266,7 +271,10 @@ export async function assignTruckTripAction(input: unknown): Promise<ActionResul
       where: and(eq(carTrips.trpId, dto.trip_id), eq(carTrips.entId, actor.entId)),
       columns: { trpScheduledAt: true },
     });
-    if (asgTrip) await assertTruckMonthOpen(actor.entId, asgTrip.trpScheduledAt, await regionOfVehicle(actor.entId, dto.vehicle_id));
+    if (asgTrip) {
+      await assertTruckMonthOpen(actor.entId, asgTrip.trpScheduledAt, await regionOfVehicle(actor.entId, dto.vehicle_id));
+      await assertVehicleNotUnderMaintenance(actor.entId, dto.vehicle_id, asgTrip.trpScheduledAt);
+    }
 
     /* Assignment-guard: confirm-or-refuse before mutating (excludeTripId =
      * this trip so re-assigning its own driver doesn't self-conflict). */
@@ -316,7 +324,10 @@ export async function completeTruckTripAction(
       where: and(eq(carTrips.trpId, dto.trip_id), eq(carTrips.entId, actor.entId)),
       columns: { trpScheduledAt: true, trpVehicleId: true },
     });
-    if (finTrip) await assertTruckMonthOpen(actor.entId, finTrip.trpScheduledAt, await regionOfVehicle(actor.entId, finTrip.trpVehicleId));
+    if (finTrip) {
+      await assertTruckMonthOpen(actor.entId, finTrip.trpScheduledAt, await regionOfVehicle(actor.entId, finTrip.trpVehicleId));
+      await assertVehicleNotUnderMaintenance(actor.entId, finTrip.trpVehicleId, finTrip.trpScheduledAt);
+    }
 
     const res = await completeTruckTrip(actor, dto.trip_id, {
       startedAt: parseWallClockUtc(dto.start_time) ?? null,
@@ -374,6 +385,7 @@ export async function driverCompleteTruckTripAction(
       throw new CarError('CAR-E0403', 403, 'Not your trip');
     }
     await assertTruckMonthOpen(actor.entId, trip.trpScheduledAt, await regionOfVehicle(actor.entId, trip.trpVehicleId));
+    await assertVehicleNotUnderMaintenance(actor.entId, trip.trpVehicleId, trip.trpScheduledAt);
 
     const res = await completeTruckTrip(actor, dto.trip_id, {
       startedAt: parseWallClockUtc(dto.start_time) ?? null,
@@ -430,6 +442,11 @@ export async function updateTruckTripAction(
     });
     if (curTrip) await assertTruckMonthOpen(actor.entId, curTrip.trpScheduledAt, await regionOfVehicle(actor.entId, curTrip.trpVehicleId));
     await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at), await regionOfVehicle(actor.entId, dto.vehicle_id));
+    /* Maintenance window (REQ-20260904): a trip inside one may neither be
+     * edited nor moved into one — checked on the stored AND the target
+     * (vehicle, day), regardless of which field changed (user decision Q6). */
+    if (curTrip) await assertVehicleNotUnderMaintenance(actor.entId, curTrip.trpVehicleId, curTrip.trpScheduledAt);
+    await assertVehicleNotUnderMaintenance(actor.entId, dto.vehicle_id, new Date(dto.scheduled_at));
 
     /* Assignment-guard: only when the driver/vehicle actually changes — an
      * unrelated edit (toll fee, notes, ...) must not trip over drift that
@@ -546,6 +563,9 @@ export async function driverUpdateTruckTripAction(
     /* Both the trip's current month and the target month must be open. */
     await assertTruckMonthOpen(actor.entId, trip.trpScheduledAt, await regionOfVehicle(actor.entId, trip.trpVehicleId));
     await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at), await regionOfVehicle(actor.entId, dto.vehicle_id));
+    /* Maintenance window (REQ-20260904) — stored and target (vehicle, day). */
+    await assertVehicleNotUnderMaintenance(actor.entId, trip.trpVehicleId, trip.trpScheduledAt);
+    await assertVehicleNotUnderMaintenance(actor.entId, dto.vehicle_id, new Date(dto.scheduled_at));
 
     const stopovers: StopoverInput[] | undefined = dto.stopovers?.map((s) => ({
       type: s.type,
@@ -644,6 +664,7 @@ export async function patchTruckTripCostsAction(input: unknown): Promise<ActionR
     });
     if (!trip) throw new CarError('CAR-E0404', 404, 'Trip not found');
     await assertTruckMonthOpen(actor.entId, trip.trpScheduledAt, await regionOfVehicle(actor.entId, trip.trpVehicleId));
+    await assertVehicleNotUnderMaintenance(actor.entId, trip.trpVehicleId, trip.trpScheduledAt);
 
     const patch: Partial<{ trpTollFee: string; trpRevenue: string; trpFuelLiters: string; trpFuelPrice: string }> = {};
     if (dto.toll_fee !== undefined) patch.trpTollFee = String(dto.toll_fee);

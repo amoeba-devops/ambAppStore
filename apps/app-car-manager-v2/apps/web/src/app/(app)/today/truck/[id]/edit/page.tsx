@@ -10,7 +10,8 @@ import { getTripExtraCosts, getTripCostAttachmentsView } from '@/server/queries/
 import { getTripStopovers } from '@/server/queries/stopovers.queries';
 import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
 import { getLatestTruckReportForMonth } from '@/server/queries/truck-report.queries';
-import { listVehicles } from '@/server/queries/vehicles.queries';
+import { listDispatchableTrucks } from '@/server/queries/truck-vehicles.queries';
+import { listVehicleMaintenanceWindows } from '@car-v2/core/truck';
 import { TruckTripForm } from '@/app/(app)/truck/trips/_components/truck-trip-form';
 
 /** Date → 'HH:mm' for the form's <input type="time">; '' when unset. */
@@ -50,14 +51,18 @@ export default async function DriverEditTruckTripPage({
   }
 
   const tripMonth = new Date(trip.trpScheduledAt).toISOString().slice(0, 7);
-  const [vehicles, extras, stopovers, settings, monthReport, costAttachments] = await Promise.all([
-    listVehicles(user.entId, 'active', 'TRUCK'),
-    getTripExtraCosts(user.entId, trip.trpId),
-    getTripStopovers(user.entId, trip.trpId),
-    getTenantSettings(user.entId),
-    getLatestTruckReportForMonth(user.entId, tripMonth),
-    getTripCostAttachmentsView(user.entId, trip.trpId),
-  ]);
+  const [vehicles, extras, stopovers, settings, monthReport, costAttachments, maintenanceWindows] =
+    await Promise.all([
+      /* Retired trucks are not offered, except the trip's own (REQ-20260907 BR-5). */
+      listDispatchableTrucks(user.entId, trip.trpVehicleId),
+      getTripExtraCosts(user.entId, trip.trpId),
+      getTripStopovers(user.entId, trip.trpId),
+      getTenantSettings(user.entId),
+      getLatestTruckReportForMonth(user.entId, tripMonth),
+      getTripCostAttachmentsView(user.entId, trip.trpId),
+      /* Maintenance windows (REQ-20260904) — the same hard stop the manager sees. */
+      listVehicleMaintenanceWindows(user.entId),
+    ]);
 
   const vehicleOptions = vehicles.map((v) => ({
     id: v.cvhId,
@@ -125,6 +130,7 @@ export default async function DriverEditTruckTripPage({
           depotAddress={settings?.tnsDepotAddress}
           tripId={trip.trpId}
           initial={initial}
+          maintenanceWindows={maintenanceWindows}
         />
       </div>
     </>

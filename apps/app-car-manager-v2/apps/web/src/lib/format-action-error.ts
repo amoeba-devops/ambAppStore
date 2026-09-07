@@ -12,8 +12,21 @@
  * (e.g. "Trip already confirmed"), while 5xx leaks DB constraint names,
  * SQL hints, or stack-derived strings the user can't act on.
  */
-import { isConfirmRequiredDetails } from '@car-v2/shared/errors';
+import {
+  isConfirmRequiredDetails,
+  isMaintenanceBlockDetails,
+  isMaintenanceTripsDetails,
+  MAINTENANCE_HAS_TRIPS_CODE,
+  VEHICLE_UNDER_MAINTENANCE_CODE,
+} from '@car-v2/shared/errors';
 import { formatAssignmentWarning } from './assignment-warnings';
+
+/** 'YYYY-MM-DD' → 'dd/MM/yyyy' — the VN date convention the truck reports use;
+ * kept locale-free because this helper only has `t`, not the locale. */
+function ddmmyyyy(iso: string): string {
+  const [y, m, d] = iso.split('-');
+  return y && m && d ? `${d}/${m}/${y}` : iso;
+}
 
 export interface ActionErrorLike {
   code: string;
@@ -68,6 +81,17 @@ export function formatActionError(
   if (error.code === 'CAR-E1009' && isConfirmRequiredDetails(error.details)) {
     const lines = error.details.warnings.map((w) => formatAssignmentWarning(w, t));
     return `${error.code} — ${lines.join('\n')}`;
+  }
+  /* Maintenance guard (REQ-20260904) — hard blocks in both directions, with
+   * structured details so the toast reads in the user's language. */
+  if (error.code === VEHICLE_UNDER_MAINTENANCE_CODE && isMaintenanceBlockDetails(error.details)) {
+    const d = error.details;
+    const values = { plate: d.plate, start: ddmmyyyy(d.startDate), end: ddmmyyyy(d.endDate), row: String(d.row ?? '') };
+    return `${error.code} — ${t(d.row != null ? 'guard.VEHICLE_UNDER_MAINTENANCE_ROW' : 'guard.VEHICLE_UNDER_MAINTENANCE', values)}`;
+  }
+  if (error.code === MAINTENANCE_HAS_TRIPS_CODE && isMaintenanceTripsDetails(error.details)) {
+    const d = error.details;
+    return `${error.code} — ${t('guard.MAINTENANCE_HAS_TRIPS', { plate: d.plate, count: String(d.count), refs: d.refs.join(', ') })}`;
   }
   return `${error.code} — ${error.message}`;
 }

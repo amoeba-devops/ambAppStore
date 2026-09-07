@@ -9,6 +9,7 @@ import {
   createVehicleSchema,
   updateVehicleSchema,
 } from '@car-v2/shared/zod';
+import { isTruckStoredStatus } from '@car-v2/core/truck';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireRegion } from '@/lib/auth/region-access';
 import { logAudit } from '@/server/services/audit-log.service';
@@ -101,6 +102,12 @@ export async function updateVehicleAction(id: string, input: unknown): Promise<A
      * is leaving and the one it's moving into. */
     if (existing.cvhRegion) await requireRegion(actor, existing.cvhRegion);
     if (data.region) await requireRegion(actor, data.region);
+    /* Truck status is user-set only between AVAILABLE and RETIRED (REQ-20260907
+     * BR-3). MAINTENANCE is derived from car_truck_maintenances and IN_USE
+     * belongs to the CAR dispatch flow — neither may be stored on a truck. */
+    if ((data.vehicle_type ?? existing.cvhType) === 'TRUCK' && data.status !== undefined && !isTruckStoredStatus(data.status)) {
+      throw new CarError('CAR-E1001', 400, 'Truck status must be AVAILABLE or RETIRED');
+    }
 
     const patch: Partial<typeof carVehicles.$inferInsert> = { cvhUpdatedAt: new Date() };
     if (data.plate_number !== undefined) patch.cvhPlateNumber = data.plate_number;

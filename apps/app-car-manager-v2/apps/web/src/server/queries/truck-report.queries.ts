@@ -3,6 +3,7 @@ import { and, desc, eq, gt, inArray, isNull, or } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTruckReports, carUsers } from '@car-v2/db/schema';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
+import { getTruckMaintenanceLastUpdated } from '@car-v2/core/truck';
 import { getTruckFixedCostsLastUpdated, getTruckTripsMaxUpdatedAt } from './truck-finance.queries';
 
 export interface TruckReportRow {
@@ -154,13 +155,16 @@ export async function getTruckReportStatus(
 ): Promise<TruckReportStatus> {
   const latest = await getLatestTruckReportForMonth(entId, month, region);
   if (!latest) return { reportedAt: null, stale: false, covered: false };
-  const [tripsUpdatedAt, fixedUpdatedAt] = await Promise.all([
+  const [tripsUpdatedAt, fixedUpdatedAt, maintenanceUpdatedAt] = await Promise.all([
     getTruckTripsMaxUpdatedAt(entId, month, region),
     getTruckFixedCostsLastUpdated(entId, month),
+    /* Maintenance jobs feed the month's fixed cost too (REQ-20260904, BR-11). */
+    getTruckMaintenanceLastUpdated(entId, month),
   ]);
   const stale =
     (tripsUpdatedAt != null && tripsUpdatedAt > latest.createdAt) ||
-    (fixedUpdatedAt != null && fixedUpdatedAt > latest.createdAt);
+    (fixedUpdatedAt != null && fixedUpdatedAt > latest.createdAt) ||
+    (maintenanceUpdatedAt != null && maintenanceUpdatedAt > latest.createdAt);
   const covered = changedAt == null || latest.createdAt >= changedAt;
   return { reportedAt: latest.createdAt, stale, covered };
 }

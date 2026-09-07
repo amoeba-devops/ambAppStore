@@ -22,6 +22,7 @@
     "truckFleet": "차량",
     "truckPnl": "월 손익 & 주유 영수증",
     "truckDrivers": "기사",
+    "truckMaintenance": "정비",
     "truckImport": "엑셀 가져오기",
     "truckSettings": "트럭 설정",
     "drivers": "기사",
@@ -228,17 +229,18 @@
       },
       "vsPrev": "전기 대비",
       "vsPrevYoy": "전년 동기 대비",
-      "kpiCostSub": "연료 · 통행료 · 부대 · 기사 급여 · 감가",
+      "kpiCostSub": "연료 · 통행료 · 부대 · 기사 급여 · 감가 · 정비",
       "kpiTripsSub": "운행 일지 집계",
       "perTrip": "운행별",
       "perMonth": "월별",
       "disclaimer": "참고: 대시보드 데이터는 실시간으로 업데이트되며 추정 목적입니다. 정확한 데이터는 월별 보고서를 생성하세요.",
       "thCost": "비용",
       "tooltipRevenue": "해당 기간 전체 운행의 총 매출.",
-      "tooltipCost": "총 비용 = 연료비 + 통행료 + 부대비용 + 기사 급여 + 차량 감가상각",
-      "tooltipProfit": "순이익 = 총 매출 − 총 비용 (연료 + 통행료 + 부대 + 기사 급여 + 감가상각)",
+      "tooltipCost": "총 비용 = 연료비 + 통행료 + 부대비용 + 기사 급여 + 차량 감가상각 + 정비 비용",
+      "tooltipProfit": "순이익 = 총 매출 − 총 비용 (연료 + 통행료 + 부대 + 기사 급여 + 감가상각 + 정비)",
       "byVehicle": "차량별",
-      "allVehicles": "모든 차량"
+      "allVehicles": "모든 차량",
+      "fixedMaintNote": "정비 비용은 월 단위로 집계되며 운행별로 배분하지 않습니다"
     },
     "truckDrivers": {
       "title": "기사",
@@ -332,7 +334,8 @@
       "reasonLabel": "사유",
       "reopenAdminOnly": "관리자만 재오픈할 수 있습니다",
       "invoiceSelectVehicle": "— 차량 선택 —",
-      "invoiceNoVehicle": "차량 미지정"
+      "invoiceNoVehicle": "차량 미지정",
+      "maintenance": "정비"
     },
     "truckComplete": {
       "completeCta": "운행 완료",
@@ -554,7 +557,9 @@
           "remove": "경유지 삭제"
         },
         "provisionalTag": "임시 계산",
-        "validationMissing": "필수 항목을 입력해주세요: {fields}"
+        "validationMissing": "필수 항목을 입력해주세요: {fields}",
+        "vehicleMaintenanceSuffix": "(정비 {start}–{end})",
+        "vehicleMaintenanceBlocked": "{plate} 차량은 {start}–{end} 정비 중입니다 — 다른 날짜나 차량을 선택하세요."
       },
       "provisional": "잠정",
       "thUpdated": "수정",
@@ -576,6 +581,17 @@
       "allRegions": "전체 지역",
       "allDrivers": "전체 기사",
       "allStatus": "전체 상태",
+      "status": {
+        "AVAILABLE": "이용 가능",
+        "MAINTENANCE": "정비 중",
+        "RETIRED": "사용 중지"
+      },
+      "statusDesc": {
+        "AVAILABLE": "운행 등록이 가능한 차량",
+        "MAINTENANCE": "정비 목록에 등록됨 · 신규 운행 등록 불가",
+        "RETIRED": "사용 중지된 차량 · 신규 운행 등록 불가"
+      },
+      "maintUntil": "{date}까지",
       "thStt": "번호",
       "thActions": "작업",
       "addTruck": "차량 추가",
@@ -620,7 +636,11 @@
         "deletedToast": "트럭 삭제됨",
         "code": "차량 코드",
         "notes": "비고",
-        "notesPlaceholder": "추가 메모…"
+        "notesPlaceholder": "추가 메모…",
+        "status": "상태",
+        "statusHint": "이용 가능 ↔ 사용 중지만 변경할 수 있습니다. 정비 중 상태는 정비 메뉴 일정에 따라 자동 지정됩니다.",
+        "statusMaintenanceNote": "{date}까지 정비 중 — 정비 중 상태는 자동 지정됩니다.",
+        "statusMaintenanceLink": "정비 일정 보기"
       },
       "thCode": "차량 코드",
       "thPlate": "번호판",
@@ -632,6 +652,57 @@
       "thStatus": "상태",
       "thUpdated": "수정",
       "thNotes": "비고"
+    },
+    "truckMaintenance": {
+      "title": "정비",
+      "subtitle": "정비 {count}건",
+      "subtitleMonth": "정비 {count}건 · {month} 정비 비용 합계: {total}",
+      "add": "정비 추가",
+      "newTitle": "정비 추가",
+      "newSubtitle": "트럭의 정비 기간과 비용을 기록합니다",
+      "editTitle": "정비 수정",
+      "newCrumb": "신규",
+      "editCrumb": "수정",
+      "allRegions": "모든 지역",
+      "allVehicles": "모든 차량",
+      "thStt": "번호",
+      "thDate": "날짜",
+      "thVehicle": "차량",
+      "thPeriod": "정비 기간",
+      "thCost": "비용",
+      "thUpdatedBy": "수정자",
+      "thUpdated": "수정일",
+      "thActions": "작업",
+      "days": "{n}일",
+      "status": {
+        "UPCOMING": "예정",
+        "ACTIVE": "정비 중",
+        "DONE": "완료"
+      },
+      "emptyTitle": "정비 기록이 없습니다",
+      "emptyDesc": "기록을 추가하면 해당 월 비용에 반영되고 정비 기간 동안 해당 차량의 운행 생성이 차단됩니다.",
+      "form": {
+        "title": "정비 정보",
+        "vehicle": "차량",
+        "selectVehicle": "차량 선택…",
+        "startDate": "시작",
+        "endDate": "종료",
+        "cost": "비용 (₫)",
+        "endBeforeStart": "종료일은 시작일 이후여야 합니다.",
+        "monthHint": "비용은 {month}(시작일 기준)에 반영되어 총 고정비에 합산됩니다 — 운행별로 배분하지 않습니다.",
+        "blockHint": "{start}부터 {end}까지 이 차량의 운행을 생성·배정·수정할 수 없습니다.",
+        "tripsBlocked": "{plate} 차량은 이 기간에 이미 {count}건의 운행이 있습니다 ({refs}). 운행이 있는 날짜에는 정비를 등록할 수 없습니다 — 기간을 변경하거나 다른 차량을 선택하세요.",
+        "vehicleBusySuffix": "(기간 내 운행 {n}건)",
+        "overlapMaintenanceWarning": "이 차량에 기간이 겹치는 정비 기록이 있습니다: {ranges}. 다른 작업이면 저장할 수 있습니다.",
+        "lockedHint": "마감된 월입니다 — 수정할 수 없습니다.",
+        "save": "저장",
+        "cancel": "취소",
+        "delete": "삭제",
+        "deleteConfirm": "이 정비 기록을 삭제할까요?",
+        "createdToast": "{plate} 정비를 추가했습니다",
+        "updatedToast": "{plate} 정비를 수정했습니다",
+        "deletedToast": "정비 기록을 삭제했습니다"
+      }
     },
     "audit": {
       "title": "활동 로그",
@@ -666,7 +737,7 @@
       "fuelUnsetToast": "이 차량의 당월 유류비 기록이 없어 유류비 = 0. 운행에 주유 내역을 입력하거나 영수증을 등록하세요.",
       "fuelByTripKmHint": "유류비는 km 비율로 배분됩니다 — 종료 주행거리와 주유량을 입력하세요.",
       "thFixedAlloc": "고정비 배분",
-      "thFixedAllocHint": "해당 월의 기사 급여 + 차량 감가상각을 그 차량의 월 운행 건수로 균등 배분한 금액. 각 운행 이익에서 이미 차감되어 있습니다.",
+      "thFixedAllocHint": "해당 월의 기사 급여 + 차량 감가상각을 그 차량의 월 운행 건수로 균등 배분한 금액. 각 운행 이익에서 이미 차감되어 있습니다. 정비 비용은 운행별로 배분하지 않고 월 합계에만 포함됩니다.",
       "allocSalaryShort": "급여",
       "allocDeprShort": "감가",
       "allTrucks": "전체 차량",
@@ -701,7 +772,8 @@
       "vehicleFilterTitle": "차량 선택",
       "vehicleFilterN": "차량 {n}대",
       "vehicleFilterApply": "적용",
-      "vehicleFilterClear": "전체 해제"
+      "vehicleFilterClear": "전체 해제",
+      "sumFixedMaintNote": "정비 {x} 포함 — 운행별 배분 없음"
     },
     "truckReportStatus": {
       "reportAt": "보고서 · {date}",
@@ -777,6 +849,9 @@
       "cardConsumption": "연비",
       "cardRefuels": "주유 횟수",
       "cardFixed": "고정비",
+      "cardFixedSalary": "급여",
+      "cardFixedDepreciation": "감가상각",
+      "cardFixedMaintenance": "정비",
       "netLabel": "순이익",
       "thStt": "번호",
       "thDate": "날짜",
@@ -1685,7 +1760,8 @@
       "statusBreakeven": "손익분기",
       "totalRow": "총계",
       "totalTrucks": "{n}대",
-      "footer": "{ts} 기준 계산. 유류비는 각 차량의 당월 유류비를 주행 km로 배분합니다."
+      "footer": "{ts} 기준 계산. 유류비는 각 차량의 당월 유류비를 주행 km로 배분합니다.",
+      "lineMaintenance": "정비 비용"
     },
     "trips": {
       "sheetName": "운행",
@@ -1827,7 +1903,8 @@
       "lineNet": "순이익",
       "scopeAll": "범위: 전체 차량 ({total}대)",
       "scopeVehicles": "범위: {n}/{total}대 — {plates}",
-      "colTotal": "합계"
+      "colTotal": "합계",
+      "lineMaintenance": "정비 비용"
     },
     "truckTrips": {
       "sheetName": "운행 목록",
@@ -2563,6 +2640,9 @@
     "DRIVER_ON_ACTIVE_TRIP": "이 기사는 아직 종료되지 않은 운행 {refs} 에 배정되어 있습니다",
     "DRIVER_STATUS_NOT_AVAILABLE": "이 기사의 현재 상태는 \"{status}\" 입니다",
     "VEHICLE_IN_USE": "차량 {plate} 은(는) 현재 사용 중입니다",
-    "VEHICLE_MAINTENANCE": "차량 {plate} 은(는) 정비 중입니다"
+    "VEHICLE_MAINTENANCE": "차량 {plate} 은(는) 정비 중입니다",
+    "VEHICLE_UNDER_MAINTENANCE": "{plate} 차량은 {start}부터 {end}까지 정비 중입니다. 이 기간에는 운행을 생성/수정할 수 없습니다.",
+    "VEHICLE_UNDER_MAINTENANCE_ROW": "{row}행: {plate} 차량은 {start}부터 {end}까지 정비 중입니다.",
+    "MAINTENANCE_HAS_TRIPS": "{plate} 차량은 이 기간에 이미 {count}건의 운행이 있습니다 ({refs}). 운행이 있는 날짜에는 정비를 등록할 수 없습니다."
   }
 }

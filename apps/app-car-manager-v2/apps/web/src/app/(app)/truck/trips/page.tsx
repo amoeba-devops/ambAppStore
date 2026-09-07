@@ -21,6 +21,7 @@ import { MonthPicker } from '@/components/inputs/month-picker';
 import { PageHeader } from '@/components/layout/page-header';
 import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { formatDay } from '@/lib/format-day';
 import { resolveRegionFilter } from '@/lib/auth/region-access';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { driverIdentity } from '@/lib/format-person-option';
@@ -84,7 +85,7 @@ export default async function TruckTripsPage({
   });
   const loc = bcp47(locale);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
-  const date = (d: Date) => new Date(d).toLocaleDateString(loc);
+  const date = (d: Date) => formatDay(d, loc);
   const plateOptions = trucks.map((v) => ({ id: v.cvhId, label: v.cvhPlateNumber }));
   const driverOptions = fleetDrivers.map((d) => ({ id: d.drvId, label: driverIdentity(d) }));
 

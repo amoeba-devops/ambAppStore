@@ -13,7 +13,7 @@ import {
   TableRow,
   cn,
 } from '@car-v2/ui';
-import { computeTruckPnl } from '@car-v2/core/truck';
+import { computeTruckPnl, getTruckMaintenanceLastUpdated } from '@car-v2/core/truck';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
 import { DateTimeCell } from '@/components/datetime-cell';
@@ -27,6 +27,7 @@ import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
 import { FuelReconciliationBadge } from '@/components/truck/fuel-reconciliation-badge';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { formatDay } from '@/lib/format-day';
 import { resolveRegionFilter, resolveVehicleScope } from '@/lib/auth/region-access';
 import {
   getTruckFixedCostsLastUpdated,
@@ -80,11 +81,12 @@ export default async function TruckFinancePage({
    * ids outside it are dropped; `vehicleIds` is undefined for "all trucks". */
   const { trucks, vehicleIds } = await resolveVehicleScope(user, sp.vehicles ?? sp.vehicle);
 
-  const [rows, pnl, latestReport, fixedUpdatedAt] = await Promise.all([
+  const [rows, pnl, latestReport, fixedUpdatedAt, maintenanceUpdatedAt] = await Promise.all([
     listTruckFinanceTrips(user.entId, { month, vehicleIds, q, region, regions: scopeRegions }),
     computeTruckPnl(user, { vehicleIds, region, regions: scopeRegions, months: [month] }),
     getLatestTruckReportForMonth(user.entId, month, region),
     getTruckFixedCostsLastUpdated(user.entId, month),
+    getTruckMaintenanceLastUpdated(user.entId, month),
   ]);
   const summary = pnl[0] ?? null;
 
@@ -97,11 +99,12 @@ export default async function TruckFinancePage({
   const stale =
     latestReport != null &&
     (rows.some((r) => r.updatedAt != null && r.updatedAt > latestReport.createdAt) ||
-      (fixedUpdatedAt != null && fixedUpdatedAt > latestReport.createdAt));
+      (fixedUpdatedAt != null && fixedUpdatedAt > latestReport.createdAt) ||
+      (maintenanceUpdatedAt != null && maintenanceUpdatedAt > latestReport.createdAt));
 
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
   const num = (n: number, frac = 0) => n.toLocaleString(loc, { maximumFractionDigits: frac });
-  const date = (d: Date) => new Date(d).toLocaleDateString(loc);
+  const date = (d: Date) => formatDay(d, loc);
 
   const qs = q ? `&q=${encodeURIComponent(q)}` : '';
   /* `region` now travels to the export too — the route enforces the ACL either
@@ -131,7 +134,16 @@ export default async function TruckFinancePage({
         /* Driver salary folds into fixedCost now (no separate fleet-roster
          * line) — the fixed-cost total below covers salary + depreciation +
          * insurance. */
-        [t('sumFixed'), summary.fixedCost],
+        /* Fixed = salary + depreciation + MAINTENANCE (REQ-20260904). The
+         * per-trip "CP cố định phân bổ" column below carries only the first
+         * two, so say so here — otherwise Σ(row profit) looks off by exactly
+         * the maintenance total. */
+        [
+          t('sumFixed'),
+          summary.fixedCost,
+          undefined,
+          summary.maintenanceCost > 0 ? t('sumFixedMaintNote', { x: vnd(summary.maintenanceCost) }) : undefined,
+        ],
         [t('sumNet'), summary.netProfit, 'profit'],
       ]
     : [];
