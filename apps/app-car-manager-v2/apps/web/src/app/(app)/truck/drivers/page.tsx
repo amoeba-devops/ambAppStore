@@ -22,6 +22,7 @@ import { ListRowActions } from '@/components/list-row-actions';
 import { PageHeader } from '@/components/layout/page-header';
 import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { formatDay } from '@/lib/format-day';
 import { resolveRegionFilter } from '@/lib/auth/region-access';
 import { listFleetDrivers } from '@/server/queries/drivers.queries';
 import { getRegionAccessForUsers } from '@/server/queries/region-access.queries';
@@ -60,7 +61,7 @@ export default async function TruckDriversPage({
   const tRegion = await getTranslations('region');
   const locale = await getLocale();
   const loc = bcp47(locale);
-  const date = (d: string | Date) => new Date(d).toLocaleDateString(loc);
+  const date = (d: string | Date) => formatDay(d, loc);
 
   /* Region ACL (REQ-20260813): `fRegion` is the validated ?region= filter,
    * `permittedRegions` the set this actor may see at all — same pattern as

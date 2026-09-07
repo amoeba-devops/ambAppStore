@@ -5,6 +5,7 @@ import { AlertTriangle, Edit3, Wallet } from 'lucide-react';
 import { Badge, Button, Card } from '@car-v2/ui';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
+import { formatDay } from '@/lib/format-day';
 import { getTrip } from '@/server/queries/trips.queries';
 import { getTripStopovers } from '@/server/queries/stopovers.queries';
 import { getDriverByUserId } from '@/server/queries/drivers.queries';
@@ -124,7 +125,7 @@ export default async function DriverTruckTripPage({
             {completed ? tDetail('statusDone') : tDetail('statusOpen')}
           </Badge>
           <span className="text-sm text-text-muted tabular">
-            {new Date(trip.trpScheduledAt).toLocaleDateString(loc)}
+            {formatDay(trip.trpScheduledAt, loc)}
           </span>
           {trip.vehiclePlate && (
             <span className="text-sm font-mono text-text-muted">{trip.vehiclePlate}</span>

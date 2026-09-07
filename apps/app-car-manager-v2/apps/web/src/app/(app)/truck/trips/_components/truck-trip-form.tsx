@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ClipboardList, FileText, Loader2, Plus, Route, Save, Trash2, Truck, User, Wallet } from 'lucide-react';
 import {
   Badge,
@@ -25,6 +25,7 @@ import {
   driverUpdateTruckTripAction,
 } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
+import { formatDayKey } from '@/lib/format-day';
 import { GuardConfirmDialog, useGuardConfirm } from '@/components/dialogs/guard-confirm-dialog';
 import { FormField } from '@/components/forms/form-section';
 import { MoneyInput } from '@/components/inputs/money-input';
@@ -48,6 +49,15 @@ export interface OptionItem {
   label: string;
   /** Vehicle's assigned default driver (cvh_default_driver_id) — drives auto-fill on vehicle select. */
   defaultDriverId?: string;
+}
+
+/** A live maintenance window of one truck (REQ-20260904). The form greys the
+ * truck out while the chosen date falls inside; the server is the real gate
+ * (CAR-E1013), this only saves the round-trip. Dates 'YYYY-MM-DD', inclusive. */
+export interface TripFormMaintenanceWindow {
+  vehicleId: string;
+  startDate: string;
+  endDate: string;
 }
 
 export type TruckTripFormInitial = Partial<{
@@ -117,9 +127,12 @@ export function TruckTripForm({
   depotAddress,
   tripId,
   initial,
+  maintenanceWindows = [],
 }: {
   vehicles: OptionItem[];
   drivers: OptionItem[];
+  /** Live maintenance windows of the listed trucks (REQ-20260904). */
+  maintenanceWindows?: TripFormMaintenanceWindow[];
   /** Caller's role — DRIVER hides revenue and locks the driver field to self. */
   role?: LocalRole;
   /** Default depot address to pre-fill ORIGIN / RETURN stops. */
@@ -129,6 +142,7 @@ export function TruckTripForm({
 }) {
   const t = useTranslations('screens.truckTrips.form');
   const tErr = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const guard = useGuardConfirm();
@@ -209,6 +223,16 @@ export function TruckTripForm({
 
   const selectedVehicle = vehicles.find((v) => v.id === f.vehicleId);
 
+  /* Maintenance windows (REQ-20260904): which trucks are in the shop on the
+   * chosen date. Same inclusive day comparison the server makes. */
+  const loc = locale === 'ko' ? 'ko-KR' : locale === 'en' ? 'en-US' : 'vi-VN';
+  const fmtDay = (iso: string) => formatDayKey(iso, loc);
+  const windowFor = (vehicleId: string) =>
+    maintenanceWindows.find(
+      (w) => w.vehicleId === vehicleId && w.startDate <= f.scheduledAt && f.scheduledAt <= w.endDate,
+    );
+  const selectedMaintenance = f.vehicleId ? windowFor(f.vehicleId) : undefined;
+
   /* Live profit preview. Fuel here = what THIS trip recorded (litres × đơn
    * giá) — the money actually spent. The per-trip cost that lands in P&L is
    * that spend POOLED per vehicle-month and re-spread by km (a fill-up serves
@@ -257,6 +281,17 @@ export function TruckTripForm({
       if (pickupAddress === '') missing.push(t('pickup'));
       if (dropoffAddress === '') missing.push(t('dropoff'));
       toast.error(t('validationMissing', { fields: missing.join(', ') }));
+      return;
+    }
+    /* Hard stop, mirrors the server's CAR-E1013 — no confirm dialog. */
+    if (selectedMaintenance) {
+      toast.error(
+        t('vehicleMaintenanceBlocked', {
+          plate: selectedVehicle?.label ?? '',
+          start: fmtDay(selectedMaintenance.startDate),
+          end: fmtDay(selectedMaintenance.endDate),
+        }),
+      );
       return;
     }
     startTransition(async () => {
@@ -412,11 +447,32 @@ export function TruckTripForm({
                     <SelectValue placeholder={t('selectVehicle')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {vehicles.map((o) => (
-                      <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
-                    ))}
+                    {vehicles.map((o) => {
+                      /* Truck booked for maintenance on the chosen date → not
+                       * selectable (REQ-20260904); the suffix says until when. */
+                      const w = windowFor(o.id);
+                      return (
+                        <SelectItem key={o.id} value={o.id} disabled={!!w}>
+                          {w
+                            ? `${o.label} ${t('vehicleMaintenanceSuffix', { start: fmtDay(w.startDate), end: fmtDay(w.endDate) })}`
+                            : o.label}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
+                {/* The date moved onto a maintenance day AFTER the truck was
+                  * picked — the option is greyed but still selected, so say why
+                  * Save will refuse. */}
+                {selectedMaintenance && (
+                  <p className="mt-1 text-xs text-danger">
+                    {t('vehicleMaintenanceBlocked', {
+                      plate: selectedVehicle?.label ?? '',
+                      start: fmtDay(selectedMaintenance.startDate),
+                      end: fmtDay(selectedMaintenance.endDate),
+                    })}
+                  </p>
+                )}
               </FormField>
               {!isDriver && (
                 <FormField

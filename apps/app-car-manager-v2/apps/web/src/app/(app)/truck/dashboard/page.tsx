@@ -12,8 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@car-v2/ui';
-import { computeTruckPnl } from '@car-v2/core/truck';
-import type { CarVehicleStatus } from '@car-v2/db/schema';
+import { computeTruckPnl, TRUCK_VEHICLE_STATUSES, type TruckVehicleStatus } from '@car-v2/core/truck';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
 import { ParamSelect } from '@/components/inputs/param-select';
@@ -21,10 +20,11 @@ import { PageHeader } from '@/components/layout/page-header';
 import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { formatDay } from '@/lib/format-day';
 import { resolveRegionFilter } from '@/lib/auth/region-access';
 import { getTruckReportStatus, type TruckReportStatus } from '@/server/queries/truck-report.queries';
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
-import { listVehicles } from '@/server/queries/vehicles.queries';
+import { listTrucksWithStatus } from '@/server/queries/truck-vehicles.queries';
 import { Info } from 'lucide-react';
 import { PeriodPicker } from './_components/period-picker';
 import { isPeriodPreset, type PeriodPreset } from './_components/period-presets';
@@ -150,7 +150,7 @@ export default async function TruckDashboardPage({
   const tCol = await getTranslations('columns.truck');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
-  const tStatus = await getTranslations('vehicles.status');
+  const tStatus = await getTranslations('screens.truckFleet.status');
   const tRegion = await getTranslations('region');
   const locale = await getLocale();
   const loc = bcp47(locale);
@@ -169,7 +169,9 @@ export default async function TruckDashboardPage({
     ? `${monthYear(customFrom!)} – ${monthYear(customTo!)}`
     : tPeriod(preset!);
 
-  const allTrucks = await listVehicles(user.entId, 'active', 'TRUCK');
+  /* Effective status per truck (REQ-20260907): MAINTENANCE derived from the
+   * Maintenance menu, RETIRED stored, no IN_USE for trucks. */
+  const allTrucks = await listTrucksWithStatus(user.entId);
   /* Narrowed users must not see other regions' trucks in the fleet-status card
    * or the vehicle picker either (REQ-20260813). */
   const permittedCodes: readonly string[] = permittedRegions;
@@ -236,8 +238,9 @@ export default async function TruckDashboardPage({
       salary: a.salary + r.salary,
       depreciation: a.depreciation + r.depreciation,
       insurance: a.insurance + r.insurance,
+      maintenanceCost: a.maintenanceCost + r.maintenanceCost,
     }),
-    { revenue: 0, variableCost: 0, fixedCost: 0, netProfit: 0, tripCount: 0, fuelCost: 0, tollFee: 0, extraTotal: 0, salary: 0, depreciation: 0, insurance: 0 },
+    { revenue: 0, variableCost: 0, fixedCost: 0, netProfit: 0, tripCount: 0, fuelCost: 0, tollFee: 0, extraTotal: 0, salary: 0, depreciation: 0, insurance: 0, maintenanceCost: 0 },
   );
   const totalCost = acc.variableCost + acc.fixedCost;
   /* Recent trips honour the same period window as the KPIs (kpiMonths is
@@ -270,7 +273,7 @@ export default async function TruckDashboardPage({
     if (a >= 1e6) return (n / 1e6).toLocaleString(loc, { maximumFractionDigits: 0 }) + ' tr';
     return n.toLocaleString(loc) + ' ₫';
   };
-  const date = (d: Date) => new Date(d).toLocaleDateString(loc);
+  const date = (d: Date) => formatDay(d, loc);
   const monthShort = (m: string) =>
     new Date(`${m}-01T00:00:00Z`).toLocaleDateString(loc, { month: 'short' });
 
@@ -293,17 +296,17 @@ export default async function TruckDashboardPage({
     { name: tPnl('other'), value: acc.extraTotal, color: 'hsl(var(--c3))' },
     { name: tPnl('salary'), value: acc.salary, color: 'hsl(var(--c2))' },
     { name: tPnl('depreciation'), value: acc.depreciation, color: 'hsl(var(--c4))' },
+    /* Maintenance (REQ-20260904) — part of fixedCost, so it must be a slice too. */
+    { name: tPnl('maintenance'), value: acc.maintenanceCost, color: 'hsl(var(--c5))' },
   ].filter((d) => d.value > 0);
 
-  const statusOrder: CarVehicleStatus[] = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'RETIRED'];
   /* Fleet status follows the region filter (the whole page is region-scoped
    * when one is active); the vehicle filter is intentionally NOT applied —
    * a one-truck status list carries no information. */
   const statusTrucks = region ? regionTrucks : trucks;
-  const statusCounts = statusOrder.map((s) => ({ status: s, n: statusTrucks.filter((v) => v.cvhStatus === s).length }));
-  const statusTone: Record<CarVehicleStatus, string> = {
+  const statusCounts = TRUCK_VEHICLE_STATUSES.map((s) => ({ status: s, n: statusTrucks.filter((v) => v.status === s).length }));
+  const statusTone: Record<TruckVehicleStatus, string> = {
     AVAILABLE: 'bg-success',
-    IN_USE: 'bg-info',
     MAINTENANCE: 'bg-warning',
     RETIRED: 'bg-text-faint',
   };
@@ -456,7 +459,11 @@ export default async function TruckDashboardPage({
                * from the model 2026-07-21); rows sum to the total. */
               [tPnl('salary'), vnd(acc.salary)],
               [tPnl('depreciation'), vnd(acc.depreciation)],
+              /* Maintenance jobs booked into the period (REQ-20260904) —
+               * month-level, never spread over trips. */
+              [tPnl('maintenance'), vnd(acc.maintenanceCost)],
             ]}
+            note={acc.maintenanceCost > 0 ? t('fixedMaintNote') : undefined}
           />
         </div>
 
@@ -531,7 +538,14 @@ export default async function TruckDashboardPage({
                 <li key={s.status} className="flex items-center justify-between text-sm">
                   <span className="inline-flex items-center gap-2 text-text-muted">
                     <span className={'h-2.5 w-2.5 rounded-full ' + statusTone[s.status]} />
-                    {tStatus(s.status)}
+                    {s.status === 'MAINTENANCE' ? (
+                      /* Derived from the Maintenance menu — jump there (BR-8). */
+                      <Link href="/truck/maintenance" className="hover:text-accent hover:underline">
+                        {tStatus(s.status)}
+                      </Link>
+                    ) : (
+                      tStatus(s.status)
+                    )}
                   </span>
                   <span className="tabular font-semibold text-text">{s.n}</span>
                 </li>
@@ -690,12 +704,15 @@ function CostSplit({
   sub,
   total,
   rows,
+  note,
 }: {
   tone: 'variable' | 'fixed';
   title: string;
   sub: string;
   total: string;
   rows: [string, string][];
+  /** One-line caveat under the rows (e.g. "maintenance not allocated per trip"). */
+  note?: string;
 }) {
   return (
     <Card className="p-4 space-y-2">
@@ -715,6 +732,12 @@ function CostSplit({
           </li>
         ))}
       </ul>
+      {note && (
+        <p className="flex items-start gap-1 text-xs text-text-faint">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>{note}</span>
+        </p>
+      )}
     </Card>
   );
 }

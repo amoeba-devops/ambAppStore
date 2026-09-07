@@ -540,6 +540,10 @@ export interface ReportReviewVehicle {
   variableProfit: number;
   /** Monthly fixed cost (salary/depreciation/insurance/driver) for this truck. */
   fixedCost: number;
+  /** Its three components (REQ-20260907 QA) — Σ = fixedCost; shown under the card. */
+  salary: number;
+  depreciation: number;
+  maintenanceCost: number;
   /** THIS vehicle's own monthly fuel reconciliation — what the report will
    * freeze, so the preview matches the generated numbers exactly.
    * `allocatable` false → no fuel spend (or no km) for the vehicle this month,
@@ -654,6 +658,9 @@ export async function getTruckReportReview(
         totalRevenue: 0,
         variableProfit: 0,
         fixedCost: 0,
+        salary: 0,
+        depreciation: 0,
+        maintenanceCost: 0,
         fuelAllocatable: !!vf,
         fuelMoney: vf?.money ?? 0,
         fuelLiters: vf?.liters ?? 0,
@@ -693,6 +700,12 @@ export async function getTruckReportReview(
       if (!v.vehicleId) return;
       const [pnl] = await computeTruckPnl(actor, { vehicleId: v.vehicleId, months: [month] });
       v.fixedCost = pnl?.fixedCost ?? 0;
+      /* Breakdown shown under the "Tổng chi phí cố định" card (REQ-20260907 QA):
+       * the same three components the dashboard widget and the report's rows
+       * 22–25 print, so the reviewer sees why the total is what it is. */
+      v.salary = pnl?.salary ?? 0;
+      v.depreciation = pnl?.depreciation ?? 0;
+      v.maintenanceCost = pnl?.maintenanceCost ?? 0;
     }),
   );
 

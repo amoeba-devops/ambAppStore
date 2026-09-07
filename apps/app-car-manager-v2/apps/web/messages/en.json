@@ -22,6 +22,7 @@
     "truckFleet": "Vehicles",
     "truckPnl": "Monthly P&L & Fuel invoices",
     "truckDrivers": "Drivers",
+    "truckMaintenance": "Maintenance",
     "truckImport": "Import Excel",
     "truckSettings": "Truck settings",
     "drivers": "Drivers",
@@ -228,17 +229,18 @@
       },
       "vsPrev": "vs prev",
       "vsPrevYoy": "vs same period last year",
-      "kpiCostSub": "Fuel · Toll · Incidental · Driver salary · Deprec",
+      "kpiCostSub": "Fuel · Toll · Incidental · Driver salary · Deprec · Maintenance",
       "kpiTripsSub": "Aggregated from trip log",
       "perTrip": "per trip",
       "perMonth": "per month",
       "disclaimer": "Note: Dashboard data is updated in real-time and is for estimation purposes only. For accuracy, please generate a monthly report.",
       "thCost": "Cost",
       "tooltipRevenue": "Total revenue from all trips in the period.",
-      "tooltipCost": "Total cost = Fuel cost + Toll fees + Incidental costs + Driver salary + Vehicle depreciation",
-      "tooltipProfit": "Net profit = Total revenue − Total cost (fuel + toll + incidental + driver salary + depreciation)",
+      "tooltipCost": "Total cost = Fuel cost + Toll fees + Incidental costs + Driver salary + Vehicle depreciation + Maintenance cost",
+      "tooltipProfit": "Net profit = Total revenue − Total cost (fuel + toll + incidental + driver salary + depreciation + maintenance)",
       "byVehicle": "By vehicle",
-      "allVehicles": "All vehicles"
+      "allVehicles": "All vehicles",
+      "fixedMaintNote": "Maintenance is a monthly cost, not allocated per trip"
     },
     "truckDrivers": {
       "title": "Drivers",
@@ -332,7 +334,8 @@
       "reasonLabel": "Reason",
       "reopenAdminOnly": "Only an Admin can reopen",
       "invoiceSelectVehicle": "— Select vehicle —",
-      "invoiceNoVehicle": "No vehicle"
+      "invoiceNoVehicle": "No vehicle",
+      "maintenance": "Maintenance"
     },
     "truckComplete": {
       "completeCta": "Complete trip",
@@ -554,7 +557,9 @@
           "remove": "Remove stop"
         },
         "provisionalTag": "Provisional",
-        "validationMissing": "Please fill in required fields: {fields}"
+        "validationMissing": "Please fill in required fields: {fields}",
+        "vehicleMaintenanceSuffix": "(maintenance {start}–{end})",
+        "vehicleMaintenanceBlocked": "Truck {plate} is under maintenance {start}–{end} — pick another date or truck."
       },
       "provisional": "Provisional",
       "thUpdated": "Updated",
@@ -576,6 +581,17 @@
       "allRegions": "All regions",
       "allDrivers": "All drivers",
       "allStatus": "All statuses",
+      "status": {
+        "AVAILABLE": "Available",
+        "MAINTENANCE": "Maintenance",
+        "RETIRED": "Retired"
+      },
+      "statusDesc": {
+        "AVAILABLE": "Vehicle is ready for trips",
+        "MAINTENANCE": "Listed in Maintenance · New trips cannot be created",
+        "RETIRED": "Vehicle retired · New trips cannot be created"
+      },
+      "maintUntil": "until {date}",
       "thStt": "No.",
       "thActions": "Actions",
       "addTruck": "Add vehicle",
@@ -620,7 +636,11 @@
         "deletedToast": "Truck deleted",
         "code": "Vehicle code",
         "notes": "Notes",
-        "notesPlaceholder": "Additional notes…"
+        "notesPlaceholder": "Additional notes…",
+        "status": "Status",
+        "statusHint": "Switch only between Available and Retired. Maintenance is set automatically from the Maintenance menu schedule.",
+        "statusMaintenanceNote": "Under maintenance until {date} — the Maintenance status is set automatically.",
+        "statusMaintenanceLink": "View maintenance schedule"
       },
       "thCode": "Code",
       "thPlate": "Plate",
@@ -632,6 +652,57 @@
       "thStatus": "Status",
       "thUpdated": "Updated",
       "thNotes": "Notes"
+    },
+    "truckMaintenance": {
+      "title": "Maintenance",
+      "subtitle": "{count} maintenance jobs",
+      "subtitleMonth": "{count} maintenance jobs · Maintenance cost for {month}: {total}",
+      "add": "Add maintenance",
+      "newTitle": "Add maintenance",
+      "newSubtitle": "Record a truck's maintenance period and cost",
+      "editTitle": "Edit maintenance",
+      "newCrumb": "New",
+      "editCrumb": "Edit",
+      "allRegions": "All regions",
+      "allVehicles": "All trucks",
+      "thStt": "#",
+      "thDate": "Date",
+      "thVehicle": "Vehicle",
+      "thPeriod": "Maintenance period",
+      "thCost": "Cost",
+      "thUpdatedBy": "Updated by",
+      "thUpdated": "Updated",
+      "thActions": "Actions",
+      "days": "{n} day(s)",
+      "status": {
+        "UPCOMING": "Upcoming",
+        "ACTIVE": "In maintenance",
+        "DONE": "Done"
+      },
+      "emptyTitle": "No maintenance records yet",
+      "emptyDesc": "Add a record to book the cost into the month and block trips for the truck during maintenance.",
+      "form": {
+        "title": "Maintenance details",
+        "vehicle": "Vehicle",
+        "selectVehicle": "Select a truck…",
+        "startDate": "Start",
+        "endDate": "End",
+        "cost": "Cost (₫)",
+        "endBeforeStart": "End date must be on or after the start date.",
+        "monthHint": "Cost books into {month} (by start date) and is added to Total fixed cost — not allocated per trip.",
+        "blockHint": "From {start} to {end} no trip can be created, assigned or edited for this truck.",
+        "tripsBlocked": "Truck {plate} already has {count} trip(s) in this period ({refs}). Maintenance cannot overlap days with trips — change the dates or pick another truck.",
+        "vehicleBusySuffix": "({n} trip(s) in period)",
+        "overlapMaintenanceWarning": "This truck already has maintenance overlapping the period: {ranges}. You can still save if it is a different job.",
+        "lockedHint": "Financial month is closed — read only.",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "deleteConfirm": "Delete this maintenance record?",
+        "createdToast": "Maintenance added for {plate}",
+        "updatedToast": "Maintenance for {plate} updated",
+        "deletedToast": "Maintenance record deleted"
+      }
     },
     "audit": {
       "title": "Activity log",
@@ -666,7 +737,7 @@
       "fuelUnsetToast": "No fuel cost recorded for this vehicle this month → fuel = 0. Enter fuel on the trip or add a fuel invoice.",
       "fuelByTripKmHint": "Fuel is split by km — enter the closing odometer and the fuel filled.",
       "thFixedAlloc": "ALLOCATED FIXED",
-      "thFixedAllocHint": "The month's driver salary + vehicle depreciation, split evenly across that vehicle's trips in the month. Each trip's profit already has this deducted.",
+      "thFixedAllocHint": "The month's driver salary + vehicle depreciation, split evenly across that vehicle's trips in the month. Each trip's profit already has this deducted. Maintenance cost is not allocated per trip — it only counts in the month total.",
       "allocSalaryShort": "Salary",
       "allocDeprShort": "Depr.",
       "allTrucks": "All vehicles",
@@ -701,7 +772,8 @@
       "vehicleFilterTitle": "Select trucks",
       "vehicleFilterN": "{n} trucks",
       "vehicleFilterApply": "Apply",
-      "vehicleFilterClear": "Clear all"
+      "vehicleFilterClear": "Clear all",
+      "sumFixedMaintNote": "incl. maintenance {x} — not allocated per trip"
     },
     "truckReportStatus": {
       "reportAt": "Report · {date}",
@@ -777,6 +849,9 @@
       "cardConsumption": "Consumption",
       "cardRefuels": "Refuels",
       "cardFixed": "Fixed cost",
+      "cardFixedSalary": "Salary",
+      "cardFixedDepreciation": "Depreciation",
+      "cardFixedMaintenance": "Maintenance",
       "netLabel": "Net profit",
       "thStt": "#",
       "thDate": "Date",
@@ -1685,7 +1760,8 @@
       "statusBreakeven": "Break-even",
       "totalRow": "Total",
       "totalTrucks": "{n} Trucks",
-      "footer": "Computed at {ts}. Fuel is allocated from each vehicle's monthly fuel cost by km."
+      "footer": "Computed at {ts}. Fuel is allocated from each vehicle's monthly fuel cost by km.",
+      "lineMaintenance": "Maintenance cost"
     },
     "trips": {
       "sheetName": "Trips",
@@ -1827,7 +1903,8 @@
       "lineNet": "Net profit",
       "scopeAll": "Scope: All trucks ({total})",
       "scopeVehicles": "Scope: {n}/{total} trucks — {plates}",
-      "colTotal": "TOTAL"
+      "colTotal": "TOTAL",
+      "lineMaintenance": "Maintenance cost"
     },
     "truckTrips": {
       "sheetName": "Trip list",
@@ -2563,6 +2640,9 @@
     "DRIVER_ON_ACTIVE_TRIP": "This driver is on unfinished trip(s) {refs}",
     "DRIVER_STATUS_NOT_AVAILABLE": "This driver is currently \"{status}\"",
     "VEHICLE_IN_USE": "Vehicle {plate} is currently in use",
-    "VEHICLE_MAINTENANCE": "Vehicle {plate} is under maintenance"
+    "VEHICLE_MAINTENANCE": "Vehicle {plate} is under maintenance",
+    "VEHICLE_UNDER_MAINTENANCE": "Truck {plate} is under maintenance from {start} to {end}. Trips cannot be created or edited in this period.",
+    "VEHICLE_UNDER_MAINTENANCE_ROW": "Row {row}: truck {plate} is under maintenance from {start} to {end}.",
+    "MAINTENANCE_HAS_TRIPS": "Truck {plate} already has {count} trip(s) in this period ({refs}). Maintenance cannot overlap days with trips."
   }
 }

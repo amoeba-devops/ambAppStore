@@ -8,6 +8,7 @@ import { Badge, Button, Card, cn, toast } from '@car-v2/ui';
 import { generateTruckReportAction } from '@/server/actions/truck-report.actions';
 import { patchTruckTripCostsAction } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
+import { formatDay } from '@/lib/format-day';
 import type { TruckReportReview } from '@/server/queries/truck-finance.queries';
 import { ReportStepper } from './report-stepper';
 
@@ -47,7 +48,7 @@ export function ReportReviewStep({
 
   const month = reviews[0]?.month ?? '';
   const vnd = (n: number) => Math.round(n).toLocaleString(loc) + ' ₫';
-  const dateStr = (d: Date) => new Date(d).toLocaleDateString(loc);
+  const dateStr = (d: Date) => formatDay(d, loc);
   const monthLabel = month
     ? new Date(`${month}-01T00:00:00Z`).toLocaleDateString(loc, { month: 'long', year: 'numeric' })
     : '';
@@ -250,7 +251,33 @@ export function ReportReviewStep({
                           <Stat label={t('cardRefuels')} value={String(v.refuelCount)} />
                           <Stat label={t('cardAvgPrice')} value={`${v.fuelAvgPrice.toLocaleString(loc)} ₫/L`} />
                           <Stat label={t('cardConsumption')} value={`${v.fuelConsumption.toFixed(3)} L/km`} />
-                          <Stat label={t('cardFixed')} value={vnd(v.fixedCost)} />
+                          <Stat
+                            label={t('cardFixed')}
+                            value={vnd(v.fixedCost)}
+                            sub={
+                              /* Salary · Depreciation · Maintenance — the same
+                               * three lines the report prints (rows 22–25).
+                               * Zero parts fade; a booked maintenance stands
+                               * out in the warning tone the fleet list uses. */
+                              <div className="mt-1.5 flex flex-wrap gap-x-2.5 gap-y-1 text-[11px] leading-none">
+                                <span className={v.salary > 0 ? 'text-text-muted' : 'text-text-faint'}>
+                                  {t('cardFixedSalary')} {v.salary.toLocaleString(loc)}
+                                </span>
+                                <span className={v.depreciation > 0 ? 'text-text-muted' : 'text-text-faint'}>
+                                  {t('cardFixedDepreciation')} {v.depreciation.toLocaleString(loc)}
+                                </span>
+                                <span
+                                  className={cn(
+                                    v.maintenanceCost > 0
+                                      ? 'rounded bg-warning-soft px-1.5 py-0.5 font-semibold text-warning'
+                                      : 'text-text-faint',
+                                  )}
+                                >
+                                  {t('cardFixedMaintenance')} {v.maintenanceCost.toLocaleString(loc)}
+                                </span>
+                              </div>
+                            }
+                          />
                         </div>
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
@@ -318,11 +345,12 @@ export function ReportReviewStep({
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, sub }: { label: string; value: string; sub?: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-border bg-surface p-3">
       <div className="text-[11px] uppercase tracking-wider text-text-faint">{label}</div>
       <div className="text-sm font-semibold tabular text-text">{value}</div>
+      {sub}
     </div>
   );
 }

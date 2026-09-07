@@ -88,6 +88,7 @@ export async function GET(req: Request) {
     { labelKey: 'lineVariable', pick: (r) => r.variableCost },
     { labelKey: 'lineSalary', pick: (r) => r.salary },
     { labelKey: 'lineDepreciation', pick: (r) => r.depreciation },
+    { labelKey: 'lineMaintenance', pick: (r) => r.maintenanceCost },
     { labelKey: 'lineFixed', pick: (r) => r.fixedCost },
     { labelKey: 'lineTrips', pick: (r) => r.tripCount },
     { labelKey: 'lineNet', pick: (r) => r.netProfit },
