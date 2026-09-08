@@ -134,16 +134,10 @@ export default async function TruckFinancePage({
         /* Driver salary folds into fixedCost now (no separate fleet-roster
          * line) — the fixed-cost total below covers salary + depreciation +
          * insurance. */
-        /* Fixed = salary + depreciation + MAINTENANCE (REQ-20260904). The
-         * per-trip "CP cố định phân bổ" column below carries only the first
-         * two, so say so here — otherwise Σ(row profit) looks off by exactly
-         * the maintenance total. */
-        [
-          t('sumFixed'),
-          summary.fixedCost,
-          undefined,
-          summary.maintenanceCost > 0 ? t('sumFixedMaintNote', { x: vnd(summary.maintenanceCost) }) : undefined,
-        ],
+        /* Fixed = salary + depreciation + maintenance (REQ-20260904). None of
+         * the three is split across trips (REQ-20260908) — the per-trip table
+         * below has no fixed-cost column at all, so say so here. */
+        [t('sumFixed'), summary.fixedCost, undefined, summary.fixedCost > 0 ? t('sumFixedNote') : undefined],
         [t('sumNet'), summary.netProfit, 'profit'],
       ]
     : [];
@@ -253,12 +247,6 @@ export default async function TruckFinancePage({
                       <Info className="h-3.5 w-3.5 text-text-faint" />
                     </span>
                   </TableHead>
-                  <TableHead className="text-right">
-                    <span className="inline-flex items-center justify-end gap-1" title={t('thFixedAllocHint')}>
-                      {t('thFixedAlloc')}
-                      <Info className="h-3.5 w-3.5 text-text-faint" />
-                    </span>
-                  </TableHead>
                   <TableHead className="text-right">{t('thRevenue')}</TableHead>
                   <TableHead className="text-right">{t('thProfit')}</TableHead>
                   <TableHead>{t('thStatus')}</TableHead>
@@ -297,28 +285,15 @@ export default async function TruckFinancePage({
                         <FuelReconciliationBadge mode={r.fuelMode} />
                       </div>
                     </TableCell>
-                    {/* Fixed cost allocated to this trip (Sheet3 "phân bổ theo
-                      * chuyến") — lương + khấu hao tháng ÷ số chuyến của xe. */}
-                    <TableCell className="text-right tabular text-text-muted">
-                      <div className="flex flex-col items-end gap-0.5">
-                        <span>{vnd(r.salaryAllocated + r.depreciationAllocated)}</span>
-                        {r.salaryAllocated + r.depreciationAllocated > 0 && (
-                          <span className="text-xs text-text-faint whitespace-nowrap">
-                            {t('allocSalaryShort')} {vnd(r.salaryAllocated)} · {t('allocDeprShort')}{' '}
-                            {vnd(r.depreciationAllocated)}
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
                     <TableCell className="text-right tabular">{vnd(r.revenue)}</TableCell>
                     <TableCell
                       className={cn(
                         'text-right tabular font-semibold',
-                        r.profitAfterFixed >= 0 ? 'text-success' : 'text-danger',
+                        r.profit >= 0 ? 'text-success' : 'text-danger',
                         !r.finalized && 'italic',
                       )}
                     >
-                      {vnd(r.profitAfterFixed)}
+                      {vnd(r.profit)}
                     </TableCell>
                     <TableCell>
                       <Badge tone={r.finalized ? 'success' : 'neutral'} size="sm">

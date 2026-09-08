@@ -11,10 +11,10 @@ import { carVehicles } from './vehicles.schema';
  *
  *   1. P&L — the month's maintenance total is the THIRD component of the fixed
  *      cost (`computeTruckPnl`: fixedCost = salary + depreciation +
- *      maintenanceCost). It is NEVER spread over trips (`trr_fixed_alloc` /
- *      `loadTruckFixedAllocation` stay salary + depreciation only) and is NOT
- *      zeroed for a month with no trips — a truck sitting in the shop all month
- *      is exactly the case the cost is real.
+ *      maintenanceCost). Like salary/depreciation (REQ-20260908), it is NEVER
+ *      spread over trips — but unlike them, it is NOT zeroed for a month with
+ *      no trips: a truck sitting in the shop all month is exactly the case the
+ *      cost is real.
  *   2. Scheduling — while a live row covers a date, no LOG trip may be created,
  *      assigned, edited or imported for that truck on that date (hard block,
  *      CAR-E1013). Symmetrically a row can't be created over dates the truck

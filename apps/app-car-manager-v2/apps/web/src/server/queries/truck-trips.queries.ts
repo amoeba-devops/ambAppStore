@@ -13,7 +13,6 @@ import {
 import {
   parseAmount,
   loadTruckRegionSnapshots,
-  loadTruckFixedAllocation,
   getTripCostAttachments,
   type TruckCostBreakdown,
   type TruckFuelMode,
@@ -61,13 +60,6 @@ export async function getTruckTripBreakdown(
    * (`trp_fuel_liters × trp_fuel_price`), shown next to the allocated figure so
    * the detail page states both concepts instead of only the pooled one. */
   fuelActualCost: number;
-  /** This trip's slice of the month's fixed cost (Sheet3 "phân bổ theo chuyến")
-   * + the profit after it. `breakdown.profit` stays variable-only. */
-  salaryAllocated: number;
-  depreciationAllocated: number;
-  profitAfterFixed: number;
-  /** Trips the month's fixed cost was split across (for the "÷ N chuyến" note). */
-  fixedTripCount: number;
   /** The trip's month + resolved operating region ('' = vehicle has no
    * region) — feeds `getTruckReportStatus` so the detail page can show WHEN
    * the report covering this trip was last generated. */
@@ -75,10 +67,7 @@ export async function getTruckTripBreakdown(
   region: string;
 }> {
   const month = monthKey(trip.trpScheduledAt);
-  const [snapshots, fixedAlloc] = await Promise.all([
-    loadTruckRegionSnapshots(entId, [month]),
-    loadTruckFixedAllocation(entId, [month]),
-  ]);
+  const snapshots = await loadTruckRegionSnapshots(entId, [month]);
   const region = trip.trpVehicleId ? snapshots.vehicleRegion.get(trip.trpVehicleId) ?? '' : '';
   /* "Đã lập BC" = a report for this (month, region) exists AND was generated
    * after this trip's last change; a trip added later isn't in it. */
@@ -90,11 +79,6 @@ export async function getTruckTripBreakdown(
       : 0;
   /* Fuel = frozen snapshot (only if it covers this trip) → live pool → 0. */
   const fuel = snapshots.fuelForTrip(month, trip.trpVehicleId, km, changedAt);
-  /* Fixed allocation frozen by the covering report (REQ-20260821); live only
-   * when no report covers this trip — same coverage rule as fuel. */
-  const fixedShare =
-    snapshots.fixedShareForTrip(month, trip.trpVehicleId, changedAt) ??
-    fixedAlloc.forTrip(month, trip.trpVehicleId);
   const tollFee = Math.round(parseAmount(trip.trpTollFee));
   const extraTotal = Math.round(extraAmounts.reduce((s, n) => s + (n || 0), 0));
   const revenue = Math.round(parseAmount(trip.trpRevenue));
@@ -106,10 +90,6 @@ export async function getTruckTripBreakdown(
     km,
     fuelCostPerKm: fuel.costPerKm,
     fuelActualCost: Math.round(parseAmount(trip.trpFuelLiters) * parseAmount(trip.trpFuelPrice)),
-    salaryAllocated: fixedShare.salary,
-    depreciationAllocated: fixedShare.depreciation,
-    profitAfterFixed: revenue - totalCost - fixedShare.total,
-    fixedTripCount: fixedShare.tripCount,
     month,
     region,
   };

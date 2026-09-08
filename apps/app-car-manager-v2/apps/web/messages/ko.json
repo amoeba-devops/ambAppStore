@@ -369,9 +369,6 @@
       "receiptsTitle": "영수증 / 증빙",
       "receiptsExtra": "기타 비용",
       "total": "총 비용",
-      "salaryAllocated": "배분 급여",
-      "depreciationAllocated": "배분 감가상각",
-      "allocNote": "이번 달 {count}건에 배분",
       "revenue": "매출",
       "profit": "이익",
       "notCompletable": "아직 완료할 수 없는 운행입니다.",
@@ -736,10 +733,6 @@
       "fuelVehicleRateToast": "유류비는 차량의 당월 유류비를 km로 배분한 임시 금액입니다.",
       "fuelUnsetToast": "이 차량의 당월 유류비 기록이 없어 유류비 = 0. 운행에 주유 내역을 입력하거나 영수증을 등록하세요.",
       "fuelByTripKmHint": "유류비는 km 비율로 배분됩니다 — 종료 주행거리와 주유량을 입력하세요.",
-      "thFixedAlloc": "고정비 배분",
-      "thFixedAllocHint": "해당 월의 기사 급여 + 차량 감가상각을 그 차량의 월 운행 건수로 균등 배분한 금액. 각 운행 이익에서 이미 차감되어 있습니다. 정비 비용은 운행별로 배분하지 않고 월 합계에만 포함됩니다.",
-      "allocSalaryShort": "급여",
-      "allocDeprShort": "감가",
       "allTrucks": "전체 차량",
       "allRegions": "전체 지역",
       "sumRevenue": "당월 매출",
@@ -773,7 +766,7 @@
       "vehicleFilterN": "차량 {n}대",
       "vehicleFilterApply": "적용",
       "vehicleFilterClear": "전체 해제",
-      "sumFixedMaintNote": "정비 {x} 포함 — 운행별 배분 없음"
+      "sumFixedNote": "운행별로 배분하지 않음"
     },
     "truckReportStatus": {
       "reportAt": "보고서 · {date}",
@@ -1876,15 +1869,12 @@
       "colLiters": "리터",
       "colFuelCost": "유류비 (배분)",
       "colRevenue": "매출",
-      "colProfit": "손익 (고정비 차감 후)",
+      "colProfit": "손익",
       "colStatus": "상태",
       "statusDone": "마감",
       "statusOpen": "잠정",
       "scopeAll": "범위: 전체 차량 ({total}대)",
-      "scopeVehicles": "범위: {n}/{total}대 — {plates}",
-      "colProfitBeforeFixed": "고정비 차감 전 손익",
-      "colSalaryAllocated": "배분 인건비",
-      "colDepreciationAllocated": "배분 감가상각비"
+      "scopeVehicles": "범위: {n}/{total}대 — {plates}"
     },
     "truckPnl": {
       "sheetName": "손익",
