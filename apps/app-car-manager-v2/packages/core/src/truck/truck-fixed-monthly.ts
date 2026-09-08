@@ -4,8 +4,9 @@ import { carTruckCostRates, carTruckFixedCosts, carVehicles } from '@car-v2/db/s
 import { parseAmount } from './truck-cost';
 
 /**
- * A truck's fixed cost FOR ONE MONTH — the single answer both the P&L aggregate
- * and the per-trip allocation build on, so they cannot drift apart.
+ * A truck's fixed cost FOR ONE MONTH — the single answer `computeTruckPnl`
+ * builds its `fixedCost` aggregate on (salary/depreciation are never split
+ * per trip, REQ-20260908 — same as maintenance).
  *
  * Precedence for (month, vehicle):
  *   1. `car_truck_fixed_costs` row for that exact (vehicle, month) — an explicit

@@ -1,7 +1,7 @@
 # RPT-20260907 — Truck: Trạng thái Phương tiện (Sẵn sàng · Bảo trì tự động · Ngừng sử dụng)
 
 > REQ: [REQ-20260907-truck-vehicle-status.md](../analysis/REQ-20260907-truck-vehicle-status.md) · PLN: [PLN-20260907-truck-vehicle-status.md](../plan/PLN-20260907-truck-vehicle-status.md) · TC: [TC-20260907-truck-vehicle-status.md](../test/TC-20260907-truck-vehicle-status.md) · TR: [TR-20260907-truck-vehicle-status.md](../test/TR-20260907-truck-vehicle-status.md)
-> Trạng thái: **code xong, typecheck + lint xanh; migration `0031` đã áp lên Neon DEV (`ep-steep-tooth`, UPDATE 2 → chạy lại 0); đã kiểm tra trên dev theo TC (xem TR).** Chưa áp staging (`ep-noisy-heart`), chưa deploy, chưa commit — gộp cùng REQ-20260904 (`0030`).
+> Trạng thái: **code xong, typecheck + lint xanh; migration `0031` đã áp Neon DEV (`ep-steep-tooth`, UPDATE 2 → chạy lại 0) và STAGING truck (`ep-noisy-heart`, 20:1x 07/09/2026, UPDATE 0 — 3 xe đều AVAILABLE); đã kiểm tra trên dev theo TC (xem TR §A–I).** Code đã push nhánh `feature/truck-maintenance-vehicle-status` (commit `e35f396`, gộp cùng REQ-20260904) — chờ PR + deploy staging + smoke test.
 
 ## 1. Quyết định đã chốt (người dùng, 2026-09-07)
 
@@ -67,5 +67,6 @@ Xem [TR-20260907](../test/TR-20260907-truck-vehicle-status.md). Tóm tắt: type
 
 ## 7. Kế tiếp
 
-1. Áp `0030` + `0031` lên staging (`ep-noisy-heart`) → deploy staging → smoke test theo TC-20260904 + TC-20260907.
-2. Commit (2 REQ chung một nhánh) sau khi staging xanh.
+1. ✅ `0030` + `0031` đã áp staging truck `ep-noisy-heart` (07/09 20:1x): bảng `car_truck_maintenances` + 3 index + check constraint; 0031 UPDATE 0. Không đụng `ep-gentle-rain` (staging chung — xem RPT-20260813 §DB staging).
+2. ✅ Push nhánh `feature/truck-maintenance-vehicle-status` (61 file, `e35f396`) → người dùng tạo PR vào `staging`.
+3. Sau merge: deploy staging → smoke test theo TC-20260904 + TC-20260907 → `staging → main` theo quy trình.

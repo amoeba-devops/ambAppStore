@@ -1,7 +1,7 @@
 # RPT-20260904 — Truck: Menu "Bảo trì" + chặn chuyến hai chiều + chi phí bảo trì vào phí cố định
 
 > REQ: [REQ-20260904](../analysis/REQ-20260904-truck-maintenance.md) · PLN: [PLN-20260904](../plan/PLN-20260904-truck-maintenance.md) · TC: [TC-20260904](../test/TC-20260904-truck-maintenance.md) · TR: [TR-20260904](../test/TR-20260904-truck-maintenance.md)
-> Trạng thái: **code xong, typecheck + lint xanh; migration `0030` đã áp lên Neon DEV (`ep-steep-tooth`); đã kiểm tra UI trực tiếp trên dev (TR §1b) — menu, list, tạo, chặn 2 chiều, dashboard/P&L/finance đều đúng.** Chưa áp staging (`ep-noisy-heart`), chưa deploy, chưa commit.
+> Trạng thái: **code xong, typecheck + lint xanh; migration `0030` đã áp lên Neon DEV (`ep-steep-tooth`); đã kiểm tra UI trực tiếp trên dev (TR §1b) — menu, list, tạo, chặn 2 chiều, dashboard/P&L/finance đều đúng.** **`0030` đã áp STAGING truck (`ep-noisy-heart`) 20:1x 07/09/2026** — bảng + 3 index + check constraint (không đụng `ep-gentle-rain`). Code đã push nhánh `feature/truck-maintenance-vehicle-status` (gộp REQ-20260907) — chờ PR, deploy staging, smoke test.
 
 ## 1. Tóm tắt
 

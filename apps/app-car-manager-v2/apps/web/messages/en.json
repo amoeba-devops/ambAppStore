@@ -369,9 +369,6 @@
       "receiptsTitle": "Invoices / documents",
       "receiptsExtra": "Extra costs",
       "total": "Total cost",
-      "salaryAllocated": "Allocated salary",
-      "depreciationAllocated": "Allocated depreciation",
-      "allocNote": "split across {count} trips this month",
       "revenue": "Revenue",
       "profit": "Profit",
       "notCompletable": "This trip can't be completed yet.",
@@ -736,10 +733,6 @@
       "fuelVehicleRateToast": "Fuel cost is provisional — from the vehicle's monthly fuel total, split by km.",
       "fuelUnsetToast": "No fuel cost recorded for this vehicle this month → fuel = 0. Enter fuel on the trip or add a fuel invoice.",
       "fuelByTripKmHint": "Fuel is split by km — enter the closing odometer and the fuel filled.",
-      "thFixedAlloc": "ALLOCATED FIXED",
-      "thFixedAllocHint": "The month's driver salary + vehicle depreciation, split evenly across that vehicle's trips in the month. Each trip's profit already has this deducted. Maintenance cost is not allocated per trip — it only counts in the month total.",
-      "allocSalaryShort": "Salary",
-      "allocDeprShort": "Depr.",
       "allTrucks": "All vehicles",
       "allRegions": "All regions",
       "sumRevenue": "Monthly revenue",
@@ -773,7 +766,7 @@
       "vehicleFilterN": "{n} trucks",
       "vehicleFilterApply": "Apply",
       "vehicleFilterClear": "Clear all",
-      "sumFixedMaintNote": "incl. maintenance {x} — not allocated per trip"
+      "sumFixedNote": "not allocated per trip"
     },
     "truckReportStatus": {
       "reportAt": "Report · {date}",
@@ -1876,15 +1869,12 @@
       "colLiters": "Litres",
       "colFuelCost": "Fuel cost (allocated)",
       "colRevenue": "Revenue",
-      "colProfit": "Profit (after fixed cost)",
+      "colProfit": "Profit",
       "colStatus": "Status",
       "statusDone": "Closed",
       "statusOpen": "Provisional",
       "scopeAll": "Scope: All trucks ({total})",
-      "scopeVehicles": "Scope: {n}/{total} trucks — {plates}",
-      "colProfitBeforeFixed": "Profit before fixed cost",
-      "colSalaryAllocated": "Salary allocated",
-      "colDepreciationAllocated": "Depreciation allocated"
+      "scopeVehicles": "Scope: {n}/{total} trucks — {plates}"
     },
     "truckPnl": {
       "sheetName": "P&L",

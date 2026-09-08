@@ -16,9 +16,9 @@ import { parseAmount } from './truck-cost';
  * Two concerns share this file because they share the same rows:
  *
  *   • MONEY — `loadTruckMaintenanceMonthly` gives `computeTruckPnl` the month's
- *     maintenance total per scope. It is the third component of the fixed cost
- *     and is deliberately NOT part of the per-trip allocation
- *     (`loadTruckFixedAllocation`), nor zeroed for a trip-less month.
+ *     maintenance total per scope. It is the third component of the fixed cost;
+ *     like salary/depreciation (REQ-20260908), it is never split per trip — but
+ *     unlike them, it is NOT zeroed for a trip-less month.
  *
  *   • SCHEDULE — `assertVehicleNotUnderMaintenance` (trip side, CAR-E1013) and
  *     `assertNoTripsInMaintenanceWindow` (maintenance side, CAR-E1014) make a

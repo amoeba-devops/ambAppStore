@@ -369,9 +369,6 @@
       "receiptsTitle": "Hóa đơn / chứng từ",
       "receiptsExtra": "Phí phát sinh",
       "total": "Tổng chi phí",
-      "salaryAllocated": "Lương phân bổ",
-      "depreciationAllocated": "Khấu hao phân bổ",
-      "allocNote": "chia cho {count} chuyến trong tháng",
       "revenue": "Doanh thu",
       "profit": "Lợi nhuận",
       "notCompletable": "Chuyến này chưa thể hoàn thành.",
@@ -736,10 +733,6 @@
       "fuelVehicleRateToast": "Phí nhiên liệu tạm tính theo chi phí nhiên liệu tháng của xe, chia theo km.",
       "fuelUnsetToast": "Xe chưa có chi phí nhiên liệu trong tháng → phí nhiên liệu = 0. Nhập nhiên liệu cho chuyến hoặc thêm hoá đơn xăng.",
       "fuelByTripKmHint": "Phí nhiên liệu chia theo số km — nhập Km đồng hồ cuối và nhiên liệu đã đổ.",
-      "thFixedAlloc": "CP CỐ ĐỊNH PHÂN BỔ",
-      "thFixedAllocHint": "Lương tài xế + khấu hao xe của tháng, chia đều cho số chuyến của xe trong tháng. Lợi nhuận từng chuyến đã trừ khoản này. Chi phí bảo trì không phân bổ theo chuyến — chỉ tính vào tổng tháng.",
-      "allocSalaryShort": "Lương",
-      "allocDeprShort": "KH",
       "allTrucks": "Tất cả phương tiện",
       "allRegions": "Tất cả khu vực",
       "sumRevenue": "Doanh thu tháng",
@@ -773,7 +766,7 @@
       "vehicleFilterN": "{n} xe",
       "vehicleFilterApply": "Áp dụng",
       "vehicleFilterClear": "Bỏ chọn tất cả",
-      "sumFixedMaintNote": "gồm bảo trì {x} — không phân bổ theo chuyến"
+      "sumFixedNote": "không phân bổ theo chuyến"
     },
     "truckReportStatus": {
       "reportAt": "Đã lập BC · {date}",
@@ -1876,15 +1869,12 @@
       "colLiters": "Lít",
       "colFuelCost": "Phí nhiên liệu (phân bổ)",
       "colRevenue": "Doanh thu",
-      "colProfit": "Lợi nhuận (sau CP cố định)",
+      "colProfit": "Lợi nhuận",
       "colStatus": "Trạng thái",
       "statusDone": "Đã lập BC",
       "statusOpen": "Tạm tính",
       "scopeAll": "Phạm vi: Tất cả xe ({total})",
-      "scopeVehicles": "Phạm vi: {n}/{total} xe — {plates}",
-      "colProfitBeforeFixed": "Lợi nhuận trước CP cố định",
-      "colSalaryAllocated": "Lương phân bổ",
-      "colDepreciationAllocated": "Khấu hao phân bổ"
+      "scopeVehicles": "Phạm vi: {n}/{total} xe — {plates}"
     },
     "truckPnl": {
       "sheetName": "Lợi nhuận",

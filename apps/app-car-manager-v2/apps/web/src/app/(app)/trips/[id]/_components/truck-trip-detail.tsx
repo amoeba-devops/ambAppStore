@@ -56,13 +56,6 @@ export interface TruckTripDetailProps {
    * concepts are never mistaken for each other: this is the money this trip
    * paid, the allocated row is its share of the vehicle's monthly fuel. */
   fuelActualCost?: number;
-  /** This trip's slice of the month's fixed cost + the profit after it
-   * (Sheet3 "phân bổ theo chuyến" / "Lợi nhuận theo chuyến"). */
-  salaryAllocated?: number;
-  depreciationAllocated?: number;
-  profitAfterFixed?: number;
-  /** How many trips the month's fixed cost was split across. */
-  fixedTripCount?: number;
   completed: boolean;
   canComplete: boolean;
   /** Figures already on the trip, seeded into the completion form. `extras`
@@ -161,23 +154,11 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
       <CostRow label={t('total')} value={vnd(props.breakdown.totalCost)} strong />
       {!props.hideFinancials && (
         <>
-          {/* Fixed cost allocated to this trip (Sheet3 "phân bổ theo chuyến") —
-            * monthly salary/depreciation ÷ the vehicle's trips that month. */}
-          {(props.salaryAllocated ?? 0) > 0 && (
-            <CostRow
-              label={t('salaryAllocated')}
-              value={vnd(props.salaryAllocated as number)}
-              note={props.fixedTripCount ? t('allocNote', { count: props.fixedTripCount }) : undefined}
-            />
-          )}
-          {(props.depreciationAllocated ?? 0) > 0 && (
-            <CostRow label={t('depreciationAllocated')} value={vnd(props.depreciationAllocated as number)} />
-          )}
           <CostRow label={t('revenue')} value={vnd(props.breakdown.revenue)} />
           <CostRow
             label={t('profit')}
-            value={vnd(props.profitAfterFixed ?? props.breakdown.profit)}
-            tone={(props.profitAfterFixed ?? props.breakdown.profit) >= 0 ? 'success' : 'danger'}
+            value={vnd(props.breakdown.profit)}
+            tone={props.breakdown.profit >= 0 ? 'success' : 'danger'}
             strong
           />
         </>
