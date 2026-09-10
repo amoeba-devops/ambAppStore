@@ -241,7 +241,11 @@ export function TruckTripForm({
   const preview = useMemo(() => {
     const fuelCost = Math.round((numF(f.fuelLiters) ?? 0) * (numF(f.fuelPrice) ?? 0));
     const toll = Math.round(numF(f.toll) ?? 0);
-    const extraTotal = extras.reduce((s, e) => s + Math.round(numF(e.amount) ?? 0), 0);
+    /* Sum raw amounts THEN round once — matches every server-side site
+     * (truck-cost.ts, truck-pnl.service.ts, truck-finance.queries.ts, ...).
+     * Rounding each line first can disagree by a few đồng once ≥2 rows carry
+     * fractional đồng. */
+    const extraTotal = Math.round(extras.reduce((s, e) => s + (numF(e.amount) ?? 0), 0));
     const revenue = Math.round(numF(f.revenue) ?? 0);
     const totalCost = fuelCost + toll + extraTotal;
     return { fuelCost, totalCost, revenue, profit: revenue - totalCost };
