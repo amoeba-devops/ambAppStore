@@ -465,6 +465,7 @@
       "emptyTitle": "운행 없음",
       "emptyDesc": "첫 트럭 운행을 기록하세요.",
       "thCustomer": "고객 · BOL",
+      "thOtherHint": "운행 기록입니다 — 필터링하지 않으면 완료되지 않은 운행과 모든 달을 포함합니다. '비용 및 손익'의 합계(해당 월에 완료된 운행만 집계)와 다를 수 있습니다.",
       "statusDone": "완료",
       "statusOpen": "미완료",
       "newTitle": "운행 추가",

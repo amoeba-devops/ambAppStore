@@ -688,8 +688,18 @@ export async function patchTruckTripCostsAction(input: unknown): Promise<ActionR
     }
 
     /* Extra costs are line items — the review treats them as a single number, so
-     * replace any existing rows with one "Phát sinh" line (or clear when 0). */
+     * replace any existing rows with one "Phát sinh" line (or clear when 0).
+     * The itemized names/amounts being replaced are otherwise gone for good, so
+     * snapshot them into the audit log's `before` (read below) — the only place
+     * left to recover "what was this phát sinh actually for" after review. */
+    let extraCostsBefore: { name: string; amount: string }[] | undefined;
     if (dto.extra_amount !== undefined) {
+      const existing = await db
+        .select({ tecName: carTripExtraCosts.tecName, tecAmount: carTripExtraCosts.tecAmount })
+        .from(carTripExtraCosts)
+        .where(and(eq(carTripExtraCosts.entId, actor.entId), eq(carTripExtraCosts.trpId, dto.trip_id)));
+      extraCostsBefore = existing.map((e) => ({ name: e.tecName, amount: e.tecAmount }));
+
       await db
         .delete(carTripExtraCosts)
         .where(and(eq(carTripExtraCosts.entId, actor.entId), eq(carTripExtraCosts.trpId, dto.trip_id)));
@@ -711,6 +721,7 @@ export async function patchTruckTripCostsAction(input: unknown): Promise<ActionR
       entity: 'Trip',
       entityId: dto.trip_id,
       entityRef: trip.trpRef,
+      before: extraCostsBefore?.length ? { extraCosts: extraCostsBefore } : undefined,
       after: { tollFee: dto.toll_fee, revenue: dto.revenue, extra: dto.extra_amount, fuelCost: dto.fuel_cost },
     });
     revalidatePath('/truck/finance');

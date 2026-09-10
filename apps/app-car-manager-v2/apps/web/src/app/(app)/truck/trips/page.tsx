@@ -1,6 +1,6 @@
 import { getLocale, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { ClipboardList, Download, FileSpreadsheet, Plus, Upload } from 'lucide-react';
+import { ClipboardList, Download, FileSpreadsheet, Info, Plus, Upload } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -218,7 +218,12 @@ export default async function TruckTripsPage({
                     <span title={t('thFuelActualHint')}>{tCol('fuelActualCost')}</span>
                   </TableHead>
                   <TableHead className="text-right">{tCol('toll')}</TableHead>
-                  <TableHead className="text-right">{tCol('otherAmount')}</TableHead>
+                  <TableHead className="text-right">
+                    <span className="inline-flex items-center justify-end gap-1" title={t('thOtherHint')}>
+                      {tCol('otherAmount')}
+                      <Info className="h-3.5 w-3.5 text-text-faint" />
+                    </span>
+                  </TableHead>
                   <TableHead>{tCol('status')}</TableHead>
                   <TableHead className="whitespace-nowrap">{t('thUpdated')}</TableHead>
                   <TableHead className="w-[88px]">{t('thActions')}</TableHead>

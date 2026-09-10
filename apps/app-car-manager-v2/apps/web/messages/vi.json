@@ -465,6 +465,7 @@
       "emptyTitle": "Chưa có chuyến nào",
       "emptyDesc": "Ghi nhận chuyến xe tải đầu tiên.",
       "thCustomer": "Khách hàng · BOL",
+      "thOtherHint": "Nhật ký vận hành — gồm mọi chuyến (kể cả chưa hoàn thành) và mọi tháng nếu chưa lọc. Có thể khác tổng ở Chi phí & Lợi nhuận (chỉ tính chuyến đã hoàn thành trong tháng đang xem).",
       "statusDone": "Đã hoàn thành",
       "statusOpen": "Chưa hoàn thành",
       "newTitle": "Tạo chuyến",
