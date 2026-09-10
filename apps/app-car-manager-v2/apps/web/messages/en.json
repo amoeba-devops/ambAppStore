@@ -465,6 +465,7 @@
       "emptyTitle": "No trips yet",
       "emptyDesc": "Log your first truck trip.",
       "thCustomer": "Customer · BOL",
+      "thOtherHint": "Operational log — includes every trip (even not yet completed) and every month unless filtered. May differ from the Cost & Profit total (that one only counts completed trips in the viewed month).",
       "statusDone": "Completed",
       "statusOpen": "Open",
       "newTitle": "New trip",
