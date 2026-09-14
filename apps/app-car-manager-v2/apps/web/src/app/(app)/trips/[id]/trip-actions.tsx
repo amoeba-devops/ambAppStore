@@ -29,6 +29,7 @@ import {
   BottomSheetHeader,
   BottomSheetTitle,
 } from '@/components/ui/bottom-sheet';
+import { GuardConfirmDialog, useGuardConfirm } from '@/components/dialogs/guard-confirm-dialog';
 import type { ActionResult } from '@car-v2/shared/errors';
 import type { CarTrip, CarTripStatus } from '@car-v2/db/schema';
 import {
@@ -75,8 +76,14 @@ export function TripActions({
   const tErr = useTranslations();
   const [pending, startTransition] = useTransition();
   const [dialog, setDialog] = useState<DialogKind>(null);
+  const guard = useGuardConfirm();
 
-  const handle = async (label: string, fn: () => Promise<ActionResult<CarTrip>>) => {
+  const handle = async (
+    label: string,
+    fn: () => Promise<ActionResult<CarTrip>>,
+    /** Re-run the submit with confirmed guard codes (assignment-guard flow). */
+    retryWithCodes?: (codes: string[]) => void,
+  ) => {
     /* Guard: any action while one is in flight is dropped — caller may have
      * clicked twice or hit Enter while a dialog button was focused. */
     if (pending) return;
@@ -84,11 +91,24 @@ export function TripActions({
       const result = await fn();
       if (result.success) {
         toast.success(label, { description: `${t('tStatusPrefix')} ${tStatus(result.data.trpStatus)}` });
-      } else {
+      } else if (!(retryWithCodes && guard.intercept(result.error, retryWithCodes))) {
         toast.error(`${label} ${t('tFailedSuffix')}`, { description: formatActionError(result.error, tErr) });
       }
     });
   };
+
+  /** Assign submit — self-recursive so the guard dialog can retry with codes. */
+  const submitAssign = (driverId: string, vehicleId: string, codes?: string[]) =>
+    handle(
+      status === 'REJECTED_BY_DRIVER' ? t('tReassigned') : t('tAssigned'),
+      () =>
+        assignTripAction(tripId, {
+          driver_id: driverId,
+          vehicle_id: vehicleId,
+          confirmed_warning_codes: codes,
+        }),
+      (confirmedCodes) => submitAssign(driverId, vehicleId, confirmedCodes),
+    );
 
   /* Decide which transition buttons are relevant given current status + actor. */
   const isStaff = role === 'ADMIN' || role === 'MANAGER';
@@ -155,15 +175,10 @@ export function TripActions({
         drivers={drivers}
         vehicles={vehicles}
         pending={pending}
-        onSubmit={(driverId, vehicleId) =>
-          handle(status === 'REJECTED_BY_DRIVER' ? t('tReassigned') : t('tAssigned'), () =>
-            assignTripAction(tripId, {
-              driver_id: driverId,
-              vehicle_id: vehicleId,
-            }),
-          )
-        }
+        onSubmit={(driverId, vehicleId) => submitAssign(driverId, vehicleId)}
       />
+
+      <GuardConfirmDialog state={guard.dialog} pending={pending} />
 
       <ReasonDialog
         open={dialog === 'reject'}

@@ -39,6 +39,7 @@ export type NavKey =
   | 'truckFleet'
   | 'truckFinance'
   | 'truckDrivers'
+  | 'truckMaintenance'
   | 'truckReportCreate'
   | 'truckReports'
   | 'truckSettings'
@@ -115,6 +116,11 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'truckTrips',  href: '/truck/trips',   Icon: ClipboardList,   group: 'workspace', section: 'operations', roles: STAFF, fleet: 'TRUCK' },
   { key: 'truckFleet',  href: '/truck/fleet',   Icon: Truck,           group: 'workspace', section: 'operations', roles: STAFF, fleet: 'TRUCK' },
   { key: 'truckDrivers', href: '/truck/drivers', Icon: IdCard,         group: 'workspace', section: 'operations', roles: STAFF, fleet: 'TRUCK' },
+  /* Bảo trì xe tải (REQ-20260904): maintenance windows + cost. Placed AFTER
+   * truckDrivers on purpose — BottomTabNav keeps the first 3 flat truck tabs
+   * (Chuyến · Đội xe · Tài xế) and this lands in the "Thêm" sheet with the
+   * finance/report items instead of displacing Tài xế. */
+  { key: 'truckMaintenance', href: '/truck/maintenance', Icon: Wrench,  group: 'workspace', section: 'operations', roles: STAFF, fleet: 'TRUCK' },
   /* Tài chính — single menu (design wires only "Chi phí và Lợi nhuận"). The
    * P&L overview + month close live under /truck/pnl as tabs of this same menu
    * (shared FinanceTabs), so there's no separate nav item. */

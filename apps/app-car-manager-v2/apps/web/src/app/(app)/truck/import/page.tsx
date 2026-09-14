@@ -4,7 +4,7 @@ import { Truck } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { driverIdentity } from '@/lib/format-person-option';
-import { listVehicles } from '@/server/queries/vehicles.queries';
+import { listDispatchableTrucks } from '@/server/queries/truck-vehicles.queries';
 import { listFleetDrivers } from '@/server/queries/drivers.queries';
 import { TruckImportPanel } from './_components/truck-import-panel';
 
@@ -15,7 +15,8 @@ export default async function TruckImportPage() {
   const tCo = await getTranslations('company');
 
   const [vehicles, drivers] = await Promise.all([
-    listVehicles(user.entId, 'active', 'TRUCK'),
+    /* Retired trucks are not offered (REQ-20260907 BR-5). */
+    listDispatchableTrucks(user.entId),
     listFleetDrivers(user.entId, 'TRUCK'),
   ]);
   const vehicleOptions = vehicles.map((v) => ({ id: v.cvhId, label: `${v.cvhPlateNumber} · ${v.cvhModel}` }));

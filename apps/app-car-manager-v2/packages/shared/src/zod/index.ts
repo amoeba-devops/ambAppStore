@@ -7,4 +7,5 @@ export * from './fleet-access.zod.js';
 export * from './region-access.zod.js';
 export * from './truck-trip.zod.js';
 export * from './truck-fixed-cost.zod.js';
+export * from './truck-maintenance.zod.js';
 export * from './truck-import.zod.js';

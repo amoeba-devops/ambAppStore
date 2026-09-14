@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { Loader2, Save, Trash2 } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { Info, Loader2, Save, Trash2 } from 'lucide-react';
 import {
   Button,
   Card,
@@ -27,12 +28,18 @@ import {
 } from '@/server/actions/vehicles/vehicle.actions';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { formatActionError } from '@/lib/format-action-error';
+import { formatDayKey } from '@/lib/format-day';
 
 const FUELS = ['DIESEL', 'PETROL', 'HYBRID', 'EV'] as const;
 const NO_REGION = '__none__';
 const NO_DRIVER = '__none__';
+/* The only statuses a user may set on a truck (REQ-20260907 BR-3). MAINTENANCE
+ * is derived from the Maintenance menu and never offered here. Kept local —
+ * this is a client component, so it must not import the server-side core. */
+const STORED_STATUSES = ['AVAILABLE', 'RETIRED'] as const;
 
 const EMPTY = {
+  status: 'AVAILABLE' as (typeof STORED_STATUSES)[number],
   plate: '',
   code: '',
   model: '',
@@ -55,10 +62,14 @@ export function TruckVehicleForm({
   initial,
   drivers = [],
   regionOptions = TRUCK_REGIONS,
+  maintenanceUntil = null,
 }: {
   /** When set, the form edits this vehicle (calls updateVehicleAction). */
   vehicleId?: string;
   initial?: Partial<typeof EMPTY>;
+  /** 'YYYY-MM-DD' end of the maintenance window covering today, when the truck
+   * is currently under maintenance (derived status, REQ-20260907 BR-7). */
+  maintenanceUntil?: string | null;
   /** Truck drivers for the "Tài xế mặc định" select. A `stale` entry is the
    * vehicle's saved default driver who no longer has active TRUCK access —
    * shown disabled instead of leaving the Select blank. */
@@ -69,7 +80,9 @@ export function TruckVehicleForm({
   const t = useTranslations('screens.truckFleet.form');
   const tFuel = useTranslations('vehicles.fuel');
   const tRegion = useTranslations('region');
+  const tStatus = useTranslations('screens.truckFleet.status');
   const tErr = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [f, setF] = useState({ ...EMPTY, ...initial });
@@ -102,6 +115,9 @@ export function TruckVehicleForm({
         last_oil_change_km: f.lastOilChangeKm ? Number(f.lastOilChangeKm) : undefined,
         home_base: f.homeBase.trim() || undefined,
         notes: f.notes.trim() || undefined,
+        /* Status is edit-only: create has no field and the create schema has
+         * no `status`; a new truck starts AVAILABLE. */
+        ...(vehicleId ? { status: f.status } : {}),
       };
       const res = vehicleId
         ? await updateVehicleAction(vehicleId, payload)
@@ -190,6 +206,26 @@ export function TruckVehicleForm({
                 </SelectContent>
               </Select>
             </Field>
+            {vehicleId && (
+              <Field label={t('status')}>
+                <Select
+                  value={f.status}
+                  onValueChange={(v) => setF((s) => ({ ...s, status: v as (typeof STORED_STATUSES)[number] }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STORED_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {tStatus(s)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1.5 text-xs text-text-muted leading-relaxed">{t('statusHint')}</p>
+              </Field>
+            )}
             <Field label={t('defaultDriver')}>
               <Select
                 value={f.defaultDriverId || NO_DRIVER}
@@ -225,6 +261,20 @@ export function TruckVehicleForm({
             </Field>
           </div>
 
+          {/* Derived "Bảo trì" (REQ-20260907): the select above keeps the stored
+           * value; this note tells the editor why the list shows Maintenance. */}
+          {vehicleId && maintenanceUntil && (
+            <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning-soft px-3 py-2.5 text-xs text-text leading-relaxed">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+              <span>
+                {t('statusMaintenanceNote', { date: fmtDay(maintenanceUntil, locale) })}{' '}
+                <Link href={`/truck/maintenance?vehicle=${vehicleId}`} className="font-semibold text-accent hover:underline">
+                  {t('statusMaintenanceLink')}
+                </Link>
+              </span>
+            </div>
+          )}
+
           <Field label={t('notes')}>
             <Input value={f.notes} onChange={set('notes')} placeholder={t('notesPlaceholder')} />
           </Field>
@@ -255,6 +305,12 @@ export function TruckVehicleForm({
       </CardContent>
     </Card>
   );
+}
+
+/** 'YYYY-MM-DD' (UTC day) → the workspace's dd/mm/yyyy, in the viewer's locale. */
+function fmtDay(iso: string, locale: string): string {
+  const loc = locale === 'vi' ? 'vi-VN' : locale === 'ko' ? 'ko-KR' : 'en-US';
+  return formatDayKey(iso, loc);
 }
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {

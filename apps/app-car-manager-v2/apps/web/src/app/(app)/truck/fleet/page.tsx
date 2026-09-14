@@ -13,7 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from '@car-v2/ui';
-import type { CarVehicleStatus } from '@car-v2/db/schema';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { resolveRegionFilter } from '@/lib/auth/region-access';
 import { ClickableTableRow } from '@/components/clickable-table-row';
@@ -24,13 +23,16 @@ import { ListRowActions } from '@/components/list-row-actions';
 import { PageHeader } from '@/components/layout/page-header';
 import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { listVehicles } from '@/server/queries/vehicles.queries';
+import { formatDayKey } from '@/lib/format-day';
+import { listTrucksWithStatus } from '@/server/queries/truck-vehicles.queries';
 import { getDriverNamesByIds } from '@/server/queries/drivers.queries';
-import { parseAmount } from '@car-v2/core/truck';
+import { parseAmount, TRUCK_VEHICLE_STATUSES, type TruckVehicleStatus } from '@car-v2/core/truck';
 
-const STATUS_TONE: Record<CarVehicleStatus, 'success' | 'info' | 'warning' | 'neutral'> = {
+/* Effective truck status (REQ-20260907): MAINTENANCE is derived from the
+ * Maintenance menu, RETIRED is the only other user-set value; IN_USE never
+ * applies to trucks. */
+const STATUS_TONE: Record<TruckVehicleStatus, 'success' | 'warning' | 'neutral'> = {
   AVAILABLE: 'success',
-  IN_USE: 'info',
   MAINTENANCE: 'warning',
   RETIRED: 'neutral',
 };
@@ -40,8 +42,6 @@ function bcp47(locale: string): string {
   if (locale === 'ko') return 'ko-KR';
   return 'en-US';
 }
-
-const VEHICLE_STATUSES: CarVehicleStatus[] = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'RETIRED'];
 
 export default async function TruckFleetPage({
   searchParams,
@@ -54,11 +54,13 @@ export default async function TruckFleetPage({
   const tA = await getTranslations('actions');
   const tNav = await getTranslations('nav');
   const tCo = await getTranslations('company');
-  const tStatus = await getTranslations('vehicles.status');
+  const tStatus = await getTranslations('screens.truckFleet.status');
+  const tStatusDesc = await getTranslations('screens.truckFleet.statusDesc');
   const tRegion = await getTranslations('region');
   const locale = await getLocale();
   const loc = bcp47(locale);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
+  const fmtDay = (iso: string) => formatDayKey(iso, loc);
   const ALL_REGIONS: readonly string[] = TRUCK_REGIONS;
   const regionLabel = (r: string | null) => (r && ALL_REGIONS.includes(r) ? tRegion(r) : (r ?? '—'));
 
@@ -68,11 +70,11 @@ export default async function TruckFleetPage({
   const REGIONS: readonly string[] = permittedRegions;
   const restricted = permittedRegions.length < TRUCK_REGIONS.length;
 
-  const allTrucks = await listVehicles(user.entId, 'active', 'TRUCK');
+  const allTrucks = await listTrucksWithStatus(user.entId);
 
   const q = sp.q?.trim().toLowerCase() || undefined;
-  const fStatus = VEHICLE_STATUSES.includes(sp.status as CarVehicleStatus)
-    ? (sp.status as CarVehicleStatus)
+  const fStatus = TRUCK_VEHICLE_STATUSES.includes(sp.status as TruckVehicleStatus)
+    ? (sp.status as TruckVehicleStatus)
     : undefined;
   const trucks = allTrucks.filter((v) => {
     if (q && !v.cvhPlateNumber.toLowerCase().includes(q)) return false;
@@ -83,7 +85,7 @@ export default async function TruckFleetPage({
        * (trucks with no region stay admin-only). */
       return false;
     }
-    if (fStatus && v.cvhStatus !== fStatus) return false;
+    if (fStatus && v.status !== fStatus) return false;
     return true;
   });
 
@@ -127,7 +129,7 @@ export default async function TruckFleetPage({
             param="status"
             value={fStatus}
             allLabel={t('allStatus')}
-            options={VEHICLE_STATUSES.map((s) => ({ value: s, label: tStatus(s) }))}
+            options={TRUCK_VEHICLE_STATUSES.map((s) => ({ value: s, label: tStatus(s) }))}
           />
         </div>
         {trucks.length === 0 ? (
@@ -166,7 +168,14 @@ export default async function TruckFleetPage({
                             {v.cvhModel}
                           </div>
                         </div>
-                        <Badge tone={STATUS_TONE[v.cvhStatus]} size="sm">{tStatus(v.cvhStatus)}</Badge>
+                        <span className="flex flex-col items-end gap-0.5 shrink-0">
+                          <Badge tone={STATUS_TONE[v.status]} size="sm" title={tStatusDesc(v.status)}>
+                            {tStatus(v.status)}
+                          </Badge>
+                          {v.maintenanceUntil && (
+                            <span className="text-[11px] text-text-muted">{t('maintUntil', { date: fmtDay(v.maintenanceUntil) })}</span>
+                          )}
+                        </span>
                       </div>
                       <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted">
                         <span className="text-text">{regionLabel(v.cvhRegion)}</span>
@@ -219,9 +228,14 @@ export default async function TruckFleetPage({
                       </TableCell>
                       <TableCell className="text-right tabular">{v.cvhOdometerKm.toLocaleString(loc)} km</TableCell>
                       <TableCell>
-                        <Badge tone={STATUS_TONE[v.cvhStatus]} size="sm">
-                          {tStatus(v.cvhStatus)}
+                        <Badge tone={STATUS_TONE[v.status]} size="sm" title={tStatusDesc(v.status)}>
+                          {tStatus(v.status)}
                         </Badge>
+                        {v.maintenanceUntil && (
+                          <div className="mt-1 text-[11px] text-text-muted whitespace-nowrap">
+                            {t('maintUntil', { date: fmtDay(v.maintenanceUntil) })}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
                         <DateTimeCell value={v.cvhUpdatedAt} locale={loc} />

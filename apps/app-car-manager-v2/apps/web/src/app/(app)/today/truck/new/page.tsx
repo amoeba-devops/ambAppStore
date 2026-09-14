@@ -1,8 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
-import { listVehicles } from '@/server/queries/vehicles.queries';
+import { listDispatchableTrucks } from '@/server/queries/truck-vehicles.queries';
 import { getTenantSettings } from '@/server/queries/tenant-settings.queries';
+import { listVehicleMaintenanceWindows } from '@car-v2/core/truck';
 import { PageHeader } from '@/components/layout/page-header';
 import { TruckTripForm } from '@/app/(app)/truck/trips/_components/truck-trip-form';
 
@@ -18,9 +19,12 @@ export default async function DriverTruckNewTripPage() {
   requireRole(user.role, ['DRIVER']);
   await requireFleet(user, 'TRUCK');
 
-  const [vehicles, settings] = await Promise.all([
-    listVehicles(user.entId, 'active', 'TRUCK'),
+  const [vehicles, settings, maintenanceWindows] = await Promise.all([
+    /* Retired trucks are not offered (REQ-20260907 BR-5). */
+    listDispatchableTrucks(user.entId),
     getTenantSettings(user.entId),
+    /* Maintenance windows (REQ-20260904) — the same hard stop the manager sees. */
+    listVehicleMaintenanceWindows(user.entId),
   ]);
 
   const vehicleOptions = vehicles.map((v) => ({
@@ -48,6 +52,7 @@ export default async function DriverTruckNewTripPage() {
           drivers={[]}
           role={user.role}
           depotAddress={settings?.tnsDepotAddress}
+          maintenanceWindows={maintenanceWindows}
         />
       </div>
     </>

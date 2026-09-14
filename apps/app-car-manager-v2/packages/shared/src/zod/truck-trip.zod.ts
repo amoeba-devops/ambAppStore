@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { confirmedWarningCodesField } from './trip.zod.js';
 
 /**
  * Truck trip-log inputs (REQ-20260617 + REQ-20260623 multi-stop).
@@ -84,6 +85,7 @@ export const createTruckTripSchema = z.object({
   /** Multi-stop route (REQ-20260623). Max 20 stops. When present, stopovers
    * are saved to car_trip_stopovers and form the canonical route display. */
   stopovers: z.array(stopoverInputSchema).max(20).optional(),
+  confirmed_warning_codes: confirmedWarningCodesField,
 });
 export type CreateTruckTripInputDto = z.infer<typeof createTruckTripSchema>;
 
@@ -98,6 +100,7 @@ export const assignTruckTripSchema = z.object({
   trip_id: z.string().uuid(),
   driver_id: z.string().uuid(),
   vehicle_id: z.string().uuid(),
+  confirmed_warning_codes: confirmedWarningCodesField,
 });
 export type AssignTruckTripInputDto = z.infer<typeof assignTruckTripSchema>;
 

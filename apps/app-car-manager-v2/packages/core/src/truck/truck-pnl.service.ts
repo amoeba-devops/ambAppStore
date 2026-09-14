@@ -11,6 +11,7 @@ import type { FleetActor } from '../types';
 import { parseAmount } from './truck-cost';
 import { loadTruckFixedMonthly } from './truck-fixed-monthly';
 import { loadTruckRegionSnapshots } from './truck-fuel-snapshot';
+import { loadTruckMaintenanceMonthly } from './truck-maintenance';
 
 /**
  * Monthly P&L per truck (REQ-20260617, customer SRS §2.3):
@@ -32,6 +33,11 @@ export interface TruckPnlRow {
   salary: number;
   depreciation: number;
   insurance: number;
+  /** Σ maintenance jobs booked into this month (REQ-20260904,
+   * `car_truck_maintenances.tmn_month` = start month). Third component of
+   * `fixedCost`. Month-level only: never allocated per trip, and — unlike
+   * salary/depreciation — NOT zeroed when the month has no trips. */
+  maintenanceCost: number;
   /** @deprecated Always 0 since 2026-07-21. Driver salary now folds into
    * `salary` (per-vehicle default-driver salary) in every view; kept only for
    * the stored P&L row shape. */
@@ -100,6 +106,7 @@ function emptyRow(month: string): TruckPnlRow {
     salary: 0,
     depreciation: 0,
     insurance: 0,
+    maintenanceCost: 0,
     driverSalary: 0,
     fixedCost: 0,
     tripCount: 0,
@@ -263,6 +270,19 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
     }
   }
 
+  /* Maintenance jobs of the SAME truck set, booked by start month
+   * (REQ-20260904). Kept apart from the zero-when-idle rule below: a job's
+   * dates are facts, and the month a truck spends in the shop is exactly when
+   * the cost is real. */
+  const maintenance = await loadTruckMaintenanceMonthly(actor.entId, months, {
+    vehicleId: q.vehicleId ?? null,
+    vehicleIds: q.vehicleId ? null : scopedVehicleIds,
+  });
+  for (const m of months) {
+    const row = rows.get(m);
+    if (row) row.maintenanceCost = maintenance.forMonth(m);
+  }
+
   for (const row of rows.values()) {
     row.variableCost = row.fuelCost + row.tollFee + row.extraTotal;
     /* No trip → nothing to allocate the month's fixed cost onto (see
@@ -276,7 +296,9 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
     }
     /* Insurance removed from the fixed-cost model (2026-07-21) — field kept on
      * the row (=0) for the report export shape, but no longer summed or shown. */
-    row.fixedCost = row.salary + row.depreciation;
+    /* Fixed = salary + depreciation + maintenance (REQ-20260904). Every screen
+     * that prints `fixedCost` lists all three so the total equals its rows. */
+    row.fixedCost = row.salary + row.depreciation + row.maintenanceCost;
     row.netProfit = row.revenue - row.variableCost - row.fixedCost;
   }
 

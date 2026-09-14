@@ -7,6 +7,7 @@ export * from './trip-extra-cost.schema.js';
 export * from './trip-cost-attachment.schema.js';
 export * from './truck-cost-rate.schema.js';
 export * from './truck-fixed-cost.schema.js';
+export * from './truck-maintenance.schema.js';
 export * from './truck-month-close.schema.js';
 export * from './truck-fuel-invoice.schema.js';
 export * from './truck-report.schema.js';

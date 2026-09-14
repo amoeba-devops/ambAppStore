@@ -91,10 +91,6 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
       km: fuelKm,
       fuelCostPerKm,
       fuelActualCost,
-      salaryAllocated,
-      depreciationAllocated,
-      profitAfterFixed,
-      fixedTripCount,
       month,
       region,
     } = await getTruckTripBreakdown(user.entId, trip, extras.map((e) => e.amount));
@@ -126,10 +122,6 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
         fuelKm={fuelKm}
         fuelCostPerKm={fuelCostPerKm}
         fuelActualCost={fuelActualCost}
-        salaryAllocated={completed ? salaryAllocated : undefined}
-        depreciationAllocated={completed ? depreciationAllocated : undefined}
-        profitAfterFixed={completed ? profitAfterFixed : undefined}
-        fixedTripCount={fixedTripCount}
         completed={completed}
         canComplete={canComplete}
         completeInitial={completeInitialOf(trip)}

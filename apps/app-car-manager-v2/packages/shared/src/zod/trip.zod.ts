@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+/**
+ * Warning codes the user already saw and confirmed in the guard dialog
+ * (assignment-guard pattern, see @car-v2/shared/errors). The action recomputes
+ * warnings server-side and only proceeds when every live warning is in this
+ * list — a stale confirm can't suppress a new conflict.
+ */
+export const confirmedWarningCodesField = z.array(z.string().max(64)).max(10).optional();
+
 export const createTripSchema = z.object({
   passenger_id: z.string().uuid().optional(),
   pickup_address: z.string().trim().min(1).max(2000),
@@ -13,6 +21,7 @@ export const createTripSchema = z.object({
   /* PRD FR-1.1 row 6: "Có thể thêm nhiều điểm ghé". Cap at 10 to keep the
    * gmaps URL under ~2KB and avoid unreasonable trips. */
   stopovers: z.array(z.string().trim().min(1).max(2000)).max(10).optional(),
+  confirmed_warning_codes: confirmedWarningCodesField,
 });
 export type CreateTripInput = z.infer<typeof createTripSchema>;
 
@@ -33,6 +42,7 @@ export type UpdateTripInput = z.infer<typeof updateTripSchema>;
 export const assignTripSchema = z.object({
   driver_id: z.string().uuid(),
   vehicle_id: z.string().uuid(),
+  confirmed_warning_codes: confirmedWarningCodesField,
 });
 export type AssignTripInput = z.infer<typeof assignTripSchema>;
 

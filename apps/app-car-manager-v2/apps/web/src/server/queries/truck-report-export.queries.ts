@@ -13,6 +13,9 @@ import {
   parseAmount,
   computeTruckPnl,
   loadTruckRegionSnapshots,
+  loadActiveMaintenanceByVehicle,
+  resolveTruckVehicleStatus,
+  utcDateKey,
 } from '@car-v2/core/truck';
 import type { AuthContext } from '@/lib/auth/get-current-user';
 import { getTruckFuelStats, isTruckMonthClosed } from './truck-finance.queries';
@@ -65,6 +68,9 @@ export interface ReportVehiclePnlRow {
   salary: number; // Lương tài xế
   revenue: number; // Doanh thu tháng
   fixedOther: number; // Chi phí cố định (= bảo hiểm & CP cố định khác)
+  /** Chi phí bảo trì của xe trong tháng (REQ-20260904) — dòng riêng, KHÔNG gộp
+   * vào fixedOther ("Chi phí khác" là khoản khác, user decision Q2). */
+  maintenance: number;
   toll: number; // Phí cầu đường
   fuel: number; // Phí xăng dầu
   extra: number; // Tổng phí phát sinh
@@ -117,6 +123,7 @@ export interface TruckReportExport {
     revenue: number;
     fixedOther: number; // depreciation + insurance (Tổng hợp gộp khấu hao)
     depreciation: number; // Khấu hao (tách riêng cho template — B23)
+    maintenance: number; // Bảo trì (dòng riêng B25, REQ-20260904)
     toll: number;
     fuel: number;
     extra: number;
@@ -304,9 +311,22 @@ export async function getTruckReportExport(
     status: string;
     defaultDriver: string | null;
   }
+  /* Effective status at generation time (REQ-20260907 BR-9): MAINTENANCE comes
+   * from a live maintenance window covering today, RETIRED from the stored
+   * column — never the raw cvh_status. Same semantics the fleet list shows. */
+  const activeMaintenance = await loadActiveMaintenanceByVehicle(
+    actor.entId,
+    utcDateKey(new Date()),
+    scopeVehicles.map((v) => v.id),
+  );
   const vinfo = new Map<string, VInfo>();
   for (const v of scopeVehicles) {
-    vinfo.set(v.id, { plate: v.plate ?? '—', model: v.model, status: v.status, defaultDriver: v.defaultDriver });
+    vinfo.set(v.id, {
+      plate: v.plate ?? '—',
+      model: v.model,
+      status: resolveTruckVehicleStatus(v.status, activeMaintenance.get(v.id) ?? null),
+      defaultDriver: v.defaultDriver,
+    });
   }
   /* A trip-vehicle missing from scopeVehicles (e.g. soft-deleted since) still
    * gets a row from its trip data so the legacy PNL export loses nobody. */
@@ -373,6 +393,7 @@ export async function getTruckReportExport(
         salary: p.salary,
         revenue: p.revenue,
         fixedOther: p.insurance,
+        maintenance: p.maintenanceCost,
         toll: p.tollFee,
         fuel: p.fuelCost,
         extra: p.extraTotal,
@@ -398,12 +419,13 @@ export async function getTruckReportExport(
         revenue: a.revenue + v.revenue,
         fixedOther: a.fixedOther + v.depreciation + v.fixedOther, // dep + insurance (PNL totals convention)
         depreciation: a.depreciation + v.depreciation,
+        maintenance: a.maintenance + v.maintenance,
         toll: a.toll + v.toll,
         fuel: a.fuel + v.fuel,
         extra: a.extra + v.extra,
         net: a.net + v.net,
       }),
-      { salary: 0, revenue: 0, fixedOther: 0, depreciation: 0, toll: 0, fuel: 0, extra: 0, net: 0 },
+      { salary: 0, revenue: 0, fixedOther: 0, depreciation: 0, maintenance: 0, toll: 0, fuel: 0, extra: 0, net: 0 },
     );
   } else {
     const [tot] = await computeTruckPnl(actor, { region, vehicleIds: vehicleScope, months: [month] });
@@ -412,6 +434,7 @@ export async function getTruckReportExport(
       revenue: tot?.revenue ?? 0,
       fixedOther: (tot?.depreciation ?? 0) + (tot?.insurance ?? 0),
       depreciation: tot?.depreciation ?? 0,
+      maintenance: tot?.maintenanceCost ?? 0,
       toll: tot?.tollFee ?? 0,
       fuel: tot?.fuelCost ?? 0,
       extra: tot?.extraTotal ?? 0,
@@ -423,7 +446,7 @@ export async function getTruckReportExport(
    * (QĐ-5). tripCount/totalKm sum the emitted rows so they equal the E-table
    * SUM exactly. */
   const truckCount = scopeVehicles.length;
-  const maintenanceCount = scopeVehicles.filter((v) => v.status === 'MAINTENANCE').length;
+  const maintenanceCount = scopeVehicles.filter((v) => vinfo.get(v.id)?.status === 'MAINTENANCE').length;
   const activeCount = truckCount - maintenanceCount;
   const sumTripCount = vehicles.reduce((a, v) => a + v.tripCount, 0);
   const sumKm = vehicles.reduce((a, v) => a + v.km, 0);

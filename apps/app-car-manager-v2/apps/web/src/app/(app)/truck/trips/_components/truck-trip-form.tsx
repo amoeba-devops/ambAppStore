@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ClipboardList, FileText, Loader2, Plus, Route, Save, Trash2, Truck, User, Wallet } from 'lucide-react';
 import {
   Badge,
@@ -25,10 +25,11 @@ import {
   driverUpdateTruckTripAction,
 } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
+import { formatDayKey } from '@/lib/format-day';
+import { GuardConfirmDialog, useGuardConfirm } from '@/components/dialogs/guard-confirm-dialog';
 import { FormField } from '@/components/forms/form-section';
 import { MoneyInput } from '@/components/inputs/money-input';
 import { CostReceiptInput, type ExistingCostAttachment } from '@/components/truck/cost-receipt-input';
-import { fuelToastDescription } from '@/components/truck/fuel-toast';
 import { uploadTruckCostFile } from '@/lib/truck-cost-upload';
 import { StopBuilder, makeDefaultStops, type StopField } from './stop-builder';
 import type { CarStopType, CarTripStopover } from '@car-v2/db/schema';
@@ -48,6 +49,15 @@ export interface OptionItem {
   label: string;
   /** Vehicle's assigned default driver (cvh_default_driver_id) — drives auto-fill on vehicle select. */
   defaultDriverId?: string;
+}
+
+/** A live maintenance window of one truck (REQ-20260904). The form greys the
+ * truck out while the chosen date falls inside; the server is the real gate
+ * (CAR-E1013), this only saves the round-trip. Dates 'YYYY-MM-DD', inclusive. */
+export interface TripFormMaintenanceWindow {
+  vehicleId: string;
+  startDate: string;
+  endDate: string;
 }
 
 export type TruckTripFormInitial = Partial<{
@@ -117,9 +127,12 @@ export function TruckTripForm({
   depotAddress,
   tripId,
   initial,
+  maintenanceWindows = [],
 }: {
   vehicles: OptionItem[];
   drivers: OptionItem[];
+  /** Live maintenance windows of the listed trucks (REQ-20260904). */
+  maintenanceWindows?: TripFormMaintenanceWindow[];
   /** Caller's role — DRIVER hides revenue and locks the driver field to self. */
   role?: LocalRole;
   /** Default depot address to pre-fill ORIGIN / RETURN stops. */
@@ -128,10 +141,11 @@ export function TruckTripForm({
   initial?: TruckTripFormInitial;
 }) {
   const t = useTranslations('screens.truckTrips.form');
-  const tFuel = useTranslations('screens.truckFinance');
   const tErr = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const guard = useGuardConfirm();
   const [f, setF] = useState({ ...EMPTY_FIELDS, ...initial });
   const [markCompleted, setMarkCompleted] = useState(initial?.markCompleted ?? true);
 
@@ -209,6 +223,16 @@ export function TruckTripForm({
 
   const selectedVehicle = vehicles.find((v) => v.id === f.vehicleId);
 
+  /* Maintenance windows (REQ-20260904): which trucks are in the shop on the
+   * chosen date. Same inclusive day comparison the server makes. */
+  const loc = locale === 'ko' ? 'ko-KR' : locale === 'en' ? 'en-US' : 'vi-VN';
+  const fmtDay = (iso: string) => formatDayKey(iso, loc);
+  const windowFor = (vehicleId: string) =>
+    maintenanceWindows.find(
+      (w) => w.vehicleId === vehicleId && w.startDate <= f.scheduledAt && f.scheduledAt <= w.endDate,
+    );
+  const selectedMaintenance = f.vehicleId ? windowFor(f.vehicleId) : undefined;
+
   /* Live profit preview. Fuel here = what THIS trip recorded (litres × đơn
    * giá) — the money actually spent. The per-trip cost that lands in P&L is
    * that spend POOLED per vehicle-month and re-spread by km (a fill-up serves
@@ -217,7 +241,11 @@ export function TruckTripForm({
   const preview = useMemo(() => {
     const fuelCost = Math.round((numF(f.fuelLiters) ?? 0) * (numF(f.fuelPrice) ?? 0));
     const toll = Math.round(numF(f.toll) ?? 0);
-    const extraTotal = extras.reduce((s, e) => s + Math.round(numF(e.amount) ?? 0), 0);
+    /* Sum raw amounts THEN round once — matches every server-side site
+     * (truck-cost.ts, truck-pnl.service.ts, truck-finance.queries.ts, ...).
+     * Rounding each line first can disagree by a few đồng once ≥2 rows carry
+     * fractional đồng. */
+    const extraTotal = Math.round(extras.reduce((s, e) => s + (numF(e.amount) ?? 0), 0));
     const revenue = Math.round(numF(f.revenue) ?? 0);
     const totalCost = fuelCost + toll + extraTotal;
     return { fuelCost, totalCost, revenue, profit: revenue - totalCost };
@@ -246,8 +274,10 @@ export function TruckTripForm({
   const lastKm = [...kmNums].reverse().find((v) => v != null);
   const totalKm = firstKm != null && lastKm != null && lastKm > firstKm ? lastKm - firstKm : null;
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  /* `e` is null when the guard-confirm dialog retries the submit with
+   * confirmed codes (assignment-guard pattern) — values are unchanged. */
+  const submit = (e: React.FormEvent | null, confirmedCodes?: string[]) => {
+    e?.preventDefault();
     if (!dirty) {
       const missing: string[] = [];
       if (f.vehicleId === '') missing.push(t('vehicle'));
@@ -255,6 +285,17 @@ export function TruckTripForm({
       if (pickupAddress === '') missing.push(t('pickup'));
       if (dropoffAddress === '') missing.push(t('dropoff'));
       toast.error(t('validationMissing', { fields: missing.join(', ') }));
+      return;
+    }
+    /* Hard stop, mirrors the server's CAR-E1013 — no confirm dialog. */
+    if (selectedMaintenance) {
+      toast.error(
+        t('vehicleMaintenanceBlocked', {
+          plate: selectedVehicle?.label ?? '',
+          start: fmtDay(selectedMaintenance.startDate),
+          end: fmtDay(selectedMaintenance.endDate),
+        }),
+      );
       return;
     }
     startTransition(async () => {
@@ -300,6 +341,7 @@ export function TruckTripForm({
           .map((e) => ({ name: e.name.trim(), amount: Number(e.amount) })),
         cost_attachments,
         stopovers: stopoversPayload,
+        confirmed_warning_codes: confirmedCodes,
       };
       const res = !tripId
         ? await createTruckTripAction(payload)
@@ -308,16 +350,17 @@ export function TruckTripForm({
             await driverUpdateTruckTripAction({ ...payload, trip_id: tripId })
           : await updateTruckTripAction({ ...payload, trip_id: tripId });
       if (!res.success) {
-        toast.error(formatActionError(res.error, tErr));
+        if (!guard.intercept(res.error, (codes) => submit(null, codes))) {
+          toast.error(formatActionError(res.error, tErr));
+        }
         return;
       }
-      /* Tell the user how the per-trip fuel was treated on save (REQ-20260724):
-       * averaged (invoices) / vehicle rate (km × định mức × giá xe) / unset
-       * (xe chưa đặt định mức → 0). Server returns null for a non-completed
-       * trip → no fuel note. */
-      toast.success(tripId ? t('updatedToast') : t('createdToast'), {
-        description: fuelToastDescription(res.data.fuelMode, tFuel),
-      });
+      /* Plain save confirmation — the fuel-derivation note (REQ-20260724) was
+       * dropped from THIS toast per user feedback 2026-08-28: saving a trip
+       * should read as a simple success, not a costing explanation. The note
+       * still shows on trip COMPLETION (truck-complete-section), where the
+       * fuel figures are actually entered. */
+      toast.success(tripId ? t('updatedToast') : t('createdToast'));
       router.push(
         isDriver ? driverHome : (tripId ? `/truck/trips/${tripId}` : '/truck/trips'),
       );
@@ -408,11 +451,32 @@ export function TruckTripForm({
                     <SelectValue placeholder={t('selectVehicle')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {vehicles.map((o) => (
-                      <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
-                    ))}
+                    {vehicles.map((o) => {
+                      /* Truck booked for maintenance on the chosen date → not
+                       * selectable (REQ-20260904); the suffix says until when. */
+                      const w = windowFor(o.id);
+                      return (
+                        <SelectItem key={o.id} value={o.id} disabled={!!w}>
+                          {w
+                            ? `${o.label} ${t('vehicleMaintenanceSuffix', { start: fmtDay(w.startDate), end: fmtDay(w.endDate) })}`
+                            : o.label}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
+                {/* The date moved onto a maintenance day AFTER the truck was
+                  * picked — the option is greyed but still selected, so say why
+                  * Save will refuse. */}
+                {selectedMaintenance && (
+                  <p className="mt-1 text-xs text-danger">
+                    {t('vehicleMaintenanceBlocked', {
+                      plate: selectedVehicle?.label ?? '',
+                      start: fmtDay(selectedMaintenance.startDate),
+                      end: fmtDay(selectedMaintenance.endDate),
+                    })}
+                  </p>
+                )}
               </FormField>
               {!isDriver && (
                 <FormField
@@ -552,6 +616,7 @@ export function TruckTripForm({
           {t('save')}
         </Button>
       </div>
+      <GuardConfirmDialog state={guard.dialog} pending={pending} />
     </form>
   );
 }

@@ -5,13 +5,13 @@ import {
   carTrips,
   carTripExtraCosts,
   carTripStopovers,
-  carDrivers,
   carVehicles,
   type CarTrip,
   type CarStopType,
 } from '@car-v2/db/schema';
 import { CarError } from '@car-v2/shared/errors';
 import type { FleetActor } from '../types';
+import { requireDriver } from '../driver-availability';
 import { computeTruckCost, parseAmount, type TruckCostBreakdown } from './truck-cost';
 
 /**
@@ -135,15 +135,14 @@ async function assertTruckVehicle(actor: FleetActor, vehicleId: string): Promise
   if (vehicle.cvhType !== 'TRUCK') throw new CarError('CAR-E1002', 400, 'Vehicle is not a truck');
 }
 
+/**
+ * Hard check only: the driver must exist for this tenant. Availability
+ * WARNINGS (active trip / status) are the action layer's concern — it runs
+ * `evaluateAssignmentWarnings` and the confirm-or-refuse flow BEFORE calling
+ * into this service (assignment-guard pattern).
+ */
 async function assertDriver(actor: FleetActor, driverId: string): Promise<void> {
-  const driver = await db.query.carDrivers.findFirst({
-    where: and(
-      eq(carDrivers.drvId, driverId),
-      eq(carDrivers.entId, actor.entId),
-      isNull(carDrivers.drvDeletedAt),
-    ),
-  });
-  if (!driver) throw new CarError('CAR-E1003', 400, 'Driver not available');
+  await requireDriver(actor.entId, driverId);
 }
 
 export async function createTruckTrip(

@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { allowedRegions, requireRegion } from '@/lib/auth/region-access';
 import { driverIdentity } from '@/lib/format-person-option';
 import { getVehicle } from '@/server/queries/vehicles.queries';
+import { loadActiveMaintenanceByVehicle, utcDateKey } from '@car-v2/core/truck';
 import { listFleetDrivers, getDriverAnyStatus } from '@/server/queries/drivers.queries';
 import { TruckVehicleForm } from '../../_components/truck-vehicle-form';
 
@@ -16,6 +17,9 @@ export default async function EditTruckVehiclePage({ params }: { params: Promise
   /* Region ACL (REQ-20260813) — editing a truck requires access to its region. */
   if (v.cvhRegion) await requireRegion(user, v.cvhRegion);
   const regionOptions = await allowedRegions(user);
+  /* Derived MAINTENANCE (REQ-20260907 BR-7): the form shows the stored value
+   * (AVAILABLE/RETIRED) and, when a live window covers today, an info note. */
+  const activeMaintenance = (await loadActiveMaintenanceByVehicle(user.entId, utcDateKey(new Date()), [v.cvhId])).get(v.cvhId) ?? null;
 
   const activeDrivers = await listFleetDrivers(user.entId, 'TRUCK');
   const drivers: { id: string; name: string; stale?: boolean }[] = activeDrivers.map((d) => ({
@@ -51,6 +55,9 @@ export default async function EditTruckVehiclePage({ params }: { params: Promise
     lastOilChangeKm: v.cvhLastOilChangeKm != null ? String(v.cvhLastOilChangeKm) : '',
     homeBase: v.cvhHomeBase ?? '',
     notes: v.cvhNotes ?? '',
+    /* Only the two user-set values are stored for trucks (BR-3); anything else
+     * left in the column (pre-0031 data) is shown as AVAILABLE. */
+    status: (v.cvhStatus === 'RETIRED' ? 'RETIRED' : 'AVAILABLE') as 'AVAILABLE' | 'RETIRED',
   };
 
   return (
@@ -66,7 +73,13 @@ export default async function EditTruckVehiclePage({ params }: { params: Promise
       />
       {/* Form canh giữa màn hình (QA P2 R21). */}
       <div className="px-4 md:px-7 py-4 md:py-6 max-w-2xl mx-auto w-full">
-        <TruckVehicleForm vehicleId={v.cvhId} initial={initial} drivers={drivers} regionOptions={regionOptions} />
+        <TruckVehicleForm
+          vehicleId={v.cvhId}
+          initial={initial}
+          drivers={drivers}
+          regionOptions={regionOptions}
+          maintenanceUntil={activeMaintenance?.endDate ?? null}
+        />
       </div>
     </>
   );

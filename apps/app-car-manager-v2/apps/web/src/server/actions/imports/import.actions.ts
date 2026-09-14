@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carImports, carVehicles } from '@car-v2/db/schema';
-import { createTruckTrip, completeTruckTrip } from '@car-v2/core/truck';
+import { createTruckTrip, completeTruckTrip, assertVehicleNotUnderMaintenance } from '@car-v2/core/truck';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import { importTruckTripsSchema, parseImportDate, parseWallClockUtc } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
@@ -88,6 +88,13 @@ export async function importTruckTripsAction(
     }
     for (const d of months.values()) {
       await assertTruckMonthOpen(actor.entId, d, vehicle.cvhRegion);
+    }
+    /* Maintenance windows (REQ-20260904, BR-7): a row whose day falls inside a
+     * live maintenance window of this truck refuses the WHOLE file before any
+     * trip is written — same all-or-nothing rule as the date check above. The
+     * error names the sheet row (header = row 1). */
+    for (const [i, iso] of dates.entries()) {
+      await assertVehicleNotUnderMaintenance(actor.entId, dto.vehicle_id, new Date(`${iso}T00:00:00.000Z`), i + 2);
     }
     /* Latest month in the file — the post-import deep-link target ("rồi sao
      * nữa": land the user on the trip log filtered to what they just loaded). */

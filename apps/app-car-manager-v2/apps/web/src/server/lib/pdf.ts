@@ -6,6 +6,12 @@ import type {
   StyleDictionary,
 } from 'pdfmake/interfaces';
 import { attachment } from './content-disposition';
+import { DAY_FORMAT, formatDay } from '@/lib/format-day';
+
+/** Footer timestamp "HH:mm:ss dd/mm/yyyy" — zero-padded like every other date
+ * the app prints (QA 2026-09-07); `toLocaleString('vi-VN')` alone gives "7/9/2026". */
+const formatStamp = (d: Date): string =>
+  d.toLocaleString('vi-VN', { ...DAY_FORMAT, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 
 /* PDF export utilities using pdfmake.
  *
@@ -83,7 +89,7 @@ export function buildTablePdf(options: PdfTableOptions): Promise<Buffer> {
       const val = row[col.key];
       let text = '';
       if (val instanceof Date) {
-        text = val.toLocaleDateString('vi-VN');
+        text = formatDay(val, 'vi-VN');
       } else if (val !== null && val !== undefined) {
         text = String(val);
       }
@@ -138,7 +144,7 @@ export function buildTablePdf(options: PdfTableOptions): Promise<Buffer> {
     footer: (currentPage, pageCount) => ({
       columns: [
         {
-          text: footerNote ?? `Generated: ${new Date().toLocaleString('vi-VN')}`,
+          text: footerNote ?? `Generated: ${formatStamp(new Date())}`,
           style: 'footer',
           alignment: 'left',
         },
@@ -212,7 +218,7 @@ export function buildReportPdf(options: PdfReportOptions): Promise<Buffer> {
     footer: (currentPage, pageCount) => ({
       columns: [
         {
-          text: generatedAt ?? `Generated: ${new Date().toLocaleString('vi-VN')}`,
+          text: generatedAt ?? `Generated: ${formatStamp(new Date())}`,
           style: 'footer',
           alignment: 'left',
         },
@@ -325,7 +331,7 @@ export function buildTableContent(
       const val = row[col.key];
       let text = '';
       if (val instanceof Date) {
-        text = val.toLocaleDateString('vi-VN');
+        text = formatDay(val, 'vi-VN');
       } else if (val !== null && val !== undefined) {
         text = String(val);
       }

@@ -93,12 +93,14 @@ export const carTruckReports = pgTable(
      * allowed to overwrite, so a partial report can never wipe out the frozen
      * numbers of a vehicle it doesn't cover. */
     trrVehicleIds: jsonb('trr_vehicle_ids').$type<string[]>(),
-    /* PER-VEHICLE fixed-cost allocation basis frozen at generation time (0029,
-     * REQ-20260821): trip CRUD between two reports must not shift the shares a
-     * report already showed, so readers take the share from the latest report
-     * covering the trip and only compute live when none does. NULL = report
-     * generated before this column existed → readers keep the live computation
-     * (exactly the pre-0029 behaviour) for whatever that report covers. */
+    /* @deprecated PER-VEHICLE fixed-cost allocation basis (0029, REQ-20260821):
+     * salary/depreciation used to be split per trip and frozen here so trip CRUD
+     * between two reports wouldn't shift an already-shown share. REQ-20260908
+     * dropped per-trip allocation for salary/depreciation entirely (now behaves
+     * like maintenance: month-level only, never split across trips) — this
+     * column is now FULLY DEAD, no code reads or writes it (old rows or new).
+     * Kept only to avoid a DROP COLUMN migration on old data; new rows always
+     * write NULL. Safe to drop later in a dedicated migration if ever needed. */
     trrFixedAlloc: jsonb('trr_fixed_alloc').$type<TruckReportFixedAlloc[]>(),
     trrCreatedBy: char('trr_created_by', { length: 36 }),
     trrCreatedAt: timestamp('trr_created_at', { withTimezone: true }).defaultNow().notNull(),

@@ -18,7 +18,6 @@ import {
   truckTripFuelCost,
   computeTruckPnl,
   loadTruckRegionSnapshots,
-  loadTruckFixedAllocation,
   loadVehicleFuelPool,
   type TruckFuelMode,
 } from '@car-v2/core/truck';
@@ -300,17 +299,6 @@ export interface TruckFinanceTripRow {
   /** Cost of one km for this trip (đ/km) — lets the table explain the fuel
    * figure per-trip as `{km} km × {fuelCostPerKm} ₫/km`. */
   fuelCostPerKm: number;
-  /** This trip's slice of the month's fixed cost (client Sheet3 "phân bổ theo
-   * chuyến") = monthly salary/depreciation of its vehicle ÷ that vehicle's
-   * completed trips in the month. */
-  salaryAllocated: number;
-  depreciationAllocated: number;
-  /** revenue − fuel − toll − extra − (salary + depreciation allocated) — the
-   * customer's "Lợi nhuận theo chuyến", and what the finance screen shows.
-   * `profit` above stays the VARIABLE-only figure the report review is built
-   * on; the finance export carries BOTH (REQ-20260822) so the file and the
-   * screen can no longer disagree once a vehicle has fixed costs. */
-  profitAfterFixed: number;
   /** How unitPrice/liters/fuelCost above were derived:
    *  - AVERAGED frozen month-end allocation (vehicle's fuel spend ÷ its km)
    *  - LIVE     same allocation from the month's fuel recorded so far
@@ -348,9 +336,8 @@ export async function listTruckFinanceTrips(
   const start = new Date(`${opts.month}-01T00:00:00.000Z`);
   const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
 
-  const [snapshots, fixedAlloc, trips] = await Promise.all([
+  const [snapshots, trips] = await Promise.all([
     loadTruckRegionSnapshots(entId, [opts.month]),
-    loadTruckFixedAllocation(entId, [opts.month]),
     db
       .select({
         trpId: carTrips.trpId,
@@ -431,12 +418,6 @@ export async function listTruckFinanceTrips(
     const finalized = snapshots.isReported(opts.month, t.vehicleId, changedAt);
     const fuel = snapshots.fuelForTrip(opts.month, t.vehicleId, km, changedAt);
     const fuelCost = fuel.cost;
-    /* Fixed allocation is FROZEN by the covering report (REQ-20260821) — trip
-     * CRUD between two reports must not move a reported trip's share. Live
-     * computation only for trips no report has frozen yet. */
-    const fixedShare =
-      snapshots.fixedShareForTrip(opts.month, t.vehicleId, changedAt) ??
-      fixedAlloc.forTrip(opts.month, t.vehicleId);
     return {
       trpId: t.trpId,
       ref: t.ref,
@@ -457,9 +438,6 @@ export async function listTruckFinanceTrips(
       profit: revenue - fuelCost - toll - extra,
       finalized,
       fuelCostPerKm: fuel.costPerKm,
-      salaryAllocated: fixedShare.salary,
-      depreciationAllocated: fixedShare.depreciation,
-      profitAfterFixed: revenue - fuelCost - toll - extra - fixedShare.total,
       fuelMode: fuel.mode,
       updatedAt: t.updatedAt,
     };
@@ -540,6 +518,10 @@ export interface ReportReviewVehicle {
   variableProfit: number;
   /** Monthly fixed cost (salary/depreciation/insurance/driver) for this truck. */
   fixedCost: number;
+  /** Its three components (REQ-20260907 QA) — Σ = fixedCost; shown under the card. */
+  salary: number;
+  depreciation: number;
+  maintenanceCost: number;
   /** THIS vehicle's own monthly fuel reconciliation — what the report will
    * freeze, so the preview matches the generated numbers exactly.
    * `allocatable` false → no fuel spend (or no km) for the vehicle this month,
@@ -654,6 +636,9 @@ export async function getTruckReportReview(
         totalRevenue: 0,
         variableProfit: 0,
         fixedCost: 0,
+        salary: 0,
+        depreciation: 0,
+        maintenanceCost: 0,
         fuelAllocatable: !!vf,
         fuelMoney: vf?.money ?? 0,
         fuelLiters: vf?.liters ?? 0,
@@ -693,6 +678,12 @@ export async function getTruckReportReview(
       if (!v.vehicleId) return;
       const [pnl] = await computeTruckPnl(actor, { vehicleId: v.vehicleId, months: [month] });
       v.fixedCost = pnl?.fixedCost ?? 0;
+      /* Breakdown shown under the "Tổng chi phí cố định" card (REQ-20260907 QA):
+       * the same three components the dashboard widget and the report's rows
+       * 22–25 print, so the reviewer sees why the total is what it is. */
+      v.salary = pnl?.salary ?? 0;
+      v.depreciation = pnl?.depreciation ?? 0;
+      v.maintenanceCost = pnl?.maintenanceCost ?? 0;
     }),
   );
 

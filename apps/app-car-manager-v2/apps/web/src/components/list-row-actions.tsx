@@ -9,6 +9,7 @@ import { toast } from '@car-v2/ui';
 import { deleteVehicleAction } from '@/server/actions/vehicles/vehicle.actions';
 import { deleteDriverAction } from '@/server/actions/drivers/driver.actions';
 import { deleteTruckTripAction } from '@/server/actions/trips/truck-trip.actions';
+import { deleteTruckMaintenanceAction } from '@/server/actions/maintenance/truck-maintenance.actions';
 import { formatActionError } from '@/lib/format-action-error';
 
 export function ListRowActions({
@@ -19,7 +20,7 @@ export function ListRowActions({
 }: {
   editHref: string;
   deleteId: string;
-  kind: 'vehicle' | 'driver' | 'trip';
+  kind: 'vehicle' | 'driver' | 'trip' | 'maintenance';
   confirmText: string;
 }) {
   const tA = useTranslations('actions');
@@ -35,6 +36,7 @@ export function ListRowActions({
       const res =
         kind === 'vehicle' ? await deleteVehicleAction(deleteId)
         : kind === 'driver' ? await deleteDriverAction(deleteId)
+        : kind === 'maintenance' ? await deleteTruckMaintenanceAction({ maintenance_id: deleteId })
         : await deleteTruckTripAction({ trip_id: deleteId });
       if (!res.success) {
         toast.error(formatActionError(res.error, tErr));

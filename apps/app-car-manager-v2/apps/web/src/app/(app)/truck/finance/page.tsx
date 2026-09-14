@@ -13,7 +13,7 @@ import {
   TableRow,
   cn,
 } from '@car-v2/ui';
-import { computeTruckPnl } from '@car-v2/core/truck';
+import { computeTruckPnl, getTruckMaintenanceLastUpdated } from '@car-v2/core/truck';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { ClickableTableRow } from '@/components/clickable-table-row';
 import { DateTimeCell } from '@/components/datetime-cell';
@@ -27,6 +27,7 @@ import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
 import { FuelReconciliationBadge } from '@/components/truck/fuel-reconciliation-badge';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import { formatDay } from '@/lib/format-day';
 import { resolveRegionFilter, resolveVehicleScope } from '@/lib/auth/region-access';
 import {
   getTruckFixedCostsLastUpdated,
@@ -80,11 +81,12 @@ export default async function TruckFinancePage({
    * ids outside it are dropped; `vehicleIds` is undefined for "all trucks". */
   const { trucks, vehicleIds } = await resolveVehicleScope(user, sp.vehicles ?? sp.vehicle);
 
-  const [rows, pnl, latestReport, fixedUpdatedAt] = await Promise.all([
+  const [rows, pnl, latestReport, fixedUpdatedAt, maintenanceUpdatedAt] = await Promise.all([
     listTruckFinanceTrips(user.entId, { month, vehicleIds, q, region, regions: scopeRegions }),
     computeTruckPnl(user, { vehicleIds, region, regions: scopeRegions, months: [month] }),
     getLatestTruckReportForMonth(user.entId, month, region),
     getTruckFixedCostsLastUpdated(user.entId, month),
+    getTruckMaintenanceLastUpdated(user.entId, month),
   ]);
   const summary = pnl[0] ?? null;
 
@@ -97,11 +99,12 @@ export default async function TruckFinancePage({
   const stale =
     latestReport != null &&
     (rows.some((r) => r.updatedAt != null && r.updatedAt > latestReport.createdAt) ||
-      (fixedUpdatedAt != null && fixedUpdatedAt > latestReport.createdAt));
+      (fixedUpdatedAt != null && fixedUpdatedAt > latestReport.createdAt) ||
+      (maintenanceUpdatedAt != null && maintenanceUpdatedAt > latestReport.createdAt));
 
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
   const num = (n: number, frac = 0) => n.toLocaleString(loc, { maximumFractionDigits: frac });
-  const date = (d: Date) => new Date(d).toLocaleDateString(loc);
+  const date = (d: Date) => formatDay(d, loc);
 
   const qs = q ? `&q=${encodeURIComponent(q)}` : '';
   /* `region` now travels to the export too — the route enforces the ACL either
@@ -131,7 +134,10 @@ export default async function TruckFinancePage({
         /* Driver salary folds into fixedCost now (no separate fleet-roster
          * line) — the fixed-cost total below covers salary + depreciation +
          * insurance. */
-        [t('sumFixed'), summary.fixedCost],
+        /* Fixed = salary + depreciation + maintenance (REQ-20260904). None of
+         * the three is split across trips (REQ-20260908) — the per-trip table
+         * below has no fixed-cost column at all, so say so here. */
+        [t('sumFixed'), summary.fixedCost, undefined, summary.fixedCost > 0 ? t('sumFixedNote') : undefined],
         [t('sumNet'), summary.netProfit, 'profit'],
       ]
     : [];
@@ -241,12 +247,6 @@ export default async function TruckFinancePage({
                       <Info className="h-3.5 w-3.5 text-text-faint" />
                     </span>
                   </TableHead>
-                  <TableHead className="text-right">
-                    <span className="inline-flex items-center justify-end gap-1" title={t('thFixedAllocHint')}>
-                      {t('thFixedAlloc')}
-                      <Info className="h-3.5 w-3.5 text-text-faint" />
-                    </span>
-                  </TableHead>
                   <TableHead className="text-right">{t('thRevenue')}</TableHead>
                   <TableHead className="text-right">{t('thProfit')}</TableHead>
                   <TableHead>{t('thStatus')}</TableHead>
@@ -285,28 +285,15 @@ export default async function TruckFinancePage({
                         <FuelReconciliationBadge mode={r.fuelMode} />
                       </div>
                     </TableCell>
-                    {/* Fixed cost allocated to this trip (Sheet3 "phân bổ theo
-                      * chuyến") — lương + khấu hao tháng ÷ số chuyến của xe. */}
-                    <TableCell className="text-right tabular text-text-muted">
-                      <div className="flex flex-col items-end gap-0.5">
-                        <span>{vnd(r.salaryAllocated + r.depreciationAllocated)}</span>
-                        {r.salaryAllocated + r.depreciationAllocated > 0 && (
-                          <span className="text-xs text-text-faint whitespace-nowrap">
-                            {t('allocSalaryShort')} {vnd(r.salaryAllocated)} · {t('allocDeprShort')}{' '}
-                            {vnd(r.depreciationAllocated)}
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
                     <TableCell className="text-right tabular">{vnd(r.revenue)}</TableCell>
                     <TableCell
                       className={cn(
                         'text-right tabular font-semibold',
-                        r.profitAfterFixed >= 0 ? 'text-success' : 'text-danger',
+                        r.profit >= 0 ? 'text-success' : 'text-danger',
                         !r.finalized && 'italic',
                       )}
                     >
-                      {vnd(r.profitAfterFixed)}
+                      {vnd(r.profit)}
                     </TableCell>
                     <TableCell>
                       <Badge tone={r.finalized ? 'success' : 'neutral'} size="sm">

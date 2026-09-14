@@ -12,12 +12,12 @@ import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
 import { allowedRegions, requireRegion, resolveReportVehicleScope } from '@/lib/auth/region-access';
-import { computeTruckFixedAllocRows } from '@car-v2/core/truck';
 import {
   getTruckFuelStats,
   getTruckFuelStatsByVehicle,
 } from '@/server/queries/truck-finance.queries';
 import { getTruckReportExport } from '@/server/queries/truck-report-export.queries';
+import { listVehicles } from '@/server/queries/vehicles.queries';
 import {
   buildTruckMonthlySummaryWorkbook,
   type SummarySheetSpec,
@@ -119,6 +119,26 @@ async function buildReportWorkbook(
   throw new CarError('CAR-E0001', 400, `Unsupported truck report type: ${type}`);
 }
 
+/** Truck ids in scope (subset if given, else every truck of `region` — or the
+ * whole fleet when `region` is also null) — the same resolution the fixed-alloc
+ * freeze used to do (REQ-20260821, dropped REQ-20260908). Only remaining use:
+ * knowing which scope vehicles to freeze an explicit ZERO fuel row for below.
+ * Reuses the same `listVehicles` source as `resolveVehicleScope`/
+ * `resolveReportVehicleScope` instead of re-querying `car_vehicles` directly. */
+async function resolveTruckVehicleIds(
+  entId: string,
+  region: string | null,
+  vehicleIds?: string[],
+): Promise<string[]> {
+  const all = await listVehicles(entId, 'active', 'TRUCK');
+  if (vehicleIds?.length) {
+    const wanted = new Set(vehicleIds);
+    return all.filter((v) => wanted.has(v.cvhId)).map((v) => v.cvhId);
+  }
+  if (region) return all.filter((v) => v.cvhRegion === region).map((v) => v.cvhId);
+  return all.map((v) => v.cvhId);
+}
+
 /**
  * Generate ONE monthly report (PNL | MONTHLY_SUMMARY) → Excel → S3 → row, and
  * freeze the month-end fuel reconciliation onto it. Shared by the single-scope
@@ -154,17 +174,15 @@ async function generateOneTruckReport(
 
   /* Month-end reconciliation, recomputed NOW (F1–F4). Only frozen when
    * computable (F5) — otherwise NULL → screens keep provisional numbers. */
-  const [stats, vehicleFuel, fixedAllocRows] = await Promise.all([
+  const [stats, vehicleFuel, scopeVehicleIds] = await Promise.all([
     getTruckFuelStats(actor.entId, month, region ?? undefined),
     /* Per-vehicle freeze (REQ-20260726): each vehicle's own fuel spend ÷ its own
      * km. Preferred over the region pool below; the region columns stay filled
      * so older screens/reports keep working. */
     getTruckFuelStatsByVehicle(actor.entId, month, region ?? undefined, vehicleIds),
-    /* Fixed-cost allocation basis, frozen alongside fuel (REQ-20260821):
-     * generating a report is THE moment per-trip lương/khấu hao shares are
-     * (re)computed — trip CRUD afterwards must not move the shares this report
-     * showed, so screens read them back from this row until the next one. */
-    computeTruckFixedAllocRows(actor.entId, month, { region, vehicleIds }),
+    /* Every truck in scope — used below to freeze an explicit ZERO fuel row for
+     * a scope vehicle with no invoice at all (REQ-20260821 follow-up). */
+    resolveTruckVehicleIds(actor.entId, region, vehicleIds),
   ]);
   /* The region pool is LEGACY. Once any invoice in the scope names its vehicle,
    * writing a region snapshot too would let vehicles WITHOUT an invoice draw
@@ -191,9 +209,9 @@ async function generateOneTruckReport(
    * there the region columns are the freeze and a zero row would shadow it. */
   if (!hasSnapshot) {
     const have = new Set(vehicleFuel.map((v) => v.vehicleId));
-    for (const a of fixedAllocRows) {
-      if (have.has(a.vehicleId)) continue;
-      vehicleFuel.push({ vehicleId: a.vehicleId, money: 0, liters: 0, km: 0, costPerKm: 0, avgPrice: 0 });
+    for (const vehicleId of scopeVehicleIds) {
+      if (have.has(vehicleId)) continue;
+      vehicleFuel.push({ vehicleId, money: 0, liters: 0, km: 0, costPerKm: 0, avgPrice: 0 });
     }
   }
 
@@ -230,7 +248,6 @@ async function generateOneTruckReport(
     trrTotalKm: hasSnapshot ? String(stats.totalKm) : null,
     trrVehicleFuel: vehicleFuel.length > 0 ? vehicleFuel : null,
     trrVehicleIds: vehicleIds && vehicleIds.length > 0 ? vehicleIds : null,
-    trrFixedAlloc: fixedAllocRows.length > 0 ? fixedAllocRows : null,
   });
 
   try {

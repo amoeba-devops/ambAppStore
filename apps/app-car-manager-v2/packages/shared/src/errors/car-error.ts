@@ -15,4 +15,4 @@ export class CarError extends Error {
 
 export type ActionResult<T> =
   | { success: true; data: T }
-  | { success: false; error: { code: string; message: string } };
+  | { success: false; error: { code: string; message: string; details?: unknown } };

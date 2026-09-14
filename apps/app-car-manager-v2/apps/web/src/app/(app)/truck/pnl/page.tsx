@@ -55,6 +55,9 @@ const METRICS: MetricDef[] = [
   { key: 'variableCost', labelKey: 'variable', kind: 'subtotal' },
   { key: 'salary', labelKey: 'salary' },
   { key: 'depreciation', labelKey: 'depreciation' },
+  /* Maintenance jobs booked into the month (REQ-20260904) — third fixed line,
+   * so the subtotal below still equals the sum of its rows. */
+  { key: 'maintenanceCost', labelKey: 'maintenance' },
   { key: 'fixedCost', labelKey: 'fixed', kind: 'subtotal' },
   { key: 'tripCount', labelKey: 'trips', kind: 'count' },
   { key: 'netProfit', labelKey: 'netProfit', kind: 'profit' },
@@ -207,6 +210,7 @@ export default async function TruckPnlPage({
                  * from the model 2026-07-21); rows sum to the total. */
                 [t('salary'), vnd(selected.salary)],
                 [t('depreciation'), vnd(selected.depreciation)],
+                [t('maintenance'), vnd(selected.maintenanceCost)],
               ]}
             />
           </div>
