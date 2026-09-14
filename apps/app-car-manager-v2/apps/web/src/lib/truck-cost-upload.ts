@@ -25,8 +25,11 @@ export function resolveCostMime(f: File): string {
   return 'image/jpeg';
 }
 
-async function requestPresigned(f: File): Promise<{ uploadUrl: string; key: string }> {
-  const res = await fetch(apiPath('/api/v1/truck/trips/upload-presigned'), {
+async function requestPresigned(
+  f: File,
+  endpoint = '/api/v1/truck/trips/upload-presigned',
+): Promise<{ uploadUrl: string; key: string }> {
+  const res = await fetch(apiPath(endpoint), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
@@ -57,6 +60,14 @@ async function uploadToS3(url: string, f: File): Promise<void> {
 /** Upload one file, resolving to the row metadata the trip action stores. */
 export async function uploadTruckCostFile(f: File): Promise<UploadedCostFile> {
   const presigned = await requestPresigned(f);
+  await uploadToS3(presigned.uploadUrl, f);
+  return { s3_key: presigned.key, mime: resolveCostMime(f), size_bytes: f.size };
+}
+
+/** Same flow for a MAINTENANCE invoice (REQ-20260914) — only the presign route
+ * differs, so the file lands under the `maintenance/` key prefix. */
+export async function uploadTruckMaintenanceFile(f: File): Promise<UploadedCostFile> {
+  const presigned = await requestPresigned(f, '/api/v1/truck/maintenance/upload-presigned');
   await uploadToS3(presigned.uploadUrl, f);
   return { s3_key: presigned.key, mime: resolveCostMime(f), size_bytes: f.size };
 }

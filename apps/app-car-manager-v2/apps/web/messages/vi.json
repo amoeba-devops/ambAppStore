@@ -668,6 +668,8 @@
       "thVehicle": "Phương tiện",
       "thPeriod": "Thời gian bảo trì",
       "thCost": "Chi phí",
+      "thNote": "Chú thích",
+      "attachmentCount": "{n} hoá đơn đính kèm",
       "thUpdatedBy": "Cập nhật bởi",
       "thUpdated": "Cập nhật",
       "thActions": "Hành động",
@@ -699,7 +701,12 @@
         "deleteConfirm": "Xoá bản ghi bảo trì này?",
         "createdToast": "Đã thêm bảo trì cho {plate}",
         "updatedToast": "Đã cập nhật bảo trì {plate}",
-        "deletedToast": "Đã xoá bản ghi bảo trì"
+        "deletedToast": "Đã xoá bản ghi bảo trì",
+        "note": "Chú thích",
+        "notePlaceholder": "Nội dung sửa chữa, garage, bảo hành…",
+        "attachments": "Hoá đơn bảo trì",
+        "attachmentsHint": "Ảnh hoặc PDF, tối đa {max} tệp.",
+        "attachmentUploadFailed": "Tải hoá đơn lên thất bại. Vui lòng thử lại."
       }
     },
     "audit": {

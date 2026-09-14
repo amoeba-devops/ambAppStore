@@ -85,6 +85,13 @@ const MIGRATIONS = [
       )[0].n === 0,
     detail: 'no TRUCK rows left with hand-set MAINTENANCE/IN_USE',
   },
+  {
+    file: '0032_truck_maintenance_note_attachments.sql',
+    probe: async () =>
+      (await hasColumn('car_truck_maintenances', 'tmn_note')) &&
+      (await hasTable('car_truck_maintenance_attachments')),
+    detail: 'car_truck_maintenances.tmn_note + table car_truck_maintenance_attachments',
+  },
 ];
 
 const missing = [];

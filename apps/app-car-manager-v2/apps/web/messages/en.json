@@ -668,6 +668,8 @@
       "thVehicle": "Vehicle",
       "thPeriod": "Maintenance period",
       "thCost": "Cost",
+      "thNote": "Note",
+      "attachmentCount": "{n} invoice(s) attached",
       "thUpdatedBy": "Updated by",
       "thUpdated": "Updated",
       "thActions": "Actions",
@@ -699,7 +701,12 @@
         "deleteConfirm": "Delete this maintenance record?",
         "createdToast": "Maintenance added for {plate}",
         "updatedToast": "Maintenance for {plate} updated",
-        "deletedToast": "Maintenance record deleted"
+        "deletedToast": "Maintenance record deleted",
+        "note": "Note",
+        "notePlaceholder": "What was repaired, garage, warranty ref…",
+        "attachments": "Maintenance invoices",
+        "attachmentsHint": "Image or PDF, up to {max} files.",
+        "attachmentUploadFailed": "Invoice upload failed. Please try again."
       }
     },
     "audit": {

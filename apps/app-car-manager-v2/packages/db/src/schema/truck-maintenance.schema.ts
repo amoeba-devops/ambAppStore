@@ -1,5 +1,5 @@
 import { isNull } from 'drizzle-orm';
-import { char, date, decimal, index, pgTable, timestamp, varchar } from 'drizzle-orm/pg-core';
+import { bigint, char, date, decimal, index, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 import { carVehicles } from './vehicles.schema';
 
 /**
@@ -41,6 +41,8 @@ export const carTruckMaintenances = pgTable(
     /* Accounting month = start month ('YYYY-MM'). */
     tmnMonth: varchar('tmn_month', { length: 7 }).notNull(),
     tmnCost: decimal('tmn_cost', { precision: 14, scale: 2 }).notNull().default('0'),
+    /** Free-text note — what was repaired, garage, warranty ref (REQ-20260914). */
+    tmnNote: text('tmn_note'),
     tmnCreatedBy: char('tmn_created_by', { length: 36 }),
     tmnCreatedAt: timestamp('tmn_created_at', { withTimezone: true }).defaultNow().notNull(),
     tmnUpdatedBy: char('tmn_updated_by', { length: 36 }),
@@ -59,3 +61,36 @@ export const carTruckMaintenances = pgTable(
 
 export type CarTruckMaintenance = typeof carTruckMaintenances.$inferSelect;
 export type CarTruckMaintenanceInsert = typeof carTruckMaintenances.$inferInsert;
+
+/**
+ * car_truck_maintenance_attachments — invoice / document uploads for ONE
+ * maintenance job (REQ-20260914). Same shape and rules as
+ * `car_trip_cost_attachments`: image + PDF, S3 key only (never bytes,
+ * CLAUDE.md §8), soft delete so a removed invoice keeps its audit trail.
+ *
+ * Unlike the trip table there is no `cost_kind` tag — a maintenance job is a
+ * single cost bucket, so the rows FK straight to `tmn_id`. The job row is
+ * itself soft-deleted (never hard), so the FK can never dangle.
+ */
+export const carTruckMaintenanceAttachments = pgTable(
+  'car_truck_maintenance_attachments',
+  {
+    tmaId: char('tma_id', { length: 36 }).primaryKey(),
+    entId: char('ent_id', { length: 36 }).notNull(),
+    tmnId: char('tmn_id', { length: 36 })
+      .notNull()
+      .references(() => carTruckMaintenances.tmnId),
+    tmaS3Key: text('tma_s3_key').notNull(),
+    tmaMime: varchar('tma_mime', { length: 64 }).notNull(),
+    tmaSizeBytes: bigint('tma_size_bytes', { mode: 'number' }).notNull(),
+    tmaUploadedAt: timestamp('tma_uploaded_at', { withTimezone: true }).defaultNow().notNull(),
+    tmaDeletedAt: timestamp('tma_deleted_at', { withTimezone: true }),
+  },
+  (t) => ({
+    idxMaintenance: index('idx_car_truck_maintenance_attachments_tmn').on(t.tmnId),
+    idxEntMaintenance: index('idx_car_truck_maintenance_attachments_ent_tmn').on(t.entId, t.tmnId),
+  }),
+);
+
+export type CarTruckMaintenanceAttachment = typeof carTruckMaintenanceAttachments.$inferSelect;
+export type CarTruckMaintenanceAttachmentInsert = typeof carTruckMaintenanceAttachments.$inferInsert;
