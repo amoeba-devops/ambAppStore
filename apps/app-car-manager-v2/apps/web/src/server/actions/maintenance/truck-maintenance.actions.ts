@@ -16,6 +16,7 @@ import {
   assertNoTripsInMaintenanceWindow,
   listBusyVehiclesInWindow,
   listOverlappingMaintenances,
+  syncMaintenanceAttachments,
   type TripsInWindow,
 } from '@car-v2/core/truck';
 import { getCurrentUser, requireRole, type AuthContext } from '@/lib/auth/get-current-user';
@@ -127,8 +128,19 @@ export async function createTruckMaintenanceAction(input: unknown): Promise<Acti
       tmnEndDate: dto.end_date,
       tmnMonth: month,
       tmnCost: String(Math.round(dto.cost)),
+      tmnNote: dto.note?.trim() ? dto.note.trim() : null,
       tmnCreatedBy: actor.userId,
     });
+
+    /* Invoices (REQ-20260914): rows only — the files are already in S3 via the
+     * presigned upload, and the job row must exist first for the FK. */
+    if (dto.attachments?.length) {
+      await syncMaintenanceAttachments(
+        actor.entId,
+        id,
+        dto.attachments.map((a) => ({ s3Key: a.s3_key, mime: a.mime, sizeBytes: a.size_bytes })),
+      );
+    }
 
     await logAudit({
       entId: actor.entId,
@@ -137,7 +149,15 @@ export async function createTruckMaintenanceAction(input: unknown): Promise<Acti
       entity: 'Vehicle',
       entityId: truck.id,
       entityRef: truck.plate,
-      after: { maintenanceId: id, startDate: dto.start_date, endDate: dto.end_date, month, cost: Math.round(dto.cost) },
+      after: {
+        maintenanceId: id,
+        startDate: dto.start_date,
+        endDate: dto.end_date,
+        month,
+        cost: Math.round(dto.cost),
+        note: dto.note?.trim() || null,
+        attachments: dto.attachments?.length ?? 0,
+      },
     });
 
     revalidateAll();
@@ -169,10 +189,22 @@ export async function updateTruckMaintenanceAction(input: unknown): Promise<Acti
         tmnEndDate: dto.end_date,
         tmnMonth: month,
         tmnCost: String(Math.round(dto.cost)),
+        tmnNote: dto.note?.trim() ? dto.note.trim() : null,
         tmnUpdatedBy: actor.userId,
         tmnUpdatedAt: new Date(),
       })
       .where(and(eq(carTruckMaintenances.entId, actor.entId), eq(carTruckMaintenances.tmnId, existing.tmnId)));
+
+    /* Invoices: the form always posts the FULL desired set, so an absent field
+     * means "this caller doesn't manage files" and the existing ones are left
+     * alone; an empty array means the user removed them all. */
+    if (dto.attachments !== undefined) {
+      await syncMaintenanceAttachments(
+        actor.entId,
+        existing.tmnId,
+        dto.attachments.map((a) => ({ s3Key: a.s3_key, mime: a.mime, sizeBytes: a.size_bytes })),
+      );
+    }
 
     await logAudit({
       entId: actor.entId,
@@ -188,6 +220,7 @@ export async function updateTruckMaintenanceAction(input: unknown): Promise<Acti
         endDate: existing.tmnEndDate,
         month: existing.tmnMonth,
         cost: Math.round(Number(existing.tmnCost)),
+        note: existing.tmnNote ?? null,
       },
       after: {
         maintenanceId: existing.tmnId,
@@ -196,6 +229,8 @@ export async function updateTruckMaintenanceAction(input: unknown): Promise<Acti
         endDate: dto.end_date,
         month,
         cost: Math.round(dto.cost),
+        note: dto.note?.trim() || null,
+        attachments: dto.attachments?.length ?? 0,
       },
     });
 
