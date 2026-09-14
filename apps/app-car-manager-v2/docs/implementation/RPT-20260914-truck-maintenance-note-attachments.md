@@ -1,7 +1,7 @@
 # RPT-20260914 — Truck Bảo trì: thêm Chú thích + Hoá đơn đính kèm
 
 > Yêu cầu gốc (2026-09-14): "trong form tạo hay edit và detail của phí bảo trì thêm 2 field: (1) Chú thích dạng text, (2) Hóa đơn bảo trì dạng file Đính kèm (multiple), giống với mục đính kèm hóa đơn chứng từ khi tạo chuyến."
-> Nhánh: `feature/truck-maintenance-note-attachments` (tách từ `staging` @ `ff9f377`). Trạng thái: **code xong, typecheck + lint xanh, migration `0032` đã áp Neon DEV, đã test đủ luồng trên dev.** Chưa push, chưa áp staging/prod.
+> Nhánh: `feature/truck-maintenance-note-attachments` (tách từ `staging` @ `ff9f377`). Trạng thái: **code xong, typecheck + lint xanh; migration `0032` đã áp Neon DEV và STAGING truck (`ep-noisy-heart`); đã test đủ luồng + hồi quy 12 route trên local.** Chưa push, **chưa áp production**.
 
 ## 1. Phạm vi
 
@@ -58,12 +58,30 @@ Không có màn "detail" riêng cho bảo trì — trang `/(id)/edit` đóng vai
 | Tổng chi phí bảo trì theo tháng | ✅ không đổi bởi note/tệp (10/2026 = 3.800.000 do sửa `cost`, đúng) |
 | i18n | ✅ đủ 7 khoá × vi/en/ko |
 
-## 5. Chưa làm
+## 5. Migration staging (2026-09-14) + verify local
 
-1. Áp `0032` lên **staging** (`ep-noisy-heart`) và **production** trước khi deploy build có 2 trường này — nếu không, màn Bảo trì sẽ 500 vì thiếu cột/bảng (đúng bài học FIX-260914). Chạy `node scripts/check-manual-migrations.mjs staging|prod` để xác nhận.
+**Staging truck `ep-noisy-heart`**: BEFORE bảng attachments MISSING / cột `tmn_note` chưa có → sau khi chạy: bảng có, cột có, 3 index (pk + 2). Chạy lần 2 idempotent. Checker báo **6/6 ✓**.
+
+> ⚠ **Bẫy biến môi trường**: `node scripts/check-manual-migrations.mjs staging` đọc `DATABASE_URL_STAGING` = **`ep-gentle-rain`** — đó là staging CHUNG, KHÔNG phải DB của app truck (xem RPT-20260813). Phải chạy:
+> `DATABASE_URL="$DATABASE_URL_STG_TRUCK" node scripts/check-manual-migrations.mjs`
+> Nên bổ sung target `stg-truck` vào script để khỏi nhầm.
+
+**Verify local** (dev server :3001, dev-login OWNER):
+
+| Màn | Kết quả |
+|---|---|
+| Danh sách Bảo trì | Cột "Chú thích" hiện nội dung; badge kẹp giấy "2" |
+| Form sửa (đóng vai detail) | Textarea Chú thích đổ đúng; 2 ô xem trước PDF có nút xoá; nút "Thêm tệp"; hint "Ảnh hoặc PDF, tối đa 10 tệp" |
+| Form tạo mới | Đủ 2 field, chưa có tệp, nút "Đính kèm" |
+| i18n en / ko | Note · Maintenance invoices · Image or PDF / 비고 · 정비 영수증 · 이미지 또는 PDF; cột danh sách cũng dịch |
+| Hồi quy 12 route truck | 200 toàn bộ (dashboard, fleet, trips, trips/new, maintenance, maintenance/new, finance, pnl, reports, reports/new, import) — không lỗi thiếu cột/bảng |
+
+## 6. Chưa làm
+
+1. **Production**: áp `0032` TRƯỚC khi deploy build này, nếu không màn Bảo trì 500 vì thiếu cột/bảng (bài học FIX-260914).
 2. Push nhánh + tạo PR.
 3. Dọn tệp S3 mồ côi (tải lên nhưng không lưu) vẫn là nợ chung với chuyến/expense — chưa có janitor.
 
-## 6. Dữ liệu để lại trên dev
+## 7. Dữ liệu để lại trên dev
 
 Bản ghi bảo trì 29C-99999 ngày 05–06/10/2026, chi phí 3.800.000, có chú thích và 2 hoá đơn PDF mẫu.
