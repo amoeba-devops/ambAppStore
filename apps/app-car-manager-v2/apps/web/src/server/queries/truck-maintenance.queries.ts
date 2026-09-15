@@ -3,6 +3,7 @@ import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTruckMaintenances, carUsers, carVehicles } from '@car-v2/db/schema';
 import { countMaintenanceAttachments, getMaintenanceAttachments, parseAmount } from '@car-v2/core/truck';
+import { fileNameFromS3Key } from '@car-v2/shared/zod';
 import { getSignedGetUrl } from '@/lib/s3-client';
 
 /**
@@ -144,6 +145,9 @@ export interface MaintenanceAttachmentView {
   s3Key: string;
   mime: string;
   sizeBytes: number;
+  /** Original filename; falls back to the name inside the S3 key for rows
+   * saved before the column existed (REQ-20260915). */
+  fileName: string | null;
   /** Short-lived GET URL for the thumbnail; null when signing failed. */
   signedUrl: string | null;
 }
@@ -159,6 +163,7 @@ export async function getTruckMaintenanceAttachmentsView(
       id: r.tmaId,
       s3Key: r.tmaS3Key,
       mime: r.tmaMime,
+      fileName: r.tmaFileName ?? fileNameFromS3Key(r.tmaS3Key),
       sizeBytes: r.tmaSizeBytes,
       signedUrl: await getSignedGetUrl(r.tmaS3Key),
     })),

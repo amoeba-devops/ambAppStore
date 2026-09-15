@@ -14,7 +14,7 @@ import { formatActionError } from '@/lib/format-action-error';
 import { apiPath } from '@/lib/base-path';
 import { AmountInput } from './amount-input';
 import { ExpenseTypeChipGrid, type ExpenseType } from './expense-type-chip-grid';
-import { ReceiptCameraInput } from './receipt-camera-input';
+import { AttachmentInput } from '@/components/attachments/attachment-input';
 
 export interface VehicleOption {
   id: string;
@@ -57,6 +57,12 @@ interface ExpenseSubmitFormProps {
  *   1. Client-side validate (type + amount > 0 + vehicle when no trip).
  *   2. Call `submitExpenseAction` — lands AUTO_APPROVED (no admin review).
  *   3. On success → toast + router.push to the right list per role. */
+/* The car expense flow keeps its stricter caps: a driver uploads these over
+ * mobile data in the field, so 5 × 10MB stays the policy even though the
+ * shared component defaults higher (REQ-20260915). */
+const MAX_RECEIPT_FILES = 5;
+const MAX_RECEIPT_BYTES = 10 * 1024 * 1024;
+
 export function ExpenseSubmitForm({
   tripId,
   role,
@@ -188,7 +194,7 @@ export function ExpenseSubmitForm({
          * small (≤5MB) and there are at most 5 of them, so the wall-clock
          * cost (~5×<2s on 4G) is fine. Parallel uploads would also fight
          * iOS Safari's connection limit in PWA standalone. */
-        const attachments: Array<{ s3_key: string; mime: string; size_bytes: number }> = [];
+        const attachments: Array<{ s3_key: string; mime: string; size_bytes: number; file_name: string }> = [];
         for (let i = 0; i < files.length; i++) {
           /* Bump progress BEFORE the work so the button label shows the
            * file we're about to upload, not the one just finished. */
@@ -199,7 +205,7 @@ export function ExpenseSubmitForm({
           /* Persist the same MIME we used for the presign + S3 PUT so the
            * stored attachment row matches the actual object's Content-Type
            * — keeps the later `<img src>` render in `/expenses/[id]` honest. */
-          attachments.push({ s3_key: presigned.key, mime: resolveMime(f), size_bytes: f.size });
+          attachments.push({ s3_key: presigned.key, mime: resolveMime(f), size_bytes: f.size, file_name: f.name });
         }
 
         /* Step 2 — submit the metadata. The action persists the expense
@@ -395,31 +401,27 @@ export function ExpenseSubmitForm({
             {/* Receipt */}
             <div>
               <Label className="mb-2 block">{t('receiptLabel')}</Label>
-              <ReceiptCameraInput
+              <AttachmentInput
+                existing={[]}
+                onExistingChange={() => {}}
                 files={files}
-                onChange={setFiles}
+                onFilesChange={setFiles}
                 uploadProgress={uploadProgress}
+                camera
+                maxFiles={MAX_RECEIPT_FILES}
+                maxBytes={MAX_RECEIPT_BYTES}
                 onError={(key) => {
+                  /* The shared component already toasts a generic message; these
+                   * override it with the expense-specific wording that explains
+                   * the iOS permission path. */
                   switch (key) {
-                    case 'tooManyFiles':
-                      toast.error(t('errTooManyFiles'));
-                      return;
-                    case 'fileTooLarge':
-                      toast.error(t('errFileTooLarge'));
-                      return;
                     case 'cameraDenied':
-                      /* Show as info, not error — user hasn't done anything
-                       * wrong, they probably just tapped Cancel or dismissed
-                       * the iOS permission sheet. Includes the OS path so they
-                       * can grant permission if that's what blocked them. */
-                      toast.info(t('errCameraDenied'), {
-                        description: t('errCameraDeniedDesc'),
-                      });
+                      toast.info(t('errCameraDenied'), { description: t('errCameraDeniedDesc') });
                       return;
-                    case 'heicConversionFailed':
-                      toast.error(t('errHeicFailed'), {
-                        description: t('errHeicFailedDesc'),
-                      });
+                    case 'heicFailed':
+                      toast.error(t('errHeicFailed'), { description: t('errHeicFailedDesc') });
+                      return;
+                    default:
                       return;
                   }
                 }}

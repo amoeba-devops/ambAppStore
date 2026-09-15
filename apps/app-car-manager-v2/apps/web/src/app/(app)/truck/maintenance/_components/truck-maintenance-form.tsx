@@ -30,7 +30,7 @@ import {
 } from '@/server/actions/maintenance/truck-maintenance.actions';
 import { TRUCK_MAINTENANCE_ATTACHMENT_MAX } from '@car-v2/shared/zod';
 import { MoneyInput } from '@/components/inputs/money-input';
-import { CostReceiptInput, type ExistingCostAttachment } from '@/components/truck/cost-receipt-input';
+import { AttachmentInput, type StoredAttachment } from '@/components/attachments/attachment-input';
 import { formatActionError } from '@/lib/format-action-error';
 import { formatDayKey } from '@/lib/format-day';
 import { uploadTruckMaintenanceFile } from '@/lib/truck-cost-upload';
@@ -79,7 +79,7 @@ export function TruckMaintenanceForm({
   /** Accounting month is closed (legacy chốt sổ) → read-only. */
   locked?: boolean;
   /** Invoices already saved on this job (edit mode, REQ-20260914). */
-  initialAttachments?: ExistingCostAttachment[];
+  initialAttachments?: StoredAttachment[];
 }) {
   const t = useTranslations('screens.truckMaintenance.form');
   const tErr = useTranslations();
@@ -98,7 +98,7 @@ export function TruckMaintenanceForm({
   /* Invoices (REQ-20260914): kept saved files + newly picked ones. Same split
    * the trip form uses — new files upload to S3 on submit, and whatever is left
    * in `existing` is echoed back so the server keeps it. */
-  const [keptAttachments, setKeptAttachments] = useState<ExistingCostAttachment[]>(initialAttachments);
+  const [keptAttachments, setKeptAttachments] = useState<StoredAttachment[]>(initialAttachments);
   const [newFiles, setNewFiles] = useState<File[]>([]);
 
   /* Server-side conflict preview — debounced, latest-wins. */
@@ -147,10 +147,15 @@ export function TruckMaintenanceForm({
     startTransition(async () => {
       /* Upload newly picked invoices first; abort before touching the record
        * if S3 fails so we never half-save. */
-      let attachments: { s3_key: string; mime: string; size_bytes: number }[];
+      let attachments: { s3_key: string; mime: string; size_bytes: number; file_name?: string }[];
       try {
         attachments = [
-          ...keptAttachments.map((a) => ({ s3_key: a.s3Key, mime: a.mime, size_bytes: a.sizeBytes })),
+          ...keptAttachments.map((a) => ({
+            s3_key: a.s3Key,
+            mime: a.mime,
+            size_bytes: a.sizeBytes,
+            file_name: a.fileName ?? undefined,
+          })),
           ...(await Promise.all(newFiles.map((file) => uploadTruckMaintenanceFile(file)))),
         ];
       } catch {
@@ -287,7 +292,7 @@ export function TruckMaintenanceForm({
             {/* Maintenance invoices — same picker as the trip receipts
               * (image / PDF, multiple, ≤10). */}
             <Field label={t('attachments')} className="sm:col-span-2">
-              <CostReceiptInput
+              <AttachmentInput
                 existing={keptAttachments}
                 onExistingChange={setKeptAttachments}
                 files={newFiles}

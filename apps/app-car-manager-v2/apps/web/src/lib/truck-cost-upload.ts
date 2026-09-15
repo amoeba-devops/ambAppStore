@@ -13,6 +13,9 @@ export interface UploadedCostFile {
   s3_key: string;
   mime: string;
   size_bytes: number;
+  /** Original device filename, persisted so the UI can show it (REQ-20260915).
+   * The S3 key only carries a sanitised, truncated copy. */
+  file_name: string;
 }
 
 /* Resolve a MIME for the upload. `f.type` is empty surprisingly often (some
@@ -61,7 +64,7 @@ async function uploadToS3(url: string, f: File): Promise<void> {
 export async function uploadTruckCostFile(f: File): Promise<UploadedCostFile> {
   const presigned = await requestPresigned(f);
   await uploadToS3(presigned.uploadUrl, f);
-  return { s3_key: presigned.key, mime: resolveCostMime(f), size_bytes: f.size };
+  return { s3_key: presigned.key, mime: resolveCostMime(f), size_bytes: f.size, file_name: f.name };
 }
 
 /** Same flow for a MAINTENANCE invoice (REQ-20260914) — only the presign route
@@ -69,5 +72,5 @@ export async function uploadTruckCostFile(f: File): Promise<UploadedCostFile> {
 export async function uploadTruckMaintenanceFile(f: File): Promise<UploadedCostFile> {
   const presigned = await requestPresigned(f, '/api/v1/truck/maintenance/upload-presigned');
   await uploadToS3(presigned.uploadUrl, f);
-  return { s3_key: presigned.key, mime: resolveCostMime(f), size_bytes: f.size };
+  return { s3_key: presigned.key, mime: resolveCostMime(f), size_bytes: f.size, file_name: f.name };
 }

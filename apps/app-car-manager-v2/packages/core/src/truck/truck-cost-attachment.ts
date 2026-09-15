@@ -19,6 +19,8 @@ export interface TripCostAttachmentInput {
   s3Key: string;
   mime: string;
   sizeBytes: number;
+  /** Original device filename (REQ-20260915) — shown in the UI. */
+  fileName?: string | null;
 }
 
 /** Live (non-deleted) attachments for a trip, oldest first. */
@@ -87,6 +89,7 @@ export async function syncTripCostAttachments(
         tcaS3Key: d.s3Key,
         tcaMime: d.mime,
         tcaSizeBytes: d.sizeBytes,
+        tcaFileName: d.fileName ?? null,
       })),
     );
   }

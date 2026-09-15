@@ -4,16 +4,16 @@ import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { z } from 'zod';
 import { CarError } from '@car-v2/shared/errors';
+import { ATTACHMENT_CONTENT_TYPE_RE } from '@car-v2/shared/zod';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getEnv, getTruckUploadMaxBytes } from '@/lib/env';
 import { getS3Bucket, getS3Client } from '@/lib/s3-client';
 
 export const dynamic = 'force-dynamic';
 
-/* Same content-type policy as the trip-receipt route: any image, PDF for
- * scanned paper invoices, and octet-stream as the fallback for pickers that
- * report no MIME. */
-const CONTENT_TYPE_RE = /^(image\/[a-z0-9.+-]+|application\/(pdf|octet-stream))$/i;
+/* Allowed types live in ONE place now (REQ-20260915) — images, PDF and the
+ * office formats an invoice arrives in. Widen the shared list, not this file. */
+const CONTENT_TYPE_RE = ATTACHMENT_CONTENT_TYPE_RE;
 
 const requestSchema = z.object({
   filename: z.string().min(1).max(255),

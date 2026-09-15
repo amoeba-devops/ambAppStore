@@ -83,6 +83,8 @@ export const carTruckMaintenanceAttachments = pgTable(
     tmaS3Key: text('tma_s3_key').notNull(),
     tmaMime: varchar('tma_mime', { length: 64 }).notNull(),
     tmaSizeBytes: bigint('tma_size_bytes', { mode: 'number' }).notNull(),
+    /** Original filename as the device gave it (REQ-20260915). */
+    tmaFileName: varchar('tma_file_name', { length: 255 }),
     tmaUploadedAt: timestamp('tma_uploaded_at', { withTimezone: true }).defaultNow().notNull(),
     tmaDeletedAt: timestamp('tma_deleted_at', { withTimezone: true }),
   },

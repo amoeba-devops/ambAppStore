@@ -29,7 +29,7 @@ import { formatDayKey } from '@/lib/format-day';
 import { GuardConfirmDialog, useGuardConfirm } from '@/components/dialogs/guard-confirm-dialog';
 import { FormField } from '@/components/forms/form-section';
 import { MoneyInput } from '@/components/inputs/money-input';
-import { CostReceiptInput, type ExistingCostAttachment } from '@/components/truck/cost-receipt-input';
+import { AttachmentInput, type StoredAttachment } from '@/components/attachments/attachment-input';
 import { uploadTruckCostFile } from '@/lib/truck-cost-upload';
 import { StopBuilder, makeDefaultStops, type StopField } from './stop-builder';
 import type { CarStopType, CarTripStopover } from '@car-v2/db/schema';
@@ -37,10 +37,10 @@ import type { CarStopType, CarTripStopover } from '@car-v2/db/schema';
 type CostKind = 'FUEL' | 'TOLL' | 'EXTRA';
 /** Per-bucket receipt state: already-saved attachments + newly picked files. */
 interface ReceiptBucket {
-  existing: ExistingCostAttachment[];
+  existing: StoredAttachment[];
   files: File[];
 }
-export interface InitialCostAttachment extends ExistingCostAttachment {
+export interface InitialCostAttachment extends StoredAttachment {
   costKind: CostKind;
 }
 
@@ -180,11 +180,18 @@ export function TruckTripForm({
       EXTRA: { existing: [], files: [] },
     };
     for (const a of initial?.costAttachments ?? []) {
-      init[a.costKind].existing.push({ id: a.id, s3Key: a.s3Key, mime: a.mime, sizeBytes: a.sizeBytes, signedUrl: a.signedUrl });
+      init[a.costKind].existing.push({
+        id: a.id,
+        s3Key: a.s3Key,
+        mime: a.mime,
+        sizeBytes: a.sizeBytes,
+        fileName: a.fileName,
+        signedUrl: a.signedUrl,
+      });
     }
     return init;
   });
-  const setBucketExisting = (k: CostKind, next: ExistingCostAttachment[]) =>
+  const setBucketExisting = (k: CostKind, next: StoredAttachment[]) =>
     setReceipts((r) => ({ ...r, [k]: { ...r[k], existing: next } }));
   const setBucketFiles = (k: CostKind, next: File[]) =>
     setReceipts((r) => ({ ...r, [k]: { ...r[k], files: next } }));
@@ -192,12 +199,18 @@ export function TruckTripForm({
   /* Build the full desired attachment set: kept existing keys + freshly
    * uploaded files (uploaded here, on submit). Throws if any S3 PUT fails. */
   const buildCostAttachments = async (): Promise<
-    { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number }[]
+    { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number; file_name?: string }[]
   > => {
-    const out: { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number }[] = [];
+    const out: { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number; file_name?: string }[] = [];
     for (const k of ['FUEL', 'TOLL', 'EXTRA'] as const) {
       for (const e of receipts[k].existing) {
-        out.push({ cost_kind: k, s3_key: e.s3Key, mime: e.mime, size_bytes: e.sizeBytes });
+        out.push({
+          cost_kind: k,
+          s3_key: e.s3Key,
+          mime: e.mime,
+          size_bytes: e.sizeBytes,
+          file_name: e.fileName ?? undefined,
+        });
       }
       for (const f of receipts[k].files) {
         const up = await uploadTruckCostFile(f);
@@ -376,7 +389,7 @@ export function TruckTripForm({
       {(['FUEL', 'TOLL', 'EXTRA'] as const).map((k) => (
         <div key={k} className="space-y-1.5">
           <div className="text-xs text-text-muted">{t(RECEIPT_LABEL[k])}</div>
-          <CostReceiptInput
+          <AttachmentInput
             existing={receipts[k].existing}
             onExistingChange={(next) => setBucketExisting(k, next)}
             files={receipts[k].files}

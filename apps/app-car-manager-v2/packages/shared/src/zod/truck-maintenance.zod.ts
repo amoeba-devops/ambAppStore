@@ -18,6 +18,8 @@ export const maintenanceAttachmentSchema = z.object({
   s3_key: z.string().min(1).max(1024),
   mime: z.string().min(1).max(64),
   size_bytes: z.number().int().min(1),
+  /* Original device filename (REQ-20260915) — optional for older payloads. */
+  file_name: z.string().trim().min(1).max(255).optional(),
 });
 export type MaintenanceAttachmentDto = z.infer<typeof maintenanceAttachmentSchema>;
 

@@ -198,6 +198,8 @@ export interface ExpenseDetail extends EntityExpenseListItem {
     eatS3Key: string;
     eatMime: string;
     eatSizeBytes: number;
+    /** Original filename (REQ-20260915); null on pre-existing rows. */
+    eatFileName: string | null;
     eatUploadedAt: Date;
   }>;
 }
@@ -282,6 +284,7 @@ export async function getExpenseDetail(
       eatS3Key: a.eatS3Key,
       eatMime: a.eatMime,
       eatSizeBytes: a.eatSizeBytes,
+      eatFileName: a.eatFileName ?? null,
       eatUploadedAt: a.eatUploadedAt,
     })),
   };

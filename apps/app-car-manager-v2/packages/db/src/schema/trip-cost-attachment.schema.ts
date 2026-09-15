@@ -28,6 +28,9 @@ export const carTripCostAttachments = pgTable(
     tcaS3Key: text('tca_s3_key').notNull(),
     tcaMime: varchar('tca_mime', { length: 64 }).notNull(),
     tcaSizeBytes: bigint('tca_size_bytes', { mode: 'number' }).notNull(),
+    /** Original filename as the device gave it (REQ-20260915). Null on rows
+     * created before the column existed and whose S3 key didn't parse. */
+    tcaFileName: varchar('tca_file_name', { length: 255 }),
     tcaUploadedAt: timestamp('tca_uploaded_at', { withTimezone: true }).defaultNow().notNull(),
     tcaDeletedAt: timestamp('tca_deleted_at', { withTimezone: true }),
   },

@@ -119,7 +119,9 @@ async function tripFuelMode(
 async function maybeSyncAttachments(
   entId: string,
   tripId: string,
-  atts: { cost_kind: 'FUEL' | 'TOLL' | 'EXTRA'; s3_key: string; mime: string; size_bytes: number }[] | undefined,
+  atts:
+    | { cost_kind: 'FUEL' | 'TOLL' | 'EXTRA'; s3_key: string; mime: string; size_bytes: number; file_name?: string }[]
+    | undefined,
 ): Promise<void> {
   if (atts === undefined) return;
   const mapped: TripCostAttachmentInput[] = atts.map((a) => ({
@@ -127,6 +129,7 @@ async function maybeSyncAttachments(
     s3Key: a.s3_key,
     mime: a.mime,
     sizeBytes: a.size_bytes,
+    fileName: a.file_name,
   }));
   await syncTripCostAttachments(entId, tripId, mapped);
 }

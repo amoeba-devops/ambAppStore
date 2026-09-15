@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { getLocale, getTranslations } from 'next-intl/server';
-import { Edit3, FileText, MapPin, Navigation, PackageCheck, PackageOpen } from 'lucide-react';
+import { Edit3, MapPin, Navigation, PackageCheck, PackageOpen } from 'lucide-react';
 import { Badge, Button, Card } from '@car-v2/ui';
 import type { TruckCostBreakdown } from '@car-v2/core/truck';
 import type { CarTripStopover, CarStopType } from '@car-v2/db/schema';
 import { MapPreview } from '@/components/inputs/map-preview';
+import { AttachmentGrid } from '@/components/attachments/attachment-viewer';
 import { PageHeader } from '@/components/layout/page-header';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
 import { FuelReconciliationBadge, type FuelBadgeMode } from '@/components/truck/fuel-reconciliation-badge';
@@ -41,6 +42,8 @@ export interface TruckTripDetailProps {
     s3Key: string;
     mime: string;
     sizeBytes: number;
+    /** Original filename (REQ-20260915) — shown under each tile. */
+    fileName?: string | null;
     signedUrl: string | null;
   }[];
   breakdown: TruckCostBreakdown;
@@ -91,6 +94,7 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
   const tCo = await getTranslations('company');
   const tNav = await getTranslations('nav');
   const tToday = await getTranslations('today.truck');
+  const tAtt = await getTranslations('attachments');
   const locale = await getLocale();
   const loc = bcp47(locale);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
@@ -185,31 +189,15 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
           return (
             <div key={g.kind} className="space-y-1.5">
               <div className="text-xs text-text-muted uppercase tracking-wide">{g.label}</div>
-              <ul className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {items.map((a) => (
-                  <li key={a.id} className="relative aspect-square rounded-lg overflow-hidden border border-border bg-surface-2">
-                    {a.signedUrl ? (
-                      <a href={a.signedUrl} target="_blank" rel="noopener noreferrer" className="block h-full w-full">
-                        {a.mime.startsWith('image/') ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={a.signedUrl} alt={g.label} loading="lazy" className="h-full w-full object-cover" />
-                        ) : (
-                          <div className="h-full w-full flex flex-col items-center justify-center gap-1 text-text-muted">
-                            <FileText className="h-7 w-7" strokeWidth={1.5} aria-hidden />
-                            <span className="text-[10px] font-semibold uppercase tracking-wide">
-                              {a.mime.replace(/^application\//, '')}
-                            </span>
-                          </div>
-                        )}
-                      </a>
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center text-text-faint">
-                        <FileText className="h-7 w-7" strokeWidth={1.5} aria-hidden />
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <AttachmentGrid
+                items={items.map((a) => ({
+                  key: a.id,
+                  name: a.fileName?.trim() || tAtt('savedFallback'),
+                  mime: a.mime,
+                  sizeBytes: a.sizeBytes,
+                  url: a.signedUrl,
+                }))}
+              />
             </div>
           );
         })}

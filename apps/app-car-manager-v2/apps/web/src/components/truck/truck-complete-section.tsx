@@ -10,7 +10,7 @@ import {
   completeTruckTripAction,
 } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
-import { CostReceiptInput, type ExistingCostAttachment } from '@/components/truck/cost-receipt-input';
+import { AttachmentInput, type StoredAttachment } from '@/components/attachments/attachment-input';
 import { fuelToastDescription } from '@/components/truck/fuel-toast';
 import { uploadTruckCostFile } from '@/lib/truck-cost-upload';
 
@@ -19,7 +19,7 @@ const numI = (s: string) => (s.trim() === '' ? undefined : Math.trunc(Number(s))
 
 type CostKind = 'FUEL' | 'TOLL' | 'EXTRA';
 interface ReceiptBucket {
-  existing: ExistingCostAttachment[];
+  existing: StoredAttachment[];
   files: File[];
 }
 const RECEIPT_LABEL: Record<CostKind, string> = {
@@ -124,7 +124,7 @@ export function TruckCompleteSection({
     }
     return init;
   });
-  const setBucketExisting = (k: CostKind, next: ExistingCostAttachment[]) =>
+  const setBucketExisting = (k: CostKind, next: StoredAttachment[]) =>
     setReceipts((r) => ({ ...r, [k]: { ...r[k], existing: next } }));
   const setBucketFiles = (k: CostKind, next: File[]) =>
     setReceipts((r) => ({ ...r, [k]: { ...r[k], files: next } }));
@@ -266,7 +266,7 @@ export function TruckCompleteSection({
         {(['FUEL', 'TOLL', 'EXTRA'] as const).map((k) => (
           <div key={k} className="space-y-1.5">
             <div className="text-xs text-text-muted">{tR(RECEIPT_LABEL[k])}</div>
-            <CostReceiptInput
+            <AttachmentInput
               existing={receipts[k].existing}
               onExistingChange={(next) => setBucketExisting(k, next)}
               files={receipts[k].files}

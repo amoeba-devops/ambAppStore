@@ -117,6 +117,8 @@ export const carExpenseAttachments = pgTable(
     eatS3Key: text('eat_s3_key').notNull(),
     eatMime: varchar('eat_mime', { length: 64 }).notNull(),
     eatSizeBytes: bigint('eat_size_bytes', { mode: 'number' }).notNull(),
+    /** Original filename as the device gave it (REQ-20260915). */
+    eatFileName: varchar('eat_file_name', { length: 255 }),
     eatUploadedAt: timestamp('eat_uploaded_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
