@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import { fileNameFromS3Key } from '@car-v2/shared/zod';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Plus, Receipt } from 'lucide-react';
@@ -64,6 +65,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
         eatId: a.eatId,
         eatMime: a.eatMime,
         eatSizeBytes: a.eatSizeBytes,
+        eatFileName: a.eatFileName ?? fileNameFromS3Key(a.eatS3Key),
         signedUrl: await getSignedGetUrl(a.eatS3Key, 900),
       })),
     );

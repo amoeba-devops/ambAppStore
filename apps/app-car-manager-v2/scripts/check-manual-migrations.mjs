@@ -92,6 +92,14 @@ const MIGRATIONS = [
       (await hasTable('car_truck_maintenance_attachments')),
     detail: 'car_truck_maintenances.tmn_note + table car_truck_maintenance_attachments',
   },
+  {
+    file: '0033_attachment_file_name.sql',
+    probe: async () =>
+      (await hasColumn('car_trip_cost_attachments', 'tca_file_name')) &&
+      (await hasColumn('car_truck_maintenance_attachments', 'tma_file_name')) &&
+      (await hasColumn('car_expense_attachments', 'eat_file_name')),
+    detail: 'cột *_file_name trên cả 3 bảng đính kèm',
+  },
 ];
 
 const missing = [];

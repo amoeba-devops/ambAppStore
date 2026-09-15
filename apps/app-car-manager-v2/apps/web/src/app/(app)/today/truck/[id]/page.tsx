@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { AlertTriangle, Edit3, Wallet } from 'lucide-react';
 import { Badge, Button, Card } from '@car-v2/ui';
+import { AttachmentGrid } from '@/components/attachments/attachment-viewer';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
 import { formatDay } from '@/lib/format-day';
@@ -65,6 +66,7 @@ export default async function DriverTruckTripPage({
   const t = await getTranslations('today.truck');
   const tDetail = await getTranslations('screens.truckTripDetail');
   const tTrips = await getTranslations('screens.truckTrips');
+  const tAtt = await getTranslations('attachments');
   const locale = await getLocale();
   const loc = bcp47(locale);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
@@ -97,6 +99,42 @@ export default async function DriverTruckTripPage({
       </Link>
     </Button>
   );
+
+  /* Receipts already on the trip. `TruckCompleteSection` shows them as
+   * editable tiles while the trip is still open, but that section — and every
+   * receipt with it — disappears once `canComplete` goes false (completed, or
+   * any other terminal state): without this read-only card the driver had no
+   * way to see what they'd uploaded after closing the trip. Grouped by cost
+   * kind, same as the manager's shared `/trips/[id]` detail. */
+  const receiptGroups: { kind: 'FUEL' | 'TOLL' | 'EXTRA'; label: string }[] = [
+    { kind: 'FUEL', label: tDetail('fuel') },
+    { kind: 'TOLL', label: tDetail('toll') },
+    { kind: 'EXTRA', label: tDetail('receiptsExtra') },
+  ];
+  const receiptsCard =
+    costAttachments.length > 0 ? (
+      <Card variant="outline" className="p-4 space-y-3">
+        <div className="text-sm font-semibold text-text">{tDetail('receiptsTitle')}</div>
+        {receiptGroups.map((g) => {
+          const items = costAttachments.filter((a) => a.costKind === g.kind);
+          if (items.length === 0) return null;
+          return (
+            <div key={g.kind} className="space-y-1.5">
+              <div className="text-xs text-text-muted uppercase tracking-wide">{g.label}</div>
+              <AttachmentGrid
+                items={items.map((a) => ({
+                  key: a.id,
+                  name: a.fileName?.trim() || tAtt('savedFallback'),
+                  mime: a.mime,
+                  sizeBytes: a.sizeBytes,
+                  url: a.signedUrl,
+                }))}
+              />
+            </div>
+          );
+        })}
+      </Card>
+    ) : null;
 
   return (
     <>
@@ -161,28 +199,34 @@ export default async function DriverTruckTripPage({
         <div className="grid gap-5 lg:grid-cols-3 lg:items-start">
           {/* Costs the driver recorded, with the way back into them. Revenue
             * and profit are deliberately absent. */}
-          <Card variant="outline" className="order-1 p-4 space-y-2.5 lg:order-2">
-            <div className="flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-accent" />
-              <h2 className="text-sm font-semibold text-text">{t('costsTitle')}</h2>
-            </div>
-            <CostRow label={tDetail('fuel')} value={vnd(breakdown.fuelCost)} note={fuelNote} />
-            <CostRow label={tDetail('toll')} value={vnd(breakdown.tollFee)} />
-            {extras.map((e, i) => (
-              <CostRow key={i} label={e.name} value={vnd(e.amount)} />
-            ))}
-            <CostRow label={tDetail('total')} value={vnd(breakdown.totalCost)} strong />
-            {/* Secondary while the trip is open — the completion form above is
-              * the primary action and captures the same figures. */}
-            <Button
-              asChild
-              variant={canComplete ? 'secondary' : 'accent'}
-              size="lg"
-              className="w-full mt-1"
-            >
-              <Link href={editHref}>{t('updateCosts')}</Link>
-            </Button>
-          </Card>
+          <div className="order-1 space-y-5 lg:order-2">
+            <Card variant="outline" className="p-4 space-y-2.5">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-accent" />
+                <h2 className="text-sm font-semibold text-text">{t('costsTitle')}</h2>
+              </div>
+              <CostRow label={tDetail('fuel')} value={vnd(breakdown.fuelCost)} note={fuelNote} />
+              <CostRow label={tDetail('toll')} value={vnd(breakdown.tollFee)} />
+              {extras.map((e, i) => (
+                <CostRow key={i} label={e.name} value={vnd(e.amount)} />
+              ))}
+              <CostRow label={tDetail('total')} value={vnd(breakdown.totalCost)} strong />
+              {/* Secondary while the trip is open — the completion form above is
+                * the primary action and captures the same figures. */}
+              <Button
+                asChild
+                variant={canComplete ? 'secondary' : 'accent'}
+                size="lg"
+                className="w-full mt-1"
+              >
+                <Link href={editHref}>{t('updateCosts')}</Link>
+              </Button>
+            </Card>
+            {/* Read-only once the completion form above stops rendering
+              * (completed, or any other non-completable state) — otherwise the
+              * driver's own receipts had nowhere left to show up. */}
+            {!canComplete && receiptsCard}
+          </div>
 
           <section className="order-2 space-y-2.5 lg:order-1 lg:col-span-2">
             <h2 className="text-sm font-semibold text-text">{t('stopsTitle')}</h2>

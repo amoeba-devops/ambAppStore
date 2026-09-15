@@ -705,7 +705,7 @@
         "note": "비고",
         "notePlaceholder": "정비 내용, 정비소, 보증 정보…",
         "attachments": "정비 영수증",
-        "attachmentsHint": "이미지 또는 PDF, 최대 {max}개.",
+        "attachmentsHint": "이미지, PDF, Word, Excel 또는 CSV, 최대 {max}개.",
         "attachmentUploadFailed": "영수증 업로드에 실패했습니다. 다시 시도해 주세요."
       }
     },
@@ -920,6 +920,29 @@
     "errType": "이미지 또는 PDF 파일만 지원합니다",
     "errTooLarge": "파일이 {max}MB를 초과합니다",
     "errTooMany": "비용당 최대 {max}개까지 첨부할 수 있습니다"
+  },
+  "attachments": {
+    "add": "첨부",
+    "addMore": "파일 추가",
+    "chooseFile": "파일 선택",
+    "takePhoto": "사진 촬영",
+    "converting": "이미지 처리 중…",
+    "open": "{name} 열기",
+    "remove": "{name} 삭제",
+    "close": "닫기",
+    "download": "다운로드",
+    "openNewTab": "새 탭에서 열기",
+    "prev": "이전 파일",
+    "next": "다음 파일",
+    "lightboxAria": "첨부 파일 보기",
+    "unavailable": "미리 볼 수 없는 파일입니다",
+    "savedFallback": "저장된 파일",
+    "offline": "파일을 첨부하려면 네트워크 연결이 필요합니다",
+    "maxReached": "최대 {max}개까지 첨부할 수 있습니다",
+    "errTooLarge": "파일이 {max}MB를 초과합니다",
+    "errTooMany": "최대 {max}개",
+    "errCameraDenied": "카메라를 열 수 없습니다. 브라우저의 카메라 권한을 확인하세요.",
+    "errHeic": "HEIC 사진을 변환하지 못했습니다. 라이브러리에서 다시 선택해 주세요."
   },
   "company": {
     "tenant": "조직",

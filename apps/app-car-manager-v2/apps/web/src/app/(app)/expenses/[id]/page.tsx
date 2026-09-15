@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import { fileNameFromS3Key } from '@car-v2/shared/zod';
 import { notFound } from 'next/navigation';
 import {
   Calendar,
@@ -124,6 +125,7 @@ export default async function ExpenseDetailPage({ params }: PageProps) {
       eatId: a.eatId,
       eatMime: a.eatMime,
       eatSizeBytes: a.eatSizeBytes,
+        eatFileName: a.eatFileName ?? fileNameFromS3Key(a.eatS3Key),
       signedUrl: await getSignedGetUrl(a.eatS3Key, 900),
     })),
   );

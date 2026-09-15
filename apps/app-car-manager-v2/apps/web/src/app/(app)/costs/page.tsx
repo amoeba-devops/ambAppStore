@@ -1,4 +1,5 @@
 import { getTranslations, getLocale } from 'next-intl/server';
+import { fileNameFromS3Key } from '@car-v2/shared/zod';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { FileText, Fuel, Plus, Receipt, User, Wrench } from 'lucide-react';
@@ -101,6 +102,7 @@ export default async function CostsPage({ searchParams }: PageProps) {
           eatId: a.eatId,
           eatMime: a.eatMime,
           eatSizeBytes: a.eatSizeBytes,
+        eatFileName: a.eatFileName ?? fileNameFromS3Key(a.eatS3Key),
           signedUrl: await getSignedGetUrl(a.eatS3Key, 900),
         })),
       );
@@ -117,6 +119,7 @@ export default async function CostsPage({ searchParams }: PageProps) {
         eatId: a.eatId,
         eatMime: a.eatMime,
         eatSizeBytes: a.eatSizeBytes,
+        eatFileName: a.eatFileName ?? fileNameFromS3Key(a.eatS3Key),
         signedUrl: await getSignedGetUrl(a.eatS3Key, 900),
       })),
     );

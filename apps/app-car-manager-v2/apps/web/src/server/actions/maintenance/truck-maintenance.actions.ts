@@ -138,7 +138,7 @@ export async function createTruckMaintenanceAction(input: unknown): Promise<Acti
       await syncMaintenanceAttachments(
         actor.entId,
         id,
-        dto.attachments.map((a) => ({ s3Key: a.s3_key, mime: a.mime, sizeBytes: a.size_bytes })),
+        dto.attachments.map((a) => ({ s3Key: a.s3_key, mime: a.mime, sizeBytes: a.size_bytes, fileName: a.file_name })),
       );
     }
 
@@ -202,7 +202,7 @@ export async function updateTruckMaintenanceAction(input: unknown): Promise<Acti
       await syncMaintenanceAttachments(
         actor.entId,
         existing.tmnId,
-        dto.attachments.map((a) => ({ s3Key: a.s3_key, mime: a.mime, sizeBytes: a.size_bytes })),
+        dto.attachments.map((a) => ({ s3Key: a.s3_key, mime: a.mime, sizeBytes: a.size_bytes, fileName: a.file_name })),
       );
     }
 

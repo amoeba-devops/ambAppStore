@@ -21,6 +21,8 @@ export interface MaintenanceAttachmentInput {
   s3Key: string;
   mime: string;
   sizeBytes: number;
+  /** Original device filename (REQ-20260915) — shown in the UI. */
+  fileName?: string | null;
 }
 
 /** Live (non-deleted) invoice files of a job, oldest first. */
@@ -87,6 +89,7 @@ export async function syncMaintenanceAttachments(
         tmaS3Key: d.s3Key,
         tmaMime: d.mime,
         tmaSizeBytes: d.sizeBytes,
+        tmaFileName: d.fileName ?? null,
       })),
     );
   }
