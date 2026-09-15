@@ -705,7 +705,7 @@
         "note": "Note",
         "notePlaceholder": "What was repaired, garage, warranty ref…",
         "attachments": "Maintenance invoices",
-        "attachmentsHint": "Image or PDF, up to {max} files.",
+        "attachmentsHint": "Image, PDF, Word, Excel or CSV, up to {max} files.",
         "attachmentUploadFailed": "Invoice upload failed. Please try again."
       }
     },

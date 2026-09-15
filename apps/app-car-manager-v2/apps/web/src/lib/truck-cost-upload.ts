@@ -1,4 +1,5 @@
 import { apiPath } from '@/lib/base-path';
+import { resolveFileMime } from '@/components/attachments/attachment-input';
 
 /**
  * Client-side upload of a trip-cost receipt (REQ-20260709): presign → direct
@@ -18,16 +19,6 @@ export interface UploadedCostFile {
   file_name: string;
 }
 
-/* Resolve a MIME for the upload. `f.type` is empty surprisingly often (some
- * Android pickers, clipboard paste, older WebViews). Infer PDF from the
- * extension, else assume image — the picker is gated to image/PDF, and a
- * concrete type keeps the later signed-URL render honest. */
-export function resolveCostMime(f: File): string {
-  if (f.type) return f.type;
-  if (/\.pdf$/i.test(f.name)) return 'application/pdf';
-  return 'image/jpeg';
-}
-
 async function requestPresigned(
   f: File,
   endpoint = '/api/v1/truck/trips/upload-presigned',
@@ -37,7 +28,7 @@ async function requestPresigned(
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       filename: f.name,
-      content_type: resolveCostMime(f),
+      content_type: resolveFileMime(f),
       size_bytes: f.size,
     }),
   });
@@ -50,11 +41,12 @@ async function requestPresigned(
 
 async function uploadToS3(url: string, f: File): Promise<void> {
   /* The content-type header MUST match what we sent to the presign route, so
-   * reuse resolveCostMime rather than re-derive from f.type (would diverge when
-   * f.type is empty). */
+   * reuse resolveFileMime rather than re-derive from f.type (would diverge when
+   * f.type is empty) — same resolver the picker's preview uses, so what's shown
+   * before upload matches what actually gets persisted. */
   const res = await fetch(url, {
     method: 'PUT',
-    headers: { 'content-type': resolveCostMime(f) },
+    headers: { 'content-type': resolveFileMime(f) },
     body: f,
   });
   if (!res.ok) throw new Error(`S3 upload failed: ${res.status}`);
@@ -64,7 +56,7 @@ async function uploadToS3(url: string, f: File): Promise<void> {
 export async function uploadTruckCostFile(f: File): Promise<UploadedCostFile> {
   const presigned = await requestPresigned(f);
   await uploadToS3(presigned.uploadUrl, f);
-  return { s3_key: presigned.key, mime: resolveCostMime(f), size_bytes: f.size, file_name: f.name };
+  return { s3_key: presigned.key, mime: resolveFileMime(f), size_bytes: f.size, file_name: f.name };
 }
 
 /** Same flow for a MAINTENANCE invoice (REQ-20260914) — only the presign route
@@ -72,5 +64,5 @@ export async function uploadTruckCostFile(f: File): Promise<UploadedCostFile> {
 export async function uploadTruckMaintenanceFile(f: File): Promise<UploadedCostFile> {
   const presigned = await requestPresigned(f, '/api/v1/truck/maintenance/upload-presigned');
   await uploadToS3(presigned.uploadUrl, f);
-  return { s3_key: presigned.key, mime: resolveCostMime(f), size_bytes: f.size, file_name: f.name };
+  return { s3_key: presigned.key, mime: resolveFileMime(f), size_bytes: f.size, file_name: f.name };
 }

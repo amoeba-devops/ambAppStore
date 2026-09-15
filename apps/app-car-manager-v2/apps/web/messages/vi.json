@@ -705,7 +705,7 @@
         "note": "Chú thích",
         "notePlaceholder": "Nội dung sửa chữa, garage, bảo hành…",
         "attachments": "Hoá đơn bảo trì",
-        "attachmentsHint": "Ảnh hoặc PDF, tối đa {max} tệp.",
+        "attachmentsHint": "Ảnh, PDF, Word, Excel hoặc CSV, tối đa {max} tệp.",
         "attachmentUploadFailed": "Tải hoá đơn lên thất bại. Vui lòng thử lại."
       }
     },

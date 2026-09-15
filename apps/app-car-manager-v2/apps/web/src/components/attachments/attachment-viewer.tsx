@@ -203,6 +203,12 @@ export function AttachmentLightbox({ items, index, onIndexChange, onClose }: Att
   const t = useTranslations('attachments');
   const touchStartXRef = useRef<number | null>(null);
   const current = items[index];
+  /* A mistagged file (e.g. a non-image stored with an `image/*` mime, see
+   * truck-cost-upload.ts) renders as a broken <img> otherwise — fall back to
+   * the glyph + open/download buttons instead of a dead image. Reset per item
+   * so switching to the next attachment gets a fresh attempt. */
+  const [imgFailed, setImgFailed] = useState(false);
+  useEffect(() => setImgFailed(false), [current?.key]);
 
   const next = useCallback(
     () => onIndexChange(Math.min(items.length - 1, index + 1)),
@@ -226,7 +232,7 @@ export function AttachmentLightbox({ items, index, onIndexChange, onClose }: Att
   }, [next, prev, onClose]);
 
   if (!current) return null;
-  const showImage = isImageMime(current.mime) && current.url;
+  const showImage = isImageMime(current.mime) && current.url && !imgFailed;
 
   return (
     <div
@@ -298,6 +304,7 @@ export function AttachmentLightbox({ items, index, onIndexChange, onClose }: Att
             alt={current.name}
             className="max-h-full max-w-full object-contain"
             onClick={(e) => e.stopPropagation()}
+            onError={() => setImgFailed(true)}
           />
         ) : (
           <div
