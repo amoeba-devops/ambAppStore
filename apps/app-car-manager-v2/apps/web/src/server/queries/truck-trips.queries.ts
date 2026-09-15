@@ -1,6 +1,7 @@
 import 'server-only';
 import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, ne, or, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
+import { fileNameFromS3Key } from '@car-v2/shared/zod';
 import {
   carTrips,
   carTripExtraCosts,
@@ -433,6 +434,9 @@ export interface TripCostAttachmentView {
   s3Key: string;
   mime: string;
   sizeBytes: number;
+  /** Original filename; falls back to the name inside the S3 key for rows
+   * saved before the column existed (REQ-20260915). */
+  fileName: string | null;
   /** Pre-signed GET URL (15-min TTL). Null when S3 isn't configured (dev). */
   signedUrl: string | null;
 }
@@ -450,6 +454,7 @@ export async function getTripCostAttachmentsView(
       costKind: r.tcaCostKind as TripCostKind,
       s3Key: r.tcaS3Key,
       mime: r.tcaMime,
+      fileName: r.tcaFileName ?? fileNameFromS3Key(r.tcaS3Key),
       sizeBytes: r.tcaSizeBytes,
       signedUrl: await getSignedGetUrl(r.tcaS3Key),
     })),

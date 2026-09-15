@@ -34,6 +34,9 @@ export const tripCostAttachmentSchema = z.object({
   s3_key: z.string().min(1).max(1024),
   mime: z.string().min(1).max(64),
   size_bytes: z.number().int().min(1).max(TRUCK_COST_ATTACHMENT_MAX_BYTES),
+  /* Original device filename (REQ-20260915). Optional so older payloads and
+   * pre-existing rows still validate; the UI falls back to the S3 key. */
+  file_name: z.string().trim().min(1).max(255).optional(),
 });
 export type TripCostAttachmentDto = z.infer<typeof tripCostAttachmentSchema>;
 

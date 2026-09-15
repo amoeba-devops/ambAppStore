@@ -18,6 +18,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Textarea,
   toast,
 } from '@car-v2/ui';
 import {
@@ -27,9 +28,12 @@ import {
   updateTruckMaintenanceAction,
   type TruckMaintenanceConflictPreview,
 } from '@/server/actions/maintenance/truck-maintenance.actions';
+import { TRUCK_MAINTENANCE_ATTACHMENT_MAX } from '@car-v2/shared/zod';
 import { MoneyInput } from '@/components/inputs/money-input';
+import { AttachmentInput, type StoredAttachment } from '@/components/attachments/attachment-input';
 import { formatActionError } from '@/lib/format-action-error';
 import { formatDayKey } from '@/lib/format-day';
+import { uploadTruckMaintenanceFile } from '@/lib/truck-cost-upload';
 
 export interface MaintenanceVehicleOption {
   id: string;
@@ -45,6 +49,8 @@ export interface TruckMaintenanceFormInitial {
   endDate: string;
   /** Raw digit string for MoneyInput ('' = 0). */
   cost: string;
+  /** Free-text note (REQ-20260914). */
+  note: string;
 }
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -65,12 +71,15 @@ export function TruckMaintenanceForm({
   initial,
   vehicles,
   locked = false,
+  initialAttachments = [],
 }: {
   maintenanceId?: string;
   initial?: TruckMaintenanceFormInitial;
   vehicles: MaintenanceVehicleOption[];
   /** Accounting month is closed (legacy chốt sổ) → read-only. */
   locked?: boolean;
+  /** Invoices already saved on this job (edit mode, REQ-20260914). */
+  initialAttachments?: StoredAttachment[];
 }) {
   const t = useTranslations('screens.truckMaintenance.form');
   const tErr = useTranslations();
@@ -82,8 +91,15 @@ export function TruckMaintenanceForm({
     startDate: todayIso(),
     endDate: todayIso(),
     cost: '',
+    note: '',
     ...initial,
   });
+
+  /* Invoices (REQ-20260914): kept saved files + newly picked ones. Same split
+   * the trip form uses — new files upload to S3 on submit, and whatever is left
+   * in `existing` is echoed back so the server keeps it. */
+  const [keptAttachments, setKeptAttachments] = useState<StoredAttachment[]>(initialAttachments);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
 
   /* Server-side conflict preview — debounced, latest-wins. */
   const [preview, setPreview] = useState<TruckMaintenanceConflictPreview>({ busy: {}, overlaps: [] });
@@ -129,11 +145,31 @@ export function TruckMaintenanceForm({
     e.preventDefault();
     if (!canSave) return;
     startTransition(async () => {
+      /* Upload newly picked invoices first; abort before touching the record
+       * if S3 fails so we never half-save. */
+      let attachments: { s3_key: string; mime: string; size_bytes: number; file_name?: string }[];
+      try {
+        attachments = [
+          ...keptAttachments.map((a) => ({
+            s3_key: a.s3Key,
+            mime: a.mime,
+            size_bytes: a.sizeBytes,
+            file_name: a.fileName ?? undefined,
+          })),
+          ...(await Promise.all(newFiles.map((file) => uploadTruckMaintenanceFile(file)))),
+        ];
+      } catch {
+        toast.error(t('attachmentUploadFailed'));
+        return;
+      }
+
       const payload = {
         vehicle_id: f.vehicleId,
         start_date: f.startDate,
         end_date: f.endDate,
         cost: f.cost.trim() === '' ? 0 : Number(f.cost),
+        note: f.note.trim() || undefined,
+        attachments,
       };
       const res = maintenanceId
         ? await updateTruckMaintenanceAction({ ...payload, maintenance_id: maintenanceId })
@@ -237,6 +273,35 @@ export function TruckMaintenanceForm({
               ) : (
                 <MoneyInput value={f.cost} onChange={(raw) => setF((s) => ({ ...s, cost: raw }))} placeholder="0" />
               )}
+            </Field>
+
+            {/* Free-text note — what was repaired, garage, warranty ref
+              * (REQ-20260914). Purely descriptive: no effect on the month's
+              * fixed cost or on the trip-blocking window. */}
+            <Field label={t('note')} className="sm:col-span-2">
+              <Textarea
+                value={f.note}
+                onChange={(e) => setF((s) => ({ ...s, note: e.target.value }))}
+                disabled={locked}
+                rows={3}
+                maxLength={2000}
+                placeholder={t('notePlaceholder')}
+              />
+            </Field>
+
+            {/* Maintenance invoices — same picker as the trip receipts
+              * (image / PDF, multiple, ≤10). */}
+            <Field label={t('attachments')} className="sm:col-span-2">
+              <AttachmentInput
+                existing={keptAttachments}
+                onExistingChange={setKeptAttachments}
+                files={newFiles}
+                onFilesChange={setNewFiles}
+                disabled={locked || pending}
+              />
+              <p className="mt-1 text-xs text-text-faint">
+                {t('attachmentsHint', { max: TRUCK_MAINTENANCE_ATTACHMENT_MAX })}
+              </p>
             </Field>
           </div>
 

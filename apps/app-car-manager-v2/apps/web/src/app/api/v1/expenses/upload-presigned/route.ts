@@ -4,23 +4,16 @@ import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { z } from 'zod';
 import { CarError } from '@car-v2/shared/errors';
+import { ATTACHMENT_CONTENT_TYPE_RE } from '@car-v2/shared/zod';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getEnv } from '@/lib/env';
 import { getS3Bucket, getS3Client } from '@/lib/s3-client';
 
 export const dynamic = 'force-dynamic';
 
-/* Content-type policy — accept any `image/*`, plus `application/pdf` for paper
- * receipts scanned to PDF, plus `application/octet-stream` as a generic fallback
- * when the browser couldn't infer a MIME (some Android pickers, clipboard
- * paste, older WebViews). Previously the route used a hard `z.enum([...])` of
- * 6 explicit values which rejected the octet-stream fallback the client sends
- * — that surfaced as `CAR-E0001 Invalid input` toasts that looked random
- * because the user picked an "image" but the browser handed us no MIME. The
- * regex is permissive on purpose: client-side `accept="image/*"` already gates
- * the file picker, and the bucket policy (size + key prefix) is the real
- * boundary. */
-const CONTENT_TYPE_RE = /^(image\/[a-z0-9.+-]+|application\/(pdf|octet-stream))$/i;
+/* Allowed types live in ONE place now (REQ-20260915) — images, PDF and the
+ * office formats an invoice arrives in. Widen the shared list, not this file. */
+const CONTENT_TYPE_RE = ATTACHMENT_CONTENT_TYPE_RE;
 
 const requestSchema = z.object({
   filename: z.string().min(1).max(255),

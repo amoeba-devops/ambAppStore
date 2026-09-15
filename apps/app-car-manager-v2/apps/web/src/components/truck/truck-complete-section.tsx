@@ -10,7 +10,7 @@ import {
   completeTruckTripAction,
 } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
-import { CostReceiptInput, type ExistingCostAttachment } from '@/components/truck/cost-receipt-input';
+import { AttachmentInput, type StoredAttachment } from '@/components/attachments/attachment-input';
 import { fuelToastDescription } from '@/components/truck/fuel-toast';
 import { uploadTruckCostFile } from '@/lib/truck-cost-upload';
 
@@ -19,7 +19,7 @@ const numI = (s: string) => (s.trim() === '' ? undefined : Math.trunc(Number(s))
 
 type CostKind = 'FUEL' | 'TOLL' | 'EXTRA';
 interface ReceiptBucket {
-  existing: ExistingCostAttachment[];
+  existing: StoredAttachment[];
   files: File[];
 }
 const RECEIPT_LABEL: Record<CostKind, string> = {
@@ -37,6 +37,9 @@ export interface CompleteSectionAttachment {
   mime: string;
   sizeBytes: number;
   signedUrl: string | null;
+  /** Original filename (REQ-20260915); undefined/null on rows saved before it
+   * was tracked — StoredAttachment falls back to a generic label. */
+  fileName?: string | null;
 }
 
 interface ExtraRow {
@@ -120,11 +123,18 @@ export function TruckCompleteSection({
       EXTRA: { existing: [], files: [] },
     };
     for (const a of existingAttachments) {
-      init[a.costKind].existing.push({ id: a.id, s3Key: a.s3Key, mime: a.mime, sizeBytes: a.sizeBytes, signedUrl: a.signedUrl });
+      init[a.costKind].existing.push({
+        id: a.id,
+        s3Key: a.s3Key,
+        mime: a.mime,
+        sizeBytes: a.sizeBytes,
+        signedUrl: a.signedUrl,
+        fileName: a.fileName,
+      });
     }
     return init;
   });
-  const setBucketExisting = (k: CostKind, next: ExistingCostAttachment[]) =>
+  const setBucketExisting = (k: CostKind, next: StoredAttachment[]) =>
     setReceipts((r) => ({ ...r, [k]: { ...r[k], existing: next } }));
   const setBucketFiles = (k: CostKind, next: File[]) =>
     setReceipts((r) => ({ ...r, [k]: { ...r[k], files: next } }));
@@ -140,12 +150,18 @@ export function TruckCompleteSection({
   const removeExtra = (i: number) => setExtras((x) => x.filter((_, j) => j !== i));
 
   const buildCostAttachments = async (): Promise<
-    { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number }[]
+    { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number; file_name?: string }[]
   > => {
-    const out: { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number }[] = [];
+    const out: { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number; file_name?: string }[] = [];
     for (const k of ['FUEL', 'TOLL', 'EXTRA'] as const) {
       for (const e of receipts[k].existing) {
-        out.push({ cost_kind: k, s3_key: e.s3Key, mime: e.mime, size_bytes: e.sizeBytes });
+        out.push({
+          cost_kind: k,
+          s3_key: e.s3Key,
+          mime: e.mime,
+          size_bytes: e.sizeBytes,
+          file_name: e.fileName ?? undefined,
+        });
       }
       for (const file of receipts[k].files) {
         const up = await uploadTruckCostFile(file);
@@ -157,7 +173,13 @@ export function TruckCompleteSection({
 
   const submit = () => {
     startTransition(async () => {
-      let cost_attachments: { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number }[];
+      let cost_attachments: {
+        cost_kind: CostKind;
+        s3_key: string;
+        mime: string;
+        size_bytes: number;
+        file_name?: string;
+      }[];
       try {
         cost_attachments = await buildCostAttachments();
       } catch {
@@ -266,7 +288,7 @@ export function TruckCompleteSection({
         {(['FUEL', 'TOLL', 'EXTRA'] as const).map((k) => (
           <div key={k} className="space-y-1.5">
             <div className="text-xs text-text-muted">{tR(RECEIPT_LABEL[k])}</div>
-            <CostReceiptInput
+            <AttachmentInput
               existing={receipts[k].existing}
               onExistingChange={(next) => setBucketExisting(k, next)}
               files={receipts[k].files}

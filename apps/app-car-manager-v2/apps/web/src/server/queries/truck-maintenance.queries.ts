@@ -2,7 +2,9 @@ import 'server-only';
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTruckMaintenances, carUsers, carVehicles } from '@car-v2/db/schema';
-import { parseAmount } from '@car-v2/core/truck';
+import { countMaintenanceAttachments, getMaintenanceAttachments, parseAmount } from '@car-v2/core/truck';
+import { fileNameFromS3Key } from '@car-v2/shared/zod';
+import { getSignedGetUrl } from '@/lib/s3-client';
 
 /**
  * Read side of the truck maintenance menu (REQ-20260904). The money/schedule
@@ -24,6 +26,10 @@ export interface TruckMaintenanceRow {
   month: string;
   /** VND, rounded. */
   cost: number;
+  /** Free-text note (REQ-20260914); null when never filled. */
+  note: string | null;
+  /** Live invoice files on the job — list shows a paperclip badge (REQ-20260914). */
+  attachmentCount: number;
   /** "Ngày" column — when the job was recorded (user decision Q4). */
   createdAt: Date;
   /** "Cập nhật" column — last edit, null when never edited. */
@@ -42,6 +48,7 @@ const rowSelect = {
   endDate: carTruckMaintenances.tmnEndDate,
   month: carTruckMaintenances.tmnMonth,
   cost: carTruckMaintenances.tmnCost,
+  note: carTruckMaintenances.tmnNote,
   createdAt: carTruckMaintenances.tmnCreatedAt,
   updatedAt: carTruckMaintenances.tmnUpdatedAt,
   updatedByName: carUsers.usrName,
@@ -53,21 +60,25 @@ const editorJoin = eq(
   sql`coalesce(${carTruckMaintenances.tmnUpdatedBy}, ${carTruckMaintenances.tmnCreatedBy})`,
 );
 
-function toRow(r: {
-  id: string;
-  vehicleId: string;
-  plate: string;
-  model: string;
-  region: string | null;
-  startDate: string;
-  endDate: string;
-  month: string;
-  cost: string;
-  createdAt: Date;
-  updatedAt: Date | null;
-  updatedByName: string | null;
-}): TruckMaintenanceRow {
-  return { ...r, cost: Math.round(parseAmount(r.cost)) };
+function toRow(
+  r: {
+    id: string;
+    vehicleId: string;
+    plate: string;
+    model: string;
+    region: string | null;
+    startDate: string;
+    endDate: string;
+    month: string;
+    cost: string;
+    note: string | null;
+    createdAt: Date;
+    updatedAt: Date | null;
+    updatedByName: string | null;
+  },
+  attachmentCount = 0,
+): TruckMaintenanceRow {
+  return { ...r, cost: Math.round(parseAmount(r.cost)), attachmentCount };
 }
 
 export interface ListTruckMaintenancesOpts {
@@ -101,7 +112,10 @@ export async function listTruckMaintenances(
       ),
     )
     .orderBy(desc(carTruckMaintenances.tmnStartDate), desc(carTruckMaintenances.tmnCreatedAt));
-  return rows.map(toRow);
+  /* One extra query for the paperclip badge — no signed URLs here, the list
+   * only needs the count (REQ-20260914). */
+  const counts = await countMaintenanceAttachments(entId, rows.map((r) => r.id));
+  return rows.map((r) => toRow(r, counts.get(r.id) ?? 0));
 }
 
 /** One live job (ent-scoped) for the edit page; null when missing/deleted. */
@@ -119,5 +133,39 @@ export async function getTruckMaintenance(entId: string, id: string): Promise<Tr
       ),
     )
     .limit(1);
-  return row ? toRow(row) : null;
+  if (!row) return null;
+  const counts = await countMaintenanceAttachments(entId, [row.id]);
+  return toRow(row, counts.get(row.id) ?? 0);
+}
+
+/** One maintenance invoice, ready to render (REQ-20260914). Mirrors the trip
+ * receipt view model so the shared attachment field can consume both. */
+export interface MaintenanceAttachmentView {
+  id: string;
+  s3Key: string;
+  mime: string;
+  sizeBytes: number;
+  /** Original filename; falls back to the name inside the S3 key for rows
+   * saved before the column existed (REQ-20260915). */
+  fileName: string | null;
+  /** Short-lived GET URL for the thumbnail; null when signing failed. */
+  signedUrl: string | null;
+}
+
+/** Live invoices of a job with signed URLs — the edit/detail screen. */
+export async function getTruckMaintenanceAttachmentsView(
+  entId: string,
+  maintenanceId: string,
+): Promise<MaintenanceAttachmentView[]> {
+  const rows = await getMaintenanceAttachments(entId, maintenanceId);
+  return Promise.all(
+    rows.map(async (r) => ({
+      id: r.tmaId,
+      s3Key: r.tmaS3Key,
+      mime: r.tmaMime,
+      fileName: r.tmaFileName ?? fileNameFromS3Key(r.tmaS3Key),
+      sizeBytes: r.tmaSizeBytes,
+      signedUrl: await getSignedGetUrl(r.tmaS3Key),
+    })),
+  );
 }

@@ -1,6 +1,6 @@
 import { getLocale, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { Plus, Wrench } from 'lucide-react';
+import { Paperclip, Plus, Wrench } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -175,11 +175,21 @@ export default async function TruckMaintenancePage({
                         <span className="text-xs text-text-muted"> · {t('days', { n: dayCount(r.startDate, r.endDate) })}</span>
                       </div>
                       <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-text-muted">
-                        <span className="tabular font-semibold text-text">{vnd(r.cost)}</span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="tabular font-semibold text-text">{vnd(r.cost)}</span>
+                          {/* Invoice count (REQ-20260914) — open the record to view them. */}
+                          {r.attachmentCount > 0 && (
+                            <span className="inline-flex items-center gap-0.5" title={t('attachmentCount', { n: r.attachmentCount })}>
+                              <Paperclip className="h-3 w-3" />
+                              {r.attachmentCount}
+                            </span>
+                          )}
+                        </span>
                         <span className="truncate">
                           {r.updatedByName ?? '—'} · {date(r.updatedAt ?? r.createdAt)}
                         </span>
                       </div>
+                      {r.note && <div className="mt-1 text-xs text-text-muted line-clamp-2">{r.note}</div>}
                     </Link>
                   </li>
                 );
@@ -197,6 +207,7 @@ export default async function TruckMaintenancePage({
                     <TableHead>{t('thVehicle')}</TableHead>
                     <TableHead>{t('thPeriod')}</TableHead>
                     <TableHead className="text-right">{t('thCost')}</TableHead>
+                    <TableHead>{t('thNote')}</TableHead>
                     <TableHead>{t('thUpdatedBy')}</TableHead>
                     <TableHead className="whitespace-nowrap">{t('thUpdated')}</TableHead>
                     <TableHead className="w-[88px]">{t('thActions')}</TableHead>
@@ -226,6 +237,22 @@ export default async function TruckMaintenancePage({
                           </div>
                         </TableCell>
                         <TableCell className="text-right tabular font-semibold text-text">{vnd(r.cost)}</TableCell>
+                        {/* Note + invoice count (REQ-20260914). The files live on
+                          * the record screen; here we only say how many. */}
+                        <TableCell className="max-w-[220px] text-text-muted">
+                          <span className="flex items-center gap-1.5">
+                            <span className="truncate">{r.note || '—'}</span>
+                            {r.attachmentCount > 0 && (
+                              <span
+                                className="inline-flex shrink-0 items-center gap-0.5 text-xs"
+                                title={t('attachmentCount', { n: r.attachmentCount })}
+                              >
+                                <Paperclip className="h-3 w-3" />
+                                {r.attachmentCount}
+                              </span>
+                            )}
+                          </span>
+                        </TableCell>
                         <TableCell className="whitespace-nowrap text-text-muted">{r.updatedByName ?? '—'}</TableCell>
                         <TableCell className="whitespace-nowrap text-xs">
                           <DateTimeCell value={r.updatedAt ?? r.createdAt} locale={loc} />

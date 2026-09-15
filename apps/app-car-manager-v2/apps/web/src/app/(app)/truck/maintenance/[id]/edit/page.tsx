@@ -3,7 +3,10 @@ import { getTranslations } from 'next-intl/server';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { requireRegion, resolveVehicleScope } from '@/lib/auth/region-access';
-import { getTruckMaintenance } from '@/server/queries/truck-maintenance.queries';
+import {
+  getTruckMaintenance,
+  getTruckMaintenanceAttachmentsView,
+} from '@/server/queries/truck-maintenance.queries';
 import { isTruckMonthClosed } from '@/server/queries/truck-finance.queries';
 import { TruckMaintenanceForm } from '../../_components/truck-maintenance-form';
 
@@ -16,10 +19,12 @@ export default async function EditTruckMaintenancePage({ params }: { params: Pro
   /* Region ACL — editing a job requires access to its truck's region. */
   if (job.region) await requireRegion(user, job.region);
 
-  const [{ trucks }, closedFleet, closedRegion] = await Promise.all([
+  const [{ trucks }, closedFleet, closedRegion, attachments] = await Promise.all([
     resolveVehicleScope(user, undefined),
     isTruckMonthClosed(user.entId, job.month),
     job.region ? isTruckMonthClosed(user.entId, job.month, job.region) : Promise.resolve(false),
+    /* Saved invoices with short-lived view URLs (REQ-20260914). */
+    getTruckMaintenanceAttachmentsView(user.entId, job.id),
   ]);
   const t = await getTranslations('screens.truckMaintenance');
 
@@ -42,7 +47,9 @@ export default async function EditTruckMaintenancePage({ params }: { params: Pro
             startDate: job.startDate,
             endDate: job.endDate,
             cost: job.cost ? String(job.cost) : '',
+            note: job.note ?? '',
           }}
+          initialAttachments={attachments}
           /* Retired trucks are not offered, except the job's own (REQ-20260907 BR-4). */
           vehicles={trucks.filter((v) => v.cvhStatus !== 'RETIRED' || v.cvhId === job.vehicleId).map((v) => ({
             id: v.cvhId,

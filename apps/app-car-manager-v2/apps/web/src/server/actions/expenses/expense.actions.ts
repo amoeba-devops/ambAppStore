@@ -51,6 +51,9 @@ const attachmentSchema = z.object({
   s3_key: z.string().min(1),
   mime: z.string().min(1).max(64),
   size_bytes: z.number().int().min(1).max(10 * 1024 * 1024),
+  /* Original device filename (REQ-20260915) — optional so payloads produced
+   * before the shared attachment component still validate. */
+  file_name: z.string().trim().min(1).max(255).optional(),
 });
 
 /* Schemas + type are NOT exported — Next.js 15 `'use server'` files can only
@@ -219,6 +222,7 @@ export async function submitExpenseAction(
           eatS3Key: a.s3_key,
           eatMime: a.mime,
           eatSizeBytes: a.size_bytes,
+          eatFileName: a.file_name ?? null,
         })),
       );
       await db.batch([expenseInsert, attachmentInsert]);

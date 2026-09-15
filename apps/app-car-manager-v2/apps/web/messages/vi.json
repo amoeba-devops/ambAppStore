@@ -668,6 +668,8 @@
       "thVehicle": "Phương tiện",
       "thPeriod": "Thời gian bảo trì",
       "thCost": "Chi phí",
+      "thNote": "Chú thích",
+      "attachmentCount": "{n} hoá đơn đính kèm",
       "thUpdatedBy": "Cập nhật bởi",
       "thUpdated": "Cập nhật",
       "thActions": "Hành động",
@@ -699,7 +701,12 @@
         "deleteConfirm": "Xoá bản ghi bảo trì này?",
         "createdToast": "Đã thêm bảo trì cho {plate}",
         "updatedToast": "Đã cập nhật bảo trì {plate}",
-        "deletedToast": "Đã xoá bản ghi bảo trì"
+        "deletedToast": "Đã xoá bản ghi bảo trì",
+        "note": "Chú thích",
+        "notePlaceholder": "Nội dung sửa chữa, garage, bảo hành…",
+        "attachments": "Hoá đơn bảo trì",
+        "attachmentsHint": "Ảnh, PDF, Word, Excel hoặc CSV, tối đa {max} tệp.",
+        "attachmentUploadFailed": "Tải hoá đơn lên thất bại. Vui lòng thử lại."
       }
     },
     "audit": {
@@ -913,6 +920,29 @@
     "errType": "Chỉ hỗ trợ ảnh hoặc file PDF",
     "errTooLarge": "Tệp vượt quá {max}MB",
     "errTooMany": "Tối đa {max} tệp cho mỗi khoản chi phí"
+  },
+  "attachments": {
+    "add": "Đính kèm",
+    "addMore": "Thêm tệp",
+    "chooseFile": "Chọn tệp",
+    "takePhoto": "Chụp ảnh",
+    "converting": "Đang xử lý ảnh…",
+    "open": "Mở {name}",
+    "remove": "Xoá {name}",
+    "close": "Đóng",
+    "download": "Tải xuống",
+    "openNewTab": "Mở tab mới",
+    "prev": "Tệp trước",
+    "next": "Tệp sau",
+    "lightboxAria": "Xem tệp đính kèm",
+    "unavailable": "Không xem được tệp này",
+    "savedFallback": "Tệp đã lưu",
+    "offline": "Cần kết nối mạng để đính kèm tệp",
+    "maxReached": "Đã đạt tối đa {max} tệp",
+    "errTooLarge": "Tệp vượt quá {max}MB",
+    "errTooMany": "Tối đa {max} tệp",
+    "errCameraDenied": "Không mở được máy ảnh. Kiểm tra quyền truy cập máy ảnh của trình duyệt.",
+    "errHeic": "Không chuyển đổi được ảnh HEIC. Thử chọn lại từ thư viện."
   },
   "company": {
     "tenant": "Tổ chức",

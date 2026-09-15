@@ -21,21 +21,20 @@ const requestSchema = z.object({
   size_bytes: z.number().int().min(1),
 });
 
-/* POST /api/v1/truck/trips/upload-presigned
+/* POST /api/v1/truck/maintenance/upload-presigned
  *
- * Issues a short-lived presigned S3 PUT URL the client uploads a trip-cost
- * receipt (image / PDF) directly to. Independent from the expense upload route
- * (REQ-20260709) — its own key prefix and its own size cap
- * (TRUCK_S3_MAX_UPLOAD_BYTES, default 50MB).
+ * Short-lived presigned S3 PUT URL for a MAINTENANCE invoice (REQ-20260914).
+ * Deliberately a sibling of the trip-receipt route rather than a shared one:
+ * each resource family owns its own key prefix, so per-tenant lifecycle rules
+ * and IAM scoping can treat them separately.
  *
- * Key layout: `{entId}/trips/{userId}/{uuid}-{filename}` — entity ID outermost
- * (per-tenant GDPR delete / IAM scope / lifecycle), then the `trips/` resource
- * family, mirroring the `expenses/` layout under the same tenant root.
+ * Key layout: `{entId}/maintenance/{userId}/{uuid}-{filename}` — entity
+ * outermost like `trips/` and `expenses/`.
  *
- * The route does NOT create the car_trip_cost_attachments row — that happens
- * when the trip create/update/complete action runs with the returned key. An
- * uploaded-but-never-submitted object leaks until a future janitor job prunes
- * unreferenced keys (same trade-off as expenses). */
+ * The route does NOT create the car_truck_maintenance_attachments row; that
+ * happens when the create/update maintenance action runs with the returned
+ * key. An uploaded-but-never-saved object leaks until a janitor prunes
+ * unreferenced keys — same trade-off as trips and expenses. */
 export async function POST(req: NextRequest) {
   try {
     const actor = await getCurrentUser();
@@ -51,15 +50,12 @@ export async function POST(req: NextRequest) {
       throw new CarError('CAR-E0001', 400, `file exceeds ${Math.floor(maxBytes / (1024 * 1024))}MB limit`);
     }
 
-    /* Sanitize the filename — strip path separators + control chars. The UUID
-     * prefix makes the filename mostly cosmetic for the bucket. */
     const safeName = filename.replace(/[\\/\x00-\x1f]/g, '_').slice(0, 100);
-    const key = `${actor.entId}/trips/${actor.userId}/${randomUUID()}-${safeName}`;
+    const key = `${actor.entId}/maintenance/${actor.userId}/${randomUUID()}-${safeName}`;
 
-    /* Don't sign ContentLength — see the expense route's note: iOS Safari PWA
-     * standalone rewrites/chunks content-length, producing 403
-     * SignatureDoesNotMatch for camera captures. Size is already validated
-     * above + bounded by the bucket policy. */
+    /* ContentLength intentionally unsigned — iOS Safari PWA rewrites it and
+     * breaks the signature (see the trip + expense routes). Size is validated
+     * above and bounded by the bucket policy. */
     const cmd = new PutObjectCommand({
       Bucket: getS3Bucket(),
       Key: key,
@@ -77,20 +73,16 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     if (e instanceof CarError) {
       return NextResponse.json(
-        {
-          success: false,
-          error: { code: e.code, message: e.message },
-          timestamp: new Date().toISOString(),
-        },
+        { success: false, error: { code: e.code, message: e.message }, timestamp: new Date().toISOString() },
         { status: e.httpStatus },
       );
     }
     // eslint-disable-next-line no-console
-    console.error('[truck upload-presigned] unexpected error:', e);
+    console.error('[truck maintenance upload-presigned] unexpected error:', e);
     return NextResponse.json(
       {
         success: false,
-        error: { code: 'CAR-E0500', message: 'Upload service temporarily unavailable' },
+        error: { code: 'CAR-E9000', message: 'Unexpected error' },
         timestamp: new Date().toISOString(),
       },
       { status: 500 },

@@ -668,6 +668,8 @@
       "thVehicle": "Vehicle",
       "thPeriod": "Maintenance period",
       "thCost": "Cost",
+      "thNote": "Note",
+      "attachmentCount": "{n} invoice(s) attached",
       "thUpdatedBy": "Updated by",
       "thUpdated": "Updated",
       "thActions": "Actions",
@@ -699,7 +701,12 @@
         "deleteConfirm": "Delete this maintenance record?",
         "createdToast": "Maintenance added for {plate}",
         "updatedToast": "Maintenance for {plate} updated",
-        "deletedToast": "Maintenance record deleted"
+        "deletedToast": "Maintenance record deleted",
+        "note": "Note",
+        "notePlaceholder": "What was repaired, garage, warranty ref…",
+        "attachments": "Maintenance invoices",
+        "attachmentsHint": "Image, PDF, Word, Excel or CSV, up to {max} files.",
+        "attachmentUploadFailed": "Invoice upload failed. Please try again."
       }
     },
     "audit": {
@@ -913,6 +920,29 @@
     "errType": "Only images or PDF files are supported",
     "errTooLarge": "File exceeds {max}MB",
     "errTooMany": "Up to {max} files per cost"
+  },
+  "attachments": {
+    "add": "Attach",
+    "addMore": "Add file",
+    "chooseFile": "Choose file",
+    "takePhoto": "Take photo",
+    "converting": "Processing image…",
+    "open": "Open {name}",
+    "remove": "Remove {name}",
+    "close": "Close",
+    "download": "Download",
+    "openNewTab": "Open in new tab",
+    "prev": "Previous file",
+    "next": "Next file",
+    "lightboxAria": "Attachment viewer",
+    "unavailable": "This file can't be previewed",
+    "savedFallback": "Saved file",
+    "offline": "You need a connection to attach files",
+    "maxReached": "Maximum {max} files reached",
+    "errTooLarge": "File exceeds {max}MB",
+    "errTooMany": "Up to {max} files",
+    "errCameraDenied": "Couldn't open the camera. Check the browser's camera permission.",
+    "errHeic": "Couldn't convert the HEIC photo. Try picking it from the library."
   },
   "company": {
     "tenant": "Organization",
