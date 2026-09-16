@@ -130,7 +130,13 @@ export default async function TruckFinancePage({
         [t('sumRevenue'), summary.revenue],
         [t('sumFuel'), summary.fuelCost, undefined, fuelSplitNote],
         [t('sumToll'), summary.tollFee],
-        [t('sumOther'), summary.extraTotal],
+        /* Includes the 4 fixed cost types added REQ-20260916 (cleaning/repair/
+         * ferry/loading) — folded here so this KPI matches the per-trip table's
+         * "Phát sinh" column and the profit figure below. */
+        [
+          t('sumOther'),
+          summary.extraTotal + summary.cleaningFee + summary.repairFee + summary.ferryFee + summary.loadingFee,
+        ],
         /* Driver salary folds into fixedCost now (no separate fleet-roster
          * line) — the fixed-cost total below covers salary + depreciation +
          * insurance. */
@@ -265,7 +271,11 @@ export default async function TruckFinancePage({
                     <TableCell className="text-text">{r.customer ?? '—'}</TableCell>
                     <TableCell className="text-right tabular">{num(r.km)} km</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(r.toll)}</TableCell>
-                    <TableCell className="text-right tabular text-text-muted">{vnd(r.extra)}</TableCell>
+                    {/* Includes the 4 fixed cost types added REQ-20260916 (cleaning/
+                      * repair/ferry/loading) — folded into this column for display
+                      * only, so it reconciles with the Profit column; the underlying
+                      * `extra` field stays freeform-only (see truck-finance.queries.ts). */}
+                    <TableCell className="text-right tabular text-text-muted">{vnd(r.extra + r.fixedFees)}</TableCell>
                     <TableCell className={cn('text-right tabular', r.fuelMode === 'UNSET' && 'text-text-faint italic')}>
                       {vnd(r.unitPrice)}
                     </TableCell>

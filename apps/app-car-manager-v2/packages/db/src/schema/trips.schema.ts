@@ -83,6 +83,11 @@ export const carTrips = pgTable(
     trpFuelLiters: decimal('trp_fuel_liters', { precision: 10, scale: 2 }),
     trpFuelPrice: decimal('trp_fuel_price', { precision: 14, scale: 2 }),
     trpTollFee: decimal('trp_toll_fee', { precision: 14, scale: 2 }),
+    /* Fixed per-trip cost types (REQ-20260916) — same tier as trp_toll_fee. */
+    trpCleaningFee: decimal('trp_cleaning_fee', { precision: 14, scale: 2 }),
+    trpRepairFee: decimal('trp_repair_fee', { precision: 14, scale: 2 }),
+    trpFerryFee: decimal('trp_ferry_fee', { precision: 14, scale: 2 }),
+    trpLoadingFee: decimal('trp_loading_fee', { precision: 14, scale: 2 }),
     trpRevenue: decimal('trp_revenue', { precision: 14, scale: 2 }),
     trpRejectReason: text('trp_reject_reason'),
     trpCancelReason: text('trp_cancel_reason'),

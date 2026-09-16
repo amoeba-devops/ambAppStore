@@ -77,20 +77,25 @@ export function ReportReviewStep({
     }));
   };
 
-  /* Live per-vehicle recompute from the edited values. */
+  /* Live per-vehicle recompute from the edited values. `fixedFees` (the 4
+   * fixed cost types added REQ-20260916) is never edited on this screen —
+   * always the stored value — but still counted in `net` so profit stays
+   * correct. */
   const vsum = (v: TruckReportReview['vehicles'][number]) => {
     let revenue = 0;
     let toll = 0;
     let fuel = 0;
     let extra = 0;
+    let fixedFees = 0;
     for (const tr of v.trips) {
       const e = edits[tr.trpId];
       revenue += e?.revenue ?? tr.revenue;
       toll += e?.toll ?? tr.toll;
       fuel += e?.fuel ?? tr.fuelCost;
       extra += e?.extra ?? tr.extra;
+      fixedFees += tr.fixedFees;
     }
-    return { revenue, toll, fuel, extra, net: revenue - fuel - toll - extra - v.fixedCost };
+    return { revenue, toll, fuel, extra, net: revenue - fuel - toll - fixedFees - extra - v.fixedCost };
   };
 
   const totalVehicles = reviews.reduce((n, r) => n + r.vehicles.length, 0);

@@ -100,6 +100,15 @@ const MIGRATIONS = [
       (await hasColumn('car_expense_attachments', 'eat_file_name')),
     detail: 'cột *_file_name trên cả 3 bảng đính kèm',
   },
+  {
+    file: '0034_truck_trip_fixed_cost_types.sql',
+    probe: async () =>
+      (await hasColumn('car_trips', 'trp_cleaning_fee')) &&
+      (await hasColumn('car_trips', 'trp_repair_fee')) &&
+      (await hasColumn('car_trips', 'trp_ferry_fee')) &&
+      (await hasColumn('car_trips', 'trp_loading_fee')),
+    detail: 'car_trips.trp_cleaning_fee/trp_repair_fee/trp_ferry_fee/trp_loading_fee',
+  },
 ];
 
 const missing = [];

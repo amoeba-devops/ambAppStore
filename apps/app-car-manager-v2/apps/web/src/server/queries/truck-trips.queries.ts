@@ -1,7 +1,7 @@
 import 'server-only';
 import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, ne, or, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
-import { fileNameFromS3Key } from '@car-v2/shared/zod';
+import { fileNameFromS3Key, type TripCostKind } from '@car-v2/shared/zod';
 import {
   carTrips,
   carTripExtraCosts,
@@ -39,6 +39,11 @@ export async function getTruckTripBreakdown(
     trpFuelLiters: string | null;
     trpFuelPrice: string | null;
     trpTollFee: string | null;
+    /** Fixed per-trip cost types added REQ-20260916 — same tier as trpTollFee. */
+    trpCleaningFee: string | null;
+    trpRepairFee: string | null;
+    trpFerryFee: string | null;
+    trpLoadingFee: string | null;
     trpRevenue: string | null;
     /* Last change — decides whether an existing report covers this trip. */
     trpUpdatedAt?: Date | null;
@@ -81,11 +86,26 @@ export async function getTruckTripBreakdown(
   /* Fuel = frozen snapshot (only if it covers this trip) → live pool → 0. */
   const fuel = snapshots.fuelForTrip(month, trip.trpVehicleId, km, changedAt);
   const tollFee = Math.round(parseAmount(trip.trpTollFee));
+  const cleaningFee = Math.round(parseAmount(trip.trpCleaningFee));
+  const repairFee = Math.round(parseAmount(trip.trpRepairFee));
+  const ferryFee = Math.round(parseAmount(trip.trpFerryFee));
+  const loadingFee = Math.round(parseAmount(trip.trpLoadingFee));
   const extraTotal = Math.round(extraAmounts.reduce((s, n) => s + (n || 0), 0));
   const revenue = Math.round(parseAmount(trip.trpRevenue));
-  const totalCost = fuel.cost + tollFee + extraTotal;
+  const totalCost = fuel.cost + tollFee + cleaningFee + repairFee + ferryFee + loadingFee + extraTotal;
   return {
-    breakdown: { fuelCost: fuel.cost, tollFee, extraTotal, totalCost, revenue, profit: revenue - totalCost },
+    breakdown: {
+      fuelCost: fuel.cost,
+      tollFee,
+      cleaningFee,
+      repairFee,
+      ferryFee,
+      loadingFee,
+      extraTotal,
+      totalCost,
+      revenue,
+      profit: revenue - totalCost,
+    },
     finalized,
     fuelMode: fuel.mode,
     km,
@@ -311,12 +331,28 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
     const tChangedAt = t.trpUpdatedAt ?? t.trpCreatedAt ?? null;
     const fuel = snapshots.fuelForTrip(mk, t.trpVehicleId, km ?? 0, tChangedAt);
     const tollFee = Math.round(parseAmount(t.trpTollFee));
+    const cleaningFee = Math.round(parseAmount(t.trpCleaningFee));
+    const repairFee = Math.round(parseAmount(t.trpRepairFee));
+    const ferryFee = Math.round(parseAmount(t.trpFerryFee));
+    const loadingFee = Math.round(parseAmount(t.trpLoadingFee));
+    /* Fixed cost types added REQ-20260916 (cleaning/repair/ferry/loading) fold
+     * into `extraNote` alongside the freeform names — same traceability
+     * convention as the monthly report export (truck-report-export.queries.ts). */
+    const newFeeNames: string[] = [];
+    if (cleaningFee > 0) newFeeNames.push('Vệ sinh phương tiện');
+    if (repairFee > 0) newFeeNames.push('Sửa chữa');
+    if (ferryFee > 0) newFeeNames.push('Cầu phà');
+    if (loadingFee > 0) newFeeNames.push('Bốc dỡ hàng hóa');
     const extraTotal = Math.round(extraCosts.reduce((s, n) => s + (n || 0), 0));
     const revenue = Math.round(parseAmount(t.trpRevenue));
-    const totalCost = fuel.cost + tollFee + extraTotal;
+    const totalCost = fuel.cost + tollFee + cleaningFee + repairFee + ferryFee + loadingFee + extraTotal;
     const breakdown: TruckCostBreakdown = {
       fuelCost: fuel.cost,
       tollFee,
+      cleaningFee,
+      repairFee,
+      ferryFee,
+      loadingFee,
       extraTotal,
       totalCost,
       revenue,
@@ -352,7 +388,7 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
       dropoff: t.trpDropoffAddress,
       cdf: t.trpCdf,
       notes: t.trpNotes,
-      extraNote: (extraNoteByTrip.get(t.trpId) ?? []).join(', ') || null,
+      extraNote: [...newFeeNames, ...(extraNoteByTrip.get(t.trpId) ?? [])].join(', ') || null,
       fuelUnitPrice,
       fuelLiters,
       fuelActualLiters,
@@ -425,7 +461,7 @@ export async function getLatestVehiclesByDriver(entId: string): Promise<Map<stri
   return map;
 }
 
-export type TripCostKind = 'FUEL' | 'TOLL' | 'EXTRA';
+export type { TripCostKind };
 
 export interface TripCostAttachmentView {
   id: string;

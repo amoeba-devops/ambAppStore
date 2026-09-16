@@ -177,6 +177,10 @@ export async function getTruckReportExport(
         fuelLiters: carTrips.trpFuelLiters,
         fuelPrice: carTrips.trpFuelPrice,
         toll: carTrips.trpTollFee,
+        cleaningFee: carTrips.trpCleaningFee,
+        repairFee: carTrips.trpRepairFee,
+        ferryFee: carTrips.trpFerryFee,
+        loadingFee: carTrips.trpLoadingFee,
         revenue: carTrips.trpRevenue,
         bol: carTrips.trpBol,
         cdf: carTrips.trpCdf,
@@ -239,7 +243,24 @@ export async function getTruckReportExport(
   const trips: ReportTripLogRow[] = rows.map((t) => {
     const km = t.so != null && t.eo != null ? t.eo - t.so : 0;
     const ex = extraByTrip.get(t.trpId) ?? { amount: 0, notes: [] };
-    const extra = Math.round(ex.amount);
+    /* Fixed cost types added REQ-20260916 (cleaning/repair/ferry/loading) fold
+     * into the "extra" column rather than getting their own columns — keeps the
+     * client-approved Monthly Summary / PNL template unchanged. Their names are
+     * appended to extraNote (same convention as freeform extra-cost names) so
+     * the total stays traceable. */
+    const newFeeNames: string[] = [];
+    if (parseAmount(t.cleaningFee) > 0) newFeeNames.push('Vệ sinh phương tiện');
+    if (parseAmount(t.repairFee) > 0) newFeeNames.push('Sửa chữa');
+    if (parseAmount(t.ferryFee) > 0) newFeeNames.push('Cầu phà');
+    if (parseAmount(t.loadingFee) > 0) newFeeNames.push('Bốc dỡ hàng hóa');
+    const newFixedFeesTotal = Math.round(
+      parseAmount(t.cleaningFee) +
+        parseAmount(t.repairFee) +
+        parseAmount(t.ferryFee) +
+        parseAmount(t.loadingFee),
+    );
+    const extra = Math.round(ex.amount) + newFixedFeesTotal;
+    const extraNoteParts = [...newFeeNames, ...ex.notes];
     const toll = Math.round(parseAmount(t.toll));
     const revenue = Math.round(parseAmount(t.revenue));
     /* No trip timestamp passed on purpose: this workbook IS the report, whose
@@ -268,7 +289,7 @@ export async function getTruckReportExport(
       km,
       toll,
       extra,
-      extraNote: ex.notes.length ? ex.notes.join(', ') : null,
+      extraNote: extraNoteParts.length ? extraNoteParts.join(', ') : null,
       avgPrice: Math.round(avgPrice),
       liters: Math.round(liters * 10) / 10,
       fuelCost,
@@ -396,7 +417,9 @@ export async function getTruckReportExport(
         maintenance: p.maintenanceCost,
         toll: p.tollFee,
         fuel: p.fuelCost,
-        extra: p.extraTotal,
+        /* Fixed cost types added REQ-20260916 fold into "extra" here too — same
+         * template-preserving decision as the trip-log sheet above. */
+        extra: p.extraTotal + p.cleaningFee + p.repairFee + p.ferryFee + p.loadingFee,
         net: p.netProfit,
         tripCount: p.tripCount,
         km: agg.km,
@@ -437,7 +460,12 @@ export async function getTruckReportExport(
       maintenance: tot?.maintenanceCost ?? 0,
       toll: tot?.tollFee ?? 0,
       fuel: tot?.fuelCost ?? 0,
-      extra: tot?.extraTotal ?? 0,
+      extra:
+        (tot?.extraTotal ?? 0) +
+        (tot?.cleaningFee ?? 0) +
+        (tot?.repairFee ?? 0) +
+        (tot?.ferryFee ?? 0) +
+        (tot?.loadingFee ?? 0),
       net: tot?.netProfit ?? 0,
     };
   }

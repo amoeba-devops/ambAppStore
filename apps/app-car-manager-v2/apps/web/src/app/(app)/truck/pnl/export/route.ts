@@ -84,6 +84,12 @@ export async function GET(req: Request) {
     { labelKey: 'lineRevenue', pick: (r) => r.revenue },
     { labelKey: 'lineFuel', pick: (r) => r.fuelCost },
     { labelKey: 'lineToll', pick: (r) => r.tollFee },
+    /* Fixed cost types added REQ-20260916 — own lines so "lineVariable" below
+     * keeps reconciling with the sum of the lines above it. */
+    { labelKey: 'lineCleaning', pick: (r) => r.cleaningFee },
+    { labelKey: 'lineRepair', pick: (r) => r.repairFee },
+    { labelKey: 'lineFerry', pick: (r) => r.ferryFee },
+    { labelKey: 'lineLoading', pick: (r) => r.loadingFee },
     { labelKey: 'lineExtra', pick: (r) => r.extraTotal },
     { labelKey: 'lineVariable', pick: (r) => r.variableCost },
     { labelKey: 'lineSalary', pick: (r) => r.salary },

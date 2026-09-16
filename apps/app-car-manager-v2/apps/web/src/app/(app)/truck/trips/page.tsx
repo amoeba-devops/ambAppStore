@@ -24,6 +24,7 @@ import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { formatDay } from '@/lib/format-day';
 import { resolveRegionFilter } from '@/lib/auth/region-access';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
+import type { TruckCostBreakdown } from '@car-v2/core/truck';
 import { driverIdentity } from '@/lib/format-person-option';
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
@@ -86,6 +87,11 @@ export default async function TruckTripsPage({
   const loc = bcp47(locale);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
   const date = (d: Date) => formatDay(d, loc);
+  /* "Other" column merges the 4 fixed cost types added REQ-20260916 (cleaning/
+   * repair/ferry/loading) with the freeform extra-cost total, for display only
+   * — avoids widening an already-busy table with 4 more columns. */
+  const otherCost = (b: TruckCostBreakdown) =>
+    b.extraTotal + b.cleaningFee + b.repairFee + b.ferryFee + b.loadingFee;
   const plateOptions = trucks.map((v) => ({ id: v.cvhId, label: v.cvhPlateNumber }));
   const driverOptions = fleetDrivers.map((d) => ({ id: d.drvId, label: driverIdentity(d) }));
 
@@ -195,7 +201,7 @@ export default async function TruckTripsPage({
                         * Chi phí & Lợi nhuận, which says so in its header. */}
                       <span>{tCol('fuelActualCost')}: {vnd(trip.fuelActualCost)}</span>
                       <span>{tCol('toll')}: {vnd(trip.breakdown.tollFee)}</span>
-                      <span>{tCol('otherAmount')}: {vnd(trip.breakdown.extraTotal)}</span>
+                      <span>{tCol('otherAmount')}: {vnd(otherCost(trip.breakdown))}</span>
                     </div>
                   </Link>
                 </li>
@@ -247,7 +253,7 @@ export default async function TruckTripsPage({
                     <TableCell className="text-right tabular">{trip.km != null ? `${trip.km.toLocaleString(loc)} km` : '—'}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(trip.fuelActualCost)}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.tollFee)}</TableCell>
-                    <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.extraTotal)}</TableCell>
+                    <TableCell className="text-right tabular text-text-muted">{vnd(otherCost(trip.breakdown))}</TableCell>
                     <TableCell>
                       <Badge tone={trip.status === 'COMPLETED' ? 'success' : 'neutral'} size="sm">
                         {trip.status === 'COMPLETED' ? t('statusDone') : t('statusOpen')}
