@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { AlertTriangle, Edit3, Wallet } from 'lucide-react';
 import { Badge, Button, Card } from '@car-v2/ui';
+import type { TripCostKind } from '@car-v2/shared/zod';
 import { AttachmentGrid } from '@/components/attachments/attachment-viewer';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
@@ -106,9 +107,13 @@ export default async function DriverTruckTripPage({
    * any other terminal state): without this read-only card the driver had no
    * way to see what they'd uploaded after closing the trip. Grouped by cost
    * kind, same as the manager's shared `/trips/[id]` detail. */
-  const receiptGroups: { kind: 'FUEL' | 'TOLL' | 'EXTRA'; label: string }[] = [
+  const receiptGroups: { kind: TripCostKind; label: string }[] = [
     { kind: 'FUEL', label: tDetail('fuel') },
     { kind: 'TOLL', label: tDetail('toll') },
+    { kind: 'CLEANING', label: tDetail('cleaning') },
+    { kind: 'REPAIR', label: tDetail('repair') },
+    { kind: 'FERRY', label: tDetail('ferry') },
+    { kind: 'LOADING', label: tDetail('loading') },
     { kind: 'EXTRA', label: tDetail('receiptsExtra') },
   ];
   const receiptsCard =
@@ -207,6 +212,10 @@ export default async function DriverTruckTripPage({
               </div>
               <CostRow label={tDetail('fuel')} value={vnd(breakdown.fuelCost)} note={fuelNote} />
               <CostRow label={tDetail('toll')} value={vnd(breakdown.tollFee)} />
+              <CostRow label={tDetail('cleaning')} value={vnd(breakdown.cleaningFee)} />
+              <CostRow label={tDetail('repair')} value={vnd(breakdown.repairFee)} />
+              <CostRow label={tDetail('ferry')} value={vnd(breakdown.ferryFee)} />
+              <CostRow label={tDetail('loading')} value={vnd(breakdown.loadingFee)} />
               {extras.map((e, i) => (
                 <CostRow key={i} label={e.name} value={vnd(e.amount)} />
               ))}

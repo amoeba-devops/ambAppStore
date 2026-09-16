@@ -10,6 +10,7 @@ import {
   completeTruckTripAction,
 } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
+import type { TripCostKind } from '@car-v2/shared/zod';
 import { AttachmentInput, type StoredAttachment } from '@/components/attachments/attachment-input';
 import { fuelToastDescription } from '@/components/truck/fuel-toast';
 import { uploadTruckCostFile } from '@/lib/truck-cost-upload';
@@ -17,16 +18,24 @@ import { uploadTruckCostFile } from '@/lib/truck-cost-upload';
 const numF = (s: string) => (s.trim() === '' ? undefined : Number(s));
 const numI = (s: string) => (s.trim() === '' ? undefined : Math.trunc(Number(s)));
 
-type CostKind = 'FUEL' | 'TOLL' | 'EXTRA';
+type CostKind = TripCostKind;
 interface ReceiptBucket {
   existing: StoredAttachment[];
   files: File[];
 }
+/** Fixed cost types CLEANING/REPAIR/FERRY/LOADING added REQ-20260916 — same
+ * tier as FUEL/TOLL. EXTRA relabelled "Hóa đơn khác" now that 4 kinds carved
+ * out of what used to be its only catch-all bucket. */
 const RECEIPT_LABEL: Record<CostKind, string> = {
   FUEL: 'fuelReceipts',
   TOLL: 'tollReceipts',
+  CLEANING: 'cleaningReceipts',
+  REPAIR: 'repairReceipts',
+  FERRY: 'ferryReceipts',
+  LOADING: 'loadingReceipts',
   EXTRA: 'extraReceipts',
 };
+const COST_KINDS: readonly CostKind[] = ['FUEL', 'TOLL', 'CLEANING', 'REPAIR', 'FERRY', 'LOADING', 'EXTRA'];
 
 /** Attachments already saved on the trip (e.g. added at create time) — the
  * completion form shows them so completing doesn't silently drop them. */
@@ -61,6 +70,11 @@ export interface CompleteSectionInitial {
   fuelLiters?: number | null;
   fuelPrice?: number | null;
   tollFee?: number | null;
+  /** Fixed per-trip cost types added REQ-20260916 — same tier as tollFee. */
+  cleaningFee?: number | null;
+  repairFee?: number | null;
+  ferryFee?: number | null;
+  loadingFee?: number | null;
   extras?: { name: string; amount: number }[];
 }
 
@@ -109,6 +123,10 @@ export function TruckCompleteSection({
     fuelLiters: toInput(initial?.fuelLiters),
     fuelPrice: toInput(initial?.fuelPrice),
     toll: toInput(initial?.tollFee),
+    cleaning: toInput(initial?.cleaningFee),
+    repair: toInput(initial?.repairFee),
+    ferry: toInput(initial?.ferryFee),
+    loading: toInput(initial?.loadingFee),
   }));
   const [extras, setExtras] = useState<ExtraRow[]>(() =>
     (initial?.extras ?? []).map((e) => ({ name: e.name, amount: String(e.amount) })),
@@ -120,6 +138,10 @@ export function TruckCompleteSection({
     const init: Record<CostKind, ReceiptBucket> = {
       FUEL: { existing: [], files: [] },
       TOLL: { existing: [], files: [] },
+      CLEANING: { existing: [], files: [] },
+      REPAIR: { existing: [], files: [] },
+      FERRY: { existing: [], files: [] },
+      LOADING: { existing: [], files: [] },
       EXTRA: { existing: [], files: [] },
     };
     for (const a of existingAttachments) {
@@ -153,7 +175,7 @@ export function TruckCompleteSection({
     { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number; file_name?: string }[]
   > => {
     const out: { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number; file_name?: string }[] = [];
-    for (const k of ['FUEL', 'TOLL', 'EXTRA'] as const) {
+    for (const k of COST_KINDS) {
       for (const e of receipts[k].existing) {
         out.push({
           cost_kind: k,
@@ -194,6 +216,10 @@ export function TruckCompleteSection({
         fuel_liters: numF(f.fuelLiters),
         fuel_price: numF(f.fuelPrice),
         toll_fee: numF(f.toll),
+        cleaning_fee: numF(f.cleaning),
+        repair_fee: numF(f.repair),
+        ferry_fee: numF(f.ferry),
+        loading_fee: numF(f.loading),
         extra_costs: extras
           .filter((e) => e.name.trim() !== '' && e.amount.trim() !== '')
           .map((e) => ({ name: e.name.trim(), amount: Number(e.amount) })),
@@ -241,6 +267,18 @@ export function TruckCompleteSection({
         <Field label={t('toll')}>
           <Input type="number" value={f.toll} onChange={set('toll')} />
         </Field>
+        <Field label={t('cleaning')}>
+          <Input type="number" value={f.cleaning} onChange={set('cleaning')} />
+        </Field>
+        <Field label={t('repair')}>
+          <Input type="number" value={f.repair} onChange={set('repair')} />
+        </Field>
+        <Field label={t('ferry')}>
+          <Input type="number" value={f.ferry} onChange={set('ferry')} />
+        </Field>
+        <Field label={t('loading')}>
+          <Input type="number" value={f.loading} onChange={set('loading')} />
+        </Field>
         {/* Fuel filled on this trip (restored 2026-07-30): the spend that joins
           * the vehicle's monthly fuel total and is then allocated by km. */}
         <Field label={tR('fuelLiters')}>
@@ -285,7 +323,7 @@ export function TruckCompleteSection({
       {/* Receipt/invoice attachments (REQ-20260709) — one bucket per cost kind. */}
       <div className="space-y-3 pt-2 border-t border-border">
         <div className="text-xs font-medium text-text-muted uppercase tracking-wide">{tR('receiptsSection')}</div>
-        {(['FUEL', 'TOLL', 'EXTRA'] as const).map((k) => (
+        {COST_KINDS.map((k) => (
           <div key={k} className="space-y-1.5">
             <div className="text-xs text-text-muted">{tR(RECEIPT_LABEL[k])}</div>
             <AttachmentInput

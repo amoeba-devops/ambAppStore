@@ -17,6 +17,11 @@ export interface CompletableTripRow {
   trpFuelLiters: string | number | null;
   trpFuelPrice: string | number | null;
   trpTollFee: string | number | null;
+  /** Fixed per-trip cost types added REQ-20260916 — same tier as trpTollFee. */
+  trpCleaningFee: string | number | null;
+  trpRepairFee: string | number | null;
+  trpFerryFee: string | number | null;
+  trpLoadingFee: string | number | null;
 }
 
 /**
@@ -34,5 +39,9 @@ export function completeInitialOf(
     fuelLiters: num(trip.trpFuelLiters),
     fuelPrice: num(trip.trpFuelPrice),
     tollFee: num(trip.trpTollFee),
+    cleaningFee: num(trip.trpCleaningFee),
+    repairFee: num(trip.trpRepairFee),
+    ferryFee: num(trip.trpFerryFee),
+    loadingFee: num(trip.trpLoadingFee),
   };
 }

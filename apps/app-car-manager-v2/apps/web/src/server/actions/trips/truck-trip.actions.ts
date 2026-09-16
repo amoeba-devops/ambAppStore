@@ -16,6 +16,7 @@ import {
   loadTruckRegionSnapshots,
   assertVehicleNotUnderMaintenance,
   type TripCostAttachmentInput,
+  type TripCostKind,
   type TruckFuelMode,
 } from '@car-v2/core/truck';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
@@ -120,7 +121,7 @@ async function maybeSyncAttachments(
   entId: string,
   tripId: string,
   atts:
-    | { cost_kind: 'FUEL' | 'TOLL' | 'EXTRA'; s3_key: string; mime: string; size_bytes: number; file_name?: string }[]
+    | { cost_kind: TripCostKind; s3_key: string; mime: string; size_bytes: number; file_name?: string }[]
     | undefined,
 ): Promise<void> {
   if (atts === undefined) return;
@@ -228,6 +229,10 @@ export async function createTruckTripAction(
         fuelLiters: dto.fuel_liters ?? null,
         fuelPrice: dto.fuel_price ?? null,
         tollFee: dto.toll_fee ?? null,
+        cleaningFee: dto.cleaning_fee ?? null,
+        repairFee: dto.repair_fee ?? null,
+        ferryFee: dto.ferry_fee ?? null,
+        loadingFee: dto.loading_fee ?? null,
         extraCosts,
       });
       trip = res.trip;
@@ -339,6 +344,10 @@ export async function completeTruckTripAction(
       fuelLiters: dto.fuel_liters ?? null,
       fuelPrice: dto.fuel_price ?? null,
       tollFee: dto.toll_fee ?? null,
+      cleaningFee: dto.cleaning_fee ?? null,
+      repairFee: dto.repair_fee ?? null,
+      ferryFee: dto.ferry_fee ?? null,
+      loadingFee: dto.loading_fee ?? null,
       extraCosts: dto.extra_costs ?? [],
     });
 
@@ -397,6 +406,10 @@ export async function driverCompleteTruckTripAction(
       fuelLiters: dto.fuel_liters ?? null,
       fuelPrice: dto.fuel_price ?? null,
       tollFee: dto.toll_fee ?? null,
+      cleaningFee: dto.cleaning_fee ?? null,
+      repairFee: dto.repair_fee ?? null,
+      ferryFee: dto.ferry_fee ?? null,
+      loadingFee: dto.loading_fee ?? null,
       extraCosts: dto.extra_costs ?? [],
     });
 
@@ -489,6 +502,10 @@ export async function updateTruckTripAction(
       endOdometer: dto.end_odometer ?? null,
       fuelLiters: dto.fuel_liters ?? null,
       tollFee: dto.toll_fee ?? null,
+      cleaningFee: dto.cleaning_fee ?? null,
+      repairFee: dto.repair_fee ?? null,
+      ferryFee: dto.ferry_fee ?? null,
+      loadingFee: dto.loading_fee ?? null,
       notes: dto.notes,
       startedAt: parseWallClockUtc(dto.start_time) ?? undefined,
       finishedAt: parseWallClockUtc(dto.end_time) ?? undefined,
@@ -595,6 +612,10 @@ export async function driverUpdateTruckTripAction(
       endOdometer: dto.end_odometer ?? trip.trpEndOdometer,
       fuelLiters: dto.fuel_liters ?? null,
       tollFee: dto.toll_fee ?? null,
+      cleaningFee: dto.cleaning_fee ?? null,
+      repairFee: dto.repair_fee ?? null,
+      ferryFee: dto.ferry_fee ?? null,
+      loadingFee: dto.loading_fee ?? null,
       notes: dto.notes,
       startedAt: parseWallClockUtc(dto.start_time) ?? undefined,
       finishedAt: parseWallClockUtc(dto.end_time) ?? undefined,

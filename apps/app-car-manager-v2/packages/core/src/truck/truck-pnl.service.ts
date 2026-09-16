@@ -15,9 +15,10 @@ import { loadTruckMaintenanceMonthly } from './truck-maintenance';
 
 /**
  * Monthly P&L per truck (REQ-20260617, customer SRS §2.3):
- *   net profit = revenue − variable (fuel + toll + extra) − fixed (salary +
- *   depreciation + insurance). Variable costs auto-aggregate from COMPLETED
- *   LOG trips; fixed costs come from car_truck_fixed_costs.
+ *   net profit = revenue − variable (fuel + toll + cleaning + repair + ferry +
+ *   loading + extra — 4 new fixed cost types added REQ-20260916) − fixed
+ *   (salary + depreciation + insurance). Variable costs auto-aggregate from
+ *   COMPLETED LOG trips; fixed costs come from car_truck_fixed_costs.
  *
  * Small dataset (a handful of trucks) → aggregate in JS for clarity. Month
  * bucketing uses the trip's scheduled date in UTC ('YYYY-MM').
@@ -28,6 +29,10 @@ export interface TruckPnlRow {
   revenue: number;
   fuelCost: number;
   tollFee: number;
+  cleaningFee: number;
+  repairFee: number;
+  ferryFee: number;
+  loadingFee: number;
   extraTotal: number;
   variableCost: number;
   salary: number;
@@ -101,6 +106,10 @@ function emptyRow(month: string): TruckPnlRow {
     revenue: 0,
     fuelCost: 0,
     tollFee: 0,
+    cleaningFee: 0,
+    repairFee: 0,
+    ferryFee: 0,
+    loadingFee: 0,
     extraTotal: 0,
     variableCost: 0,
     salary: 0,
@@ -191,6 +200,10 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
       startOdometer: carTrips.trpStartOdometer,
       endOdometer: carTrips.trpEndOdometer,
       tollFee: carTrips.trpTollFee,
+      cleaningFee: carTrips.trpCleaningFee,
+      repairFee: carTrips.trpRepairFee,
+      ferryFee: carTrips.trpFerryFee,
+      loadingFee: carTrips.trpLoadingFee,
       revenue: carTrips.trpRevenue,
     })
     .from(carTrips)
@@ -248,6 +261,10 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
     else if (fuel.mode === 'LIVE') row.fuelLiveTripCount += 1;
     else row.fuelUnsetTripCount += 1;
     row.tollFee += Math.round(parseAmount(t.tollFee));
+    row.cleaningFee += Math.round(parseAmount(t.cleaningFee));
+    row.repairFee += Math.round(parseAmount(t.repairFee));
+    row.ferryFee += Math.round(parseAmount(t.ferryFee));
+    row.loadingFee += Math.round(parseAmount(t.loadingFee));
     row.extraTotal += Math.round(extraByTrip.get(t.trpId) ?? 0);
     row.tripCount += 1;
   }
@@ -284,7 +301,14 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
   }
 
   for (const row of rows.values()) {
-    row.variableCost = row.fuelCost + row.tollFee + row.extraTotal;
+    row.variableCost =
+      row.fuelCost +
+      row.tollFee +
+      row.cleaningFee +
+      row.repairFee +
+      row.ferryFee +
+      row.loadingFee +
+      row.extraTotal;
     /* No trip → nothing to allocate the month's fixed cost onto (see
      * `fixedCostWithoutTrips`). Zeroed here, after both the manual rows and the
      * vehicle-level fallback have been summed, so neither source leaks through. */

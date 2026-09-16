@@ -93,6 +93,12 @@ export async function GET(req: Request) {
     tCol('status'),
     tCol('notes'),
   ];
+  /* "Other" column merges the 4 fixed cost types added REQ-20260916 (cleaning/
+   * repair/ferry/loading) with the freeform extra-cost total — same
+   * template-preserving treatment as the on-screen list and the monthly report
+   * export (truck-report-export.queries.ts). */
+  const otherAmount = (t: (typeof trips)[number]) =>
+    t.breakdown.extraTotal + t.breakdown.cleaningFee + t.breakdown.repairFee + t.breakdown.ferryFee + t.breakdown.loadingFee;
   const rows = trips.map((t) => [
     t.ref,
     new Date(t.scheduledAt).toISOString().slice(0, 10),
@@ -110,7 +116,7 @@ export async function GET(req: Request) {
     t.endOdometer ?? '',
     t.km ?? '',
     t.breakdown.tollFee,
-    t.breakdown.extraTotal,
+    otherAmount(t),
     t.extraNote ?? '',
     /* This export mirrors the trip-log screen, so fuel is the trip's OWN
      * recorded spend (REQ-20260822) — litres × price as entered, not the
@@ -121,8 +127,8 @@ export async function GET(req: Request) {
     Math.round(t.fuelActualLiters * 10) / 10,
     t.fuelActualCost,
     t.breakdown.revenue,
-    t.fuelActualCost + t.breakdown.tollFee + t.breakdown.extraTotal,
-    t.breakdown.revenue - (t.fuelActualCost + t.breakdown.tollFee + t.breakdown.extraTotal),
+    t.fuelActualCost + t.breakdown.tollFee + otherAmount(t),
+    t.breakdown.revenue - (t.fuelActualCost + t.breakdown.tollFee + otherAmount(t)),
     tStatus(t.status),
     t.notes ?? '',
   ]);

@@ -83,6 +83,10 @@ export default async function DriverEditTruckTripPage({
     fuelPrice: trip.trpFuelPrice ?? '',
     fuelLiters: trip.trpFuelLiters ?? '',
     toll: trip.trpTollFee ?? '',
+    cleaning: trip.trpCleaningFee ?? '',
+    repair: trip.trpRepairFee ?? '',
+    ferry: trip.trpFerryFee ?? '',
+    loading: trip.trpLoadingFee ?? '',
     extraCosts: extras.map((e) => ({ name: e.name, amount: e.amount })),
     costAttachments: costAttachments.map((a) => ({
       id: a.id,

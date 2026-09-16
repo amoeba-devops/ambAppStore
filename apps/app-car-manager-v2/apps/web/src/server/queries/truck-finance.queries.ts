@@ -285,6 +285,10 @@ export interface TruckFinanceTripRow {
   km: number;
   toll: number;
   extra: number;
+  /** Σ of the 4 fixed cost types added REQ-20260916 (cleaning/repair/ferry/
+   * loading) — kept apart from `extra` (see note at the call site) but always
+   * included in `profit`. */
+  fixedFees: number;
   /** Unit price shown: month avg (closed) or the trip's own price (open). */
   unitPrice: number;
   /** Litres shown: km × consumption (closed) or the trip's own litres (open). */
@@ -354,6 +358,10 @@ export async function listTruckFinanceTrips(
         so: carTrips.trpStartOdometer,
         eo: carTrips.trpEndOdometer,
         toll: carTrips.trpTollFee,
+        cleaningFee: carTrips.trpCleaningFee,
+        repairFee: carTrips.trpRepairFee,
+        ferryFee: carTrips.trpFerryFee,
+        loadingFee: carTrips.trpLoadingFee,
         revenue: carTrips.trpRevenue,
         updatedAt: carTrips.trpUpdatedAt,
       })
@@ -409,6 +417,19 @@ export async function listTruckFinanceTrips(
     const km = t.so != null && t.eo != null ? t.eo - t.so : 0;
     const toll = Math.round(parseAmount(t.toll));
     const extra = Math.round(extraByTrip.get(t.trpId) ?? 0);
+    /* Fixed cost types added REQ-20260916 (cleaning/repair/ferry/loading) —
+     * kept as a SEPARATE field rather than folded into `extra`: the report
+     * review screen writes an edited `extra` back via patchTruckTripCostsAction,
+     * which only replaces car_trip_extra_costs (the freeform rows) — folding
+     * these fixed columns into the same number would make an edit there
+     * silently double-count them on the next read. Still included in `profit`
+     * so the P&L figure is correct everywhere. */
+    const fixedFees = Math.round(
+      parseAmount(t.cleaningFee) +
+        parseAmount(t.repairFee) +
+        parseAmount(t.ferryFee) +
+        parseAmount(t.loadingFee),
+    );
     const revenue = Math.round(parseAmount(t.revenue));
     /* "Đã lập BC" once a report for this trip's (month, region) exists AND was
      * generated after the trip's last change — a trip logged afterwards was
@@ -431,11 +452,12 @@ export async function listTruckFinanceTrips(
       km,
       toll,
       extra,
+      fixedFees,
       unitPrice: fuel.unitPrice,
       liters: fuel.liters,
       fuelCost,
       revenue,
-      profit: revenue - fuelCost - toll - extra,
+      profit: revenue - fuelCost - toll - fixedFees - extra,
       finalized,
       fuelCostPerKm: fuel.costPerKm,
       fuelMode: fuel.mode,
@@ -499,6 +521,10 @@ export interface ReportReviewTrip {
   km: number;
   toll: number;
   extra: number;
+  /** Σ of the 4 fixed cost types added REQ-20260916 — not user-editable on
+   * this screen (see note on `TruckFinanceTripRow.fixedFees`), only rolled
+   * into `profit`. */
+  fixedFees: number;
   fuelCost: number;
   revenue: number;
   profit: number;
@@ -513,8 +539,11 @@ export interface ReportReviewVehicle {
   totalFuel: number;
   totalToll: number;
   totalExtra: number;
+  /** Σ of the 4 fixed cost types added REQ-20260916 (cleaning/repair/ferry/
+   * loading) across this vehicle's trips this month. */
+  totalFixedFees: number;
   totalRevenue: number;
-  /** Σ trip profit (revenue − fuel − toll − extra) before fixed costs. */
+  /** Σ trip profit (revenue − fuel − toll − fixedFees − extra) before fixed costs. */
   variableProfit: number;
   /** Monthly fixed cost (salary/depreciation/insurance/driver) for this truck. */
   fixedCost: number;
@@ -557,6 +586,10 @@ export interface TruckReportReview {
     fuel: number;
     toll: number;
     extra: number;
+    /** Σ of the 4 fixed cost types added REQ-20260916 (cleaning/repair/ferry/
+     * loading) — already rolled into `net`, kept separate here too for
+     * transparency. */
+    fixedFees: number;
     fixedCost: number;
     net: number;
   };
@@ -621,7 +654,7 @@ export async function getTruckReportReview(
      * one without previews the 0 it will actually get (no định mức fallback
      * since 2026-07-30). */
     const fuelCost = vf ? Math.round(t.km * vf.costPerKm) : t.fuelCost;
-    const profit = t.revenue - fuelCost - t.toll - t.extra;
+    const profit = t.revenue - fuelCost - t.toll - t.fixedFees - t.extra;
     const key = t.vehicleId ?? '∅';
     let g = byVeh.get(key);
     if (!g) {
@@ -633,6 +666,7 @@ export async function getTruckReportReview(
         totalFuel: 0,
         totalToll: 0,
         totalExtra: 0,
+        totalFixedFees: 0,
         totalRevenue: 0,
         variableProfit: 0,
         fixedCost: 0,
@@ -658,6 +692,7 @@ export async function getTruckReportReview(
       km: t.km,
       toll: t.toll,
       extra: t.extra,
+      fixedFees: t.fixedFees,
       fuelCost,
       revenue: t.revenue,
       profit,
@@ -667,6 +702,7 @@ export async function getTruckReportReview(
     g.totalFuel += fuelCost;
     g.totalToll += t.toll;
     g.totalExtra += t.extra;
+    g.totalFixedFees += t.fixedFees;
     g.totalRevenue += t.revenue;
     g.variableProfit += profit;
   }
@@ -694,10 +730,11 @@ export async function getTruckReportReview(
       fuel: a.fuel + v.totalFuel,
       toll: a.toll + v.totalToll,
       extra: a.extra + v.totalExtra,
+      fixedFees: a.fixedFees + v.totalFixedFees,
       fixedCost: a.fixedCost + v.fixedCost,
       net: a.net + v.variableProfit - v.fixedCost,
     }),
-    { tripCount: 0, revenue: 0, fuel: 0, toll: 0, extra: 0, fixedCost: 0, net: 0 },
+    { tripCount: 0, revenue: 0, fuel: 0, toll: 0, extra: 0, fixedFees: 0, fixedCost: 0, net: 0 },
   );
 
   return {

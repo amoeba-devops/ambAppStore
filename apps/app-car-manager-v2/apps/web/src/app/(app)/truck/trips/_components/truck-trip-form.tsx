@@ -19,6 +19,7 @@ import {
   toast,
 } from '@car-v2/ui';
 import type { LocalRole } from '@car-v2/shared/auth';
+import type { TripCostKind } from '@car-v2/shared/zod';
 import {
   createTruckTripAction,
   updateTruckTripAction,
@@ -34,7 +35,10 @@ import { uploadTruckCostFile } from '@/lib/truck-cost-upload';
 import { StopBuilder, makeDefaultStops, type StopField } from './stop-builder';
 import type { CarStopType, CarTripStopover } from '@car-v2/db/schema';
 
-type CostKind = 'FUEL' | 'TOLL' | 'EXTRA';
+type CostKind = TripCostKind;
+/** Fixed cost types CLEANING/REPAIR/FERRY/LOADING added REQ-20260916 — same
+ * tier as FUEL/TOLL/EXTRA. */
+const COST_KINDS: readonly CostKind[] = ['FUEL', 'TOLL', 'CLEANING', 'REPAIR', 'FERRY', 'LOADING', 'EXTRA'];
 /** Per-bucket receipt state: already-saved attachments + newly picked files. */
 interface ReceiptBucket {
   existing: StoredAttachment[];
@@ -76,6 +80,10 @@ export type TruckTripFormInitial = Partial<{
   fuelPrice: string;
   fuelLiters: string;
   toll: string;
+  cleaning: string;
+  repair: string;
+  ferry: string;
+  loading: string;
   extraCosts: { name: string; amount: number }[];
   costAttachments: InitialCostAttachment[];
   markCompleted: boolean;
@@ -101,6 +109,10 @@ const EMPTY_FIELDS = {
   fuelPrice: '',
   fuelLiters: '',
   toll: '',
+  cleaning: '',
+  repair: '',
+  ferry: '',
+  loading: '',
 };
 
 const numF = (s: string) => (s.trim() === '' ? undefined : Number(s));
@@ -177,6 +189,10 @@ export function TruckTripForm({
     const init: Record<CostKind, ReceiptBucket> = {
       FUEL: { existing: [], files: [] },
       TOLL: { existing: [], files: [] },
+      CLEANING: { existing: [], files: [] },
+      REPAIR: { existing: [], files: [] },
+      FERRY: { existing: [], files: [] },
+      LOADING: { existing: [], files: [] },
       EXTRA: { existing: [], files: [] },
     };
     for (const a of initial?.costAttachments ?? []) {
@@ -202,7 +218,7 @@ export function TruckTripForm({
     { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number; file_name?: string }[]
   > => {
     const out: { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number; file_name?: string }[] = [];
-    for (const k of ['FUEL', 'TOLL', 'EXTRA'] as const) {
+    for (const k of COST_KINDS) {
       for (const e of receipts[k].existing) {
         out.push({
           cost_kind: k,
@@ -254,15 +270,19 @@ export function TruckTripForm({
   const preview = useMemo(() => {
     const fuelCost = Math.round((numF(f.fuelLiters) ?? 0) * (numF(f.fuelPrice) ?? 0));
     const toll = Math.round(numF(f.toll) ?? 0);
+    const cleaning = Math.round(numF(f.cleaning) ?? 0);
+    const repair = Math.round(numF(f.repair) ?? 0);
+    const ferry = Math.round(numF(f.ferry) ?? 0);
+    const loading = Math.round(numF(f.loading) ?? 0);
     /* Sum raw amounts THEN round once — matches every server-side site
      * (truck-cost.ts, truck-pnl.service.ts, truck-finance.queries.ts, ...).
      * Rounding each line first can disagree by a few đồng once ≥2 rows carry
      * fractional đồng. */
     const extraTotal = Math.round(extras.reduce((s, e) => s + (numF(e.amount) ?? 0), 0));
     const revenue = Math.round(numF(f.revenue) ?? 0);
-    const totalCost = fuelCost + toll + extraTotal;
+    const totalCost = fuelCost + toll + cleaning + repair + ferry + loading + extraTotal;
     return { fuelCost, totalCost, revenue, profit: revenue - totalCost };
-  }, [f.fuelLiters, f.fuelPrice, f.toll, f.revenue, extras]);
+  }, [f.fuelLiters, f.fuelPrice, f.toll, f.cleaning, f.repair, f.ferry, f.loading, f.revenue, extras]);
 
   /* Extract pickup/dropoff from stops for the API (summary + notification). */
   const pickupStop = stops.find((s) => s.type === 'PICKUP');
@@ -349,6 +369,10 @@ export function TruckTripForm({
         end_odometer: numI(stops.slice().reverse().find((s) => s.type === 'RETURN')?.km ?? stops[stops.length - 1]?.km ?? ''),
         fuel_liters: numF(f.fuelLiters),
         toll_fee: numF(f.toll),
+        cleaning_fee: numF(f.cleaning),
+        repair_fee: numF(f.repair),
+        ferry_fee: numF(f.ferry),
+        loading_fee: numF(f.loading),
         extra_costs: extras
           .filter((e) => e.name.trim() !== '' && e.amount.trim() !== '')
           .map((e) => ({ name: e.name.trim(), amount: Number(e.amount) })),
@@ -386,7 +410,7 @@ export function TruckTripForm({
   const receiptsBlock = (
     <div className="mt-4 pt-4 border-t border-border space-y-3">
       <div className="text-xs font-medium text-text-muted uppercase tracking-wide">{t('receiptsSection')}</div>
-      {(['FUEL', 'TOLL', 'EXTRA'] as const).map((k) => (
+      {COST_KINDS.map((k) => (
         <div key={k} className="space-y-1.5">
           <div className="text-xs text-text-muted">{t(RECEIPT_LABEL[k])}</div>
           <AttachmentInput
@@ -566,6 +590,18 @@ export function TruckTripForm({
                 <FormField label={t('toll')} inline className="sm:col-span-2">
                   <MoneyInput value={f.toll} onChange={setNum('toll')} />
                 </FormField>
+                <FormField label={t('cleaning')} inline>
+                  <MoneyInput value={f.cleaning} onChange={setNum('cleaning')} />
+                </FormField>
+                <FormField label={t('repair')} inline>
+                  <MoneyInput value={f.repair} onChange={setNum('repair')} />
+                </FormField>
+                <FormField label={t('ferry')} inline>
+                  <MoneyInput value={f.ferry} onChange={setNum('ferry')} />
+                </FormField>
+                <FormField label={t('loading')} inline>
+                  <MoneyInput value={f.loading} onChange={setNum('loading')} />
+                </FormField>
               </div>
               <ExtrasCostSection extras={extras} t={t} onAdd={addExtra} onChange={setExtra} onRemove={removeExtra} />
               {receiptsBlock}
@@ -579,6 +615,18 @@ export function TruckTripForm({
                 </FormField>
                 <FormField label={t('revenue')} inline>
                   <MoneyInput value={f.revenue} onChange={setNum('revenue')} />
+                </FormField>
+                <FormField label={t('cleaning')} inline>
+                  <MoneyInput value={f.cleaning} onChange={setNum('cleaning')} />
+                </FormField>
+                <FormField label={t('repair')} inline>
+                  <MoneyInput value={f.repair} onChange={setNum('repair')} />
+                </FormField>
+                <FormField label={t('ferry')} inline>
+                  <MoneyInput value={f.ferry} onChange={setNum('ferry')} />
+                </FormField>
+                <FormField label={t('loading')} inline>
+                  <MoneyInput value={f.loading} onChange={setNum('loading')} />
                 </FormField>
               </div>
               <ExtrasCostSection extras={extras} t={t} onAdd={addExtra} onChange={setExtra} onRemove={removeExtra} />
@@ -640,6 +688,10 @@ const GRID = 'grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-3 lg:gap-y-4';
 const RECEIPT_LABEL: Record<CostKind, string> = {
   FUEL: 'fuelReceipts',
   TOLL: 'tollReceipts',
+  CLEANING: 'cleaningReceipts',
+  REPAIR: 'repairReceipts',
+  FERRY: 'ferryReceipts',
+  LOADING: 'loadingReceipts',
   EXTRA: 'extraReceipts',
 };
 
