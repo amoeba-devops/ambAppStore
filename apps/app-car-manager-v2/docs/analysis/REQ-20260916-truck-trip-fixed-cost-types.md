@@ -127,9 +127,16 @@ Dashboard tài chính / Báo cáo tháng
 - **Cap tổng attachment phải tăng 30 → 70** khi mở rộng từ 3 lên 7 nhóm ([truck-trip.zod.ts:46](../../packages/shared/src/zod/truck-trip.zod.ts#L46)) — dễ bỏ sót vì con số 30 không tự động theo số lượng enum.
 - **Nhóm "Khác" giữ mã nội bộ `EXTRA`**, chỉ đổi label hiển thị thành "Hóa đơn khác" — tránh phải migrate dữ liệu
   `tca_cost_kind='EXTRA'` đã lưu cho các chuyến cũ.
-- ❓ **Cần xác nhận KH**: báo cáo tháng Excel (định dạng đã duyệt — REQ-20260713) có cần thêm 4 cột riêng cho 4 khoản
-  phí mới, hay gộp chung vào cột "Chi phí phát sinh khác" hiện có (ít rủi ro hơn, không đổi template đã duyệt)? Đề
-  xuất mặc định: **gộp vào cột hiện có ở Phase đầu**, tách cột riêng ở phase sau nếu KH yêu cầu — xem PLN §Phase 6.
+- ✅ **Đã quyết định (2026-09-17, đảo ngược đề xuất mặc định ban đầu)**: báo cáo tháng Excel (`truck-report-export.queries.ts`
+  + `truck-monthly-summary-workbook.ts`) và file xuất "Danh sách chuyến đi" (`truck/trips/export/route.ts`) đều hiển
+  thị **4 dòng/cột riêng** cho 4 khoản phí mới, KHÔNG gộp vào "Chi phí phát sinh". Báo cáo tháng: thêm dòng B21-B24,
+  mọi dòng bên dưới dịch xuống 5 dòng so với template R1 gốc (không còn khớp 1:1 với form giấy — chấp nhận đánh đổi
+  này để đổi lấy sự rõ ràng). Tổng chi phí/lợi nhuận không đổi, chỉ redistribute qua nhiều dòng hơn.
+- ✅ **Đã quyết định (2026-09-17, follow-up)**: khoản "chi phí phát sinh" tự do (tên+số tiền tự nhập, "+ Thêm khoản
+  phí") cũng phải liệt kê rõ tên, không chỉ hiện tổng số. Báo cáo tháng: thêm dòng B26 (ẩn khi rỗng) — "Bao gồm: {tên
+  các khoản, phân biệt theo distinct name trong tháng/phạm vi}" ngay dưới dòng "Chi phí phát sinh"; mọi dòng dưới B26
+  dịch thêm +1 (tổng cộng +6 so với R1 gốc). File xuất "Danh sách chuyến đi" đã có sẵn cột "Ghi chú phát sinh" liệt kê
+  theo từng chuyến từ trước — rà soát lại xác nhận không cần sửa thêm.
 - ❓ **Cần xác nhận KH**: 4 khoản phí mới có tính vào **Lợi nhuận** (trừ trực tiếp như Toll) ngay, hay chỉ hiển thị
   để theo dõi (không đổi công thức lợi nhuận) ở giai đoạn đầu? Yêu cầu gốc dùng từ "chi phí phát sinh" giống Toll nên
   mặc định coi là **có tính vào lợi nhuận** — nêu rõ để KH xác nhận trước khi merge vì số lợi nhuận hiển thị trên
