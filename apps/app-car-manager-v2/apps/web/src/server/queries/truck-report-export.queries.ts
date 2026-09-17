@@ -73,7 +73,13 @@ export interface ReportVehiclePnlRow {
   maintenance: number;
   toll: number; // Phí cầu đường
   fuel: number; // Phí xăng dầu
-  extra: number; // Tổng phí phát sinh
+  /* Fixed cost types added REQ-20260916 — own line each in the Monthly Summary
+   * template (client decision 2026-09-17: show separately, don't fold). */
+  cleaningFee: number;
+  repairFee: number;
+  ferryFee: number;
+  loadingFee: number;
+  extra: number; // Chi phí phát sinh khác (freeform only, không gồm 4 phí cố định trên)
   net: number; // Lợi nhuận ròng
   /* Monthly Summary template additions (REQ-20260713). */
   tripCount: number; // Số chuyến
@@ -126,6 +132,10 @@ export interface TruckReportExport {
     maintenance: number; // Bảo trì (dòng riêng B25, REQ-20260904)
     toll: number;
     fuel: number;
+    cleaningFee: number;
+    repairFee: number;
+    ferryFee: number;
+    loadingFee: number;
     extra: number;
     net: number;
   };
@@ -417,9 +427,14 @@ export async function getTruckReportExport(
         maintenance: p.maintenanceCost,
         toll: p.tollFee,
         fuel: p.fuelCost,
-        /* Fixed cost types added REQ-20260916 fold into "extra" here too — same
-         * template-preserving decision as the trip-log sheet above. */
-        extra: p.extraTotal + p.cleaningFee + p.repairFee + p.ferryFee + p.loadingFee,
+        /* Fixed cost types added REQ-20260916 get their own line each in the
+         * Monthly Summary template (client decision 2026-09-17) — no longer
+         * folded into "extra". */
+        cleaningFee: p.cleaningFee,
+        repairFee: p.repairFee,
+        ferryFee: p.ferryFee,
+        loadingFee: p.loadingFee,
+        extra: p.extraTotal,
         net: p.netProfit,
         tripCount: p.tripCount,
         km: agg.km,
@@ -445,10 +460,17 @@ export async function getTruckReportExport(
         maintenance: a.maintenance + v.maintenance,
         toll: a.toll + v.toll,
         fuel: a.fuel + v.fuel,
+        cleaningFee: a.cleaningFee + v.cleaningFee,
+        repairFee: a.repairFee + v.repairFee,
+        ferryFee: a.ferryFee + v.ferryFee,
+        loadingFee: a.loadingFee + v.loadingFee,
         extra: a.extra + v.extra,
         net: a.net + v.net,
       }),
-      { salary: 0, revenue: 0, fixedOther: 0, depreciation: 0, maintenance: 0, toll: 0, fuel: 0, extra: 0, net: 0 },
+      {
+        salary: 0, revenue: 0, fixedOther: 0, depreciation: 0, maintenance: 0, toll: 0, fuel: 0,
+        cleaningFee: 0, repairFee: 0, ferryFee: 0, loadingFee: 0, extra: 0, net: 0,
+      },
     );
   } else {
     const [tot] = await computeTruckPnl(actor, { region, vehicleIds: vehicleScope, months: [month] });
@@ -460,12 +482,11 @@ export async function getTruckReportExport(
       maintenance: tot?.maintenanceCost ?? 0,
       toll: tot?.tollFee ?? 0,
       fuel: tot?.fuelCost ?? 0,
-      extra:
-        (tot?.extraTotal ?? 0) +
-        (tot?.cleaningFee ?? 0) +
-        (tot?.repairFee ?? 0) +
-        (tot?.ferryFee ?? 0) +
-        (tot?.loadingFee ?? 0),
+      cleaningFee: tot?.cleaningFee ?? 0,
+      repairFee: tot?.repairFee ?? 0,
+      ferryFee: tot?.ferryFee ?? 0,
+      loadingFee: tot?.loadingFee ?? 0,
+      extra: tot?.extraTotal ?? 0,
       net: tot?.netProfit ?? 0,
     };
   }

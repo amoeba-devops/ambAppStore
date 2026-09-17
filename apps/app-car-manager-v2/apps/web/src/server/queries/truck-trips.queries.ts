@@ -335,14 +335,6 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
     const repairFee = Math.round(parseAmount(t.trpRepairFee));
     const ferryFee = Math.round(parseAmount(t.trpFerryFee));
     const loadingFee = Math.round(parseAmount(t.trpLoadingFee));
-    /* Fixed cost types added REQ-20260916 (cleaning/repair/ferry/loading) fold
-     * into `extraNote` alongside the freeform names — same traceability
-     * convention as the monthly report export (truck-report-export.queries.ts). */
-    const newFeeNames: string[] = [];
-    if (cleaningFee > 0) newFeeNames.push('Vệ sinh phương tiện');
-    if (repairFee > 0) newFeeNames.push('Sửa chữa');
-    if (ferryFee > 0) newFeeNames.push('Cầu phà');
-    if (loadingFee > 0) newFeeNames.push('Bốc dỡ hàng hóa');
     const extraTotal = Math.round(extraCosts.reduce((s, n) => s + (n || 0), 0));
     const revenue = Math.round(parseAmount(t.trpRevenue));
     const totalCost = fuel.cost + tollFee + cleaningFee + repairFee + ferryFee + loadingFee + extraTotal;
@@ -388,7 +380,7 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
       dropoff: t.trpDropoffAddress,
       cdf: t.trpCdf,
       notes: t.trpNotes,
-      extraNote: [...newFeeNames, ...(extraNoteByTrip.get(t.trpId) ?? [])].join(', ') || null,
+      extraNote: (extraNoteByTrip.get(t.trpId) ?? []).join(', ') || null,
       fuelUnitPrice,
       fuelLiters,
       fuelActualLiters,

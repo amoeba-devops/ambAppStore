@@ -21,17 +21,19 @@ import { loadTruckReportLogo, TRUCK_REPORT_LOGO_SIZE } from './truck-report-logo
  *   8-9   date · month · prepared-by
  *   11-13 KPI tiles (xe / chuyến / km / lợi nhuận)
  *   15-16 A. Doanh thu
- *   18-26 B. Chi phí (7 dòng + Σ — dòng 25 "Chi phí bảo trì" thêm REQ-20260904,
- *         mọi mục dưới dịch xuống 1 dòng so với template R1)
- *   28-30 C. Lợi nhuận (lợi nhuận gộp, margin)
- *   32-35 D. Hiệu quả nhiên liệu
- *   37-38 E. header · 39..  per-truck rows · then TỔNG
+ *   18-30 B. Chi phí (11 dòng + Σ — dòng 21-24 "Phí vệ sinh/sửa chữa/cầu phà/bốc
+ *         dỡ" thêm REQ-20260916 (client decision 2026-09-17: dòng riêng, không
+ *         gộp vào "Chi phí phát sinh"); mọi mục dưới dịch xuống 5 dòng so với
+ *         template R1 gốc)
+ *   32-34 C. Lợi nhuận (lợi nhuận gộp, margin)
+ *   36-39 D. Hiệu quả nhiên liệu
+ *   41-42 E. header · 43..  per-truck rows · then TỔNG
  *
  * Numbers come from getTruckReportExport (same core as the finance screen) and
  * are identical on all three sheets — only the text and the locale-formatted
  * separators differ. Aggregates use real Excel formulas (SUM / IFERROR) with
  * cached results, so the file both shows values immediately and recalculates
- * when edited. Invariants: C26 = SUM(C19:C25); C29 = C16 − C26 = KPI profit; the
+ * when edited. Invariants: C30 = SUM(C19:C29); C33 = C16 − C30 = KPI profit; the
  * E-table TỔNG row equals the A/B/C blocks column-for-column.
  */
 
@@ -264,8 +266,9 @@ function writeSummarySheet(
   const heights: Record<number, number> = {
     1: 7.5, 2: 19.5, 3: 13.5, 4: 13.5, 5: 9.75, 6: 7.5, 7: 24, 8: 15.75, 9: 18, 10: 7.5,
     11: 13.5, 12: 21.75, 13: 15.75, 14: 7.5, 15: 18, 16: 15.75, 17: 6, 18: 18,
-    19: 15.75, 20: 15.75, 21: 15.75, 22: 15.75, 23: 15.75, 24: 15.75, 25: 15.75, 26: 18, 27: 6,
-    28: 18, 29: 18, 30: 15.75, 31: 7.5, 32: 18, 33: 15.75, 34: 15.75, 35: 15.75, 36: 7.5, 37: 18, 38: 18,
+    19: 15.75, 20: 15.75, 21: 15.75, 22: 15.75, 23: 15.75, 24: 15.75, 25: 15.75, 26: 15.75, 27: 15.75,
+    28: 15.75, 29: 15.75, 30: 18, 31: 6,
+    32: 18, 33: 18, 34: 15.75, 35: 7.5, 36: 18, 37: 15.75, 38: 15.75, 39: 15.75, 40: 7.5, 41: 18, 42: 18,
   };
   for (const [r, h] of Object.entries(heights)) ws.getRow(Number(r)).height = h;
 
@@ -334,50 +337,57 @@ function writeSummarySheet(
   /* ── B. Chi phí ──────────────────────────────────────────────────────────── */
   sectionHeader(18, t('secExpenses'));
   const insurance = data.totals.fixedOther - data.totals.depreciation;
-  /* Row 25 "Chi phí bảo trì" (REQ-20260904) is its OWN line — "Chi phí khác"
-   * (row 24, insurance/other) stays what it was (user decision Q2). Everything
-   * from the Σ row down shifts by one versus the R1 template. */
+  /* Rows 21-24 "Phí vệ sinh/sửa chữa/cầu phà/bốc dỡ" (REQ-20260916) are their
+   * OWN lines — client decision 2026-09-17 to show each fixed cost type
+   * separately instead of folding into "Chi phí phát sinh". Everything from
+   * the Σ row down now shifts by 5 versus the R1 template (was 1, for the
+   * REQ-20260904 maintenance row). */
   const expenses: [number, string, number][] = [
     [19, `    ${t('lineFuel')}`, data.totals.fuel],
     [20, `    ${t('lineToll')}`, data.totals.toll],
-    [21, `    ${t('lineExtra')}`, data.totals.extra],
-    [22, `    ${t('lineSalary')}`, data.totals.salary],
-    [23, `    ${t('lineDepreciation')}`, data.totals.depreciation],
-    [24, `    ${t('lineOther')}`, insurance],
-    [25, `    ${t('lineMaintenance')}`, data.totals.maintenance],
+    [21, `    ${t('lineCleaning')}`, data.totals.cleaningFee],
+    [22, `    ${t('lineRepair')}`, data.totals.repairFee],
+    [23, `    ${t('lineFerry')}`, data.totals.ferryFee],
+    [24, `    ${t('lineLoading')}`, data.totals.loadingFee],
+    [25, `    ${t('lineExtra')}`, data.totals.extra],
+    [26, `    ${t('lineSalary')}`, data.totals.salary],
+    [27, `    ${t('lineDepreciation')}`, data.totals.depreciation],
+    [28, `    ${t('lineOther')}`, insurance],
+    [29, `    ${t('lineMaintenance')}`, data.totals.maintenance],
   ];
   for (const [r, label, val] of expenses) {
     line(r, label, val, { fill: r % 2 === 0 ? LIGHT : WHITE, fmt: MONEY, color: DARK });
   }
   const totalExpenses =
-    data.totals.fuel + data.totals.toll + data.totals.extra + data.totals.salary + data.totals.depreciation + insurance + data.totals.maintenance;
-  line(26, t('lineTotalExpenses'),
-    { formula: 'SUM(C19:C25)', result: totalExpenses } as ExcelJS.CellValue,
+    data.totals.fuel + data.totals.toll + data.totals.cleaningFee + data.totals.repairFee + data.totals.ferryFee +
+    data.totals.loadingFee + data.totals.extra + data.totals.salary + data.totals.depreciation + insurance + data.totals.maintenance;
+  line(30, t('lineTotalExpenses'),
+    { formula: 'SUM(C19:C29)', result: totalExpenses } as ExcelJS.CellValue,
     { fill: TOTAL_FILL, fmt: MONEY, color: RED, bold: true, size: 9, borderColor: B_INDIGO });
-  set('B26', t('lineTotalExpenses'), { fill: TOTAL_FILL, color: INK, bold: true, size: typo.totalLabel, borderColor: B_INDIGO });
+  set('B30', t('lineTotalExpenses'), { fill: TOTAL_FILL, color: INK, bold: true, size: typo.totalLabel, borderColor: B_INDIGO });
 
   /* ── C. Kết quả ──────────────────────────────────────────────────────────── */
-  sectionHeader(28, t('secResult'));
+  sectionHeader(32, t('secResult'));
   const netColor = data.totals.net >= 0 ? GREEN : RED;
-  line(29, t('lineGrossProfit'),
-    { formula: 'C16-C26', result: data.totals.net } as ExcelJS.CellValue,
+  line(33, t('lineGrossProfit'),
+    { formula: 'C16-C30', result: data.totals.net } as ExcelJS.CellValue,
     { fill: WHITE, fmt: MONEY, color: netColor, bold: true, size: 9 });
-  set('B29', t('lineGrossProfit'), { fill: WHITE, color: INK, bold: true, size: 9 });
-  line(30, t('lineMargin'),
-    { formula: 'IFERROR(C29/C16,"")', result: data.totals.revenue !== 0 ? data.totals.net / data.totals.revenue : '' } as ExcelJS.CellValue,
+  set('B33', t('lineGrossProfit'), { fill: WHITE, color: INK, bold: true, size: 9 });
+  line(34, t('lineMargin'),
+    { formula: 'IFERROR(C33/C16,"")', result: data.totals.revenue !== 0 ? data.totals.net / data.totals.revenue : '' } as ExcelJS.CellValue,
     { fill: LIGHT, fmt: PERCENT, color: netColor });
 
   /* ── D. Hiệu quả nhiên liệu ──────────────────────────────────────────────── */
-  sectionHeader(32, t('secFuel'));
+  sectionHeader(36, t('secFuel'));
   const totalLiters = data.vehicles.reduce((a, v) => a + v.liters, 0);
   const kmPerL = totalLiters > 0 ? Math.round((s.totalKm / totalLiters) * 100) / 100 : 0;
   const costPerKm = s.totalKm > 0 ? Math.round(data.totals.fuel / s.totalKm) : 0;
-  line(33, t('lineTotalFuel'), Math.round(totalLiters * 10) / 10, { fill: WHITE, fmt: LITERS1, color: DARK });
-  line(34, t('lineKmPerL'), kmPerL, { fill: LIGHT, fmt: KM_PER_L, color: GREEN });
-  line(35, t('lineFuelPerKm'), costPerKm, { fill: WHITE, fmt: DONG_KM, color: AMBER });
+  line(37, t('lineTotalFuel'), Math.round(totalLiters * 10) / 10, { fill: WHITE, fmt: LITERS1, color: DARK });
+  line(38, t('lineKmPerL'), kmPerL, { fill: LIGHT, fmt: KM_PER_L, color: GREEN });
+  line(39, t('lineFuelPerKm'), costPerKm, { fill: WHITE, fmt: DONG_KM, color: AMBER });
 
   /* ── E. Chi tiết từng xe ─────────────────────────────────────────────────── */
-  sectionHeader(37, t('secPerTruck'));
+  sectionHeader(41, t('secPerTruck'));
   const eHead: [string, string, Align][] = [
     ['B', t('thDriver'), 'left'], ['C', t('thPlate'), 'center'], ['D', t('thTrips'), 'center'],
     ['E', t('thKm'), 'center'], ['F', t('thRevenue'), 'center'], ['G', t('thCost'), 'center'],
@@ -385,10 +395,10 @@ function writeSummarySheet(
     ['K', t('thMargin'), 'center'], ['L', t('thStatus'), 'center'],
   ];
   for (const [c, text, align] of eHead) {
-    set(`${c}38`, text, { size: 8, bold: true, color: GRAY, fill: HEAD_FILL, align, borderColor: B_META });
+    set(`${c}42`, text, { size: 8, bold: true, color: GRAY, fill: HEAD_FILL, align, borderColor: B_META });
   }
 
-  const first = 39;
+  const first = 43;
   data.vehicles.forEach((v, i) => {
     const r = first + i;
     ws.getRow(r).height = 19.5;
