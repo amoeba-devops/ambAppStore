@@ -100,7 +100,7 @@ export const createTruckTripSchema = z.object({
   loading_fee: z.number().nonnegative().optional(),
   extra_costs: z
     .array(z.object({ name: z.string().trim().min(1).max(255), amount: z.number().nonnegative() }))
-    .max(50)
+    .max(100)
     .optional(),
   /** Receipt/invoice attachments for this trip's costs (REQ-20260709). */
   cost_attachments: costAttachmentsField,
@@ -145,7 +145,7 @@ export const completeTruckTripSchema = z.object({
   loading_fee: z.number().nonnegative().optional(),
   extra_costs: z
     .array(z.object({ name: z.string().trim().min(1).max(255), amount: z.number().nonnegative() }))
-    .max(50)
+    .max(100)
     .optional(),
   /** Receipt/invoice attachments for this trip's costs (REQ-20260709). */
   cost_attachments: costAttachmentsField,
