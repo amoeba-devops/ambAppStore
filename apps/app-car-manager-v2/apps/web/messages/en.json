@@ -1781,6 +1781,7 @@
       "lineFerry": "Ferry/bridge fee",
       "lineLoading": "Loading/unloading fee",
       "lineExtra": "Additional expenses",
+      "lineExtraNote": "Includes: {names}",
       "lineSalary": "Driver salary",
       "lineDepreciation": "Truck Depreciation",
       "lineOther": "Other fee",

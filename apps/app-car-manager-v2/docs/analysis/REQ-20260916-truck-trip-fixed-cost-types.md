@@ -132,6 +132,11 @@ Dashboard tài chính / Báo cáo tháng
   thị **4 dòng/cột riêng** cho 4 khoản phí mới, KHÔNG gộp vào "Chi phí phát sinh". Báo cáo tháng: thêm dòng B21-B24,
   mọi dòng bên dưới dịch xuống 5 dòng so với template R1 gốc (không còn khớp 1:1 với form giấy — chấp nhận đánh đổi
   này để đổi lấy sự rõ ràng). Tổng chi phí/lợi nhuận không đổi, chỉ redistribute qua nhiều dòng hơn.
+- ✅ **Đã quyết định (2026-09-17, follow-up)**: khoản "chi phí phát sinh" tự do (tên+số tiền tự nhập, "+ Thêm khoản
+  phí") cũng phải liệt kê rõ tên, không chỉ hiện tổng số. Báo cáo tháng: thêm dòng B26 (ẩn khi rỗng) — "Bao gồm: {tên
+  các khoản, phân biệt theo distinct name trong tháng/phạm vi}" ngay dưới dòng "Chi phí phát sinh"; mọi dòng dưới B26
+  dịch thêm +1 (tổng cộng +6 so với R1 gốc). File xuất "Danh sách chuyến đi" đã có sẵn cột "Ghi chú phát sinh" liệt kê
+  theo từng chuyến từ trước — rà soát lại xác nhận không cần sửa thêm.
 - ❓ **Cần xác nhận KH**: 4 khoản phí mới có tính vào **Lợi nhuận** (trừ trực tiếp như Toll) ngay, hay chỉ hiển thị
   để theo dõi (không đổi công thức lợi nhuận) ở giai đoạn đầu? Yêu cầu gốc dùng từ "chi phí phát sinh" giống Toll nên
   mặc định coi là **có tính vào lợi nhuận** — nêu rõ để KH xác nhận trước khi merge vì số lợi nhuận hiển thị trên

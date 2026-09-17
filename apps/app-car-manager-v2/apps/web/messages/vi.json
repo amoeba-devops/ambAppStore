@@ -1781,6 +1781,7 @@
       "lineFerry": "Phí cầu phà",
       "lineLoading": "Phí bốc dỡ hàng hóa",
       "lineExtra": "Chi phí phát sinh",
+      "lineExtraNote": "Bao gồm: {names}",
       "lineSalary": "Lương tài xế",
       "lineDepreciation": "Khấu hao xe",
       "lineOther": "Chi phí khác",

@@ -124,6 +124,11 @@ export interface TruckReportExport {
   vehicles: ReportVehiclePnlRow[];
   summary: TruckReportSummary;
   header: TruckReportHeader;
+  /** Distinct freeform "chi phí khác" names across every trip in scope this
+   * month (REQ-20260916 follow-up, client decision 2026-09-17: the Monthly
+   * Summary must also spell out what's inside "Chi phí phát sinh", not just
+   * the total). Order = first-seen. */
+  extraNames: string[];
   totals: {
     salary: number;
     revenue: number;
@@ -230,6 +235,13 @@ export async function getTruckReportExport(
       extraByTrip.set(e.trpId, g);
     }
   }
+  /* Distinct freeform names in trip-date order (`rows` is already ordered by
+   * trpScheduledAt), for the Monthly Summary's "Chi phí phát sinh" note. */
+  const extraNamesSet = new Set<string>();
+  for (const t of rows) {
+    for (const n of extraByTrip.get(t.trpId)?.notes ?? []) extraNamesSet.add(n);
+  }
+  const extraNames = [...extraNamesSet];
 
   /* Route stopovers, grouped by trip then by type (first address per type). */
   const routeByTrip = new Map<string, Partial<Record<string, string>>>();
@@ -540,5 +552,6 @@ export async function getTruckReportExport(
     summary,
     header,
     totals,
+    extraNames,
   };
 }
