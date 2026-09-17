@@ -14,28 +14,33 @@ import { loadTruckReportLogo, TRUCK_REPORT_LOGO_SIZE } from './truck-report-logo
  * comes from `exportContent.truckMonthlySummary` in that locale's message file,
  * so the vi sheet reproduces the client template verbatim.
  *
- * Structure per sheet (fixed rows):
+ * Structure per sheet — rows 1-18 fixed, everything from row 19 on is laid
+ * out by a running cursor (see `next()` in writeSummarySheet) because section
+ * B now has a variable number of rows:
  *   1     logo (floats top-right)
  *   2-4   company name / address / tel-fax
  *   7     title band
  *   8-9   date · month · prepared-by
  *   11-13 KPI tiles (xe / chuyến / km / lợi nhuận)
  *   15-16 A. Doanh thu
- *   18-31 B. Chi phí (11 dòng + Σ — dòng 21-24 "Phí vệ sinh/sửa chữa/cầu phà/bốc
- *         dỡ" thêm REQ-20260916 (client decision 2026-09-17: dòng riêng, không
- *         gộp vào "Chi phí phát sinh"); dòng 26 là ghi chú liệt kê tên các
- *         khoản "chi phí phát sinh" tự do (ẩn khi rỗng); mọi mục dưới dịch
- *         xuống 6 dòng so với template R1 gốc)
- *   33-35 C. Lợi nhuận (lợi nhuận gộp, margin)
- *   37-40 D. Hiệu quả nhiên liệu
- *   42-43 E. header · 44..  per-truck rows · then TỔNG
+ *   18-…  B. Chi phí — fuel/toll/4 phí cố định (REQ-20260916, dòng riêng
+ *         không gộp vào "Chi phí phát sinh") / "Chi phí phát sinh" (tổng) /
+ *         **0..N dòng ghi chú, một dòng cho mỗi khoản tự do khác nhau trong
+ *         tháng** (client decision 2026-09-17: liệt kê tên + số tiền thật
+ *         từng khoản, không gộp chung 1 dòng, không hiện dòng nào khi tháng
+ *         đó không có khoản tự do nào) / lương / khấu hao / khác / bảo trì / Σ
+ *   …     C. Lợi nhuận (lợi nhuận gộp, margin)
+ *   …     D. Hiệu quả nhiên liệu
+ *   …     E. header · per-truck rows · then TỔNG
  *
  * Numbers come from getTruckReportExport (same core as the finance screen) and
  * are identical on all three sheets — only the text and the locale-formatted
  * separators differ. Aggregates use real Excel formulas (SUM / IFERROR) with
  * cached results, so the file both shows values immediately and recalculates
- * when edited. Invariants: C31 = SUM(C19:C30); C34 = C16 − C31 = KPI profit; the
- * E-table TỔNG row equals the A/B/C blocks column-for-column.
+ * when edited. Invariants: "Tổng chi phí" = SUM(C19:C{that row - 1}) (the
+ * breakdown text rows in between have a blank column C, so they don't perturb
+ * the sum); "Lợi nhuận gộp" = C16 − "Tổng chi phí" = KPI profit; the E-table
+ * TỔNG row equals the A/B/C blocks column-for-column.
  */
 
 /* Typography per sheet. R1's Korean sheet is set in Malgun Gothic with bigger
@@ -264,12 +269,12 @@ function writeSummarySheet(
   const wide = spec.locale !== 'vi';
   const widths = wide ? WIDTHS_WIDE : WIDTHS_VI;
   for (const [col, w] of Object.entries(widths)) ws.getColumn(col).width = w;
+  /* Rows 1-18 (header/KPI/Section A) are always at the same position; row 19
+   * onward depends on how many freeform cost names exist this month, so
+   * those heights are set inline by the `next()` cursor further down. */
   const heights: Record<number, number> = {
     1: 7.5, 2: 19.5, 3: 13.5, 4: 13.5, 5: 9.75, 6: 7.5, 7: 24, 8: 15.75, 9: 18, 10: 7.5,
     11: 13.5, 12: 21.75, 13: 15.75, 14: 7.5, 15: 18, 16: 15.75, 17: 6, 18: 18,
-    19: 15.75, 20: 15.75, 21: 15.75, 22: 15.75, 23: 15.75, 24: 15.75, 25: 15.75, 26: 13, 27: 15.75,
-    28: 15.75, 29: 15.75, 30: 15.75, 31: 18, 32: 6,
-    33: 18, 34: 18, 35: 15.75, 36: 7.5, 37: 18, 38: 15.75, 39: 15.75, 40: 15.75, 41: 7.5, 42: 18, 43: 18,
   };
   for (const [r, h] of Object.entries(heights)) ws.getRow(Number(r)).height = h;
 
@@ -338,76 +343,99 @@ function writeSummarySheet(
   /* ── B. Chi phí ──────────────────────────────────────────────────────────── */
   sectionHeader(18, t('secExpenses'));
   const insurance = data.totals.fixedOther - data.totals.depreciation;
-  /* Rows 21-24 "Phí vệ sinh/sửa chữa/cầu phà/bốc dỡ" (REQ-20260916) are their
-   * OWN lines, and row 26 is a note spelling out what makes up "Chi phí phát
-   * sinh" (client decision 2026-09-17: don't just show a lump number for the
-   * freeform costs either) — everything from the Σ row down now shifts by 6
-   * versus the R1 template (was 1, for the REQ-20260904 maintenance row). */
-  const expenses: [number, string, number][] = [
-    [19, `    ${t('lineFuel')}`, data.totals.fuel],
-    [20, `    ${t('lineToll')}`, data.totals.toll],
-    [21, `    ${t('lineCleaning')}`, data.totals.cleaningFee],
-    [22, `    ${t('lineRepair')}`, data.totals.repairFee],
-    [23, `    ${t('lineFerry')}`, data.totals.ferryFee],
-    [24, `    ${t('lineLoading')}`, data.totals.loadingFee],
-    [25, `    ${t('lineExtra')}`, data.totals.extra],
-    [27, `    ${t('lineSalary')}`, data.totals.salary],
-    [28, `    ${t('lineDepreciation')}`, data.totals.depreciation],
-    [29, `    ${t('lineOther')}`, insurance],
-    [30, `    ${t('lineMaintenance')}`, data.totals.maintenance],
-  ];
-  for (const [r, label, val] of expenses) {
-    line(r, label, val, { fill: r % 2 === 0 ? LIGHT : WHITE, fmt: MONEY, color: DARK });
+  /* Rows 19-24 "Phí vệ sinh/sửa chữa/cầu phà/bốc dỡ" (REQ-20260916) are their
+   * OWN lines, and one text row per distinct freeform "chi phí phát sinh" item
+   * follows the aggregate line (client decision 2026-09-17: don't just show a
+   * lump number for the freeform costs either — each with its own real
+   * amount, none hidden as 0, skipped entirely when there's nothing that
+   * month). That breakdown is data-dependent, so from here on every row is
+   * addressed via a running cursor (`row`) instead of a literal — no more
+   * hand-renumbering the whole sheet per follow-up. */
+  let row = 19;
+  /* Returns the current row then advances the cursor, setting that row's
+   * height in the same step — keeps row/height always in sync even though
+   * the sheet's length now depends on how many freeform cost names exist. */
+  const next = (height: number): number => {
+    const r = row;
+    ws.getRow(r).height = height;
+    row++;
+    return r;
+  };
+  const fixedRow = (label: string, val: number) => {
+    const r = next(15.75);
+    line(r, `    ${label}`, val, { fill: r % 2 === 0 ? LIGHT : WHITE, fmt: MONEY, color: DARK });
+    return r;
+  };
+  fixedRow(t('lineFuel'), data.totals.fuel);
+  fixedRow(t('lineToll'), data.totals.toll);
+  fixedRow(t('lineCleaning'), data.totals.cleaningFee);
+  fixedRow(t('lineRepair'), data.totals.repairFee);
+  fixedRow(t('lineFerry'), data.totals.ferryFee);
+  fixedRow(t('lineLoading'), data.totals.loadingFee);
+  fixedRow(t('lineExtra'), data.totals.extra);
+  /* Breakdown of "Chi phí phát sinh" — text rows (blank column C) so they
+   * don't get double-counted by the SUM formula below; the aggregate value
+   * already lives on the "Chi phí phát sinh" row above. Real per-name sums
+   * only (see getTruckReportExport's extraByNameMap) — never a placeholder. */
+  for (const item of data.extraBreakdown) {
+    const r = next(13);
+    ws.mergeCells(`B${r}:${LAST}${r}`);
+    set(`B${r}`, `        ${item.name}: ${item.amount.toLocaleString(bcp47)}`,
+      { size: 7.5, italic: true, color: MUTE_IT, fill: r % 2 === 0 ? LIGHT : WHITE, align: 'left', noBorder: true });
   }
-  /* Note row under "Chi phí phát sinh" — distinct freeform cost names for the
-   * scope/month, same convention as the trip-list export's "Ghi chú phát
-   * sinh". Blank (not hidden) when there's nothing freeform this month. */
-  if (data.extraNames.length > 0) {
-    ws.mergeCells(`B26:${LAST}26`);
-    set('B26', t('lineExtraNote', { names: data.extraNames.join(', ') }),
-      { size: 7.5, italic: true, color: MUTE_IT, fill: WHITE, align: 'left', noBorder: true });
-  }
+  fixedRow(t('lineSalary'), data.totals.salary);
+  fixedRow(t('lineDepreciation'), data.totals.depreciation);
+  fixedRow(t('lineOther'), insurance);
+  fixedRow(t('lineMaintenance'), data.totals.maintenance);
   const totalExpenses =
     data.totals.fuel + data.totals.toll + data.totals.cleaningFee + data.totals.repairFee + data.totals.ferryFee +
     data.totals.loadingFee + data.totals.extra + data.totals.salary + data.totals.depreciation + insurance + data.totals.maintenance;
-  line(31, t('lineTotalExpenses'),
-    { formula: 'SUM(C19:C30)', result: totalExpenses } as ExcelJS.CellValue,
+  const totalExpensesRow = next(18);
+  /* The breakdown text rows in this range have a blank column C, so they
+   * don't perturb the sum — no need to carve them out of the range. */
+  line(totalExpensesRow, t('lineTotalExpenses'),
+    { formula: `SUM(C19:C${totalExpensesRow - 1})`, result: totalExpenses } as ExcelJS.CellValue,
     { fill: TOTAL_FILL, fmt: MONEY, color: RED, bold: true, size: 9, borderColor: B_INDIGO });
-  set('B31', t('lineTotalExpenses'), { fill: TOTAL_FILL, color: INK, bold: true, size: typo.totalLabel, borderColor: B_INDIGO });
+  set(`B${totalExpensesRow}`, t('lineTotalExpenses'), { fill: TOTAL_FILL, color: INK, bold: true, size: typo.totalLabel, borderColor: B_INDIGO });
+  next(6); // spacer
 
   /* ── C. Kết quả ──────────────────────────────────────────────────────────── */
-  sectionHeader(33, t('secResult'));
+  sectionHeader(next(18), t('secResult'));
   const netColor = data.totals.net >= 0 ? GREEN : RED;
-  line(34, t('lineGrossProfit'),
-    { formula: 'C16-C31', result: data.totals.net } as ExcelJS.CellValue,
+  const grossProfitRow = next(18);
+  line(grossProfitRow, t('lineGrossProfit'),
+    { formula: `C16-C${totalExpensesRow}`, result: data.totals.net } as ExcelJS.CellValue,
     { fill: WHITE, fmt: MONEY, color: netColor, bold: true, size: 9 });
-  set('B34', t('lineGrossProfit'), { fill: WHITE, color: INK, bold: true, size: 9 });
-  line(35, t('lineMargin'),
-    { formula: 'IFERROR(C34/C16,"")', result: data.totals.revenue !== 0 ? data.totals.net / data.totals.revenue : '' } as ExcelJS.CellValue,
+  set(`B${grossProfitRow}`, t('lineGrossProfit'), { fill: WHITE, color: INK, bold: true, size: 9 });
+  line(next(15.75), t('lineMargin'),
+    { formula: `IFERROR(C${grossProfitRow}/C16,"")`, result: data.totals.revenue !== 0 ? data.totals.net / data.totals.revenue : '' } as ExcelJS.CellValue,
     { fill: LIGHT, fmt: PERCENT, color: netColor });
+  next(7.5); // spacer
 
   /* ── D. Hiệu quả nhiên liệu ──────────────────────────────────────────────── */
-  sectionHeader(37, t('secFuel'));
+  sectionHeader(next(18), t('secFuel'));
   const totalLiters = data.vehicles.reduce((a, v) => a + v.liters, 0);
   const kmPerL = totalLiters > 0 ? Math.round((s.totalKm / totalLiters) * 100) / 100 : 0;
   const costPerKm = s.totalKm > 0 ? Math.round(data.totals.fuel / s.totalKm) : 0;
-  line(38, t('lineTotalFuel'), Math.round(totalLiters * 10) / 10, { fill: WHITE, fmt: LITERS1, color: DARK });
-  line(39, t('lineKmPerL'), kmPerL, { fill: LIGHT, fmt: KM_PER_L, color: GREEN });
-  line(40, t('lineFuelPerKm'), costPerKm, { fill: WHITE, fmt: DONG_KM, color: AMBER });
+  line(next(15.75), t('lineTotalFuel'), Math.round(totalLiters * 10) / 10, { fill: WHITE, fmt: LITERS1, color: DARK });
+  line(next(15.75), t('lineKmPerL'), kmPerL, { fill: LIGHT, fmt: KM_PER_L, color: GREEN });
+  line(next(15.75), t('lineFuelPerKm'), costPerKm, { fill: WHITE, fmt: DONG_KM, color: AMBER });
+  next(7.5); // spacer
 
   /* ── E. Chi tiết từng xe ─────────────────────────────────────────────────── */
-  sectionHeader(42, t('secPerTruck'));
+  sectionHeader(next(18), t('secPerTruck'));
   const eHead: [string, string, Align][] = [
     ['B', t('thDriver'), 'left'], ['C', t('thPlate'), 'center'], ['D', t('thTrips'), 'center'],
     ['E', t('thKm'), 'center'], ['F', t('thRevenue'), 'center'], ['G', t('thCost'), 'center'],
     ['H', t('thFuel'), 'center'], ['I', t('thKmPerL'), 'center'], ['J', t('thProfit'), 'center'],
     ['K', t('thMargin'), 'center'], ['L', t('thStatus'), 'center'],
   ];
+  const eHeadRow = next(18);
   for (const [c, text, align] of eHead) {
-    set(`${c}43`, text, { size: 8, bold: true, color: GRAY, fill: HEAD_FILL, align, borderColor: B_META });
+    set(`${c}${eHeadRow}`, text, { size: 8, bold: true, color: GRAY, fill: HEAD_FILL, align, borderColor: B_META });
   }
 
-  const first = 44;
+  const first = row;
   data.vehicles.forEach((v, i) => {
     const r = first + i;
     ws.getRow(r).height = 19.5;

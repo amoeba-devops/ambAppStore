@@ -124,11 +124,12 @@ export interface TruckReportExport {
   vehicles: ReportVehiclePnlRow[];
   summary: TruckReportSummary;
   header: TruckReportHeader;
-  /** Distinct freeform "chi phí khác" names across every trip in scope this
-   * month (REQ-20260916 follow-up, client decision 2026-09-17: the Monthly
-   * Summary must also spell out what's inside "Chi phí phát sinh", not just
-   * the total). Order = first-seen. */
-  extraNames: string[];
+  /** Per-name total of the freeform "chi phí khác" across every trip in scope
+   * this month (REQ-20260916 follow-up, client decision 2026-09-17: the
+   * Monthly Summary must spell out each item with its own amount, not just
+   * list names or show one lump total). Order = first-seen; Σ amount across
+   * this array always equals `totals.extra`. */
+  extraBreakdown: { name: string; amount: number }[];
   totals: {
     salary: number;
     revenue: number;
@@ -221,27 +222,29 @@ export async function getTruckReportExport(
 
   const ids = rows.map((r) => r.trpId);
 
-  /* Extra costs (sum + concatenated names → "Ghi chú chi phí phát sinh"). */
+  /* Extra costs (sum + concatenated names → "Ghi chú chi phí phát sinh"), plus
+   * a per-name total across the whole scope for the Monthly Summary's "Chi
+   * phí phát sinh" note. A blank name or a zero-amount item contributes
+   * nothing meaningful, so it's excluded from the note rather than shown as
+   * "…: 0" — real sums only, never a placeholder. */
   const extraByTrip = new Map<string, { amount: number; notes: string[] }>();
+  const extraByNameMap = new Map<string, number>();
   if (ids.length) {
     const extras = await db
       .select({ trpId: carTripExtraCosts.trpId, name: carTripExtraCosts.tecName, amount: carTripExtraCosts.tecAmount })
       .from(carTripExtraCosts)
       .where(and(eq(carTripExtraCosts.entId, actor.entId), inArray(carTripExtraCosts.trpId, ids)));
     for (const e of extras) {
+      const name = e.name?.trim();
+      const amount = parseAmount(e.amount);
       const g = extraByTrip.get(e.trpId) ?? { amount: 0, notes: [] };
-      g.amount += parseAmount(e.amount);
-      if (e.name?.trim()) g.notes.push(e.name.trim());
+      g.amount += amount;
+      if (name) g.notes.push(name);
       extraByTrip.set(e.trpId, g);
+      if (name && amount > 0) extraByNameMap.set(name, (extraByNameMap.get(name) ?? 0) + amount);
     }
   }
-  /* Distinct freeform names in trip-date order (`rows` is already ordered by
-   * trpScheduledAt), for the Monthly Summary's "Chi phí phát sinh" note. */
-  const extraNamesSet = new Set<string>();
-  for (const t of rows) {
-    for (const n of extraByTrip.get(t.trpId)?.notes ?? []) extraNamesSet.add(n);
-  }
-  const extraNames = [...extraNamesSet];
+  const extraBreakdown = [...extraByNameMap].map(([name, amount]) => ({ name, amount: Math.round(amount) }));
 
   /* Route stopovers, grouped by trip then by type (first address per type). */
   const routeByTrip = new Map<string, Partial<Record<string, string>>>();
@@ -552,6 +555,6 @@ export async function getTruckReportExport(
     summary,
     header,
     totals,
-    extraNames,
+    extraBreakdown,
   };
 }
