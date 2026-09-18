@@ -270,14 +270,19 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
     stopoverByTrip.set(w.trpId, arr);
   }
   const extraByTrip = new Map<string, number[]>();
+  /* Per-item "Tên: Số tiền" strings — real name+amount straight from
+   * car_trip_extra_costs, never a placeholder. An item with a blank name or a
+   * zero amount contributes nothing meaningful, so it's skipped rather than
+   * shown as "…: 0". */
   const extraNoteByTrip = new Map<string, string[]>();
   for (const e of extras) {
+    const amount = parseAmount(e.amount);
     const arr = extraByTrip.get(e.trpId) ?? [];
-    arr.push(parseAmount(e.amount));
+    arr.push(amount);
     extraByTrip.set(e.trpId, arr);
-    if (e.name?.trim()) {
+    if (e.name?.trim() && amount > 0) {
       const narr = extraNoteByTrip.get(e.trpId) ?? [];
-      narr.push(e.name.trim());
+      narr.push(`${e.name.trim()}: ${amount.toLocaleString('vi-VN')}`);
       extraNoteByTrip.set(e.trpId, narr);
     }
   }

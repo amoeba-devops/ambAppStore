@@ -133,10 +133,15 @@ Dashboard tài chính / Báo cáo tháng
   mọi dòng bên dưới dịch xuống 5 dòng so với template R1 gốc (không còn khớp 1:1 với form giấy — chấp nhận đánh đổi
   này để đổi lấy sự rõ ràng). Tổng chi phí/lợi nhuận không đổi, chỉ redistribute qua nhiều dòng hơn.
 - ✅ **Đã quyết định (2026-09-17, follow-up)**: khoản "chi phí phát sinh" tự do (tên+số tiền tự nhập, "+ Thêm khoản
-  phí") cũng phải liệt kê rõ tên, không chỉ hiện tổng số. Báo cáo tháng: thêm dòng B26 (ẩn khi rỗng) — "Bao gồm: {tên
-  các khoản, phân biệt theo distinct name trong tháng/phạm vi}" ngay dưới dòng "Chi phí phát sinh"; mọi dòng dưới B26
-  dịch thêm +1 (tổng cộng +6 so với R1 gốc). File xuất "Danh sách chuyến đi" đã có sẵn cột "Ghi chú phát sinh" liệt kê
-  theo từng chuyến từ trước — rà soát lại xác nhận không cần sửa thêm.
+  phí") cũng phải liệt kê rõ tên **và số tiền thật của từng khoản**, mỗi khoản một dòng riêng (không gộp chung 1 dòng
+  text, không hiện số 0/giả), và bỏ qua hoàn toàn khi tháng đó không có khoản tự do nào. Báo cáo tháng: sau dòng
+  "Chi phí phát sinh" (tổng), chèn 0..N dòng text "        {Tên}: {Số tiền}" — một dòng cho mỗi tên phân biệt, số tiền
+  là tổng thật gộp theo tên trong tháng/phạm vi (bỏ qua item tên rỗng hoặc số tiền = 0). Vì số dòng phụ thuộc dữ liệu,
+  toàn bộ layout từ dòng 19 trở đi trong `truck-monthly-summary-workbook.ts` đã đổi từ số dòng cứng sang con trỏ
+  (`next()`) — không còn phải tự đánh lại số dòng thủ công mỗi lần thêm dòng. File xuất "Danh sách chuyến đi": cột
+  "Ghi chú phát sinh" đổi từ chỉ liệt kê tên sang "{Tên}: {Số tiền}" cho từng khoản của chuyến đó, cùng quy tắc bỏ qua
+  tên rỗng/số tiền 0. Verify bằng cách generate lại cả 2 file với dữ liệu thật — tổng số tiền breakdown khớp chính xác
+  với dòng tổng ở mọi trường hợp.
 - ❓ **Cần xác nhận KH**: 4 khoản phí mới có tính vào **Lợi nhuận** (trừ trực tiếp như Toll) ngay, hay chỉ hiển thị
   để theo dõi (không đổi công thức lợi nhuận) ở giai đoạn đầu? Yêu cầu gốc dùng từ "chi phí phát sinh" giống Toll nên
   mặc định coi là **có tính vào lợi nhuận** — nêu rõ để KH xác nhận trước khi merge vì số lợi nhuận hiển thị trên
