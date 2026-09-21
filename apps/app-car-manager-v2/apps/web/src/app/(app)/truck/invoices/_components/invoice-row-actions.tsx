@@ -30,10 +30,8 @@ export function InvoiceRowActions({ item }: { item: AttachmentViewItem }) {
         <Eye className="h-4 w-4" />
       </button>
       <a
-        href={item.url}
+        href={item.downloadUrl ?? item.url}
         download={item.name}
-        target="_blank"
-        rel="noopener noreferrer"
         aria-label={t('download')}
         className="inline-flex h-8 w-8 items-center justify-center rounded-md text-text-muted hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >

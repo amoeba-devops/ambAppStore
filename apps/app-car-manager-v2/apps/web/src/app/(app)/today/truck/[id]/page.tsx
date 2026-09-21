@@ -133,6 +133,7 @@ export default async function DriverTruckTripPage({
                   mime: a.mime,
                   sizeBytes: a.sizeBytes,
                   url: a.signedUrl,
+                  downloadUrl: a.downloadUrl,
                 }))}
               />
             </div>

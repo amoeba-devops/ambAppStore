@@ -95,6 +95,7 @@ export default async function DriverEditTruckTripPage({
       mime: a.mime,
       sizeBytes: a.sizeBytes,
       signedUrl: a.signedUrl,
+      downloadUrl: a.downloadUrl,
       fileName: a.fileName,
     })),
     stopovers: stopovers.length > 0 ? stopovers : undefined,

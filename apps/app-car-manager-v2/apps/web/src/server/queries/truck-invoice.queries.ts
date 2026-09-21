@@ -24,7 +24,7 @@ import {
 } from '@car-v2/shared/zod';
 import { requireFleet } from '@/lib/auth/fleet-access';
 import { allowedRegions } from '@/lib/auth/region-access';
-import { getSignedGetUrl } from '@/lib/s3-client';
+import { getSignedUrlPair } from '@/lib/s3-client';
 import type { AuthContext } from '@/lib/auth/get-current-user';
 
 /**
@@ -60,7 +60,7 @@ export interface TruckInvoiceRow {
 }
 
 export interface TruckInvoiceListResult {
-  rows: (TruckInvoiceRow & { signedUrl: string | null })[];
+  rows: (TruckInvoiceRow & { signedUrl: string | null; downloadUrl: string | null })[];
   total: number;
   page: number;
   pageSize: number;
@@ -353,7 +353,7 @@ export async function getTruckInvoices(
   const pageRows = merged.slice((page - 1) * pageSize, page * pageSize);
 
   const rows = await Promise.all(
-    pageRows.map(async (r) => ({ ...r, signedUrl: await getSignedGetUrl(r.s3Key, 900) })),
+    pageRows.map(async (r) => ({ ...r, ...(await getSignedUrlPair(r.s3Key, r.fileName, 900)) })),
   );
 
   return { rows, total, page, pageSize, availableTypes };

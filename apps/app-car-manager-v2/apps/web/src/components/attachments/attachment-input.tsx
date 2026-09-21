@@ -35,6 +35,9 @@ export interface StoredAttachment {
   /** Original name; null for rows saved before it was stored. */
   fileName?: string | null;
   signedUrl: string | null;
+  /** Attachment-disposition URL for the download button (see
+   * `AttachmentViewItem.downloadUrl`). */
+  downloadUrl?: string | null;
 }
 
 export type AttachmentInputError = 'tooManyFiles' | 'fileTooLarge' | 'badType' | 'cameraDenied' | 'heicFailed';
@@ -198,6 +201,7 @@ export function AttachmentInput({
       mime: a.mime,
       sizeBytes: a.sizeBytes,
       url: a.signedUrl,
+      downloadUrl: a.downloadUrl,
     })),
     ...files.map((f, i) => ({
       key: `${f.name}-${i}`,

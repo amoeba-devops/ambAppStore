@@ -140,7 +140,7 @@ export default async function TruckInvoicesPage({
                       <div className="text-xs text-text-faint truncate">{r.fileName}</div>
                     </div>
                     <InvoiceRowActions
-                      item={{ key: r.id, name: r.fileName, mime: r.mime, sizeBytes: r.sizeBytes, url: r.signedUrl }}
+                      item={{ key: r.id, name: r.fileName, mime: r.mime, sizeBytes: r.sizeBytes, url: r.signedUrl, downloadUrl: r.downloadUrl }}
                     />
                   </div>
                   <div className="mt-2 flex items-center justify-between text-xs text-text-muted">
@@ -193,7 +193,7 @@ export default async function TruckInvoicesPage({
                       </TableCell>
                       <TableCell>
                         <InvoiceRowActions
-                          item={{ key: r.id, name: r.fileName, mime: r.mime, sizeBytes: r.sizeBytes, url: r.signedUrl }}
+                          item={{ key: r.id, name: r.fileName, mime: r.mime, sizeBytes: r.sizeBytes, url: r.signedUrl, downloadUrl: r.downloadUrl }}
                         />
                       </TableCell>
                     </TableRow>

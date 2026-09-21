@@ -67,6 +67,31 @@ export async function getSignedGetUrl(
   }
 }
 
+/* View URL + download URL for the same object.
+ *
+ * Two URLs are needed because the jobs conflict. The viewer renders the object
+ * inline (<img>, "open in new tab"), so its URL must keep the stored
+ * Content-Type. The download button must force a save — and browsers IGNORE
+ * the HTML `download` attribute on cross-origin hrefs, so a plain
+ * <a download> pointing at S3 only opens the file in a new tab
+ * (BUG-260921: truck invoice list). Only a signed
+ * `Content-Disposition: attachment` makes S3 itself serve it as a download,
+ * under the real filename.
+ *
+ * Signing is local HMAC with no network round-trip, so signing twice per
+ * attachment is cheap. */
+export async function getSignedUrlPair(
+  key: string,
+  fileName: string | null,
+  expiresIn = 900,
+): Promise<{ signedUrl: string | null; downloadUrl: string | null }> {
+  const [signedUrl, downloadUrl] = await Promise.all([
+    getSignedGetUrl(key, expiresIn),
+    getSignedGetUrl(key, expiresIn, fileName ?? undefined),
+  ]);
+  return { signedUrl, downloadUrl };
+}
+
 /* Server-side upload of a generated file (e.g. a report workbook). Unlike
  * receipts — which the browser PUTs straight to S3 via a presigned URL — these
  * are built on the server, so we push the bytes directly. Throws if S3 isn't

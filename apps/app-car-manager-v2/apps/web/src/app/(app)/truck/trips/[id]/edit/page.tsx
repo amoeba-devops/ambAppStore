@@ -84,6 +84,7 @@ export default async function EditTruckTripPage({ params }: { params: Promise<{ 
       mime: a.mime,
       sizeBytes: a.sizeBytes,
       signedUrl: a.signedUrl,
+      downloadUrl: a.downloadUrl,
       fileName: a.fileName,
     })),
     markCompleted: trip.trpStatus === 'COMPLETED',

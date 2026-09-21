@@ -46,6 +46,7 @@ export interface CompleteSectionAttachment {
   mime: string;
   sizeBytes: number;
   signedUrl: string | null;
+  downloadUrl?: string | null;
   /** Original filename (REQ-20260915); undefined/null on rows saved before it
    * was tracked — StoredAttachment falls back to a generic label. */
   fileName?: string | null;
@@ -151,6 +152,7 @@ export function TruckCompleteSection({
         mime: a.mime,
         sizeBytes: a.sizeBytes,
         signedUrl: a.signedUrl,
+        downloadUrl: a.downloadUrl,
         fileName: a.fileName,
       });
     }
