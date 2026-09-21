@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { Edit3, MapPin, Navigation, PackageCheck, PackageOpen } from 'lucide-react';
 import { Badge, Button, Card } from '@car-v2/ui';
 import type { TruckCostBreakdown } from '@car-v2/core/truck';
+import type { TripCostKind } from '@car-v2/shared/zod';
 import type { CarTripStopover, CarStopType } from '@car-v2/db/schema';
 import { MapPreview } from '@/components/inputs/map-preview';
 import { AttachmentGrid } from '@/components/attachments/attachment-viewer';
@@ -38,13 +39,14 @@ export interface TruckTripDetailProps {
    * is carried so the completion form can echo kept attachments back on save. */
   costAttachments?: {
     id: string;
-    costKind: 'FUEL' | 'TOLL' | 'EXTRA';
+    costKind: TripCostKind;
     s3Key: string;
     mime: string;
     sizeBytes: number;
     /** Original filename (REQ-20260915) — shown under each tile. */
     fileName?: string | null;
     signedUrl: string | null;
+    downloadUrl?: string | null;
   }[];
   breakdown: TruckCostBreakdown;
   /** How `breakdown.fuelCost` was derived: AVERAGED | LIVE | UNSET —
@@ -152,6 +154,10 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
         }
       />
       <CostRow label={t('toll')} value={vnd(props.breakdown.tollFee)} />
+      <CostRow label={t('cleaning')} value={vnd(props.breakdown.cleaningFee)} />
+      <CostRow label={t('repair')} value={vnd(props.breakdown.repairFee)} />
+      <CostRow label={t('ferry')} value={vnd(props.breakdown.ferryFee)} />
+      <CostRow label={t('loading')} value={vnd(props.breakdown.loadingFee)} />
       {props.extras.map((e, i) => (
         <CostRow key={i} label={e.name} value={vnd(e.amount)} />
       ))}
@@ -174,9 +180,13 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
    * rendered read-only tiles — images inline, PDFs as an open-in-new-tab tile.
    * Omitted entirely when the trip carries no attachments. */
   const attachments = props.costAttachments ?? [];
-  const receiptGroups: { kind: 'FUEL' | 'TOLL' | 'EXTRA'; label: string }[] = [
+  const receiptGroups: { kind: TripCostKind; label: string }[] = [
     { kind: 'FUEL', label: t('fuel') },
     { kind: 'TOLL', label: t('toll') },
+    { kind: 'CLEANING', label: t('cleaning') },
+    { kind: 'REPAIR', label: t('repair') },
+    { kind: 'FERRY', label: t('ferry') },
+    { kind: 'LOADING', label: t('loading') },
     { kind: 'EXTRA', label: t('receiptsExtra') },
   ];
   const receiptsCard =
@@ -196,6 +206,7 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
                   mime: a.mime,
                   sizeBytes: a.sizeBytes,
                   url: a.signedUrl,
+                  downloadUrl: a.downloadUrl,
                 }))}
               />
             </div>

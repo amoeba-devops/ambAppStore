@@ -23,10 +23,24 @@ import { confirmedWarningCodesField } from './trip.zod.js';
  * the UI can reject oversize files before the round-trip.
  */
 export const TRUCK_COST_ATTACHMENT_MAX_BYTES = 50 * 1024 * 1024;
-/** Max receipts per cost bucket (FUEL / TOLL / EXTRA). */
+/** Max receipts per cost bucket (FUEL / TOLL / CLEANING / REPAIR / FERRY / LOADING / EXTRA). */
 export const TRUCK_COST_ATTACHMENT_MAX_PER_KIND = 10;
 
-export const tripCostKindSchema = z.enum(['FUEL', 'TOLL', 'EXTRA']);
+/**
+ * CLEANING / REPAIR / FERRY / LOADING added REQ-20260916 — 4 more fixed
+ * per-trip cost types, same tier as TOLL. EXTRA keeps its existing code (no
+ * data migration for rows already tagged EXTRA) but is relabelled "Hóa đơn
+ * khác" / "Other invoice" in the UI now that the 4 new kinds carved out of it.
+ */
+export const tripCostKindSchema = z.enum([
+  'FUEL',
+  'TOLL',
+  'CLEANING',
+  'REPAIR',
+  'FERRY',
+  'LOADING',
+  'EXTRA',
+]);
 export type TripCostKind = z.infer<typeof tripCostKindSchema>;
 
 export const tripCostAttachmentSchema = z.object({
@@ -42,8 +56,8 @@ export type TripCostAttachmentDto = z.infer<typeof tripCostAttachmentSchema>;
 
 /** Full desired attachment set for a trip across all buckets. The server diffs
  * this against existing rows: new keys are inserted, missing keys soft-deleted.
- * 30 = 3 buckets × 10 each. */
-const costAttachmentsField = z.array(tripCostAttachmentSchema).max(30).optional();
+ * 70 = 7 buckets × 10 each (REQ-20260916 raised this from 30 = 3 buckets × 10). */
+const costAttachmentsField = z.array(tripCostAttachmentSchema).max(70).optional();
 
 export const stopTypeSchema = z.enum(['ORIGIN', 'PICKUP', 'DELIVERY', 'WAYPOINT', 'RETURN']);
 
@@ -79,9 +93,14 @@ export const createTruckTripSchema = z.object({
   end_odometer: z.number().int().nonnegative().optional(),
   fuel_liters: z.number().nonnegative().optional(),
   toll_fee: z.number().nonnegative().optional(),
+  /** Fixed per-trip cost types added REQ-20260916 — same tier as toll_fee. */
+  cleaning_fee: z.number().nonnegative().optional(),
+  repair_fee: z.number().nonnegative().optional(),
+  ferry_fee: z.number().nonnegative().optional(),
+  loading_fee: z.number().nonnegative().optional(),
   extra_costs: z
     .array(z.object({ name: z.string().trim().min(1).max(255), amount: z.number().nonnegative() }))
-    .max(50)
+    .max(100)
     .optional(),
   /** Receipt/invoice attachments for this trip's costs (REQ-20260709). */
   cost_attachments: costAttachmentsField,
@@ -119,9 +138,14 @@ export const completeTruckTripSchema = z.object({
    * allocated across the month's trips by km (QA 2026-07-30). */
   fuel_price: z.number().nonnegative().optional(),
   toll_fee: z.number().nonnegative().optional(),
+  /** Fixed per-trip cost types added REQ-20260916 — same tier as toll_fee. */
+  cleaning_fee: z.number().nonnegative().optional(),
+  repair_fee: z.number().nonnegative().optional(),
+  ferry_fee: z.number().nonnegative().optional(),
+  loading_fee: z.number().nonnegative().optional(),
   extra_costs: z
     .array(z.object({ name: z.string().trim().min(1).max(255), amount: z.number().nonnegative() }))
-    .max(50)
+    .max(100)
     .optional(),
   /** Receipt/invoice attachments for this trip's costs (REQ-20260709). */
   cost_attachments: costAttachmentsField,

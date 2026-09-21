@@ -51,6 +51,12 @@ const METRICS: MetricDef[] = [
   { key: 'revenue', labelKey: 'revenue' },
   { key: 'fuelCost', labelKey: 'fuel' },
   { key: 'tollFee', labelKey: 'toll' },
+  /* Fixed cost types added REQ-20260916 — own rows (not folded into "other")
+   * so `variableCost` below keeps reconciling with the sum of its rows. */
+  { key: 'cleaningFee', labelKey: 'cleaning' },
+  { key: 'repairFee', labelKey: 'repair' },
+  { key: 'ferryFee', labelKey: 'ferry' },
+  { key: 'loadingFee', labelKey: 'loading' },
   { key: 'extraTotal', labelKey: 'other' },
   { key: 'variableCost', labelKey: 'variable', kind: 'subtotal' },
   { key: 'salary', labelKey: 'salary' },
@@ -197,6 +203,10 @@ export default async function TruckPnlPage({
                   </>,
                 ],
                 [t('toll'), vnd(selected.tollFee)],
+                [t('cleaning'), vnd(selected.cleaningFee)],
+                [t('repair'), vnd(selected.repairFee)],
+                [t('ferry'), vnd(selected.ferryFee)],
+                [t('loading'), vnd(selected.loadingFee)],
                 [t('other'), vnd(selected.extraTotal)],
               ]}
             />

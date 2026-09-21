@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getDriverByUserId } from '@/server/queries/drivers.queries';
 import { getExpenseDetail, listExpensesForDriver } from '@/server/queries/expenses.queries';
-import { getSignedGetUrl } from '@/lib/s3-client';
+import { getSignedUrlPair } from '@/lib/s3-client';
 import type { AttachmentItem } from './[id]/_components/attachment-gallery';
 import { ExpensesList } from './_components/expenses-list';
 import { ExpensePeekDrawer } from './_components/expense-peek-drawer';
@@ -66,7 +66,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
         eatMime: a.eatMime,
         eatSizeBytes: a.eatSizeBytes,
         eatFileName: a.eatFileName ?? fileNameFromS3Key(a.eatS3Key),
-        signedUrl: await getSignedGetUrl(a.eatS3Key, 900),
+        ...(await getSignedUrlPair(a.eatS3Key, a.eatFileName ?? fileNameFromS3Key(a.eatS3Key), 900)),
       })),
     );
   }

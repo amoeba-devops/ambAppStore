@@ -73,7 +73,13 @@ export interface ReportVehiclePnlRow {
   maintenance: number;
   toll: number; // Phí cầu đường
   fuel: number; // Phí xăng dầu
-  extra: number; // Tổng phí phát sinh
+  /* Fixed cost types added REQ-20260916 — own line each in the Monthly Summary
+   * template (client decision 2026-09-17: show separately, don't fold). */
+  cleaningFee: number;
+  repairFee: number;
+  ferryFee: number;
+  loadingFee: number;
+  extra: number; // Chi phí phát sinh khác (freeform only, không gồm 4 phí cố định trên)
   net: number; // Lợi nhuận ròng
   /* Monthly Summary template additions (REQ-20260713). */
   tripCount: number; // Số chuyến
@@ -118,6 +124,12 @@ export interface TruckReportExport {
   vehicles: ReportVehiclePnlRow[];
   summary: TruckReportSummary;
   header: TruckReportHeader;
+  /** Per-name total of the freeform "chi phí khác" across every trip in scope
+   * this month (REQ-20260916 follow-up, client decision 2026-09-17: the
+   * Monthly Summary must spell out each item with its own amount, not just
+   * list names or show one lump total). Order = first-seen; Σ amount across
+   * this array always equals `totals.extra`. */
+  extraBreakdown: { name: string; amount: number }[];
   totals: {
     salary: number;
     revenue: number;
@@ -126,6 +138,10 @@ export interface TruckReportExport {
     maintenance: number; // Bảo trì (dòng riêng B25, REQ-20260904)
     toll: number;
     fuel: number;
+    cleaningFee: number;
+    repairFee: number;
+    ferryFee: number;
+    loadingFee: number;
     extra: number;
     net: number;
   };
@@ -177,6 +193,10 @@ export async function getTruckReportExport(
         fuelLiters: carTrips.trpFuelLiters,
         fuelPrice: carTrips.trpFuelPrice,
         toll: carTrips.trpTollFee,
+        cleaningFee: carTrips.trpCleaningFee,
+        repairFee: carTrips.trpRepairFee,
+        ferryFee: carTrips.trpFerryFee,
+        loadingFee: carTrips.trpLoadingFee,
         revenue: carTrips.trpRevenue,
         bol: carTrips.trpBol,
         cdf: carTrips.trpCdf,
@@ -202,20 +222,29 @@ export async function getTruckReportExport(
 
   const ids = rows.map((r) => r.trpId);
 
-  /* Extra costs (sum + concatenated names → "Ghi chú chi phí phát sinh"). */
+  /* Extra costs (sum + concatenated names → "Ghi chú chi phí phát sinh"), plus
+   * a per-name total across the whole scope for the Monthly Summary's "Chi
+   * phí phát sinh" note. A blank name or a zero-amount item contributes
+   * nothing meaningful, so it's excluded from the note rather than shown as
+   * "…: 0" — real sums only, never a placeholder. */
   const extraByTrip = new Map<string, { amount: number; notes: string[] }>();
+  const extraByNameMap = new Map<string, number>();
   if (ids.length) {
     const extras = await db
       .select({ trpId: carTripExtraCosts.trpId, name: carTripExtraCosts.tecName, amount: carTripExtraCosts.tecAmount })
       .from(carTripExtraCosts)
       .where(and(eq(carTripExtraCosts.entId, actor.entId), inArray(carTripExtraCosts.trpId, ids)));
     for (const e of extras) {
+      const name = e.name?.trim();
+      const amount = parseAmount(e.amount);
       const g = extraByTrip.get(e.trpId) ?? { amount: 0, notes: [] };
-      g.amount += parseAmount(e.amount);
-      if (e.name?.trim()) g.notes.push(e.name.trim());
+      g.amount += amount;
+      if (name) g.notes.push(name);
       extraByTrip.set(e.trpId, g);
+      if (name && amount > 0) extraByNameMap.set(name, (extraByNameMap.get(name) ?? 0) + amount);
     }
   }
+  const extraBreakdown = [...extraByNameMap].map(([name, amount]) => ({ name, amount: Math.round(amount) }));
 
   /* Route stopovers, grouped by trip then by type (first address per type). */
   const routeByTrip = new Map<string, Partial<Record<string, string>>>();
@@ -239,7 +268,24 @@ export async function getTruckReportExport(
   const trips: ReportTripLogRow[] = rows.map((t) => {
     const km = t.so != null && t.eo != null ? t.eo - t.so : 0;
     const ex = extraByTrip.get(t.trpId) ?? { amount: 0, notes: [] };
-    const extra = Math.round(ex.amount);
+    /* Fixed cost types added REQ-20260916 (cleaning/repair/ferry/loading) fold
+     * into the "extra" column rather than getting their own columns — keeps the
+     * client-approved Monthly Summary / PNL template unchanged. Their names are
+     * appended to extraNote (same convention as freeform extra-cost names) so
+     * the total stays traceable. */
+    const newFeeNames: string[] = [];
+    if (parseAmount(t.cleaningFee) > 0) newFeeNames.push('Vệ sinh phương tiện');
+    if (parseAmount(t.repairFee) > 0) newFeeNames.push('Sửa chữa');
+    if (parseAmount(t.ferryFee) > 0) newFeeNames.push('Cầu phà');
+    if (parseAmount(t.loadingFee) > 0) newFeeNames.push('Bốc dỡ hàng hóa');
+    const newFixedFeesTotal = Math.round(
+      parseAmount(t.cleaningFee) +
+        parseAmount(t.repairFee) +
+        parseAmount(t.ferryFee) +
+        parseAmount(t.loadingFee),
+    );
+    const extra = Math.round(ex.amount) + newFixedFeesTotal;
+    const extraNoteParts = [...newFeeNames, ...ex.notes];
     const toll = Math.round(parseAmount(t.toll));
     const revenue = Math.round(parseAmount(t.revenue));
     /* No trip timestamp passed on purpose: this workbook IS the report, whose
@@ -268,7 +314,7 @@ export async function getTruckReportExport(
       km,
       toll,
       extra,
-      extraNote: ex.notes.length ? ex.notes.join(', ') : null,
+      extraNote: extraNoteParts.length ? extraNoteParts.join(', ') : null,
       avgPrice: Math.round(avgPrice),
       liters: Math.round(liters * 10) / 10,
       fuelCost,
@@ -396,6 +442,13 @@ export async function getTruckReportExport(
         maintenance: p.maintenanceCost,
         toll: p.tollFee,
         fuel: p.fuelCost,
+        /* Fixed cost types added REQ-20260916 get their own line each in the
+         * Monthly Summary template (client decision 2026-09-17) — no longer
+         * folded into "extra". */
+        cleaningFee: p.cleaningFee,
+        repairFee: p.repairFee,
+        ferryFee: p.ferryFee,
+        loadingFee: p.loadingFee,
         extra: p.extraTotal,
         net: p.netProfit,
         tripCount: p.tripCount,
@@ -422,10 +475,17 @@ export async function getTruckReportExport(
         maintenance: a.maintenance + v.maintenance,
         toll: a.toll + v.toll,
         fuel: a.fuel + v.fuel,
+        cleaningFee: a.cleaningFee + v.cleaningFee,
+        repairFee: a.repairFee + v.repairFee,
+        ferryFee: a.ferryFee + v.ferryFee,
+        loadingFee: a.loadingFee + v.loadingFee,
         extra: a.extra + v.extra,
         net: a.net + v.net,
       }),
-      { salary: 0, revenue: 0, fixedOther: 0, depreciation: 0, maintenance: 0, toll: 0, fuel: 0, extra: 0, net: 0 },
+      {
+        salary: 0, revenue: 0, fixedOther: 0, depreciation: 0, maintenance: 0, toll: 0, fuel: 0,
+        cleaningFee: 0, repairFee: 0, ferryFee: 0, loadingFee: 0, extra: 0, net: 0,
+      },
     );
   } else {
     const [tot] = await computeTruckPnl(actor, { region, vehicleIds: vehicleScope, months: [month] });
@@ -437,6 +497,10 @@ export async function getTruckReportExport(
       maintenance: tot?.maintenanceCost ?? 0,
       toll: tot?.tollFee ?? 0,
       fuel: tot?.fuelCost ?? 0,
+      cleaningFee: tot?.cleaningFee ?? 0,
+      repairFee: tot?.repairFee ?? 0,
+      ferryFee: tot?.ferryFee ?? 0,
+      loadingFee: tot?.loadingFee ?? 0,
       extra: tot?.extraTotal ?? 0,
       net: tot?.netProfit ?? 0,
     };
@@ -491,5 +555,6 @@ export async function getTruckReportExport(
     summary,
     header,
     totals,
+    extraBreakdown,
   };
 }

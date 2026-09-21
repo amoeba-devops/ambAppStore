@@ -23,7 +23,7 @@ import {
 } from '@car-v2/ui';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { getSignedGetUrl } from '@/lib/s3-client';
+import { getSignedUrlPair } from '@/lib/s3-client';
 import { getExpenseDetail } from '@/server/queries/expenses.queries';
 import { AttachmentGallery, type AttachmentItem } from './_components/attachment-gallery';
 import { ExpenseDeleteButton } from './_components/expense-delete-button';
@@ -126,7 +126,7 @@ export default async function ExpenseDetailPage({ params }: PageProps) {
       eatMime: a.eatMime,
       eatSizeBytes: a.eatSizeBytes,
         eatFileName: a.eatFileName ?? fileNameFromS3Key(a.eatS3Key),
-      signedUrl: await getSignedGetUrl(a.eatS3Key, 900),
+      ...(await getSignedUrlPair(a.eatS3Key, a.eatFileName ?? fileNameFromS3Key(a.eatS3Key), 900)),
     })),
   );
 

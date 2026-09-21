@@ -5,6 +5,9 @@
  *   fuel_cost = fuel_qty (L) × fuel_price (VND/L)
  *   profit    = revenue − fuel_cost − toll_fee − Σ(other costs)
  * All amounts are VND integers; we round to whole đồng to avoid float drift.
+ *
+ * cleaningFee/repairFee/ferryFee/loadingFee (REQ-20260916) are 4 more fixed
+ * per-trip cost types, same tier as tollFee — they reduce profit the same way.
  */
 
 export interface TruckCostInput {
@@ -12,6 +15,10 @@ export interface TruckCostInput {
   /** VND per litre. */
   fuelPrice: number | null;
   tollFee: number | null;
+  cleaningFee: number | null;
+  repairFee: number | null;
+  ferryFee: number | null;
+  loadingFee: number | null;
   /** Amounts of the structured "other costs" rows. */
   extraCosts: number[];
   revenue: number | null;
@@ -20,8 +27,12 @@ export interface TruckCostInput {
 export interface TruckCostBreakdown {
   fuelCost: number;
   tollFee: number;
+  cleaningFee: number;
+  repairFee: number;
+  ferryFee: number;
+  loadingFee: number;
   extraTotal: number;
-  /** fuelCost + tollFee + extraTotal */
+  /** fuelCost + tollFee + cleaningFee + repairFee + ferryFee + loadingFee + extraTotal */
   totalCost: number;
   revenue: number;
   /** revenue − totalCost */
@@ -38,10 +49,26 @@ export function parseAmount(v: string | number | null | undefined): number {
 export function computeTruckCost(input: TruckCostInput): TruckCostBreakdown {
   const fuelCost = Math.round((input.fuelLiters ?? 0) * (input.fuelPrice ?? 0));
   const tollFee = Math.round(input.tollFee ?? 0);
+  const cleaningFee = Math.round(input.cleaningFee ?? 0);
+  const repairFee = Math.round(input.repairFee ?? 0);
+  const ferryFee = Math.round(input.ferryFee ?? 0);
+  const loadingFee = Math.round(input.loadingFee ?? 0);
   const extraTotal = Math.round(input.extraCosts.reduce((s, n) => s + (n || 0), 0));
-  const totalCost = fuelCost + tollFee + extraTotal;
+  const totalCost =
+    fuelCost + tollFee + cleaningFee + repairFee + ferryFee + loadingFee + extraTotal;
   const revenue = Math.round(input.revenue ?? 0);
-  return { fuelCost, tollFee, extraTotal, totalCost, revenue, profit: revenue - totalCost };
+  return {
+    fuelCost,
+    tollFee,
+    cleaningFee,
+    repairFee,
+    ferryFee,
+    loadingFee,
+    extraTotal,
+    totalCost,
+    revenue,
+    profit: revenue - totalCost,
+  };
 }
 
 /**

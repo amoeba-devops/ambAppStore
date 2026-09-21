@@ -223,6 +223,7 @@ export async function submitExpenseAction(
           eatMime: a.mime,
           eatSizeBytes: a.size_bytes,
           eatFileName: a.file_name ?? null,
+          eatUploadedBy: actor.userId,
         })),
       );
       await db.batch([expenseInsert, attachmentInsert]);

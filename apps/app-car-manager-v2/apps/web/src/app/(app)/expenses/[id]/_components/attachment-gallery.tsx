@@ -27,6 +27,9 @@ export interface AttachmentItem {
   eatFileName?: string | null;
   /** Pre-signed GET URL (15-min TTL). Null when signing failed. */
   signedUrl: string | null;
+  /** Attachment-disposition URL for the download button — browsers ignore
+   * <a download> on cross-origin S3 hrefs. */
+  downloadUrl?: string | null;
 }
 
 interface AttachmentGalleryProps {
@@ -43,6 +46,7 @@ export function AttachmentGallery({ attachments }: AttachmentGalleryProps) {
         mime: a.eatMime,
         sizeBytes: a.eatSizeBytes,
         url: a.signedUrl,
+        downloadUrl: a.downloadUrl,
       }))}
     />
   );

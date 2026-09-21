@@ -8,7 +8,7 @@ import { ExportDropdown } from '@/components/export-dropdown';
 import { Fab } from '@/components/layout/fab';
 import { PageHeader } from '@/components/layout/page-header';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
-import { getSignedGetUrl } from '@/lib/s3-client';
+import { getSignedUrlPair } from '@/lib/s3-client';
 import {
   getExpenseDetail,
   listEntityExpenses,
@@ -103,7 +103,7 @@ export default async function CostsPage({ searchParams }: PageProps) {
           eatMime: a.eatMime,
           eatSizeBytes: a.eatSizeBytes,
         eatFileName: a.eatFileName ?? fileNameFromS3Key(a.eatS3Key),
-          signedUrl: await getSignedGetUrl(a.eatS3Key, 900),
+          ...(await getSignedUrlPair(a.eatS3Key, a.eatFileName ?? fileNameFromS3Key(a.eatS3Key), 900)),
         })),
       );
     }
@@ -120,7 +120,7 @@ export default async function CostsPage({ searchParams }: PageProps) {
         eatMime: a.eatMime,
         eatSizeBytes: a.eatSizeBytes,
         eatFileName: a.eatFileName ?? fileNameFromS3Key(a.eatS3Key),
-        signedUrl: await getSignedGetUrl(a.eatS3Key, 900),
+        ...(await getSignedUrlPair(a.eatS3Key, a.eatFileName ?? fileNameFromS3Key(a.eatS3Key), 900)),
       })),
     );
   }

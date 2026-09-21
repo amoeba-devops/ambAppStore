@@ -234,7 +234,10 @@ export default async function TruckDashboardPage({
       tripCount: a.tripCount + r.tripCount,
       fuelCost: a.fuelCost + r.fuelCost,
       tollFee: a.tollFee + r.tollFee,
-      extraTotal: a.extraTotal + r.extraTotal,
+      /* Includes the 4 fixed cost types added REQ-20260916 (cleaning/repair/
+       * ferry/loading) — folded into "other" here (not their own donut slices)
+       * so this stays the one place that has to reconcile with totalCost. */
+      extraTotal: a.extraTotal + r.extraTotal + r.cleaningFee + r.repairFee + r.ferryFee + r.loadingFee,
       salary: a.salary + r.salary,
       depreciation: a.depreciation + r.depreciation,
       insurance: a.insurance + r.insurance,
@@ -584,7 +587,7 @@ export default async function TruckDashboardPage({
                       <div className="text-right shrink-0">
                         <div className="text-sm tabular text-text">{vndCompact(trip.breakdown.revenue)}</div>
                         <div className="text-xs tabular text-text-faint">
-                          {vndCompact(trip.breakdown.fuelCost + trip.breakdown.tollFee + trip.breakdown.extraTotal)}
+                          {vndCompact(trip.breakdown.totalCost)}
                         </div>
                         <div className={'text-xs tabular font-semibold ' + (trip.breakdown.profit >= 0 ? 'text-success' : 'text-danger')}>
                           {vndCompact(trip.breakdown.profit)}
@@ -607,7 +610,7 @@ export default async function TruckDashboardPage({
                   </TableHeader>
                   <TableBody>
                     {recent.map((trip) => {
-                      const tripCost = trip.breakdown.fuelCost + trip.breakdown.tollFee + trip.breakdown.extraTotal;
+                      const tripCost = trip.breakdown.totalCost;
                       return (
                       <ClickableTableRow key={trip.trpId} href={`/truck/trips/${trip.trpId}`}>
                         <TableCell className="whitespace-nowrap">

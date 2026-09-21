@@ -80,6 +80,10 @@ export async function GET(req: Request) {
     withUnit(tCol('odoEnd'), tCol('unitKm')),
     tCol('kmTotal'),
     withUnit(tCol('toll'), money),
+    withUnit(tCol('cleaning'), money),
+    withUnit(tCol('repair'), money),
+    withUnit(tCol('ferry'), money),
+    withUnit(tCol('loading'), money),
     withUnit(tCol('otherAmount'), money),
     tCol('otherNote'),
     withUnit(tCol('fuelPrice'), tCol('unitPricePerL')),
@@ -93,6 +97,13 @@ export async function GET(req: Request) {
     tCol('status'),
     tCol('notes'),
   ];
+  /* The 4 fixed cost types added REQ-20260916 (cleaning/repair/ferry/loading)
+   * get their own columns — client decision 2026-09-17 to show each clearly
+   * instead of folding into "Chi phí phát sinh". That column now carries only
+   * the freeform extra-cost total (car_trip_extra_costs), same as extraNote. */
+  const fixedFeesTotal = (t: (typeof trips)[number]) =>
+    t.breakdown.cleaningFee + t.breakdown.repairFee + t.breakdown.ferryFee + t.breakdown.loadingFee;
+  const otherAmount = (t: (typeof trips)[number]) => t.breakdown.extraTotal;
   const rows = trips.map((t) => [
     t.ref,
     new Date(t.scheduledAt).toISOString().slice(0, 10),
@@ -110,7 +121,11 @@ export async function GET(req: Request) {
     t.endOdometer ?? '',
     t.km ?? '',
     t.breakdown.tollFee,
-    t.breakdown.extraTotal,
+    t.breakdown.cleaningFee,
+    t.breakdown.repairFee,
+    t.breakdown.ferryFee,
+    t.breakdown.loadingFee,
+    otherAmount(t),
     t.extraNote ?? '',
     /* This export mirrors the trip-log screen, so fuel is the trip's OWN
      * recorded spend (REQ-20260822) — litres × price as entered, not the
@@ -121,8 +136,8 @@ export async function GET(req: Request) {
     Math.round(t.fuelActualLiters * 10) / 10,
     t.fuelActualCost,
     t.breakdown.revenue,
-    t.fuelActualCost + t.breakdown.tollFee + t.breakdown.extraTotal,
-    t.breakdown.revenue - (t.fuelActualCost + t.breakdown.tollFee + t.breakdown.extraTotal),
+    t.fuelActualCost + t.breakdown.tollFee + fixedFeesTotal(t) + otherAmount(t),
+    t.breakdown.revenue - (t.fuelActualCost + t.breakdown.tollFee + fixedFeesTotal(t) + otherAmount(t)),
     tStatus(t.status),
     t.notes ?? '',
   ]);

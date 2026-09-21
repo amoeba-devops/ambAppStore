@@ -2,16 +2,18 @@ import { randomUUID } from 'node:crypto';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTripCostAttachments, type CarTripCostAttachment } from '@car-v2/db/schema';
+import type { TripCostKind } from '@car-v2/shared/zod';
 
 /**
  * Trip-cost receipt attachments (REQ-20260709). Pure domain: ent-scoped DB ops
  * only — the caller (server action) owns audit / revalidate.
  *
- * Attachments are trip-scoped and tagged by cost bucket (FUEL / TOLL / EXTRA).
- * See car_trip_cost_attachments schema for why there's no per-extra-row FK.
+ * Attachments are trip-scoped and tagged by cost bucket (FUEL / TOLL /
+ * CLEANING / REPAIR / FERRY / LOADING / EXTRA — REQ-20260916). See
+ * car_trip_cost_attachments schema for why there's no per-extra-row FK.
  */
 
-export type TripCostKind = 'FUEL' | 'TOLL' | 'EXTRA';
+export type { TripCostKind };
 
 export interface TripCostAttachmentInput {
   costKind: TripCostKind;
@@ -21,6 +23,10 @@ export interface TripCostAttachmentInput {
   sizeBytes: number;
   /** Original device filename (REQ-20260915) — shown in the UI. */
   fileName?: string | null;
+  /** Uploader (REQ-20260921) — the actor performing THIS save. Only stamped
+   * on newly inserted rows; untouched existing rows keep their original
+   * uploader (see syncTripCostAttachments). */
+  uploadedBy?: string | null;
 }
 
 /** Live (non-deleted) attachments for a trip, oldest first. */
@@ -90,6 +96,7 @@ export async function syncTripCostAttachments(
         tcaMime: d.mime,
         tcaSizeBytes: d.sizeBytes,
         tcaFileName: d.fileName ?? null,
+        tcaUploadedBy: d.uploadedBy ?? null,
       })),
     );
   }

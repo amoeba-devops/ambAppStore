@@ -1,7 +1,7 @@
 import 'server-only';
 import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, ne, or, type SQL } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
-import { fileNameFromS3Key } from '@car-v2/shared/zod';
+import { fileNameFromS3Key, type TripCostKind } from '@car-v2/shared/zod';
 import {
   carTrips,
   carTripExtraCosts,
@@ -18,7 +18,7 @@ import {
   type TruckCostBreakdown,
   type TruckFuelMode,
 } from '@car-v2/core/truck';
-import { getSignedGetUrl } from '@/lib/s3-client';
+import { getSignedUrlPair } from '@/lib/s3-client';
 
 const monthKey = (d: Date): string => d.toISOString().slice(0, 7);
 
@@ -39,6 +39,11 @@ export async function getTruckTripBreakdown(
     trpFuelLiters: string | null;
     trpFuelPrice: string | null;
     trpTollFee: string | null;
+    /** Fixed per-trip cost types added REQ-20260916 — same tier as trpTollFee. */
+    trpCleaningFee: string | null;
+    trpRepairFee: string | null;
+    trpFerryFee: string | null;
+    trpLoadingFee: string | null;
     trpRevenue: string | null;
     /* Last change — decides whether an existing report covers this trip. */
     trpUpdatedAt?: Date | null;
@@ -81,11 +86,26 @@ export async function getTruckTripBreakdown(
   /* Fuel = frozen snapshot (only if it covers this trip) → live pool → 0. */
   const fuel = snapshots.fuelForTrip(month, trip.trpVehicleId, km, changedAt);
   const tollFee = Math.round(parseAmount(trip.trpTollFee));
+  const cleaningFee = Math.round(parseAmount(trip.trpCleaningFee));
+  const repairFee = Math.round(parseAmount(trip.trpRepairFee));
+  const ferryFee = Math.round(parseAmount(trip.trpFerryFee));
+  const loadingFee = Math.round(parseAmount(trip.trpLoadingFee));
   const extraTotal = Math.round(extraAmounts.reduce((s, n) => s + (n || 0), 0));
   const revenue = Math.round(parseAmount(trip.trpRevenue));
-  const totalCost = fuel.cost + tollFee + extraTotal;
+  const totalCost = fuel.cost + tollFee + cleaningFee + repairFee + ferryFee + loadingFee + extraTotal;
   return {
-    breakdown: { fuelCost: fuel.cost, tollFee, extraTotal, totalCost, revenue, profit: revenue - totalCost },
+    breakdown: {
+      fuelCost: fuel.cost,
+      tollFee,
+      cleaningFee,
+      repairFee,
+      ferryFee,
+      loadingFee,
+      extraTotal,
+      totalCost,
+      revenue,
+      profit: revenue - totalCost,
+    },
     finalized,
     fuelMode: fuel.mode,
     km,
@@ -250,14 +270,19 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
     stopoverByTrip.set(w.trpId, arr);
   }
   const extraByTrip = new Map<string, number[]>();
+  /* Per-item "Tên: Số tiền" strings — real name+amount straight from
+   * car_trip_extra_costs, never a placeholder. An item with a blank name or a
+   * zero amount contributes nothing meaningful, so it's skipped rather than
+   * shown as "…: 0". */
   const extraNoteByTrip = new Map<string, string[]>();
   for (const e of extras) {
+    const amount = parseAmount(e.amount);
     const arr = extraByTrip.get(e.trpId) ?? [];
-    arr.push(parseAmount(e.amount));
+    arr.push(amount);
     extraByTrip.set(e.trpId, arr);
-    if (e.name?.trim()) {
+    if (e.name?.trim() && amount > 0) {
       const narr = extraNoteByTrip.get(e.trpId) ?? [];
-      narr.push(e.name.trim());
+      narr.push(`${e.name.trim()}: ${amount.toLocaleString('vi-VN')}`);
       extraNoteByTrip.set(e.trpId, narr);
     }
   }
@@ -311,12 +336,20 @@ export async function listTruckTrips(entId: string, opts: ListTruckTripsOpts = {
     const tChangedAt = t.trpUpdatedAt ?? t.trpCreatedAt ?? null;
     const fuel = snapshots.fuelForTrip(mk, t.trpVehicleId, km ?? 0, tChangedAt);
     const tollFee = Math.round(parseAmount(t.trpTollFee));
+    const cleaningFee = Math.round(parseAmount(t.trpCleaningFee));
+    const repairFee = Math.round(parseAmount(t.trpRepairFee));
+    const ferryFee = Math.round(parseAmount(t.trpFerryFee));
+    const loadingFee = Math.round(parseAmount(t.trpLoadingFee));
     const extraTotal = Math.round(extraCosts.reduce((s, n) => s + (n || 0), 0));
     const revenue = Math.round(parseAmount(t.trpRevenue));
-    const totalCost = fuel.cost + tollFee + extraTotal;
+    const totalCost = fuel.cost + tollFee + cleaningFee + repairFee + ferryFee + loadingFee + extraTotal;
     const breakdown: TruckCostBreakdown = {
       fuelCost: fuel.cost,
       tollFee,
+      cleaningFee,
+      repairFee,
+      ferryFee,
+      loadingFee,
       extraTotal,
       totalCost,
       revenue,
@@ -425,7 +458,7 @@ export async function getLatestVehiclesByDriver(entId: string): Promise<Map<stri
   return map;
 }
 
-export type TripCostKind = 'FUEL' | 'TOLL' | 'EXTRA';
+export type { TripCostKind };
 
 export interface TripCostAttachmentView {
   id: string;
@@ -439,6 +472,9 @@ export interface TripCostAttachmentView {
   fileName: string | null;
   /** Pre-signed GET URL (15-min TTL). Null when S3 isn't configured (dev). */
   signedUrl: string | null;
+  /** Signed URL with `Content-Disposition: attachment` — what the download
+   * button uses, because browsers ignore <a download> cross-origin. */
+  downloadUrl: string | null;
 }
 
 /** Live trip-cost receipt attachments (REQ-20260709) with signed GET URLs, for
@@ -456,7 +492,7 @@ export async function getTripCostAttachmentsView(
       mime: r.tcaMime,
       fileName: r.tcaFileName ?? fileNameFromS3Key(r.tcaS3Key),
       sizeBytes: r.tcaSizeBytes,
-      signedUrl: await getSignedGetUrl(r.tcaS3Key),
+      ...(await getSignedUrlPair(r.tcaS3Key, r.tcaFileName ?? fileNameFromS3Key(r.tcaS3Key))),
     })),
   );
 }

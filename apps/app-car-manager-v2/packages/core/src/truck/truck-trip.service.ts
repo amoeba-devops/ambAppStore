@@ -72,6 +72,11 @@ export interface CompleteTruckTripInput {
    * is the trip's fuel SPEND, which feeds the vehicle's monthly fuel pool. */
   fuelPrice?: number | null;
   tollFee?: number | null;
+  /** Fixed per-trip cost types added REQ-20260916 — same tier as tollFee. */
+  cleaningFee?: number | null;
+  repairFee?: number | null;
+  ferryFee?: number | null;
+  loadingFee?: number | null;
   /** Structured "other costs": replaces any existing rows for the trip. */
   extraCosts: { name: string; amount: number }[];
 }
@@ -233,6 +238,10 @@ export async function completeTruckTrip(
       trpFuelLiters: input.fuelLiters != null ? String(input.fuelLiters) : trip.trpFuelLiters,
       trpFuelPrice: input.fuelPrice != null ? String(input.fuelPrice) : trip.trpFuelPrice,
       trpTollFee: input.tollFee != null ? String(input.tollFee) : trip.trpTollFee,
+      trpCleaningFee: input.cleaningFee != null ? String(input.cleaningFee) : trip.trpCleaningFee,
+      trpRepairFee: input.repairFee != null ? String(input.repairFee) : trip.trpRepairFee,
+      trpFerryFee: input.ferryFee != null ? String(input.ferryFee) : trip.trpFerryFee,
+      trpLoadingFee: input.loadingFee != null ? String(input.loadingFee) : trip.trpLoadingFee,
       trpUpdatedAt: new Date(),
     })
     .where(and(eq(carTrips.trpId, tripId), eq(carTrips.entId, actor.entId)))
@@ -271,6 +280,10 @@ export async function completeTruckTrip(
     fuelLiters: input.fuelLiters ?? parseAmount(trip.trpFuelLiters),
     fuelPrice: parseAmount(updated.trpFuelPrice),
     tollFee: input.tollFee ?? parseAmount(trip.trpTollFee),
+    cleaningFee: input.cleaningFee ?? parseAmount(trip.trpCleaningFee),
+    repairFee: input.repairFee ?? parseAmount(trip.trpRepairFee),
+    ferryFee: input.ferryFee ?? parseAmount(trip.trpFerryFee),
+    loadingFee: input.loadingFee ?? parseAmount(trip.trpLoadingFee),
     extraCosts: input.extraCosts.map((c) => c.amount),
     revenue: parseAmount(updated.trpRevenue),
   });
@@ -293,6 +306,11 @@ export interface UpdateTruckTripInput {
   endOdometer?: number | null;
   fuelLiters?: number | null;
   tollFee?: number | null;
+  /** Fixed per-trip cost types added REQ-20260916 — same tier as tollFee. */
+  cleaningFee?: number | null;
+  repairFee?: number | null;
+  ferryFee?: number | null;
+  loadingFee?: number | null;
   /* Free-text trip note (printed in the trip-log export) and the actual run
    * window. All three are "only when provided": leaving them out keeps what is
    * stored, so editing a trip never silently wipes times a driver recorded. */
@@ -332,6 +350,10 @@ export async function updateTruckTrip(
       trpEndOdometer: input.endOdometer ?? null,
       trpFuelLiters: input.fuelLiters != null ? String(input.fuelLiters) : null,
       trpTollFee: input.tollFee != null ? String(input.tollFee) : null,
+      trpCleaningFee: input.cleaningFee != null ? String(input.cleaningFee) : null,
+      trpRepairFee: input.repairFee != null ? String(input.repairFee) : null,
+      trpFerryFee: input.ferryFee != null ? String(input.ferryFee) : null,
+      trpLoadingFee: input.loadingFee != null ? String(input.loadingFee) : null,
       /* undefined → Drizzle leaves the column alone (see the note on the type). */
       trpNotes: input.notes !== undefined ? input.notes : undefined,
       trpStartedAt: input.startedAt !== undefined ? input.startedAt : undefined,
@@ -365,6 +387,10 @@ export async function updateTruckTrip(
     fuelLiters: parseAmount(updated.trpFuelLiters),
     fuelPrice: parseAmount(updated.trpFuelPrice),
     tollFee: parseAmount(updated.trpTollFee),
+    cleaningFee: parseAmount(updated.trpCleaningFee),
+    repairFee: parseAmount(updated.trpRepairFee),
+    ferryFee: parseAmount(updated.trpFerryFee),
+    loadingFee: parseAmount(updated.trpLoadingFee),
     extraCosts: input.extraCosts.map((c) => c.amount),
     revenue: parseAmount(updated.trpRevenue),
   });

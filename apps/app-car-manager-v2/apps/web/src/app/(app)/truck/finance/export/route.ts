@@ -84,7 +84,10 @@ export async function GET(req: Request) {
     r.customer ?? '',
     r.km,
     r.toll,
-    r.extra,
+    /* Includes the 4 fixed cost types added REQ-20260916 (cleaning/repair/
+     * ferry/loading) — folded here so the exported column reconciles with
+     * `profit`, same treatment as the on-screen finance table. */
+    r.extra + r.fixedFees,
     r.unitPrice,
     Math.round(r.liters * 10) / 10,
     r.fuelCost,

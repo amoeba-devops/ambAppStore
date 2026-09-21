@@ -16,6 +16,7 @@ import {
   loadTruckRegionSnapshots,
   assertVehicleNotUnderMaintenance,
   type TripCostAttachmentInput,
+  type TripCostKind,
   type TruckFuelMode,
 } from '@car-v2/core/truck';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
@@ -120,8 +121,9 @@ async function maybeSyncAttachments(
   entId: string,
   tripId: string,
   atts:
-    | { cost_kind: 'FUEL' | 'TOLL' | 'EXTRA'; s3_key: string; mime: string; size_bytes: number; file_name?: string }[]
+    | { cost_kind: TripCostKind; s3_key: string; mime: string; size_bytes: number; file_name?: string }[]
     | undefined,
+  uploadedBy: string,
 ): Promise<void> {
   if (atts === undefined) return;
   const mapped: TripCostAttachmentInput[] = atts.map((a) => ({
@@ -130,6 +132,7 @@ async function maybeSyncAttachments(
     mime: a.mime,
     sizeBytes: a.size_bytes,
     fileName: a.file_name,
+    uploadedBy,
   }));
   await syncTripCostAttachments(entId, tripId, mapped);
 }
@@ -228,6 +231,10 @@ export async function createTruckTripAction(
         fuelLiters: dto.fuel_liters ?? null,
         fuelPrice: dto.fuel_price ?? null,
         tollFee: dto.toll_fee ?? null,
+        cleaningFee: dto.cleaning_fee ?? null,
+        repairFee: dto.repair_fee ?? null,
+        ferryFee: dto.ferry_fee ?? null,
+        loadingFee: dto.loading_fee ?? null,
         extraCosts,
       });
       trip = res.trip;
@@ -235,7 +242,7 @@ export async function createTruckTripAction(
 
     /* Persist trip-cost receipt attachments (REQ-20260709). No existing rows on
      * create → sync just inserts the uploaded keys. */
-    await maybeSyncAttachments(actor.entId, trip.trpId, dto.cost_attachments);
+    await maybeSyncAttachments(actor.entId, trip.trpId, dto.cost_attachments, actor.userId);
 
     await logAudit({
       entId: actor.entId,
@@ -339,11 +346,15 @@ export async function completeTruckTripAction(
       fuelLiters: dto.fuel_liters ?? null,
       fuelPrice: dto.fuel_price ?? null,
       tollFee: dto.toll_fee ?? null,
+      cleaningFee: dto.cleaning_fee ?? null,
+      repairFee: dto.repair_fee ?? null,
+      ferryFee: dto.ferry_fee ?? null,
+      loadingFee: dto.loading_fee ?? null,
       extraCosts: dto.extra_costs ?? [],
     });
 
     /* Reconcile receipt attachments (insert new, soft-delete removed). */
-    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments, actor.userId);
 
     await logAudit({
       entId: actor.entId,
@@ -397,11 +408,15 @@ export async function driverCompleteTruckTripAction(
       fuelLiters: dto.fuel_liters ?? null,
       fuelPrice: dto.fuel_price ?? null,
       tollFee: dto.toll_fee ?? null,
+      cleaningFee: dto.cleaning_fee ?? null,
+      repairFee: dto.repair_fee ?? null,
+      ferryFee: dto.ferry_fee ?? null,
+      loadingFee: dto.loading_fee ?? null,
       extraCosts: dto.extra_costs ?? [],
     });
 
     /* Reconcile receipt attachments (insert new, soft-delete removed). */
-    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments, actor.userId);
 
     await logAudit({
       entId: actor.entId,
@@ -489,6 +504,10 @@ export async function updateTruckTripAction(
       endOdometer: dto.end_odometer ?? null,
       fuelLiters: dto.fuel_liters ?? null,
       tollFee: dto.toll_fee ?? null,
+      cleaningFee: dto.cleaning_fee ?? null,
+      repairFee: dto.repair_fee ?? null,
+      ferryFee: dto.ferry_fee ?? null,
+      loadingFee: dto.loading_fee ?? null,
       notes: dto.notes,
       startedAt: parseWallClockUtc(dto.start_time) ?? undefined,
       finishedAt: parseWallClockUtc(dto.end_time) ?? undefined,
@@ -497,7 +516,7 @@ export async function updateTruckTripAction(
     });
 
     /* Reconcile receipt attachments (insert new, soft-delete removed). */
-    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments, actor.userId);
 
     await logAudit({
       entId: actor.entId,
@@ -595,6 +614,10 @@ export async function driverUpdateTruckTripAction(
       endOdometer: dto.end_odometer ?? trip.trpEndOdometer,
       fuelLiters: dto.fuel_liters ?? null,
       tollFee: dto.toll_fee ?? null,
+      cleaningFee: dto.cleaning_fee ?? null,
+      repairFee: dto.repair_fee ?? null,
+      ferryFee: dto.ferry_fee ?? null,
+      loadingFee: dto.loading_fee ?? null,
       notes: dto.notes,
       startedAt: parseWallClockUtc(dto.start_time) ?? undefined,
       finishedAt: parseWallClockUtc(dto.end_time) ?? undefined,
@@ -602,7 +625,7 @@ export async function driverUpdateTruckTripAction(
       stopovers,
     });
 
-    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments, actor.userId);
 
     await logAudit({
       entId: actor.entId,
