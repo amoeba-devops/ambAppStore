@@ -40,6 +40,7 @@ export type NavKey =
   | 'truckFinance'
   | 'truckDrivers'
   | 'truckMaintenance'
+  | 'truckInvoices'
   | 'truckReportCreate'
   | 'truckReports'
   | 'truckSettings'
@@ -125,6 +126,11 @@ export const NAV_ITEMS: NavItem[] = [
    * P&L overview + month close live under /truck/pnl as tabs of this same menu
    * (shared FinanceTabs), so there's no separate nav item. */
   { key: 'truckFinance', href: '/truck/finance', Icon: Coins,          group: 'workspace', section: 'finance', roles: STAFF, fleet: 'TRUCK' },
+  /* Dữ liệu (REQ-20260921): read-only aggregate of every invoice/receipt
+   * uploaded across trip-cost/maintenance/expense/fuel-invoice. First item to
+   * use the 'data' section slotted in the IA since REQ-20260629 but unused
+   * until now. */
+  { key: 'truckInvoices', href: '/truck/invoices', Icon: Receipt,     group: 'workspace', section: 'data', roles: STAFF, fleet: 'TRUCK' },
   /* Import Excel has NO sidebar menu (design IA) — reached from the trip-log
    * header button. The /truck/import route + wizard stay. */
   /* Báo cáo (REQ-20260629 R8): lập báo cáo + danh sách lưu trữ (badge "Mới"). */

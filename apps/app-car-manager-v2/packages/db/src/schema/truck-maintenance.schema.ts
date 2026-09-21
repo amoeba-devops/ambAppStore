@@ -85,6 +85,9 @@ export const carTruckMaintenanceAttachments = pgTable(
     tmaSizeBytes: bigint('tma_size_bytes', { mode: 'number' }).notNull(),
     /** Original filename as the device gave it (REQ-20260915). */
     tmaFileName: varchar('tma_file_name', { length: 255 }),
+    /** Uploader (REQ-20260921). Null for rows created before the column
+     * existed and whose S3 key didn't backfill-parse. */
+    tmaUploadedBy: char('tma_uploaded_by', { length: 36 }),
     tmaUploadedAt: timestamp('tma_uploaded_at', { withTimezone: true }).defaultNow().notNull(),
     tmaDeletedAt: timestamp('tma_deleted_at', { withTimezone: true }),
   },

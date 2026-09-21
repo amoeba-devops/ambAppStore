@@ -123,6 +123,7 @@ async function maybeSyncAttachments(
   atts:
     | { cost_kind: TripCostKind; s3_key: string; mime: string; size_bytes: number; file_name?: string }[]
     | undefined,
+  uploadedBy: string,
 ): Promise<void> {
   if (atts === undefined) return;
   const mapped: TripCostAttachmentInput[] = atts.map((a) => ({
@@ -131,6 +132,7 @@ async function maybeSyncAttachments(
     mime: a.mime,
     sizeBytes: a.size_bytes,
     fileName: a.file_name,
+    uploadedBy,
   }));
   await syncTripCostAttachments(entId, tripId, mapped);
 }
@@ -240,7 +242,7 @@ export async function createTruckTripAction(
 
     /* Persist trip-cost receipt attachments (REQ-20260709). No existing rows on
      * create → sync just inserts the uploaded keys. */
-    await maybeSyncAttachments(actor.entId, trip.trpId, dto.cost_attachments);
+    await maybeSyncAttachments(actor.entId, trip.trpId, dto.cost_attachments, actor.userId);
 
     await logAudit({
       entId: actor.entId,
@@ -352,7 +354,7 @@ export async function completeTruckTripAction(
     });
 
     /* Reconcile receipt attachments (insert new, soft-delete removed). */
-    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments, actor.userId);
 
     await logAudit({
       entId: actor.entId,
@@ -414,7 +416,7 @@ export async function driverCompleteTruckTripAction(
     });
 
     /* Reconcile receipt attachments (insert new, soft-delete removed). */
-    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments, actor.userId);
 
     await logAudit({
       entId: actor.entId,
@@ -514,7 +516,7 @@ export async function updateTruckTripAction(
     });
 
     /* Reconcile receipt attachments (insert new, soft-delete removed). */
-    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments, actor.userId);
 
     await logAudit({
       entId: actor.entId,
@@ -623,7 +625,7 @@ export async function driverUpdateTruckTripAction(
       stopovers,
     });
 
-    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments);
+    await maybeSyncAttachments(actor.entId, dto.trip_id, dto.cost_attachments, actor.userId);
 
     await logAudit({
       entId: actor.entId,

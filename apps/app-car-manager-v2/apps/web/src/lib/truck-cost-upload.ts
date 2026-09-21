@@ -66,3 +66,11 @@ export async function uploadTruckMaintenanceFile(f: File): Promise<UploadedCostF
   await uploadToS3(presigned.uploadUrl, f);
   return { s3_key: presigned.key, mime: resolveFileMime(f), size_bytes: f.size, file_name: f.name };
 }
+
+/** Same flow for an OPTIONAL fuel-invoice scan (REQ-20260921, R4) — key lands
+ * under the `fuel-invoices/` prefix. */
+export async function uploadTruckFuelInvoiceFile(f: File): Promise<UploadedCostFile> {
+  const presigned = await requestPresigned(f, '/api/v1/truck/fuel-invoices/upload-presigned');
+  await uploadToS3(presigned.uploadUrl, f);
+  return { s3_key: presigned.key, mime: resolveFileMime(f), size_bytes: f.size, file_name: f.name };
+}

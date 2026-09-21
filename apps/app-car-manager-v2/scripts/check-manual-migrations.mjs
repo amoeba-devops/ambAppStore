@@ -109,6 +109,15 @@ const MIGRATIONS = [
       (await hasColumn('car_trips', 'trp_loading_fee')),
     detail: 'car_trips.trp_cleaning_fee/trp_repair_fee/trp_ferry_fee/trp_loading_fee',
   },
+  {
+    file: '0035_truck_invoice_module.sql',
+    probe: async () =>
+      (await hasColumn('car_trip_cost_attachments', 'tca_uploaded_by')) &&
+      (await hasColumn('car_truck_maintenance_attachments', 'tma_uploaded_by')) &&
+      (await hasColumn('car_expense_attachments', 'eat_uploaded_by')) &&
+      (await hasTable('car_truck_fuel_invoice_attachments')),
+    detail: 'cột *_uploaded_by trên 3 bảng đính kèm + table car_truck_fuel_invoice_attachments',
+  },
 ];
 
 const missing = [];

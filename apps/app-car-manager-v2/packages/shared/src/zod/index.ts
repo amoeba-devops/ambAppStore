@@ -10,3 +10,4 @@ export * from './truck-trip.zod.js';
 export * from './truck-fixed-cost.zod.js';
 export * from './truck-maintenance.zod.js';
 export * from './truck-import.zod.js';
+export * from './truck-invoice.zod.js';

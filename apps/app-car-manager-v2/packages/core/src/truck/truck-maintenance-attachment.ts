@@ -23,6 +23,10 @@ export interface MaintenanceAttachmentInput {
   sizeBytes: number;
   /** Original device filename (REQ-20260915) — shown in the UI. */
   fileName?: string | null;
+  /** Uploader (REQ-20260921) — the actor performing THIS save. Only stamped
+   * on newly inserted rows; untouched existing rows keep their original
+   * uploader (see syncMaintenanceAttachments). */
+  uploadedBy?: string | null;
 }
 
 /** Live (non-deleted) invoice files of a job, oldest first. */
@@ -90,6 +94,7 @@ export async function syncMaintenanceAttachments(
         tmaMime: d.mime,
         tmaSizeBytes: d.sizeBytes,
         tmaFileName: d.fileName ?? null,
+        tmaUploadedBy: d.uploadedBy ?? null,
       })),
     );
   }

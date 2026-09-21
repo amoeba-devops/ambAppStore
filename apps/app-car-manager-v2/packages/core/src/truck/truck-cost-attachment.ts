@@ -23,6 +23,10 @@ export interface TripCostAttachmentInput {
   sizeBytes: number;
   /** Original device filename (REQ-20260915) — shown in the UI. */
   fileName?: string | null;
+  /** Uploader (REQ-20260921) — the actor performing THIS save. Only stamped
+   * on newly inserted rows; untouched existing rows keep their original
+   * uploader (see syncTripCostAttachments). */
+  uploadedBy?: string | null;
 }
 
 /** Live (non-deleted) attachments for a trip, oldest first. */
@@ -92,6 +96,7 @@ export async function syncTripCostAttachments(
         tcaMime: d.mime,
         tcaSizeBytes: d.sizeBytes,
         tcaFileName: d.fileName ?? null,
+        tcaUploadedBy: d.uploadedBy ?? null,
       })),
     );
   }

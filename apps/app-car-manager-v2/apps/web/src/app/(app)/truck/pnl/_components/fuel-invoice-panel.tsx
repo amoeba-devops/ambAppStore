@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { Button, Card, Input, toast } from '@car-v2/ui';
+import { AttachmentInput } from '@/components/attachments/attachment-input';
 import {
   addFuelInvoiceAction,
   deleteFuelInvoiceAction,
 } from '@/server/actions/settings/truck-finance.actions';
 import { formatActionError } from '@/lib/format-action-error';
+import { uploadTruckFuelInvoiceFile } from '@/lib/truck-cost-upload';
 import type { FuelInvoiceRow } from '@/server/queries/truck-finance.queries';
 
 /** Monthly fuel-invoice ledger + add form. The derived month-end snapshot
@@ -42,11 +44,20 @@ export function FuelInvoicePanel({
     price: '',
     vehicleId: '',
   });
+  /** Scan/photo of the actual invoice — OPTIONAL (REQ-20260921, R4). */
+  const [files, setFiles] = useState<File[]>([]);
   const plateById = new Map(vehicles.map((v) => [v.id, v.plate]));
   const vnd = (n: number) => n.toLocaleString('vi-VN') + ' ₫';
 
   const add = () =>
     start(async () => {
+      let attachments: { s3_key: string; mime: string; size_bytes: number; file_name: string }[] = [];
+      try {
+        attachments = await Promise.all(files.map((file) => uploadTruckFuelInvoiceFile(file)));
+      } catch {
+        toast.error(t('invoiceAttachmentUploadFailed'));
+        return;
+      }
       const res = await addFuelInvoiceAction({
         date: f.date,
         station: f.station || undefined,
@@ -54,6 +65,7 @@ export function FuelInvoicePanel({
         vehicle_id: f.vehicleId || undefined,
         liters: Number(f.liters || 0),
         price: Number(f.price || 0),
+        attachments,
       });
       if (!res.success) {
         toast.error(formatActionError(res.error, tErr));
@@ -61,6 +73,7 @@ export function FuelInvoicePanel({
       }
       toast.success(t('invoiceAdded'));
       setF({ date: `${month}-01`, station: '', liters: '', price: '', vehicleId: '' });
+      setFiles([]);
       router.refresh();
     });
 
@@ -134,6 +147,18 @@ export function FuelInvoicePanel({
           <Button size="sm" className="h-11 md:h-9" variant="accent" disabled={pending} onClick={add} iconLeft={pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}>
             {t('addInvoice')}
           </Button>
+          {/* Scan/photo of the actual invoice — OPTIONAL, not required to add
+            * the row above (REQ-20260921, R4). */}
+          <div className="col-span-2 sm:col-span-6">
+            <AttachmentInput
+              existing={[]}
+              onExistingChange={() => {}}
+              files={files}
+              onFilesChange={setFiles}
+              disabled={pending}
+              maxFiles={5}
+            />
+          </div>
         </div>
       )}
     </Card>
