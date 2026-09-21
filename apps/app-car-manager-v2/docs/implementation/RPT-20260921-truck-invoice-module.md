@@ -78,9 +78,11 @@ Chi tiết ở [TR-20260921](../test/TR-20260921-truck-invoice-module.md) (2 l�
 
 ## 5. Việc còn lại trước khi coi module này production-ready
 
-1. Áp `0035_truck_invoice_module.sql` tay lên **staging** rồi **production** TRƯỚC khi deploy build đọc bảng/cột mới — chạy `check-manual-migrations.mjs` xác nhận trước mỗi lần deploy (bắt buộc, tiền lệ FIX-260914).
-2. Deploy theo đúng flow repo: `main` → staging (test) → PR `main → production`. Trên staging, nếu có Playwright/thao tác tay thật, nên bổ sung 1 lượt upload file thật qua form để đóng nốt phần duy nhất còn bị giới hạn bởi công cụ test ở đây.
-3. Việc chưa làm trong phạm vi REQ này (đã ghi nhận, không phải thiếu sót): không có luồng thêm/sửa/xóa hóa đơn độc lập (D1 — chỉ tổng hợp read-only theo đúng yêu cầu).
+1. ✅ **Đã áp `0035_truck_invoice_module.sql` lên staging (`DATABASE_URL_STG_TRUCK` = `ep-noisy-heart`)** 2026-09-21 — xác nhận qua `node scripts/check-manual-migrations.mjs stg_truck`: 9/9 OK. Đã kiểm tra kỹ trước khi chạy: KHÔNG chạy lên `DATABASE_URL_STAGING` (`ep-gentle-rain`) — biến đó không phải DB của app này (xem [[reference_truck_db_branches]]).
+2. Còn thiếu: áp `0035` lên **production** TRƯỚC khi deploy production build đọc bảng/cột mới — chạy `check-manual-migrations.mjs prod` xác nhận trước (bắt buộc, tiền lệ FIX-260914).
+3. Deploy theo đúng flow repo: PR `feature/truck-invoice-module → staging` (đã push nhánh) → test trên staging → PR `main → production`.
+4. Nếu có Playwright/thao tác tay thật trên staging, nên bổ sung 1 lượt upload file thật qua form để đóng nốt phần duy nhất còn bị giới hạn bởi công cụ test local (browser pane không chọn được file thật).
+5. Việc chưa làm trong phạm vi REQ này (đã ghi nhận, không phải thiếu sót): không có luồng thêm/sửa/xóa hóa đơn độc lập (D1 — chỉ tổng hợp read-only theo đúng yêu cầu).
 
 ## 6. Ghi chú side-impact
 
