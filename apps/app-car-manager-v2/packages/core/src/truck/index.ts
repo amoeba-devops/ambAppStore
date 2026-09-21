@@ -7,4 +7,5 @@ export * from './truck-fuel-snapshot.js';
 export * from './truck-fixed-monthly.js';
 export * from './truck-maintenance.js';
 export * from './truck-maintenance-attachment.js';
+export * from './truck-fuel-invoice-attachment.js';
 export * from './truck-vehicle-status.js';

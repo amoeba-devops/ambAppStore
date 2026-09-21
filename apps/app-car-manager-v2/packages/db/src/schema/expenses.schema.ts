@@ -119,6 +119,9 @@ export const carExpenseAttachments = pgTable(
     eatSizeBytes: bigint('eat_size_bytes', { mode: 'number' }).notNull(),
     /** Original filename as the device gave it (REQ-20260915). */
     eatFileName: varchar('eat_file_name', { length: 255 }),
+    /** Uploader (REQ-20260921). Null for rows created before the column
+     * existed and whose S3 key didn't backfill-parse. */
+    eatUploadedBy: char('eat_uploaded_by', { length: 36 }),
     eatUploadedAt: timestamp('eat_uploaded_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({

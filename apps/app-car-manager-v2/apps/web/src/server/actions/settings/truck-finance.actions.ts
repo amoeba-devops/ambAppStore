@@ -7,7 +7,8 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@car-v2/db/client';
 import { carTruckFuelInvoices } from '@car-v2/db/schema';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
-import { TRUCK_REGIONS } from '@car-v2/shared/zod';
+import { attachmentMetaSchema, TRUCK_REGIONS } from '@car-v2/shared/zod';
+import { syncFuelInvoiceAttachments } from '@car-v2/core/truck';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
 import { requireRegion } from '@/lib/auth/region-access';
@@ -38,6 +39,10 @@ export async function addFuelInvoiceAction(input: unknown): Promise<ActionResult
         vehicle_id: z.string().uuid().optional().or(z.literal('')),
         liters: z.number().nonnegative(),
         price: z.number().nonnegative(),
+        /* Optional scan/photo of the actual invoice (REQ-20260921, R4 — NOT
+         * required). The ledger has worked with zero attachments since it
+         * was introduced; this only lets a row carry one when provided. */
+        attachments: z.array(attachmentMetaSchema).max(10).optional(),
       })
       .parse(input);
     /* Region ACL (REQ-20260813) — can't book fuel into another region's ledger. */
@@ -60,7 +65,21 @@ export async function addFuelInvoiceAction(input: unknown): Promise<ActionResult
       tfiPrice: String(dto.price),
       tfiCreatedBy: actor.userId,
     });
+    if (dto.attachments?.length) {
+      await syncFuelInvoiceAttachments(
+        actor.entId,
+        id,
+        dto.attachments.map((a) => ({
+          s3Key: a.s3_key,
+          mime: a.mime,
+          sizeBytes: a.size_bytes,
+          fileName: a.file_name,
+          uploadedBy: actor.userId,
+        })),
+      );
+    }
     revalidatePath('/truck/pnl');
+    revalidatePath('/truck/invoices');
     return { id };
   });
 }

@@ -31,6 +31,9 @@ export const carTripCostAttachments = pgTable(
     /** Original filename as the device gave it (REQ-20260915). Null on rows
      * created before the column existed and whose S3 key didn't parse. */
     tcaFileName: varchar('tca_file_name', { length: 255 }),
+    /** Uploader (REQ-20260921). Null for rows created before the column
+     * existed and whose S3 key didn't backfill-parse. */
+    tcaUploadedBy: char('tca_uploaded_by', { length: 36 }),
     tcaUploadedAt: timestamp('tca_uploaded_at', { withTimezone: true }).defaultNow().notNull(),
     tcaDeletedAt: timestamp('tca_deleted_at', { withTimezone: true }),
   },

@@ -1,4 +1,4 @@
-import { pgTable, char, varchar, decimal, date, timestamp, index } from 'drizzle-orm/pg-core';
+import { bigint, pgTable, char, varchar, decimal, date, text, timestamp, index } from 'drizzle-orm/pg-core';
 import { vehicleTypeEnum } from './vehicles.schema';
 
 /**
@@ -52,3 +52,35 @@ export const carTruckFuelInvoices = pgTable(
 
 export type CarTruckFuelInvoice = typeof carTruckFuelInvoices.$inferSelect;
 export type CarTruckFuelInvoiceInsert = typeof carTruckFuelInvoices.$inferInsert;
+
+/**
+ * car_truck_fuel_invoice_attachments — OPTIONAL scan/photo of the actual
+ * monthly fuel invoice (REQ-20260921). `car_truck_fuel_invoices` above is a
+ * pure numeric ledger (station/liters/price) with no document — this table
+ * lets a ledger row carry 0..n images/PDFs, same shape and rules as
+ * `car_trip_cost_attachments` / `car_truck_maintenance_attachments`: S3 key
+ * only (never bytes), soft delete so a removed file keeps its audit trail.
+ */
+export const carTruckFuelInvoiceAttachments = pgTable(
+  'car_truck_fuel_invoice_attachments',
+  {
+    tfaId: char('tfa_id', { length: 36 }).primaryKey(),
+    entId: char('ent_id', { length: 36 }).notNull(),
+    tfiId: char('tfi_id', { length: 36 })
+      .notNull()
+      .references(() => carTruckFuelInvoices.tfiId),
+    tfaS3Key: text('tfa_s3_key').notNull(),
+    tfaMime: varchar('tfa_mime', { length: 64 }).notNull(),
+    tfaSizeBytes: bigint('tfa_size_bytes', { mode: 'number' }).notNull(),
+    tfaFileName: varchar('tfa_file_name', { length: 255 }),
+    tfaUploadedBy: char('tfa_uploaded_by', { length: 36 }),
+    tfaUploadedAt: timestamp('tfa_uploaded_at', { withTimezone: true }).defaultNow().notNull(),
+    tfaDeletedAt: timestamp('tfa_deleted_at', { withTimezone: true }),
+  },
+  (t) => ({
+    idxEntInvoice: index('idx_car_truck_fuel_invoice_attachments_ent_tfi').on(t.entId, t.tfiId),
+  }),
+);
+
+export type CarTruckFuelInvoiceAttachment = typeof carTruckFuelInvoiceAttachments.$inferSelect;
+export type CarTruckFuelInvoiceAttachmentInsert = typeof carTruckFuelInvoiceAttachments.$inferInsert;
