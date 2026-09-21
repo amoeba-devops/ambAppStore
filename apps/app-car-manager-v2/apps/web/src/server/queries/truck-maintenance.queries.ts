@@ -4,7 +4,7 @@ import { db } from '@car-v2/db/client';
 import { carTruckMaintenances, carUsers, carVehicles } from '@car-v2/db/schema';
 import { countMaintenanceAttachments, getMaintenanceAttachments, parseAmount } from '@car-v2/core/truck';
 import { fileNameFromS3Key } from '@car-v2/shared/zod';
-import { getSignedGetUrl } from '@/lib/s3-client';
+import { getSignedUrlPair } from '@/lib/s3-client';
 
 /**
  * Read side of the truck maintenance menu (REQ-20260904). The money/schedule
@@ -150,6 +150,9 @@ export interface MaintenanceAttachmentView {
   fileName: string | null;
   /** Short-lived GET URL for the thumbnail; null when signing failed. */
   signedUrl: string | null;
+  /** Signed URL with `Content-Disposition: attachment` — what the download
+   * button uses, because browsers ignore <a download> cross-origin. */
+  downloadUrl: string | null;
 }
 
 /** Live invoices of a job with signed URLs — the edit/detail screen. */
@@ -165,7 +168,7 @@ export async function getTruckMaintenanceAttachmentsView(
       mime: r.tmaMime,
       fileName: r.tmaFileName ?? fileNameFromS3Key(r.tmaS3Key),
       sizeBytes: r.tmaSizeBytes,
-      signedUrl: await getSignedGetUrl(r.tmaS3Key),
+      ...(await getSignedUrlPair(r.tmaS3Key, r.tmaFileName ?? fileNameFromS3Key(r.tmaS3Key))),
     })),
   );
 }

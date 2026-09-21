@@ -46,6 +46,7 @@ export interface TruckTripDetailProps {
     /** Original filename (REQ-20260915) — shown under each tile. */
     fileName?: string | null;
     signedUrl: string | null;
+    downloadUrl?: string | null;
   }[];
   breakdown: TruckCostBreakdown;
   /** How `breakdown.fuelCost` was derived: AVERAGED | LIVE | UNSET —
@@ -205,6 +206,7 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
                   mime: a.mime,
                   sizeBytes: a.sizeBytes,
                   url: a.signedUrl,
+                  downloadUrl: a.downloadUrl,
                 }))}
               />
             </div>

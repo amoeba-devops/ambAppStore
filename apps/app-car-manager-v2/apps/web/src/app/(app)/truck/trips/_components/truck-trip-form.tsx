@@ -203,6 +203,7 @@ export function TruckTripForm({
         sizeBytes: a.sizeBytes,
         fileName: a.fileName,
         signedUrl: a.signedUrl,
+        downloadUrl: a.downloadUrl,
       });
     }
     return init;

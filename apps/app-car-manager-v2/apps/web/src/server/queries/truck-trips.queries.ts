@@ -18,7 +18,7 @@ import {
   type TruckCostBreakdown,
   type TruckFuelMode,
 } from '@car-v2/core/truck';
-import { getSignedGetUrl } from '@/lib/s3-client';
+import { getSignedUrlPair } from '@/lib/s3-client';
 
 const monthKey = (d: Date): string => d.toISOString().slice(0, 7);
 
@@ -472,6 +472,9 @@ export interface TripCostAttachmentView {
   fileName: string | null;
   /** Pre-signed GET URL (15-min TTL). Null when S3 isn't configured (dev). */
   signedUrl: string | null;
+  /** Signed URL with `Content-Disposition: attachment` — what the download
+   * button uses, because browsers ignore <a download> cross-origin. */
+  downloadUrl: string | null;
 }
 
 /** Live trip-cost receipt attachments (REQ-20260709) with signed GET URLs, for
@@ -489,7 +492,7 @@ export async function getTripCostAttachmentsView(
       mime: r.tcaMime,
       fileName: r.tcaFileName ?? fileNameFromS3Key(r.tcaS3Key),
       sizeBytes: r.tcaSizeBytes,
-      signedUrl: await getSignedGetUrl(r.tcaS3Key),
+      ...(await getSignedUrlPair(r.tcaS3Key, r.tcaFileName ?? fileNameFromS3Key(r.tcaS3Key))),
     })),
   );
 }

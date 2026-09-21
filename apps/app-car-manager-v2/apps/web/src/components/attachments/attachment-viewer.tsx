@@ -39,6 +39,13 @@ export interface AttachmentViewItem {
   sizeBytes: number;
   /** Signed GET URL (saved) or object URL (pending). Null = can't render. */
   url: string | null;
+  /**
+   * Signed URL that forces a save (`Content-Disposition: attachment`). The
+   * `download` attribute alone is ignored on cross-origin hrefs, so without
+   * this the download button just opens the file in a tab. Omit for pending
+   * local files — their blob: URL is same-origin, where `download` works.
+   */
+  downloadUrl?: string | null;
 }
 
 export const isImageMime = (m: string): boolean => m.startsWith('image/');
@@ -280,10 +287,8 @@ export function AttachmentLightbox({ items, index, onIndexChange, onClose }: Att
 
         {current.url ? (
           <a
-            href={current.url}
+            href={current.downloadUrl ?? current.url}
             download={current.name}
-            target="_blank"
-            rel="noopener noreferrer"
             aria-label={t('download')}
             className="h-10 w-10 shrink-0 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/25 inline-flex items-center justify-center backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             onClick={(e) => e.stopPropagation()}
@@ -322,7 +327,7 @@ export function AttachmentLightbox({ items, index, onIndexChange, onClose }: Att
                   </a>
                 </Button>
                 <Button asChild variant="secondary" size="md">
-                  <a href={current.url} download={current.name} target="_blank" rel="noopener noreferrer">
+                  <a href={current.downloadUrl ?? current.url} download={current.name}>
                     <Download className="h-4 w-4" />
                     {t('download')}
                   </a>
