@@ -22,6 +22,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { formatDay } from '@/lib/format-day';
+import { getTenantTimeZone } from '@/server/queries/tenant-settings.queries';
 import { resolveRegionFilter } from '@/lib/auth/region-access';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import type { TruckCostBreakdown } from '@car-v2/core/truck';
@@ -85,6 +86,8 @@ export default async function TruckTripsPage({
     status,
   });
   const loc = bcp47(locale);
+  /* Tenant zone for the "Cập nhật" timestamps — the server clock is UTC (BUG-260930). */
+  const timeZone = await getTenantTimeZone(user.entId);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
   const date = (d: Date) => formatDay(d, loc);
   /* "Other" column merges the 4 fixed cost types added REQ-20260916 (cleaning/
@@ -260,7 +263,7 @@ export default async function TruckTripsPage({
                       </Badge>
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-xs">
-                      <DateTimeCell value={trip.updatedAt} locale={loc} />
+                      <DateTimeCell value={trip.updatedAt} locale={loc} timeZone={timeZone} />
                     </TableCell>
                     <TableCell>
                       <ListRowActions

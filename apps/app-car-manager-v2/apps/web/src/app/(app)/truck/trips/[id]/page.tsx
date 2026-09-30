@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { getTrip } from '@/server/queries/trips.queries';
 import { getTripExtraCosts, getTruckTripBreakdown, getTripCostAttachmentsView } from '@/server/queries/truck-trips.queries';
 import { getTruckReportStatus } from '@/server/queries/truck-report.queries';
+import { getTenantTimeZone } from '@/server/queries/tenant-settings.queries';
 import { getTripStopovers } from '@/server/queries/stopovers.queries';
 import { completeInitialOf } from '@/lib/truck-complete-initial';
 import { TruckTripDetail } from '@/app/(app)/trips/[id]/_components/truck-trip-detail';
@@ -36,9 +37,11 @@ export default async function TruckTripDetailPage({ params }: { params: Promise<
   const completed = trip.trpStatus === 'COMPLETED';
   const canComplete = !completed && (trip.trpStatus === 'CONFIRMED' || trip.trpStatus === 'IN_PROGRESS');
   const reportStatus = completed ? await getTruckReportStatus(user.entId, month, region || null, trip.trpUpdatedAt ?? trip.trpCreatedAt) : null;
+  const timeZone = await getTenantTimeZone(user.entId);
 
   return (
     <TruckTripDetail
+      timeZone={timeZone}
       tripId={trip.trpId}
       tripRef={trip.trpRef}
       status={trip.trpStatus}
@@ -50,6 +53,10 @@ export default async function TruckTripDetailPage({ params }: { params: Promise<
       dropoff={trip.trpDropoffAddress}
       vehiclePlate={trip.vehiclePlate}
       driverName={trip.driverName}
+      startedAt={trip.trpStartedAt}
+      endedAt={trip.trpEndedAt}
+      startOdometer={trip.trpStartOdometer}
+      endOdometer={trip.trpEndOdometer}
       extras={extras}
       costAttachments={costAttachments}
       breakdown={breakdown}

@@ -21,6 +21,7 @@ import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { formatDay } from '@/lib/format-day';
+import { getTenantTimeZone } from '@/server/queries/tenant-settings.queries';
 import { resolveRegionFilter } from '@/lib/auth/region-access';
 import { getTruckReportStatus, type TruckReportStatus } from '@/server/queries/truck-report.queries';
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
@@ -154,6 +155,7 @@ export default async function TruckDashboardPage({
   const tRegion = await getTranslations('region');
   const locale = await getLocale();
   const loc = bcp47(locale);
+  const timeZone = await getTenantTimeZone(user.entId);
 
   const monthYear = (m: string) =>
     new Date(`${m}-01T00:00:00Z`).toLocaleDateString(loc, { month: 'short', year: 'numeric' });
@@ -490,7 +492,7 @@ export default async function TruckDashboardPage({
                 </div>
                 {rr.status && (
                   <div className="mt-1.5">
-                    <ReportStatusBadge reportedAt={rr.status.reportedAt} stale={rr.status.stale} locale={locale} />
+                    <ReportStatusBadge reportedAt={rr.status.reportedAt} stale={rr.status.stale} locale={locale} timeZone={timeZone} />
                   </div>
                 )}
               </li>
@@ -521,7 +523,7 @@ export default async function TruckDashboardPage({
                     {showReportStatus && (
                       <TableCell>
                         {rr.status && (
-                          <ReportStatusBadge reportedAt={rr.status.reportedAt} stale={rr.status.stale} locale={locale} />
+                          <ReportStatusBadge reportedAt={rr.status.reportedAt} stale={rr.status.stale} locale={locale} timeZone={timeZone} />
                         )}
                       </TableCell>
                     )}

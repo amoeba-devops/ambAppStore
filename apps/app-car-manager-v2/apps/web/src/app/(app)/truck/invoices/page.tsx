@@ -71,7 +71,9 @@ export default async function TruckInvoicesPage({
     page,
   });
 
-  const date = (d: Date) => formatDay(d, loc);
+  /* Trip end / scheduled day are wall clocks stored as UTC components — read
+   * them in UTC so a non-UTC host never shifts the day (BUG-260930). */
+  const date = (d: Date) => formatDay(d, loc, 'UTC');
   const totalPages = Math.max(1, Math.ceil(result.total / result.pageSize));
   const pageHref = (p: number) => {
     const params = new URLSearchParams();

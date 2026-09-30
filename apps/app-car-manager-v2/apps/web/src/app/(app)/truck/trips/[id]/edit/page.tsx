@@ -68,6 +68,11 @@ export default async function EditTruckTripPage({ params }: { params: Promise<{ 
     /* 'HH:mm' in the viewer's zone — the form recombines them with the date. */
     startTime: hhmm(trip.trpStartedAt),
     endTime: hhmm(trip.trpEndedAt),
+    /* Odometer readings seed the ORIGIN / RETURN stop km (BUG-260930 case 2).
+     * The form derives start/end odometer FROM the stops on save, so an
+     * imported trip — whose stops carry no km — had both wiped by any edit. */
+    startOdometer: trip.trpStartOdometer,
+    endOdometer: trip.trpEndOdometer,
     revenue: trip.trpRevenue ?? '',
     fuelPrice: trip.trpFuelPrice ?? '',
     fuelLiters: trip.trpFuelLiters ?? '',

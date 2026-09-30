@@ -28,6 +28,7 @@ import { ReportStatusBadge } from '@/components/truck/report-status-badge';
 import { FuelReconciliationBadge } from '@/components/truck/fuel-reconciliation-badge';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { formatDay } from '@/lib/format-day';
+import { getTenantTimeZone } from '@/server/queries/tenant-settings.queries';
 import { resolveRegionFilter, resolveVehicleScope } from '@/lib/auth/region-access';
 import {
   getTruckFixedCostsLastUpdated,
@@ -76,6 +77,7 @@ export default async function TruckFinancePage({
   const tRegion = await getTranslations('region');
   const locale = await getLocale();
   const loc = bcp47(locale);
+  const timeZone = await getTenantTimeZone(user.entId);
 
   /* Vehicle multi-select (REQ-20260814) — `trucks` is already region-scoped and
    * ids outside it are dropped; `vehicleIds` is undefined for "all trucks". */
@@ -195,7 +197,7 @@ export default async function TruckFinancePage({
               hint: v.cvhRegion ? tRegion(v.cvhRegion as 'HCM') : undefined,
             }))}
           />
-          <ReportStatusBadge reportedAt={latestReport?.createdAt ?? null} stale={stale} locale={locale} />
+          <ReportStatusBadge reportedAt={latestReport?.createdAt ?? null} stale={stale} locale={locale} timeZone={timeZone} />
           {/* Once a report exists for this month, give a 1-click path to it —
            * the banner-generate flow doesn't navigate to /truck/reports, so
            * without this the file is only reachable via the sidebar menu. */}
@@ -311,7 +313,7 @@ export default async function TruckFinancePage({
                       </Badge>
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-xs">
-                      <DateTimeCell value={r.updatedAt} locale={loc} />
+                      <DateTimeCell value={r.updatedAt} locale={loc} timeZone={timeZone} />
                     </TableCell>
                   </ClickableTableRow>
                 ))}

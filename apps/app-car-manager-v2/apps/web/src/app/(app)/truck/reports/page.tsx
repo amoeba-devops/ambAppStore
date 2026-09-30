@@ -19,6 +19,8 @@ import { allowedRegions } from '@/lib/auth/region-access';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { getTruckReportsSeenAt, listTruckReports, type TruckReportRow } from '@/server/queries/truck-report.queries';
 import { MonthPicker } from '@/components/inputs/month-picker';
+import { formatDateTime } from '@/lib/format-day';
+import { getTenantTimeZone } from '@/server/queries/tenant-settings.queries';
 import { MarkReportsSeen } from './_components/mark-reports-seen';
 import { AutoDownloadReport } from './_components/auto-download-report';
 
@@ -46,6 +48,7 @@ export default async function TruckReportsPage({
   const tCo = await getTranslations('company');
   const locale = await getLocale();
   const loc = bcp47(locale);
+  const timeZone = await getTenantTimeZone(user.entId);
 
   const seenAt = await getTruckReportsSeenAt(user.entId, user.userId);
   /* Region ACL (REQ-20260813) — a narrowed user only sees their regions' reports. */
@@ -58,7 +61,8 @@ export default async function TruckReportsPage({
 
   const monthLabel = (m: string) =>
     new Date(`${m}-01T00:00:00Z`).toLocaleDateString(loc, { month: 'long', year: 'numeric' });
-  const dateTime = (d: Date) => new Date(d).toLocaleString(loc);
+  /* Generated-at is an instant → tenant wall clock, not the UTC server clock (BUG-260930). */
+  const dateTime = (d: Date) => formatDateTime(d, loc, timeZone);
 
   /* Month filter ("Lọc theo tháng") — unified month picker (Sheet-2 RL1). */
   const shown = monthFilter ? reports.filter((r) => r.month === monthFilter) : reports;

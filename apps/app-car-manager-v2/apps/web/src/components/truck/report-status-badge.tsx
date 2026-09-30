@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { Badge } from '@car-v2/ui';
+import { DEFAULT_TIME_ZONE } from '@/lib/format-day';
 
 function bcp47(locale: string): string {
   if (locale === 'vi') return 'vi-VN';
@@ -21,6 +22,7 @@ export async function ReportStatusBadge({
   covered = true,
   locale,
   size = 'sm',
+  timeZone = DEFAULT_TIME_ZONE,
 }: {
   reportedAt: Date | null;
   stale: boolean;
@@ -28,6 +30,9 @@ export async function ReportStatusBadge({
   covered?: boolean;
   locale: string;
   size?: 'sm' | 'md';
+  /** Tenant zone for the generated-at clock — this renders on a UTC server
+   * (BUG-260930 case 1). */
+  timeZone?: string;
 }) {
   const t = await getTranslations('screens.truckReportStatus');
   if (!reportedAt) {
@@ -52,6 +57,7 @@ export async function ReportStatusBadge({
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone,
   });
   return (
     <Badge tone={stale ? 'warning' : 'success'} size={size}>

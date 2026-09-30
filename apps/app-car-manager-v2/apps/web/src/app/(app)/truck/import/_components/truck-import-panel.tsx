@@ -21,6 +21,7 @@ import {
   TRUCK_TEMPLATE_ORDER,
   parseImportDate,
   parseImportNumber,
+  parseImportTime,
   type TruckImportRow,
 } from '@car-v2/shared/zod';
 import { importTruckTripsAction } from '@/server/actions/imports/import.actions';
@@ -45,17 +46,11 @@ const int = (v: unknown): number | undefined => {
  * marks the row invalid below so it can't be sent (BUG-260824). The parsing
  * itself is shared with the server action — see parseImportDate. */
 const dateStr = (v: unknown): string => parseImportDate(v) ?? '';
-/* Time-of-day cell → "HH:MM". xlsx `cellDates` turns a typed time into a
- * UTC-based 1899 Date, so read UTC components to recover what the user typed;
- * a plain text cell ("8:00") passes through unchanged. */
-const timeStr = (v: unknown): string | undefined => {
-  if (v == null || v === '') return undefined;
-  if (v instanceof Date) {
-    return `${String(v.getUTCHours()).padStart(2, '0')}:${String(v.getUTCMinutes()).padStart(2, '0')}`;
-  }
-  const s = String(v).trim();
-  return s === '' ? undefined : s;
-};
+/* Time-of-day cell → "HH:MM". The sheet is read as raw serials (see parseFile),
+ * so a typed 08:30 arrives as 0.354166 and is converted arithmetically; text
+ * ("8:00", "8h30") is normalised the same way. Shared with the date parser so
+ * the preview and the saved value agree (BUG-260930 case 2). */
+const timeStr = (v: unknown): string | undefined => parseImportTime(v);
 
 /* System fields ← Excel columns. `kw` = header keywords for auto-mapping;
  * `def` = fallback column index (CR-Vietnam-Truck-v1 template order). */
@@ -109,7 +104,13 @@ export function TruckImportPanel({ vehicles, drivers }: { vehicles: OptionItem[]
     try {
       const XLSX = await import('xlsx');
       const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+      /* RAW serials, not `cellDates` (BUG-260930 case 2): SheetJS builds its
+       * Dates from the 1899 epoch with that year's local-mean-time offset, so
+       * on a Vietnamese machine every typed date came back ~30 s before the
+       * previous midnight (27/08 → 26/08) and a typed 08:30 read 01:47 in
+       * UTC. Serial numbers are timezone-proof; parseImportDate/Time turn them
+       * into the day / clock the user actually typed. */
+      const wb = XLSX.read(buf, { type: 'array', cellDates: false });
       const parsed: Sheet[] = wb.SheetNames.map((name) => ({
         name,
         rows: XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[name]!, { header: 1, blankrows: false }),
