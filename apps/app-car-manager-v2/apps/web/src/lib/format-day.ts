@@ -10,9 +10,23 @@
  */
 export const DAY_FORMAT: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
 
-/** An instant (Date / ISO string) → its calendar day in the viewer's timezone. */
-export function formatDay(d: Date | string, loc: string): string {
-  return new Date(d).toLocaleDateString(loc, DAY_FORMAT);
+/**
+ * Zone every server-rendered wall-clock timestamp falls back to. Server
+ * Components format on the server, whose clock is UTC on Render / in Docker,
+ * so a bare `toLocale*String(loc)` printed UTC to a Vietnamese viewer
+ * (BUG-260930 case 1). Pages pass the tenant's zone (`getTenantTimeZone`);
+ * this default only guards call sites that have no tenant at hand.
+ */
+export const DEFAULT_TIME_ZONE = 'Asia/Ho_Chi_Minh';
+
+/**
+ * An instant (Date / ISO string) → its calendar day. `timeZone` decides which
+ * day a late-evening instant belongs to; pass the tenant zone for created /
+ * updated timestamps. Day KEYS stored as UTC midnight (trip dates) go through
+ * `formatDayKey` instead.
+ */
+export function formatDay(d: Date | string, loc: string, timeZone?: string): string {
+  return new Date(d).toLocaleDateString(loc, timeZone ? { ...DAY_FORMAT, timeZone } : DAY_FORMAT);
 }
 
 /**
@@ -21,4 +35,26 @@ export function formatDay(d: Date | string, loc: string): string {
  */
 export function formatDayKey(iso: string, loc: string): string {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString(loc, { ...DAY_FORMAT, timeZone: 'UTC' });
+}
+
+/**
+ * An instant → `{ time: 'HH:MM:SS', date: 'dd/mm/yyyy' }` in `timeZone`. The
+ * pieces `DateTimeCell` stacks; also joinable as one line ("HH:MM:SS dd/mm/yyyy").
+ */
+export function formatDateTimeParts(
+  d: Date | string,
+  loc: string,
+  timeZone: string = DEFAULT_TIME_ZONE,
+): { time: string; date: string } {
+  const x = new Date(d);
+  return {
+    time: x.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone }),
+    date: x.toLocaleDateString(loc, { ...DAY_FORMAT, timeZone }),
+  };
+}
+
+/** One-line `HH:MM:SS dd/mm/yyyy` in `timeZone` — list cells that can't stack. */
+export function formatDateTime(d: Date | string, loc: string, timeZone: string = DEFAULT_TIME_ZONE): string {
+  const p = formatDateTimeParts(d, loc, timeZone);
+  return `${p.time} ${p.date}`;
 }

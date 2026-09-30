@@ -80,6 +80,9 @@ export default async function DriverEditTruckTripPage({
     notes: trip.trpNotes ?? '',
     startTime: hhmm(trip.trpStartedAt),
     endTime: hhmm(trip.trpEndedAt),
+    /* Seed the stop km from the stored odometers (BUG-260930 case 2). */
+    startOdometer: trip.trpStartOdometer,
+    endOdometer: trip.trpEndOdometer,
     fuelPrice: trip.trpFuelPrice ?? '',
     fuelLiters: trip.trpFuelLiters ?? '',
     toll: trip.trpTollFee ?? '',

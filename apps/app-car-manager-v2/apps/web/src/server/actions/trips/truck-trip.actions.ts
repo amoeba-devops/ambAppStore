@@ -22,6 +22,7 @@ import {
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import {
   parseWallClockUtc,
+  wallClockNowUtc,
   createTruckTripSchema,
   assignTruckTripSchema,
   completeTruckTripSchema,
@@ -32,6 +33,7 @@ import type { CarTrip } from '@car-v2/db/schema';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
 import { getDriver, getDriverByUserId } from '@/server/queries/drivers.queries';
+import { getTenantTimeZone } from '@/server/queries/tenant-settings.queries';
 import type { StopoverInput } from '@car-v2/core/truck';
 import { assertTruckMonthOpen } from '@/server/queries/truck-finance.queries';
 import { nextTripRef } from '@/server/services/trip-ref.service';
@@ -341,7 +343,9 @@ export async function completeTruckTripAction(
 
     const res = await completeTruckTrip(actor, dto.trip_id, {
       startedAt: parseWallClockUtc(dto.start_time) ?? null,
-      finishedAt: parseWallClockUtc(dto.end_time) ?? null,
+      /* "Ended now" when no end time was typed — as the tenant's WALL CLOCK,
+       * the frame every reader prints (BUG-260930 case 2). */
+      finishedAt: parseWallClockUtc(dto.end_time) ?? wallClockNowUtc(await getTenantTimeZone(actor.entId)),
       endOdometer: dto.end_odometer ?? null,
       fuelLiters: dto.fuel_liters ?? null,
       fuelPrice: dto.fuel_price ?? null,
@@ -403,7 +407,9 @@ export async function driverCompleteTruckTripAction(
 
     const res = await completeTruckTrip(actor, dto.trip_id, {
       startedAt: parseWallClockUtc(dto.start_time) ?? null,
-      finishedAt: parseWallClockUtc(dto.end_time) ?? null,
+      /* "Ended now" when no end time was typed — as the tenant's WALL CLOCK,
+       * the frame every reader prints (BUG-260930 case 2). */
+      finishedAt: parseWallClockUtc(dto.end_time) ?? wallClockNowUtc(await getTenantTimeZone(actor.entId)),
       endOdometer: dto.end_odometer ?? null,
       fuelLiters: dto.fuel_liters ?? null,
       fuelPrice: dto.fuel_price ?? null,
@@ -456,7 +462,13 @@ export async function updateTruckTripAction(
      * editing a trip out of (or into) a closed period. */
     const curTrip = await db.query.carTrips.findFirst({
       where: and(eq(carTrips.trpId, dto.trip_id), eq(carTrips.entId, actor.entId)),
-      columns: { trpScheduledAt: true, trpVehicleId: true, trpDriverId: true },
+      columns: {
+        trpScheduledAt: true,
+        trpVehicleId: true,
+        trpDriverId: true,
+        trpStartOdometer: true,
+        trpEndOdometer: true,
+      },
     });
     if (curTrip) await assertTruckMonthOpen(actor.entId, curTrip.trpScheduledAt, await regionOfVehicle(actor.entId, curTrip.trpVehicleId));
     await assertTruckMonthOpen(actor.entId, new Date(dto.scheduled_at), await regionOfVehicle(actor.entId, dto.vehicle_id));
@@ -500,8 +512,12 @@ export async function updateTruckTripAction(
       cdf: dto.cdf ?? null,
       fuelPrice: dto.fuel_price ?? null,
       revenue: dto.revenue ?? null,
-      startOdometer: dto.start_odometer ?? null,
-      endOdometer: dto.end_odometer ?? null,
+      /* Omitted odometer = "unchanged", never "clear" — same rule as the driver
+       * edit below. The form derives these from the stop km, and an imported
+       * trip's stops carry none, so a manager fixing a typo used to wipe the
+       * distance the import recorded (BUG-260930 case 2). */
+      startOdometer: dto.start_odometer ?? curTrip?.trpStartOdometer ?? null,
+      endOdometer: dto.end_odometer ?? curTrip?.trpEndOdometer ?? null,
       fuelLiters: dto.fuel_liters ?? null,
       tollFee: dto.toll_fee ?? null,
       cleaningFee: dto.cleaning_fee ?? null,

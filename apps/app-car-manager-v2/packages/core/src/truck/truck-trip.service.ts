@@ -65,6 +65,8 @@ export interface CreateTruckTripInput {
 
 export interface CompleteTruckTripInput {
   startedAt?: Date | null;
+  /** Wall clock stored as UTC components (parseWallClockUtc). Null/undefined
+   * keeps whatever is stored — there is NO "now" default here. */
   finishedAt?: Date | null;
   endOdometer?: number | null;
   fuelLiters?: number | null;
@@ -233,7 +235,12 @@ export async function completeTruckTrip(
     .set({
       trpStatus: 'COMPLETED',
       trpStartedAt: input.startedAt ?? trip.trpStartedAt,
-      trpEndedAt: input.finishedAt ?? new Date(),
+      /* No implicit "now" (BUG-260930 case 2): an import or a manager logging
+       * last month's trip without an end time used to get the import instant
+       * stamped as "Giờ kết thúc" (and it printed in UTC). The caller that
+       * really means "ended just now" — the driver's End button — passes
+       * `wallClockNowUtc(tenantTz)` explicitly. */
+      trpEndedAt: input.finishedAt ?? trip.trpEndedAt,
       trpEndOdometer: input.endOdometer ?? trip.trpEndOdometer,
       trpFuelLiters: input.fuelLiters != null ? String(input.fuelLiters) : trip.trpFuelLiters,
       trpFuelPrice: input.fuelPrice != null ? String(input.fuelPrice) : trip.trpFuelPrice,

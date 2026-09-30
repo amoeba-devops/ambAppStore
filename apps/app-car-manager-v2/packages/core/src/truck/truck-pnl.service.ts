@@ -194,6 +194,7 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
     .select({
       trpId: carTrips.trpId,
       vehicleId: carTrips.trpVehicleId,
+      driverId: carTrips.trpDriverId,
       scheduledAt: carTrips.trpScheduledAt,
       fuelLiters: carTrips.trpFuelLiters,
       fuelPrice: carTrips.trpFuelPrice,
@@ -273,9 +274,23 @@ export async function computeTruckPnl(actor: FleetActor, q: TruckPnlQuery): Prom
    * car_truck_fixed_costs row → effective-dated rate history (migration 0025) →
    * 0. Historical months therefore keep the rate that was in force THEN, and a
    * month before the truck existed carries nothing (QA 2026-07-30). */
+  /* Which (month, truck) pairs actually ran, and who drove first that month
+   * (BUG-260930 case 4): lets a backfilled month before the first recorded rate
+   * still be costed, and a truck without a default driver charge the driver
+   * who really drove it — the same "earliest trip's driver" the report names. */
+  const activeKeys = new Set<string>();
+  const driverByKey = new Map<string, string>();
+  for (const t of [...trips].sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())) {
+    if (!t.vehicleId) continue;
+    const k = `${monthKey(t.scheduledAt)}|${t.vehicleId}`;
+    activeKeys.add(k);
+    if (t.driverId && !driverByKey.has(k)) driverByKey.set(k, t.driverId);
+  }
   const fixedMonthly = await loadTruckFixedMonthly(actor.entId, months, {
     vehicleId: q.vehicleId ?? null,
     vehicleIds: q.vehicleId ? null : scopedVehicleIds,
+    activeKeys,
+    driverByKey,
   });
   for (const vid of fixedMonthly.vehicleIds) {
     for (const m of months) {

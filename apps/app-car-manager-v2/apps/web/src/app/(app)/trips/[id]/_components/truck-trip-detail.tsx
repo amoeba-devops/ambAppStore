@@ -6,6 +6,7 @@ import type { TruckCostBreakdown } from '@car-v2/core/truck';
 import type { TripCostKind } from '@car-v2/shared/zod';
 import type { CarTripStopover, CarStopType } from '@car-v2/db/schema';
 import { MapPreview } from '@/components/inputs/map-preview';
+import { formatDayKey } from '@/lib/format-day';
 import { AttachmentGrid } from '@/components/attachments/attachment-viewer';
 import { PageHeader } from '@/components/layout/page-header';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
@@ -34,6 +35,14 @@ export interface TruckTripDetailProps {
   dropoff: string;
   vehiclePlate: string | null;
   driverName: string | null;
+  /* Run window + odometer readings (BUG-260930 case 2): what an import or the
+   * completion sheet recorded. Times are wall clocks stored as UTC components
+   * (parseWallClockUtc) and are read back the same way. Nothing was shown
+   * before, so QA read "km not recorded" off a detail page that never printed it. */
+  startedAt?: Date | null;
+  endedAt?: Date | null;
+  startOdometer?: number | null;
+  endOdometer?: number | null;
   extras: { name: string; amount: number }[];
   /** Receipt/invoice attachments grouped by cost kind (REQ-20260709). `s3Key`
    * is carried so the completion form can echo kept attachments back on save. */
@@ -86,6 +95,8 @@ export interface TruckTripDetailProps {
   /** When was the report covering this trip's (month, region) last generated,
    * and is it stale — null when the trip isn't completed yet (no cost card). */
   reportStatus?: TruckReportStatus | null;
+  /** Tenant zone for the report badge's generated-at clock (BUG-260930 case 1). */
+  timeZone?: string;
 }
 
 /** Truck (LOG) trip detail — read-only breakdown when completed, otherwise the
@@ -97,9 +108,18 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
   const tNav = await getTranslations('nav');
   const tToday = await getTranslations('today.truck');
   const tAtt = await getTranslations('attachments');
+  const tCol = await getTranslations('columns.truck');
   const locale = await getLocale();
   const loc = bcp47(locale);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
+  /* Wall clock (UTC components) → "HH:MM"; the trip's day key → dd/mm/yyyy. */
+  const wall = (d: Date | null | undefined) => (d ? new Date(d).toISOString().slice(11, 16) : '—');
+  const kmNum = (n: number | null | undefined) => (n == null ? '—' : n.toLocaleString(loc));
+  const tripDay = formatDayKey(new Date(props.scheduledAt).toISOString().slice(0, 10), loc);
+  const hasTimes = !!(props.startedAt || props.endedAt);
+  const hasOdo = props.startOdometer != null || props.endOdometer != null;
+  const totalKm =
+    props.startOdometer != null && props.endOdometer != null ? props.endOdometer - props.startOdometer : null;
   const backHref = props.backHref ?? '/trips';
   const parentLabel = props.parentLabel ?? tNav('tripsMine');
 
@@ -113,6 +133,22 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
         <MapPreview pickup={props.pickup} dropoff={props.dropoff} stopovers={[]} showFullscreenLink />
       )}
       <section className="rounded-md border border-border divide-y divide-border">
+        <InfoRow label={tCol('date')} value={tripDay} mono />
+        {hasTimes && (
+          <InfoRow
+            label={`${tCol('startTime')} → ${tCol('endTime')}`}
+            value={`${wall(props.startedAt)} → ${wall(props.endedAt)}`}
+            mono
+          />
+        )}
+        {hasOdo && (
+          <InfoRow
+            label={`${tCol('odoStart')} → ${tCol('odoEnd')}`}
+            value={`${kmNum(props.startOdometer)} → ${kmNum(props.endOdometer)} ${tCol('unitKm')}`}
+            mono
+          />
+        )}
+        {totalKm != null && <InfoRow label={tCol('kmTotal')} value={`${totalKm.toLocaleString(loc)} ${tCol('unitKm')}`} mono />}
         <InfoRow label={t('customer')} value={props.customer ?? '—'} />
         {(!props.stopovers || props.stopovers.length === 0) && (
           <InfoRow label={t('route')} value={`${props.pickup} → ${props.dropoff}`} />
@@ -133,7 +169,7 @@ export async function TruckTripDetail(props: TruckTripDetailProps) {
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="text-sm font-semibold text-text">{t('costTitle')}</div>
         {props.reportStatus && (
-          <ReportStatusBadge reportedAt={props.reportStatus.reportedAt} stale={props.reportStatus.stale} covered={props.reportStatus.covered} locale={locale} />
+          <ReportStatusBadge reportedAt={props.reportStatus.reportedAt} stale={props.reportStatus.stale} covered={props.reportStatus.covered} locale={locale} timeZone={props.timeZone} />
         )}
       </div>
       {/* Two distinct fuel concepts, spelled out (REQ-20260822): what this trip
