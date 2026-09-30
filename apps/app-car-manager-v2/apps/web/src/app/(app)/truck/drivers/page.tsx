@@ -23,6 +23,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { formatDay } from '@/lib/format-day';
+import { getTenantTimeZone } from '@/server/queries/tenant-settings.queries';
 import { resolveRegionFilter } from '@/lib/auth/region-access';
 import { listFleetDrivers } from '@/server/queries/drivers.queries';
 import { getRegionAccessForUsers } from '@/server/queries/region-access.queries';
@@ -61,6 +62,7 @@ export default async function TruckDriversPage({
   const tRegion = await getTranslations('region');
   const locale = await getLocale();
   const loc = bcp47(locale);
+  const timeZone = await getTenantTimeZone(user.entId);
   const date = (d: string | Date) => formatDay(d, loc);
 
   /* Region ACL (REQ-20260813): `fRegion` is the validated ?region= filter,
@@ -215,7 +217,7 @@ export default async function TruckDriversPage({
                       </Badge>
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-xs">
-                      <DateTimeCell value={d.drvUpdatedAt} locale={loc} />
+                      <DateTimeCell value={d.drvUpdatedAt} locale={loc} timeZone={timeZone} />
                     </TableCell>
                     <TableCell className="max-w-[180px] truncate text-text-muted">{d.drvNotes ?? '—'}</TableCell>
                     <TableCell>

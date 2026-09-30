@@ -24,6 +24,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { formatDayKey } from '@/lib/format-day';
+import { getTenantTimeZone } from '@/server/queries/tenant-settings.queries';
 import { listTrucksWithStatus } from '@/server/queries/truck-vehicles.queries';
 import { getDriverNamesByIds } from '@/server/queries/drivers.queries';
 import { parseAmount, TRUCK_VEHICLE_STATUSES, type TruckVehicleStatus } from '@car-v2/core/truck';
@@ -59,6 +60,7 @@ export default async function TruckFleetPage({
   const tRegion = await getTranslations('region');
   const locale = await getLocale();
   const loc = bcp47(locale);
+  const timeZone = await getTenantTimeZone(user.entId);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
   const fmtDay = (iso: string) => formatDayKey(iso, loc);
   const ALL_REGIONS: readonly string[] = TRUCK_REGIONS;
@@ -238,7 +240,7 @@ export default async function TruckFleetPage({
                         )}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
-                        <DateTimeCell value={v.cvhUpdatedAt} locale={loc} />
+                        <DateTimeCell value={v.cvhUpdatedAt} locale={loc} timeZone={timeZone} />
                       </TableCell>
                       <TableCell className="max-w-[180px] truncate text-text-muted">{v.cvhNotes ?? '—'}</TableCell>
                       <TableCell>

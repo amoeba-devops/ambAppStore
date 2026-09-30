@@ -88,6 +88,10 @@ export type TruckTripFormInitial = Partial<{
   costAttachments: InitialCostAttachment[];
   markCompleted: boolean;
   stopovers: CarTripStopover[];
+  /** Stored odometer readings — seed the first/last stop km when the stops
+   * themselves carry none (imported trips), so saving keeps the distance. */
+  startOdometer: number | null;
+  endOdometer: number | null;
 }>;
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -118,6 +122,30 @@ const EMPTY_FIELDS = {
 const numF = (s: string) => (s.trim() === '' ? undefined : Number(s));
 const numI = (s: string) => (s.trim() === '' ? undefined : Math.trunc(Number(s)));
 const vnd = (n: number) => n.toLocaleString('vi-VN') + ' ₫';
+
+/**
+ * When no stop carries a km reading, place the trip's stored odometers on the
+ * first (ORIGIN if present) and last (RETURN if present) stop (BUG-260930
+ * case 2). Imported trips store odometers on the trip but none on the stops,
+ * and the form derives start/end odometer FROM the stops on save — so before
+ * this, opening and saving an imported trip silently erased its distance.
+ */
+function seedStopOdometers(
+  stops: StopField[],
+  startOdometer: number | null | undefined,
+  endOdometer: number | null | undefined,
+): StopField[] {
+  if (stops.length === 0 || stops.some((s) => s.km.trim() !== '')) return stops;
+  if (startOdometer == null && endOdometer == null) return stops;
+  const firstIdx = Math.max(0, stops.findIndex((s) => s.type === 'ORIGIN'));
+  const lastFromEnd = stops.slice().reverse().findIndex((s) => s.type === 'RETURN');
+  const lastIdx = lastFromEnd >= 0 ? stops.length - 1 - lastFromEnd : stops.length - 1;
+  return stops.map((s, i) => {
+    if (i === firstIdx && startOdometer != null) return { ...s, km: String(startOdometer) };
+    if (i === lastIdx && endOdometer != null) return { ...s, km: String(endOdometer) };
+    return s;
+  });
+}
 
 /** Convert saved stopovers from DB into the form's StopField[] state. */
 function stopoversToFields(stopovers: CarTripStopover[]): StopField[] {
@@ -163,10 +191,11 @@ export function TruckTripForm({
 
   /* Stop builder state — initialised from saved stopovers or depot defaults. */
   const [stops, setStops] = useState<StopField[]>(() => {
-    if (initial?.stopovers && initial.stopovers.length > 0) {
-      return stopoversToFields(initial.stopovers);
-    }
-    return makeDefaultStops(depotAddress);
+    const base =
+      initial?.stopovers && initial.stopovers.length > 0
+        ? stopoversToFields(initial.stopovers)
+        : makeDefaultStops(depotAddress);
+    return seedStopOdometers(base, initial?.startOdometer, initial?.endOdometer);
   });
 
   const isDriver = role === 'DRIVER';
@@ -346,8 +375,10 @@ export function TruckTripForm({
       let cost_attachments: { cost_kind: CostKind; s3_key: string; mime: string; size_bytes: number }[];
       try {
         cost_attachments = await buildCostAttachments();
-      } catch {
-        toast.error(t('receiptUploadFailed'));
+      } catch (err) {
+        /* Name the failing step (presign / S3 PUT / expired session) so a QA
+         * report is diagnosable — the bare message hid it (BUG-260930 case 3). */
+        toast.error(`${t('receiptUploadFailed')} ${err instanceof Error && err.message ? `(${err.message})` : ''}`.trim());
         return;
       }
 
@@ -366,7 +397,9 @@ export function TruckTripForm({
         fuel_price: numF(f.fuelPrice),
         revenue: isDriver ? undefined : numF(f.revenue),
         mark_completed: isDriver ? false : markCompleted,
-        start_odometer: numI(stops.find((s) => s.type === 'ORIGIN')?.km ?? ''),
+        /* ORIGIN / RETURN readings, else the first / last stop that has one — an
+         * imported route (PICKUP → WAYPOINT → DELIVERY) has no terminal stops. */
+        start_odometer: numI(stops.find((s) => s.type === 'ORIGIN')?.km ?? stops[0]?.km ?? ''),
         end_odometer: numI(stops.slice().reverse().find((s) => s.type === 'RETURN')?.km ?? stops[stops.length - 1]?.km ?? ''),
         fuel_liters: numF(f.fuelLiters),
         toll_fee: numF(f.toll),
