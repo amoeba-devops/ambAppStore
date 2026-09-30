@@ -106,12 +106,20 @@ export function parseImportDate(value: unknown): string | null {
 
   if (value instanceof Date) {
     if (Number.isNaN(value.getTime())) return null;
-    return iso(value.getFullYear(), value.getMonth() + 1, value.getDate());
+    /* SheetJS derives a `cellDates` Date from the 1899-12-30 epoch using THAT
+     * year's local offset — Asia/Ho_Chi_Minh was LMT +7:06:30 until 1906 — so
+     * a typed 27/08 arrives as 26/08 23:59:30 on a Vietnamese machine and the
+     * plain local day read one day early (BUG-260930 case 2). Snap to the
+     * nearest minute first; the ~30 s drift then collapses onto midnight. */
+    const d = roundToMinute(value);
+    return iso(d.getFullYear(), d.getMonth() + 1, d.getDate());
   }
 
   if (typeof value === 'number' && Number.isFinite(value)) {
-    /* Excel serial → UTC ms. Epoch 1899-12-30 absorbs the phantom 1900-02-29. */
-    const ms = Math.round(value) * 86400000 + Date.UTC(1899, 11, 30);
+    /* Excel serial → UTC ms. Epoch 1899-12-30 absorbs the phantom 1900-02-29.
+     * FLOOR, not round: a date+time serial (46261.7 = 27/08 16:48) must stay
+     * on its own day — rounding pushed an afternoon trip to the next day. */
+    const ms = Math.floor(value) * 86400000 + Date.UTC(1899, 11, 30);
     const d = new Date(ms);
     return Number.isNaN(d.getTime()) ? null : iso(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
   }
@@ -178,6 +186,77 @@ export function parseImportNumber(value: unknown): number | undefined {
   const n = Number(normalized);
   if (!Number.isFinite(n)) return undefined;
   return negative ? -n : n;
+}
+
+/** Snap an instant to the nearest whole minute (drops SheetJS's LMT drift). */
+function roundToMinute(d: Date): Date {
+  return new Date(Math.round(d.getTime() / 60_000) * 60_000);
+}
+
+/**
+ * A "Giờ bắt đầu / Giờ kết thúc" cell → 'HH:MM', or undefined when there is
+ * nothing readable (BUG-260930 case 2). Shared by the import UI (normalises
+ * before sending) so the preview and the saved value agree.
+ *
+ * Three shapes reach us:
+ *  - an Excel serial NUMBER (the sheet is read with `cellDates: false`): the
+ *    fraction of a day — 0.354166 = 08:30. A date+time serial keeps only its
+ *    time-of-day here. Arithmetic on the serial is timezone-proof, which is why
+ *    the importer stopped asking SheetJS for Dates: on a GMT+7 machine a typed
+ *    08:30 came back as an 1899 Date whose UTC hours read 01:47.
+ *  - a Date (any caller still passing `cellDates` output): local components
+ *    after snapping to the minute — what the user typed, in every zone.
+ *  - text: "8:30", "08:30:00", "8h30", "8.30", "8:30 pm".
+ */
+export function parseImportTime(value: unknown): string | undefined {
+  if (value == null || value === '') return undefined;
+  const hhmm = (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const frac = value - Math.floor(value);
+    const mins = Math.round(frac * 1440) % 1440;
+    return hhmm(Math.floor(mins / 60), mins % 60);
+  }
+
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return undefined;
+    const d = roundToMinute(value);
+    return hhmm(d.getHours(), d.getMinutes());
+  }
+
+  const s = String(value).trim();
+  if (s === '') return undefined;
+  const m = /^(\d{1,2})(?:\s*(?::|h|\.)\s*(\d{1,2}))?(?::(\d{1,2}))?\s*(am|pm)?$/i.exec(s);
+  if (!m?.[1]) return undefined;
+  let h = Number(m[1]);
+  const mi = Number(m[2] ?? 0);
+  const ap = m[4]?.toLowerCase();
+  if (ap === 'pm' && h < 12) h += 12;
+  else if (ap === 'am' && h === 12) h = 0;
+  if (h > 23 || mi > 59) return undefined;
+  return hhmm(h, mi);
+}
+
+/**
+ * "Now" as a WALL CLOCK in `timeZone`, encoded the way every trip start/end is
+ * stored (UTC components = the clock the user would read — see
+ * parseWallClockUtc). Used when a driver ends a trip without typing the time:
+ * the old `new Date()` stored the UTC instant, which every reader then printed
+ * 7 hours early for a Vietnamese tenant (BUG-260930 case 2).
+ */
+export function wallClockNowUtc(timeZone: string, now: Date = new Date()): Date {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(now);
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+  return new Date(Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second')));
 }
 
 /**

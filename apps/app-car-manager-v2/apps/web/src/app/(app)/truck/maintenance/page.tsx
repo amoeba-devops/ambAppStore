@@ -23,6 +23,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { RegionDeniedNotice } from '@/components/truck/region-denied-notice';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { formatDay, formatDayKey } from '@/lib/format-day';
+import { getTenantTimeZone } from '@/server/queries/tenant-settings.queries';
 import { resolveRegionFilter, resolveVehicleScope } from '@/lib/auth/region-access';
 import { listTruckMaintenances, type TruckMaintenanceRow } from '@/server/queries/truck-maintenance.queries';
 
@@ -72,6 +73,7 @@ export default async function TruckMaintenancePage({
   const tRegion = await getTranslations('region');
   const locale = await getLocale();
   const loc = bcp47(locale);
+  const timeZone = await getTenantTimeZone(user.entId);
 
   const month = /^\d{4}-\d{2}$/.test(sp.month ?? '') ? sp.month : undefined;
   const { region, regions: permittedRegions } = await resolveRegionFilter(user, sp.region, sp);
@@ -87,7 +89,8 @@ export default async function TruckMaintenancePage({
 
   const today = new Date().toISOString().slice(0, 10);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
-  const date = (d: Date) => formatDay(d, loc);
+  /* created/updated are instants → the tenant's calendar day (BUG-260930). */
+  const date = (d: Date) => formatDay(d, loc, timeZone);
   const day = (iso: string) => formatDayKey(iso, loc);
   const regionCodes: readonly string[] = TRUCK_REGIONS;
   const regionLabel = (r: string | null) => (r && regionCodes.includes(r) ? tRegion(r) : (r ?? '—'));
@@ -255,7 +258,7 @@ export default async function TruckMaintenancePage({
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-text-muted">{r.updatedByName ?? '—'}</TableCell>
                         <TableCell className="whitespace-nowrap text-xs">
-                          <DateTimeCell value={r.updatedAt ?? r.createdAt} locale={loc} />
+                          <DateTimeCell value={r.updatedAt ?? r.createdAt} locale={loc} timeZone={timeZone} />
                         </TableCell>
                         <TableCell>
                           <ListRowActions

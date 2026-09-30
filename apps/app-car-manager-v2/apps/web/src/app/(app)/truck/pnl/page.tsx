@@ -17,6 +17,7 @@ import {
   listFuelInvoices,
 } from '@/server/queries/truck-finance.queries';
 import { ReportStatusBadge } from '@/components/truck/report-status-badge';
+import { getTenantTimeZone } from '@/server/queries/tenant-settings.queries';
 import { FuelReconciliationBadge, aggregateFuelMode } from '@/components/truck/fuel-reconciliation-badge';
 import { FinanceTabs } from '../finance/_components/finance-tabs';
 import { FuelInvoicePanel } from './_components/fuel-invoice-panel';
@@ -96,6 +97,7 @@ export default async function TruckPnlPage({
   const tFinance = await getTranslations('screens.truckFinance');
   const locale = await getLocale();
   const loc = bcp47(locale);
+  const timeZone = await getTenantTimeZone(user.entId);
 
   /* Vehicle multi-select (REQ-20260814) — region-scoped list + validated ids. */
   const { trucks, vehicleIds } = await resolveVehicleScope(user, sp.vehicles ?? sp.vehicle);
@@ -256,7 +258,7 @@ export default async function TruckPnlPage({
                     <th key={m} className="text-right font-semibold text-text-muted px-4 py-2.5 whitespace-nowrap">
                       <div className="flex flex-col items-end gap-1">
                         <span>{monthLabel(m)}</span>
-                        <ReportStatusBadge reportedAt={monthStatuses[i]!.reportedAt} stale={monthStatuses[i]!.stale} locale={locale} />
+                        <ReportStatusBadge reportedAt={monthStatuses[i]!.reportedAt} stale={monthStatuses[i]!.stale} locale={locale} timeZone={timeZone} />
                       </div>
                     </th>
                   ))}

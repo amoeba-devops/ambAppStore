@@ -32,9 +32,18 @@ async function requestPresigned(
       size_bytes: f.size,
     }),
   });
+  /* An expired session answers with a redirect to the login page (HTML), and a
+   * proxy hiccup with an HTML error page — `res.json()` then threw a bare
+   * SyntaxError that surfaced as "Tải chứng từ lên thất bại" with no clue
+   * (BUG-260930 case 3). Say which it was. */
+  if (res.redirected || !(res.headers.get('content-type') ?? '').includes('json')) {
+    throw new Error(
+      res.redirected ? `presign redirected (${res.status}) — session expired, sign in again` : `presign HTTP ${res.status}`,
+    );
+  }
   const json = await res.json();
   if (!res.ok || !json.success) {
-    throw new Error(json?.error?.message ?? 'presign failed');
+    throw new Error(json?.error?.message ? `presign: ${json.error.message}` : `presign HTTP ${res.status}`);
   }
   return json.data;
 }
@@ -49,7 +58,12 @@ async function uploadToS3(url: string, f: File): Promise<void> {
     headers: { 'content-type': resolveFileMime(f) },
     body: f,
   });
-  if (!res.ok) throw new Error(`S3 upload failed: ${res.status}`);
+  if (!res.ok) {
+    /* S3 answers with an XML <Code>…</Code> (SignatureDoesNotMatch,
+     * EntityTooLarge, AccessDenied…) — carry it, it names the cause. */
+    const code = /<Code>([^<]+)<\/Code>/.exec(await res.text().catch(() => ''))?.[1];
+    throw new Error(`S3 PUT ${res.status}${code ? ` ${code}` : ''}`);
+  }
 }
 
 /** Upload one file, resolving to the row metadata the trip action stores. */

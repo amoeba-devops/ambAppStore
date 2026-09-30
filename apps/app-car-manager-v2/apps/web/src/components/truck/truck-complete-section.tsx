@@ -86,7 +86,11 @@ function toLocalInput(d: Date | string | null | undefined): string {
   if (!d) return '';
   const dt = new Date(d);
   if (Number.isNaN(dt.getTime())) return '';
-  return new Date(dt.getTime() - dt.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+  /* Trip start/end are WALL CLOCKS stored as UTC components (parseWallClockUtc)
+   * — read them back the same way, like the edit pages' `hhmm`. Shifting by the
+   * browser offset showed a stored 09:20 as 16:20 and, resubmitted, saved 16:20
+   * (BUG-260930 case 2). */
+  return dt.toISOString().slice(0, 16);
 }
 
 const toInput = (n: number | null | undefined) => (n == null ? '' : String(n));
@@ -206,8 +210,9 @@ export function TruckCompleteSection({
       }[];
       try {
         cost_attachments = await buildCostAttachments();
-      } catch {
-        toast.error(tR('receiptUploadFailed'));
+      } catch (err) {
+        /* Name the failing step so the report is diagnosable (BUG-260930 case 3). */
+        toast.error(`${tR('receiptUploadFailed')} ${err instanceof Error && err.message ? `(${err.message})` : ''}`.trim());
         return;
       }
       const payload = {
