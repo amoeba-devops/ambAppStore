@@ -11,6 +11,7 @@ import { deleteDriverAction } from '@/server/actions/drivers/driver.actions';
 import { deleteTruckTripAction } from '@/server/actions/trips/truck-trip.actions';
 import { deleteTruckMaintenanceAction } from '@/server/actions/maintenance/truck-maintenance.actions';
 import { formatActionError } from '@/lib/format-action-error';
+import { useConfirm } from '@/components/dialogs/use-confirm';
 
 export function ListRowActions({
   editHref,
@@ -27,11 +28,14 @@ export function ListRowActions({
   const tErr = useTranslations();
   const router = useRouter();
   const [pending, start] = useTransition();
+  const { confirm, dialog } = useConfirm();
 
-  const del = (e: React.MouseEvent) => {
+  /* In-app dialog, not window.confirm — that is silently suppressed inside
+   * AMA's sandboxed iframe, so the button did nothing (BUG-261005). */
+  const del = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm(confirmText)) return;
+    if (!(await confirm(confirmText))) return;
     start(async () => {
       const res =
         kind === 'vehicle' ? await deleteVehicleAction(deleteId)
@@ -42,7 +46,8 @@ export function ListRowActions({
         toast.error(formatActionError(res.error, tErr));
         return;
       }
-      toast.success(tA('delete'));
+      /* A sentence, not the bare verb "Xoá" the toast used to show. */
+      toast.success(tA('deleted'));
       router.refresh();
     });
   };
@@ -65,6 +70,9 @@ export function ListRowActions({
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
       </button>
+      {/* Portalled, but React events still bubble through the tree — the
+        * wrapper's stopPropagation keeps a dialog click from opening the row. */}
+      {dialog}
     </div>
   );
 }

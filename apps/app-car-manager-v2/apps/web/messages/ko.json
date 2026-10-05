@@ -90,7 +90,9 @@
     "signOut": "로그아웃",
     "upload": "업로드",
     "openInMaps": "지도에서 열기",
-    "acknowledge": "확인 완료"
+    "acknowledge": "확인 완료",
+    "confirmDeleteTitle": "삭제 확인",
+    "deleted": "삭제되었습니다"
   },
   "common": {
     "loading": "불러오는 중…",

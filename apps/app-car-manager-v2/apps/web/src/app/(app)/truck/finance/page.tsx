@@ -32,6 +32,7 @@ import { getTenantTimeZone } from '@/server/queries/tenant-settings.queries';
 import { resolveRegionFilter, resolveVehicleScope } from '@/lib/auth/region-access';
 import {
   getTruckFixedCostsLastUpdated,
+  getTruckTripsMaxUpdatedAt,
   listTruckFinanceTrips,
 } from '@/server/queries/truck-finance.queries';
 import { getLatestTruckReportForMonth } from '@/server/queries/truck-report.queries';
@@ -83,12 +84,15 @@ export default async function TruckFinancePage({
    * ids outside it are dropped; `vehicleIds` is undefined for "all trucks". */
   const { trucks, vehicleIds } = await resolveVehicleScope(user, sp.vehicles ?? sp.vehicle);
 
-  const [rows, pnl, latestReport, fixedUpdatedAt, maintenanceUpdatedAt] = await Promise.all([
+  const [rows, pnl, latestReport, fixedUpdatedAt, maintenanceUpdatedAt, tripsChangedAt] = await Promise.all([
     listTruckFinanceTrips(user.entId, { month, vehicleIds, q, region, regions: scopeRegions }),
     computeTruckPnl(user, { vehicleIds, region, regions: scopeRegions, months: [month] }),
     getLatestTruckReportForMonth(user.entId, month, region),
     getTruckFixedCostsLastUpdated(user.entId, month),
     getTruckMaintenanceLastUpdated(user.entId, month),
+    /* Includes trips deleted since the report — `rows` only holds live ones, so
+     * a deletion never showed the report as stale (BUG-261005). */
+    getTruckTripsMaxUpdatedAt(user.entId, month, region ?? null),
   ]);
   const summary = pnl[0] ?? null;
 
@@ -101,6 +105,7 @@ export default async function TruckFinancePage({
   const stale =
     latestReport != null &&
     (rows.some((r) => r.updatedAt != null && r.updatedAt > latestReport.createdAt) ||
+      (tripsChangedAt != null && tripsChangedAt > latestReport.createdAt) ||
       (fixedUpdatedAt != null && fixedUpdatedAt > latestReport.createdAt) ||
       (maintenanceUpdatedAt != null && maintenanceUpdatedAt > latestReport.createdAt));
 

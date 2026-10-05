@@ -28,6 +28,7 @@ import {
 } from '@/server/actions/vehicles/vehicle.actions';
 import { TRUCK_REGIONS } from '@car-v2/shared/zod';
 import { formatActionError } from '@/lib/format-action-error';
+import { useConfirm } from '@/components/dialogs/use-confirm';
 import { formatDayKey } from '@/lib/format-day';
 
 const FUELS = ['DIESEL', 'PETROL', 'HYBRID', 'EV'] as const;
@@ -85,6 +86,7 @@ export function TruckVehicleForm({
   const locale = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [f, setF] = useState({ ...EMPTY, ...initial });
 
   const set =
@@ -132,8 +134,9 @@ export function TruckVehicleForm({
     });
   };
 
-  const del = () => {
-    if (!vehicleId || !confirm(t('deleteConfirm'))) return;
+  /* In-app dialog — window.confirm is suppressed in AMA's sandboxed iframe (BUG-261005). */
+  const del = async () => {
+    if (!vehicleId || !(await confirm(t('deleteConfirm')))) return;
     startTransition(async () => {
       const res = await deleteVehicleAction(vehicleId);
       if (!res.success) {
@@ -148,6 +151,7 @@ export function TruckVehicleForm({
 
   return (
     <Card variant="elevated">
+      {confirmDialog}
       <CardHeader>
         <CardHeaderText>
           <CardTitle>{t('title')}</CardTitle>
