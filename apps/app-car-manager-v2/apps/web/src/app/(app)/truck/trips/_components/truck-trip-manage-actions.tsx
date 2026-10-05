@@ -9,6 +9,7 @@ import { Button, toast } from '@car-v2/ui';
 import { deleteTruckTripAction } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
 import { useConfirm } from '@/components/dialogs/use-confirm';
+import { useTruckTripDeleteWarnings } from '@/components/truck/use-truck-trip-delete-warnings';
 
 export function TruckTripManageActions({ tripId }: { tripId: string }) {
   const t = useTranslations('screens.truckTripDetail');
@@ -16,11 +17,14 @@ export function TruckTripManageActions({ tripId }: { tripId: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { confirm, dialog } = useConfirm();
+  const deleteWarnings = useTruckTripDeleteWarnings();
 
   /* In-app dialog, not window.confirm — that is silently suppressed inside
    * AMA's sandboxed iframe, so the button did nothing (BUG-261005). */
   const del = async () => {
-    if (!(await confirm(t('deleteConfirm')))) return;
+    /* Knock-on effects (fuel re-allocation, month fixed cost) shown in the
+     * dialog before the user confirms. */
+    if (!(await confirm(t('deleteConfirm'), deleteWarnings(tripId)))) return;
     startTransition(async () => {
       const res = await deleteTruckTripAction({ trip_id: tripId });
       if (!res.success) {
