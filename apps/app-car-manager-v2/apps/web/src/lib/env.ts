@@ -87,9 +87,27 @@ type Env = z.infer<typeof envSchema>;
 
 let cached: Env | null = null;
 
+/**
+ * Drop keys whose value is empty/whitespace so `.optional()` sees `undefined`.
+ *
+ * Why: Docker `env_file`, Render dashboards and copied `.env.example` templates
+ * routinely leave `KEY=` blank. Zod's `.optional()` accepts `undefined` but NOT
+ * `""`, so a single blank optional key (APP_URL=, RESEND_API_KEY=,
+ * EMAIL_REPLY_TO=) made `loadEnv()` throw for EVERY caller — including the
+ * truck receipt upload presign route, which 500'd in production (FIX-261005).
+ * Blank now means "not configured", exactly what the schema comments promise.
+ */
+function stripEmptyValues(source: NodeJS.ProcessEnv): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (typeof value === 'string' && value.trim() !== '') out[key] = value;
+  }
+  return out;
+}
+
 function loadEnv(): Env {
   if (cached) return cached;
-  const parsed = envSchema.safeParse(process.env);
+  const parsed = envSchema.safeParse(stripEmptyValues(process.env));
   if (!parsed.success) {
     /* eslint-disable-next-line no-console */
     console.error('[env] invalid environment variables:', parsed.error.flatten().fieldErrors);
