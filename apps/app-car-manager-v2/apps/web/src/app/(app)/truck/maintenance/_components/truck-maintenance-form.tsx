@@ -32,6 +32,7 @@ import { TRUCK_MAINTENANCE_ATTACHMENT_MAX } from '@car-v2/shared/zod';
 import { MoneyInput } from '@/components/inputs/money-input';
 import { AttachmentInput, type StoredAttachment } from '@/components/attachments/attachment-input';
 import { formatActionError } from '@/lib/format-action-error';
+import { useConfirm } from '@/components/dialogs/use-confirm';
 import { formatDayKey } from '@/lib/format-day';
 import { uploadTruckMaintenanceFile } from '@/lib/truck-cost-upload';
 
@@ -86,6 +87,7 @@ export function TruckMaintenanceForm({
   const locale = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [f, setF] = useState<TruckMaintenanceFormInitial>({
     vehicleId: '',
     startDate: todayIso(),
@@ -184,8 +186,9 @@ export function TruckMaintenanceForm({
     });
   };
 
-  const del = () => {
-    if (!maintenanceId || !confirm(t('deleteConfirm'))) return;
+  /* In-app dialog — window.confirm is suppressed in AMA's sandboxed iframe (BUG-261005). */
+  const del = async () => {
+    if (!maintenanceId || !(await confirm(t('deleteConfirm')))) return;
     startTransition(async () => {
       const res = await deleteTruckMaintenanceAction({ maintenance_id: maintenanceId });
       if (!res.success) {
@@ -200,6 +203,7 @@ export function TruckMaintenanceForm({
 
   return (
     <Card variant="elevated">
+      {confirmDialog}
       <CardHeader>
         <CardHeaderText>
           <CardTitle>{t('title')}</CardTitle>
