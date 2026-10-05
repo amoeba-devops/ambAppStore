@@ -90,7 +90,9 @@
     "signOut": "Đăng xuất",
     "upload": "Tải lên",
     "openInMaps": "Mở Google Maps",
-    "acknowledge": "Đã xử lý"
+    "acknowledge": "Đã xử lý",
+    "confirmDeleteTitle": "Xác nhận xoá",
+    "deleted": "Đã xoá"
   },
   "common": {
     "loading": "Đang tải…",

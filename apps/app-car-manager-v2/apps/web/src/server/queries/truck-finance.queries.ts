@@ -502,13 +502,21 @@ export async function getTruckTripsMaxUpdatedAt(
         eq(carTrips.entId, entId),
         eq(carTrips.trpKind, 'LOG'),
         eq(carTrips.trpStatus, 'COMPLETED'),
-        isNull(carTrips.trpDeletedAt),
+        /* Soft-deleted trips COUNT here (BUG-261005): deleting a reported trip
+         * changes the month's figures, and `deleteTruckTrip` stamps updated_at
+         * with the deletion time — so a delete after the report flags it stale.
+         * A trip deleted before the report has an older stamp → no false alarm. */
         gte(carTrips.trpScheduledAt, start),
         lt(carTrips.trpScheduledAt, end),
         region ? eq(carVehicles.cvhRegion, region) : undefined,
       ),
     );
-  return row?.u ?? null;
+  /* A raw `sql` aggregate bypasses Drizzle's column mapping, so neon-http hands
+   * back the timestamp as a STRING ('2026-10-05 03:23:52+00'). Callers compare
+   * it with `> report.createdAt` — string > Date is always false, so trip edits
+   * and deletes never flagged a report stale (BUG-261005). Same fix as
+   * getTruckMaintenanceLastUpdated. */
+  return row?.u ? new Date(row.u) : null;
 }
 
 /* ── Report review (REQ-20260629, design "Lập báo cáo" Bước 2) ──────────────── */

@@ -34,6 +34,7 @@ import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
 import { getDriver, getDriverByUserId } from '@/server/queries/drivers.queries';
 import { getTenantTimeZone } from '@/server/queries/tenant-settings.queries';
+import { requireRegion } from '@/lib/auth/region-access';
 import type { StopoverInput } from '@car-v2/core/truck';
 import { assertTruckMonthOpen } from '@/server/queries/truck-finance.queries';
 import { nextTripRef } from '@/server/services/trip-ref.service';
@@ -781,11 +782,23 @@ export async function deleteTruckTripAction(input: unknown): Promise<ActionResul
     requireRole(actor.role, ['ADMIN', 'MANAGER']);
     await requireFleet(actor, 'TRUCK');
     const dto = deleteTruckTripSchema.parse(input);
+    /* Live LOG trip of this tenant only (BUG-261005). The old lookup skipped the
+     * kind / soft-delete filters and, when nothing matched, silently skipped the
+     * month-lock check too — leaving the core service as the only guard. */
     const delTrip = await db.query.carTrips.findFirst({
-      where: and(eq(carTrips.trpId, dto.trip_id), eq(carTrips.entId, actor.entId)),
-      columns: { trpScheduledAt: true, trpVehicleId: true },
+      where: and(
+        eq(carTrips.trpId, dto.trip_id),
+        eq(carTrips.entId, actor.entId),
+        eq(carTrips.trpKind, 'LOG'),
+        isNull(carTrips.trpDeletedAt),
+      ),
     });
-    if (delTrip) await assertTruckMonthOpen(actor.entId, delTrip.trpScheduledAt, await regionOfVehicle(actor.entId, delTrip.trpVehicleId));
+    if (!delTrip) throw new CarError('CAR-E1004', 404, 'Trip not found');
+    const region = await regionOfVehicle(actor.entId, delTrip.trpVehicleId);
+    /* Region ACL (REQ-20260813): the list only SHOWS a narrowed manager their
+     * own regions, but a Server Action is callable with any id — enforce it here. */
+    if (region) await requireRegion(actor, region);
+    await assertTruckMonthOpen(actor.entId, delTrip.trpScheduledAt, region);
     await deleteTruckTrip(actor, dto.trip_id);
     await logAudit({
       entId: actor.entId,
@@ -793,8 +806,21 @@ export async function deleteTruckTripAction(input: unknown): Promise<ActionResul
       action: 'TRUCK_TRIP.DELETE',
       entity: 'Trip',
       entityId: dto.trip_id,
+      entityRef: delTrip.trpRef,
+      /* Enough to reconstruct what was removed — the row stays (soft delete),
+       * but the audit trail is what an operator reads. */
+      before: {
+        status: delTrip.trpStatus,
+        scheduledAt: delTrip.trpScheduledAt,
+        vehicleId: delTrip.trpVehicleId,
+        driverId: delTrip.trpDriverId,
+        customer: delTrip.trpCustomer,
+        revenue: delTrip.trpRevenue,
+        region,
+      },
     });
     revalidatePath('/truck/trips');
+    revalidatePath('/today');
     revalidatePath('/truck/finance');
     revalidatePath('/truck/pnl');
     revalidatePath('/truck/dashboard');

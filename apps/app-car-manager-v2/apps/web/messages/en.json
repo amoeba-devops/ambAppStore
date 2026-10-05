@@ -90,7 +90,9 @@
     "signOut": "Sign out",
     "upload": "Upload",
     "openInMaps": "Open in Maps",
-    "acknowledge": "Acknowledge"
+    "acknowledge": "Acknowledge",
+    "confirmDeleteTitle": "Confirm deletion",
+    "deleted": "Deleted"
   },
   "common": {
     "loading": "Loading…",

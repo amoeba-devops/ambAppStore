@@ -8,15 +8,19 @@ import { Edit3, Loader2, Trash2 } from 'lucide-react';
 import { Button, toast } from '@car-v2/ui';
 import { deleteTruckTripAction } from '@/server/actions/trips/truck-trip.actions';
 import { formatActionError } from '@/lib/format-action-error';
+import { useConfirm } from '@/components/dialogs/use-confirm';
 
 export function TruckTripManageActions({ tripId }: { tripId: string }) {
   const t = useTranslations('screens.truckTripDetail');
   const tErr = useTranslations();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const { confirm, dialog } = useConfirm();
 
-  const del = () => {
-    if (!confirm(t('deleteConfirm'))) return;
+  /* In-app dialog, not window.confirm — that is silently suppressed inside
+   * AMA's sandboxed iframe, so the button did nothing (BUG-261005). */
+  const del = async () => {
+    if (!(await confirm(t('deleteConfirm')))) return;
     startTransition(async () => {
       const res = await deleteTruckTripAction({ trip_id: tripId });
       if (!res.success) {
@@ -45,6 +49,7 @@ export function TruckTripManageActions({ tripId }: { tripId: string }) {
       >
         {t('delete')}
       </Button>
+      {dialog}
     </div>
   );
 }
