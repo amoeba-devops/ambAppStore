@@ -1,6 +1,6 @@
 'use server';
 
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@car-v2/db/client';
 import { carTrips, carTripStopovers } from '@car-v2/db/schema';
@@ -25,8 +25,14 @@ export async function updateStopoverAction(input: unknown): Promise<ActionResult
     const dto = updateStopoverSchema.parse(input);
 
     /* Load the trip and verify ownership when caller is a DRIVER. */
+    /* Live trips only (BUG-261005): a page left open on a since-deleted trip
+     * could otherwise keep writing stopovers onto the soft-deleted row. */
     const trip = await db.query.carTrips.findFirst({
-      where: and(eq(carTrips.trpId, dto.trip_id), eq(carTrips.entId, actor.entId)),
+      where: and(
+        eq(carTrips.trpId, dto.trip_id),
+        eq(carTrips.entId, actor.entId),
+        isNull(carTrips.trpDeletedAt),
+      ),
       columns: { trpDriverId: true, trpStatus: true, trpKind: true },
     });
     if (!trip || trip.trpKind !== 'LOG') {

@@ -2,12 +2,19 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { ConfirmDeleteDialog } from './confirm-delete-dialog';
+import { ConfirmDeleteDialog, type DeleteWarning, type DeleteWarningRef } from './confirm-delete-dialog';
+
+type ConfirmDialogProps = React.ComponentProps<typeof ConfirmDeleteDialog>;
 
 interface ConfirmRequest {
   message: string;
   title?: string;
   confirmLabel?: string;
+  /** Knock-on effects shown inside the dialog before the user confirms
+   * (loaded when it opens). Omit for a plain yes/no confirmation. */
+  fetchWarnings?: () => Promise<DeleteWarning[]>;
+  warningLabels?: ConfirmDialogProps['warningLabels'];
+  renderRefDetail?: (ref: DeleteWarningRef) => React.ReactNode;
 }
 
 /**
@@ -57,6 +64,9 @@ export function useConfirm() {
       confirmLabel={request?.confirmLabel ?? tA('delete')}
       cancelLabel={tA('cancel')}
       onConfirm={() => settle(true)}
+      fetchWarnings={request?.fetchWarnings}
+      warningLabels={request?.warningLabels}
+      renderRefDetail={request?.renderRefDetail}
     />
   );
 

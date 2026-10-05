@@ -12,6 +12,7 @@ import { deleteTruckTripAction } from '@/server/actions/trips/truck-trip.actions
 import { deleteTruckMaintenanceAction } from '@/server/actions/maintenance/truck-maintenance.actions';
 import { formatActionError } from '@/lib/format-action-error';
 import { useConfirm } from '@/components/dialogs/use-confirm';
+import { useTruckTripDeleteWarnings } from '@/components/truck/use-truck-trip-delete-warnings';
 
 export function ListRowActions({
   editHref,
@@ -29,13 +30,16 @@ export function ListRowActions({
   const router = useRouter();
   const [pending, start] = useTransition();
   const { confirm, dialog } = useConfirm();
+  const tripDeleteWarnings = useTruckTripDeleteWarnings();
 
   /* In-app dialog, not window.confirm — that is silently suppressed inside
    * AMA's sandboxed iframe, so the button did nothing (BUG-261005). */
   const del = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!(await confirm(confirmText))) return;
+    /* Trips: show the knock-on effects (fuel re-allocation, month fixed cost).
+     * Other kinds keep the plain confirmation. */
+    if (!(await confirm(confirmText, kind === 'trip' ? tripDeleteWarnings(deleteId) : undefined))) return;
     start(async () => {
       const res =
         kind === 'vehicle' ? await deleteVehicleAction(deleteId)

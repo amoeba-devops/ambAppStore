@@ -61,11 +61,19 @@ function monthKey(d: Date): string {
  * `region` scopes by the vehicle's `cvh_region` (a region report only freezes
  * its own vehicles); omit it for the live, fleet-wide load.
  */
+export interface FuelPoolOpts {
+  /** Leave these trips out — "what would the pool be if they were deleted"
+   * (delete-impact preview, BUG-261005 follow-up). */
+  excludeTripIds?: readonly string[];
+}
+
 export async function loadVehicleFuelPool(
   entId: string,
   months: string[],
   region?: string,
+  opts: FuelPoolOpts = {},
 ): Promise<Map<string, VehicleFuelPool>> {
+  const excluded = new Set(opts.excludeTripIds ?? []);
   const out = new Map<string, VehicleFuelPool>();
   const uniq = [...new Set(months)].filter((m) => /^\d{4}-\d{2}$/.test(m));
   if (uniq.length === 0) return out;
@@ -101,6 +109,7 @@ export async function loadVehicleFuelPool(
       ),
     db
       .select({
+        trpId: carTrips.trpId,
         scheduledAt: carTrips.trpScheduledAt,
         vehicleId: carTrips.trpVehicleId,
         so: carTrips.trpStartOdometer,
@@ -155,7 +164,7 @@ export async function loadVehicleFuelPool(
   }
 
   for (const t of trips) {
-    if (!t.vehicleId) continue;
+    if (!t.vehicleId || excluded.has(t.trpId)) continue;
     const month = monthKey(t.scheduledAt);
     if (!wanted.has(month)) continue;
     const g = bucket(month, t.vehicleId);

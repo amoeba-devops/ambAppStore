@@ -2,7 +2,7 @@ import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '@car-v2/db/client';
 import { carTruckMonthClose, carTruckReports, carVehicles } from '@car-v2/db/schema';
 import { parseAmount, truckTripFuelCost } from './truck-cost';
-import { fuelPoolKey, loadVehicleFuelPool, type VehicleFuelPool } from './truck-fuel-pool';
+import { fuelPoolKey, loadVehicleFuelPool, type FuelPoolOpts, type VehicleFuelPool } from './truck-fuel-pool';
 
 /**
  * Region-scoped month-end fuel snapshot (REQ-20260630, report-based since
@@ -120,6 +120,9 @@ export interface TruckRegionSnapshots {
 export async function loadTruckRegionSnapshots(
   entId: string,
   months: string[],
+  /** Forwarded to the live pool only — frozen report snapshots are facts and
+   * don't move when a trip is (hypothetically) removed. */
+  poolOpts: FuelPoolOpts = {},
 ): Promise<TruckRegionSnapshots> {
   const snap = new Map<string, RegionSnapshot>();
   /* Per-vehicle frozen reconciliation (REQ-20260726) — wins over `snap`. */
@@ -283,7 +286,7 @@ export async function loadTruckRegionSnapshots(
       .where(and(eq(carVehicles.entId, entId), eq(carVehicles.cvhType, 'TRUCK'))),
     /* The live allocation basis — same aggregation the report freezes, so
      * "tạm tính" and "đã lập BC" can only differ by fuel recorded afterwards. */
-    loadVehicleFuelPool(entId, months),
+    loadVehicleFuelPool(entId, months, undefined, poolOpts),
   ]);
   for (const v of vrows) vehicleRegion.set(v.id, v.region ?? '');
 
