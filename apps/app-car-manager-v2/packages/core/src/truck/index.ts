@@ -9,3 +9,4 @@ export * from './truck-maintenance.js';
 export * from './truck-maintenance-attachment.js';
 export * from './truck-fuel-invoice-attachment.js';
 export * from './truck-vehicle-status.js';
+export * from './truck-trip-delete-impact.js';

@@ -15,6 +15,8 @@ import {
   syncTripCostAttachments,
   loadTruckRegionSnapshots,
   assertVehicleNotUnderMaintenance,
+  getTruckTripDeleteImpact,
+  type TruckTripDeleteImpact,
   type TripCostAttachmentInput,
   type TripCostKind,
   type TruckFuelMode,
@@ -776,6 +778,36 @@ export async function patchTruckTripCostsAction(input: unknown): Promise<ActionR
 }
 
 /** Soft-delete a truck trip-log. */
+/**
+ * Knock-on effects of deleting a truck trip, for the delete confirmation
+ * (BUG-261005 follow-up): which sibling trips' allocated fuel moves, and
+ * whether the vehicle's month loses its salary + depreciation. Same gates as
+ * `deleteTruckTripAction` — a user who can't delete the trip learns nothing.
+ */
+export async function getTruckTripDeleteImpactAction(
+  input: unknown,
+): Promise<ActionResult<TruckTripDeleteImpact | null>> {
+  return runAction(async () => {
+    const actor = await getCurrentUser();
+    requireRole(actor.role, ['ADMIN', 'MANAGER']);
+    await requireFleet(actor, 'TRUCK');
+    const dto = deleteTruckTripSchema.parse(input);
+    const trip = await db.query.carTrips.findFirst({
+      where: and(
+        eq(carTrips.trpId, dto.trip_id),
+        eq(carTrips.entId, actor.entId),
+        eq(carTrips.trpKind, 'LOG'),
+        isNull(carTrips.trpDeletedAt),
+      ),
+      columns: { trpVehicleId: true },
+    });
+    if (!trip) throw new CarError('CAR-E1004', 404, 'Trip not found');
+    const region = await regionOfVehicle(actor.entId, trip.trpVehicleId);
+    if (region) await requireRegion(actor, region);
+    return getTruckTripDeleteImpact(actor.entId, dto.trip_id);
+  });
+}
+
 export async function deleteTruckTripAction(input: unknown): Promise<ActionResult<{ id: string }>> {
   return runAction(async () => {
     const actor = await getCurrentUser();

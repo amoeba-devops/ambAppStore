@@ -78,3 +78,37 @@ Hai chuyến tạm `TR-DEL-TEST`, `TR-DEL-TEST2` để lại trên DB dev ở tr
 2. Aggregate viết bằng `sql\`…\`` thô **không** qua mapper của Drizzle → timestamp là chuỗi; luôn `new Date()` (hoặc `.mapWith`) trước khi so sánh.
 3. Mọi Server Action truck nhận id bản ghi phải kiểm tra khu vực (`requireRegion`), không chỉ dựa vào việc UI không hiển thị.
 4. "Đã thay đổi kể từ báo cáo" phải tính cả bản ghi bị xoá mềm.
+
+---
+
+## 8. Bổ sung — Cảnh báo tác động chéo khi xoá + fix cập nhật điểm dừng (branch `fix/truck-delete-trip-impact-warnings-261005`)
+
+Rà soát phạm vi xoá (sau khi fix trên vào staging #190) tìm ra 2 tác động chéo mà người xoá không được báo trước, và 1 lỗ hổng nhỏ:
+
+| # | Vấn đề | Xử lý |
+|---|--------|-------|
+| 1 | Nhiên liệu phân bổ = tiền nhiên liệu tháng của xe ÷ km tháng → xoá 1 chuyến hoàn thành thay đổi nhiên liệu phân bổ (và lợi nhuận) của **các chuyến khác cùng xe cùng tháng**. Ví dụ staging 50E-22222 tháng 9: xoá TR-3032 → TR-3030 113.636 → 166.667 đ, TR-3031 227.273 → 333.333 đ. | ✅ Cảnh báo trong hộp xác nhận, liệt kê từng chuyến bị tính lại (trước → sau) |
+| 2 | Xoá chuyến hoàn thành **cuối cùng** của xe trong tháng → tháng không còn "hoạt động" → lương tài xế + khấu hao tháng đó rời khỏi lãi/lỗ của xe (quy tắc QA 2026-07-30) | ✅ Cảnh báo kèm số tiền lương + khấu hao |
+| 6 | `updateStopoverAction` không lọc chuyến đã xoá → trang cũ còn mở vẫn ghi điểm dừng lên chuyến đã xoá | ✅ Lọc `trp_deleted_at IS NULL` → 404 |
+
+### Cách tính (không nhân bản công thức)
+- `loadVehicleFuelPool` / `loadTruckRegionSnapshots` nhận thêm tuỳ chọn `excludeTripIds` (chỉ tác động lên pool sống; snapshot báo cáo đã đóng băng giữ nguyên).
+- Service mới `packages/core/src/truck/truck-trip-delete-impact.ts` → `getTruckTripDeleteImpact(entId, tripId)`: gọi **đúng** `fuelForTrip` mà danh sách/tài chính/P&L dùng, một lần như hiện tại và một lần loại chuyến cần xoá → chỉ liệt kê chuyến có số thay đổi (chuyến đã nằm trong báo cáo, giá trị đóng băng, tự động không bị báo nhầm). Chuyến cuối tháng: `loadTruckFixedMonthly` với tháng đang hoạt động (cùng quy tắc tài xế thay thế của `computeTruckPnl`). Chuyến chưa hoàn thành → không tác động (không vào pool/P&L).
+- Action `getTruckTripDeleteImpactAction` — cùng chốt quyền với xoá (ADMIN/MANAGER, fleet TRUCK, khu vực).
+- UI: `useConfirm` nhận `fetchWarnings` / `warningLabels` / `renderRefDetail` (truyền xuống `ConfirmDeleteDialog`); hook `useTruckTripDeleteWarnings()` dùng cho nút xoá ở chi tiết chuyến và ở danh sách. Lỗi khi tải cảnh báo → hiện "Không kiểm tra được ảnh hưởng — vẫn có thể xoá", không chặn xoá, không báo "không ảnh hưởng".
+- i18n vi/en/ko: `screens.truckTripDetail.deleteImpact.*`.
+
+### Kiểm chứng (dev, dữ liệu dựng lại đúng ví dụ staging, iframe sandbox như AMA)
+| Kịch bản | Cảnh báo hiển thị | Thực tế sau khi xoá |
+|---|---|---|
+| Xe 29C-99999 tháng 10: A1 10 km + 500.000 đ, A2 20 km, A3 80 km + 750.000 đ → xoá A3 | "Nhiên liệu phân bổ của 2 chuyến khác … tháng 10/2026 sẽ được tính lại: TR-IMP-A1 113.636 → 166.667 ₫; TR-IMP-A2 227.273 → 333.333 ₫" | Chi tiết A1 = 166.667 ₫, A2 = 333.333 ₫ ✓ |
+| Xe 43C-201.55 tháng 10 chỉ có B1, chi phí cố định 9.000.000 + 3.000.000 → xoá B1 (từ danh sách) | "Đây là chuyến hoàn thành cuối cùng … Lương tài xế 9.000.000 ₫ và khấu hao 3.000.000 ₫ … sẽ không còn được tính vào lãi/lỗ của xe" | P&L xe tháng 10: lương 9.000.000 → 0 ₫, khấu hao 3.000.000 → 0 ₫ ✓; toast "Đã xoá" |
+| Bấm "Huỷ" | Dialog đóng | Chuyến còn nguyên ✓ |
+
+`tsc` web + core pass; lint sạch. Dữ liệu test (TR-IMP-*) đã xoá mềm, dòng chi phí cố định tạm đã gỡ. Không có migration.
+
+### Chưa xử lý (đã ghi nhận ở rà soát)
+- Không có giao diện khôi phục chuyến đã xoá; chứng từ chuyến biến mất khỏi trang Hoá đơn.
+- Thông báo "được giao chuyến" của tài xế trỏ về chuyến đã xoá → 404; tài xế không được báo khi chuyến bị xoá.
+- Odometer xe không hạ lại khi xoá chuyến có km cao nhất (chỉ ảnh hưởng hiển thị trang Đội xe).
+- Region ACL cho sửa/gán/hoàn thành chuyến (task riêng).

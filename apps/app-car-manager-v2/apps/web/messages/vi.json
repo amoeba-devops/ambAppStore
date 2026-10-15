@@ -394,7 +394,18 @@
       "deletedToast": "Đã xoá chuyến",
       "fuelActual": "Nhiên liệu thực tế",
       "fuelActualNote": "Số lít × đơn giá chuyến này nhập",
-      "fuelAllocated": "Nhiên liệu phân bổ"
+      "fuelAllocated": "Nhiên liệu phân bổ",
+      "deleteImpact": {
+        "checking": "Đang kiểm tra ảnh hưởng…",
+        "found": "Xoá chuyến này sẽ làm thay đổi số liệu khác",
+        "none": "Không ảnh hưởng chuyến hay chi phí nào khác",
+        "fuelRealloc": "Nhiên liệu phân bổ của {count} chuyến khác của xe {plate} tháng {month} sẽ được tính lại:",
+        "fuelChange": "{date} · {before} → {after}",
+        "lastTrip": "Đây là chuyến hoàn thành cuối cùng của xe {plate} trong tháng {month}. Lương tài xế {salary} và khấu hao {depreciation} của xe tháng này sẽ không còn được tính vào lãi/lỗ của xe.",
+        "more": "+{count} chuyến khác",
+        "openTrip": "Mở chuyến",
+        "failed": "Không kiểm tra được ảnh hưởng — vẫn có thể xoá."
+      }
     },
     "truckImport": {
       "fileName": "CR-Vietnam-Truck-v1_Mau-Nhap-Chuyen",

@@ -394,7 +394,18 @@
       "deletedToast": "Trip deleted",
       "fuelActual": "Actual fuel",
       "fuelActualNote": "Litres × unit price this trip entered",
-      "fuelAllocated": "Allocated fuel"
+      "fuelAllocated": "Allocated fuel",
+      "deleteImpact": {
+        "checking": "Checking the impact…",
+        "found": "Deleting this trip changes other figures",
+        "none": "No other trip or cost is affected",
+        "fuelRealloc": "The allocated fuel of {count} other trips of {plate} in {month} will be recalculated:",
+        "fuelChange": "{date} · {before} → {after}",
+        "lastTrip": "This is the last completed trip of {plate} in {month}. The driver salary {salary} and depreciation {depreciation} for this month will no longer count in the vehicle's profit/loss.",
+        "more": "+{count} more trips",
+        "openTrip": "Open trip",
+        "failed": "Could not check the impact — you can still delete."
+      }
     },
     "truckImport": {
       "fileName": "CR-Vietnam-Truck-v1_Import-Template",
