@@ -3,10 +3,11 @@ import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { hasFleet } from '@/lib/auth/fleet-access';
 import { allowedRegions, hasRegion } from '@/lib/auth/region-access';
-import { TRUCK_REGIONS } from '@car-v2/shared/zod';
+import { TRUCK_REGIONS, TRUCK_TRIP_SHEET_COLUMNS, type TruckSheetColumn } from '@car-v2/shared/zod';
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
 import { attachment, exportFileName, exportSheetName } from '@/server/lib/export-file-name';
 import { resolveUiLocale } from '@/i18n/ui-locale';
+import { truckTripSheetHeader } from '@/server/lib/truck-trip-sheet';
 
 /** GET /truck/trips/export?q=&month= — exports the (filtered) truck trip log
  * as .xlsx. Gated to TRUCK-fleet staff (route handlers bypass the /truck layout
@@ -49,98 +50,64 @@ export async function GET(req: Request) {
 
   /* Detailed column template requested by the client (feedback #4) — mirrors
    * the monthly report's trip-log sheet. Times as HH:MM; money/km stay numeric
-   * so Excel treats them as numbers. Headers + status come from
-   * exportContent.truckTrips in the exporter's UI language — one language per
-   * file, like the R1 monthly template (no more "Ngày / Date" pairs). */
+   * so Excel treats them as numbers. Headers + status in the exporter's UI
+   * language — one language per file, like the R1 monthly template.
+   *
+   * Columns, labels and units come from TRUCK_TRIP_SHEET_COLUMNS, the layout
+   * the import template is cut from too (BUG-261015) — an exported file
+   * re-imports column for column. Cells are looked up BY KEY so a column can't
+   * be added to the header without its value (the Record must be complete). */
   const hhmm = (d: Date | null) => (d ? new Date(d).toISOString().slice(11, 16) : '');
   const locale = await resolveUiLocale();
-  const tCol = await getTranslations({ locale, namespace: 'columns.truck' });
-  const tExp = await getTranslations({ locale, namespace: 'exportContent.truckTrips' });
   const tStatus = await getTranslations({ locale, namespace: 'exportContent.status' });
-  /* Nhãn cột lấy từ glossary dùng chung `columns.truck` (REQ-20260824) nên
-   * template / màn Import / danh sách chuyến / file này gọi CÙNG một tên cho
-   * cùng một thứ; đơn vị gắn kèm ở file vì người đọc file cần nó. Các cột chỉ
-   * có ở file (tính toán) vẫn giữ định danh "thực tế" của REQ-20260822. */
-  const money = tCol('unitMoney');
-  const withUnit = (label: string, unit: string) => `${label} (${unit})`;
-  const header = [
-    tCol('ref'),
-    tCol('date'),
-    tCol('vehicle'),
-    tCol('driver'),
-    tCol('customer'),
-    tCol('bol'),
-    tCol('cdf'),
-    tCol('startTime'),
-    tCol('endTime'),
-    tCol('pickup'),
-    tCol('stopover'),
-    tCol('dropoff'),
-    withUnit(tCol('odoStart'), tCol('unitKm')),
-    withUnit(tCol('odoEnd'), tCol('unitKm')),
-    tCol('kmTotal'),
-    withUnit(tCol('toll'), money),
-    withUnit(tCol('cleaning'), money),
-    withUnit(tCol('repair'), money),
-    withUnit(tCol('ferry'), money),
-    withUnit(tCol('loading'), money),
-    withUnit(tCol('otherAmount'), money),
-    tCol('otherNote'),
-    withUnit(tCol('fuelPrice'), tCol('unitPricePerL')),
-    withUnit(tCol('fuelLiters'), tCol('unitLitre')),
-    withUnit(tCol('fuelActualCost'), money),
-    withUnit(tCol('revenue'), money),
-    /* Hai nhãn này đã tự mang đơn vị trong i18n ("… (đ)") — không bọc withUnit
-     * nữa, kẻo thành "(đ) (đ)". */
-    tExp('colTotalCost'),
-    tExp('colProfit'),
-    tCol('status'),
-    tCol('notes'),
-  ];
+  const header = await truckTripSheetHeader(locale, TRUCK_TRIP_SHEET_COLUMNS);
+  type Trip = (typeof trips)[number];
   /* The 4 fixed cost types added REQ-20260916 (cleaning/repair/ferry/loading)
    * get their own columns — client decision 2026-09-17 to show each clearly
    * instead of folding into "Chi phí phát sinh". That column now carries only
    * the freeform extra-cost total (car_trip_extra_costs), same as extraNote. */
-  const fixedFeesTotal = (t: (typeof trips)[number]) =>
+  const fixedFeesTotal = (t: Trip) =>
     t.breakdown.cleaningFee + t.breakdown.repairFee + t.breakdown.ferryFee + t.breakdown.loadingFee;
-  const otherAmount = (t: (typeof trips)[number]) => t.breakdown.extraTotal;
-  const rows = trips.map((t) => [
-    t.ref,
-    new Date(t.scheduledAt).toISOString().slice(0, 10),
-    t.plate ?? '',
-    t.driver ?? '',
-    t.customer ?? '',
-    t.bol ?? '',
-    t.cdf ?? '',
-    hhmm(t.startTime),
-    hhmm(t.endTime),
-    t.pickup ?? '',
-    t.stopover ?? '',
-    t.dropoff ?? '',
-    t.startOdometer ?? '',
-    t.endOdometer ?? '',
-    t.km ?? '',
-    t.breakdown.tollFee,
-    t.breakdown.cleaningFee,
-    t.breakdown.repairFee,
-    t.breakdown.ferryFee,
-    t.breakdown.loadingFee,
-    otherAmount(t),
-    t.extraNote ?? '',
-    /* This export mirrors the trip-log screen, so fuel is the trip's OWN
-     * recorded spend (REQ-20260822) — litres × price as entered, not the
-     * per-vehicle-month allocation. The allocated view is Chi phí & Lợi nhuận
-     * and its own export. Revenue/toll/extra are unaffected (raw per trip);
-     * totalCost/profit follow the actual fuel so the row adds up on its own. */
-    Math.round(t.fuelActualPrice),
-    Math.round(t.fuelActualLiters * 10) / 10,
-    t.fuelActualCost,
-    t.breakdown.revenue,
-    t.fuelActualCost + t.breakdown.tollFee + fixedFeesTotal(t) + otherAmount(t),
-    t.breakdown.revenue - (t.fuelActualCost + t.breakdown.tollFee + fixedFeesTotal(t) + otherAmount(t)),
-    tStatus(t.status),
-    t.notes ?? '',
-  ]);
+  /* This export mirrors the trip-log screen, so fuel is the trip's OWN
+   * recorded spend (REQ-20260822) — litres × price as entered, not the
+   * per-vehicle-month allocation. The allocated view is Chi phí & Lợi nhuận
+   * and its own export. Revenue/toll/extra are unaffected (raw per trip);
+   * totalCost/profit follow the actual fuel so the row adds up on its own. */
+  const totalCost = (t: Trip) =>
+    t.fuelActualCost + t.breakdown.tollFee + fixedFeesTotal(t) + t.breakdown.extraTotal;
+  const cell: Record<TruckSheetColumn['key'], (t: Trip) => string | number> = {
+    ref: (t) => t.ref,
+    date: (t) => new Date(t.scheduledAt).toISOString().slice(0, 10),
+    vehicle: (t) => t.plate ?? '',
+    driver: (t) => t.driver ?? '',
+    customer: (t) => t.customer ?? '',
+    bol: (t) => t.bol ?? '',
+    cdf: (t) => t.cdf ?? '',
+    startTime: (t) => hhmm(t.startTime),
+    endTime: (t) => hhmm(t.endTime),
+    pickup: (t) => t.pickup ?? '',
+    stopover: (t) => t.stopover ?? '',
+    dropoff: (t) => t.dropoff ?? '',
+    odoStart: (t) => t.startOdometer ?? '',
+    odoEnd: (t) => t.endOdometer ?? '',
+    kmTotal: (t) => t.km ?? '',
+    toll: (t) => t.breakdown.tollFee,
+    cleaning: (t) => t.breakdown.cleaningFee,
+    repair: (t) => t.breakdown.repairFee,
+    ferry: (t) => t.breakdown.ferryFee,
+    loading: (t) => t.breakdown.loadingFee,
+    otherAmount: (t) => t.breakdown.extraTotal,
+    otherNote: (t) => t.extraNote ?? '',
+    fuelPrice: (t) => Math.round(t.fuelActualPrice),
+    fuelLiters: (t) => Math.round(t.fuelActualLiters * 10) / 10,
+    fuelActualCost: (t) => t.fuelActualCost,
+    revenue: (t) => t.breakdown.revenue,
+    totalCost,
+    profit: (t) => t.breakdown.revenue - totalCost(t),
+    status: (t) => tStatus(t.status),
+    notes: (t) => t.notes ?? '',
+  };
+  const rows = trips.map((t) => TRUCK_TRIP_SHEET_COLUMNS.map((c) => cell[c.key](t)));
 
   const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
   const wb = XLSX.utils.book_new();

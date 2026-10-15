@@ -497,7 +497,7 @@ export function CONTENT({ fig, intro }) {
             'Bấm <strong>Nhập N dòng</strong> — chỉ dòng hợp lệ được nhập.',
           ]),
           logic('Logic / Quy tắc', [
-'File mẫu <strong>CR-Vietnam-Truck-v1</strong> có 17 cột (gồm cả cột <em>Xe (biển số)</em> — chỉ để tham khảo, vì xe/tài xế đã chọn riêng ở trên). Ứng dụng đọc 16 cột còn lại: ngày, giờ đi/về, khách hàng, điểm lấy/giao hàng, km đầu/cuối, lượng nhiên liệu + đơn giá, phí cầu đường, chi phí khác + ghi chú, số BOL, số CDF, doanh thu.',
+'File mẫu <strong>CR-Vietnam-Truck-v1</strong> có 24 cột, cùng tên, thứ tự và đơn vị với file <em>Xuất Excel</em> của Nhật ký chuyến (chỉ bỏ các cột hệ thống tự tính: mã chuyến, tổng km, phí nhiên liệu thực tế, tổng chi phí, lợi nhuận, trạng thái) — nên file xuất ra có thể nhập lại. Cột <em>Xe</em> và <em>Tài xế</em> chỉ để tham khảo, vì xe/tài xế đã chọn riêng ở trên. Ứng dụng đọc 22 cột còn lại: ngày, khách hàng, số BOL, số CDF, giờ bắt đầu/kết thúc, điểm lấy/ghé/giao hàng, km đầu/cuối, phí cầu đường, phí vệ sinh, phí sửa chữa, phí cầu phà, phí bốc dỡ, chi phí phát sinh + ghi chú, đơn giá + lượng nhiên liệu, doanh thu, ghi chú chuyến.',
             'Sau khi nhập thành công, hệ thống chuyển thẳng tới <a href="02-nhat-ky-chuyen.html">Nhật ký chuyến</a> lọc theo tháng vừa nhập để kiểm tra ngay.',
             'Nhập được cả vào tháng/khu vực <strong>đã lập báo cáo</strong> (không khoá dữ liệu) — nhớ <a href="09-lap-bao-cao.html">lập lại báo cáo</a> sau khi nhập để cập nhật số chính thức.',
           ]),
@@ -518,7 +518,7 @@ export function CONTENT({ fig, intro }) {
             '<strong>N행 가져오기</strong> 클릭 — 유효한 행만 등록됨.',
           ]),
           logic('로직 / 규칙', [
-'<strong>CR-Vietnam-Truck-v1</strong> 템플릿은 17개 열(<em>차량(번호판)</em> 열 포함 — 차량·기사는 위에서 별도로 선택하므로 참고용). 앱이 실제로 읽는 열은 16개: 날짜, 출/도착 시각, 고객, 상차/하차지, 시작/종료 km, 연료량+단가, 통행료, 기타비용+메모, BOL, CDF, 매출.',
+'<strong>CR-Vietnam-Truck-v1</strong> 템플릿은 24개 열로, 운행 일지 <em>Excel 내보내기</em> 파일과 열 이름·순서·단위가 같습니다(시스템 계산 열만 제외: 운행 번호, 총 주행, 실제 연료비, 총 비용, 손익, 상태). 따라서 내보낸 파일을 그대로 다시 가져올 수 있습니다. <em>차량</em>·<em>기사</em> 열은 위에서 별도로 선택하므로 참고용입니다. 앱이 실제로 읽는 열은 22개: 날짜, 고객, BOL, CDF, 시작/종료 시간, 상차지/경유지/하차지, 시작/종료 주행, 통행료, 세차비, 수리비, 도선료, 상하차비, 기타 비용+메모, 단가+주유량, 매출, 운행 메모.',
             '가져오기 성공 시 방금 가져온 달로 필터된 <a href="02-nhat-ky-chuyen.html">운행 일지</a>로 바로 이동해 확인 가능.',
             '이미 보고서가 <strong>작성된</strong> 달/지역이어도 가져오기는 가능(잠금 없음) — 가져온 후 <a href="09-lap-bao-cao.html">보고서를 다시 작성</a>해 공식 수치를 갱신하세요.',
           ]),
