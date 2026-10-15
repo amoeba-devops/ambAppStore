@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { absoluteUrl } from '@/lib/request-origin';
+import { findCarAppInMyApps } from '@/lib/auth/find-ama-app';
 
 /**
  * Email-login proxy endpoint cho v2 (REQ-20260526 Wave 3).
@@ -8,7 +9,7 @@ import { absoluteUrl } from '@/lib/request-origin';
  *   1. v2 nhận form { ent_code, email, remember } từ /login page
  *   2. POST tới AMA `/auth/email-login` → AMA verify + mint access/refresh tokens
  *   3. Với accessToken, GET AMA `/entity-settings/custom-apps/my` → tìm eca_id
- *      của 'app-car-manager-v2' (entity đã install qua seed)
+ *      của car-v2 (`app-car-manager-v2` | `car-manager-v2`) (entity đã install qua seed)
  *   4. POST AMA `/entity-settings/custom-apps/:eca_id/token` → mint app token 1h
  *   5. Set cookies (amb_session/amb_ama_access/amb_ama_refresh) → redirect
  *
@@ -20,7 +21,6 @@ import { absoluteUrl } from '@/lib/request-origin';
  *   Trong khi chờ AMA endpoint, user dev local nên dùng /dev-login để bypass.
  */
 
-const APP_CODE = 'app-car-manager-v2';
 const AMA_API = process.env.AMA_API_BASE_URL ?? 'http://localhost:3009/api/v1';
 
 export const dynamic = 'force-dynamic';
@@ -105,11 +105,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(absoluteUrl(req, '/login?error=not_installed'));
     }
 
-    const myAppsBody = await myAppsRes.json();
-    const apps: Array<{ id?: string; ecaId?: string; code?: string; ecaCode?: string }> =
-      Array.isArray(myAppsBody) ? myAppsBody : (myAppsBody?.data ?? []);
-    const app = apps.find((a) => (a.code ?? a.ecaCode) === APP_CODE);
+    const app = findCarAppInMyApps(await myAppsRes.json());
     if (!app) {
+      console.warn(`[login] car-v2 not in custom-apps/my ent=${entityCode} email=${masked}`);
       return NextResponse.redirect(absoluteUrl(req, '/login?error=not_installed'));
     }
     const ecaId = app.id ?? app.ecaId;

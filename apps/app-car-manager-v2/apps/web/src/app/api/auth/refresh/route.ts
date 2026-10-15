@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { absoluteUrl } from '@/lib/request-origin';
+import { findCarAppInMyApps } from '@/lib/auth/find-ama-app';
 
 /**
  * D-011 — Silent refresh endpoint.
@@ -18,7 +19,6 @@ import { absoluteUrl } from '@/lib/request-origin';
  * Fail → redirect /login (clear cookies first).
  */
 
-const APP_CODE = 'app-car-manager-v2';
 const AMA_API = process.env.AMA_API_BASE_URL ?? 'http://localhost:3009/api/v1';
 
 export const dynamic = 'force-dynamic';
@@ -58,10 +58,7 @@ async function doRefresh(req: NextRequest): Promise<NextResponse> {
       headers: { Authorization: `Bearer ${newAccess}` },
     });
     if (!myAppsRes.ok) return refreshFail();
-    const myAppsBody = await myAppsRes.json();
-    const apps: Array<{ id?: string; ecaId?: string; code?: string; ecaCode?: string }> =
-      Array.isArray(myAppsBody) ? myAppsBody : (myAppsBody?.data ?? []);
-    const app = apps.find((a) => (a.code ?? a.ecaCode) === APP_CODE);
+    const app = findCarAppInMyApps(await myAppsRes.json());
     if (!app) return refreshFail();
     const ecaId = app.id ?? app.ecaId;
     if (!ecaId) return refreshFail();
