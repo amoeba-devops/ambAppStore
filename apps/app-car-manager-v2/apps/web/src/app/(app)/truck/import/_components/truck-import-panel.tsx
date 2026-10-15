@@ -52,29 +52,34 @@ const dateStr = (v: unknown): string => parseImportDate(v) ?? '';
  * the preview and the saved value agree (BUG-260930 case 2). */
 const timeStr = (v: unknown): string | undefined => parseImportTime(v);
 
-/* System fields ← Excel columns. `kw` = header keywords for auto-mapping;
- * `def` = fallback column index (CR-Vietnam-Truck-v1 template order). */
 /* Trường hệ thống ← cột Excel. Nhãn hiển thị lấy từ glossary chung
  * (`columns.truck`, REQ-20260824); từ khoá nhận diện nằm ở TRUCK_IMPORT_ALIASES
- * (shared) để cả 3 ngôn ngữ + file cũ đều map được. `col` = khoá i18n. */
+ * (shared) để cả 3 ngôn ngữ + file cũ đều map được. `col` = khoá i18n.
+ * Thứ tự = thứ tự cột của template / file xuất (TRUCK_TRIP_SHEET_COLUMNS,
+ * BUG-261015); Xe / Tài xế không có ở đây vì chọn riêng ở trên cho cả file. */
 const FIELDS = [
   { key: 'date', required: true, col: 'date' },
+  { key: 'customer', col: 'customer' },
+  { key: 'bol', col: 'bol' },
+  { key: 'cdf', col: 'cdf' },
   { key: 'start_time', col: 'startTime' },
   { key: 'end_time', col: 'endTime' },
-  { key: 'customer', col: 'customer' },
   { key: 'pickup', col: 'pickup' },
   { key: 'stopover', col: 'stopover' },
   { key: 'dropoff', col: 'dropoff' },
   { key: 'odo_start', col: 'odoStart' },
   { key: 'odo_end', col: 'odoEnd' },
-  { key: 'fuel_liters', col: 'fuelLiters' },
-  { key: 'fuel_price', col: 'fuelPrice' },
   { key: 'toll', col: 'toll' },
+  { key: 'cleaning_fee', col: 'cleaning' },
+  { key: 'repair_fee', col: 'repair' },
+  { key: 'ferry_fee', col: 'ferry' },
+  { key: 'loading_fee', col: 'loading' },
   { key: 'other_amount', col: 'otherAmount' },
   { key: 'other_note', col: 'otherNote' },
-  { key: 'bol', col: 'bol' },
-  { key: 'cdf', col: 'cdf' },
+  { key: 'fuel_price', col: 'fuelPrice' },
+  { key: 'fuel_liters', col: 'fuelLiters' },
   { key: 'revenue', col: 'revenue' },
+  { key: 'notes', col: 'notes' },
 ] as const;
 type FieldKey = (typeof FIELDS)[number]['key'];
 type Mapping = Record<FieldKey, number>;
@@ -182,11 +187,16 @@ export function TruckImportPanel({ vehicles, drivers }: { vehicles: OptionItem[]
         fuel_liters: num(cell('fuel_liters')),
         fuel_price: num(cell('fuel_price')),
         toll: num(cell('toll')),
+        cleaning_fee: num(cell('cleaning_fee')),
+        repair_fee: num(cell('repair_fee')),
+        ferry_fee: num(cell('ferry_fee')),
+        loading_fee: num(cell('loading_fee')),
         other_amount: num(cell('other_amount')),
         other_note: str(cell('other_note')),
         bol: str(cell('bol')),
         cdf: str(cell('cdf')),
         revenue: num(cell('revenue')),
+        notes: str(cell('notes')),
         _valid: date !== '',
       };
       return r;
