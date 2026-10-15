@@ -59,3 +59,17 @@ Không có migration DB (các cột `trp_*_fee`, `trp_notes`, `car_trip_extra_co
 
 ## 7. Phòng tái phát
 Thêm cột vào file chuyến xe tải thì chỉ sửa `TRUCK_TRIP_SHEET_COLUMNS`. TypeScript sẽ báo lỗi ở export route cho tới khi cột mới có giá trị. Cột người dùng nhập (không có `input:false`) tự động vào template. Cần thêm alias + field import tương ứng.
+
+## 8. Bổ sung: cùng tên nhưng khác số (màn danh sách / chi tiết ↔ export)
+Rà toàn bộ phạm vi Danh sách chuyến tìm thêm 7 chỗ chưa nhất quán. Theo chỉ đạo, chỉ sửa 2 chỗ **mức cao** (cùng tên mà ra số khác nhau):
+
+| # | Trước | Sau |
+|---|---|---|
+| H1 | Màn danh sách (bảng + thẻ mobile) có cột **"Chi phí phát sinh"** = phát sinh **+ 4 phí cố định**. Cột cùng tên trong export chỉ có phát sinh. TR-3004: màn hình 350.000, file 150.000. | Cột trên màn hình đổi tên thành **"Phí cố định & phát sinh"** (`columns.truck.otherFees`; en "Fixed & extra fees", ko "고정·기타 비용"). Tooltip ghi rõ thành phần (`thOtherFeesHint`) và nói export tách riêng từng khoản. Số liệu không đổi. |
+| H2 | Trang chi tiết: **"Tổng chi phí" / "Lợi nhuận"** tính theo nhiên liệu **phân bổ**, còn export ghi "… theo thực tế". Cùng tên chung chung nhưng 2 con số khác nhau (TR-3004: 500.000 / 1.500.000). | Đổi thành **"Tổng chi phí theo phân bổ" / "Lợi nhuận theo phân bổ"** (en "…, allocated", ko "총 비용 (배분)" / "손익 (배분)"), đối xứng với "theo thực tế" của export. Chỉ đổi chữ, cách tính giữ nguyên để khớp màn Tài chính và báo cáo. |
+
+File: `apps/web/src/app/(app)/truck/trips/page.tsx`, `apps/web/messages/{vi,en,ko}.json`.
+
+Kiểm chứng (dev local): `/truck/trips?month=2026-09` hiện header "Phí cố định & phát sinh", TR-3004 = 350.000 (= 80.000 + 120.000 + 0 + 0 + 150.000, đúng tổng các cột riêng trong export). Thẻ mobile cùng nhãn. en/ko render đúng nhãn mới. Chi tiết TR-3004 hiện "Tổng chi phí theo phân bổ 500.000 ₫ / Lợi nhuận theo phân bổ 4.500.000 ₫". tsc pass.
+
+Còn lại, chưa sửa theo chỉ đạo: chi tiết thiếu ghi chú chuyến, số lít, đơn giá; nhãn trạng thái 3 kiểu; export thiếu cột Khu vực / Cập nhật; chữ en/ko ở form/chi tiết lệch glossary; định dạng ngày trong export; "Tải template" vs "Tải file mẫu".

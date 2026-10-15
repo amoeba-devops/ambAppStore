@@ -90,9 +90,12 @@ export default async function TruckTripsPage({
   const timeZone = await getTenantTimeZone(user.entId);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
   const date = (d: Date) => formatDay(d, loc);
-  /* "Other" column merges the 4 fixed cost types added REQ-20260916 (cleaning/
+  /* This column merges the 4 fixed cost types added REQ-20260916 (cleaning/
    * repair/ferry/loading) with the freeform extra-cost total, for display only
-   * — avoids widening an already-busy table with 4 more columns. */
+   * — avoids widening an already-busy table with 4 more columns. It has its
+   * OWN label (`otherFees`): under "Chi phí phát sinh" it showed a different
+   * number than the export's column of that name, which is extras only
+   * (BUG-261015). */
   const otherCost = (b: TruckCostBreakdown) =>
     b.extraTotal + b.cleaningFee + b.repairFee + b.ferryFee + b.loadingFee;
   const plateOptions = trucks.map((v) => ({ id: v.cvhId, label: v.cvhPlateNumber }));
@@ -204,7 +207,7 @@ export default async function TruckTripsPage({
                         * Chi phí & Lợi nhuận, which says so in its header. */}
                       <span>{tCol('fuelActualCost')}: {vnd(trip.fuelActualCost)}</span>
                       <span>{tCol('toll')}: {vnd(trip.breakdown.tollFee)}</span>
-                      <span>{tCol('otherAmount')}: {vnd(otherCost(trip.breakdown))}</span>
+                      <span>{tCol('otherFees')}: {vnd(otherCost(trip.breakdown))}</span>
                     </div>
                   </Link>
                 </li>
@@ -228,8 +231,11 @@ export default async function TruckTripsPage({
                   </TableHead>
                   <TableHead className="text-right">{tCol('toll')}</TableHead>
                   <TableHead className="text-right">
-                    <span className="inline-flex items-center justify-end gap-1" title={t('thOtherHint')}>
-                      {tCol('otherAmount')}
+                    <span
+                      className="inline-flex items-center justify-end gap-1"
+                      title={`${t('thOtherFeesHint')}\n${t('thOtherHint')}`}
+                    >
+                      {tCol('otherFees')}
                       <Info className="h-3.5 w-3.5 text-text-faint" />
                     </span>
                   </TableHead>
