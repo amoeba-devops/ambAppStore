@@ -1,14 +1,14 @@
 import * as XLSX from 'xlsx';
-import { getTranslations } from 'next-intl/server';
-import { TRUCK_TEMPLATE_ORDER } from '@car-v2/shared/zod';
+import { TRUCK_TEMPLATE_COLUMNS } from '@car-v2/shared/zod';
 import { resolveUiLocale } from '@/i18n/ui-locale';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { hasFleet } from '@/lib/auth/fleet-access';
 import { attachment, exportFileName, exportSheetName } from '@/server/lib/export-file-name';
+import { truckTripSheetHeader } from '@/server/lib/truck-trip-sheet';
 
 /**
  * GET /truck/import/template — downloads the CR-Vietnam-Truck-v1 .xlsx template
- * (18-column header row). The actual truck + driver are chosen in the import UI.
+ * (header row only). The actual truck + driver are chosen in the import UI.
  *
  * Filename + tab name follow the downloader's UI language, but keep the
  * `CR-Vietnam-Truck-v1` format token up front: the user guide and
@@ -26,23 +26,10 @@ export async function GET() {
     return new Response('Forbidden', { status: 403 });
   }
 
-  /* Header row in the downloader's language, from the one shared column
-   * glossary (REQ-20260824) — the same words the trip list, the mapper and the
-   * export use. Order is fixed by TRUCK_TEMPLATE_ORDER so a file made from an
-   * older template still lines up. Units live next to the label where they
-   * matter, e.g. "Lượng nhiên liệu (L)". */
-  const tCol = await getTranslations({ locale: await resolveUiLocale(), namespace: 'columns.truck' });
-  const unit: Partial<Record<(typeof TRUCK_TEMPLATE_ORDER)[number], string>> = {
-    odoStart: tCol('unitKm'),
-    odoEnd: tCol('unitKm'),
-    fuelLiters: tCol('unitLitre'),
-    fuelPrice: tCol('unitPricePerL'),
-  };
-  const headers = TRUCK_TEMPLATE_ORDER.map((k) => {
-    const label = tCol(k as Parameters<typeof tCol>[0]);
-    const u = unit[k];
-    return u ? `${label} (${u})` : label;
-  });
+  /* Same columns, order, labels and units as the trip-log export, minus the
+   * export-only computed ones (BUG-261015) — see TRUCK_TRIP_SHEET_COLUMNS.
+   * Header row in the downloader's language. */
+  const headers = await truckTripSheetHeader(await resolveUiLocale(), TRUCK_TEMPLATE_COLUMNS);
   const ws = XLSX.utils.aoa_to_sheet([headers]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, await exportSheetName('screens.truckImport', 'TripLog'));

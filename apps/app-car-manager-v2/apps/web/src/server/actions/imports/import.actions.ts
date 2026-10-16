@@ -7,7 +7,12 @@ import { db } from '@car-v2/db/client';
 import { carImports, carVehicles } from '@car-v2/db/schema';
 import { createTruckTrip, completeTruckTrip, assertVehicleNotUnderMaintenance } from '@car-v2/core/truck';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
-import { importTruckTripsSchema, parseImportDate, parseWallClockUtc } from '@car-v2/shared/zod';
+import {
+  importTruckTripsSchema,
+  parseImportDate,
+  parseWallClockUtc,
+  splitImportExtraCosts,
+} from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
 import { requireFleet } from '@/lib/auth/fleet-access';
 import { assertTruckMonthOpen } from '@/server/queries/truck-finance.queries';
@@ -133,6 +138,7 @@ export async function importTruckTripsAction(
               fuelPrice: row.fuel_price ?? null,
               revenue: row.revenue ?? null,
               startOdometer: row.odo_start ?? null,
+              notes: row.notes ?? null,
               stopovers,
             });
             break;
@@ -143,10 +149,8 @@ export async function importTruckTripsAction(
         }
         if (!trip) throw new CarError('CAR-E0500', 500, 'Import: trip create failed');
 
-        const extraCosts =
-          row.other_amount && row.other_amount > 0
-            ? [{ name: row.other_note?.trim() || 'Other', amount: row.other_amount }]
-            : [];
+        /* An exported "Tên: số tiền, …" note splits back into its items. */
+        const extraCosts = splitImportExtraCosts(row.other_amount, row.other_note);
         await completeTruckTrip(actor, trip.trpId, {
           /* Keep the sheet's Giờ bắt đầu / Giờ kết thúc as the trip's actual
            * start/end (trpStartedAt/trpEndedAt), matching the manual complete
@@ -156,6 +160,12 @@ export async function importTruckTripsAction(
           endOdometer: row.odo_end ?? null,
           fuelLiters: row.fuel_liters ?? null,
           tollFee: row.toll ?? null,
+          /* The 4 fixed fees (REQ-20260916) — the export prints them, so an
+           * exported sheet must bring them back (BUG-261015). */
+          cleaningFee: row.cleaning_fee ?? null,
+          repairFee: row.repair_fee ?? null,
+          ferryFee: row.ferry_fee ?? null,
+          loadingFee: row.loading_fee ?? null,
           extraCosts,
         });
         created += 1;

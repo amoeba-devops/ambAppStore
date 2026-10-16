@@ -1,17 +1,67 @@
 import { z } from 'zod';
 
 /**
- * Column order of the import template (18). The labels themselves now come from
- * i18n (`columns.truck`, REQ-20260824) so the template, the import mapper, the
- * trip list and the export all print the SAME word for the same thing; this
- * array only fixes the ORDER, which old files rely on.
+ * ONE column layout for the truck trip-log sheet, shared by the export
+ * (`/truck/trips/export`) and the import template (`/truck/import/template`)
+ * so the two can't drift apart again (BUG-261015: the template lacked the 4
+ * fixed fees of REQ-20260916 and the trip note, ran in a different order and
+ * printed money columns without their unit).
+ *
+ * `key`  = label key in i18n `columns.truck` (REQ-20260824 glossary).
+ * `unit` = unit key in `columns.truck`, printed as "Label (unit)".
+ * `input: false` = computed or system-assigned (ref, totals, status) — export
+ *   only. Every other column is in the template, same order, same label.
+ *   `vehicle` / `driver` stay in the template for reference only: the import
+ *   screen picks one truck + driver for the whole file.
  */
-export const TRUCK_TEMPLATE_ORDER = [
-  'date', 'vehicleHint', 'startTime', 'endTime', 'customer', 'pickup', 'stopover', 'dropoff',
-  'odoStart', 'odoEnd', 'fuelLiters', 'fuelPrice', 'toll', 'otherAmount', 'otherNote',
-  'bol', 'cdf', 'revenue',
-] as const;
-export type TruckTemplateColumn = (typeof TRUCK_TEMPLATE_ORDER)[number];
+export const TRUCK_TRIP_SHEET_COLUMNS = [
+  { key: 'ref', input: false },
+  { key: 'date' },
+  { key: 'vehicle' },
+  { key: 'driver' },
+  { key: 'customer' },
+  { key: 'bol' },
+  { key: 'cdf' },
+  { key: 'startTime' },
+  { key: 'endTime' },
+  { key: 'pickup' },
+  { key: 'stopover' },
+  { key: 'dropoff' },
+  { key: 'odoStart', unit: 'unitKm' },
+  { key: 'odoEnd', unit: 'unitKm' },
+  { key: 'kmTotal', input: false },
+  { key: 'toll', unit: 'unitMoney' },
+  { key: 'cleaning', unit: 'unitMoney' },
+  { key: 'repair', unit: 'unitMoney' },
+  { key: 'ferry', unit: 'unitMoney' },
+  { key: 'loading', unit: 'unitMoney' },
+  { key: 'otherAmount', unit: 'unitMoney' },
+  { key: 'otherNote' },
+  { key: 'fuelPrice', unit: 'unitPricePerL' },
+  { key: 'fuelLiters', unit: 'unitLitre' },
+  { key: 'fuelActualCost', unit: 'unitMoney', input: false },
+  { key: 'revenue', unit: 'unitMoney' },
+  { key: 'totalCost', input: false },
+  { key: 'profit', input: false },
+  { key: 'status', input: false },
+  { key: 'notes' },
+] as const satisfies readonly {
+  key: string;
+  unit?: 'unitKm' | 'unitMoney' | 'unitLitre' | 'unitPricePerL';
+  input?: false;
+}[];
+export type TruckSheetColumn = (typeof TRUCK_TRIP_SHEET_COLUMNS)[number];
+
+/**
+ * Import-template columns, in order: the sheet layout minus export-only
+ * columns. Also the positional fallback when an uploaded header row matches
+ * nothing at all.
+ */
+export const TRUCK_TEMPLATE_COLUMNS = TRUCK_TRIP_SHEET_COLUMNS.filter(
+  (c): c is Exclude<TruckSheetColumn, { input: false }> => !('input' in c),
+);
+export const TRUCK_TEMPLATE_ORDER = TRUCK_TEMPLATE_COLUMNS.map((c) => c.key);
+export type TruckTemplateColumn = (typeof TRUCK_TEMPLATE_COLUMNS)[number]['key'];
 
 /**
  * Header aliases used to auto-map an uploaded sheet onto the import fields.
@@ -33,7 +83,8 @@ export const TRUCK_IMPORT_ALIASES: Record<string, { any: string[]; not?: string[
   customer: { any: ['khách', 'customer', '고객'] },
   pickup: { any: ['điểm lấy', 'nơi lấy', 'lấy hàng', 'xuất phát', 'điểm đi', 'pickup', 'from', '상차'] },
   stopover: { any: ['điểm ghé', 'ghé', 'waypoint', 'stopover', '경유'] },
-  dropoff: { any: ['điểm giao', 'nơi giao', 'giao hàng', 'điểm đến', 'drop-off', 'dropoff', '하차'] },
+  /* '상하차비' (loading fee) contains '하차' — keep it off the drop-off column. */
+  dropoff: { any: ['điểm giao', 'nơi giao', 'giao hàng', 'điểm đến', 'drop-off', 'dropoff', '하차'], not: ['상하차'] },
   odo_start: { any: ['km đầu', 'đồng hồ đầu', 'odo đầu', 'start odo', 'odo start', '시작 주행', '시작 odo'] },
   odo_end: { any: ['km cuối', 'đồng hồ cuối', 'odo cuối', 'end odo', 'odo end', '종료 주행', '종료 odo'] },
   /* Litres — never the money column. */
@@ -43,11 +94,20 @@ export const TRUCK_IMPORT_ALIASES: Record<string, { any: string[]; not?: string[
   },
   fuel_price: { any: ['đơn giá', 'giá dầu', 'unit price', 'fuel unit', '단가', '유가'] },
   toll: { any: ['cầu đường', 'toll', '통행료'] },
+  /* The 4 fixed trip fees (REQ-20260916) — exported since then, importable
+   * since BUG-261015 so an exported sheet re-imports without losing them. */
+  cleaning_fee: { any: ['vệ sinh', 'cleaning', '세차'] },
+  repair_fee: { any: ['sửa chữa', 'repair', '수리'] },
+  ferry_fee: { any: ['cầu phà', 'phà', 'ferry', '도선'] },
+  loading_fee: { any: ['bốc dỡ', 'bốc xếp', 'loading', '상하차'] },
   other_amount: { any: ['chi phí phát sinh', 'chi phí khác', 'phát sinh khác', 'phí khác', 'other cost', 'other fee', '기타 비용'], not: ['ghi chú', 'note', 'tên', 'name', '명목', '메모'] },
   other_note: { any: ['ghi chú phát sinh', 'ghi chú chi phí', 'tên phí', 'tên khoản phí', 'other note', 'fee name', '기타 메모', '기타 비용 명목'] },
   bol: { any: ['bol', 'vận đơn', 'bill'] },
   cdf: { any: ['cdf'] },
   revenue: { any: ['doanh thu', 'revenue', 'selling', '매출'], not: ['tháng', 'month'] },
+  /* Trip note — only the explicit wording: a bare "Ghi chú"/"Note" would also
+   * catch "Ghi chú phát sinh" (the extra-cost note). */
+  notes: { any: ['ghi chú chuyến', 'trip note', '운행 메모'] },
 };
 
 /**
@@ -188,6 +248,47 @@ export function parseImportNumber(value: unknown): number | undefined {
   return negative ? -n : n;
 }
 
+/**
+ * "Chi phí phát sinh" + "Ghi chú phát sinh" of one row → the trip's extra-cost
+ * items (BUG-261015).
+ *
+ * The trip-log export writes the note as one "Tên: số tiền" entry per item —
+ * `Rửa xe: 50.000, Bến bãi: 30.000` — and the amount column as their total.
+ * Re-importing that used to create ONE item named after the whole list, so the
+ * next export printed "…: 30.000: 80.000" and every round trip grew the note.
+ * When the note parses as such a list AND its amounts add up to the amount
+ * column, it is split back into the original items. Anything else (a plain
+ * note, a list that doesn't add up) stays one item — the pre-existing
+ * behaviour — so a hand-typed sheet is never reinterpreted.
+ */
+export function splitImportExtraCosts(
+  amount: number | undefined,
+  note: string | undefined,
+  fallbackName = 'Other',
+): { name: string; amount: number }[] {
+  if (!amount || amount <= 0) return [];
+  const text = note?.trim() ?? '';
+  const single = [{ name: text || fallbackName, amount }];
+  if (!text) return single;
+
+  /* Split on ", " but let a name keep its own commas: an item only ends where
+   * the text so far ends in ": <number>". */
+  const items: { name: string; amount: number }[] = [];
+  let buf = '';
+  for (const part of text.split(/,\s*/)) {
+    buf = buf ? `${buf}, ${part}` : part;
+    const m = /^(.*\S)\s*:\s*(\d[\d.]*)$/.exec(buf);
+    const value = m ? parseImportNumber(m[2]) : undefined;
+    if (m?.[1] && value != null && value > 0) {
+      items.push({ name: m[1].trim(), amount: value });
+      buf = '';
+    }
+  }
+  if (buf || items.length === 0) return single;
+  const sum = items.reduce((s, i) => s + i.amount, 0);
+  return Math.abs(sum - amount) < 0.5 ? items : single;
+}
+
 /** Snap an instant to the nearest whole minute (drops SheetJS's LMT drift). */
 function roundToMinute(d: Date): Date {
   return new Date(Math.round(d.getTime() / 60_000) * 60_000);
@@ -297,11 +398,17 @@ export const truckImportRowSchema = z.object({
   fuel_liters: z.number().nonnegative().optional(),
   fuel_price: z.number().nonnegative().optional(),
   toll: z.number().nonnegative().optional(),
+  cleaning_fee: z.number().nonnegative().optional(),
+  repair_fee: z.number().nonnegative().optional(),
+  ferry_fee: z.number().nonnegative().optional(),
+  loading_fee: z.number().nonnegative().optional(),
   other_amount: z.number().nonnegative().optional(),
   other_note: z.string().optional(),
   bol: z.string().optional(),
   cdf: z.string().optional(),
   revenue: z.number().nonnegative().optional(),
+  /* Same cap as the trip form's note (truck-trip.zod). */
+  notes: z.string().trim().max(2000).optional(),
 });
 export type TruckImportRow = z.infer<typeof truckImportRowSchema>;
 
