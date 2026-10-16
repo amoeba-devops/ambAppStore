@@ -106,13 +106,12 @@ export async function getTruckTripDeleteImpact(entId: string, tripId: string): P
 
   let lastTripOfMonth: TruckTripDeleteImpact['lastTripOfMonth'] = null;
   if (siblings.length === 0) {
-    /* The month as P&L sees it TODAY — active, with this trip's driver standing
-     * in when the truck has no default driver (computeTruckPnl's rule). */
+    /* The month as P&L sees it TODAY — active; the trip is still live here, so
+     * the resolver's per-driver salary split already includes it. */
     const k = `${month}|${vehicleId}`;
     const fixed = await loadTruckFixedMonthly(entId, [month], {
       vehicleId,
       activeKeys: new Set([k]),
-      driverByKey: trip.trpDriverId ? new Map([[k, trip.trpDriverId]]) : undefined,
     });
     const fc = fixed.forVehicleMonth(month, vehicleId);
     if (fc.total > 0) lastTripOfMonth = { salary: fc.salary, depreciation: fc.depreciation };
