@@ -105,7 +105,7 @@ export async function loadTruckFixedMonthly(
   const rangeEnd = new Date(Date.UTC(ly, lm, 1));
   const tripMonth = sql<string>`to_char(${carTrips.trpScheduledAt} at time zone 'UTC', 'YYYY-MM')`;
 
-  const [allTrucks, manual, rates, driven] = await Promise.all([
+  const [allTrucks, manual, rates, driven, firstTrips] = await Promise.all([
     /* EVERY truck of the tenant, scoped in memory below: a driver's salary is
      * split across all trucks they drove, so a region/vehicle-filtered report
      * must still see the trips on the trucks outside its scope. */
@@ -165,9 +165,38 @@ export async function loadTruckFixedMonthly(
         ),
       )
       .groupBy(tripMonth, carTrips.trpVehicleId, carTrips.trpDriverId),
+    /* Month of each truck's FIRST completed trip, all-time (not limited to the
+     * requested months) — its "in service since" marker. */
+    db
+      .select({
+        vehicleId: carTrips.trpVehicleId,
+        month: sql<string>`to_char(min(${carTrips.trpScheduledAt}) at time zone 'UTC', 'YYYY-MM')`,
+      })
+      .from(carTrips)
+      .where(
+        and(
+          eq(carTrips.entId, entId),
+          eq(carTrips.trpKind, 'LOG'),
+          eq(carTrips.trpStatus, 'COMPLETED'),
+          isNull(carTrips.trpDeletedAt),
+        ),
+      )
+      .groupBy(carTrips.trpVehicleId),
   ]);
 
   const scopeIds = opts.vehicleId ? new Set([opts.vehicleId]) : opts.vehicleIds ? new Set(opts.vehicleIds) : null;
+  const liveTruckIds = new Set(allTrucks.map((v) => v.id));
+  const firstTripMonth = new Map<string, string>();
+  for (const f of firstTrips) if (f.vehicleId && f.month) firstTripMonth.set(f.vehicleId, f.month);
+  /* In service in `month` = the truck ran a completed trip that month (activeKeys)
+   * OR it has already been working since an earlier month. Keeps the backfill
+   * consistent across months: a month the truck merely sat idle after its first
+   * trip is costed exactly like a busy one, instead of reading 0 before the first
+   * rate and a full cost after it. Months BEFORE the first trip stay 0 — the truck
+   * was not bought yet (QA 2026-07-30). */
+  const inService = (vehicleId: string, month: string): boolean =>
+    (opts.activeKeys?.has(key(month, vehicleId)) ?? false) ||
+    (firstTripMonth.get(vehicleId) ?? '9999-99') <= month;
   const vehicles = scopeIds ? allTrucks.filter((v) => scopeIds.has(v.id)) : allTrucks;
 
   /* refId|kind → ascending [month, amount] pairs. */
@@ -203,7 +232,9 @@ export async function loadTruckFixedMonthly(
    * truck(s) instead, active only if that truck ran (backfill rule above). */
   const tripsByDriverMonth = new Map<string, Map<string, number>>(); // `${driver}|${month}` → vehicle → trips
   for (const d of driven) {
-    if (!d.driverId || !d.vehicleId) continue;
+    /* Soft-deleted trucks are dropped from the split so the driver's salary is
+     * never lost on a truck no report can show. */
+    if (!d.driverId || !d.vehicleId || !liveTruckIds.has(d.vehicleId)) continue;
     const k = `${d.driverId}|${d.month}`;
     const m = tripsByDriverMonth.get(k) ?? new Map<string, number>();
     m.set(d.vehicleId, (m.get(d.vehicleId) ?? 0) + d.n);
@@ -228,7 +259,7 @@ export async function loadTruckFixedMonthly(
       } else {
         const trucks = defaultTrucksOf.get(driverId) ?? [];
         shares = new Map(trucks.map((id) => [id, 1]));
-        amount = rateAt(driverId, 'SALARY', m, trucks.some((id) => opts.activeKeys?.has(key(m, id)) ?? false));
+        amount = rateAt(driverId, 'SALARY', m, trucks.some((id) => inService(id, m)));
       }
       for (const [vid, part] of allocateSalary(amount, shares)) {
         salaryByKey.set(key(m, vid), (salaryByKey.get(key(m, vid)) ?? 0) + part);
@@ -240,7 +271,7 @@ export async function loadTruckFixedMonthly(
   for (const v of vehicles) {
     for (const m of uniqMonths) {
       const k = key(m, v.id);
-      const depreciation = rateAt(v.id, 'DEPRECIATION', m, opts.activeKeys?.has(k) ?? false);
+      const depreciation = rateAt(v.id, 'DEPRECIATION', m, inService(v.id, m));
       const salary = salaryByKey.get(k) ?? 0;
       if (depreciation === 0 && salary === 0) continue;
       resolved.set(k, { salary, depreciation, total: salary + depreciation });

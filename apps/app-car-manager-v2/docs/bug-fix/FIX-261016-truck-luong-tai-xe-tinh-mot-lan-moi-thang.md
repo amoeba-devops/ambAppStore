@@ -25,6 +25,13 @@ Báo cáo tháng 8 có tổng lương 24tr, tháng 9 là 26tr dù cùng 2 tài x
 
 Dự kiến tháng 8 (mô phỏng trên dữ liệu prod): khấu hao 8,0tr + 8,5tr = 16,5tr; lương: T8 = 51D 2.307.692 + 50H 23.692.308 = 26tr; T9 = 12tr + 14tr = 26tr; T7 = 14tr (50H).
 
+## Rà soát toàn cục (không chỉ case CargoRush)
+- Mọi màn hình/report (P&L, finance, dashboard, export P&L, báo cáo tháng, cảnh báo xoá chuyến) đều đi qua `computeTruckPnl` → `loadTruckFixedMonthly`; không còn chỗ nào tự tính lương/khấu hao riêng (`cvhDepreciation`/`drvFixedSalary` chỉ dùng để hiển thị và ghi rate). Sửa ở loader là phủ toàn bộ.
+- Quy tắc "đang hoạt động" nay dựa trên lịch sử xe: tháng ≥ tháng có chuyến COMPLETED đầu tiên (`firstTripMonth`) đều mượn rate đầu như nhau, kể cả tháng xe nghỉ; tháng TRƯỚC chuyến đầu = 0 (xe chưa mua, BUG-260730). Trước đó xe nghỉ → 0 trước mốc rate nhưng đủ tiền sau mốc rate.
+- Chuyến của xe đã xoá mềm bị loại khỏi phép chia lương để lương tài xế không bị mất.
+- `truck-maintenance.ts` đã kiểm tra: không có giới hạn tháng tương tự.
+- Giới hạn còn lại (có chủ đích): tháng không có chuyến nào toàn phạm vi thì chi phí cố định = 0 (quy tắc `fixedCostWithoutTrips`); chuyến không có tài xế trên xe không có tài xế mặc định thì không có ai để tính lương; tháng tính theo UTC như toàn app.
+
 ## Lưu ý
 - Số live tháng 8 của 51D giảm, 50H tăng; tổng đúng 26tr.
 - Báo cáo Excel đã render (S3) không tự đổi → lập lại báo cáo tháng 8 (HCM, DONG_NAI, tất cả khu vực) và tháng 9 nếu cần.
