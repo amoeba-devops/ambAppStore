@@ -8,9 +8,9 @@ import { carImports, carVehicles } from '@car-v2/db/schema';
 import { createTruckTrip, completeTruckTrip, assertVehicleNotUnderMaintenance } from '@car-v2/core/truck';
 import { CarError, type ActionResult } from '@car-v2/shared/errors';
 import {
+  importTripTimes,
   importTruckTripsSchema,
   parseImportDate,
-  parseWallClockUtc,
   splitImportExtraCosts,
 } from '@car-v2/shared/zod';
 import { getCurrentUser, requireRole } from '@/lib/auth/get-current-user';
@@ -22,19 +22,6 @@ import { runAction } from '../_helpers';
 
 function isUniqueViolation(err: unknown): boolean {
   return typeof err === 'object' && err !== null && (err as { code?: string }).code === '23505';
-}
-
-/* Combine the row's date with a "Giờ bắt đầu/kết thúc" time-of-day ("8:00",
- * "08:30", "8:00:00") into a UTC Date — same frame as the manual complete
- * flow — so the sheet's start/end time is kept instead of dropped. Returns null
- * when either part is missing/unparseable (trip then keeps no start / end=now). */
-function combineDateTime(dateStr: string, time: string | undefined): Date | null {
-  if (!time) return null;
-  const d = /^(\d{4}-\d{2}-\d{2})/.exec(dateStr.trim());
-  const t = /^(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(time.trim());
-  if (!d?.[1] || !t?.[1] || !t?.[2]) return null;
-  /* Wall clock -> UTC, the same frame every reader uses (parseWallClockUtc). */
-  return parseWallClockUtc(`${d[1]}T${t[1].padStart(2, '0')}:${t[2]}:${t[3] ?? '00'}`);
 }
 
 /**
@@ -151,12 +138,14 @@ export async function importTruckTripsAction(
 
         /* An exported "Tên: số tiền, …" note splits back into its items. */
         const extraCosts = splitImportExtraCosts(row.other_amount, row.other_note);
+        /* Keep the sheet's Giờ bắt đầu / Giờ kết thúc as the trip's actual
+         * start/end (trpStartedAt/trpEndedAt), matching the manual complete
+         * flow — previously dropped (end defaulted to import time). An end
+         * before the start is an overnight trip → next day (FIX-261019). */
+        const { startedAt, finishedAt } = importTripTimes(isoDate, row.start_time, row.end_time);
         await completeTruckTrip(actor, trip.trpId, {
-          /* Keep the sheet's Giờ bắt đầu / Giờ kết thúc as the trip's actual
-           * start/end (trpStartedAt/trpEndedAt), matching the manual complete
-           * flow — previously dropped (end defaulted to import time). */
-          startedAt: combineDateTime(isoDate, row.start_time),
-          finishedAt: combineDateTime(isoDate, row.end_time),
+          startedAt,
+          finishedAt,
           endOdometer: row.odo_end ?? null,
           fuelLiters: row.fuel_liters ?? null,
           tollFee: row.toll ?? null,

@@ -108,7 +108,30 @@ export const TRUCK_IMPORT_ALIASES: Record<string, { any: string[]; not?: string[
   /* Trip note — only the explicit wording: a bare "Ghi chú"/"Note" would also
    * catch "Ghi chú phát sinh" (the extra-cost note). */
   notes: { any: ['ghi chú chuyến', 'trip note', '운행 메모'] },
+  /* Export-only "Trạng thái" column — read only to SKIP rows that are not
+   * completed (FIX-261019); the template has no such column. */
+  status: { any: ['trạng thái', 'status', '상태'] },
 };
+
+/**
+ * `exportContent.status.COMPLETED` in every UI language (vi / en / ko), plus the
+ * raw enum. An exported sheet carries the status in the exporter's language, so
+ * the importer must recognise all three regardless of its own. Keep in sync
+ * with the message files.
+ */
+export const TRUCK_IMPORT_COMPLETED_STATUS = ['hoàn tất', 'completed', '완료'] as const;
+
+/**
+ * May this sheet row be imported? Import always creates COMPLETED trips, so an
+ * exported row of a trip that was still pending / in progress / cancelled must
+ * not come back as completed (FIX-261019). A blank cell — every hand-filled
+ * template row — counts as completed.
+ */
+export function isImportableTripStatus(value: unknown): boolean {
+  if (value == null) return true;
+  const s = String(value).trim().toLowerCase();
+  return s === '' || (TRUCK_IMPORT_COMPLETED_STATUS as readonly string[]).includes(s);
+}
 
 /**
  * @deprecated Kept so an existing caller still compiles; the template route now
@@ -382,6 +405,33 @@ export function parseWallClockUtc(value: string | null | undefined): Date | null
     Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4] ?? 0), Number(m[5] ?? 0), Number(m[6] ?? 0)),
   );
   return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * A sheet row's Giờ bắt đầu / Giờ kết thúc → the trip's start / end instants.
+ * The sheet carries clock times only (HH:mm), both on the row's date, so an
+ * overnight trip (22:00 → 02:15) would otherwise end BEFORE it started: an end
+ * earlier than the start is read as the next day (FIX-261019). Without a start
+ * time nothing can be inferred and the end stays on the row's date.
+ */
+export function importTripTimes(
+  isoDate: string,
+  startTime: string | undefined,
+  endTime: string | undefined,
+): { startedAt: Date | null; finishedAt: Date | null } {
+  const at = (time: string | undefined): Date | null => {
+    if (!time) return null;
+    const d = /^(\d{4}-\d{2}-\d{2})/.exec(isoDate.trim());
+    const t = /^(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(time.trim());
+    if (!d?.[1] || !t?.[1] || !t?.[2]) return null;
+    return parseWallClockUtc(`${d[1]}T${t[1].padStart(2, '0')}:${t[2]}:${t[3] ?? '00'}`);
+  };
+  const startedAt = at(startTime);
+  let finishedAt = at(endTime);
+  if (startedAt && finishedAt && finishedAt < startedAt) {
+    finishedAt = new Date(finishedAt.getTime() + 24 * 60 * 60 * 1000);
+  }
+  return { startedAt, finishedAt };
 }
 
 /** One normalized import row (client maps the sheet → these fields). */
