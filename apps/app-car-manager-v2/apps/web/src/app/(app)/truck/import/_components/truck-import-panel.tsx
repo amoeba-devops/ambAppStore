@@ -19,6 +19,7 @@ import {
 import {
   TRUCK_IMPORT_ALIASES,
   TRUCK_TEMPLATE_ORDER,
+  isImportableTripStatus,
   parseImportDate,
   parseImportNumber,
   parseImportTime,
@@ -80,6 +81,9 @@ const FIELDS = [
   { key: 'fuel_liters', col: 'fuelLiters' },
   { key: 'revenue', col: 'revenue' },
   { key: 'notes', col: 'notes' },
+  /* Chỉ có ở file xuất: dòng chưa hoàn tất bị bỏ qua thay vì nhập thành chuyến
+   * hoàn tất (FIX-261019). Template không có cột này → luôn "không dùng". */
+  { key: 'status', col: 'status' },
 ] as const;
 type FieldKey = (typeof FIELDS)[number]['key'];
 type Mapping = Record<FieldKey, number>;
@@ -174,7 +178,10 @@ export function TruckImportPanel({ vehicles, drivers }: { vehicles: OptionItem[]
         return i >= 0 ? row[i] : undefined;
       };
       const date = dateStr(cell('date'));
-      const r: TruckImportRow & { _valid: boolean } = {
+      const issue: 'date' | 'status' | null =
+        date === '' ? 'date' : !isImportableTripStatus(cell('status')) ? 'status' : null;
+      /* `_issue` null = importable; otherwise why the row is skipped. */
+      const r: TruckImportRow & { _issue: typeof issue } = {
         date,
         start_time: timeStr(cell('start_time')),
         end_time: timeStr(cell('end_time')),
@@ -197,20 +204,20 @@ export function TruckImportPanel({ vehicles, drivers }: { vehicles: OptionItem[]
         cdf: str(cell('cdf')),
         revenue: num(cell('revenue')),
         notes: str(cell('notes')),
-        _valid: date !== '',
+        _issue: issue,
       };
       return r;
     });
   }, [dataRows, mapping]);
 
-  const validRows = mapped.filter((r) => r._valid);
+  const validRows = mapped.filter((r) => r._issue === null);
   const invalidCount = mapped.length - validRows.length;
   const canImport = vehicleId !== '' && driverId !== '' && validRows.length > 0 && !pending;
 
   const runImport = () => {
     if (!canImport) return;
     startTransition(async () => {
-      const rows = validRows.map(({ _valid, ...r }) => r);
+      const rows = validRows.map(({ _issue, ...r }) => r);
       const res = await importTruckTripsAction({
         vehicle_id: vehicleId,
         driver_id: driverId,
@@ -394,11 +401,13 @@ export function TruckImportPanel({ vehicles, drivers }: { vehicles: OptionItem[]
                 </thead>
                 <tbody>
                   {mapped.slice(0, 10).map((r, i) => (
-                    <tr key={i} className={cn('border-b border-border last:border-0', !r._valid && 'bg-danger-soft/40')}>
+                    <tr key={i} className={cn('border-b border-border last:border-0', r._issue !== null && 'bg-danger-soft/40')}>
                       <td className="px-2 py-1.5">{r.date || '—'}</td>
                       <td className="px-2 py-1.5">{r.customer ?? '—'}</td>
                       <td className="px-2 py-1.5 text-right tabular">{r.revenue != null ? r.revenue.toLocaleString('vi-VN') : '—'}</td>
-                      <td className="px-2 py-1.5 text-danger">{r._valid ? '' : t('rowInvalid')}</td>
+                      <td className="px-2 py-1.5 text-danger">
+                        {r._issue === 'date' ? t('rowInvalid') : r._issue === 'status' ? t('rowNotCompleted') : ''}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

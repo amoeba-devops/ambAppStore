@@ -98,8 +98,11 @@ export async function GET(req: Request) {
     loading: (t) => t.breakdown.loadingFee,
     otherAmount: (t) => t.breakdown.extraTotal,
     otherNote: (t) => t.extraNote ?? '',
-    fuelPrice: (t) => Math.round(t.fuelActualPrice),
-    fuelLiters: (t) => Math.round(t.fuelActualLiters * 10) / 10,
+    /* Full stored precision (trp_fuel_price / trp_fuel_liters are scale 2) so a
+     * re-imported row rebuilds the same fuel cost — rounding to whole đồng /
+     * 0.1 L shifted it (FIX-261019). */
+    fuelPrice: (t) => Math.round(t.fuelActualPrice * 100) / 100,
+    fuelLiters: (t) => Math.round(t.fuelActualLiters * 100) / 100,
     fuelActualCost: (t) => t.fuelActualCost,
     revenue: (t) => t.breakdown.revenue,
     totalCost,
