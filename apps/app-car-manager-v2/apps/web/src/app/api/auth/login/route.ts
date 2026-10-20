@@ -15,6 +15,10 @@ import { findCarAppInMyApps } from '@/lib/auth/find-ama-app';
  *
  * Error → redirect /login?error=<reason>
  *
+ * Mọi redirect dùng 303 See Other (KHÔNG dùng default 307): 307 bắt browser
+ * replay POST + form body sang trang đích → Safari/iOS nhận 400 sau khi login
+ * đúng (FIX-261020). 303 ép GET.
+ *
  * AMA Backend Dependency:
  *   `POST /auth/email-login { entity_code, email }` — endpoint mới cần AMA team
  *   build. Chi tiết: docs/integration/AMA-DEPENDENCIES.md §2.4.
@@ -48,7 +52,7 @@ export async function POST(req: NextRequest) {
   const nextParam = form.get('next') as string | null;
 
   if (!entityCode || !email || !isValidEmail(email)) {
-    return NextResponse.redirect(absoluteUrl(req, '/login?error=missing'));
+    return NextResponse.redirect(absoluteUrl(req, '/login?error=missing'), 303);
   }
 
   const masked = maskEmail(email);
@@ -64,7 +68,7 @@ export async function POST(req: NextRequest) {
 
     if (loginRes.status === 429) {
       console.warn(`[login] rate_limit ent=${entityCode} email=${masked}`);
-      return NextResponse.redirect(absoluteUrl(req, '/login?error=rate_limit'));
+      return NextResponse.redirect(absoluteUrl(req, '/login?error=rate_limit'), 303);
     }
     if (loginRes.status === 404 || loginRes.status === 501) {
       /* 404 = AMA endpoint chưa tồn tại (Wave 3 pending).
@@ -76,14 +80,14 @@ export async function POST(req: NextRequest) {
       console.error(
         `[login] AMA email-login unavailable status=${loginRes.status} — endpoint missing or passwordless disabled`,
       );
-      return NextResponse.redirect(absoluteUrl(req, '/login?error=not_implemented'));
+      return NextResponse.redirect(absoluteUrl(req, '/login?error=not_implemented'), 303);
     }
     if (!loginRes.ok) {
       const errBody = await loginRes.text().catch(() => '');
       console.warn(
         `[login] AMA email-login fail status=${loginRes.status} ent=${entityCode} email=${masked} body=${errBody.slice(0, 200)}`,
       );
-      return NextResponse.redirect(absoluteUrl(req, '/login?error=invalid'));
+      return NextResponse.redirect(absoluteUrl(req, '/login?error=invalid'), 303);
     }
 
     const loginData = await loginRes.json();
@@ -93,7 +97,7 @@ export async function POST(req: NextRequest) {
     const accessToken: string | undefined = tokens?.accessToken;
     if (!accessToken) {
       console.error('[login] AMA response missing accessToken', loginData);
-      return NextResponse.redirect(absoluteUrl(req, '/login?error=server'));
+      return NextResponse.redirect(absoluteUrl(req, '/login?error=server'), 303);
     }
 
     // 2) Find eca_id of app-car-manager-v2
@@ -102,18 +106,18 @@ export async function POST(req: NextRequest) {
     });
     if (!myAppsRes.ok) {
       console.error('[login] custom-apps/my fail', myAppsRes.status);
-      return NextResponse.redirect(absoluteUrl(req, '/login?error=not_installed'));
+      return NextResponse.redirect(absoluteUrl(req, '/login?error=not_installed'), 303);
     }
 
     const app = findCarAppInMyApps(await myAppsRes.json());
     if (!app) {
       console.warn(`[login] car-v2 not in custom-apps/my ent=${entityCode} email=${masked}`);
-      return NextResponse.redirect(absoluteUrl(req, '/login?error=not_installed'));
+      return NextResponse.redirect(absoluteUrl(req, '/login?error=not_installed'), 303);
     }
     const ecaId = app.id ?? app.ecaId;
     if (!ecaId) {
       console.error('[login] eca_id missing', app);
-      return NextResponse.redirect(absoluteUrl(req, '/login?error=server'));
+      return NextResponse.redirect(absoluteUrl(req, '/login?error=server'), 303);
     }
 
     // 3) Mint app token (1h, role=eur_role per D-002)
@@ -127,13 +131,13 @@ export async function POST(req: NextRequest) {
     if (!tokenRes.ok) {
       const errBody = await tokenRes.text().catch(() => '');
       console.error('[login] mint app token fail', tokenRes.status, errBody);
-      return NextResponse.redirect(absoluteUrl(req, '/login?error=invalid'));
+      return NextResponse.redirect(absoluteUrl(req, '/login?error=invalid'), 303);
     }
     const tokenBody = await tokenRes.json();
     const token: string | undefined = tokenBody?.data?.token ?? tokenBody?.token;
     if (!token) {
       console.error('[login] mint app token: no token in response', tokenBody);
-      return NextResponse.redirect(absoluteUrl(req, '/login?error=server'));
+      return NextResponse.redirect(absoluteUrl(req, '/login?error=server'), 303);
     }
 
     // 4) Set cookies + redirect
@@ -150,7 +154,7 @@ export async function POST(req: NextRequest) {
     const redirectTo = nextParam && nextParam.startsWith('/') ? nextParam : '/';
     const refreshToken: string | undefined = tokens?.refreshToken;
 
-    const res = NextResponse.redirect(absoluteUrl(req, redirectTo));
+    const res = NextResponse.redirect(absoluteUrl(req, redirectTo), 303);
     res.cookies.set(cookieName, token, { ...cookieAttrs, maxAge });
     res.cookies.set('amb_ama_access', accessToken, { ...cookieAttrs, maxAge: 4 * 60 * 60 });
     if (refreshToken) {
@@ -162,6 +166,6 @@ export async function POST(req: NextRequest) {
     return res;
   } catch (e) {
     console.error('[login] unexpected error', e);
-    return NextResponse.redirect(absoluteUrl(req, '/login?error=server'));
+    return NextResponse.redirect(absoluteUrl(req, '/login?error=server'), 303);
   }
 }
