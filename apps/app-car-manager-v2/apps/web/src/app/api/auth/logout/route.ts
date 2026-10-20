@@ -28,7 +28,7 @@ async function doLogout(req: NextRequest): Promise<NextResponse> {
     });
   }
 
-  const res = NextResponse.redirect(absoluteUrl(req, '/login'));
+  const res = NextResponse.redirect(absoluteUrl(req, '/login'), 303);
   res.cookies.delete(sessionCookie);
   res.cookies.delete('amb_ama_access');
   res.cookies.delete('amb_ama_refresh');
