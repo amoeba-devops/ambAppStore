@@ -7,13 +7,17 @@ import { RoleGuard } from './guards/role.guard';
 import { EntityScopeGuard } from './guards/entity-scope.guard';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
+import { getJwtSecret } from './jwt-secret';
 
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'drd-default-secret',
-      signOptions: { expiresIn: '4h' },
+    JwtModule.registerAsync({
+      // 의존성 주입 시점에 읽는다 — ConfigModule 이 .env 를 읽은 뒤 (FIX-261120)
+      useFactory: () => ({
+        secret: getJwtSecret(),
+        signOptions: { expiresIn: '4h' },
+      }),
     }),
   ],
   controllers: [AuthController],
