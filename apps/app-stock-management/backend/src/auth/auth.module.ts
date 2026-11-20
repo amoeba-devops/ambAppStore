@@ -10,13 +10,17 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { User } from '../domain/user/entity/user.entity';
 import { Corporation } from '../domain/corporation/entity/corporation.entity';
+import { getJwtSecret } from './jwt-secret';
 
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'asm-default-secret',
-      signOptions: { expiresIn: '15m' },
+    JwtModule.registerAsync({
+      // 의존성 주입 시점에 읽는다 — ConfigModule 이 .env 를 읽은 뒤 (FIX-261120)
+      useFactory: () => ({
+        secret: getJwtSecret(),
+        signOptions: { expiresIn: '15m' },
+      }),
     }),
     TypeOrmModule.forFeature([User, Corporation]),
   ],
