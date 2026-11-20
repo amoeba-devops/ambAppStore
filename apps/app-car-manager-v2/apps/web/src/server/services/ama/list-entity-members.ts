@@ -1,8 +1,27 @@
 import 'server-only';
 import { cookies } from 'next/headers';
+import {
+  AmaOpenApiError,
+  getAmaOpenApiClient,
+  warnLegacyMemberSyncOnce,
+  type AmaOpenUser,
+} from './ama-open-api';
 
 /**
- * AMA `GET /entity-settings/members` — list all members of a tenant.
+ * List all members of a tenant from aWorks (AMA).
+ *
+ * Source (in order):
+ *   1. OAuth Open API — when AMA_OAUTH_CLIENT_ID / AMA_OAUTH_CLIENT_SECRET are
+ *      set: exchange the caller's AMA token (`amb_ama_access` standalone, or
+ *      the embed `amb_session` launch token) via grant `ama_session`, then
+ *      `GET /open/users` (scope `users:read`). aWorks binds the OAuth token to
+ *      the caller's OWN entity. Returns ACTIVE members only.
+ *   2. Legacy `GET /entity-settings/members` with the AMA token as Bearer.
+ *      - Standalone `amb_ama_access` is a real aWorks login session → still
+ *        supported; also used as fallback if the OAuth call fails.
+ *      - Embed `amb_session` (app launch token) → DEPRECATED: aWorks is
+ *        phasing out launch tokens as login sessions (→ 401). Used only when
+ *        OAuth env is not configured; logs a warning once.
  *
  * Used ONLY by the manual "Sync from AMA" admin button (Option 1b — JIT
  * sync remains the primary path via `ensureCarUser` on each login). NEVER
@@ -55,13 +74,50 @@ const MAX_PAGES = 50;
 
 export async function listEntityMembersFromAma(entId: string): Promise<AmaMember[] | null> {
   const cookieStore = await cookies();
-  /* Standalone mode keeps `amb_ama_access` (raw AMA token); embed mode only
-   * has `amb_session` (app-token AMA also accepts via OwnEntityGuard). */
-  const token =
-    cookieStore.get('amb_ama_access')?.value ??
-    cookieStore.get(SESSION_COOKIE)?.value;
+  /* Standalone mode keeps `amb_ama_access` (raw AMA session token); embed
+   * mode only has `amb_session` (app launch token). */
+  const sessionToken = cookieStore.get('amb_ama_access')?.value;
+  const launchToken = cookieStore.get(SESSION_COOKIE)?.value;
+  const token = sessionToken ?? launchToken;
   if (!token) return null;
 
+  const openApi = getAmaOpenApiClient();
+  if (openApi) {
+    try {
+      const users = await openApi.listUsers(entId, token);
+      return users.map(openUserToAmaMember);
+    } catch (err) {
+      const detail =
+        err instanceof AmaOpenApiError ? `${err.kind}: ${err.message}` : String(err);
+      console.warn(`[listEntityMembersFromAma] OAuth Open API failed — ${detail}`);
+      /* A real AMA session can still use the legacy endpoint; a launch token
+       * cannot be relied on there, so surface the failure (CAR-E0502). */
+      if (!sessionToken) return null;
+    }
+  } else if (!sessionToken) {
+    warnLegacyMemberSyncOnce();
+  }
+
+  return listViaEntitySettings(entId, token);
+}
+
+/** `/open/users` row → AmaMember. Open API has no phone/jobTitle → null. */
+export function openUserToAmaMember(u: AmaOpenUser): AmaMember {
+  return {
+    userId: u.userId,
+    email: u.email,
+    name: u.name,
+    phone: null,
+    amaRole: u.role ?? 'MEMBER',
+    levelCode: u.levelCode ?? 'USER_LEVEL',
+    status: u.status ?? 'ACTIVE',
+    unit: u.unit,
+    jobTitle: null,
+  };
+}
+
+/** Legacy: `GET /entity-settings/members` with the AMA token as Bearer. */
+async function listViaEntitySettings(entId: string, token: string): Promise<AmaMember[] | null> {
   const all: AmaMember[] = [];
   for (let page = 1; page <= MAX_PAGES; page++) {
     const url =

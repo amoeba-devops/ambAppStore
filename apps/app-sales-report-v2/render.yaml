@@ -44,6 +44,10 @@ services:
         value: ko
       - key: DEMO_AUTO_LOGIN
         sync: false
+      - key: AMA_OAUTH_CLIENT_ID        # aWorks OAuth partner app (member sync) — secret, dashboard only
+        sync: false
+      - key: AMA_OAUTH_CLIENT_SECRET
+        sync: false
 
   - type: worker
     name: sales-report-v2-worker

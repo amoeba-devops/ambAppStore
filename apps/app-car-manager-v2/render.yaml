@@ -30,6 +30,10 @@ services:
         value: production
       - key: JWT_SECRET
         sync: false
+      - key: AMA_OAUTH_CLIENT_ID        # aWorks OAuth partner app (member sync) — secret, dashboard only
+        sync: false
+      - key: AMA_OAUTH_CLIENT_SECRET
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: AWS_REGION
@@ -134,6 +138,10 @@ services:
         value: "false"
       # ── secrets (enter in dashboard; sync:false keeps them out of git) ──
       - key: JWT_SECRET                 # byte-for-byte == prod AMA (amb-api-production) — gate G1
+        sync: false
+      - key: AMA_OAUTH_CLIENT_ID        # aWorks OAuth partner app (member sync) — secret, dashboard only
+        sync: false
+      - key: AMA_OAUTH_CLIENT_SECRET
         sync: false
       - key: DATABASE_URL               # Neon PROD branch pooler URL (isolated from staging)
         sync: false
