@@ -261,6 +261,32 @@ For an entity to "see" the app:
 2. AMA sidebar / custom-apps section now shows "매출리포트 v2"
 3. Click → AMA mints JWT → redirects to `https://stg-apps.amoeba.site/app-sales-report-v2/?ama_token=...` → nginx → Docker container → v2 middleware sets cookie → dashboard
 
+### 5.4.1 AMA member sync via OAuth (Open API)
+
+"Sync from AMA" (Users page) reads the tenant roster from aWorks. Preferred path (server-side only):
+
+1. `POST {AMA_API_BASE_URL}/oauth/token` — `grant_type=ama_session`, `ama_token` = the embed session cookie (`SESSION_COOKIE_NAME`), `client_id`/`client_secret` from env, `scope=users:read`.
+2. `GET {AMA_API_BASE_URL}/open/users` with the OAuth access token. aWorks binds the token to the launch token's own entity, so only that tenant's members are returned (ACTIVE members only).
+
+Access tokens are cached per entity until 60s before expiry; a 401 from the Open API triggers one re-exchange.
+
+| Env | Where | Notes |
+|-----|-------|-------|
+| `AMA_API_BASE_URL` | render.yaml / Docker env | aWorks API base incl. `/api/v1` |
+| `AMA_OAUTH_CLIENT_ID` | dashboard secret (`sync: false`) | aWorks partner app client id |
+| `AMA_OAUTH_CLIENT_SECRET` | dashboard secret (`sync: false`) | never `NEXT_PUBLIC_*`, never logged |
+| `AMA_OAUTH_SCOPE` | optional | default `users:read` |
+
+aWorks-side setup (once per environment, done by an aWorks admin):
+
+- Register an **App Store partner app** (`amb_partner_apps`) for this app — kind **MARKETPLACE** (a TENANT_PRIVATE connection cannot use `ama_session`), status APPROVED or PUBLISHED, scopes include `users:read`, client credentials issued. It only holds the OAuth credentials; the sidebar launch keeps using `amb_entity_custom_apps` (5.4).
+- If the partner app has an install row for an entity, it must be active and (if it has approved scopes) include `users:read`.
+- The launch token must stay HS256 / global-secret signed (no per-app JWT secret on the custom app row) until the custom app moves to the RS256 launch-token bridge with `aud` = this client id.
+
+If the OAuth env is **not** set, the app falls back to forwarding the launch token as Bearer to `/entity-settings/members` and logs a one-time deprecation warning. aWorks is phasing out launch tokens as login sessions, after which that fallback returns 401.
+
+Error codes: launch token refused (`invalid_ama_token` / `user_inactive`) → `SAL-E0501` (re-open the app from aWorks); any other OAuth/Open API failure → `SAL-E0502`.
+
 ### 5.5 Pre-flight checklist
 
 - [ ] `JWT_SECRET` is **identical** across AMA, platform-backend `.env`, Render `sales-report-v2-*` envs, and staging container `.env`
