@@ -207,7 +207,8 @@ case "$MODE" in
   full|"")
     log "Pulling latest code..."
     cd "$PROJECT_ROOT"
-    git pull origin main
+    # 스테이징 서버는 staging 브랜치를 쓴다 (main 변경은 sync PR 로 staging 에 먼저 합친다)
+    git pull --ff-only origin "${STG_BRANCH:-staging}"
 
     for app in "${APPS[@]}"; do
       build_app "$app"
