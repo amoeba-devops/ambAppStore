@@ -60,6 +60,8 @@ export async function GET(req: Request) {
   const hhmm = (d: Date | null) => (d ? new Date(d).toISOString().slice(11, 16) : '');
   const locale = await resolveUiLocale();
   const tStatus = await getTranslations({ locale, namespace: 'exportContent.status' });
+  const tRegion = await getTranslations({ locale, namespace: 'region' });
+  const regionCodes: readonly string[] = TRUCK_REGIONS;
   const header = await truckTripSheetHeader(locale, TRUCK_TRIP_SHEET_COLUMNS);
   type Trip = (typeof trips)[number];
   /* The 4 fixed cost types added REQ-20260916 (cleaning/repair/ferry/loading)
@@ -79,6 +81,8 @@ export async function GET(req: Request) {
     ref: (t) => t.ref,
     date: (t) => new Date(t.scheduledAt).toISOString().slice(0, 10),
     vehicle: (t) => t.plate ?? '',
+    /* Same label as the list's "Khu vực" column; unknown code printed raw. */
+    region: (t) => (t.region && regionCodes.includes(t.region) ? tRegion(t.region) : (t.region ?? '')),
     driver: (t) => t.driver ?? '',
     customer: (t) => t.customer ?? '',
     bol: (t) => t.bol ?? '',
