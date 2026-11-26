@@ -30,9 +30,21 @@ import { driverIdentity } from '@/lib/format-person-option';
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
 import { listVehicles } from '@/server/queries/vehicles.queries';
 import { listFleetDrivers } from '@/server/queries/drivers.queries';
+import { truckTripActualTotalCost } from '@/server/lib/truck-trip-sheet';
 import { TripFilters } from './_components/trip-filters';
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+
+/** Column label with an ⓘ whose native tooltip spells out how the value is
+ * derived — a formula reminder for computed columns. */
+function HintLabel({ label, hint }: { label: string; hint: string }) {
+  return (
+    <span className="inline-flex items-center justify-end gap-1" title={hint}>
+      {label}
+      <Info className="h-3.5 w-3.5 text-text-faint" />
+    </span>
+  );
+}
 
 function bcp47(locale: string): string {
   if (locale === 'vi') return 'vi-VN';
@@ -97,6 +109,19 @@ export default async function TruckTripsPage({
    * is extras only (BUG-261015). The desktop table shows each one. */
   const otherCost = (b: TruckCostBreakdown) =>
     b.extraTotal + b.cleaningFee + b.repairFee + b.ferryFee + b.loadingFee;
+  /* Formula reminders for the computed columns, built from the same glossary
+   * labels the headers use so the wording always matches. */
+  const formulaKm = t('thFormulaKm', { odoEnd: tCol('odoEnd'), odoStart: tCol('odoStart') });
+  const formulaFuel = t('thFormulaFuel', { fuelPrice: tCol('fuelPrice'), fuelLiters: tCol('fuelLiters') });
+  const formulaTotal = t('thFormulaTotalCost', {
+    fuel: tCol('fuelActualCost'),
+    toll: tCol('toll'),
+    cleaning: tCol('cleaning'),
+    repair: tCol('repair'),
+    ferry: tCol('ferry'),
+    loading: tCol('loading'),
+    other: tCol('otherAmount'),
+  });
   const plateOptions = trucks.map((v) => ({ id: v.cvhId, label: v.cvhPlateNumber }));
   const driverOptions = fleetDrivers.map((d) => ({ id: d.drvId, label: driverIdentity(d) }));
 
@@ -170,7 +195,7 @@ export default async function TruckTripsPage({
           </Card>
         ) : (
           <>
-            {/* Mobile card list — the desktop trip log has 17
+            {/* Mobile card list — the desktop trip log has 18
              * columns, so it forces horizontal scrolling on phones. Below md
              * each trip renders as a tappable card with date, customer, the
              * key operational fields + a compact cost line. */}
@@ -207,6 +232,7 @@ export default async function TruckTripsPage({
                       <span>{tCol('fuelActualCost')}: {vnd(trip.fuelActualCost)}</span>
                       <span>{tCol('toll')}: {vnd(trip.breakdown.tollFee)}</span>
                       <span>{tCol('otherFees')}: {vnd(otherCost(trip.breakdown))}</span>
+                      <span className="font-semibold text-text">{tCol('totalCost')}: {vnd(truckTripActualTotalCost(trip))}</span>
                     </div>
                   </Link>
                 </li>
@@ -224,9 +250,11 @@ export default async function TruckTripsPage({
                   <TableHead>{tCol('region')}</TableHead>
                   <TableHead>{tCol('driver')}</TableHead>
                   <TableHead>{t('thCustomer')}</TableHead>
-                  <TableHead className="text-right">{tCol('kmTotal')}</TableHead>
                   <TableHead className="text-right">
-                    <span title={t('thFuelActualHint')}>{tCol('fuelActualCost')}</span>
+                    <HintLabel label={tCol('kmTotal')} hint={formulaKm} />
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <HintLabel label={tCol('fuelActualCost')} hint={`${formulaFuel}\n${t('thFuelActualHint')}`} />
                   </TableHead>
                   <TableHead className="text-right">{tCol('toll')}</TableHead>
                   {/* The 4 fixed fees (REQ-20260916) + the freeform extra total,
@@ -236,10 +264,10 @@ export default async function TruckTripsPage({
                   <TableHead className="text-right">{tCol('ferry')}</TableHead>
                   <TableHead className="text-right">{tCol('loading')}</TableHead>
                   <TableHead className="text-right">
-                    <span className="inline-flex items-center justify-end gap-1" title={t('thOtherHint')}>
-                      {tCol('otherAmount')}
-                      <Info className="h-3.5 w-3.5 text-text-faint" />
-                    </span>
+                    <HintLabel label={tCol('otherAmount')} hint={t('thFormulaOther')} />
+                  </TableHead>
+                  <TableHead className="text-right font-semibold text-text">
+                    <HintLabel label={tCol('totalCost')} hint={`${formulaTotal}\n${t('thOtherHint')}`} />
                   </TableHead>
                   <TableHead>{tCol('status')}</TableHead>
                   <TableHead className="whitespace-nowrap">{t('thUpdated')}</TableHead>
@@ -269,6 +297,9 @@ export default async function TruckTripsPage({
                     <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.ferryFee)}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.loadingFee)}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.extraTotal)}</TableCell>
+                    <TableCell className="text-right tabular font-semibold text-text whitespace-nowrap">
+                      {vnd(truckTripActualTotalCost(trip))}
+                    </TableCell>
                     <TableCell>
                       <Badge tone={trip.status === 'COMPLETED' ? 'success' : 'neutral'} size="sm">
                         {trip.status === 'COMPLETED' ? t('statusDone') : t('statusOpen')}

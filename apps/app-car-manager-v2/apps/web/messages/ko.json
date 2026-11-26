@@ -606,7 +606,11 @@
       "thActions": "관리",
       "deleteConfirm": "이 운행을 삭제할까요? 관련 비용 데이터도 삭제됩니다.",
       "allDrivers": "모든 기사",
-      "thFuelActualHint": "이 운행에서 실제 주유한 금액 = 입력한 리터 × 단가. 월 집계나 보고서 생성에 영향받지 않습니다. km 기준 배분액은 비용 및 수익 화면에서 확인하세요."
+      "thFuelActualHint": "이 운행에서 실제 주유한 금액(입력값 기준). 월 집계나 보고서 생성에 영향받지 않습니다. km 기준 배분액은 비용 및 수익 화면에서 확인하세요.",
+      "thFormulaKm": "= {odoEnd} − {odoStart}",
+      "thFormulaFuel": "= {fuelPrice} × {fuelLiters}",
+      "thFormulaOther": "= 이 운행의 기타 비용 항목 합계 (항목명은 운행 상세 및 Excel 내보내기에서 확인).",
+      "thFormulaTotalCost": "= {fuel} + {toll} + {cleaning} + {repair} + {ferry} + {loading} + {other}"
     },
     "truckFleet": {
       "title": "차량",

@@ -7,7 +7,7 @@ import { TRUCK_REGIONS, TRUCK_TRIP_SHEET_COLUMNS, type TruckSheetColumn } from '
 import { listTruckTrips } from '@/server/queries/truck-trips.queries';
 import { attachment, exportFileName, exportSheetName } from '@/server/lib/export-file-name';
 import { resolveUiLocale } from '@/i18n/ui-locale';
-import { truckTripSheetHeader } from '@/server/lib/truck-trip-sheet';
+import { truckTripActualTotalCost, truckTripSheetHeader } from '@/server/lib/truck-trip-sheet';
 
 /** GET /truck/trips/export?q=&month= — exports the (filtered) truck trip log
  * as .xlsx. Gated to TRUCK-fleet staff (route handlers bypass the /truck layout
@@ -68,15 +68,13 @@ export async function GET(req: Request) {
    * get their own columns — client decision 2026-09-17 to show each clearly
    * instead of folding into "Chi phí phát sinh". That column now carries only
    * the freeform extra-cost total (car_trip_extra_costs), same as extraNote. */
-  const fixedFeesTotal = (t: Trip) =>
-    t.breakdown.cleaningFee + t.breakdown.repairFee + t.breakdown.ferryFee + t.breakdown.loadingFee;
   /* This export mirrors the trip-log screen, so fuel is the trip's OWN
    * recorded spend (REQ-20260822) — litres × price as entered, not the
    * per-vehicle-month allocation. The allocated view is Chi phí & Lợi nhuận
    * and its own export. Revenue/toll/extra are unaffected (raw per trip);
-   * totalCost/profit follow the actual fuel so the row adds up on its own. */
-  const totalCost = (t: Trip) =>
-    t.fuelActualCost + t.breakdown.tollFee + fixedFeesTotal(t) + t.breakdown.extraTotal;
+   * totalCost/profit follow the actual fuel so the row adds up on its own —
+   * same function as the list's "Tổng chi phí" column. */
+  const totalCost = (t: Trip) => truckTripActualTotalCost(t);
   const cell: Record<TruckSheetColumn['key'], (t: Trip) => string | number> = {
     ref: (t) => t.ref,
     date: (t) => new Date(t.scheduledAt).toISOString().slice(0, 10),
