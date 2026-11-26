@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Input } from '@car-v2/ui';
+import { formatDecimalRaw, parseDecimalText } from '@/lib/decimal-input';
 
 /** Digits with vi-VN thousand separators; anything unparseable passes through. */
 function withSeparators(raw: string): string {
@@ -18,6 +19,13 @@ const digitsOnly = (text: string) => text.replace(/[^\d]/g, '');
  * `value` is the raw numeric string (digits only); `onChange` receives the raw
  * digits (separators stripped) so existing Number()/numF() parsing keeps working.
  *
+ * `decimals > 0` (FIX-261126 OBS-1 — truck fuel đơn giá / lít): the value may
+ * carry up to that many decimals. The field reads "21.350,5" (vi-VN: "."
+ * thousands, "," decimal) and `value` / `onChange` use "21350.5". Typing "."
+ * or "," starts the decimals; pasted "21350.5" / "21.350,5" both read right
+ * (see lib/decimal-input). Default 0 = the integer-only behaviour above,
+ * unchanged for every other money field.
+ *
  * IME safety (BUG-260804): with a Vietnamese keyboard active every keystroke
  * arrives inside an open composition — the Windows Telex/VNI layouts hold one
  * because digits double as tone keys. Rewriting the node's value mid-composition
@@ -31,10 +39,16 @@ export function MoneyInput({
   value,
   onChange,
   placeholder,
+  decimals = 0,
+  unit = '₫',
 }: {
   value: string;
   onChange: (raw: string) => void;
   placeholder?: string;
+  /** Max digits after the decimal mark; 0 = whole numbers only. */
+  decimals?: number;
+  /** Suffix shown inside the field (default "₫"). */
+  unit?: ReactNode;
 }) {
   /* The field's verbatim text while an IME composition is open, else null.
    * Non-null means "show exactly this, don't format". */
@@ -42,33 +56,40 @@ export function MoneyInput({
   /* Same flag, readable synchronously: `onChange` fires in its own event and
    * cannot wait for the compositionstart re-render. */
   const isComposing = useRef(false);
+  /* Decimal mode reads a keystroke by diffing against the text shown before
+   * it; a composition is diffed as one chunk against the text it started on. */
+  const compositionBase = useRef('');
 
-  const display = composing ?? withSeparators(value);
+  const format = (raw: string) => (decimals > 0 ? formatDecimalRaw(raw) : withSeparators(raw));
+  const display = composing ?? format(value);
+  const toRaw = (text: string, prevText: string) =>
+    decimals > 0 ? parseDecimalText(text, prevText, decimals) : digitsOnly(text);
 
   return (
     <Input
       type="text"
-      inputMode="numeric"
+      inputMode={decimals > 0 ? 'decimal' : 'numeric'}
       value={display}
       onCompositionStart={(e) => {
         isComposing.current = true;
+        compositionBase.current = e.currentTarget.value;
         setComposing(e.currentTarget.value);
       }}
       onChange={(e) => {
         const text = e.target.value;
         if (isComposing.current) setComposing(text);
         /* Form state stays live either way — only the display is held back. */
-        onChange(digitsOnly(text));
+        onChange(toRaw(text, display));
       }}
       onCompositionEnd={(e) => {
         isComposing.current = false;
-        /* Dropping the mirror hands the display back to `withSeparators`, and
+        /* Dropping the mirror hands the display back to the formatter, and
          * the digits the IME just committed are what get formatted. */
         setComposing(null);
-        onChange(digitsOnly(e.currentTarget.value));
+        onChange(toRaw(e.currentTarget.value, compositionBase.current));
       }}
       placeholder={placeholder}
-      iconRight={<span className="text-xs text-text-faint">₫</span>}
+      iconRight={<span className="text-xs text-text-faint">{unit}</span>}
     />
   );
 }

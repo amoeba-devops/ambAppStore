@@ -393,9 +393,9 @@ export function TruckImportPanel({ vehicles, drivers }: { vehicles: OptionItem[]
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border bg-surface-2 text-left">
-                    <th className="px-2 py-1.5">{t('colDate')}</th>
-                    <th className="px-2 py-1.5">{t('colCustomer')}</th>
-                    <th className="px-2 py-1.5 text-right">{t('f.revenue')}</th>
+                    <th className="px-2 py-1.5">{tCol('date')}</th>
+                    <th className="px-2 py-1.5">{tCol('customer')}</th>
+                    <th className="px-2 py-1.5 text-right">{tCol('revenue')}</th>
                     <th className="px-2 py-1.5"></th>
                   </tr>
                 </thead>

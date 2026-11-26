@@ -426,9 +426,6 @@
       "chooseFile": "파일 선택",
       "parsedCount": "{file}: {count}행",
       "andMore": "… 외 {n}행",
-      "colDate": "날짜",
-      "colCustomer": "고객",
-      "colRevenue": "매출",
       "runImport": "가져오기",
       "importedToast": "{count}건 가져옴",
       "noRows": "유효한 데이터 행이 없습니다",
@@ -444,26 +441,7 @@
       "invalidRows": "제외 {n}건",
       "rowInvalid": "날짜 없음",
       "rowNotCompleted": "미완료 — 제외",
-      "importSheet": "{n}건 가져오기",
-      "f": {
-        "date": "날짜",
-        "start_time": "시작 시간",
-        "end_time": "종료 시간",
-        "customer": "고객",
-        "pickup": "상차지",
-        "stopover": "경유지",
-        "dropoff": "하차지",
-        "odo_start": "시작 주행",
-        "odo_end": "종료 주행",
-        "fuel_liters": "연료(L)",
-        "fuel_price": "단가",
-        "toll": "통행료",
-        "other_amount": "기타 비용",
-        "other_note": "기타 메모",
-        "bol": "BOL",
-        "cdf": "CDF",
-        "revenue": "매출"
-      }
+      "importSheet": "{n}건 가져오기"
     },
     "truckSettings": {
       "title": "트럭 설정",
@@ -2038,8 +2016,6 @@
       "colLiters": "실제 주유량 (L)",
       "colFuelCost": "실제 유류비 (VND)",
       "colRevenue": "매출 (VND)",
-      "colTotalCost": "총 비용 (실제, VND)",
-      "colProfit": "손익 (실제, VND)",
       "colStatus": "상태",
       "colNotes": "메모"
     }

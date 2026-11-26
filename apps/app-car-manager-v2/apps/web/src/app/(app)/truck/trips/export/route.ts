@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { hasFleet } from '@/lib/auth/fleet-access';
@@ -8,6 +7,7 @@ import { listTruckTrips } from '@/server/queries/truck-trips.queries';
 import { attachment, exportFileName, exportSheetName } from '@/server/lib/export-file-name';
 import { resolveUiLocale } from '@/i18n/ui-locale';
 import { truckTripActualTotalCost, truckTripSheetHeader } from '@/server/lib/truck-trip-sheet';
+import { buildTruckTripWorkbook } from '@/server/lib/truck-trip-workbook';
 
 /** GET /truck/trips/export?q=&month= — exports the (filtered) truck trip log
  * as .xlsx. Gated to TRUCK-fleet staff (route handlers bypass the /truck layout
@@ -59,7 +59,9 @@ export async function GET(req: Request) {
    * be added to the header without its value (the Record must be complete). */
   const hhmm = (d: Date | null) => (d ? new Date(d).toISOString().slice(11, 16) : '');
   const locale = await resolveUiLocale();
-  const tStatus = await getTranslations({ locale, namespace: 'exportContent.status' });
+  /* Status in the list's words (Đã hoàn thành / Chưa hoàn thành) so the file
+   * reads exactly like the screen; the importer accepts that wording. */
+  const tTrips = await getTranslations({ locale, namespace: 'screens.truckTrips' });
   const tRegion = await getTranslations({ locale, namespace: 'region' });
   const regionCodes: readonly string[] = TRUCK_REGIONS;
   const header = await truckTripSheetHeader(locale, TRUCK_TRIP_SHEET_COLUMNS);
@@ -109,15 +111,19 @@ export async function GET(req: Request) {
     revenue: (t) => t.breakdown.revenue,
     totalCost,
     profit: (t) => t.breakdown.revenue - totalCost(t),
-    status: (t) => tStatus(t.status),
+    status: (t) => (t.status === 'COMPLETED' ? tTrips('statusDone') : tTrips('statusOpen')),
     notes: (t) => t.notes ?? '',
   };
   const rows = trips.map((t) => TRUCK_TRIP_SHEET_COLUMNS.map((c) => cell[c.key](t)));
 
-  const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, await exportSheetName('exportContent.truckTrips', 'TruckTrips'));
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+  /* Same builder as the import template: each column typed + formatted by its
+   * `type` — dates / times as real Excel values, money / km as numbers. */
+  const body = await buildTruckTripWorkbook({
+    sheetName: await exportSheetName('exportContent.truckTrips', 'TruckTrips'),
+    header,
+    types: TRUCK_TRIP_SHEET_COLUMNS.map((c) => c.type),
+    rows,
+  });
 
   /* Filename in the exporter's language; the month suffix is dropped when the
    * list isn't filtered by month (export covers every month). */
@@ -130,7 +136,7 @@ export async function GET(req: Request) {
     `truck-trips${month ? `-${month}` : ''}`,
   );
 
-  return new Response(new Uint8Array(buf), {
+  return new Response(body, {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': attachment(`${fileName}.xlsx`),
