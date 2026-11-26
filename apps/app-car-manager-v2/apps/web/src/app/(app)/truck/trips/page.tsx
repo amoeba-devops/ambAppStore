@@ -90,12 +90,11 @@ export default async function TruckTripsPage({
   const timeZone = await getTenantTimeZone(user.entId);
   const vnd = (n: number) => n.toLocaleString(loc) + ' ₫';
   const date = (d: Date) => formatDay(d, loc);
-  /* This column merges the 4 fixed cost types added REQ-20260916 (cleaning/
-   * repair/ferry/loading) with the freeform extra-cost total, for display only
-   * — avoids widening an already-busy table with 4 more columns. It has its
-   * OWN label (`otherFees`): under "Chi phí phát sinh" it showed a different
-   * number than the export's column of that name, which is extras only
-   * (BUG-261015). */
+  /* Mobile cards only: the 4 fixed cost types added REQ-20260916 (cleaning/
+   * repair/ferry/loading) merged with the freeform extra-cost total, to keep a
+   * card short. It has its OWN label (`otherFees`): under "Chi phí phát sinh"
+   * it showed a different number than the export's column of that name, which
+   * is extras only (BUG-261015). The desktop table shows each one. */
   const otherCost = (b: TruckCostBreakdown) =>
     b.extraTotal + b.cleaningFee + b.repairFee + b.ferryFee + b.loadingFee;
   const plateOptions = trucks.map((v) => ({ id: v.cvhId, label: v.cvhPlateNumber }));
@@ -171,8 +170,8 @@ export default async function TruckTripsPage({
           </Card>
         ) : (
           <>
-            {/* Mobile card list — the desktop trip log is ~865px wide (10
-             * columns) so it forces horizontal scrolling on phones. Below md
+            {/* Mobile card list — the desktop trip log has 17
+             * columns, so it forces horizontal scrolling on phones. Below md
              * each trip renders as a tappable card with date, customer, the
              * key operational fields + a compact cost line. */}
             <ul className="md:hidden space-y-2.5">
@@ -230,12 +229,15 @@ export default async function TruckTripsPage({
                     <span title={t('thFuelActualHint')}>{tCol('fuelActualCost')}</span>
                   </TableHead>
                   <TableHead className="text-right">{tCol('toll')}</TableHead>
+                  {/* The 4 fixed fees (REQ-20260916) + the freeform extra total,
+                    * one column each like the export (user request 2026-11-26). */}
+                  <TableHead className="text-right">{tCol('cleaning')}</TableHead>
+                  <TableHead className="text-right">{tCol('repair')}</TableHead>
+                  <TableHead className="text-right">{tCol('ferry')}</TableHead>
+                  <TableHead className="text-right">{tCol('loading')}</TableHead>
                   <TableHead className="text-right">
-                    <span
-                      className="inline-flex items-center justify-end gap-1"
-                      title={`${t('thOtherFeesHint')}\n${t('thOtherHint')}`}
-                    >
-                      {tCol('otherFees')}
+                    <span className="inline-flex items-center justify-end gap-1" title={t('thOtherHint')}>
+                      {tCol('otherAmount')}
                       <Info className="h-3.5 w-3.5 text-text-faint" />
                     </span>
                   </TableHead>
@@ -262,7 +264,11 @@ export default async function TruckTripsPage({
                     <TableCell className="text-right tabular">{trip.km != null ? `${trip.km.toLocaleString(loc)} km` : '—'}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(trip.fuelActualCost)}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.tollFee)}</TableCell>
-                    <TableCell className="text-right tabular text-text-muted">{vnd(otherCost(trip.breakdown))}</TableCell>
+                    <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.cleaningFee)}</TableCell>
+                    <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.repairFee)}</TableCell>
+                    <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.ferryFee)}</TableCell>
+                    <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.loadingFee)}</TableCell>
+                    <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.extraTotal)}</TableCell>
                     <TableCell>
                       <Badge tone={trip.status === 'COMPLETED' ? 'success' : 'neutral'} size="sm">
                         {trip.status === 'COMPLETED' ? t('statusDone') : t('statusOpen')}

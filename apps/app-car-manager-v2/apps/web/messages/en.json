@@ -494,7 +494,6 @@
       "emptyDesc": "Log your first truck trip.",
       "thCustomer": "Customer · BOL",
       "thOtherHint": "Operational log — includes every trip (even not yet completed) and every month unless filtered. May differ from the Cost & Profit total (that one only counts completed trips in the viewed month).",
-      "thOtherFeesHint": "Cleaning, repair, ferry/bridge and loading fees plus other costs — the Excel export lists each one separately.",
       "statusDone": "Completed",
       "statusOpen": "Open",
       "newTitle": "New trip",
