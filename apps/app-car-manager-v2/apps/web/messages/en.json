@@ -494,7 +494,6 @@
       "emptyDesc": "Log your first truck trip.",
       "thCustomer": "Customer · BOL",
       "thOtherHint": "Operational log — includes every trip (even not yet completed) and every month unless filtered. May differ from the Cost & Profit total (that one only counts completed trips in the viewed month).",
-      "thOtherFeesHint": "Cleaning, repair, ferry/bridge and loading fees plus other costs — the Excel export lists each one separately.",
       "statusDone": "Completed",
       "statusOpen": "Open",
       "newTitle": "New trip",
@@ -607,7 +606,11 @@
       "thActions": "Actions",
       "deleteConfirm": "Delete this trip? Associated cost data will be removed.",
       "allDrivers": "All drivers",
-      "thFuelActualHint": "This trip's own fuel spend = litres × unit price as entered. Unaffected by the month or by report generation. The km-based allocation is on the Costs & Profit screen."
+      "thFuelActualHint": "This trip's own fuel spend, as entered. Unaffected by the month or by report generation. The km-based allocation is on the Costs & Profit screen.",
+      "thFormulaKm": "= {odoEnd} − {odoStart}",
+      "thFormulaFuel": "= {fuelPrice} × {fuelLiters}",
+      "thFormulaOther": "= Sum of this trip's other cost items (each item's name is on the trip detail and in the Excel export).",
+      "thFormulaTotalCost": "= {fuel} + {toll} + {cleaning} + {repair} + {ferry} + {loading} + {other}"
     },
     "truckFleet": {
       "title": "Vehicles",
