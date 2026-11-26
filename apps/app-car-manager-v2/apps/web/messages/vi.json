@@ -426,9 +426,6 @@
       "chooseFile": "Chọn file",
       "parsedCount": "{file}: {count} dòng",
       "andMore": "… và {n} dòng nữa",
-      "colDate": "Ngày",
-      "colCustomer": "Khách hàng",
-      "colRevenue": "Doanh thu",
       "runImport": "Nhập dữ liệu",
       "importedToast": "Đã nhập {count} chuyến",
       "noRows": "Không tìm thấy dòng dữ liệu hợp lệ",
@@ -444,26 +441,7 @@
       "invalidRows": "{n} dòng bỏ qua",
       "rowInvalid": "Thiếu ngày",
       "rowNotCompleted": "Chưa hoàn tất — bỏ qua",
-      "importSheet": "Nhập {n} dòng",
-      "f": {
-        "date": "Ngày",
-        "start_time": "Giờ bắt đầu",
-        "end_time": "Giờ kết thúc",
-        "customer": "Khách hàng",
-        "pickup": "Điểm lấy hàng",
-        "stopover": "Điểm ghé",
-        "dropoff": "Điểm giao hàng",
-        "odo_start": "Đồng hồ đầu",
-        "odo_end": "Đồng hồ cuối",
-        "fuel_liters": "Lượng nhiên liệu (L)",
-        "fuel_price": "Đơn giá (đ/L)",
-        "toll": "Phí cầu đường",
-        "other_amount": "Phát sinh khác",
-        "other_note": "Ghi chú phát sinh",
-        "bol": "Số BOL",
-        "cdf": "Số CDF",
-        "revenue": "Doanh thu"
-      }
+      "importSheet": "Nhập {n} dòng"
     },
     "truckSettings": {
       "title": "Cấu hình xe tải",
@@ -2038,8 +2016,6 @@
       "colLiters": "Lượng dầu thực tế (L)",
       "colFuelCost": "Phí nhiên liệu thực tế (đ)",
       "colRevenue": "Doanh thu (đ)",
-      "colTotalCost": "Tổng chi phí theo thực tế (đ)",
-      "colProfit": "Lợi nhuận theo thực tế (đ)",
       "colStatus": "Trạng thái",
       "colNotes": "Ghi chú"
     }

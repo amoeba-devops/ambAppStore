@@ -426,9 +426,6 @@
       "chooseFile": "Choose file",
       "parsedCount": "{file}: {count} rows",
       "andMore": "… and {n} more rows",
-      "colDate": "Date",
-      "colCustomer": "Customer",
-      "colRevenue": "Revenue",
       "runImport": "Import",
       "importedToast": "Imported {count} trips",
       "noRows": "No valid data rows found",
@@ -444,26 +441,7 @@
       "invalidRows": "{n} skipped",
       "rowInvalid": "Missing date",
       "rowNotCompleted": "Not completed — skipped",
-      "importSheet": "Import {n} rows",
-      "f": {
-        "date": "Date",
-        "start_time": "Start time",
-        "end_time": "End time",
-        "customer": "Customer",
-        "pickup": "Pickup",
-        "stopover": "Waypoint",
-        "dropoff": "Drop-off",
-        "odo_start": "Odo start",
-        "odo_end": "Odo end",
-        "fuel_liters": "Fuel (L)",
-        "fuel_price": "Unit price",
-        "toll": "Toll",
-        "other_amount": "Other cost",
-        "other_note": "Other note",
-        "bol": "BOL",
-        "cdf": "CDF",
-        "revenue": "Revenue"
-      }
+      "importSheet": "Import {n} rows"
     },
     "truckSettings": {
       "title": "Truck settings",
@@ -2038,8 +2016,6 @@
       "colLiters": "Actual litres (L)",
       "colFuelCost": "Actual fuel cost (VND)",
       "colRevenue": "Selling (VND)",
-      "colTotalCost": "Total cost, actual (VND)",
-      "colProfit": "Profit, actual (VND)",
       "colStatus": "Status",
       "colNotes": "Notes"
     }

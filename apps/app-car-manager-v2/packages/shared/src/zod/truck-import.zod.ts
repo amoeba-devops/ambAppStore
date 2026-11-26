@@ -13,43 +13,56 @@ import { z } from 'zod';
  *   only. Every other column is in the template, same order, same label.
  *   `vehicle` / `driver` stay in the template for reference only: the import
  *   screen picks one truck + driver for the whole file.
+ * `type` = the cell's Excel data type, applied the same way to the export's
+ *   cells and to the template's columns (number format), so a value has the
+ *   same type whichever file it is typed into — see TRUCK_SHEET_CELL_TYPES.
  */
+
+/**
+ * Excel data type of a trip-log column. `text` keeps codes like a BOL "0123"
+ * from turning into numbers; `date` / `time` are real Excel dates / times (not
+ * text) so they sort and filter, and the importer reads them as serials.
+ */
+export const TRUCK_SHEET_CELL_TYPES = ['text', 'date', 'time', 'int', 'money', 'decimal'] as const;
+export type TruckSheetCellType = (typeof TRUCK_SHEET_CELL_TYPES)[number];
+
 export const TRUCK_TRIP_SHEET_COLUMNS = [
-  { key: 'ref', input: false },
-  { key: 'date' },
-  { key: 'vehicle' },
+  { key: 'ref', type: 'text', input: false },
+  { key: 'date', type: 'date' },
+  { key: 'vehicle', type: 'text' },
   /* Follows the truck (cvh_region) — shown on the list, so exported too
    * (FIX-261126); the import takes it from the truck picked on screen. */
-  { key: 'region', input: false },
-  { key: 'driver' },
-  { key: 'customer' },
-  { key: 'bol' },
-  { key: 'cdf' },
-  { key: 'startTime' },
-  { key: 'endTime' },
-  { key: 'pickup' },
-  { key: 'stopover' },
-  { key: 'dropoff' },
-  { key: 'odoStart', unit: 'unitKm' },
-  { key: 'odoEnd', unit: 'unitKm' },
-  { key: 'kmTotal', input: false },
-  { key: 'toll', unit: 'unitMoney' },
-  { key: 'cleaning', unit: 'unitMoney' },
-  { key: 'repair', unit: 'unitMoney' },
-  { key: 'ferry', unit: 'unitMoney' },
-  { key: 'loading', unit: 'unitMoney' },
-  { key: 'otherAmount', unit: 'unitMoney' },
-  { key: 'otherNote' },
-  { key: 'fuelPrice', unit: 'unitPricePerL' },
-  { key: 'fuelLiters', unit: 'unitLitre' },
-  { key: 'fuelActualCost', unit: 'unitMoney', input: false },
-  { key: 'revenue', unit: 'unitMoney' },
-  { key: 'totalCost', input: false },
-  { key: 'profit', input: false },
-  { key: 'status', input: false },
-  { key: 'notes' },
+  { key: 'region', type: 'text', input: false },
+  { key: 'driver', type: 'text' },
+  { key: 'customer', type: 'text' },
+  { key: 'bol', type: 'text' },
+  { key: 'cdf', type: 'text' },
+  { key: 'startTime', type: 'time' },
+  { key: 'endTime', type: 'time' },
+  { key: 'pickup', type: 'text' },
+  { key: 'stopover', type: 'text' },
+  { key: 'dropoff', type: 'text' },
+  { key: 'odoStart', type: 'int', unit: 'unitKm' },
+  { key: 'odoEnd', type: 'int', unit: 'unitKm' },
+  { key: 'kmTotal', type: 'int', input: false },
+  { key: 'toll', type: 'money', unit: 'unitMoney' },
+  { key: 'cleaning', type: 'money', unit: 'unitMoney' },
+  { key: 'repair', type: 'money', unit: 'unitMoney' },
+  { key: 'ferry', type: 'money', unit: 'unitMoney' },
+  { key: 'loading', type: 'money', unit: 'unitMoney' },
+  { key: 'otherAmount', type: 'money', unit: 'unitMoney' },
+  { key: 'otherNote', type: 'text' },
+  { key: 'fuelPrice', type: 'decimal', unit: 'unitPricePerL' },
+  { key: 'fuelLiters', type: 'decimal', unit: 'unitLitre' },
+  { key: 'fuelActualCost', type: 'money', unit: 'unitMoney', input: false },
+  { key: 'revenue', type: 'money', unit: 'unitMoney' },
+  { key: 'totalCost', type: 'money', unit: 'unitMoney', input: false },
+  { key: 'profit', type: 'money', unit: 'unitMoney', input: false },
+  { key: 'status', type: 'text', input: false },
+  { key: 'notes', type: 'text' },
 ] as const satisfies readonly {
   key: string;
+  type: TruckSheetCellType;
   unit?: 'unitKm' | 'unitMoney' | 'unitLitre' | 'unitPricePerL';
   input?: false;
 }[];
@@ -117,12 +130,15 @@ export const TRUCK_IMPORT_ALIASES: Record<string, { any: string[]; not?: string[
 };
 
 /**
- * `exportContent.status.COMPLETED` in every UI language (vi / en / ko), plus the
- * raw enum. An exported sheet carries the status in the exporter's language, so
- * the importer must recognise all three regardless of its own. Keep in sync
- * with the message files.
+ * "Completed" as a trip-log export writes it, in every UI language (vi / en /
+ * ko), plus the raw enum. The export now uses the list's wording
+ * (`screens.truckTrips.statusDone`: Đã hoàn thành / Completed / 완료); 'hoàn tất'
+ * (`exportContent.status.COMPLETED`) stays for files exported before that. An
+ * exported sheet carries the status in the exporter's language, so the importer
+ * must recognise all of them regardless of its own. Keep in sync with the
+ * message files.
  */
-export const TRUCK_IMPORT_COMPLETED_STATUS = ['hoàn tất', 'completed', '완료'] as const;
+export const TRUCK_IMPORT_COMPLETED_STATUS = ['đã hoàn thành', 'hoàn tất', 'completed', '완료'] as const;
 
 /**
  * May this sheet row be imported? Import always creates COMPLETED trips, so an

@@ -226,12 +226,12 @@ export default async function TruckTripsPage({
                       <span className="tabular">· {trip.km != null ? `${trip.km.toLocaleString(loc)} km` : '—'}</span>
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-x-3 text-xs text-text-faint tabular">
+                      <span>{tCol('toll')}: {vnd(trip.breakdown.tollFee)}</span>
+                      <span>{tCol('otherFees')}: {vnd(otherCost(trip.breakdown))}</span>
                       {/* Operations view shows the trip's OWN fuel spend
                         * (REQ-20260822) — the pooled/allocated figure lives on
                         * Chi phí & Lợi nhuận, which says so in its header. */}
                       <span>{tCol('fuelActualCost')}: {vnd(trip.fuelActualCost)}</span>
-                      <span>{tCol('toll')}: {vnd(trip.breakdown.tollFee)}</span>
-                      <span>{tCol('otherFees')}: {vnd(otherCost(trip.breakdown))}</span>
                       <span className="font-semibold text-text">{tCol('totalCost')}: {vnd(truckTripActualTotalCost(trip))}</span>
                     </div>
                   </Link>
@@ -249,22 +249,25 @@ export default async function TruckTripsPage({
                   <TableHead>{tCol('vehicle')}</TableHead>
                   <TableHead>{tCol('region')}</TableHead>
                   <TableHead>{tCol('driver')}</TableHead>
-                  <TableHead>{t('thCustomer')}</TableHead>
+                  {/* Glossary names joined, so the header reads exactly like the
+                    * export's "Khách hàng" + "Số BOL" columns. */}
+                  <TableHead>{`${tCol('customer')} · ${tCol('bol')}`}</TableHead>
                   <TableHead className="text-right">
                     <HintLabel label={tCol('kmTotal')} hint={formulaKm} />
                   </TableHead>
-                  <TableHead className="text-right">
-                    <HintLabel label={tCol('fuelActualCost')} hint={`${formulaFuel}\n${t('thFuelActualHint')}`} />
-                  </TableHead>
                   <TableHead className="text-right">{tCol('toll')}</TableHead>
-                  {/* The 4 fixed fees (REQ-20260916) + the freeform extra total,
-                    * one column each like the export (user request 2026-11-26). */}
+                  {/* Cost columns in the export's order (TRUCK_TRIP_SHEET_COLUMNS):
+                    * toll → 4 fixed fees (REQ-20260916) → extra total → actual
+                    * fuel → total, so screen and file read the same left to right. */}
                   <TableHead className="text-right">{tCol('cleaning')}</TableHead>
                   <TableHead className="text-right">{tCol('repair')}</TableHead>
                   <TableHead className="text-right">{tCol('ferry')}</TableHead>
                   <TableHead className="text-right">{tCol('loading')}</TableHead>
                   <TableHead className="text-right">
                     <HintLabel label={tCol('otherAmount')} hint={t('thFormulaOther')} />
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <HintLabel label={tCol('fuelActualCost')} hint={`${formulaFuel}\n${t('thFuelActualHint')}`} />
                   </TableHead>
                   <TableHead className="text-right font-semibold text-text">
                     <HintLabel label={tCol('totalCost')} hint={`${formulaTotal}\n${t('thOtherHint')}`} />
@@ -290,13 +293,13 @@ export default async function TruckTripsPage({
                       {trip.bol && <div className="text-xs text-text-faint font-mono">{trip.bol}</div>}
                     </TableCell>
                     <TableCell className="text-right tabular">{trip.km != null ? `${trip.km.toLocaleString(loc)} km` : '—'}</TableCell>
-                    <TableCell className="text-right tabular text-text-muted">{vnd(trip.fuelActualCost)}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.tollFee)}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.cleaningFee)}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.repairFee)}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.ferryFee)}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.loadingFee)}</TableCell>
                     <TableCell className="text-right tabular text-text-muted">{vnd(trip.breakdown.extraTotal)}</TableCell>
+                    <TableCell className="text-right tabular text-text-muted">{vnd(trip.fuelActualCost)}</TableCell>
                     <TableCell className="text-right tabular font-semibold text-text whitespace-nowrap">
                       {vnd(truckTripActualTotalCost(trip))}
                     </TableCell>
