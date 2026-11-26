@@ -494,7 +494,6 @@
       "emptyDesc": "Ghi nhận chuyến xe tải đầu tiên.",
       "thCustomer": "Khách hàng · BOL",
       "thOtherHint": "Nhật ký vận hành — gồm mọi chuyến (kể cả chưa hoàn thành) và mọi tháng nếu chưa lọc. Có thể khác tổng ở Chi phí & Lợi nhuận (chỉ tính chuyến đã hoàn thành trong tháng đang xem).",
-      "thOtherFeesHint": "Gồm phí vệ sinh, sửa chữa, cầu phà, bốc dỡ và chi phí phát sinh — file Xuất Excel tách riêng từng khoản.",
       "statusDone": "Đã hoàn thành",
       "statusOpen": "Chưa hoàn thành",
       "newTitle": "Tạo chuyến",
@@ -607,7 +606,11 @@
       "thActions": "Hành động",
       "deleteConfirm": "Xoá chuyến này? Dữ liệu chi phí liên quan sẽ bị xoá.",
       "allDrivers": "Tất cả tài xế",
-      "thFuelActualHint": "Phí nhiên liệu chuyến này thực bơm = số lít × đơn giá đã nhập. Không thay đổi theo tháng hay theo báo cáo. Phí nhiên liệu phân bổ theo km xem ở màn Chi phí & Lợi nhuận."
+      "thFuelActualHint": "Phí nhiên liệu chuyến này thực bơm, theo số đã nhập. Không thay đổi theo tháng hay theo báo cáo. Phí nhiên liệu phân bổ theo km xem ở màn Chi phí & Lợi nhuận.",
+      "thFormulaKm": "= {odoEnd} − {odoStart}",
+      "thFormulaFuel": "= {fuelPrice} × {fuelLiters}",
+      "thFormulaOther": "= Tổng các khoản chi phí phát sinh của chuyến (xem tên từng khoản ở chi tiết chuyến hoặc file Xuất Excel).",
+      "thFormulaTotalCost": "= {fuel} + {toll} + {cleaning} + {repair} + {ferry} + {loading} + {other}"
     },
     "truckFleet": {
       "title": "Phương tiện",
