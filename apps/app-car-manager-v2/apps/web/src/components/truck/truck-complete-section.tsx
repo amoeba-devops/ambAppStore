@@ -291,8 +291,10 @@ export function TruckCompleteSection({
         <Field label={tR('fuelLiters')}>
           <Input type="number" step="0.01" min="0" value={f.fuelLiters} onChange={set('fuelLiters')} />
         </Field>
+        {/* Unit price keeps 2 decimals like the DB / Excel files (FIX-261126
+          * OBS-1) — step="1" flagged 21350.5 as invalid. */}
         <Field label={tR('fuelPrice')}>
-          <Input type="number" step="1" min="0" value={f.fuelPrice} onChange={set('fuelPrice')} />
+          <Input type="number" step="0.01" min="0" value={f.fuelPrice} onChange={set('fuelPrice')} />
         </Field>
       </div>
 

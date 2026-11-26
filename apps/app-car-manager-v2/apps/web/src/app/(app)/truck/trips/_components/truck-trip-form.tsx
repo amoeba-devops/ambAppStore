@@ -30,6 +30,7 @@ import { formatDayKey } from '@/lib/format-day';
 import { GuardConfirmDialog, useGuardConfirm } from '@/components/dialogs/guard-confirm-dialog';
 import { FormField } from '@/components/forms/form-section';
 import { MoneyInput } from '@/components/inputs/money-input';
+import { canonicalDecimalRaw } from '@/lib/decimal-input';
 import { AttachmentInput, type StoredAttachment } from '@/components/attachments/attachment-input';
 import { uploadTruckCostFile } from '@/lib/truck-cost-upload';
 import { StopBuilder, makeDefaultStops, type StopField } from './stop-builder';
@@ -181,12 +182,20 @@ export function TruckTripForm({
   initial?: TruckTripFormInitial;
 }) {
   const t = useTranslations('screens.truckTrips.form');
+  const tCol = useTranslations('columns.truck');
   const tErr = useTranslations();
   const locale = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const guard = useGuardConfirm();
-  const [f, setF] = useState({ ...EMPTY_FIELDS, ...initial });
+  const [f, setF] = useState(() => ({
+    ...EMPTY_FIELDS,
+    ...initial,
+    /* numeric(…,2) comes back padded ("21350.50", "30.00") — start the decimal
+     * fuel fields from the plain number so they open as "21.350,5" / "30". */
+    fuelPrice: canonicalDecimalRaw(initial?.fuelPrice),
+    fuelLiters: canonicalDecimalRaw(initial?.fuelLiters),
+  }));
   const [markCompleted, setMarkCompleted] = useState(initial?.markCompleted ?? true);
 
   /* Stop builder state — initialised from saved stopovers or depot defaults. */
@@ -465,11 +474,15 @@ export function TruckTripForm({
    * up, the figure itself. */
   const fuelInputs = (
     <>
+      {/* Both take up to 2 decimals, written the vi-VN way ("40,25" L,
+        * "21.350,5" ₫) — same precision as the DB columns and the Excel
+        * template / export (#,##0.00). The price used to be integer-only, so
+        * an imported 21.350,5 turned into 2.135.050 on edit (FIX-261126 OBS-1). */}
       <FormField label={t('fuelLiters')} inline>
-        <Input type="number" step="0.01" min="0" value={f.fuelLiters} onChange={set('fuelLiters')} />
+        <MoneyInput value={f.fuelLiters} onChange={setNum('fuelLiters')} decimals={2} unit={tCol('unitLitre')} />
       </FormField>
       <FormField label={t('fuelPrice')} inline>
-        <MoneyInput value={f.fuelPrice} onChange={setNum('fuelPrice')} />
+        <MoneyInput value={f.fuelPrice} onChange={setNum('fuelPrice')} decimals={2} />
       </FormField>
       {preview.fuelCost > 0 && (
         <p className="text-sm text-text sm:col-span-2">
