@@ -8,18 +8,17 @@ import type { TruckCostBreakdown } from '@car-v2/core/truck';
  * layout (TRUCK_TRIP_SHEET_COLUMNS) — the export and the import template both
  * call this, so a column has the same label + unit in both files (BUG-261015).
  *
- * Labels come from the `columns.truck` glossary; total cost / profit keep the
- * export's "actual" wording (REQ-20260822), which already carries its unit.
+ * Every label comes from the `columns.truck` glossary — the same words the
+ * trip-list headers use, so a column is named identically on screen, in the
+ * export and in the template (total cost / profit included; the "actual fuel"
+ * meaning of REQ-20260822 is explained by the list's tooltip).
  */
 export async function truckTripSheetHeader(
   locale: string,
   columns: readonly TruckSheetColumn[],
 ): Promise<string[]> {
   const tCol = await getTranslations({ locale, namespace: 'columns.truck' });
-  const tExp = await getTranslations({ locale, namespace: 'exportContent.truckTrips' });
   return columns.map((c) => {
-    if (c.key === 'totalCost') return tExp('colTotalCost');
-    if (c.key === 'profit') return tExp('colProfit');
     const label = tCol(c.key);
     return 'unit' in c && c.unit ? `${label} (${tCol(c.unit)})` : label;
   });

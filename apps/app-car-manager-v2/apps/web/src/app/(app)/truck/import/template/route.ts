@@ -1,10 +1,10 @@
-import * as XLSX from 'xlsx';
 import { TRUCK_TEMPLATE_COLUMNS } from '@car-v2/shared/zod';
 import { resolveUiLocale } from '@/i18n/ui-locale';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { hasFleet } from '@/lib/auth/fleet-access';
 import { attachment, exportFileName, exportSheetName } from '@/server/lib/export-file-name';
 import { truckTripSheetHeader } from '@/server/lib/truck-trip-sheet';
+import { buildTruckTripWorkbook } from '@/server/lib/truck-trip-workbook';
 
 /**
  * GET /truck/import/template — downloads the CR-Vietnam-Truck-v1 .xlsx template
@@ -26,17 +26,17 @@ export async function GET() {
     return new Response('Forbidden', { status: 403 });
   }
 
-  /* Same columns, order, labels and units as the trip-log export, minus the
-   * export-only computed ones (BUG-261015) — see TRUCK_TRIP_SHEET_COLUMNS.
-   * Header row in the downloader's language. */
-  const headers = await truckTripSheetHeader(await resolveUiLocale(), TRUCK_TEMPLATE_COLUMNS);
-  const ws = XLSX.utils.aoa_to_sheet([headers]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, await exportSheetName('screens.truckImport', 'TripLog'));
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
-  /* Wrap in a plain Uint8Array — Node Buffer isn't a valid BodyInit under the
-   * web lib types used here. */
-  const body = new Uint8Array(buf);
+  /* Same columns, order, labels, units AND data types as the trip-log export,
+   * minus the export-only computed ones (BUG-261015) — see
+   * TRUCK_TRIP_SHEET_COLUMNS. Header row in the downloader's language; every
+   * column pre-formatted by its type (date dd/mm/yyyy, time hh:mm, money
+   * #,##0, codes as text) so typed values land as the same type the export
+   * writes. */
+  const body = await buildTruckTripWorkbook({
+    sheetName: await exportSheetName('screens.truckImport', 'TripLog'),
+    header: await truckTripSheetHeader(await resolveUiLocale(), TRUCK_TEMPLATE_COLUMNS),
+    types: TRUCK_TEMPLATE_COLUMNS.map((c) => c.type),
+  });
   const fileName = await exportFileName('screens.truckImport', 'fileName', {}, 'CR-Vietnam-Truck-v1');
 
   return new Response(body, {
