@@ -18,6 +18,9 @@ export const TRUCK_TRIP_SHEET_COLUMNS = [
   { key: 'ref', input: false },
   { key: 'date' },
   { key: 'vehicle' },
+  /* Follows the truck (cvh_region) — shown on the list, so exported too
+   * (FIX-261126); the import takes it from the truck picked on screen. */
+  { key: 'region', input: false },
   { key: 'driver' },
   { key: 'customer' },
   { key: 'bol' },

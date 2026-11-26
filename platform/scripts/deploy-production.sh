@@ -39,10 +39,13 @@ APP_WEB_PORT=5200
 
 MODE="${1:-full}"
 
+# 서버 계정이 docker 그룹에 없으면 sudo docker 로 실행한다 (스크립트 자체는 sudo 없이 실행 — git pull 은 서버 계정으로)
+if docker info >/dev/null 2>&1; then DOCKER="docker"; else DOCKER="sudo docker"; fi
+
 # ---- Pre-checks ----
-if ! docker network inspect amb-apps-network >/dev/null 2>&1; then
+if ! $DOCKER network inspect amb-apps-network >/dev/null 2>&1; then
   log "Creating external Docker network: amb-apps-network"
-  docker network create amb-apps-network
+  $DOCKER network create amb-apps-network
 fi
 
 if [ ! -f "$APP_DIR/$APP_COMPOSE" ]; then
@@ -52,7 +55,7 @@ if [ ! -f "$APP_DIR/.env" ]; then
   error ".env not found at $APP_DIR/.env — 프로덕션 환경변수 파일 필수 (JWT_SECRET 등)"; exit 1
 fi
 
-compose() { (cd "$APP_DIR" && docker compose --env-file .env -f "$APP_COMPOSE" "$@"); }
+compose() { (cd "$APP_DIR" && $DOCKER compose --env-file .env -f "$APP_COMPOSE" "$@"); }
 
 build_app() {
   log "Building [platform]..."
@@ -71,8 +74,8 @@ verify_app() {
   log "Verifying [platform]..."
   echo -n "  Backend  (port $APP_BFF_PORT/api/v1/health): "
   curl -sf "http://localhost:$APP_BFF_PORT/api/v1/health" && echo "" || echo "FAIL"
-  echo -n "  Catalog  (port $APP_BFF_PORT/api/v1/apps):   "
-  curl -sf "http://localhost:$APP_BFF_PORT/api/v1/apps" >/dev/null && echo "OK" || echo "FAIL"
+  echo -n "  Catalog  (port $APP_BFF_PORT/api/v1/platform/apps): "
+  curl -sf "http://localhost:$APP_BFF_PORT/api/v1/platform/apps" >/dev/null && echo "OK" || echo "FAIL"
   echo -n "  Frontend (port $APP_WEB_PORT):               "
   curl -sf -o /dev/null -w "%{http_code}" "http://localhost:$APP_WEB_PORT/" && echo "" || echo "FAIL"
   log "Container status:"
@@ -85,7 +88,7 @@ case "$MODE" in
   verify)  verify_app ;;
   full|"")
     log "Pulling latest code (origin/$PROD_BRANCH)..."
-    (cd "$PROJECT_ROOT" && git pull origin "$PROD_BRANCH")
+    (cd "$PROJECT_ROOT" && git pull --ff-only origin "$PROD_BRANCH")
     build_app
     restart_app
     log "Waiting for services to be healthy..."
